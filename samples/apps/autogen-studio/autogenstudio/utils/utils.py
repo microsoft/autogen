@@ -3,15 +3,17 @@ import hashlib
 import os
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from dotenv import load_dotenv
+from loguru import logger
 
-import autogen
-from autogen.oai.client import OpenAIWrapper
+from autogen.coding import DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
+from autogen.oai.client import ModelClient, OpenAIWrapper
 
-from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
+from ..datamodel import CodeExecutionConfigTypes, Model, Skill
 from ..version import APP_NAME
 
 
@@ -23,6 +25,23 @@ def md5_hash(text: str) -> str:
     :return: The MD5 hash of the text
     """
     return hashlib.md5(text.encode()).hexdigest()
+
+
+def check_and_cast_datetime_fields(obj: Any) -> Any:
+    if hasattr(obj, "created_at") and isinstance(obj.created_at, str):
+        obj.created_at = str_to_datetime(obj.created_at)
+
+    if hasattr(obj, "updated_at") and isinstance(obj.updated_at, str):
+        obj.updated_at = str_to_datetime(obj.updated_at)
+
+    return obj
+
+
+def str_to_datetime(dt_str: str) -> datetime:
+    if dt_str[-1] == "Z":
+        # Replace 'Z' with '+00:00' for UTC timezone
+        dt_str = dt_str[:-1] + "+00:00"
+    return datetime.fromisoformat(dt_str)
 
 
 def clear_folder(folder_path: str) -> None:
@@ -98,7 +117,16 @@ def get_file_type(file_path: str) -> str:
     CSV_EXTENSIONS = {".csv", ".xlsx"}
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".tiff",
+        ".svg",
+        ".webp",
+    }
     # Supported (web) video extensions
     VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
@@ -199,6 +227,33 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
     return modified_files
 
 
+def get_app_root() -> str:
+    """
+    Get the root directory of the application.
+
+    :return: The root directory of the application.
+    """
+    app_name = f".{APP_NAME}"
+    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
+    if not os.path.exists(default_app_root):
+        os.makedirs(default_app_root, exist_ok=True)
+    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+    return app_root
+
+
+def get_db_uri(app_root: str) -> str:
+    """
+    Get the default database URI for the application.
+
+    :param app_root: The root directory of the application.
+    :return: The default database URI.
+    """
+    db_uri = f"sqlite:///{os.path.join(app_root, 'database.sqlite')}"
+    db_uri = os.environ.get("AUTOGENSTUDIO_DATABASE_URI") or db_uri
+    logger.info(f"Using database URI: {db_uri}")
+    return db_uri
+
+
 def init_app_folders(app_file_path: str) -> Dict[str, str]:
     """
     Initialize folders needed for a web server, such as static file directories
@@ -207,12 +262,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
-
-    app_name = f".{APP_NAME}"
-    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
-    if not os.path.exists(default_app_root):
-        os.makedirs(default_app_root, exist_ok=True)
-    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+    app_root = get_app_root()
 
     if not os.path.exists(app_root):
         os.makedirs(app_root, exist_ok=True)
@@ -220,7 +270,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     # load .env file if it exists
     env_file = os.path.join(app_root, ".env")
     if os.path.exists(env_file):
-        print(f"Loading environment variables from {env_file}")
+        logger.info(f"Loaded environment variables from {env_file}")
         load_dotenv(env_file)
 
     files_static_root = os.path.join(app_root, "files/")
@@ -233,8 +283,9 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
         "files_static_root": files_static_root,
         "static_folder_root": static_folder_root,
         "app_root": app_root,
+        "database_engine_uri": get_db_uri(app_root=app_root),
     }
-    print(f"Initialized application data folder: {app_root}")
+    logger.info(f"Initialized application data folder: {app_root}")
     return folders
 
 
@@ -258,11 +309,11 @@ install via pip and use --quiet option.
     for skill in skills:
         prompt += f"""
 
-##### Begin of {skill.title} #####
+##### Begin of {skill.name} #####
 
 {skill.content}
 
-#### End of {skill.title} ####
+#### End of {skill.name} ####
 
         """
 
@@ -290,7 +341,6 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
     for folder in folders:
         # Check if the folder exists
         if not os.path.isdir(folder):
-            print(f"The folder {folder} does not exist.")
             continue
 
         # List all the entries in the directory
@@ -306,56 +356,7 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
                     shutil.rmtree(path)
             except Exception as e:
                 # Print the error message and skip
-                print(f"Failed to delete {path}. Reason: {e}")
-
-
-def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
-    """
-    Get a default agent flow config .
-    """
-
-    llm_config = LLMConfig(
-        config_list=[{"model": "gpt-4"}],
-        temperature=0,
-    )
-
-    USER_PROXY_INSTRUCTIONS = """If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.
-        """
-
-    userproxy_spec = AgentFlowSpec(
-        type="userproxy",
-        config=AgentConfig(
-            name="user_proxy",
-            human_input_mode="NEVER",
-            system_message=USER_PROXY_INSTRUCTIONS,
-            code_execution_config={
-                "work_dir": work_dir,
-                "use_docker": False,
-            },
-            max_consecutive_auto_reply=10,
-            llm_config=llm_config,
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
-        ),
-    )
-
-    assistant_spec = AgentFlowSpec(
-        type="assistant",
-        config=AgentConfig(
-            name="primary_assistant",
-            system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-            llm_config=llm_config,
-        ),
-    )
-
-    flow_config = AgentWorkFlowConfig(
-        name="default",
-        sender=userproxy_spec,
-        receiver=assistant_spec,
-        type="default",
-        description="Default agent flow config",
-    )
-
-    return flow_config
+                logger.info(f"Failed to delete {path}. Reason: {e}")
 
 
 def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
@@ -392,7 +393,7 @@ def sanitize_model(model: Model):
     Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
     """
     if isinstance(model, Model):
-        model = model.dict()
+        model = model.model_dump()
     valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
     # only add key if value is not None
     sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
@@ -410,16 +411,36 @@ def test_model(model: Model):
     return response.choices[0].message.content
 
 
-# summarize_chat_history (messages, model) .. returns a summary of the chat history
+def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, work_dir: str):
+    """
+    Load the code execution configuration based on the code execution type.
+
+    :param code_execution_type: The code execution type.
+    :param work_dir: The working directory to store code execution files.
+    :return: The code execution configuration.
+
+    """
+    work_dir = Path(work_dir)
+    work_dir.mkdir(exist_ok=True)
+    executor = None
+    if code_execution_type == CodeExecutionConfigTypes.local:
+        executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
+    elif code_execution_type == CodeExecutionConfigTypes.docker:
+        executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+    elif code_execution_type == CodeExecutionConfigTypes.none:
+        return False
+    else:
+        raise ValueError(f"Invalid code execution type: {code_execution_type}")
+    code_execution_config = {
+        "executor": executor,
+    }
+    return code_execution_config
 
 
-def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Model):
+def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: ModelClient):
     """
     Summarize the chat history using the model endpoint and returning the response.
     """
-
-    sanitized_model = sanitize_model(model)
-    client = OpenAIWrapper(config_list=[sanitized_model])
     summarization_system_prompt = f"""
     You are a helpful assistant that is able to review the chat history between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive enough to allow others (who cannot see the chat history) understand and recreate the solution.
 
@@ -427,7 +448,7 @@ def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Mod
     ===
     {task}
     ===
-    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
+    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..'. The answer should be framed as a response to the user task. E.g. if the task is "What is the height of the Eiffel tower", the summary should be "The height of the Eiffel Tower is ...").
     """
     summarization_prompt = [
         {

@@ -325,6 +325,14 @@ iiz__zoom-img {
   @apply bg-secondary !important;
 }
 
+.ant-drawer-content,
+.ant-drawer-header,
+.ant-drawer-header-title,
+.ant-drawer-close,
+.ant-drawer-title {
+  @apply bg-primary text-primary !important;
+}
+
 /* .ant-radio-input::before {
   @apply bg-primary !important;
 } */
