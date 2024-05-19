@@ -322,7 +322,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
         }
 
-        var toolCall = message.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
+        var toolCall = message.ToolCalls.Select((tc, i) => new ChatCompletionsFunctionToolCall($"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
         var chatRequestMessage = new ChatRequestAssistantMessage(string.Empty) { Name = message.From };
         foreach (var tc in toolCall)
         {
@@ -336,7 +336,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         return message.ToolCalls
             .Where(tc => tc.Result is not null)
-            .Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
+            .Select((tc, i) => new ChatRequestToolMessage(tc.Result, $"{tc.FunctionName}_{i}"));
     }
 
     private IEnumerable<ChatRequestMessage> ProcessMessage(IAgent agent, Message message)
