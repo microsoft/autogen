@@ -256,7 +256,7 @@ class GroupChat:
             if isinstance(self.select_speaker_auto_message_transforms, transform_messages.TransformMessages):
                 self._auto_message_transforms = self.select_speaker_auto_message_transforms
             else:
-                raise ValueError("select_speaker_auto_message_transforms must be None or MessageTransforms")
+                raise ValueError("select_speaker_auto_message_transforms must be None or MessageTransforms.")
         else:
             self._auto_message_transforms = None
 
@@ -738,8 +738,8 @@ class GroupChat:
         )
 
         # Add the message transforms, if any, to the speaker selection agent
-        if self._auto_message_transforms_context_handling is not None:
-            self._auto_message_transforms_context_handling.add_to_agent(speaker_selection_agent)
+        if self._auto_message_transforms is not None:
+            self._auto_message_transforms.add_to_agent(speaker_selection_agent)
 
         # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
