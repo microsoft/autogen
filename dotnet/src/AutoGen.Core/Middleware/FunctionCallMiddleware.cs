@@ -128,13 +128,13 @@ public class FunctionCallMiddleware : IStreamingMiddleware
             if (this.functionMap?.TryGetValue(functionName, out var func) is true)
             {
                 var result = await func(functionArguments);
-                toolCallResult.Add(new ToolCall(functionName, functionArguments, result));
+                toolCallResult.Add(new ToolCall(functionName, functionArguments, result) { ToolCallId = toolCall.ToolCallId });
             }
             else if (this.functionMap is not null)
             {
                 var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
 
-                toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage));
+                toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage) { ToolCallId = toolCall.ToolCallId });
             }
             else
             {
@@ -156,7 +156,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
             if (this.functionMap?.TryGetValue(fName, out var func) is true)
             {
                 var result = await func(fArgs);
-                toolCallResult.Add(new ToolCall(fName, fArgs, result));
+                toolCallResult.Add(new ToolCall(fName, fArgs, result) { ToolCallId = toolCall.ToolCallId });
             }
         }
 
