@@ -1,7 +1,7 @@
 import copy
 from typing import Dict, List
 
-from autogen import ConversableAgent
+from autogen.agentchat import ConversableAgent
 
 from ....formatting_utils import colored
 from .transforms import MessageTransform
