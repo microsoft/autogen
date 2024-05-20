@@ -1,8 +1,8 @@
 from typing import Protocol, Sequence, Type, TypeVar
 
-from .message import Message
+from agnext.core.cancellation_token import CancellationToken
 
-T = TypeVar("T", bound=Message)
+T = TypeVar("T")
 
 
 class Agent(Protocol[T]):
@@ -12,4 +12,4 @@ class Agent(Protocol[T]):
     @property
     def subscriptions(self) -> Sequence[Type[T]]: ...
 
-    async def on_message(self, message: T) -> T: ...
+    async def on_message(self, message: T, cancellation_token: CancellationToken) -> T: ...

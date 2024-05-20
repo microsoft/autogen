@@ -5,11 +5,10 @@ from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_h
 from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.core.agent import Agent
 from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.message import Message
 
 
 @dataclass
-class MessageType(Message):
+class MessageType:
     body: str
     sender: str
 

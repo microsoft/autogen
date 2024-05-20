@@ -3,11 +3,12 @@ from asyncio import Future
 from dataclasses import dataclass
 from typing import Awaitable, Dict, Generic, List, Set, Type, TypeVar
 
+from agnext.core.cancellation_token import CancellationToken
+
 from ..core.agent import Agent
 from ..core.agent_runtime import AgentRuntime
-from ..core.message import Message
 
-T = TypeVar("T", bound=Message)
+T = TypeVar("T")
 
 
 @dataclass
@@ -17,6 +18,7 @@ class BroadcastMessageEnvelope(Generic[T]):
 
     message: T
     future: Future[List[T]]
+    cancellation_token: CancellationToken
 
 
 @dataclass
@@ -27,6 +29,7 @@ class SendMessageEnvelope(Generic[T]):
     message: T
     destination: Agent[T]
     future: Future[T]
+    cancellation_token: CancellationToken
 
 
 @dataclass
@@ -64,17 +67,26 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
         self._agents.add(agent)
 
     # Returns the response of the message
-    def send_message(self, message: T, destination: Agent[T]) -> Future[T]:
+    def send_message(
+        self, message: T, destination: Agent[T], cancellation_token: CancellationToken | None = None
+    ) -> Future[T]:
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+
         loop = asyncio.get_event_loop()
         future: Future[T] = loop.create_future()
 
-        self._message_queue.append(SendMessageEnvelope(message, destination, future))
+        self._message_queue.append(SendMessageEnvelope(message, destination, future, cancellation_token))
+
         return future
 
     # Returns the response of all handling agents
-    def broadcast_message(self, message: T) -> Future[List[T]]:
+    def broadcast_message(self, message: T, cancellation_token: CancellationToken | None = None) -> Future[List[T]]:
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+
         future: Future[List[T]] = asyncio.get_event_loop().create_future()
-        self._message_queue.append(BroadcastMessageEnvelope(message, future))
+        self._message_queue.append(BroadcastMessageEnvelope(message, future, cancellation_token))
         return future
 
     async def _process_send(self, message_envelope: SendMessageEnvelope[T]) -> None:
@@ -83,16 +95,28 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
             message_envelope.future.set_exception(Exception("Recipient not found"))
             return
 
-        response = await recipient.on_message(message_envelope.message)
+        try:
+            response = await recipient.on_message(
+                message_envelope.message, cancellation_token=message_envelope.cancellation_token
+            )
+        except BaseException as e:
+            message_envelope.future.set_exception(e)
+            return
+
         self._message_queue.append(ResponseMessageEnvelope(response, message_envelope.future))
 
     async def _process_broadcast(self, message_envelope: BroadcastMessageEnvelope[T]) -> None:
         responses: List[Awaitable[T]] = []
         for agent in self._per_type_subscribers.get(type(message_envelope.message), []):
-            future = agent.on_message(message_envelope.message)
+            future = agent.on_message(message_envelope.message, cancellation_token=message_envelope.cancellation_token)
             responses.append(future)
 
-        all_responses = await asyncio.gather(*responses)
+        try:
+            all_responses = await asyncio.gather(*responses)
+        except BaseException as e:
+            message_envelope.future.set_exception(e)
+            return
+
         self._message_queue.append(BroadcastResponseMessageEnvelope(all_responses, message_envelope.future))
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope[T]) -> None:
@@ -110,10 +134,14 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
         message_envelope = self._message_queue.pop(0)
 
         match message_envelope:
-            case SendMessageEnvelope(message, destination, future):
-                asyncio.create_task(self._process_send(SendMessageEnvelope(message, destination, future)))
-            case BroadcastMessageEnvelope(message, future):
-                asyncio.create_task(self._process_broadcast(BroadcastMessageEnvelope(message, future)))
+            case SendMessageEnvelope(message, destination, future, cancellation_token):
+                asyncio.create_task(
+                    self._process_send(SendMessageEnvelope(message, destination, future, cancellation_token))
+                )
+            case BroadcastMessageEnvelope(message, future, cancellation_token):
+                asyncio.create_task(
+                    self._process_broadcast(BroadcastMessageEnvelope(message, future, cancellation_token))
+                )
             case ResponseMessageEnvelope(message, future):
                 asyncio.create_task(self._process_response(ResponseMessageEnvelope(message, future)))
             case BroadcastResponseMessageEnvelope(message, future):

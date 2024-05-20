@@ -2,11 +2,10 @@ from typing import Any, Awaitable, Callable, Dict, Sequence, Type, TypeVar
 
 from agnext.core.agent_runtime import AgentRuntime
 from agnext.core.base_agent import BaseAgent
+from agnext.core.cancellation_token import CancellationToken
 from agnext.core.exceptions import CantHandleException
 
-from ..core.message import Message
-
-T = TypeVar("T", bound=Message)
+T = TypeVar("T")
 
 
 # NOTE: this works on concrete types and not inheritance
@@ -22,7 +21,7 @@ class TypeRoutedAgent(BaseAgent[T]):
     def __init__(self, name: str, router: AgentRuntime[T]) -> None:
         super().__init__(name, router)
 
-        self._handlers: Dict[Type[Any], Callable[[T], Awaitable[T]]] = {}
+        self._handlers: Dict[Type[Any], Callable[[T, CancellationToken], Awaitable[T]]] = {}
 
         router.add_agent(self)
 
@@ -37,12 +36,12 @@ class TypeRoutedAgent(BaseAgent[T]):
     def subscriptions(self) -> Sequence[Type[T]]:
         return list(self._handlers.keys())
 
-    async def on_message(self, message: T) -> T:
+    async def on_message(self, message: T, cancellation_token: CancellationToken) -> T:
         handler = self._handlers.get(type(message))
         if handler is not None:
-            return await handler(message)
+            return await handler(message, cancellation_token)
         else:
-            return await self.on_unhandled_message(message)
+            return await self.on_unhandled_message(message, cancellation_token)
 
-    async def on_unhandled_message(self, message: T) -> T:
+    async def on_unhandled_message(self, message: T, cancellation_token: CancellationToken) -> T:
         raise CantHandleException()

@@ -1,18 +1,18 @@
-from dataclasses import dataclass
-import random
 import asyncio
+import random
+from dataclasses import dataclass
 from typing import List
+
 from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.message import Message
 
 
 # TODO: a runtime should be able to handle multiple types of messages
 # TODO: allow request and response to be different message types
 # should support this in handlers.
 @dataclass
-class GroupChatMessage(Message):
+class GroupChatMessage:
     body: str
     sender: str
     require_response: bool

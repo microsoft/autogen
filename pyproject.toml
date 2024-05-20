@@ -13,15 +13,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "openai>=1.3",
-    "pillow",
-    "aiohttp",
-    "typing-extensions"
-]
+dependencies = ["openai>=1.3", "pillow", "aiohttp", "typing-extensions"]
 
 [project.optional-dependencies]
-dev = ["ruff", "pyright", "mypy", "pytest", "types-Pillow"]
+dev = ["ruff", "pyright", "mypy", "pytest", "pytest-asyncio", "types-Pillow"]
 
 [tool.setuptools.package-data]
 agnext = ["py.typed"]
@@ -61,3 +56,7 @@ include = ["src", "examples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]

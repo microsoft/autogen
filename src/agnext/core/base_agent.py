@@ -3,11 +3,11 @@ from asyncio import Future
 from typing import List, Sequence, Type, TypeVar
 
 from agnext.core.agent_runtime import AgentRuntime
+from agnext.core.cancellation_token import CancellationToken
 
 from .agent import Agent
-from .message import Message
 
-T = TypeVar("T", bound=Message)
+T = TypeVar("T")
 
 
 class BaseAgent(ABC, Agent[T]):
@@ -25,10 +25,20 @@ class BaseAgent(ABC, Agent[T]):
         return []
 
     @abstractmethod
-    async def on_message(self, message: T) -> T: ...
+    async def on_message(self, message: T, cancellation_token: CancellationToken) -> T: ...
 
-    def _send_message(self, message: T, destination: Agent[T]) -> Future[T]:
-        return self._router.send_message(message, destination)
+    def _send_message(
+        self, message: T, destination: Agent[T], cancellation_token: CancellationToken | None = None
+    ) -> Future[T]:
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        future = self._router.send_message(message, destination, cancellation_token)
+        cancellation_token.link_future(future)
+        return future
 
-    def _broadcast_message(self, message: T) -> Future[List[T]]:
-        return self._router.broadcast_message(message)
+    def _broadcast_message(self, message: T, cancellation_token: CancellationToken | None = None) -> Future[List[T]]:
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        future = self._router.broadcast_message(message, cancellation_token)
+        cancellation_token.link_future(future)
+        return future
