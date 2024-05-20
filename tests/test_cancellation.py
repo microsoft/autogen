@@ -58,7 +58,7 @@ async def test_cancellation_with_token() -> None:
 
     long_running = LongRunningAgent("name", router)
     token = CancellationToken()
-    response = router.send_message(MessageType(), long_running, token)
+    response = router.send_message(MessageType(), recipient=long_running, cancellation_token=token)
     assert not response.done()
 
     await router.process_next()
@@ -81,7 +81,7 @@ async def test_nested_cancellation_only_outer_called() -> None:
     nested = NestingLongRunningAgent("nested", router, long_running)
 
     token = CancellationToken()
-    response = router.send_message(MessageType(), nested, token)
+    response = router.send_message(MessageType(), nested, cancellation_token=token)
     assert not response.done()
 
     await router.process_next()
@@ -104,7 +104,7 @@ async def test_nested_cancellation_inner_called() -> None:
     nested = NestingLongRunningAgent("nested", router, long_running)
 
     token = CancellationToken()
-    response = router.send_message(MessageType(), nested, token)
+    response = router.send_message(MessageType(), nested, cancellation_token=token)
     assert not response.done()
 
     await router.process_next()

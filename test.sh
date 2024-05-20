@@ -19,3 +19,5 @@ echo "--- Running pyright ---"
 pyright
 echo "--- Running mypy ---"
 mypy
+echo "--- Running pytest ---"
+pytest

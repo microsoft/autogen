@@ -14,8 +14,15 @@ class AgentRuntime(Protocol[T]):
 
     # Returns the response of the message
     def send_message(
-        self, message: T, destination: Agent[T], cancellation_token: CancellationToken | None = None
+        self,
+        message: T,
+        recipient: Agent[T],
+        *,
+        sender: Agent[T] | None = None,
+        cancellation_token: CancellationToken | None,
     ) -> Future[T]: ...
 
     # Returns the response of all handling agents
-    def broadcast_message(self, message: T, cancellation_token: CancellationToken | None = None) -> Future[List[T]]: ...
+    def broadcast_message(
+        self, message: T, *, sender: Agent[T] | None = None, cancellation_token: CancellationToken | None = None
+    ) -> Future[List[T]]: ...

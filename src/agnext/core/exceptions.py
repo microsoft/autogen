@@ -4,3 +4,7 @@ class CantHandleException(Exception):
 
 class UndeliverableException(Exception):
     """Raised when a message can't be delivered."""
+
+
+class MessageDroppedException(Exception):
+    """Raised when a message is dropped."""
