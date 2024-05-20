@@ -1,14 +1,15 @@
-import os
 import io
-from typing import Optional, Union, Dict, Any
-from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
+import os
+from typing import Any, Dict, Optional, Union
+from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
+
 from .requests_markdown_browser import RequestsMarkdownBrowser
 
 # Check if Playwright dependencies are installed
 IS_PLAYWRIGHT_ENABLED = False
 try:
-    from playwright.sync_api import sync_playwright
     from playwright._impl._errors import TimeoutError
+    from playwright.sync_api import sync_playwright
 
     IS_PLAYWRIGHT_ENABLED = True
 except ModuleNotFoundError:

@@ -1,14 +1,14 @@
 # ruff: noqa: E722
 import json
-import re
-import requests
 import logging
 import os
-
-from bs4 import BeautifulSoup
-from typing import Any, Dict, List, Optional, Union, Tuple
-from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
+import re
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, quote, quote_plus, unquote, urlparse, urlunparse
+
+import requests
+from bs4 import BeautifulSoup
 
 from .mdconvert import MarkdownConverter
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import os
-import sys
-import requests
 import hashlib
-import re
 import math
+import os
 import pathlib
+import re
+import sys
+
+import pytest
+import requests
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -38,7 +39,7 @@ LOCAL_FILE_TEST_STRINGS = [
 ]
 
 try:
-    from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
+    from autogen.browser_utils import BingMarkdownSearch, RequestsMarkdownBrowser
 except ImportError:
     skip_all = True
 else:
