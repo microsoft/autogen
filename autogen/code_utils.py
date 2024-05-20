@@ -287,7 +287,7 @@ def in_docker_container() -> bool:
 
 def decide_use_docker(use_docker: Optional[bool]) -> Optional[bool]:
     if use_docker is None:
-        env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
+        env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "None")
 
         truthy_values = {"1", "true", "yes", "t"}
         falsy_values = {"0", "false", "no", "f"}
