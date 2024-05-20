@@ -6,8 +6,8 @@ to retrieve information.
 
 from autogencap.Actor import Actor
 from autogencap.ActorConnector import ActorConnector
-from autogencap.DebugLog import Debug, Info, shorten
 from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Debug, Info, shorten
 
 
 class GreeterAgent(Actor):

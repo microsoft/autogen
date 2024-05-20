@@ -1,8 +1,8 @@
 import time
 
 from autogencap.ag_adapter.CAPPair import CAPPair
-from autogencap.DebugLog import Info
 from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Info
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 

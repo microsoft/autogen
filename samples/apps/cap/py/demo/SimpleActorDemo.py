@@ -1,9 +1,10 @@
 import time
 
 from AppAgents import GreeterAgent
-from autogencap.DebugLog import Error
 from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Error
 from autogencap.proto.CAP_pb2 import Ping
+
 
 def simple_actor_demo():
     """
@@ -24,6 +25,4 @@ def simple_actor_demo():
     msg_bytes = ping.SerializeToString()
     greeter_link.send_txt_msg("Hello World!")
     greeter_link.send_bin_msg(msg_type_str, msg_bytes)
-    _,resp_type,resp_msg_bytes = greeter_link.send_recv_msg(msg_type_str, msg_bytes)
-    
-    
+    _, resp_type, resp_msg_bytes = greeter_link.send_recv_msg(msg_type_str, msg_bytes)

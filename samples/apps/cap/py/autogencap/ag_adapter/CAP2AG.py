@@ -4,8 +4,8 @@ from typing import Optional
 
 from autogen import ConversableAgent
 
-from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..ComponentEnsemble import ComponentEnsemble
+from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 from .AG2CAP import AG2CAP
 from .AGActor import AGActor
