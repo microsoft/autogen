@@ -11,7 +11,7 @@ T = TypeVar("T", bound=Message)
 
 
 @dataclass
-class BroadcastMessageEnvolope(Generic[T]):
+class BroadcastMessageEnvelope(Generic[T]):
     """A message envelope for broadcasting messages to all agents that can handle
     the message of the type T."""
 
@@ -48,7 +48,7 @@ class BroadcastResponseMessageEnvelope(Generic[T]):
 class SingleThreadedAgentRuntime(AgentRuntime[T]):
     def __init__(self) -> None:
         self._message_queue: List[
-            BroadcastMessageEnvolope[T]
+            BroadcastMessageEnvelope[T]
             | SendMessageEnvelope[T]
             | ResponseMessageEnvelope[T]
             | BroadcastResponseMessageEnvelope[T]
@@ -74,7 +74,7 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
     # Returns the response of all handling agents
     def broadcast_message(self, message: T) -> Future[List[T]]:
         future: Future[List[T]] = asyncio.get_event_loop().create_future()
-        self._message_queue.append(BroadcastMessageEnvolope(message, future))
+        self._message_queue.append(BroadcastMessageEnvelope(message, future))
         return future
 
     async def _process_send(self, message_envelope: SendMessageEnvelope[T]) -> None:
@@ -86,7 +86,7 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
         response = await recipient.on_message(message_envelope.message)
         self._message_queue.append(ResponseMessageEnvelope(response, message_envelope.future))
 
-    async def _process_broadcast(self, message_envelope: BroadcastMessageEnvolope[T]) -> None:
+    async def _process_broadcast(self, message_envelope: BroadcastMessageEnvelope[T]) -> None:
         responses: List[Awaitable[T]] = []
         for agent in self._per_type_subscribers.get(type(message_envelope.message), []):
             future = agent.on_message(message_envelope.message)
@@ -112,8 +112,8 @@ class SingleThreadedAgentRuntime(AgentRuntime[T]):
         match message_envelope:
             case SendMessageEnvelope(message, destination, future):
                 asyncio.create_task(self._process_send(SendMessageEnvelope(message, destination, future)))
-            case BroadcastMessageEnvolope(message, future):
-                asyncio.create_task(self._process_broadcast(BroadcastMessageEnvolope(message, future)))
+            case BroadcastMessageEnvelope(message, future):
+                asyncio.create_task(self._process_broadcast(BroadcastMessageEnvelope(message, future)))
             case ResponseMessageEnvelope(message, future):
                 asyncio.create_task(self._process_response(ResponseMessageEnvelope(message, future)))
             case BroadcastResponseMessageEnvelope(message, future):
