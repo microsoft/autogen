@@ -1,8 +1,9 @@
 import sys
-from .version import __version__
-from .run_cmd import run_cli
+
 from .clone_cmd import clone_cli
+from .run_cmd import run_cli
 from .tabulate_cmd import tabulate_cli
+from .version import __version__
 
 
 def main(args=None):

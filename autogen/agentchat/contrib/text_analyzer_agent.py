@@ -1,7 +1,8 @@
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 
 system_message = """You are an expert in text analysis.
 The user will give you TEXT to analyze.

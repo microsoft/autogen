@@ -1,11 +1,14 @@
+import json
 from enum import Enum
 from typing import Optional
+
+from autogen import ConversableAgent
+
 from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from .AGActor import AGActor
 from .AG2CAP import AG2CAP
-from autogen import ConversableAgent
+from .AGActor import AGActor
 
 
 class CAP2AG(AGActor):
@@ -70,7 +73,11 @@ class CAP2AG(AGActor):
         save_name = self._ag2can_other_agent.name
         self._ag2can_other_agent.set_name(receive_params.sender)
         if receive_params.HasField("data_map"):
-            data = dict(receive_params.data_map.data)
+            json_data = dict(receive_params.data_map.data)
+            data = {}
+            for key, json_value in json_data.items():
+                value = json.loads(json_value)
+                data[key] = value
         else:
             data = receive_params.data
         self._the_ag_agent.receive(data, self._ag2can_other_agent, request_reply, silent)

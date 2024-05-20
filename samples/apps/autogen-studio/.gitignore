@@ -1,6 +1,7 @@
 database.sqlite
 .cache/*
 autogenstudio/web/files/user/*
+autogenstudio/test
 autogenstudio/web/files/ui/*
 OAI_CONFIG_LIST
 scratch/
