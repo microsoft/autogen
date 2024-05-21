@@ -67,6 +67,7 @@ extra_require = {
         *retrieve_chat,
         "qdrant_client[fastembed]",
     ],
+    "agentops": ["agentops>=0.1.10"],
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
@@ -78,6 +79,7 @@ extra_require = {
     "websockets": ["websockets>=12.0,<13"],
     "jupyter-executor": jupyter_executor,
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
+    "long-context": ["llmlingua<0.3"],
 }
 
 setuptools.setup(
