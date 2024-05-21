@@ -6,8 +6,6 @@
 
 At a high level, AgentOps gives you the ability to monitor LLM calls, costs, latency, agent failures, multi-agent interactions, tool usage, session-wide statistics, and more. For more info, check out the [AgentOps Repo](https://github.com/AgentOps-AI/agentops).
 
-> Create an account and API key at [AgentOps.ai](https://agentops.ai/)
-
 <details open>
   <summary>Agent Dashboard</summary>
    <img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/overview.png" style="width: 90%;" alt="Agent Dashboard"/>
