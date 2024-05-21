@@ -15,16 +15,16 @@ class Actor:
         self.run = False
         self._start_event = threading.Event()
 
-    def connect_network(self, network):
+    def on_connect(self, network):
         Debug(self.actor_name, f"is connecting to {network}")
         Debug(self.actor_name, "connected")
 
-    def _process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str) -> bool:
+    def on_txt_msg(self, msg: str, msg_type: str, receiver: str, sender: str) -> bool:
         Info(self.actor_name, f"InBox: {msg}")
         return True
 
-    def _process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
-        Info(self.actor_name, f"Msg: topic=[{topic}], msg_type=[{msg_type}]")
+    def on_bin_msg(self, msg: bytes, msg_type: str, receiver: str, sender: str) -> bool:
+        Info(self.actor_name, f"Msg: receiver=[{receiver}], msg_type=[{msg_type}]")
         return True
 
     def _recv_thread(self):
@@ -51,12 +51,12 @@ class Actor:
                     continue
                 if msg_type == "text":
                     msg = msg.decode("utf-8")  # Convert bytes to string
-                    if not self._process_txt_msg(msg, msg_type, topic, sender_topic):
+                    if not self.on_txt_msg(msg, msg_type, topic, sender_topic):
                         msg = "quit"
                     if msg.lower() == "quit":
                         break
                 else:
-                    if not self._process_bin_msg(msg, msg_type, topic, sender_topic):
+                    if not self.on_bin_msg(msg, msg_type, topic, sender_topic):
                         break
         except Exception as e:
             Debug(self.actor_name, f"recv thread encountered an error: {e}")
