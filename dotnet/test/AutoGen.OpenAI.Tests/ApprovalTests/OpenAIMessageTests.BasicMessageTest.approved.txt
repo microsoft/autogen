@@ -145,7 +145,7 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_0"
           }
         ],
         "FunctionCallName": null,
@@ -159,7 +159,7 @@
       {
         "Role": "tool",
         "Content": "result",
-        "ToolCallId": "test"
+        "ToolCallId": "test_0"
       }
     ]
   },
@@ -169,12 +169,12 @@
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_0"
       },
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_1"
       }
     ]
   },
@@ -190,13 +190,13 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_0"
           },
           {
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_1"
           }
         ],
         "FunctionCallName": null,
@@ -216,7 +216,7 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_0"
           }
         ],
         "FunctionCallName": null,
@@ -225,7 +225,7 @@
       {
         "Role": "tool",
         "Content": "result",
-        "ToolCallId": "test"
+        "ToolCallId": "test_0"
       }
     ]
   }
