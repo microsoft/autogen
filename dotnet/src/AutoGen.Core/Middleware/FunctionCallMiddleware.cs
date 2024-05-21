@@ -18,8 +18,7 @@ namespace AutoGen.Core;
 /// <para>Otherwise, the message will be sent to the inner agent. In this situation</para>
 /// <para>if the reply from the inner agent is <see cref="ToolCallMessage"/>,
 /// and the tool calls is available in this middleware's function map, the tools from the reply will be invoked,
-/// and a <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/>"/>
-/// will be returned.
+/// and a <see cref="ToolCallAggregateMessage"/> will be returned.
 /// </para>
 /// <para>If the reply from the inner agent is <see cref="ToolCallMessage"/> but the tool calls is not available in this middleware's function map,
 /// or the reply from the inner agent is not <see cref="ToolCallMessage"/>, the original reply from the inner agent will be returned.</para>
@@ -128,13 +127,13 @@ public class FunctionCallMiddleware : IStreamingMiddleware
             if (this.functionMap?.TryGetValue(functionName, out var func) is true)
             {
                 var result = await func(functionArguments);
-                toolCallResult.Add(new ToolCall(functionName, functionArguments, result));
+                toolCallResult.Add(new ToolCall(functionName, functionArguments, result) { ToolCallId = toolCall.ToolCallId });
             }
             else if (this.functionMap is not null)
             {
                 var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
 
-                toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage));
+                toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage) { ToolCallId = toolCall.ToolCallId });
             }
             else
             {
@@ -156,14 +155,14 @@ public class FunctionCallMiddleware : IStreamingMiddleware
             if (this.functionMap?.TryGetValue(fName, out var func) is true)
             {
                 var result = await func(fArgs);
-                toolCallResult.Add(new ToolCall(fName, fArgs, result));
+                toolCallResult.Add(new ToolCall(fName, fArgs, result) { ToolCallId = toolCall.ToolCallId });
             }
         }
 
         if (toolCallResult.Count() > 0)
         {
             var toolCallResultMessage = new ToolCallResultMessage(toolCallResult, from: agent.Name);
-            return new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMsg, toolCallResultMessage, from: agent.Name);
+            return new ToolCallAggregateMessage(toolCallMsg, toolCallResultMessage, from: agent.Name);
         }
         else
         {
