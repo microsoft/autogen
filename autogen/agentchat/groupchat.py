@@ -606,6 +606,27 @@ class GroupChat:
         elif not config_format_is_list:
             self._register_client_from_config(agent, self.llm_config)
 
+    def _create_internal_agents(self, agents, max_attempts, messages, validate_speaker_name):
+        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
+        # Register the speaker validation function with the checking agent
+        checking_agent.register_reply(
+            [ConversableAgent, None],
+            reply_func=validate_speaker_name,  # Validate each response
+            remove_other_reply_funcs=True,
+        )
+        # Agent for selecting a single agent name from the response
+        speaker_selection_agent = ConversableAgent(
+            "speaker_selection_agent",
+            system_message=self.select_speaker_msg(agents),
+            chat_messages={checking_agent: messages},
+            llm_config=self.llm_config,
+            human_input_mode="NEVER",
+            # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+        )
+        # Register any custom model passed in llm_config with the speaker_selection_agent
+        self._register_custom_model_clients(speaker_selection_agent)
+        return checking_agent, speaker_selection_agent
+
     def _auto_select_speaker(
         self,
         last_speaker: Agent,
@@ -658,26 +679,12 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
-
-        # Register the speaker validation function with the checking agent
-        checking_agent.register_reply(
-            [ConversableAgent, None],
-            reply_func=validate_speaker_name,  # Validate each response
-            remove_other_reply_funcs=True,
+        checking_agent, speaker_selection_agent = self._create_internal_agents(
+            agents,
+            max_attempts,
+            messages,
+            validate_speaker_name
         )
-
-        # Agent for selecting a single agent name from the response
-        speaker_selection_agent = ConversableAgent(
-            "speaker_selection_agent",
-            system_message=self.select_speaker_msg(agents),
-            chat_messages={checking_agent: messages},
-            llm_config=self.llm_config,
-            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
-        )
-
-        # Register any custom model passed in llm_config with the speaker_selection_agent
-        self._register_custom_model_clients(speaker_selection_agent)
 
         # Run the speaker selection chat
         result = checking_agent.initiate_chat(
@@ -746,26 +753,12 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
-
-        # Register the speaker validation function with the checking agent
-        checking_agent.register_reply(
-            [ConversableAgent, None],
-            reply_func=validate_speaker_name,  # Validate each response
-            remove_other_reply_funcs=True,
+        checking_agent, speaker_selection_agent = self._create_internal_agents(
+            agents,
+            max_attempts,
+            messages,
+            validate_speaker_name
         )
-
-        # Agent for selecting a single agent name from the response
-        speaker_selection_agent = ConversableAgent(
-            "speaker_selection_agent",
-            system_message=self.select_speaker_msg(agents),
-            chat_messages={checking_agent: messages},
-            llm_config=self.llm_config,
-            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
-        )
-
-        # Register any custom model passed in llm_config with the speaker_selection_agent
-        self._register_custom_model_clients(speaker_selection_agent)
 
         # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
