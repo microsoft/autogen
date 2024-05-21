@@ -7,12 +7,15 @@ Besides, AutoGen also provides a set of built-in message types that implement th
 > [!NOTE]
 > The minimal requirement for an agent to be used as admin in @AutoGen.Core.GroupChat is to support @AutoGen.Core.TextMessage.
 
+> [!NOTE]
+> @AutoGen.Core.Message will be deprecated in 0.0.14. Please replace it with a more specific message type like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, etc.
+
 - @AutoGen.Core.TextMessage: A message that contains a piece of text.
 - @AutoGen.Core.ImageMessage: A message that contains an image.
 - @AutoGen.Core.MultiModalMessage: A message that contains multiple modalities like text, image, etc.
 - @AutoGen.Core.ToolCallMessage: A message that represents a function call request.
 - @AutoGen.Core.ToolCallResultMessage: A message that represents a function call result.
-- @AutoGen.Core.AggregateMessage`2: A message that represents an aggregate message that contains multiple sub-messages. This type of message is used by @AutoGen.Core.FunctionCallMiddleware to aggregate both @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage into a single message.
+- @AutoGen.Core.ToolCallAggregateMessage: A message that contains both @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage. This type of message is used by @AutoGen.Core.FunctionCallMiddleware to aggregate both @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage into a single message.
 - @AutoGen.Core.MessageEnvelope`1: A message that represents an envelope that contains a message of any type.
 - @AutoGen.Core.Message: The original message type before 0.0.9. This message type is reserved for backward compatibility. It is recommended to replace it with a more specific message type like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, etc.
 

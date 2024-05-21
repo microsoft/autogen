@@ -3,6 +3,7 @@
     "OriginalMessage": "TextMessage(system, You are a helpful AI assistant, )",
     "ConvertedMessages": [
       {
+        "Name": null,
         "Role": "system",
         "Content": "You are a helpful AI assistant"
       }
@@ -14,6 +15,7 @@
       {
         "Role": "user",
         "Content": "Hello",
+        "Name": "user",
         "MultiModaItem": null
       }
     ]
@@ -24,62 +26,10 @@
       {
         "Role": "assistant",
         "Content": "How can I help you?",
+        "Name": "assistant",
         "TooCall": [],
         "FunctionCallName": null,
         "FunctionCallArguments": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(system, You are a helpful AI assistant, , , )",
-    "ConvertedMessages": [
-      {
-        "Role": "system",
-        "Content": "You are a helpful AI assistant"
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(user, Hello, user, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "user",
-        "Content": "Hello",
-        "MultiModaItem": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(assistant, How can I help you?, assistant, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "assistant",
-        "Content": "How can I help you?",
-        "TooCall": [],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(function, result, user, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "user",
-        "Content": "result",
-        "MultiModaItem": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(assistant, , assistant, functionName, functionArguments)",
-    "ConvertedMessages": [
-      {
-        "Role": "assistant",
-        "Content": null,
-        "TooCall": [],
-        "FunctionCallName": "functionName",
-        "FunctionCallArguments": "functionArguments"
       }
     ]
   },
@@ -89,6 +39,7 @@
       {
         "Role": "user",
         "Content": null,
+        "Name": "user",
         "MultiModaItem": [
           {
             "Type": "Image",
@@ -107,6 +58,7 @@
       {
         "Role": "user",
         "Content": null,
+        "Name": "user",
         "MultiModaItem": [
           {
             "Type": "Text",
@@ -129,6 +81,7 @@
       {
         "Role": "assistant",
         "Content": "",
+        "Name": "assistant",
         "TooCall": [
           {
             "Type": "Function",
@@ -158,12 +111,12 @@
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_0"
       },
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_1"
       }
     ]
   },
@@ -173,18 +126,19 @@
       {
         "Role": "assistant",
         "Content": "",
+        "Name": "assistant",
         "TooCall": [
           {
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_0"
           },
           {
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_1"
           }
         ],
         "FunctionCallName": null,
@@ -198,6 +152,7 @@
       {
         "Role": "assistant",
         "Content": "",
+        "Name": "assistant",
         "TooCall": [
           {
             "Type": "Function",
