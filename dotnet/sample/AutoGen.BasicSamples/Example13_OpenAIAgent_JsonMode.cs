@@ -28,7 +28,8 @@ public class Example13_OpenAIAgent_JsonMode
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0, // explicitly set a seed to enable deterministic output
             responseFormat: ChatCompletionsResponseFormat.JsonObject) // set response format to JSON object to enable JSON mode
-            .RegisterMessageConnector();
+            .RegisterMessageConnector()
+            .RegisterPrintMessage();
         #endregion create_agent
 
         #region chat_with_agent

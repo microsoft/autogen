@@ -1,4 +1,5 @@
 import copy
+import json
 import sys
 from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
@@ -6,6 +7,9 @@ import tiktoken
 from termcolor import colored
 
 from autogen import token_count_utils
+from autogen.cache import AbstractCache, Cache
+
+from .text_compressors import LLMLingua, TextCompressor
 
 
 class MessageTransform(Protocol):
@@ -156,7 +160,7 @@ class MessageTokenLimiter:
         assert self._min_tokens is not None
 
         # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
-        if not self._are_min_tokens_reached(messages):
+        if not _min_tokens_reached(messages, self._min_tokens):
             return messages
 
         temp_messages = copy.deepcopy(messages)
@@ -204,19 +208,6 @@ class MessageTokenLimiter:
             )
             return logs_str, True
         return "No tokens were truncated.", False
-
-    def _are_min_tokens_reached(self, messages: List[Dict]) -> bool:
-        """
-        Returns True if no minimum tokens restrictions are applied.
-
-        Either if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`,
-        or no minimum tokens threshold is set.
-        """
-        if not self._min_tokens:
-            return True
-
-        messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
-        return messages_tokens >= self._min_tokens
 
     def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:
         if isinstance(contents, str):
@@ -268,7 +259,7 @@ class MessageTokenLimiter:
 
         return max_tokens if max_tokens is not None else sys.maxsize
 
-    def _validate_min_tokens(self, min_tokens: int, max_tokens: int) -> int:
+    def _validate_min_tokens(self, min_tokens: Optional[int], max_tokens: Optional[int]) -> int:
         if min_tokens is None:
             return 0
         if min_tokens < 0:
@@ -276,6 +267,154 @@ class MessageTokenLimiter:
         if max_tokens is not None and min_tokens > max_tokens:
             raise ValueError("min_tokens must not be more than max_tokens.")
         return min_tokens
+
+
+class TextMessageCompressor:
+    """A transform for compressing text messages in a conversation history.
+
+    It uses a specified text compression method to reduce the token count of messages, which can lead to more efficient
+    processing and response generation by downstream models.
+    """
+
+    def __init__(
+        self,
+        text_compressor: Optional[TextCompressor] = None,
+        min_tokens: Optional[int] = None,
+        compression_params: Dict = dict(),
+        cache: Optional[AbstractCache] = Cache.disk(),
+    ):
+        """
+        Args:
+            text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor
+                protocol. If None, it defaults to LLMLingua.
+            min_tokens (int or None): Minimum number of tokens in messages to apply the transformation. Must be greater
+                than or equal to 0 if not None. If None, no threshold-based compression is applied.
+            compression_args (dict): A dictionary of arguments for the compression method. Defaults to an empty
+                dictionary.
+            cache (None or AbstractCache): The cache client to use to store and retrieve previously compressed messages.
+                If None, no caching will be used.
+        """
+
+        if text_compressor is None:
+            text_compressor = LLMLingua()
+
+        self._validate_min_tokens(min_tokens)
+
+        self._text_compressor = text_compressor
+        self._min_tokens = min_tokens
+        self._compression_args = compression_params
+        self._cache = cache
+
+        # Optimizing savings calculations to optimize log generation
+        self._recent_tokens_savings = 0
+
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """Applies compression to messages in a conversation history based on the specified configuration.
+
+        The function processes each message according to the `compression_args` and `min_tokens` settings, applying
+        the specified compression configuration and returning a new list of messages with reduced token counts
+        where possible.
+
+        Args:
+            messages (List[Dict]): A list of message dictionaries to be compressed.
+
+        Returns:
+            List[Dict]: A list of dictionaries with the message content compressed according to the configured
+                method and scope.
+        """
+        # Make sure there is at least one message
+        if not messages:
+            return messages
+
+        # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
+        if not _min_tokens_reached(messages, self._min_tokens):
+            return messages
+
+        total_savings = 0
+        processed_messages = messages.copy()
+        for message in processed_messages:
+            # Some messages may not have content.
+            if not isinstance(message.get("content"), (str, list)):
+                continue
+
+            if _is_content_text_empty(message["content"]):
+                continue
+
+            cached_content = self._cache_get(message["content"])
+            if cached_content is not None:
+                savings, compressed_content = cached_content
+            else:
+                savings, compressed_content = self._compress(message["content"])
+
+            self._cache_set(message["content"], compressed_content, savings)
+
+            message["content"] = compressed_content
+            total_savings += savings
+
+        self._recent_tokens_savings = total_savings
+        return processed_messages
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        if self._recent_tokens_savings > 0:
+            return f"{self._recent_tokens_savings} tokens saved with text compression.", True
+        else:
+            return "No tokens saved with text compression.", False
+
+    def _compress(self, content: Union[str, List[Dict]]) -> Tuple[int, Union[str, List[Dict]]]:
+        """Compresses the given text or multimodal content using the specified compression method."""
+        if isinstance(content, str):
+            return self._compress_text(content)
+        elif isinstance(content, list):
+            return self._compress_multimodal(content)
+        else:
+            return 0, content
+
+    def _compress_multimodal(self, content: List[Dict]) -> Tuple[int, List[Dict]]:
+        tokens_saved = 0
+        for msg in content:
+            if "text" in msg:
+                savings, msg["text"] = self._compress_text(msg["text"])
+                tokens_saved += savings
+        return tokens_saved, content
+
+    def _compress_text(self, text: str) -> Tuple[int, str]:
+        """Compresses the given text using the specified compression method."""
+        compressed_text = self._text_compressor.compress_text(text, **self._compression_args)
+
+        savings = 0
+        if "origin_tokens" in compressed_text and "compressed_tokens" in compressed_text:
+            savings = compressed_text["origin_tokens"] - compressed_text["compressed_tokens"]
+
+        return savings, compressed_text["compressed_prompt"]
+
+    def _cache_get(self, content: Union[str, List[Dict]]) -> Optional[Tuple[int, Union[str, List[Dict]]]]:
+        if self._cache:
+            cached_value = self._cache.get(self._cache_key(content))
+            if cached_value:
+                return cached_value
+
+    def _cache_set(
+        self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
+    ):
+        if self._cache:
+            value = (tokens_saved, json.dumps(compressed_content))
+            self._cache.set(self._cache_key(content), value)
+
+    def _cache_key(self, content: Union[str, List[Dict]]) -> str:
+        return f"{json.dumps(content)}_{self._min_tokens}"
+
+    def _validate_min_tokens(self, min_tokens: Optional[int]):
+        if min_tokens is not None and min_tokens <= 0:
+            raise ValueError("min_tokens must be greater than 0 or None")
+
+
+def _min_tokens_reached(messages: List[Dict], min_tokens: Optional[int]) -> bool:
+    """Returns True if the total number of tokens in the messages is greater than or equal to the specified value."""
+    if not min_tokens:
+        return True
+
+    messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
+    return messages_tokens >= min_tokens
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
@@ -286,3 +425,12 @@ def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
         for item in content:
             token_count += _count_tokens(item.get("text", ""))
     return token_count
+
+
+def _is_content_text_empty(content: Union[str, List[Dict[str, Any]]]) -> bool:
+    if isinstance(content, str):
+        return content == ""
+    elif isinstance(content, list):
+        return all(_is_content_text_empty(item.get("text", "")) for item in content)
+    else:
+        return False

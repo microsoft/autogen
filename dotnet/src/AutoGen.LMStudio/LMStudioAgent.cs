@@ -3,11 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
-using Azure.Core;
 
 namespace AutoGen.LMStudio;
 
@@ -56,25 +57,32 @@ public class LMStudioAgent : IAgent
     {
         // create uri from host and port
         var uri = config.Uri;
-        var accessToken = new AccessToken(string.Empty, DateTimeOffset.Now.AddDays(180));
-        var tokenCredential = DelegatedTokenCredential.Create((_, _) => accessToken);
-        var openAIClient = new OpenAIClient(uri, tokenCredential);
+        var handler = new CustomHttpClientHandler(uri);
+        var httpClient = new HttpClient(handler);
+        var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2022_12_01)
+        {
+            Transport = new HttpClientTransport(httpClient),
+        };
 
-        // remove authenication header from pipeline
-        var pipeline = HttpPipelineBuilder.Build(
-            new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2022_12_01),
-            Array.Empty<HttpPipelinePolicy>(),
-            [],
-            new ResponseClassifier());
+        return new OpenAIClient("api-key", option);
+    }
 
-        // use reflection to override _pipeline field
-        var field = typeof(OpenAIClient).GetField("_pipeline", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        field.SetValue(openAIClient, pipeline);
+    private sealed class CustomHttpClientHandler : HttpClientHandler
+    {
+        private Uri _modelServiceUrl;
 
-        // use reflection to set _isConfiguredForAzureOpenAI to false
-        var isConfiguredForAzureOpenAIField = typeof(OpenAIClient).GetField("_isConfiguredForAzureOpenAI", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        isConfiguredForAzureOpenAIField.SetValue(openAIClient, false);
+        public CustomHttpClientHandler(Uri modelServiceUrl)
+        {
+            _modelServiceUrl = modelServiceUrl;
+        }
 
-        return openAIClient;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            // request.RequestUri = new Uri($"{_modelServiceUrl}{request.RequestUri.PathAndQuery}");
+            var uriBuilder = new UriBuilder(_modelServiceUrl);
+            uriBuilder.Path = request.RequestUri.PathAndQuery;
+            request.RequestUri = uriBuilder.Uri;
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 }
