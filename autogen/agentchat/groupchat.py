@@ -680,10 +680,7 @@ class GroupChat:
 
         # Agent for checking the response from the speaker_select_agent
         checking_agent, speaker_selection_agent = self._create_internal_agents(
-            agents,
-            max_attempts,
-            messages,
-            validate_speaker_name
+            agents, max_attempts, messages, validate_speaker_name
         )
 
         # Run the speaker selection chat
@@ -754,10 +751,7 @@ class GroupChat:
 
         # Agent for checking the response from the speaker_select_agent
         checking_agent, speaker_selection_agent = self._create_internal_agents(
-            agents,
-            max_attempts,
-            messages,
-            validate_speaker_name
+            agents, max_attempts, messages, validate_speaker_name
         )
 
         # Run the speaker selection chat

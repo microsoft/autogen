@@ -2040,28 +2040,14 @@ def test_custom_model_client():
         def get_usage(response):
             return {}
 
-    llm_config = {
-        "config_list": [
-            {
-                "model": "test_model_name",
-                "model_client_cls": "CustomModelClient"
-            }
-        ]
-    }
+    llm_config = {"config_list": [{"model": "test_model_name", "model_client_cls": "CustomModelClient"}]}
 
     group_chat = autogen.GroupChat(
-        agents=[],
-        messages=[],
-        max_round=3,
-        llm_config=llm_config,
-        model_client_cls=CustomModelClient
+        agents=[], messages=[], max_round=3, llm_config=llm_config, model_client_cls=CustomModelClient
     )
 
     result = group_chat._create_internal_agents(
-        agents=[],
-        messages=[],
-        max_attempts=3,
-        validate_speaker_name=(True, "test")
+        agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test")
     )
 
     assert isinstance(result[1].client._clients[0], CustomModelClient)
