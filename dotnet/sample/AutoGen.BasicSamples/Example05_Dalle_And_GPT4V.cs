@@ -97,7 +97,7 @@ The image is generated from prompt {prompt}
 
                     Console.WriteLine($"download image from {imageUrl} to {imagePath}");
                     var httpClient = new HttpClient();
-                    var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
+                    var imageBytes = await httpClient.GetByteArrayAsync(imageUrl, ct);
                     File.WriteAllBytes(imagePath, imageBytes);
 
                     return imageMessage;

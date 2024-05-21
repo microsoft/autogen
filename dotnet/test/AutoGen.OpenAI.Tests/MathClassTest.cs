@@ -66,9 +66,8 @@ teacher, please create the next math question";
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
 
-            var openaiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            var openaiClient = new OpenAIClient(openaiKey);
-            var model = "gpt-3.5-turbo";
+            var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(key));
+            var model = "gpt-35-turbo-16k";
             var teacher = await CreateTeacherAgentAsync(openaiClient, model);
             var student = await CreateStudentAssistantAgentAsync(openaiClient, model);
 
