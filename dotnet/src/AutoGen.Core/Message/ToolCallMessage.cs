@@ -26,6 +26,8 @@ public class ToolCall
 
     public string FunctionArguments { get; set; }
 
+    public string? ToolCallId { get; set; }
+
     public string? Result { get; set; }
 
     public override string ToString()
