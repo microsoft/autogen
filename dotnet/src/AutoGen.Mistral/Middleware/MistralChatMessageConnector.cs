@@ -158,7 +158,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         else if (finishReason == Choice.FinishReasonEnum.ToolCalls)
         {
             var functionContents = choice.Message?.ToolCalls ?? throw new ArgumentNullException("choice.Message.ToolCalls");
-            var toolCalls = functionContents.Select(f => new ToolCall(f.Function.Name, f.Function.Arguments)).ToList();
+            var toolCalls = functionContents.Select(f => new ToolCall(f.Function.Name, f.Function.Arguments) { ToolCallId = f.Id }).ToList();
             return new ToolCallMessage(toolCalls, from: from.Name);
         }
         else
@@ -257,6 +257,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
             var message = new ChatMessage(ChatMessage.RoleEnum.Tool, content: toolCall.Result)
             {
                 Name = toolCall.FunctionName,
+                ToolCallId = toolCall.ToolCallId,
             };
 
             messages.Add(message);
@@ -305,10 +306,12 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         // convert tool call message to chat message
         var chatMessage = new ChatMessage(ChatMessage.RoleEnum.Assistant);
         chatMessage.ToolCalls = new List<FunctionContent>();
-        foreach (var toolCall in toolCallMessage.ToolCalls)
+        for (var i = 0; i < toolCallMessage.ToolCalls.Count; i++)
         {
+            var toolCall = toolCallMessage.ToolCalls[i];
+            var toolCallId = toolCall.ToolCallId ?? $"{toolCall.FunctionName}_{i}";
             var functionCall = new FunctionContent.FunctionCall(toolCall.FunctionName, toolCall.FunctionArguments);
-            var functionContent = new FunctionContent(functionCall);
+            var functionContent = new FunctionContent(toolCallId, functionCall);
             chatMessage.ToolCalls.Add(functionContent);
         }
 

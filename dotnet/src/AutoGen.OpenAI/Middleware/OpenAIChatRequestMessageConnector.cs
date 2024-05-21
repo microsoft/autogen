@@ -178,7 +178,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                     ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(agent, toolCallMessage),
                     ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
                     AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessFunctionCallMiddlewareMessage(agent, aggregateMessage),
+#pragma warning disable CS0618 // deprecated
                     Message msg => ProcessMessage(agent, msg),
+#pragma warning restore CS0618 // deprecated
                     _ when strictMode is false => [],
                     _ => throw new InvalidOperationException($"Invalid message type: {m.GetType().Name}"),
                 };
@@ -195,6 +197,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         });
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(Message message)
     {
         if (message.Role == Role.System)
@@ -230,6 +233,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(Message message)
     {
         if (message.Role == Role.System)
@@ -339,6 +343,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             .Select((tc, i) => new ChatRequestToolMessage(tc.Result, tc.ToolCallId ?? $"{tc.FunctionName}_{i}"));
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessMessage(IAgent agent, Message message)
     {
         if (message.From is not null && message.From != agent.Name)
