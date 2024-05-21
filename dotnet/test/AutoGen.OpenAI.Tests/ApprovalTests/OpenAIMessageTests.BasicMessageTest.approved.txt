@@ -87,7 +87,7 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test_0"
+            "Id": "test"
           }
         ],
         "FunctionCallName": null,
@@ -101,7 +101,7 @@
       {
         "Role": "tool",
         "Content": "result",
-        "ToolCallId": "test_0"
+        "ToolCallId": "test"
       }
     ]
   },
@@ -158,7 +158,7 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test_0"
+            "Id": "test"
           }
         ],
         "FunctionCallName": null,
@@ -167,7 +167,7 @@
       {
         "Role": "tool",
         "Content": "result",
-        "ToolCallId": "test_0"
+        "ToolCallId": "test"
       }
     ]
   }

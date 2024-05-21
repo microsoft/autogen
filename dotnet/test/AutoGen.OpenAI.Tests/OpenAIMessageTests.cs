@@ -430,7 +430,7 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().Be("result");
-                chatRequestMessage.ToolCallId.Should().Be("test_0");
+                chatRequestMessage.ToolCallId.Should().Be("test");
 
                 var toolCallMessage = msgs.First();
                 toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
@@ -440,7 +440,7 @@ public class OpenAIMessageTests
                 toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
-                functionToolCall.Id.Should().Be("test_0");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -449,7 +449,7 @@ public class OpenAIMessageTests
         // user message
         var toolCallMessage = new ToolCallMessage("test", "test", "assistant");
         var toolCallResultMessage = new ToolCallResultMessage("result", "test", "test", "assistant");
-        var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "assistant");
+        var aggregateMessage = new ToolCallAggregateMessage(toolCallMessage, toolCallResultMessage, "assistant");
         await agent.GenerateReplyAsync([aggregateMessage]);
     }
 
