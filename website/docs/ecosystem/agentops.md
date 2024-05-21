@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/banner.png" alt="AgentOps Logo" width="50%"/>
 
-[AgentOps](https://agentops.ai/?=ag) provides session replays, metrics, and monitoring for agents.
+[AgentOps](https://agentops.ai/?=autogen) provides session replays, metrics, and monitoring for agents.
 
 At a high level, AgentOps gives you the ability to monitor LLM calls, costs, latency, agent failures, multi-agent interactions, tool usage, session-wide statistics, and more. For more info, check out the [AgentOps Repo](https://github.com/AgentOps-AI/agentops).
 
@@ -76,5 +76,5 @@ After initializing AgentOps, Autogen will now start automatically tracking your 
 
 - [🐦 Twitter](https://twitter.com/agentopsai/)
 - [📢 Discord](https://discord.gg/JHPt4C7r)
-- [🖇️ AgentOps Dashboard](https://app.agentops.ai/?=ag)
+- [🖇️ AgentOps Dashboard](https://app.agentops.ai/ref?=autogen)
 - [📙 Documentation](https://docs.agentops.ai/introduction)
