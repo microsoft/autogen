@@ -28,9 +28,9 @@ At a high level, AgentOps gives you the ability to monitor LLM calls, costs, lat
 
 AgentOps works seamlessly with applications built using Autogen.
 
-1. **Install Autogen with AgentOps**
+1. **Install AgentOps**
 ```bash
-pip install pyautogen[agentops]
+pip install agentops
 ```
 
 2. **Create an API Key:**
