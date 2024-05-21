@@ -69,7 +69,7 @@ After initializing AgentOps, Autogen will now start automatically tracking your 
 - **Prompt Injection Detection**: Identify potential code injection and secret leaks
 
 ## Autogen + AgentOps examples
-* [AgentChat with AgentOps Notebook](docs/notebooks/agentchat_agentops)
+* [AgentChat with AgentOps Notebook](/docs/notebooks/agentchat_agentops)
 * [More AgentOps Examples](https://docs.agentops.ai/v1/quickstart)
 
 ## Extra links
