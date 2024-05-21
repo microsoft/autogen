@@ -16,7 +16,10 @@ from packaging.version import parse
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
-    # https://openai.com/pricing
+    # https://openai.com/api/pricing/
+    # gpt-4o
+    "gpt-4o": (0.005, 0.015),
+    "gpt-4o-2024-05-13": (0.005, 0.015),
     # gpt-4-turbo
     "gpt-4-turbo-2024-04-09": (0.01, 0.03),
     # gpt-4
@@ -692,7 +695,11 @@ def detect_gpt_assistant_api_version() -> str:
 def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
     """Create a openai vector store for gpt assistant"""
 
-    vector_store = client.beta.vector_stores.create(name=name)
+    try:
+        vector_store = client.beta.vector_stores.create(name=name)
+    except Exception as e:
+        raise AttributeError(f"Failed to create vector store, please install the latest OpenAI python package: {e}")
+
     # poll the status of the file batch for completion.
     batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
 

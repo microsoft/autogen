@@ -7,7 +7,6 @@ import logging
 import re
 import warnings
 from collections import defaultdict
-from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from openai import BadRequestError
@@ -32,7 +31,7 @@ from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_new_agent, logging_enabled
+from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
@@ -149,7 +148,13 @@ class ConversableAgent(LLMAgent):
         )
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
-            llm_config = copy.deepcopy(llm_config)
+            try:
+                llm_config = copy.deepcopy(llm_config)
+            except TypeError as e:
+                raise TypeError(
+                    "Please implement __deepcopy__ method for each value class in llm_config to support deepcopy."
+                    " Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#adding-http-client-in-llm_config-for-proxy"
+                ) from e
 
         self._validate_llm_config(llm_config)
 
@@ -428,10 +433,15 @@ class ConversableAgent(LLMAgent):
             reply_func_from_nested_chats = self._summary_from_nested_chats
         if not callable(reply_func_from_nested_chats):
             raise ValueError("reply_func_from_nested_chats must be a callable")
-        reply_func = partial(reply_func_from_nested_chats, chat_queue)
+
+        def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
+            return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+
+        functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
+
         self.register_reply(
             trigger,
-            reply_func,
+            wrapped_reply_func,
             position,
             kwargs.get("config"),
             kwargs.get("reset_config"),
@@ -576,6 +586,11 @@ class ConversableAgent(LLMAgent):
 
         if message.get("role") in ["function", "tool"]:
             oai_message["role"] = message.get("role")
+        elif "override_role" in message:
+            # If we have a direction to override the role then set the
+            # role accordingly. Used to customise the role for the
+            # select speaker prompt.
+            oai_message["role"] = message.get("override_role")
         else:
             oai_message["role"] = role
 
@@ -757,6 +772,9 @@ class ConversableAgent(LLMAgent):
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
+        if logging_enabled():
+            log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
+
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -919,6 +937,7 @@ class ConversableAgent(LLMAgent):
                 One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
                 on the conversation and extract a summary when summary_method is "reflection_with_llm".
                 The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+                Another available key is "summary_role", which is the role of the message sent to the agent in charge of summarizing. Default is "system".
             message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 - If a string or a dict is provided, it will be used as the initial message.        `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
                     If dict, it may contain the following reserved fields (either content or tool_calls need to be provided).
@@ -1150,8 +1169,13 @@ class ConversableAgent(LLMAgent):
             raise ValueError("The summary_prompt must be a string.")
         msg_list = recipient.chat_messages_for_summary(sender)
         agent = sender if recipient is None else recipient
+        role = summary_args.get("summary_role", None)
+        if role and not isinstance(role, str):
+            raise ValueError("The summary_role in summary_arg must be a string.")
         try:
-            summary = sender._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"))
+            summary = sender._reflection_with_llm(
+                prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"), role=role
+            )
         except BadRequestError as e:
             warnings.warn(
                 f"Cannot extract summary using reflection_with_llm: {e}. Using an empty str as summary.", UserWarning
@@ -1160,7 +1184,12 @@ class ConversableAgent(LLMAgent):
         return summary
 
     def _reflection_with_llm(
-        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[AbstractCache] = None
+        self,
+        prompt,
+        messages,
+        llm_agent: Optional[Agent] = None,
+        cache: Optional[AbstractCache] = None,
+        role: Union[str, None] = None,
     ) -> str:
         """Get a chat summary using reflection with an llm client based on the conversation history.
 
@@ -1169,10 +1198,14 @@ class ConversableAgent(LLMAgent):
             messages (list): The messages generated as part of a chat conversation.
             llm_agent: the agent with an llm client.
             cache (AbstractCache or None): the cache client to be used for this conversation.
+            role (str): the role of the message, usually "system" or "user". Default is "system".
         """
+        if not role:
+            role = "system"
+
         system_msg = [
             {
-                "role": "system",
+                "role": role,
                 "content": prompt,
             }
         ]
@@ -1939,6 +1972,15 @@ class ConversableAgent(LLMAgent):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if logging_enabled():
+                    log_event(
+                        self,
+                        "reply_func_executed",
+                        reply_func_module=reply_func.__module__,
+                        reply_func_name=reply_func.__name__,
+                        final=final,
+                        reply=reply,
+                    )
                 if final:
                     return reply
         return self._default_auto_reply
