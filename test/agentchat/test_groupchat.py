@@ -4,11 +4,11 @@ import builtins
 import io
 import json
 import logging
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
-from unittest import TestCase, mock
+from unittest import mock
 
 import pytest
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 from autogen import Agent, AssistantAgent, GroupChat, GroupChatManager
@@ -2007,6 +2007,66 @@ def test_manager_resume_messages():
         return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
 
 
+def test_custom_model_client():
+    class CustomModelClient:
+        def __init__(self, config, **kwargs):
+            print(f"CustomModelClient config: {config}")
+
+        def create(self, params):
+            num_of_responses = params.get("n", 1)
+
+            response = SimpleNamespace()
+            response.choices = []
+            response.model = "test_model_name"
+
+            for _ in range(num_of_responses):
+                text = "this is a dummy text response"
+                choice = SimpleNamespace()
+                choice.message = SimpleNamespace()
+                choice.message.content = text
+                choice.message.function_call = None
+                response.choices.append(choice)
+            return response
+
+        def message_retrieval(self, response):
+            choices = response.choices
+            return [choice.message.content for choice in choices]
+
+        def cost(self, response) -> float:
+            response.cost = 0
+            return 0
+
+        @staticmethod
+        def get_usage(response):
+            return {}
+
+    llm_config = {
+        "config_list": [
+            {
+                "model": "test_model_name",
+                "model_client_cls": "CustomModelClient"
+            }
+        ]
+    }
+
+    group_chat = autogen.GroupChat(
+        agents=[],
+        messages=[],
+        max_round=3,
+        llm_config=llm_config,
+        model_client_cls=CustomModelClient
+    )
+
+    result = group_chat._create_internal_agents(
+        agents=[],
+        messages=[],
+        max_attempts=3,
+        validate_speaker_name=(True, "test")
+    )
+
+    assert isinstance(result[1].client._clients[0], CustomModelClient)
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -2037,4 +2097,5 @@ if __name__ == "__main__":
     # test_manager_resume_functions()
     # test_manager_resume_returns()
     # test_manager_resume_messages()
+    # test_custom_model_client()
     pass
