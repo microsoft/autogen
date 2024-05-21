@@ -18,7 +18,7 @@ public class ToolCallResultMessage : IMessage, ICanGetTextContent
     public ToolCallResultMessage(string result, string functionName, string functionArgs, string? from = null)
     {
         this.From = from;
-        var toolCall = new ToolCall(functionName, functionArgs);
+        var toolCall = new ToolCall(functionName, functionArgs) { ToolCallId = functionName };
         toolCall.Result = result;
         this.ToolCalls = [toolCall];
     }

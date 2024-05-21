@@ -30,8 +30,8 @@ public class KernelFunctionMiddlewareTests
 
         var reply = await agent.SendAsync("what's the status of the light?");
         reply.GetContent().Should().Be("off");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage aggregateMessage)
         {
             var toolCallMessage = aggregateMessage.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);
@@ -44,8 +44,8 @@ public class KernelFunctionMiddlewareTests
 
         reply = await agent.SendAsync("change the status of the light to on");
         reply.GetContent().Should().Be("The status of the light is now on");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage1)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage aggregateMessage1)
         {
             var toolCallMessage = aggregateMessage1.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);

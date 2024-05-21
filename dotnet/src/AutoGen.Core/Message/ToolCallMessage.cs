@@ -47,7 +47,7 @@ public class ToolCallMessage : IMessage, ICanGetToolCalls
     public ToolCallMessage(string functionName, string functionArgs, string? from = null)
     {
         this.From = from;
-        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) };
+        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) { ToolCallId = functionName } };
     }
 
     public ToolCallMessage(ToolCallMessageUpdate update)
