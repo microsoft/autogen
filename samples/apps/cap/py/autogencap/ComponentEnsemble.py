@@ -14,7 +14,7 @@ from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
 # TODO: remove time import
 
 
-class LocalActorNetwork:
+class ComponentEnsemble:
     def __init__(self, name: str = "Local Actor Network", start_broker: bool = True):
         self.local_actors = {}
         self.name: str = name
@@ -49,7 +49,7 @@ class LocalActorNetwork:
     def connect(self):
         self._init_runtime()
         for actor in self.local_actors.values():
-            actor.connect_network(self)
+            actor.on_connect(self)
 
     def disconnect(self):
         for actor in self.local_actors.values():
@@ -59,22 +59,22 @@ class LocalActorNetwork:
         if self._broker:
             self._broker.stop()
 
-    def actor_connector_by_topic(self, topic: str) -> ActorConnector:
+    def find_by_topic(self, topic: str) -> ActorConnector:
         return ActorConnector(self._context, topic)
 
-    def lookup_actor(self, name: str) -> ActorConnector:
+    def find_by_name(self, name: str) -> ActorConnector:
         actor_info: ActorInfo = self._directory_svc.lookup_actor_by_name(name)
         if actor_info is None:
             Warn("Local_Actor_Network", f"{name}, not found in the network.")
             return None
         Debug("Local_Actor_Network", f"[{name}] found in the network.")
-        return self.actor_connector_by_topic(name)
+        return self.find_by_topic(name)
 
-    def lookup_termination(self) -> ActorConnector:
+    def find_termination(self) -> ActorConnector:
         termination_topic: str = Termination_Topic
-        return self.actor_connector_by_topic(termination_topic)
+        return self.find_by_topic(termination_topic)
 
-    def lookup_actor_info(self, name_regex) -> List[ActorInfo]:
+    def find_by_name_regex(self, name_regex) -> List[ActorInfo]:
         actor_info: ActorInfoCollection = self._directory_svc.lookup_actor_info_by_name(name_regex)
         if actor_info is None:
             Warn("Local_Actor_Network", f"{name_regex}, not found in the network.")
