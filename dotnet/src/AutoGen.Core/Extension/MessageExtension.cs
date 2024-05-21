@@ -173,10 +173,10 @@ public static class MessageExtension
         return message switch
         {
             ICanGetTextContent canGetTextContent => canGetTextContent.GetContent(),
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => string.Join("\n", aggregateMessage.Message2.ToolCalls.Where(x => x.Result is not null).Select(x => x.Result)),
 #pragma warning disable CS0618 // deprecated
             Message msg => msg.Content,
 #pragma warning restore CS0618 // deprecated
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message2.ToolCalls.Count == 1 ? aggregateMessage.Message2.ToolCalls.First().Result : null,
             _ => null,
         };
     }
