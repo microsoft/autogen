@@ -45,7 +45,7 @@ def main():
         print("3. AutoGen Pair")
         print("4. AutoGen GroupChat")
         print("5. AutoGen Agents in different processes")
-        print("6. List Actors in CAP")
+        print("6. List Actors in CAP (Registry)")
         choice = input("Enter your choice (1-6): ")
 
         if choice == "1":
