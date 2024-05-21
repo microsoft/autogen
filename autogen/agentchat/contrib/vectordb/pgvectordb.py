@@ -1,7 +1,7 @@
 import os
 import re
 import urllib.parse
-from typing import Callable, List
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -558,6 +558,7 @@ class PGVectorDB(VectorDB):
     def __init__(
         self,
         *,
+        conn: connection = None,
         connection_string: str = None,
         host: str = None,
         port: int = None,
@@ -568,7 +569,6 @@ class PGVectorDB(VectorDB):
         embedding_function: Callable = None,
         metadata: dict = None,
         model_name: str = "all-MiniLM-L6-v2",
-        conn: connection = None,
     ) -> None:
         """
         Initialize the vector database.
@@ -598,38 +598,16 @@ class PGVectorDB(VectorDB):
         Returns:
             None
         """
-        try:
-            if conn:
-                self.client = conn
-            if connection_string:
-                parsed_connection = urllib.parse.urlparse(connection_string)
-                encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
-                encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
-                encoded_host = urllib.parse.quote(parsed_connection.hostname, safe="")
-                encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe="")
-                connection_string_encoded = (
-                    f"{parsed_connection.scheme}://{encoded_username}:{encoded_password}"
-                    f"@{encoded_host}:{parsed_connection.port}/{encoded_database}"
-                )
-                self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
-            elif host and port and dbname and username and password:
-                encoded_username = urllib.parse.quote(username, safe="")
-                encoded_password = urllib.parse.quote(password, safe="")
-                encoded_host = urllib.parse.quote(host, safe="")
-                encoded_database = urllib.parse.quote(dbname, safe="")
-                connection_string = (
-                    f"host={encoded_host} port={port} dbname={encoded_database} "
-                    f"user={encoded_username} password={encoded_password}"
-                )
-                self.client = psycopg.connect(
-                    conninfo=connection_string,
-                    connect_timeout=connect_timeout,
-                    autocommit=True,
-                )
-            self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        except psycopg.Error as e:
-            logger.error("Error connecting to the database: ", e)
-            raise e
+        self.client = self.establish_connection(
+            conn=conn,
+            connection_string=connection_string,
+            host=host,
+            port=port,
+            dbname=dbname,
+            username=username,
+            password=password,
+            connect_timeout=connect_timeout,
+        )
         self.model_name = model_name
         try:
             self.embedding_function = (
@@ -644,6 +622,84 @@ class PGVectorDB(VectorDB):
         self.metadata = metadata
         register_vector(self.client)
         self.active_collection = None
+
+    def establish_connection(
+        self,
+        conn: Optional[psycopg.Connection] = None,
+        connection_string: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+        dbname: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        connect_timeout: Optional[int] = 10,
+    ) -> psycopg.Connection:
+        """
+        Establishes a connection to a PostgreSQL database using psycopg.
+
+        Args:
+            conn: An existing psycopg connection object. If provided, this connection will be used.
+            connection_string: A string containing the connection information. If provided, a new connection will be established using this string.
+            host: The hostname of the PostgreSQL server. Used if connection_string is not provided.
+            port: The port number to connect to at the server host. Used if connection_string is not provided.
+            dbname: The database name. Used if connection_string is not provided.
+            username: The username to connect as. Used if connection_string is not provided.
+            password: The user's password. Used if connection_string is not provided.
+            connect_timeout: Maximum wait for connection, in seconds. The default is 10 seconds.
+
+        Returns:
+            A psycopg.Connection object representing the established connection.
+
+        Raises:
+            PermissionError if no credentials are supplied
+            psycopg.Error: If an error occurs while trying to connect to the database.
+        """
+        try:
+            if conn:
+                self.client = conn
+            elif connection_string:
+                parsed_connection = urllib.parse.urlparse(connection_string)
+                encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
+                encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
+                encoded_password = f":{encoded_password}@"
+                encoded_host = urllib.parse.quote(parsed_connection.hostname, safe="")
+                encoded_port = f":{parsed_connection.port}"
+                encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe="")
+                connection_string_encoded = (
+                    f"{parsed_connection.scheme}://{encoded_username}{encoded_password}"
+                    f"{encoded_host}{encoded_port}/{encoded_database}"
+                )
+                self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
+            elif host and port:
+                connection_string = ""
+                if host:
+                    encoded_host = urllib.parse.quote(host, safe="")
+                    connection_string += f"host={encoded_host} "
+                if port:
+                    connection_string += f"port={port} "
+                if dbname:
+                    encoded_database = urllib.parse.quote(dbname, safe="")
+                    connection_string += f"dbname={encoded_database} "
+                if username:
+                    encoded_username = urllib.parse.quote(username, safe="")
+                    connection_string = f"username={encoded_username} "
+                if password:
+                    encoded_password = urllib.parse.quote(password, safe="")
+                    connection_string = f"password={encoded_password} "
+
+                self.client = psycopg.connect(
+                    conninfo=connection_string,
+                    connect_timeout=connect_timeout,
+                    autocommit=True,
+                )
+            else:
+                logger.error("Credentials were not supplied...")
+                raise PermissionError
+            self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        except psycopg.Error as e:
+            logger.error("Error connecting to the database: ", e)
+            raise e
+        return self.client
 
     def create_collection(
         self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
