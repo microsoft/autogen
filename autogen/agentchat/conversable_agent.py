@@ -7,6 +7,7 @@ import logging
 import re
 import warnings
 from collections import defaultdict
+from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from openai import BadRequestError
@@ -35,7 +36,6 @@ from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
-from autogen.runtime_logging import log_function_use
 
 agentops = None
 try:
@@ -154,7 +154,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         if agentops:
             self.agent_ops_agent_name = name
-            agentops.add_tags("autogen")
+            agentops.add_tags('autogen')
         # a dictionary of conversations, default value is list
         if chat_messages is None:
             self._oai_messages = defaultdict(list)
@@ -171,13 +171,7 @@ class ConversableAgent(LLMAgent):
         )
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
-            try:
-                llm_config = copy.deepcopy(llm_config)
-            except TypeError as e:
-                raise TypeError(
-                    "Please implement __deepcopy__ method for each value class in llm_config to support deepcopy."
-                    " Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#adding-http-client-in-llm_config-for-proxy"
-                ) from e
+            llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
 
@@ -470,16 +464,10 @@ class ConversableAgent(LLMAgent):
             reply_func_from_nested_chats = self._summary_from_nested_chats
         if not callable(reply_func_from_nested_chats):
             raise ValueError("reply_func_from_nested_chats must be a callable")
-
-        def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
-            return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
-
-        functools.update_wrapper(
-            wrapped_reply_func, reply_func_from_nested_chats)
-
+        reply_func = partial(reply_func_from_nested_chats, chat_queue)
         self.register_reply(
             trigger,
-            wrapped_reply_func,
+            reply_func,
             position,
             kwargs.get("config"),
             kwargs.get("reset_config"),
@@ -1034,7 +1022,6 @@ class ConversableAgent(LLMAgent):
                 One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
                 on the conversation and extract a summary when summary_method is "reflection_with_llm".
                 The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
-                Another available key is "summary_role", which is the role of the message sent to the agent in charge of summarizing. Default is "system".
             message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 - If a string or a dict is provided, it will be used as the initial message.        `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
                     If dict, it may contain the following reserved fields (either content or tool_calls need to be provided).
@@ -1277,14 +1264,9 @@ class ConversableAgent(LLMAgent):
             raise ValueError("The summary_prompt must be a string.")
         msg_list = recipient.chat_messages_for_summary(sender)
         agent = sender if recipient is None else recipient
-        role = summary_args.get("summary_role", None)
-        if role and not isinstance(role, str):
-            raise ValueError(
-                "The summary_role in summary_arg must be a string.")
         try:
             summary = sender._reflection_with_llm(
-                prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"), role=role
-            )
+                prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"))
         except BadRequestError as e:
             warnings.warn(
                 f"Cannot extract summary using reflection_with_llm: {e}. Using an empty str as summary.", UserWarning
@@ -1293,12 +1275,7 @@ class ConversableAgent(LLMAgent):
         return summary
 
     def _reflection_with_llm(
-        self,
-        prompt,
-        messages,
-        llm_agent: Optional[Agent] = None,
-        cache: Optional[AbstractCache] = None,
-        role: Union[str, None] = None,
+        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[AbstractCache] = None
     ) -> str:
         """Get a chat summary using reflection with an llm client based on the conversation history.
 
@@ -1307,14 +1284,10 @@ class ConversableAgent(LLMAgent):
             messages (list): The messages generated as part of a chat conversation.
             llm_agent: the agent with an llm client.
             cache (AbstractCache or None): the cache client to be used for this conversation.
-            role (str): the role of the message, usually "system" or "user". Default is "system".
         """
-        if not role:
-            role = "system"
-
         system_msg = [
             {
-                "role": role,
+                "role": "system",
                 "content": prompt,
             }
         ]
@@ -1472,7 +1445,6 @@ class ConversableAgent(LLMAgent):
             context=messages[-1].pop("context", None),
             messages=all_messages,
             cache=cache,
-            source=self
         )
         extracted_response = llm_client.extract_text_or_completion_object(response)[
             0]
@@ -2557,7 +2529,7 @@ class ConversableAgent(LLMAgent):
         self._function_map = {k: v for k,
                               v in self._function_map.items() if v is not None}
 
-    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: bool = False):
+    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
@@ -2602,7 +2574,7 @@ class ConversableAgent(LLMAgent):
 
         self.client = OpenAIWrapper(**self.llm_config)
 
-    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: bool = False):
+    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
         """update a tool_signature in the LLM configuration for tool_call.
 
         Args:
@@ -2670,16 +2642,40 @@ class ConversableAgent(LLMAgent):
         @load_basemodels_if_needed
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
-            retval = func(*args, **kwargs)
-            log_function_use(self, func, kwargs, retval)
-            return serialize_to_str(retval)
+            if agentops:
+                tool_event = ToolEvent(
+                    params={"args": args, "kwargs": kwargs}, name=name or func.__name__)
+                try:
+                    retval = func(*args, **kwargs)
+                    retval_str = serialize_to_str(retval)
+                    tool_event.returns = retval_str
+                    record(tool_event)
+                    return retval_str
+                except Exception as e:
+                    record(ErrorEvent(trigger_event=tool_event, exception=e))
+                    raise e
+            else:
+                retval = func(*args, **kwargs)
+                return serialize_to_str(retval)
 
         @load_basemodels_if_needed
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
-            retval = await func(*args, **kwargs)
-            log_function_use(self, func, kwargs, retval)
-            return serialize_to_str(retval)
+            if agentops:
+                tool_event = ToolEvent(
+                    params={"args": args, "kwargs": kwargs}, name=name or func.__name__)
+                try:
+                    retval = await func(*args, **kwargs)
+                    retval_str = serialize_to_str(retval)
+                    tool_event.returns = retval_str
+                    record(tool_event)
+                    return retval_str
+                except Exception as e:
+                    record(ErrorEvent(trigger_event=tool_event, exception=e))
+                    raise e
+            else:
+                retval = func(*args, **kwargs)
+                return serialize_to_str(retval)
 
         wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(
             func) else _wrapped_func
