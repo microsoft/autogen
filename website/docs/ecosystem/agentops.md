@@ -47,8 +47,7 @@ To start tracking all available data on Autogen runs, simply add two lines of co
 
 ```python
 import agentops
-agentops.init()
-# or agentops.init(api_key="your-api-key-here")
+agentops.init() # Or: agentops.init(api_key="your-api-key-here")
 ```
 
 After initializing AgentOps, Autogen will now start automatically tracking your agent runs.
@@ -62,7 +61,7 @@ After initializing AgentOps, Autogen will now start automatically tracking your 
 - **Analytics Dashboard:** Monitor high level statistics about agents in development and production
 - **Public Model Testing**: Test your agents against benchmarks and leaderboards
 - **Custom Tests:** Run your agents against domain specific tests
-- **Time Travel Debugging**: Restart your sessions from checkpoints
+- **Time Travel Debugging**:  Save snapshots of session states to rewind and replay agent runs from chosen checkpoints.
 - **Compliance and Security**: Create audit logs and detect potential threats such as profanity and PII leaks
 - **Prompt Injection Detection**: Identify potential code injection and secret leaks
 
