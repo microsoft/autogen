@@ -1,11 +1,11 @@
 # Using Custom Models
 
-When using `GroupChatManager` we need to pass a `GroupChat` object in the constructor, a dataclass responsible for 
-gathering agents, preparing messages from prompt templates and selecting speakers 
+When using `GroupChatManager` we need to pass a `GroupChat` object in the constructor, a dataclass responsible for
+gathering agents, preparing messages from prompt templates and selecting speakers
 (eventually using `speaker_selection_method` as described [here](customized_speaker_selection)).
 
 To do so GroupChat internally initializes two instances of ConversableAgent.
-In order to control the model clients used by the agents instantiated within the GroupChat, which already receives the 
+In order to control the model clients used by the agents instantiated within the GroupChat, which already receives the
 `llm_config` passed to GroupChatManager, the optional `model_client_cls` attribute can be set.
 
 
@@ -49,13 +49,13 @@ user_proxy = UserProxyAgent(name="user", llm_config=llm_config, code_execution_c
 user_proxy.register_model_client(MyModelClient)
 ```
 
-Note that the agents definition illustrated here is minimal and might not suit your needs. The only aim is to show a 
+Note that the agents definition illustrated here is minimal and might not suit your needs. The only aim is to show a
 basic setup for a group chat scenario.
 
 We then create a `GroupChat` and, if we want the underlying agents used by GroupChat to use our
- custom client, we will pass it in the `model_client_cls` attribute. 
+custom client, we will pass it in the `model_client_cls` attribute.
 
-Finally we create an instance of `GroupChatManager` and pass the config to it. This same config will be forwarded to 
+Finally we create an instance of `GroupChatManager` and pass the config to it. This same config will be forwarded to
 the GroupChat, that (if needed) will automatically handle registration of custom models only.
 
 ```python
@@ -71,9 +71,9 @@ user_proxy.initiate_chat(chat_manager, initial_message="Suggest me the most tren
 
 ```
 
-This attribute can either be a class or a list of classes which adheres to the `ModelClient` protocol (see 
-[this link](../non-openai-models/about-using-nonopenai-models) for more info about defining a custom model client 
+This attribute can either be a class or a list of classes which adheres to the `ModelClient` protocol (see
+[this link](../non-openai-models/about-using-nonopenai-models) for more info about defining a custom model client
 class).
 
-Note that it is not necessary to define a `model_client_cls` when working with Azure OpenAI, OpenAI or other non-custom 
+Note that it is not necessary to define a `model_client_cls` when working with Azure OpenAI, OpenAI or other non-custom
 models natively supported by the library.
