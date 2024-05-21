@@ -22,6 +22,8 @@ install_requires = [
     "numpy>=1.17.0,<2",
     "python-dotenv",
     "agentops",
+    "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
+    "docker",
 ]
 
 jupyter_executor = [
