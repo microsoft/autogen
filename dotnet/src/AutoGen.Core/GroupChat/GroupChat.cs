@@ -110,7 +110,7 @@ The available roles are:
 {string.Join(",", agentNames)}
 
 Each message will start with 'From name:', e.g:
-From admin:
+From {agentNames.First()}:
 //your message//.");
 
         var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);

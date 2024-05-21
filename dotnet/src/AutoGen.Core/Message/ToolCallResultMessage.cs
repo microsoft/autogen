@@ -7,7 +7,7 @@ using System.Text;
 
 namespace AutoGen.Core;
 
-public class ToolCallResultMessage : IMessage
+public class ToolCallResultMessage : IMessage, ICanGetTextContent
 {
     public ToolCallResultMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
@@ -18,7 +18,7 @@ public class ToolCallResultMessage : IMessage
     public ToolCallResultMessage(string result, string functionName, string functionArgs, string? from = null)
     {
         this.From = from;
-        var toolCall = new ToolCall(functionName, functionArgs);
+        var toolCall = new ToolCall(functionName, functionArgs) { ToolCallId = functionName };
         toolCall.Result = result;
         this.ToolCalls = [toolCall];
     }
@@ -30,6 +30,15 @@ public class ToolCallResultMessage : IMessage
 
     public string? From { get; set; }
 
+    public string? GetContent()
+    {
+        var results = this.ToolCalls
+            .Where(x => x.Result != null)
+            .Select(x => x.Result);
+
+        return string.Join("\n", results);
+    }
+
     public override string ToString()
     {
         var sb = new StringBuilder();
@@ -40,17 +49,5 @@ public class ToolCallResultMessage : IMessage
         }
 
         return sb.ToString();
-    }
-
-    private void Validate()
-    {
-        // each tool call must have a result
-        foreach (var toolCall in this.ToolCalls)
-        {
-            if (string.IsNullOrEmpty(toolCall.Result))
-            {
-                throw new System.ArgumentException($"The tool call {toolCall} does not have a result");
-            }
-        }
     }
 }

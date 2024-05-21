@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
+using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 
-namespace AutoGen.Tests;
+namespace AutoGen.OpenAI.Tests;
 
 public partial class OpenAIChatAgentTest
 {
@@ -79,7 +79,6 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, "Hello", from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
@@ -133,7 +132,6 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, question, from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, question, from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
@@ -202,14 +200,13 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, question, from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, question, from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
         {
             var reply = await functionCallAgent.SendAsync(message);
 
-            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+            reply.Should().BeOfType<ToolCallAggregateMessage>();
             reply.From.Should().Be("assistant");
             reply.GetToolCalls()!.Count().Should().Be(1);
             reply.GetToolCalls()!.First().FunctionName.Should().Be(this.GetWeatherAsyncFunctionContract.Name);
@@ -229,7 +226,7 @@ public partial class OpenAIChatAgentTest
                 }
                 else
                 {
-                    streamingMessage.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+                    streamingMessage.Should().BeOfType<ToolCallAggregateMessage>();
                     streamingMessage.As<IMessage>().GetContent()!.ToLower().Should().Contain("seattle");
                 }
             }

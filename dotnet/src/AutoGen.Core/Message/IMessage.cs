@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // IMessage.cs
 
+using System.Collections.Generic;
+
 namespace AutoGen.Core;
 
 /// <summary>
@@ -29,7 +31,7 @@ namespace AutoGen.Core;
 /// <item>
 /// <see cref="AggregateMessage{TMessage1, TMessage2}"/>: an aggregate message type that contains two message types.
 /// This type is useful when you want to combine two message types into one unique message type. One example is when invoking a tool call and you want to return both <see cref="ToolCallMessage"/> and <see cref="ToolCallResultMessage"/>.
-/// One example of how this type is used in AutoGen is <see cref="FunctionCallMiddleware"/>
+/// One example of how this type is used in AutoGen is <see cref="FunctionCallMiddleware"/> and its return message <see cref="ToolCallAggregateMessage"/>
 /// </item>
 /// </list>
 /// </summary>
@@ -40,6 +42,24 @@ public interface IMessage : IStreamingMessage
 public interface IMessage<out T> : IMessage, IStreamingMessage<T>
 {
 }
+
+/// <summary>
+/// The interface for messages that can get text content.
+/// This interface will be used by <see cref="MessageExtension.GetContent(IMessage)"/> to get the content from the message.
+/// </summary>
+public interface ICanGetTextContent : IMessage, IStreamingMessage
+{
+    public string? GetContent();
+}
+
+/// <summary>
+/// The interface for messages that can get a list of <see cref="ToolCall"/>
+/// </summary>
+public interface ICanGetToolCalls : IMessage, IStreamingMessage
+{
+    public IEnumerable<ToolCall> GetToolCalls();
+}
+
 
 public interface IStreamingMessage
 {

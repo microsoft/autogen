@@ -30,8 +30,8 @@ public class KernelFunctionMiddlewareTests
 
         var reply = await agent.SendAsync("what's the status of the light?");
         reply.GetContent().Should().Be("off");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage aggregateMessage)
         {
             var toolCallMessage = aggregateMessage.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);
@@ -44,8 +44,8 @@ public class KernelFunctionMiddlewareTests
 
         reply = await agent.SendAsync("change the status of the light to on");
         reply.GetContent().Should().Be("The status of the light is now on");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage1)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage aggregateMessage1)
         {
             var toolCallMessage = aggregateMessage1.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);
@@ -75,8 +75,8 @@ public class KernelFunctionMiddlewareTests
 
         var reply = await agent.SendAsync("what's the weather in Seattle?");
         reply.GetContent().Should().Be("The weather in Seattle is sunny.");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> getWeatherMessage)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage getWeatherMessage)
         {
             var toolCallMessage = getWeatherMessage.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);
@@ -88,8 +88,8 @@ public class KernelFunctionMiddlewareTests
 
         reply = await agent.SendAsync("Create a person object with name: John, email: 12345@gmail.com, age: 30");
         reply.GetContent().Should().Be("Name: John, Email: 12345@gmail.com, Age: 30");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        if (reply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> createPersonObjectMessage)
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
+        if (reply is ToolCallAggregateMessage createPersonObjectMessage)
         {
             var toolCallMessage = createPersonObjectMessage.Message1;
             toolCallMessage.ToolCalls.Should().HaveCount(1);

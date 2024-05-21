@@ -84,7 +84,7 @@ public partial class OpenAICodeSnippet
                     new TextMessage(Role.Assistant, "Hello", from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
+            new TextMessage(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
