@@ -284,7 +284,7 @@ public class OpenAIMessageTests
                 chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
-                functionToolCall.Id.Should().Be("test_0");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -353,7 +353,7 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().Be("result");
-                chatRequestMessage.ToolCallId.Should().Be("test_0");
+                chatRequestMessage.ToolCallId.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);

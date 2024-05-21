@@ -32,7 +32,11 @@ public class ToolCallResultMessage : IMessage, ICanGetTextContent
 
     public string? GetContent()
     {
-        return this.ToolCalls.Count == 1 ? this.ToolCalls.First().Result : null;
+        var results = this.ToolCalls
+            .Where(x => x.Result != null)
+            .Select(x => x.Result);
+
+        return string.Join("\n", results);
     }
 
     public override string ToString()

@@ -96,7 +96,7 @@ public partial class Example03_Agent_FunctionCall
         // parallel function calls
         var calculateTaxes = await agent.SendAsync("calculate tax: 100, 0.1; calculate tax: 200, 0.2");
         calculateTaxes.GetContent().Should().Be("tax is 10\ntax is 40"); // "tax is 10\n tax is 40
-        calculateTaxes.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        calculateTaxes.Should().BeOfType<ToolCallAggregateMessage>();
         calculateTaxes.GetToolCalls().Should().HaveCount(2);
         calculateTaxes.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
 
