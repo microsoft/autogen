@@ -33,6 +33,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
+          pip install pytest-asyncio
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
