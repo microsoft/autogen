@@ -88,15 +88,15 @@ class CosmosDBLogger(BaseLogger):
         start_time: str,
     ) -> None:
         # Debugging: Print when the method is called and the parameters it received
-        print("log_chat_completion called")
-        print("Invocation ID:", str(invocation_id))
-        print("Client ID:", client_id)
-        print("Wrapper ID:", wrapper_id)
-        print("Request:", request)
-        print("Response:", response)
-        print("Is Cached:", is_cached)
-        print("Cost:", cost)
-        print("Start Time:", start_time)
+        # print("log_chat_completion called")
+        # print("Invocation ID:", str(invocation_id))
+        # print("Client ID:", client_id)
+        # print("Wrapper ID:", wrapper_id)
+        # print("Request:", request)
+        # print("Response:", response)
+        # print("Is Cached:", is_cached)
+        # print("Cost:", cost)
+        # print("Start Time:", start_time)
         # End debugging
         document = {
             "type": "chat_completion",
@@ -112,13 +112,13 @@ class CosmosDBLogger(BaseLogger):
             "end_time": get_current_ts(),
         }
         # Debugging: Print the document to be added to the queue
-        print("Document prepared for queue:", document)
+        # print("Document prepared for queue:", document)
         # End debugging
 
         self.log_queue.put(document)
 
         # Debugging: Confirm the document has been added to the queue
-        print("Document added to queue")
+        # print("Document added to queue")
         # End debugging
 
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
@@ -186,8 +186,8 @@ class CosmosDBLogger(BaseLogger):
     def stop(self) -> None:
         self.log_queue.put(None)  # Signal to stop the worker thread
         self.logger_thread.join()  # Wait for the worker thread to finish
-        #if self.client:
-            #self.client.close()  # Explicitly close the Cosmos client
+        # if self.client:
+            # self.client.close()  # Explicitly close the Cosmos client
 
     def get_connection(self) -> None:
         # Cosmos DB connection management is handled by the SDK.
