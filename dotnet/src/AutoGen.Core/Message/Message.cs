@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Message.cs
 
+using System;
 using System.Collections.Generic;
 
 namespace AutoGen.Core;
 
+[Obsolete("This message class is deprecated, please use a specific AutoGen built-in message type instead. For more information, please visit https://microsoft.github.io/autogen-for-net/articles/Built-in-messages.html")]
 public class Message : IMessage
 {
     public Message(
