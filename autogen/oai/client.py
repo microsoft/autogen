@@ -435,7 +435,8 @@ class OpenAIWrapper:
             elif api_type is not None and api_type.startswith("google"):
                 if gemini_import_exception:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
-                self._clients.append(GeminiClient(**openai_config))
+                client = GeminiClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
