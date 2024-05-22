@@ -11,6 +11,7 @@ from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
 from autogen.oai.openai_utils import create_gpt_assistant, retrieve_assistants_by_name, update_gpt_assistant
+from autogen.runtime_logging import log_new_agent, logging_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,8 @@ class GPTAssistantAgent(ConversableAgent):
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
