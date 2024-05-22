@@ -195,7 +195,9 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
             r.summary for i, r in enumerate(finished_chats) if i not in finished_chat_indexes_to_exclude_from_carryover
         ]
 
-        __post_carryover_processing(chat_info)
+        if not chat_info.get("silent", False):
+            __post_carryover_processing(chat_info)
+
         sender = chat_info["sender"]
         chat_res = sender.initiate_chat(**chat_info)
         finished_chats.append(chat_res)
@@ -236,7 +238,10 @@ async def _dependent_chat_future(
     if isinstance(_chat_carryover, str):
         _chat_carryover = [_chat_carryover]
     chat_info["carryover"] = _chat_carryover + [finished_chats[pre_id].summary for pre_id in finished_chats]
-    __post_carryover_processing(chat_info)
+
+    if not chat_info.get("silent", False):
+        __post_carryover_processing(chat_info)
+
     sender = chat_info["sender"]
     chat_res_future = asyncio.create_task(sender.a_initiate_chat(**chat_info))
     call_back_with_args = partial(_on_chat_future_done, chat_id=chat_id)

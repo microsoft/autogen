@@ -2,8 +2,8 @@ import time
 
 import _paths
 from autogencap.ag_adapter.agent import Agent
+from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.Config import IGNORED_LOG_CONTEXTS
-from autogencap.LocalActorNetwork import LocalActorNetwork
 
 from autogen import UserProxyAgent
 
@@ -22,21 +22,21 @@ def main():
     # Wrap AutoGen Agent in CAP
     cap_user_proxy = Agent(user_proxy, counter_party_name="assistant", init_chat=True)
     # Create the message bus
-    network = LocalActorNetwork()
+    ensemble = ComponentEnsemble()
     # Add the user_proxy to the message bus
-    cap_user_proxy.register(network)
+    cap_user_proxy.register(ensemble)
     # Start message processing
-    network.connect()
+    ensemble.connect()
 
     # Wait for the user_proxy to finish
-    interact_with_user(network, cap_user_proxy)
+    interact_with_user(ensemble, cap_user_proxy)
     # Cleanup
-    network.disconnect()
+    ensemble.disconnect()
 
 
 # Starts the Broker and the Assistant. The UserProxy is started separately.
 def interact_with_user(network, cap_assistant):
-    user_proxy_conn = network.lookup_actor("user_proxy")
+    user_proxy_conn = network.find_by_name("user_proxy")
     example = "Plot a chart of MSFT daily closing prices for last 1 Month."
     print(f"Example: {example}")
     try:
