@@ -917,6 +917,7 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
+        silent: bool = False,
         **kwargs,
     ):
         if (
@@ -939,6 +940,8 @@ class GroupChatManager(ConversableAgent):
             log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
+
+        self._silent = silent
 
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
@@ -992,6 +995,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1046,7 +1050,7 @@ class GroupChatManager(ConversableAgent):
                 reply["content"] = self.clear_agents_history(reply, groupchat)
 
             # The speaker sends the message without requesting a reply
-            speaker.send(reply, self, request_reply=False)
+            speaker.send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
@@ -1067,6 +1071,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1111,7 +1116,7 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply
-            await speaker.a_send(reply, self, request_reply=False)
+            await speaker.a_send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
