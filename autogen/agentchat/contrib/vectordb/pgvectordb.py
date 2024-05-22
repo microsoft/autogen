@@ -17,7 +17,6 @@ except ImportError:
 
 try:
     import psycopg
-    from psycopg import connection
 except ImportError:
     raise ImportError("Please install pgvector: `pip install psycopg`")
 
@@ -232,7 +231,14 @@ class Collection:
         exists = cursor.fetchone()[0]
         return exists
 
-    def get(self, ids=None, include=None, where=None, limit=None, offset=None) -> List[Document]:
+    def get(
+        self,
+        ids: Optional[str] = None,
+        include: Optional[str] = None,
+        where: Optional[str] = None,
+        limit: Optional[Union[int, str]] = None,
+        offset: Optional[Union[int, str]] = None,
+    ) -> List[Document]:
         """
         Retrieve documents from the collection.
 
@@ -273,7 +279,6 @@ class Collection:
 
         # Construct the full query
         query = f"{select_clause} {from_clause} {where_clause} {limit_clause} {offset_clause}"
-
         retrieved_documents = []
         try:
             # Execute the query with the appropriate values
@@ -381,11 +386,11 @@ class Collection:
     def query(
         self,
         query_texts: List[str],
-        collection_name: str = None,
-        n_results: int = 10,
-        distance_type: str = "euclidean",
-        distance_threshold: float = -1,
-        include_embedding: bool = False,
+        collection_name: Optional[str] = None,
+        n_results: Optional[int] = 10,
+        distance_type: Optional[str] = "euclidean",
+        distance_threshold: Optional[float] = -1,
+        include_embedding: Optional[bool] = False,
     ) -> QueryResults:
         """
         Query documents in the collection.
@@ -451,7 +456,7 @@ class Collection:
         return results
 
     @staticmethod
-    def convert_string_to_array(array_string) -> List[float]:
+    def convert_string_to_array(array_string: str) -> List[float]:
         """
         Convert a string representation of an array to a list of floats.
 
@@ -468,7 +473,7 @@ class Collection:
         array = [float(num) for num in array_string.split()]
         return array
 
-    def modify(self, metadata, collection_name: str = None) -> None:
+    def modify(self, metadata, collection_name: Optional[str] = None) -> None:
         """
         Modify metadata for the collection.
 
@@ -487,7 +492,7 @@ class Collection:
         )
         cursor.close()
 
-    def delete(self, ids: List[ItemID], collection_name: str = None) -> None:
+    def delete(self, ids: List[ItemID], collection_name: Optional[str] = None) -> None:
         """
         Delete documents from the collection.
 
@@ -505,7 +510,7 @@ class Collection:
         cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({id_placeholders});", ids)
         cursor.close()
 
-    def delete_collection(self, collection_name: str = None) -> None:
+    def delete_collection(self, collection_name: Optional[str] = None) -> None:
         """
         Delete the entire collection.
 
@@ -521,7 +526,7 @@ class Collection:
         cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.close()
 
-    def create_collection(self, collection_name: str = None) -> None:
+    def create_collection(self, collection_name: Optional[str] = None) -> None:
         """
         Create a new collection.
 
@@ -558,17 +563,17 @@ class PGVectorDB(VectorDB):
     def __init__(
         self,
         *,
-        conn: connection = None,
-        connection_string: str = None,
-        host: str = None,
-        port: int = None,
-        dbname: str = None,
-        username: str = None,
-        password: str = None,
-        connect_timeout: int = 10,
+        conn: Optional[psycopg.Connection] = None,
+        connection_string: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+        dbname: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        connect_timeout: Optional[int] = 10,
         embedding_function: Callable = None,
-        metadata: dict = None,
-        model_name: str = "all-MiniLM-L6-v2",
+        metadata: Optional[dict] = None,
+        model_name: Optional[str] = "all-MiniLM-L6-v2",
     ) -> None:
         """
         Initialize the vector database.
@@ -576,6 +581,9 @@ class PGVectorDB(VectorDB):
         Note: connection_string or host + port + dbname must be specified
 
         Args:
+            conn: psycopg.Connection | A customer connection object to connect to the database.
+                A connection object may include additional key/values:
+                https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
             connection_string: "postgresql://username:password@hostname:port/database" | The PGVector connection string. Default is None.
             host: str | The host to connect to. Default is None.
             port: int | The port to connect to. Default is None.
@@ -591,9 +599,6 @@ class PGVectorDB(VectorDB):
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
             model_name: str | Sentence embedding model to use. Models can be chosen from:
                 https://huggingface.co/models?library=sentence-transformers
-            conn: psycopg.connect() | A customer connection object to connect to the database.
-                A connection object may include additional key/values:
-                https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 
         Returns:
             None
@@ -670,7 +675,7 @@ class PGVectorDB(VectorDB):
                     f"{encoded_host}{encoded_port}/{encoded_database}"
                 )
                 self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
-            elif host and port:
+            elif host:
                 connection_string = ""
                 if host:
                     encoded_host = urllib.parse.quote(host, safe="")
@@ -682,10 +687,10 @@ class PGVectorDB(VectorDB):
                     connection_string += f"dbname={encoded_database} "
                 if username:
                     encoded_username = urllib.parse.quote(username, safe="")
-                    connection_string = f"username={encoded_username} "
+                    connection_string += f"user={encoded_username} "
                 if password:
                     encoded_password = urllib.parse.quote(password, safe="")
-                    connection_string = f"password={encoded_password} "
+                    connection_string += f"password={encoded_password} "
 
                 self.client = psycopg.connect(
                     conninfo=connection_string,
