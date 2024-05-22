@@ -107,7 +107,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
-          pip install unstructured[all-docs]==0.13.0
+          pip install --no-cache-dir unstructured[all-docs]==0.13.0
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]

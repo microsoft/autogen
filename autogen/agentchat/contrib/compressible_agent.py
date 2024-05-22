@@ -13,8 +13,8 @@ from ...formatting_utils import colored
 logger = logging.getLogger(__name__)
 
 warn(
-    "Context handling with CompressibleAgent is deprecated. "
-    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/capabilities/transform_messages",
+    "Context handling with CompressibleAgent is deprecated and will be removed in `0.2.30`. "
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages",
     DeprecationWarning,
     stacklevel=2,
 )
