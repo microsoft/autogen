@@ -69,7 +69,17 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
-    start_page=HOMEPAGE,
+    start_page=TASK["start_url"],
+    navigation_allow_list=[
+        "about:blank",
+        HOMEPAGE,
+        GITLAB,
+        MAP,
+        REDDIT,
+        SHOPPING,
+        SHOPPING_ADMIN,
+        WIKIPEDIA,
+    ],
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
