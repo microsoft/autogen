@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Union, TypeVar, Callable
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, TypeVar, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -108,9 +108,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_function_use(
-            self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: any
-    ):
+    def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: any):
         """
         Log the use of a registered function (could be a tool)
 

@@ -31,11 +31,10 @@ from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_event, log_new_agent, logging_enabled
+from ..runtime_logging import log_event, log_function_use, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
-from autogen.runtime_logging import log_function_use
 
 __all__ = ("ConversableAgent",)
 
@@ -1358,10 +1357,7 @@ class ConversableAgent(LLMAgent):
 
         # TODO: #1143 handle token limit exceeded error
         response = llm_client.create(
-            context=messages[-1].pop("context", None),
-            messages=all_messages,
-            cache=cache,
-            source=self
+            context=messages[-1].pop("context", None), messages=all_messages, cache=cache, source=self
         )
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
@@ -2411,7 +2407,7 @@ class ConversableAgent(LLMAgent):
         self._function_map.update(function_map)
         self._function_map = {k: v for k, v in self._function_map.items() if v is not None}
 
-    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: bool = False):
+    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
@@ -2455,7 +2451,7 @@ class ConversableAgent(LLMAgent):
 
         self.client = OpenAIWrapper(**self.llm_config)
 
-    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: bool = False):
+    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
         """update a tool_signature in the LLM configuration for tool_call.
 
         Args:

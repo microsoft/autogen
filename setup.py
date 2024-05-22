@@ -68,7 +68,6 @@ extra_require = {
         *retrieve_chat,
         "qdrant_client[fastembed]",
     ],
-    "agentops": ["agentops>=0.1.10"],
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
