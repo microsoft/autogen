@@ -28,5 +28,5 @@ After initializing AgentOps, Autogen will now start automatically tracking
 - Token usage and costs
 
 ### Example Implementation
-[AgentOps-Notebook](/docs/notebooks/agentchat_agentops)
+[AgentOps-Notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_agentops)
 [AgentOps Documentation](https://docs.agentops.ai/v1/quickstart)
