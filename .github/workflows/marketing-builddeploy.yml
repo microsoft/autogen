@@ -1,0 +1,98 @@
+# GitHub Actions workflow to deploy to Azure using azd
+# To configure required secrets for connecting to Azure, simply run `azd pipeline config`
+# Set up permissions for deploying with secretless Azure federated credentials
+# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
+
+# This workflow needs Owner rights on the Azure Subscription:
+# $assignee = "<Enterprise_App_Object_ID>"
+# $scope = "/subscriptions/<Subscription_ID>
+# az role assignment create --assignee $assignee --role "Owner"  --scope $scope
+
+run-name: '[PR #${{github.event.pull_request.number}}] [Marketing Sample] - Build and Deploy frontend and backend'
+
+on:
+  workflow_dispatch:
+    inputs:
+      azdnostate:
+        type: choice
+        description: azd --no-state flag
+        options: 
+        - 'false'
+        - 'true'
+  push:
+    branches:
+      - main
+    paths:
+      - samples/marketing/*
+  pull_request:
+    branches:
+      - 'main'
+  
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+    working-directory: ./samples/marketing
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.MARKETING_AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ secrets.MARKETING_AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ secrets.MARKETING_AZURE_LOCATION }}
+      AZURE_TENANT_ID: ${{ secrets.MARKETING_AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.MARKETING_AZURE_CLIENT_ID }}
+      # AZURE_CREDENTIALS: ${{ secrets.MARKETING_AZURE_CREDENTIALS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install azd
+        uses: Azure/setup-azd@v1.0.0
+
+      # https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Cwindows#use-the-azure-login-action-with-openid-connect
+      - name: Log in with Azure (Federated Credentials)
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        run: |
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
+
+      # - name: Log in with Azure (Client Credentials)
+      #   if: ${{ env.AZURE_CREDENTIALS != '' }}
+      #   run: |
+      #     $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable;
+      #     Write-Host "::add-mask::$($info.clientSecret)"
+      #     azd auth login `
+      #       --client-id "$($info.clientId)" `
+      #       --client-secret "$($info.clientSecret)" `
+      #       --tenant-id "$($info.tenantId)"
+      #   shell: pwsh
+      #   env:
+      #     AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set --no-state flag for azd
+        id: no-state
+        run: |
+          if ("${{ github.event.inputs.azdnostate }}" -eq "true") {
+            echo "::set-output name=azd-no-state-flag::--no-state"
+            Write-Warning "Using --no-state flag for azd provision"
+          } else {
+            Write-Verbose "No --no-state flag for azd provision" -Verbose
+            echo "::set-output name=azd-no-state-flag::"
+          }
+
+      - name: Provision Infrastructure
+        run: |
+          azd provision `
+          --no-prompt `
+          --environment ${{ secrets.MARKETING_AZURE_ENV_NAME }} `
+          ${{ steps.no-state.outputs.azd-no-state-flag }}
+
+      - name: Deploy Application
+        run: azd deploy --no-prompt --environment ${{ secrets.MARKETING_AZURE_ENV_NAME }}

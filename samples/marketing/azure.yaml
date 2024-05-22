@@ -5,14 +5,14 @@ metadata:
     template: azd-init@1.8.2
 services:
     backend:
-        project: src\backend
+        project: "src/backend"
         host: containerapp
         language: dotnet
         docker:
             path: Dockerfile
             context: ../../../../
     frontend:
-        project: src\frontend
+        project: "src/frontend"
         host: containerapp
         language: ts
         dist: build
