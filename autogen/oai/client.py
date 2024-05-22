@@ -282,7 +282,6 @@ class OpenAIClient:
             # If streaming is not enabled, send a regular chat completion request
             params = params.copy()
             params["stream"] = False
-            del params['source']
             response = completions.create(**params)
 
         return response
@@ -570,6 +569,7 @@ class OpenAIWrapper:
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
+            agent = full_config.get("agent")
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
             api_type = extra_kwargs.get("api_type")
@@ -577,6 +577,7 @@ class OpenAIWrapper:
                 create_config["model"] = create_config["model"].replace(".", "")
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
+            del params['agent']
             # get the cache_seed, filter_func and context
             cache_seed = extra_kwargs.get("cache_seed", LEGACY_DEFAULT_CACHE_SEED)
             cache = extra_kwargs.get("cache")
@@ -619,7 +620,7 @@ class OpenAIWrapper:
                                 invocation_id=invocation_id,
                                 client_id=id(client),
                                 wrapper_id=id(self),
-                                source=full_config.get("source"),
+                                agent=agent,
                                 request=params,
                                 response=response,
                                 is_cached=1,
@@ -652,7 +653,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
-                        source=full_config.get("source"),
+                        agent=agent,
                         request=params,
                         response=f"error_code:{error_code}, config {i} failed",
                         is_cached=0,
@@ -683,7 +684,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
-                        source=full_config.get("source"),
+                        agent=agent,
                         request=params,
                         response=response,
                         is_cached=0,
