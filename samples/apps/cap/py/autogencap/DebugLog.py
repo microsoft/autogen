@@ -38,7 +38,7 @@ class ConsoleLogger(BaseLogger):
         super().__init__()
 
     def WriteLog(self, level, context, msg):
-        timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "pink")
+        timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
         # Translate level number to name and color
         level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
         # Left justify the context and color it blue
