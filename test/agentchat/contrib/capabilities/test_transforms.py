@@ -1,10 +1,21 @@
 import copy
-from typing import Dict, List
+from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autogen.agentchat.contrib.capabilities.transforms import MessageHistoryLimiter, MessageTokenLimiter, _count_tokens
+from autogen.agentchat.contrib.capabilities.text_compressors import TextCompressor
+from autogen.agentchat.contrib.capabilities.transforms import (
+    MessageHistoryLimiter,
+    MessageTokenLimiter,
+    TextMessageCompressor,
+    _count_tokens,
+)
+
+
+class _MockTextCompressor:
+    def compress_text(self, text: str, **compression_params) -> Dict[str, Any]:
+        return {"compressed_prompt": ""}
 
 
 def get_long_messages() -> List[Dict]:
@@ -29,6 +40,18 @@ def get_no_content_messages() -> List[Dict]:
     return [{"role": "user", "function_call": "example"}, {"role": "assistant", "content": None}]
 
 
+def get_text_compressors() -> List[TextCompressor]:
+    compressors: List[TextCompressor] = [_MockTextCompressor()]
+    try:
+        from autogen.agentchat.contrib.capabilities.text_compressors import LLMLingua
+
+        compressors.append(LLMLingua())
+    except ImportError:
+        pass
+
+    return compressors
+
+
 @pytest.fixture
 def message_history_limiter() -> MessageHistoryLimiter:
     return MessageHistoryLimiter(max_messages=3)
@@ -42,6 +65,30 @@ def message_token_limiter() -> MessageTokenLimiter:
 @pytest.fixture
 def message_token_limiter_with_threshold() -> MessageTokenLimiter:
     return MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
+
+
+def _filter_dict_test(
+    post_transformed_message: Dict, pre_transformed_messages: Dict, roles: List[str], exclude_filter: bool
+) -> bool:
+    is_role = post_transformed_message["role"] in roles
+    if exclude_filter:
+        is_role = not is_role
+
+    if isinstance(post_transformed_message["content"], list):
+        condition = (
+            len(post_transformed_message["content"][0]["text"]) < len(pre_transformed_messages["content"][0]["text"])
+            if is_role
+            else len(post_transformed_message["content"][0]["text"])
+            == len(pre_transformed_messages["content"][0]["text"])
+        )
+    else:
+        condition = (
+            len(post_transformed_message["content"]) < len(pre_transformed_messages["content"])
+            if is_role
+            else len(post_transformed_message["content"]) == len(pre_transformed_messages["content"])
+        )
+
+    return condition
 
 
 # MessageHistoryLimiter
@@ -82,11 +129,33 @@ def test_message_history_limiter_get_logs(message_history_limiter, messages, exp
 def test_message_token_limiter_apply_transform(
     message_token_limiter, messages, expected_token_count, expected_messages_len
 ):
-    transformed_messages = message_token_limiter.apply_transform(messages)
+    transformed_messages = message_token_limiter.apply_transform(copy.deepcopy(messages))
     assert (
         sum(_count_tokens(msg["content"]) for msg in transformed_messages if "content" in msg) == expected_token_count
     )
     assert len(transformed_messages) == expected_messages_len
+
+
+@pytest.mark.parametrize("messages", [get_long_messages(), get_short_messages()])
+def test_message_token_limiter_with_filter(messages):
+    # Test truncating all messages except for user
+    message_token_limiter = MessageTokenLimiter(max_tokens_per_message=0, filter_dict={"role": "user"})
+    transformed_messages = message_token_limiter.apply_transform(copy.deepcopy(messages))
+
+    pre_post_messages = zip(messages, transformed_messages)
+
+    for pre_transform, post_transform in pre_post_messages:
+        assert _filter_dict_test(post_transform, pre_transform, ["user"], exclude_filter=True)
+
+    # Test truncating all user messages only
+    message_token_limiter = MessageTokenLimiter(
+        max_tokens_per_message=0, filter_dict={"role": "user"}, exclude_filter=False
+    )
+    transformed_messages = message_token_limiter.apply_transform(copy.deepcopy(messages))
+
+    pre_post_messages = zip(messages, transformed_messages)
+    for pre_transform, post_transform in pre_post_messages:
+        assert _filter_dict_test(post_transform, pre_transform, ["user"], exclude_filter=False)
 
 
 @pytest.mark.parametrize(
@@ -119,49 +188,60 @@ def test_message_token_limiter_get_logs(message_token_limiter, messages, expecte
     assert logs_str == expected_logs
 
 
-def test_text_compression():
-    """Test the TextMessageCompressor transform."""
-    try:
-        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+# TextMessageCompressor tests
 
-        text_compressor = TextMessageCompressor()
-    except ImportError:
-        pytest.skip("LLM Lingua is not installed.")
+
+@pytest.mark.parametrize("text_compressor", get_text_compressors())
+def test_text_compression(text_compressor):
+    """Test the TextMessageCompressor transform."""
+
+    compressor = TextMessageCompressor(text_compressor=text_compressor)
 
     text = "Run this test with a long string. "
     messages = [
-        {
-            "role": "assistant",
-            "content": [{"type": "text", "text": "".join([text] * 3)}],
-        },
-        {
-            "role": "assistant",
-            "content": [{"type": "text", "text": "".join([text] * 3)}],
-        },
-        {
-            "role": "assistant",
-            "content": [{"type": "text", "text": "".join([text] * 3)}],
-        },
+        {"role": "assistant", "content": [{"type": "text", "text": "".join([text] * 3)}]},
+        {"role": "role", "content": [{"type": "text", "text": "".join([text] * 3)}]},
+        {"role": "assistant", "content": [{"type": "text", "text": "".join([text] * 3)}]},
+        {"role": "assistant", "content": [{"type": "text", "text": "".join([text] * 3)}]},
     ]
 
-    transformed_messages = text_compressor.apply_transform([{"content": text}])
+    transformed_messages = compressor.apply_transform([{"content": text}])
 
     assert len(transformed_messages[0]["content"]) < len(text)
 
     # Test compressing all messages
-    text_compressor = TextMessageCompressor()
-    transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
-    for message in transformed_messages:
-        assert len(message["content"][0]["text"]) < len(messages[0]["content"][0]["text"])
+    compressor = TextMessageCompressor(text_compressor=text_compressor)
+    transformed_messages = compressor.apply_transform(copy.deepcopy(messages))
+
+    pre_post_messages = zip(messages, transformed_messages)
+    for pre_transform, post_transform in pre_post_messages:
+        assert len(post_transform["content"][0]["text"]) < len(pre_transform["content"][0]["text"])
 
 
-def test_text_compression_cache():
-    try:
-        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+@pytest.mark.parametrize("messages", [get_long_messages(), get_short_messages()])
+@pytest.mark.parametrize("text_compressor", get_text_compressors())
+def test_text_compression_with_filter(messages, text_compressor):
+    # Test truncating all messages except for user
+    compressor = TextMessageCompressor(text_compressor=text_compressor, filter_dict={"role": "user"})
+    transformed_messages = compressor.apply_transform(copy.deepcopy(messages))
 
-    except ImportError:
-        pytest.skip("LLM Lingua is not installed.")
+    pre_post_messages = zip(messages, transformed_messages)
+    for pre_transform, post_transform in pre_post_messages:
+        assert _filter_dict_test(post_transform, pre_transform, ["user"], exclude_filter=True)
 
+    # Test truncating all user messages only
+    compressor = TextMessageCompressor(
+        text_compressor=text_compressor, filter_dict={"role": "user"}, exclude_filter=False
+    )
+    transformed_messages = compressor.apply_transform(copy.deepcopy(messages))
+
+    pre_post_messages = zip(messages, transformed_messages)
+    for pre_transform, post_transform in pre_post_messages:
+        assert _filter_dict_test(post_transform, pre_transform, ["user"], exclude_filter=False)
+
+
+@pytest.mark.parametrize("text_compressor", get_text_compressors())
+def test_text_compression_cache(text_compressor):
     messages = get_long_messages()
     mock_compressed_content = (1, {"content": "mock"})
 
@@ -171,18 +251,18 @@ def test_text_compression_cache():
     ) as mocked_get, patch(
         "autogen.agentchat.contrib.capabilities.transforms.TextMessageCompressor._cache_set", MagicMock()
     ) as mocked_set:
-        text_compressor = TextMessageCompressor()
+        compressor = TextMessageCompressor(text_compressor=text_compressor)
 
-        text_compressor.apply_transform(messages)
-        text_compressor.apply_transform(messages)
+        compressor.apply_transform(messages)
+        compressor.apply_transform(messages)
 
         assert mocked_get.call_count == len(messages)
         assert mocked_set.call_count == len(messages)
 
     # We already populated the cache with the mock content
     # We need to test if we retrieve the correct content
-    text_compressor = TextMessageCompressor()
-    compressed_messages = text_compressor.apply_transform(messages)
+    compressor = TextMessageCompressor(text_compressor=text_compressor)
+    compressed_messages = compressor.apply_transform(messages)
 
     for message in compressed_messages:
         assert message["content"] == mock_compressed_content[1]
