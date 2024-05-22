@@ -88,7 +88,9 @@ jobs:
           fi
       - name: Test with pytest skipping openai tests
         if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
+        # Remove the line below once https://github.com/docker/docker-py/issues/3256 is merged
         run: |
+          pip install "requests<2.32.0"
           pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
       - name: Test with pytest skipping openai and docker tests
         if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
