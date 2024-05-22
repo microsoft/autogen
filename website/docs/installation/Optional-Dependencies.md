@@ -85,7 +85,7 @@ To use Teachability, please install AutoGen with the [teachable] option.
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook: [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## Large Multimodal Model (LMM) Agents
 
@@ -115,9 +115,16 @@ Example notebooks:
 
 To use a graph in `GroupChat`, particularly for graph visualization, please install AutoGen with the [graph] option.
 
-
 ```bash
 pip install "pyautogen[graph]"
 ```
 
-Example notebook:  [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+Example notebook: [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+
+## Long Context Handling
+
+AutoGen includes support for handling long textual contexts by leveraging the LLMLingua library for text compression. To enable this functionality, please install AutoGen with the `[long-context]` option:
+
+```bash
+pip install "pyautogen[long-context]"
+```

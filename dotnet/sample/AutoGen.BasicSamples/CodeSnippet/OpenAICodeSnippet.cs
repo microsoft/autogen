@@ -60,7 +60,7 @@ public partial class OpenAICodeSnippet
         #endregion create_openai_chat_agent
 
         #region create_openai_chat_agent_streaming
-        var streamingReply = await openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+        var streamingReply = openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
 
         await foreach (var streamingMessage in streamingReply)
         {
@@ -84,7 +84,7 @@ public partial class OpenAICodeSnippet
                     new TextMessage(Role.Assistant, "Hello", from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
+            new TextMessage(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
@@ -123,7 +123,7 @@ public partial class OpenAICodeSnippet
                 { functions.GetWeatherFunctionContract.Name, functions.GetWeatherWrapper } // GetWeatherWrapper is a wrapper function for GetWeather, which is also auto-generated
             });
 
-        openAIChatAgent = openAIChatAgent.RegisterMiddleware(functionCallMiddleware);
+        openAIChatAgent = openAIChatAgent.RegisterStreamingMiddleware(functionCallMiddleware);
         #endregion create_function_call_middleware
 
         #region chat_agent_send_function_call
