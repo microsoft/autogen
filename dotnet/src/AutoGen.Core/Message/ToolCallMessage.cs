@@ -36,7 +36,7 @@ public class ToolCall
     }
 }
 
-public class ToolCallMessage : IMessage
+public class ToolCallMessage : IMessage, ICanGetToolCalls
 {
     public ToolCallMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
@@ -47,7 +47,7 @@ public class ToolCallMessage : IMessage
     public ToolCallMessage(string functionName, string functionArgs, string? from = null)
     {
         this.From = from;
-        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) };
+        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) { ToolCallId = functionName } };
     }
 
     public ToolCallMessage(ToolCallMessageUpdate update)
@@ -90,6 +90,11 @@ public class ToolCallMessage : IMessage
         }
 
         return sb.ToString();
+    }
+
+    public IEnumerable<ToolCall> GetToolCalls()
+    {
+        return this.ToolCalls;
     }
 }
 
