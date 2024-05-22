@@ -8,9 +8,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{18BF8DD7-0585-48BF-8F97-AD333080CE06}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F823671B-3ECA-4AE6-86DA-25E920D3FE64}"
-	ProjectSection(SolutionItems) = preProject
-		test\AutoGen.Core.Tests\AutoGen.Core.Tests.csproj = test\AutoGen.Core.Tests\AutoGen.Core.Tests.csproj
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Tests", "test\AutoGen.Tests\AutoGen.Tests.csproj", "{FDD99AEC-4C57-4020-B23F-650612856102}"
 EndProject
@@ -45,8 +42,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Autogen.Ollama", "src\Autogen.Ollama\Autogen.Ollama.csproj", "{A4EFA175-44CC-44A9-B93E-1C7B6FAC38F1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Autogen.Ollama.Tests", "test\Autogen.Ollama.Tests\Autogen.Ollama.Tests.csproj", "{C24FDE63-952D-4F8E-A807-AF31D43AD675}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Core.Tests", "test\AutoGen.Core.Tests\AutoGen.Core.Tests.csproj", "{C72D435A-86F8-4276-BF4C-FF00335E7014}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -122,10 +117,6 @@ Global
 		{C24FDE63-952D-4F8E-A807-AF31D43AD675}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C24FDE63-952D-4F8E-A807-AF31D43AD675}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C24FDE63-952D-4F8E-A807-AF31D43AD675}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C72D435A-86F8-4276-BF4C-FF00335E7014}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C72D435A-86F8-4276-BF4C-FF00335E7014}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C72D435A-86F8-4276-BF4C-FF00335E7014}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C72D435A-86F8-4276-BF4C-FF00335E7014}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -148,7 +139,6 @@ Global
 		{B61388CA-DC73-4B7F-A7B2-7B9A86C9229E} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{A4EFA175-44CC-44A9-B93E-1C7B6FAC38F1} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{C24FDE63-952D-4F8E-A807-AF31D43AD675} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
-		{C72D435A-86F8-4276-BF4C-FF00335E7014} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

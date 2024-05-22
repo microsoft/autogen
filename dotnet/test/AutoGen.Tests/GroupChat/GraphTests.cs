@@ -1,17 +1,18 @@
 ﻿
-namespace AutoGen.Core.Tests
+using Xunit;
+
+namespace AutoGen.Tests
 {
-    [TestClass()]
     public class GraphTests
     {
-        [TestMethod()]
+        [Fact]
         public void GraphTest()
         {
             var graph1 = new Graph();
-            Assert.IsNotNull(graph1);
+            Assert.NotNull(graph1);
 
             var graph2 = new Graph(null);
-            Assert.IsNotNull(graph2);
+            Assert.NotNull(graph2);
         }
     }
 }
