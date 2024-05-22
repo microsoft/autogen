@@ -17,6 +17,7 @@ from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.gemini import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,9 @@ class FileLogger(BaseLogger):
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to log event {e}")
 
-    def log_new_client(self, client: AzureOpenAI | OpenAI, wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
+    def log_new_client(
+        self, client: AzureOpenAI | OpenAI | GeminiClient, wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+    ) -> None:
         """
         Log a new client instance.
         """
