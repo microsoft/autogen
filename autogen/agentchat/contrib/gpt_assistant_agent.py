@@ -169,6 +169,7 @@ class GPTAssistantAgent(ConversableAgent):
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
+        self.update_system_message(self._openai_assistant.instructions)
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
