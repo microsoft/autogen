@@ -57,6 +57,10 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest-cov>=5 pytest-asyncio
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
+          pip install pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
