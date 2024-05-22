@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OllamaConsts.cs
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public class OllamaConsts
 {

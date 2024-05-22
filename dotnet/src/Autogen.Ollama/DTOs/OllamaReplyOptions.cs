@@ -3,12 +3,12 @@
 
 using AutoGen.Core;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public enum FormatType
 {
     None,
-    Json
+    Json,
 }
 
 public class OllamaReplyOptions : GenerateReplyOptions

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OllamaAgentTests.cs
 
 using System.Text.Json;
@@ -6,7 +6,7 @@ using AutoGen.Core;
 using AutoGen.Tests;
 using FluentAssertions;
 
-namespace Autogen.Ollama.Tests;
+namespace AutoGen.Ollama.Tests;
 
 public class OllamaAgentTests
 {
@@ -20,7 +20,8 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
+        var message = new Message("user", "hey how are you");
+        var messages = new IMessage[] { MessageEnvelope.Create(message, from: modelName) };
         IMessage result = await ollamaAgent.GenerateReplyAsync(messages);
 
         result.Should().NotBeNull();
@@ -37,7 +38,8 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
+        var message = new Message("user", "What color is the sky at different times of the day? Respond using JSON");
+        var messages = new IMessage[] { MessageEnvelope.Create(message, from: modelName) };
         IMessage result = await ollamaAgent.GenerateReplyAsync(messages, new OllamaReplyOptions
         {
             Format = FormatType.Json
@@ -61,16 +63,30 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello how are you") };
+        var msg = new Message("user", "hey how are you");
+        var messages = new IMessage[] { MessageEnvelope.Create(msg, from: modelName) };
         IStreamingMessage? finalReply = default;
         await foreach (IStreamingMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
         {
             message.Should().NotBeNull();
             message.From.Should().Be(ollamaAgent.Name);
-            finalReply = message;
+            var streamingMessage = (IMessage<ChatResponseUpdate>)message;
+            if (streamingMessage.Content.Done)
+            {
+                finalReply = message;
+                break;
+            }
+            else
+            {
+                streamingMessage.Content.Message.Should().NotBeNull();
+                streamingMessage.Content.Done.Should().BeFalse();
+            }
         }
 
         finalReply.Should().BeOfType<MessageEnvelope<ChatResponse>>();
+        var update = ((MessageEnvelope<ChatResponse>)finalReply!).Content;
+        update.Done.Should().BeTrue();
+        update.TotalDuration.Should().BeGreaterThan(0);
     }
 
     private static bool IsValidJsonMessage(string input)

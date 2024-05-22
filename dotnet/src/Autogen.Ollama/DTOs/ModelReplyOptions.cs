@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 //https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
 public class ModelReplyOptions

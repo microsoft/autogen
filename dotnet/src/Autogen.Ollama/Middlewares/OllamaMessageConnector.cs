@@ -1,14 +1,15 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OllamaMessageConnector.cs
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public class OllamaMessageConnector : IMiddleware, IStreamingMiddleware
 {
@@ -17,40 +18,144 @@ public class OllamaMessageConnector : IMiddleware, IStreamingMiddleware
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent,
         CancellationToken cancellationToken = default)
     {
-        IEnumerable<IMessage> messages = context.Messages;
+        var messages = ProcessMessage(context.Messages, agent);
         IMessage reply = await agent.GenerateReplyAsync(messages, context.Options, cancellationToken);
-        switch (reply)
+
+        return reply switch
         {
-            case IMessage<ChatResponse> messageEnvelope:
-                Message? message = messageEnvelope.Content.Message;
-                return new TextMessage(Role.Assistant, message != null ? message.Value : "EMPTY_CONTENT", messageEnvelope.From);
-            default:
-                throw new NotSupportedException();
-        }
+            IMessage<ChatResponse> messageEnvelope when messageEnvelope.Content.Message?.Value is string content => new TextMessage(Role.Assistant, content, messageEnvelope.From),
+            IMessage<ChatResponse> messageEnvelope when messageEnvelope.Content.Message?.Value is null => throw new InvalidOperationException("Message content is null"),
+            _ => reply
+        };
     }
 
     public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (IStreamingMessage? update in agent.GenerateStreamingReplyAsync(context.Messages, context.Options, cancellationToken))
+        var messages = ProcessMessage(context.Messages, agent);
+        var chunks = new List<ChatResponseUpdate>();
+        await foreach (var update in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
         {
-            switch (update)
+            if (update is IStreamingMessage<ChatResponseUpdate> chatResponseUpdate)
             {
-                case IMessage<ChatResponse> complete:
-                    {
-                        string? textContent = complete.Content.Message?.Value;
-                        yield return new TextMessage(Role.Assistant, textContent!, complete.From);
-                        break;
-                    }
-                case IMessage<ChatResponseUpdate> updatedMessage:
-                    {
-                        string? textContent = updatedMessage.Content.Message?.Value;
-                        yield return new TextMessageUpdate(Role.Assistant, textContent, updatedMessage.From);
-                        break;
-                    }
-                default:
-                    throw new InvalidOperationException("Message type not supported.");
+                var response = chatResponseUpdate.Content switch
+                {
+                    _ when chatResponseUpdate.Content.Message?.Value is string content => new TextMessageUpdate(Role.Assistant, content, chatResponseUpdate.From),
+                    _ => null,
+                };
+
+                if (response != null)
+                {
+                    chunks.Add(chatResponseUpdate.Content);
+                    yield return response;
+                }
             }
+            else
+            {
+                yield return update;
+            }
+        }
+
+        if (chunks.Count == 0)
+        {
+            yield break;
+        }
+
+        // if the chunks are not empty, aggregate them into a single message
+        var messageContent = string.Join(string.Empty, chunks.Select(c => c.Message?.Value));
+        var message = new Message
+        {
+            Role = "assistant",
+            Value = messageContent,
+        };
+
+        yield return MessageEnvelope.Create(message, agent.Name);
+    }
+
+    private IEnumerable<IMessage> ProcessMessage(IEnumerable<IMessage> messages, IAgent agent)
+    {
+        return messages.SelectMany(m =>
+        {
+            if (m is IMessage<Message> messageEnvelope)
+            {
+                return [m];
+            }
+            else
+            {
+                return m switch
+                {
+                    TextMessage textMessage => ProcessTextMessage(textMessage, agent),
+                    ImageMessage imageMessage => ProcessImageMessage(imageMessage, agent),
+                    MultiModalMessage multiModalMessage => ProcessMultiModalMessage(multiModalMessage, agent),
+                    _ => [m],
+                };
+            }
+        });
+    }
+
+    private IEnumerable<IMessage> ProcessMultiModalMessage(MultiModalMessage multiModalMessage, IAgent agent)
+    {
+        var messages = new List<IMessage>();
+        foreach (var message in multiModalMessage.Content)
+        {
+            messages.AddRange(message switch
+            {
+                TextMessage textMessage => ProcessTextMessage(textMessage, agent),
+                ImageMessage imageMessage => ProcessImageMessage(imageMessage, agent),
+                _ => throw new InvalidOperationException("Invalid message type"),
+            });
+        }
+
+        return messages;
+    }
+
+    private IEnumerable<IMessage> ProcessImageMessage(ImageMessage imageMessage, IAgent agent)
+    {
+        var base64Image = imageMessage.BuildDataUri();
+        var message = imageMessage.From switch
+        {
+            null when imageMessage.Role == Role.User => new Message { Role = "user", Images = [base64Image] },
+            null => throw new InvalidOperationException("Invalid Role, the role must be user"),
+            _ when imageMessage.From != agent.Name => new Message { Role = "user", Images = [base64Image] },
+            _ => throw new InvalidOperationException("The from field must be null or the agent name"),
+        };
+
+        return [MessageEnvelope.Create(message, agent.Name)];
+    }
+
+    private IEnumerable<IMessage> ProcessTextMessage(TextMessage textMessage, IAgent agent)
+    {
+        if (textMessage.Role == Role.System)
+        {
+            var message = new Message
+            {
+                Role = "system",
+                Value = textMessage.Content
+            };
+
+            return [MessageEnvelope.Create(message, agent.Name)];
+        }
+        else if (textMessage.From == agent.Name)
+        {
+            var message = new Message
+            {
+                Role = "assistant",
+                Value = textMessage.Content
+            };
+
+            return [MessageEnvelope.Create(message, agent.Name)];
+        }
+        else
+        {
+            var message = textMessage.From switch
+            {
+                null when textMessage.Role == Role.User => new Message { Role = "user", Value = textMessage.Content },
+                null when textMessage.Role == Role.Assistant => new Message { Role = "assistant", Value = textMessage.Content },
+                null => throw new InvalidOperationException("Invalid Role"),
+                _ => new Message { Role = textMessage.Role.ToString().ToLower(), Value = textMessage.Content }
+            };
+
+            return [MessageEnvelope.Create(message, agent.Name)];
         }
     }
 }
