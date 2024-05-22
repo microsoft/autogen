@@ -1321,15 +1321,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template="",
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template="",
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
     # Test with None
     with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
@@ -1342,15 +1344,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template=None,
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template=None,
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
 
 def test_speaker_selection_agent_name_match():
@@ -2023,14 +2027,12 @@ if __name__ == "__main__":
     # test_clear_agents_history()
     # test_custom_speaker_selection_overrides_transition_graph()
     # test_role_for_select_speaker_messages()
-    # test_select_speaker_message_and_prompt_templates()
+    test_select_speaker_message_and_prompt_templates()
     # test_speaker_selection_agent_name_match()
     # test_role_for_reflection_summary()
     # test_speaker_selection_auto_process_result()
     # test_speaker_selection_validate_speaker_name()
     # test_select_speaker_auto_messages()
-    # test_speaker_selection_auto_process_result()
-    # test_speaker_selection_validate_speaker_name()
     # test_select_speaker_auto_messages()
     # test_manager_messages_to_string()
     # test_manager_messages_from_string()
