@@ -1,7 +1,7 @@
 import time
 
 from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, RiskManager
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ComponentEnsemble import ComponentEnsemble
 from termcolor import colored
 
 
@@ -14,17 +14,17 @@ def complex_actor_demo():
     sends them to the personal assistant agent, and terminates
     when the user enters "quit".
     """
-    network = LocalActorNetwork()
+    ensemble = ComponentEnsemble()
     # Register agents
-    network.register(PersonalAssistant())
-    network.register(FidelityAgent())
-    network.register(FinancialPlannerAgent())
-    network.register(RiskManager())
-    network.register(QuantAgent())
+    ensemble.register(PersonalAssistant())
+    ensemble.register(FidelityAgent())
+    ensemble.register(FinancialPlannerAgent())
+    ensemble.register(RiskManager())
+    ensemble.register(QuantAgent())
     # Tell agents to connect to other agents
-    network.connect()
+    ensemble.connect()
     # Get a channel to the personal assistant agent
-    pa = network.lookup_actor(PersonalAssistant.cls_agent_name)
+    pa = ensemble.find_by_name(PersonalAssistant.cls_agent_name)
     info_msg = """
     This is an imaginary personal assistant agent scenario.
     Five actors are connected in a self-determined graph. The user
@@ -48,4 +48,4 @@ def complex_actor_demo():
     # Cleanup
 
     pa.close()
-    network.disconnect()
+    ensemble.disconnect()

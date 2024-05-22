@@ -27,7 +27,7 @@ class CAPPair:
         self._network.connect()
 
         # Send a message to the user_proxy
-        agent_connection = self._network.lookup_actor(self._first_ag_agent.name)
+        agent_connection = self._network.find_by_name(self._first_ag_agent.name)
         agent_connection.send_txt_msg(message)
 
     def running(self):

@@ -118,7 +118,6 @@ namespace AutoGen.Tests
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
-            await UpperCaseTestAsync(agentWithFunction);
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -144,7 +143,6 @@ namespace AutoGen.Tests
                 llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
-            await UpperCaseTestAsync(assistantAgent);
         }
 
         [Fact]
@@ -286,7 +284,7 @@ namespace AutoGen.Tests
 
             reply.GetContent().Should().Be("[ECHO] Hello world");
             reply.From.Should().Be(agent.Name);
-            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+            reply.Should().BeOfType<ToolCallAggregateMessage>();
         }
 
         public async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
@@ -306,7 +304,7 @@ namespace AutoGen.Tests
                 finalReply = reply;
             }
 
-            if (finalReply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+            if (finalReply is ToolCallAggregateMessage aggregateMessage)
             {
                 var toolCallResultMessage = aggregateMessage.Message2;
                 toolCallResultMessage.ToolCalls.First().Result.Should().Be(answer);

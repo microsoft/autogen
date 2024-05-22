@@ -101,15 +101,15 @@ class GroupChat:
 
     agents: List[Agent]
     messages: List[Dict]
-    max_round: Optional[int] = 10
-    admin_name: Optional[str] = "Admin"
-    func_call_filter: Optional[bool] = True
+    max_round: int = 10
+    admin_name: str = "Admin"
+    func_call_filter: bool = True
     speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
-    max_retries_for_selecting_speaker: Optional[int] = 2
+    max_retries_for_selecting_speaker: int = 2
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
-    enable_clear_history: Optional[bool] = False
+    enable_clear_history: bool = False
     send_introductions: bool = False
     select_speaker_message_template: str = """You are in a role play game. The following roles are available:
                 {roles}.
@@ -917,6 +917,7 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
+        silent: bool = False,
         **kwargs,
     ):
         if (
@@ -939,6 +940,8 @@ class GroupChatManager(ConversableAgent):
             log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
+
+        self._silent = silent
 
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
@@ -992,6 +995,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1046,7 +1050,7 @@ class GroupChatManager(ConversableAgent):
                 reply["content"] = self.clear_agents_history(reply, groupchat)
 
             # The speaker sends the message without requesting a reply
-            speaker.send(reply, self, request_reply=False)
+            speaker.send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
@@ -1067,6 +1071,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1111,7 +1116,7 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply
-            await speaker.a_send(reply, self, request_reply=False)
+            await speaker.a_send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:

@@ -13,6 +13,7 @@ from autogen.logger.logger_factory import LoggerFactory
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.gemini import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,9 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig
     autogen_logger.log_new_wrapper(wrapper, init_args)
 
 
-def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
+def log_new_client(
+    client: Union[AzureOpenAI, OpenAI, GeminiClient], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+) -> None:
     if autogen_logger is None:
         logger.error("[runtime logging] log_new_client: autogen logger is None")
         return

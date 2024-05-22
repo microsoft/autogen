@@ -34,64 +34,6 @@
     ]
   },
   {
-    "OriginalMessage": "Message(system, You are a helpful AI assistant, , , )",
-    "ConvertedMessages": [
-      {
-        "Name": null,
-        "Role": "system",
-        "Content": "You are a helpful AI assistant"
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(user, Hello, user, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "user",
-        "Content": "Hello",
-        "Name": "user",
-        "MultiModaItem": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(assistant, How can I help you?, assistant, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "assistant",
-        "Content": "How can I help you?",
-        "Name": null,
-        "TooCall": [],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(function, result, user, , )",
-    "ConvertedMessages": [
-      {
-        "Role": "user",
-        "Content": "result",
-        "Name": "user",
-        "MultiModaItem": null
-      }
-    ]
-  },
-  {
-    "OriginalMessage": "Message(assistant, , assistant, functionName, functionArguments)",
-    "ConvertedMessages": [
-      {
-        "Role": "assistant",
-        "Content": null,
-        "Name": null,
-        "TooCall": [],
-        "FunctionCallName": "functionName",
-        "FunctionCallArguments": "functionArguments"
-      }
-    ]
-  },
-  {
     "OriginalMessage": "ImageMessage(user, https://example.com/image.png, user)",
     "ConvertedMessages": [
       {
@@ -169,12 +111,12 @@
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_0"
       },
       {
         "Role": "tool",
         "Content": "test",
-        "ToolCallId": "result"
+        "ToolCallId": "result_1"
       }
     ]
   },
@@ -190,13 +132,13 @@
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_0"
           },
           {
             "Type": "Function",
             "Name": "test",
             "Arguments": "test",
-            "Id": "test"
+            "Id": "test_1"
           }
         ],
         "FunctionCallName": null,
