@@ -1403,6 +1403,64 @@ def test_http_client():
         )
 
 
+def test_adding_duplicate_function_warning():
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+
+    agent = autogen.ConversableAgent(
+        "jtoy",
+        llm_config={"config_list": config_base},
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1414,4 +1472,5 @@ if __name__ == "__main__":
     # test_process_before_send()
     # test_message_func()
     test_summary()
+    test_adding_duplicate_function_warning()
     # test_function_registration_e2e_sync()
