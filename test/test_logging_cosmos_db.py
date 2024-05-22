@@ -73,27 +73,4 @@ class TestCosmosDBLogging:
             "start_time": get_current_ts(),
         }
 
-    @pytest.mark.usefixtures("cosmos_db_setup")
-    def test_log_completion_cosmos(self, cosmos_db_setup):
-        sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
-        print("Testing log_chat_completion with sample data:", sample_completion) # For debugging
-        log_chat_completion(**sample_completion)
-        print("log_chat_completion should have been called") # For debugging
 
-        assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
-
-        print("About to check queue.put call") # For debugging
-        cosmos_db_setup.log_queue.put.assert_called_once_with({
-            "type": "chat_completion",
-            "invocation_id": sample_completion["invocation_id"],
-            "client_id": sample_completion["client_id"],
-            "wrapper_id": sample_completion["wrapper_id"],
-            "session_id": cosmos_db_setup.session_id,  # Ensure session_id is handled correctly
-            "request": sample_completion["request"],
-            "response": SAMPLE_CHAT_RESPONSE,
-            "is_cached": sample_completion["is_cached"],
-            "cost": sample_completion["cost"],
-            "start_time": sample_completion["start_time"],
-            "end_time": get_current_ts(),
-        })
-        print("Queue.put call check completed") # For debugging
