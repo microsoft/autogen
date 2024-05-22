@@ -30,12 +30,12 @@ public class WorkflowTest
         var canTransit = await aliceToBob.CanTransitionAsync([]);
         canTransit.Should().BeFalse();
 
-        canTransit = await aliceToBob.CanTransitionAsync(new[] { new Message(Role.Assistant, "Hello") });
+        canTransit = await aliceToBob.CanTransitionAsync(new[] { new TextMessage(Role.Assistant, "Hello") });
         canTransit.Should().BeTrue();
 
         // if no function is provided, it should always return true
         var aliceToBobNoFunction = Transition.Create(alice, bob);
-        canTransit = await aliceToBobNoFunction.CanTransitionAsync(new[] { new Message(Role.Assistant, "Hello") });
+        canTransit = await aliceToBobNoFunction.CanTransitionAsync(new[] { new TextMessage(Role.Assistant, "Hello") });
         canTransit.Should().BeTrue();
     }
 

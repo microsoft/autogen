@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI;
+using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 
-namespace AutoGen.Tests;
+namespace AutoGen.OpenAI.Tests;
 
 public class OpenAIMessageTests
 {
@@ -34,15 +34,6 @@ public class OpenAIMessageTests
             new TextMessage(Role.System, "You are a helpful AI assistant"),
             new TextMessage(Role.User, "Hello", "user"),
             new TextMessage(Role.Assistant, "How can I help you?", from: "assistant"),
-            new Message(Role.System, "You are a helpful AI assistant"),
-            new Message(Role.User, "Hello", "user"),
-            new Message(Role.Assistant, "How can I help you?", from: "assistant"),
-            new Message(Role.Function, "result", "user"),
-            new Message(Role.Assistant, null, "assistant")
-            {
-                FunctionName = "functionName",
-                FunctionArguments = "functionArguments",
-            },
             new ImageMessage(Role.User, "https://example.com/image.png", "user"),
             new MultiModalMessage(Role.Assistant,
                 [
@@ -293,7 +284,7 @@ public class OpenAIMessageTests
                 chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
-                functionToolCall.Id.Should().Be("test_0");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -362,7 +353,7 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().Be("result");
-                chatRequestMessage.ToolCallId.Should().Be("test_0");
+                chatRequestMessage.ToolCallId.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -439,7 +430,7 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().Be("result");
-                chatRequestMessage.ToolCallId.Should().Be("test_0");
+                chatRequestMessage.ToolCallId.Should().Be("test");
 
                 var toolCallMessage = msgs.First();
                 toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
@@ -449,7 +440,7 @@ public class OpenAIMessageTests
                 toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
-                functionToolCall.Id.Should().Be("test_0");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -458,7 +449,7 @@ public class OpenAIMessageTests
         // user message
         var toolCallMessage = new ToolCallMessage("test", "test", "assistant");
         var toolCallResultMessage = new ToolCallResultMessage("result", "test", "test", "assistant");
-        var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "assistant");
+        var aggregateMessage = new ToolCallAggregateMessage(toolCallMessage, toolCallResultMessage, "assistant");
         await agent.GenerateReplyAsync([aggregateMessage]);
     }
 
