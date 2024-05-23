@@ -21,6 +21,8 @@ from .openai_utils import (
     generate_from_openai_chat_completion,
 )
 
+import autogen
+
 
 def shopping_get_auth_token() -> str:
     response = requests.post(
@@ -139,7 +141,7 @@ def gitlab_get_project_memeber_role(page: Page, account_name: str) -> str:
     return role
 
 
-def llm_fuzzy_match(pred: str, reference: str, question: str) -> float:
+def llm_fuzzy_match(pred: str, reference: str, question: str, azure_config: dict[str, Any] | None) -> float:
     """Check whether the prediction matches the reference with GPT4-turbo"""
     messages: list[dict[str, Any]] = []
     # construct the question to ask
@@ -154,14 +156,21 @@ def llm_fuzzy_match(pred: str, reference: str, question: str) -> float:
         {"role": "user", "content": message},
     ]
 
-    response = generate_from_openai_chat_completion(
-        model="gpt-4-1106-preview",
-        messages=messages,
-        temperature=0,
-        max_tokens=768,
-        top_p=1.0,
-        context_length=0,
-    ).lower()
+    response = None
+    if azure_config is None:
+        response = generate_from_openai_chat_completion(
+            model="gpt-4-1106-preview",
+            messages=messages,
+            temperature=0,
+            max_tokens=768,
+            top_p=1.0,
+            context_length=0,
+        ).lower()
+    else:
+        client = autogen.OpenAIWrapper(**azure_config)
+        raw_response = client.create(context=None, messages=messages)
+        response = client.extract_text_or_completion_object(raw_response)[0].lower()
+
     if "partially correct" in response or "incorrect" in response:
         return 0.0
     else:
@@ -169,7 +178,7 @@ def llm_fuzzy_match(pred: str, reference: str, question: str) -> float:
         return 1.0
 
 
-def llm_ua_match(pred: str, reference: str, question: str) -> float:
+def llm_ua_match(pred: str, reference: str, question: str, azure_config: dict[str, Any] | None) -> float:
     """Check whether the prediction matches the reference with GPT-turbo"""
     messages: list[dict[str, Any]] = []
     # construct the question to ask
@@ -189,14 +198,21 @@ def llm_ua_match(pred: str, reference: str, question: str) -> float:
         {"role": "user", "content": message},
     ]
 
-    response = generate_from_openai_chat_completion(
-        model="gpt-4-1106-preview",
-        messages=messages,
-        temperature=0,
-        max_tokens=768,
-        top_p=1.0,
-        context_length=0,
-    ).lower()
+    response = None
+    if azure_config is None:
+        response = generate_from_openai_chat_completion(
+            model="gpt-4-1106-preview",
+            messages=messages,
+            temperature=0,
+            max_tokens=768,
+            top_p=1.0,
+            context_length=0,
+        ).lower()
+    else:
+        client = autogen.OpenAIWrapper(**azure_config)
+        raw_response = client.create(context=None, messages=messages)
+        response = client.extract_text_or_completion_object(raw_response)[0].lower()
+
     if "different" in response:
         return 0.0
     else:

@@ -64,6 +64,7 @@ class Evaluator(object):
         config_file: Path | str,
         page: Page | PseudoPage,
         client: CDPSession,
+        azure_config: dict[str, Any] | None = None,
     ) -> float:
         raise NotImplementedError
 
@@ -127,13 +128,13 @@ class StringEvaluator(Evaluator):
 
     @staticmethod
     @beartype
-    def fuzzy_match(ref: str, pred: str, intent: str) -> float:
-        return llm_fuzzy_match(pred, ref, intent)
+    def fuzzy_match(ref: str, pred: str, intent: str, azure_config: dict[str, Any] | None) -> float:
+        return llm_fuzzy_match(pred, ref, intent, azure_config)
 
     @staticmethod
     @beartype
-    def ua_match(ref: str, pred: str, intent: str) -> float:
-        return llm_ua_match(pred, ref, intent)
+    def ua_match(ref: str, pred: str, intent: str, azure_config: dict[str, Any] | None) -> float:
+        return llm_ua_match(pred, ref, intent, azure_config)
 
     def __call__(
         self,
@@ -141,6 +142,7 @@ class StringEvaluator(Evaluator):
         config_file: Path | str,
         page: Page | PseudoPage | None = None,
         client: CDPSession | None = None,
+        azure_config: dict[str, Any] | None = None,
     ) -> float:
         with open(config_file, "r") as f:
             configs = json.load(f)
@@ -175,11 +177,14 @@ class StringEvaluator(Evaluator):
                                 intent=configs["intent"],
                                 ref=configs["eval"]["string_note"],
                                 pred=pred,
+                                azure_config=azure_config,
                             )
                     else:
                         assert isinstance(value, list)
                         for reference in value:
-                            score *= self.fuzzy_match(ref=reference, pred=pred, intent=intent)
+                            score *= self.fuzzy_match(
+                                ref=reference, pred=pred, intent=intent, azure_config=azure_config
+                            )
         return score
 
 
@@ -193,6 +198,7 @@ class URLEvaluator(Evaluator):
         config_file: Path | str,
         page: Page | PseudoPage,
         client: CDPSession | None = None,
+        azure_config: dict[str, Any] | None = None,
     ) -> float:
         with open(config_file, "r") as f:
             configs = json.load(f)
@@ -256,6 +262,7 @@ class HTMLContentEvaluator(Evaluator):
         config_file: Path | str,
         page: Page | PseudoPage,
         client: CDPSession | None = None,
+        azure_config: dict[str, Any] | None = None,
     ) -> float:
         with open(config_file, "r") as f:
             configs = json.load(f)
@@ -343,10 +350,11 @@ class EvaluatorComb:
         config_file: Path | str,
         page: Page | PseudoPage,
         client: CDPSession,
+        azure_config: dict[str, Any] | None = None,
     ) -> float:
         score = 1.0
         for evaluator in self.evaluators:
-            cur_score = evaluator(trajectory, config_file, page, client)
+            cur_score = evaluator(trajectory, config_file, page, client, azure_config)
             score *= cur_score
         return score
 
