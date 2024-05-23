@@ -180,10 +180,7 @@ def test_compress_message():
     assert is_success, "Compression failed."
 
 
-@pytest.mark.skipif(
-    skip,
-    reason="do not run if dependency is not installed OR requested to skip",
-)
+@pytest.mark.skipif(True, reason="Flaky test, CompressibleAgent no longer supported")
 def test_mode_terminate():
     assistant = CompressibleAgent(
         name="assistant",
