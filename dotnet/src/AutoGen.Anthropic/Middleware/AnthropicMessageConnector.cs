@@ -63,11 +63,12 @@ public class AnthropicMessageConnector : IStreamingMiddleware, IMiddleware
     {
         return messages.SelectMany<IMessage, IMessage>(m =>
         {
-            if (m is IMessage<Message> chatMessage)
+#pragma warning disable CS0618 // deprecated
+            if (m is TextMessage chatMessage)
             {
-                return [MessageEnvelope.Create(chatMessage.Content, from: chatMessage.From)]
-                ;
+                return [MessageEnvelope.Create(chatMessage.Content, from: chatMessage.From)];
             }
+#pragma warning restore CS0618 // deprecated
 
             return m switch
             {
