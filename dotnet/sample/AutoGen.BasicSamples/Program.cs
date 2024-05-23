@@ -1,4 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-await Example_AssistantAgent.RunAsync();
+using AutoGen.BasicSample;
+Console.ReadLine();
+await Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.RunAsync();
