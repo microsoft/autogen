@@ -141,7 +141,7 @@ csharp_preserve_single_line_statements = true
 csharp_preserve_single_line_blocks = true
 
 # Code block
-csharp_prefer_braces = false:none
+csharp_prefer_braces = true:warning
 
 # Using statements
 csharp_using_directive_placement = outside_namespace:error
@@ -172,6 +172,11 @@ dotnet_diagnostic.CS1573.severity = none
 
 # disable CS1570: XML comment has badly formed XML
 dotnet_diagnostic.CS1570.severity = none
+
+dotnet_diagnostic.IDE0035.severity = warning # Remove unreachable code
+dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
+
+csharp_style_var_elsewhere = true:suggestion # Prefer 'var' everywhere
 
 # disable check for generated code
 [*.generated.cs]
