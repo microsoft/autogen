@@ -5,6 +5,7 @@ from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_h
 from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.core.agent import Agent
 from agnext.core.agent_runtime import AgentRuntime
+from agnext.core.cancellation_token import CancellationToken
 
 
 @dataclass
@@ -13,30 +14,36 @@ class MessageType:
     sender: str
 
 
-class Inner(TypeRoutedAgent[MessageType]):
-    def __init__(self, name: str, router: AgentRuntime[MessageType]) -> None:
+class Inner(TypeRoutedAgent):
+    def __init__(self, name: str, router: AgentRuntime) -> None:
         super().__init__(name, router)
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType) -> MessageType:
+    async def on_new_message(
+        self, message: MessageType, require_response: bool, cancellation_token: CancellationToken
+    ) -> MessageType:
+        assert require_response
         return MessageType(body=f"Inner: {message.body}", sender=self.name)
 
 
-class Outer(TypeRoutedAgent[MessageType]):
-    def __init__(self, name: str, router: AgentRuntime[MessageType], inner: Agent[MessageType]) -> None:
+class Outer(TypeRoutedAgent):
+    def __init__(self, name: str, router: AgentRuntime, inner: Agent) -> None:
         super().__init__(name, router)
         self._inner = inner
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType) -> MessageType:
-        inner_response = self._send_message(message, self._inner)
+    async def on_new_message(
+        self, message: MessageType, require_response: bool, cancellation_token: CancellationToken
+    ) -> MessageType:
+        assert require_response
+        inner_response = self._send_message(message, self._inner, require_response=True)
         inner_message = await inner_response
+        assert isinstance(inner_message, MessageType)
         return MessageType(body=f"Outer: {inner_message.body}", sender=self.name)
 
 
 async def main() -> None:
-    router = SingleThreadedAgentRuntime[MessageType]()
-
+    router = SingleThreadedAgentRuntime()
     inner = Inner("inner", router)
     outer = Outer("outer", router, inner)
     response = router.send_message(MessageType(body="Hello", sender="external"), outer)

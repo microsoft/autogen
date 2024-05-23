@@ -1,8 +1,8 @@
 from typing import List, Sequence
 
+from ...core.agent_runtime import AgentRuntime
 from ..agents.base import BaseChatAgent
 from ..messages import ChatMessage
-from ..runtimes import SingleThreadedRuntime
 
 
 class GroupChat(BaseChatAgent):
@@ -10,7 +10,7 @@ class GroupChat(BaseChatAgent):
         self,
         name: str,
         description: str,
-        runtime: SingleThreadedRuntime,
+        runtime: AgentRuntime,
         agents: Sequence[BaseChatAgent],
         num_rounds: int,
     ) -> None:
@@ -61,8 +61,9 @@ class GroupChat(BaseChatAgent):
                     speaker,
                 )
 
-            # 4. Append the response to the history.
-            self._history.append(response)
+            if response is not None:
+                # 4. Append the response to the history.
+                self._history.append(response)
 
             # 5. Update the previous speaker.
             previous_speaker = speaker

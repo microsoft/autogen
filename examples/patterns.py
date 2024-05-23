@@ -3,15 +3,15 @@ import asyncio
 
 import openai
 from agnext.agent_components.models_clients.openai_client import OpenAI
+from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.messages import ChatMessage
 from agnext.chat.patterns.group_chat import GroupChat
 from agnext.chat.patterns.orchestrator import Orchestrator
-from agnext.chat.runtimes import SingleThreadedRuntime
 
 
 async def group_chat() -> None:
-    runtime = SingleThreadedRuntime()
+    runtime = SingleThreadedAgentRuntime()
 
     joe_oai_assistant = openai.beta.assistants.create(
         model="gpt-3.5-turbo",
@@ -56,11 +56,11 @@ async def group_chat() -> None:
     while not response.done():
         await runtime.process_next()
 
-    print((await response).body)
+    print((await response).body)  # type: ignore
 
 
 async def orchestrator() -> None:
-    runtime = SingleThreadedRuntime()
+    runtime = SingleThreadedAgentRuntime()
 
     developer_oai_assistant = openai.beta.assistants.create(
         model="gpt-3.5-turbo",
@@ -111,7 +111,7 @@ async def orchestrator() -> None:
     while not response.done():
         await runtime.process_next()
 
-    print((await response).body)
+    print((await response).body)  # type: ignore
 
 
 if __name__ == "__main__":

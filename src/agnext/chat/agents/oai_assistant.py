@@ -1,8 +1,11 @@
 import openai
 
-from ..agents.base import BaseChatAgent
+from agnext.agent_components.type_routed_agent import message_handler
+from agnext.chat.agents.base import BaseChatAgent
+from agnext.core.agent_runtime import AgentRuntime
+from agnext.core.cancellation_token import CancellationToken
+
 from ..messages import ChatMessage
-from ..runtimes import SingleThreadedRuntime
 
 
 class OpenAIAssistantAgent(BaseChatAgent):
@@ -10,7 +13,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self,
         name: str,
         description: str,
-        runtime: SingleThreadedRuntime,
+        runtime: AgentRuntime,
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
@@ -21,7 +24,11 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._thread_id = thread_id
         self._current_session_window_length = 0
 
-    async def on_chat_message(self, message: ChatMessage) -> ChatMessage:
+    # TODO: use require_response
+    @message_handler(ChatMessage)
+    async def on_chat_message_with_cancellation(
+        self, message: ChatMessage, require_response: bool, cancellation_token: CancellationToken
+    ) -> ChatMessage | None:
         print("---------------")
         print(f"{self.name} received message from {message.sender}: {message.body}")
         print("---------------")

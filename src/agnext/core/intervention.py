@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Protocol, Sequence, TypeVar, final
+from typing import Any, Awaitable, Callable, Protocol, Sequence, final
 
 from agnext.core.agent import Agent
 
@@ -7,33 +7,29 @@ from agnext.core.agent import Agent
 class DropMessage: ...
 
 
-T = TypeVar("T")
-
-InterventionFunction = Callable[[T], T | Awaitable[type[DropMessage]]]
+InterventionFunction = Callable[[Any], Any | Awaitable[type[DropMessage]]]
 
 
-class InterventionHandler(Protocol[T]):
-    async def on_send(self, message: T, *, sender: Agent[T] | None, recipient: Agent[T]) -> T | type[DropMessage]: ...
-    async def on_broadcast(self, message: T, *, sender: Agent[T] | None) -> T | type[DropMessage]: ...
-    async def on_response(
-        self, message: T, *, sender: Agent[T], recipient: Agent[T] | None
-    ) -> T | type[DropMessage]: ...
+class InterventionHandler(Protocol):
+    async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]: ...
+    async def on_broadcast(self, message: Any, *, sender: Agent | None) -> Any | type[DropMessage]: ...
+    async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]: ...
     async def on_broadcast_response(
-        self, message: Sequence[T], *, recipient: Agent[T] | None
-    ) -> Sequence[T] | type[DropMessage]: ...
+        self, message: Sequence[Any], *, recipient: Agent | None
+    ) -> Sequence[Any] | type[DropMessage]: ...
 
 
-class DefaultInterventionHandler(InterventionHandler[T]):
-    async def on_send(self, message: T, *, sender: Agent[T] | None, recipient: Agent[T]) -> T | type[DropMessage]:
+class DefaultInterventionHandler(InterventionHandler):
+    async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]:
         return message
 
-    async def on_broadcast(self, message: T, *, sender: Agent[T] | None) -> T | type[DropMessage]:
+    async def on_broadcast(self, message: Any, *, sender: Agent | None) -> Any | type[DropMessage]:
         return message
 
-    async def on_response(self, message: T, *, sender: Agent[T], recipient: Agent[T] | None) -> T | type[DropMessage]:
+    async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:
         return message
 
     async def on_broadcast_response(
-        self, message: Sequence[T], *, recipient: Agent[T] | None
-    ) -> Sequence[T] | type[DropMessage]:
+        self, message: Sequence[Any], *, recipient: Agent | None
+    ) -> Sequence[Any] | type[DropMessage]:
         return message

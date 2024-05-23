@@ -13,30 +13,30 @@ from agnext.core.intervention import DefaultInterventionHandler, DropMessage
 class MessageType:
     ...
 
-class LoopbackAgent(TypeRoutedAgent[MessageType]):
-    def __init__(self, name: str, router: AgentRuntime[MessageType]) -> None:
+class LoopbackAgent(TypeRoutedAgent):
+    def __init__(self, name: str, router: AgentRuntime) -> None:
         super().__init__(name, router)
         self.num_calls = 0
 
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, require_response: bool, cancellation_token: CancellationToken) -> MessageType:
         self.num_calls += 1
         return message
 
 @pytest.mark.asyncio
 async def test_intervention_count_messages() -> None:
 
-    class DebugInterventionHandler(DefaultInterventionHandler[MessageType]):
+    class DebugInterventionHandler(DefaultInterventionHandler):
         def __init__(self):
             self.num_messages = 0
 
-        async def on_send(self, message: MessageType, *, sender: Agent[MessageType] | None, recipient: Agent[MessageType]) -> MessageType:
+        async def on_send(self, message: MessageType, *, sender: Agent | None, recipient: Agent) -> MessageType:
             self.num_messages += 1
             return message
 
     handler = DebugInterventionHandler()
-    router = SingleThreadedAgentRuntime[MessageType](before_send=handler)
+    router = SingleThreadedAgentRuntime(before_send=handler)
 
     long_running = LoopbackAgent("name", router)
     response = router.send_message(MessageType(), recipient=long_running)
@@ -50,12 +50,12 @@ async def test_intervention_count_messages() -> None:
 @pytest.mark.asyncio
 async def test_intervention_drop_send() -> None:
 
-    class DropSendInterventionHandler(DefaultInterventionHandler[MessageType]):
-        async def on_send(self, message: MessageType, *, sender: Agent[MessageType] | None, recipient: Agent[MessageType]) -> MessageType | type[DropMessage]:
+    class DropSendInterventionHandler(DefaultInterventionHandler):
+        async def on_send(self, message: MessageType, *, sender: Agent | None, recipient: Agent) -> MessageType | type[DropMessage]:
             return DropMessage
 
     handler = DropSendInterventionHandler()
-    router = SingleThreadedAgentRuntime[MessageType](before_send=handler)
+    router = SingleThreadedAgentRuntime(before_send=handler)
 
     long_running = LoopbackAgent("name", router)
     response = router.send_message(MessageType(), recipient=long_running)
@@ -72,12 +72,12 @@ async def test_intervention_drop_send() -> None:
 @pytest.mark.asyncio
 async def test_intervention_drop_response() -> None:
 
-    class DropResponseInterventionHandler(DefaultInterventionHandler[MessageType]):
-        async def on_response(self, message: MessageType, *, sender: Agent[MessageType], recipient: Agent[MessageType] | None) -> MessageType | type[DropMessage]:
+    class DropResponseInterventionHandler(DefaultInterventionHandler):
+        async def on_response(self, message: MessageType, *, sender: Agent, recipient: Agent | None) -> MessageType | type[DropMessage]:
             return DropMessage
 
     handler = DropResponseInterventionHandler()
-    router = SingleThreadedAgentRuntime[MessageType](before_send=handler)
+    router = SingleThreadedAgentRuntime(before_send=handler)
 
     long_running = LoopbackAgent("name", router)
     response = router.send_message(MessageType(), recipient=long_running)

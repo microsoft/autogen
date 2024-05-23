@@ -1,28 +1,32 @@
 from asyncio import Future
-from typing import List, Protocol, TypeVar
+from typing import Any, Protocol, Sequence
 
 from agnext.core.agent import Agent
 from agnext.core.cancellation_token import CancellationToken
 
-T = TypeVar("T")
-
 # Undeliverable - error
 
 
-class AgentRuntime(Protocol[T]):
-    def add_agent(self, agent: Agent[T]) -> None: ...
+class AgentRuntime(Protocol):
+    def add_agent(self, agent: Agent) -> None: ...
 
     # Returns the response of the message
     def send_message(
         self,
-        message: T,
-        recipient: Agent[T],
+        message: Any,
+        recipient: Agent,
         *,
-        sender: Agent[T] | None = None,
-        cancellation_token: CancellationToken | None,
-    ) -> Future[T]: ...
+        require_response: bool = True,
+        sender: Agent | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> Future[Any | None]: ...
 
     # Returns the response of all handling agents
     def broadcast_message(
-        self, message: T, *, sender: Agent[T] | None = None, cancellation_token: CancellationToken | None = None
-    ) -> Future[List[T]]: ...
+        self,
+        message: Any,
+        *,
+        require_response: bool = True,
+        sender: Agent | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> Future[Sequence[Any] | None]: ...

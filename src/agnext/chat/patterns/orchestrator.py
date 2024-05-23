@@ -1,11 +1,14 @@
 import json
 from typing import Any, List, Sequence, Tuple
 
+from agnext.core.agent_runtime import AgentRuntime
+from agnext.core.cancellation_token import CancellationToken
+
 from ...agent_components.model_client import ModelClient
+from ...agent_components.type_routed_agent import message_handler
 from ...agent_components.types import AssistantMessage, LLMMessage, UserMessage
 from ..agents.base import BaseChatAgent
 from ..messages import ChatMessage
-from ..runtimes import SingleThreadedRuntime
 
 
 class Orchestrator(BaseChatAgent):
@@ -13,7 +16,7 @@ class Orchestrator(BaseChatAgent):
         self,
         name: str,
         description: str,
-        runtime: SingleThreadedRuntime,
+        runtime: AgentRuntime,
         agents: Sequence[BaseChatAgent],
         model_client: ModelClient,
         max_turns: int = 30,
@@ -28,7 +31,10 @@ class Orchestrator(BaseChatAgent):
         self._max_retry_attempts_before_educated_guess = max_retry_attempts
         self._history: List[ChatMessage] = []
 
-    async def on_chat_message(self, message: ChatMessage) -> ChatMessage:
+    @message_handler(ChatMessage)
+    async def on_chat_message(
+        self, message: ChatMessage, require_response: bool, cancellation_token: CancellationToken
+    ) -> ChatMessage:
         # A task is received.
         task = message.body
 
@@ -168,6 +174,8 @@ Some additional points to consider:
                     ChatMessage(body=subtask, sender=self.name),
                     speaker,
                 )
+
+                assert speaker_response is not None
 
                 # Update the ledger.
                 ledger.append(

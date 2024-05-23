@@ -1,15 +1,16 @@
-from typing import Protocol, Sequence, Type, TypeVar
+from typing import Any, Protocol, Sequence, runtime_checkable
 
 from agnext.core.cancellation_token import CancellationToken
 
-T = TypeVar("T")
 
-
-class Agent(Protocol[T]):
+@runtime_checkable
+class Agent(Protocol):
     @property
     def name(self) -> str: ...
 
     @property
-    def subscriptions(self) -> Sequence[Type[T]]: ...
+    def subscriptions(self) -> Sequence[type]: ...
 
-    async def on_message(self, message: T, cancellation_token: CancellationToken) -> T: ...
+    async def on_message(
+        self, message: Any, require_response: bool, cancellation_token: CancellationToken
+    ) -> Any | None: ...
