@@ -6,6 +6,9 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
+from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria
+from autogen.agentchat.contrib.agent_eval.criterion import Criterion
+from autogen.agentchat.contrib.agent_eval.task import Task
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -401,6 +404,19 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
             "message": "Error occurred while processing message: " + str(ex_error),
         }
 
+
+@api.post("/agenteval/criteria/create/{session_id}")
+async def create_agenteval_criteria(user_id: str, session_id: int, task: Task, failed_example: bool,
+                                    additonal_instructions: str, max_round: int, use_subcritic: bool):
+    messages = list_messages(user_id=user_id, session_id=session_id).data
+    if(failed_example):
+        task.failed_response = str(messages)
+    else:
+        task.successful_response = str(messages)
+    criteria = generate_criteria(llm_config=None, task=task, additional_instructions=additonal_instructions,
+                                 max_round=max_round, use_subcritic=use_subcritic)
+    # TODO: save criteria to DB
+    return Criterion.write_json(criteria)
 
 @api.get("/version")
 async def get_version():
