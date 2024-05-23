@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ using AutoGen.Core;
 
 namespace AutoGen.Ollama;
 
-public class OllamaMessageConnector : IMiddleware, IStreamingMiddleware
+public class OllamaMessageConnector : IStreamingMiddleware
 {
     public string Name => nameof(OllamaMessageConnector);
 
@@ -111,7 +112,27 @@ public class OllamaMessageConnector : IMiddleware, IStreamingMiddleware
 
     private IEnumerable<IMessage> ProcessImageMessage(ImageMessage imageMessage, IAgent agent)
     {
-        var base64Image = imageMessage.BuildDataUri();
+        byte[]? data = imageMessage.Data?.ToArray();
+        if (data is null)
+        {
+            if (imageMessage.Url is null)
+            {
+                throw new InvalidOperationException("Invalid ImageMessage, the data or url must be provided");
+            }
+
+            var uri = new Uri(imageMessage.Url);
+            // download the image from the URL
+            using var client = new HttpClient();
+            var response = client.GetAsync(uri).Result;
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Failed to download the image from {uri}");
+            }
+
+            data = response.Content.ReadAsByteArrayAsync().Result;
+        }
+
+        var base64Image = Convert.ToBase64String(data);
         var message = imageMessage.From switch
         {
             null when imageMessage.Role == Role.User => new Message { Role = "user", Images = [base64Image] },
@@ -152,7 +173,8 @@ public class OllamaMessageConnector : IMiddleware, IStreamingMiddleware
                 null when textMessage.Role == Role.User => new Message { Role = "user", Value = textMessage.Content },
                 null when textMessage.Role == Role.Assistant => new Message { Role = "assistant", Value = textMessage.Content },
                 null => throw new InvalidOperationException("Invalid Role"),
-                _ => new Message { Role = textMessage.Role.ToString().ToLower(), Value = textMessage.Content }
+                _ when textMessage.From != agent.Name => new Message { Role = "user", Value = textMessage.Content },
+                _ => throw new InvalidOperationException("The from field must be null or the agent name"),
             };
 
             return [MessageEnvelope.Create(message, agent.Name)];

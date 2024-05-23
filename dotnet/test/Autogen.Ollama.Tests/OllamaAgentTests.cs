@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using AutoGen.Core;
+using AutoGen.Ollama.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
 
@@ -95,12 +96,12 @@ public class OllamaAgentTests
                    ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
         var modelName = "llava:latest";
         var ollamaAgent = BuildOllamaAgent(host, modelName);
-        var squareImagePath = Path.Combine("images", "square.png");
-        var base64Image = Convert.ToBase64String(File.ReadAllBytes(squareImagePath));
+        var imagePath = Path.Combine("images", "image.png");
+        var base64Image = Convert.ToBase64String(File.ReadAllBytes(imagePath));
         var message = new Message()
         {
             Role = "user",
-            Value = "What's in this image?",
+            Value = "What's the color of the background in this image",
             Images = [base64Image],
         };
 
@@ -110,6 +111,46 @@ public class OllamaAgentTests
         reply.Should().BeOfType<MessageEnvelope<ChatResponse>>();
         var chatResponse = ((MessageEnvelope<ChatResponse>)reply).Content;
         chatResponse.Message.Should().NotBeNull();
+    }
+
+    [ApiKeyFact("OLLAMA_HOST")]
+    public async Task ItCanProcessMultiModalMessageUsingLLavaAsync()
+    {
+        var host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
+                   ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+        var modelName = "llava:latest";
+        var ollamaAgent = BuildOllamaAgent(host, modelName)
+            .RegisterMessageConnector();
+        var image = Path.Combine("images", "image.png");
+        var binaryData = BinaryData.FromBytes(File.ReadAllBytes(image), "image/png");
+        var imageMessage = new ImageMessage(Role.User, binaryData);
+        var textMessage = new TextMessage(Role.User, "What's in this image?");
+        var multiModalMessage = new MultiModalMessage(Role.User, [textMessage, imageMessage]);
+
+        var reply = await ollamaAgent.SendAsync(multiModalMessage);
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetRole().Should().Be(Role.Assistant);
+        reply.GetContent().Should().NotBeNullOrEmpty();
+        reply.From.Should().Be(ollamaAgent.Name);
+    }
+
+    [ApiKeyFact("OLLAMA_HOST")]
+    public async Task ItCanProcessImageMessageUsingLLavaAsync()
+    {
+        var host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
+                   ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+        var modelName = "llava:latest";
+        var ollamaAgent = BuildOllamaAgent(host, modelName)
+            .RegisterMessageConnector();
+        var image = Path.Combine("images", "image.png");
+        var binaryData = BinaryData.FromBytes(File.ReadAllBytes(image), "image/png");
+        var imageMessage = new ImageMessage(Role.User, binaryData);
+
+        var reply = await ollamaAgent.SendAsync(imageMessage);
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetRole().Should().Be(Role.Assistant);
+        reply.GetContent().Should().NotBeNullOrEmpty();
+        reply.From.Should().Be(ollamaAgent.Name);
     }
 
     [ApiKeyFact("OLLAMA_HOST")]

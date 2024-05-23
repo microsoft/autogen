@@ -31,6 +31,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="images\image.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
       <None Update="images\square.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
