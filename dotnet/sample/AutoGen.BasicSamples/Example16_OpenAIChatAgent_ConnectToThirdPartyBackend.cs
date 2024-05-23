@@ -34,7 +34,7 @@ public class Example16_OpenAIChatAgent_ConnectToThirdPartyBackend
     public static async Task RunAsync()
     {
         #region create_agent
-        using var client = new HttpClient(new CustomHttpClientHandler("http://localhost:11434"));
+        using var client = new HttpClient(new CustomHttpClientHandler("https://2xbvtxd1-51234.usw2.devtunnels.ms"));
         var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2024_04_01_Preview)
         {
             Transport = new HttpClientTransport(client),
@@ -51,8 +51,7 @@ public class Example16_OpenAIChatAgent_ConnectToThirdPartyBackend
             modelName: model,
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0)
-            .RegisterMessageConnector()
-            .RegisterPrintMessage();
+            .RegisterMessageConnector();
         #endregion create_agent
 
         #region send_message

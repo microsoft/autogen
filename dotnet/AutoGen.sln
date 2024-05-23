@@ -43,6 +43,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama", "src\AutoG
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Tests", "test\AutoGen.Ollama.Tests\AutoGen.Ollama.Tests.csproj", "{03E31CAA-3728-48D3-B936-9F11CF6C18FE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.SemanticKernel.Sample", "sample\AutoGen.SemanticKernel.Sample\AutoGen.SemanticKernel.Sample.csproj", "{52958A60-3FF7-4243-9058-34A6E4F55C31}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -117,6 +119,10 @@ Global
 		{03E31CAA-3728-48D3-B936-9F11CF6C18FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03E31CAA-3728-48D3-B936-9F11CF6C18FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03E31CAA-3728-48D3-B936-9F11CF6C18FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52958A60-3FF7-4243-9058-34A6E4F55C31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52958A60-3FF7-4243-9058-34A6E4F55C31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52958A60-3FF7-4243-9058-34A6E4F55C31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52958A60-3FF7-4243-9058-34A6E4F55C31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -139,6 +145,7 @@ Global
 		{B61388CA-DC73-4B7F-A7B2-7B9A86C9229E} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{9F9E6DED-3D92-4970-909A-70FC11F1A665} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{03E31CAA-3728-48D3-B936-9F11CF6C18FE} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{52958A60-3FF7-4243-9058-34A6E4F55C31} = {FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
