@@ -4,7 +4,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public interface ITextEmbeddingService
 {
