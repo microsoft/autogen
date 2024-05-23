@@ -1,6 +1,5 @@
 from typing import Any, Dict, Literal, Optional
 
-from autogen.logger.agentops_logger import AgentOpsLogger
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.file_logger import FileLogger
 from autogen.logger.sqlite_logger import SqliteLogger
