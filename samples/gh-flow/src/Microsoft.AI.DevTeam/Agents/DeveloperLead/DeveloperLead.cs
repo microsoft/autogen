@@ -3,7 +3,6 @@ using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
-using Newtonsoft.Json.Linq;
 using Orleans.Runtime;
 
 namespace Microsoft.AI.DevTeam;
@@ -37,7 +36,7 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
                     });
                 }
 
-                break;
+               break;
             case nameof(GithubFlowEventType.DevPlanChainClosed):
                 {
                     var context = item.ToGithubContext();

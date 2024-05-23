@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
@@ -18,6 +19,9 @@ public class Hubber : Agent
 
     public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(item.Data);
+
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.NewAsk):
