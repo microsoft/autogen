@@ -2406,6 +2406,8 @@ class ConversableAgent(LLMAgent):
             self._assert_valid_name(name)
             if func is None and name not in self._function_map.keys():
                 warnings.warn(f"The function {name} to remove doesn't exist", name)
+            if name in self._function_map:
+                warnings.warn(f"Function '{name}' is being overridden.", UserWarning)
         self._function_map.update(function_map)
         self._function_map = {k: v for k, v in self._function_map.items() if v is not None}
 
@@ -2442,6 +2444,9 @@ class ConversableAgent(LLMAgent):
 
             self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
+                if any(func["name"] == func_sig["name"] for func in self.llm_config["functions"]):
+                    warnings.warn(f"Function '{func_sig['name']}' is being overridden.", UserWarning)
+
                 self.llm_config["functions"] = [
                     func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
                 ] + [func_sig]
@@ -2481,7 +2486,9 @@ class ConversableAgent(LLMAgent):
                     f"The tool signature must be of the type dict. Received tool signature type {type(tool_sig)}"
                 )
             self._assert_valid_name(tool_sig["function"]["name"])
-            if "tools" in self.llm_config.keys():
+            if "tools" in self.llm_config:
+                if any(tool["function"]["name"] == tool_sig["function"]["name"] for tool in self.llm_config["tools"]):
+                    warnings.warn(f"Function '{tool_sig['function']['name']}' is being overridden.", UserWarning)
                 self.llm_config["tools"] = [
                     tool
                     for tool in self.llm_config["tools"]
