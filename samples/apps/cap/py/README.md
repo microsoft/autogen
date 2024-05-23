@@ -3,29 +3,11 @@
 ## I just want to run the remote AutoGen agents!
 *Python Instructions (Windows, Linux, MacOS):*
 
-0) cd py
-1) pip install -r autogencap/requirements.txt
-2) python ./demo/App.py
-3) Choose (5) and follow instructions to run standalone Agents
-4) Choose other options for other demos
+pip install autogencap
 
-*Demo Notes:*
-1) Options involving AutoGen require OAI_CONFIG_LIST.
+1) AutoGen require OAI_CONFIG_LIST.
    AutoGen python requirements: 3.8 <= python <= 3.11
-2) For option 2, type something in and see who receives the message.  Quit to quit.
-3) To view any option that displays a chart (such as option 4), you will need to disable Docker code execution. You can do this by setting the environment variable `AUTOGEN_USE_DOCKER` to `False`.
 
-*Demo Reference:*
-```
-Select the Composable Actor Platform (CAP) demo app to run:
-(enter anything else to quit)
-1. Hello World
-2. Complex Agent (e.g. Name or Quit)
-3. AutoGen Pair
-4. AutoGen GroupChat
-5. AutoGen Agents in different processes
-6. List Actors in CAP (Registry)
-Enter your choice (1-6):
 ```
 
 ## What is Composable Actor Platform (CAP)?
@@ -54,5 +36,4 @@ Actors can register themselves with CAP, find other agents, construct arbitrary 
 4) CAP wrapped AutoGen Agents in a group chat
 5) Two AutoGen Agents running in different processes and communicating through CAP
 6) List all registered agents in CAP
-### Coming soon. Stay tuned! ###
-1) AutoGen integration to list all registered agents
+7) AutoGen integration to list all registered agents

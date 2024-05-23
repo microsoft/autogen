@@ -2,8 +2,8 @@ import time
 from typing import List
 
 from AppAgents import FidelityAgent, GreeterAgent
+from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Info
-from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.proto.CAP_pb2 import ActorInfo
 
 
@@ -14,15 +14,15 @@ def list_agents():
     """
     # CAP Platform
 
-    network = LocalActorNetwork()
+    ensemble = ComponentEnsemble()
     # Register an actor
-    network.register(GreeterAgent())
+    ensemble.register(GreeterAgent())
     # Register an actor
-    network.register(FidelityAgent())
+    ensemble.register(FidelityAgent())
     # Tell actor to connect to other actors
-    network.connect()
+    ensemble.connect()
     # Get a list of actors
-    actor_infos: List[ActorInfo] = network.lookup_actor_info(name_regex=".*")
+    actor_infos: List[ActorInfo] = ensemble.find_by_name_regex(name_regex=".*")
     # Print out all actors found
     Info("list_agents", f"{len(actor_infos)} actors found:")
     for actor_info in actor_infos:
@@ -31,4 +31,4 @@ def list_agents():
             f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}",
         )
     # Cleanup
-    network.disconnect()
+    ensemble.disconnect()

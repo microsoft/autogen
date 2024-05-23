@@ -2,8 +2,8 @@ import time
 
 import _paths
 from autogencap.ag_adapter.CAP2AG import CAP2AG
+from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Info
-from autogencap.LocalActorNetwork import LocalActorNetwork
 
 from autogen import AssistantAgent, config_list_from_json
 
@@ -18,10 +18,10 @@ class StandaloneAssistant:
         config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
         assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
         # Composable Agent Network adapter
-        network = LocalActorNetwork()
+        ensemble = ComponentEnsemble()
         assistant_adptr = CAP2AG(ag_agent=assistant, the_other_name="user_proxy", init_chat=False, self_recursive=True)
-        network.register(assistant_adptr)
-        network.connect()
+        ensemble.register(assistant_adptr)
+        ensemble.connect()
 
         # Hang around for a while
         try:
@@ -29,7 +29,7 @@ class StandaloneAssistant:
                 time.sleep(0.5)
         except KeyboardInterrupt:
             print("Interrupted by user, shutting down.")
-        network.disconnect()
+        ensemble.disconnect()
         Info("StandaloneAssistant", "App Exit")
 
 
