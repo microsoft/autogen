@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AzureOpenAI
 
-from autogen.logger.logger_factory import LoggerFactory
+import autogen.logger.logger_factory as logger_factory
 from autogen.logger.logger_utils import get_current_ts, to_dict
 from autogen.runtime_logging import log_chat_completion, start, stop
 
