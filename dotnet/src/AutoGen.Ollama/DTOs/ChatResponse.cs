@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public class ChatResponse : ChatResponseUpdate
 {

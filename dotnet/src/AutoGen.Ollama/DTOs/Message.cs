@@ -4,25 +4,20 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Autogen.Ollama;
-
-public class ChatResponseUpdate
-{
-    [JsonPropertyName("model")]
-    public string Model { get; set; } = string.Empty;
-
-    [JsonPropertyName("created_at")]
-    public string CreatedAt { get; set; } = string.Empty;
-
-    [JsonPropertyName("message")]
-    public Message? Message { get; set; }
-
-    [JsonPropertyName("done")]
-    public bool Done { get; set; }
-}
+namespace AutoGen.Ollama;
 
 public class Message
 {
+    public Message()
+    {
+    }
+
+    public Message(string role, string value)
+    {
+        Role = role;
+        Value = value;
+    }
+
     /// <summary>
     /// the role of the message, either system, user or assistant
     /// </summary>

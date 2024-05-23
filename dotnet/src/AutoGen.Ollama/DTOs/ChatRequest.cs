@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatRequest.cs
 
-using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 public class ChatRequest
 {
@@ -19,7 +18,7 @@ public class ChatRequest
     /// the messages of the chat, this can be used to keep a chat memory
     /// </summary>
     [JsonPropertyName("messages")]
-    public IList<Message> Messages { get; set; } = Array.Empty<Message>();
+    public IList<Message> Messages { get; set; } = [];
 
     /// <summary>
     /// the format to return a response in. Currently, the only accepted value is json
