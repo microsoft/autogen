@@ -154,13 +154,17 @@ def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallPara
     )
 
 
-def tool_message_to_oai(message: FunctionExecutionResultMessage) -> Sequence[ChatCompletionToolMessageParam]:
+def tool_message_to_oai(
+    message: FunctionExecutionResultMessage,
+) -> Sequence[ChatCompletionToolMessageParam]:
     return [
         ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
     ]
 
 
-def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssistantMessageParam:
+def assistant_message_to_oai(
+    message: AssistantMessage,
+) -> ChatCompletionAssistantMessageParam:
     if isinstance(message.content, list):
         return ChatCompletionAssistantMessageParam(
             tool_calls=[func_call_to_oai(x) for x in message.content],
@@ -240,7 +244,9 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     model_capabilities: Required[ModelCapabilities]
 
 
-def convert_functions(functions: Sequence[FunctionDefinition]) -> List[ChatCompletionToolParam]:
+def convert_functions(
+    functions: Sequence[FunctionDefinition],
+) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
     for func in functions:
         result.append(
@@ -292,7 +298,7 @@ class BaseOpenAI(ModelClient):
 
     async def create(
         self,
-        messages: List[LLMMessage],
+        messages: Sequence[LLMMessage],
         functions: Sequence[FunctionDefinition] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -343,7 +349,7 @@ class BaseOpenAI(ModelClient):
         usage = RequestUsage(
             # TODO backup token counting
             prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
-            completion_tokens=result.usage.completion_tokens if result.usage is not None else 0,
+            completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
         )
 
         if self._resolved_model is not None:
@@ -383,7 +389,7 @@ class BaseOpenAI(ModelClient):
 
     async def create_stream(
         self,
-        messages: List[LLMMessage],
+        messages: Sequence[LLMMessage],
         functions: Sequence[FunctionDefinition] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},

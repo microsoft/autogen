@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from typing import Mapping, Optional, Sequence, runtime_checkable
 
-from typing_extensions import Any, AsyncGenerator, List, Protocol, Required, TypedDict, Union
+from typing_extensions import (
+    Any,
+    AsyncGenerator,
+    Protocol,
+    Required,
+    TypedDict,
+    Union,
+)
 
 from .types import CreateResult, FunctionDefinition, LLMMessage, RequestUsage
 
@@ -18,7 +25,7 @@ class ModelClient(Protocol):
     # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
     async def create(
         self,
-        messages: List[LLMMessage],
+        messages: Sequence[LLMMessage],
         functions: Sequence[FunctionDefinition] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
@@ -28,7 +35,7 @@ class ModelClient(Protocol):
 
     def create_stream(
         self,
-        messages: List[LLMMessage],
+        messages: Sequence[LLMMessage],
         functions: Sequence[FunctionDefinition] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor

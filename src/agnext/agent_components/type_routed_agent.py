@@ -9,7 +9,9 @@ T = TypeVar("T")
 
 
 # NOTE: this works on concrete types and not inheritance
-def message_handler(target_type: Type[T]) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+def message_handler(
+    target_type: Type[T],
+) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         func._target_type = target_type  # type: ignore
         return func
@@ -26,7 +28,7 @@ class TypeRoutedAgent(BaseAgent[T]):
         router.add_agent(self)
 
         for attr in dir(self):
-            if callable(getattr(self, attr)):
+            if callable(getattr(self, attr, None)):
                 handler = getattr(self, attr)
                 if hasattr(handler, "_target_type"):
                     # TODO do i need to partially apply self?
