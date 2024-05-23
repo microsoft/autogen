@@ -2,13 +2,10 @@
 // OllamaMessageTests.cs
 
 using AutoGen.Core;
-using AutoGen.Ollama;
 using AutoGen.Tests;
 using FluentAssertions;
 using Xunit;
-using Message = AutoGen.Ollama.Message;
-
-namespace Autogen.Ollama.Tests;
+namespace AutoGen.Ollama.Tests;
 
 public class OllamaMessageTests
 {
@@ -40,6 +37,36 @@ public class OllamaMessageTests
         // when from is user but role is assistant
         userMessage = new TextMessage(Role.Assistant, "Hello", from: "user");
         await agent.SendAsync(userMessage);
+    }
+
+    [Fact]
+    public async Task ItProcessStreamingTextMessageAsync()
+    {
+        var messageConnector = new OllamaMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterStreamingMiddleware(messageConnector);
+
+        var messageChunks = Enumerable.Range(0, 10)
+            .Select(i => new ChatResponseUpdate()
+            {
+                Message = new Message()
+                {
+                    Value = i.ToString(),
+                    Role = "assistant",
+                }
+            })
+            .Select(m => MessageEnvelope.Create(m));
+
+        IStreamingMessage? finalReply = null;
+        await foreach (var reply in agent.GenerateStreamingReplyAsync(messageChunks))
+        {
+            reply.Should().BeAssignableTo<IStreamingMessage>();
+            finalReply = reply;
+        }
+
+        finalReply.Should().BeOfType<TextMessage>();
+        var textMessage = (TextMessage)finalReply!;
+        textMessage.GetContent().Should().Be("0123456789");
     }
 
     [Fact]
@@ -126,17 +153,13 @@ public class OllamaMessageTests
         var agent = new EchoAgent("assistant")
             .RegisterMiddleware(async (msgs, _, innerAgent, ct) =>
             {
-                msgs.Count().Should().Be(2);
-                var textMessage = msgs.First();
-                textMessage.Should().BeOfType<MessageEnvelope<Message>>();
-                var message = (IMessage<Message>)textMessage;
-                message.Content.Role.Should().Be("user");
+                msgs.Count().Should().Be(1);
+                var message = msgs.First();
+                message.Should().BeOfType<MessageEnvelope<Message>>();
 
-                var imageMessage = msgs.Last();
-                imageMessage.Should().BeOfType<MessageEnvelope<Message>>();
-                message = (IMessage<Message>)imageMessage;
-                message.Content.Role.Should().Be("user");
-                message.Content.Images!.Count.Should().Be(1);
+                var multiModalMessage = (IMessage<Message>)message;
+                multiModalMessage.Content.Images!.Count.Should().Be(1);
+                multiModalMessage.Content.Value.Should().Be("Hello");
 
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
