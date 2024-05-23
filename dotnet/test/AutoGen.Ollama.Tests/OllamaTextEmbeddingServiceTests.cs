@@ -4,7 +4,7 @@
 using AutoGen.Tests;
 using FluentAssertions;
 
-namespace Autogen.Ollama.Tests;
+namespace AutoGen.Ollama.Tests;
 
 public class OllamaTextEmbeddingServiceTests
 {

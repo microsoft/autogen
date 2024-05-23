@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
 
-namespace Autogen.Ollama;
+namespace AutoGen.Ollama;
 
 /// <summary>
 /// An agent that can interact with ollama models.
@@ -21,7 +21,6 @@ namespace Autogen.Ollama;
 public class OllamaAgent : IStreamingAgent
 {
     private readonly HttpClient _httpClient;
-    public string Name { get; }
     private readonly string _modelName;
     private readonly string _systemMessage;
     private readonly OllamaReplyOptions? _replyOptions;
@@ -36,13 +35,14 @@ public class OllamaAgent : IStreamingAgent
         _systemMessage = systemMessage;
         _replyOptions = replyOptions;
     }
+
     public async Task<IMessage> GenerateReplyAsync(
         IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellation = default)
     {
         ChatRequest request = await BuildChatRequest(messages, options);
         request.Stream = false;
-        using (HttpResponseMessage? response = await _httpClient
-                   .SendAsync(BuildRequestMessage(request), HttpCompletionOption.ResponseContentRead, cancellation))
+        var httpRequest = BuildRequest(request);
+        using (HttpResponseMessage? response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellation))
         {
             response.EnsureSuccessStatusCode();
             Stream? streamResponse = await response.Content.ReadAsStreamAsync();
@@ -52,6 +52,7 @@ public class OllamaAgent : IStreamingAgent
             return output;
         }
     }
+
     public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
@@ -59,7 +60,7 @@ public class OllamaAgent : IStreamingAgent
     {
         ChatRequest request = await BuildChatRequest(messages, options);
         request.Stream = true;
-        HttpRequestMessage message = BuildRequestMessage(request);
+        HttpRequestMessage message = BuildRequest(request);
         using (HttpResponseMessage? response = await _httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
         {
             response.EnsureSuccessStatusCode();
@@ -69,22 +70,28 @@ public class OllamaAgent : IStreamingAgent
             while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
             {
                 string? line = await reader.ReadLineAsync();
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
 
                 ChatResponseUpdate? update = JsonSerializer.Deserialize<ChatResponseUpdate>(line);
-                if (update != null)
+                if (update is { Done: false })
                 {
                     yield return new MessageEnvelope<ChatResponseUpdate>(update, from: Name);
                 }
+                else
+                {
+                    var finalUpdate = JsonSerializer.Deserialize<ChatResponse>(line) ?? throw new Exception("Failed to deserialize response");
 
-                if (update is { Done: false }) continue;
-
-                ChatResponse? chatMessage = JsonSerializer.Deserialize<ChatResponse>(line);
-                if (chatMessage == null) continue;
-                yield return new MessageEnvelope<ChatResponse>(chatMessage, from: Name);
+                    yield return new MessageEnvelope<ChatResponse>(finalUpdate, from: Name);
+                }
             }
         }
     }
+
+    public string Name { get; }
+
     private async Task<ChatRequest> BuildChatRequest(IEnumerable<IMessage> messages, GenerateReplyOptions? options)
     {
         var request = new ChatRequest
@@ -152,65 +159,27 @@ public class OllamaAgent : IStreamingAgent
     }
     private async Task<List<Message>> BuildChatHistory(IEnumerable<IMessage> messages)
     {
-        if (!messages.Any(m => m.IsSystemMessage()))
+        var history = messages.Select(m => m switch
         {
-            var systemMessage = new TextMessage(Role.System, _systemMessage, from: Name);
-            messages = new[] { systemMessage }.Concat(messages);
+            IMessage<Message> chatMessage => chatMessage.Content,
+            _ => throw new ArgumentException("Invalid message type")
+        });
+
+        // if there's no system message in the history, add one to the beginning
+        if (!history.Any(m => m.Role == "system"))
+        {
+            history = new[] { new Message() { Role = "system", Value = _systemMessage } }.Concat(history);
         }
 
-        var collection = new List<Message>();
-        foreach (IMessage? message in messages)
-        {
-            Message item;
-            switch (message)
-            {
-                case TextMessage tm:
-                    item = new Message { Role = tm.Role.ToString(), Value = tm.Content };
-                    break;
-                case ImageMessage im:
-                    string base64Image = await ImageUrlToBase64(im.Url!);
-                    item = new Message { Role = im.Role.ToString(), Images = [base64Image] };
-                    break;
-                case MultiModalMessage mm:
-                    var textsGroupedByRole = mm.Content.OfType<TextMessage>().GroupBy(tm => tm.Role)
-                        .ToDictionary(g => g.Key, g => string.Join(Environment.NewLine, g.Select(tm => tm.Content)));
-
-                    string content = string.Join($"{Environment.NewLine}", textsGroupedByRole
-                        .Select(g => $"{g.Key}{Environment.NewLine}:{g.Value}"));
-
-                    IEnumerable<Task<string>> imagesConversionTasks = mm.Content
-                        .OfType<ImageMessage>()
-                        .Select(async im => await ImageUrlToBase64(im.Url!));
-
-                    string[]? imagesBase64 = await Task.WhenAll(imagesConversionTasks);
-                    item = new Message { Role = mm.Role.ToString(), Value = content, Images = imagesBase64 };
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
-
-            collection.Add(item);
-        }
-
-        return collection;
+        return history.ToList();
     }
-    private static HttpRequestMessage BuildRequestMessage(ChatRequest request)
+
+    private static HttpRequestMessage BuildRequest(ChatRequest request)
     {
         string serialized = JsonSerializer.Serialize(request);
         return new HttpRequestMessage(HttpMethod.Post, OllamaConsts.ChatCompletionEndpoint)
         {
             Content = new StringContent(serialized, Encoding.UTF8, OllamaConsts.JsonMediaType)
         };
-    }
-    private async Task<string> ImageUrlToBase64(string imageUrl)
-    {
-        if (string.IsNullOrWhiteSpace(imageUrl))
-        {
-            throw new ArgumentException("required parameter", nameof(imageUrl));
-        }
-        byte[] imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
-        return imageBytes != null
-            ? Convert.ToBase64String(imageBytes)
-            : throw new InvalidOperationException("no image byte array");
     }
 }
