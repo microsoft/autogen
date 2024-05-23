@@ -26,7 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\AutoGen.Ollama\AutoGen.Ollama.csproj" />
+      <ProjectReference Include="..\..\src\AutoGen.Ollama.Temp\AutoGen.Ollama.csproj" />
       <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
     </ItemGroup>
 

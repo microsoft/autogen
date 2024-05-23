@@ -39,9 +39,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Tests", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.DotnetInteractive.Tests", "test\AutoGen.DotnetInteractive.Tests\AutoGen.DotnetInteractive.Tests.csproj", "{B61388CA-DC73-4B7F-A7B2-7B9A86C9229E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama", "src\AutoGen.Ollama\AutoGen.Ollama.csproj", "{A4EFA175-44CC-44A9-B93E-1C7B6FAC38F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama", "src\AutoGen.Ollama.Temp\AutoGen.Ollama.csproj", "{A4EFA175-44CC-44A9-B93E-1C7B6FAC38F1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Tests", "test\AutoGen.Ollama.Tests\AutoGen.Ollama.Tests.csproj", "{C24FDE63-952D-4F8E-A807-AF31D43AD675}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Tests", "test\AutoGen.Ollama.Tests.Temp\AutoGen.Ollama.Tests.csproj", "{C24FDE63-952D-4F8E-A807-AF31D43AD675}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
