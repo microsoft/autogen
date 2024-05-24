@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example16_Anthropic.cs
+// AnthropicSamples.cs
 
-using AutoGen.Anthropic;
 using AutoGen.Anthropic.Middleware;
 using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Anthropic.Samples;
 
-public static class Example16_Anthropic
+public static class AnthropicSamples
 {
     public static async Task RunAsync()
     {

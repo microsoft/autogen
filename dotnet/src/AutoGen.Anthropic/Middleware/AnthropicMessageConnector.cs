@@ -12,7 +12,7 @@ using AutoGen.Core;
 
 namespace AutoGen.Anthropic.Middleware;
 
-public class AnthropicMessageConnector : IStreamingMiddleware, IMiddleware
+public class AnthropicMessageConnector : IStreamingMiddleware
 {
     public string? Name => nameof(AnthropicMessageConnector);
 
@@ -63,12 +63,6 @@ public class AnthropicMessageConnector : IStreamingMiddleware, IMiddleware
     {
         return messages.SelectMany<IMessage, IMessage>(m =>
         {
-            if (m is IMessage<Message> chatMessage)
-            {
-                return [MessageEnvelope.Create(chatMessage.Content, from: chatMessage.From)]
-                ;
-            }
-
             return m switch
             {
                 TextMessage textMessage => ProcessTextMessage(textMessage, agent),

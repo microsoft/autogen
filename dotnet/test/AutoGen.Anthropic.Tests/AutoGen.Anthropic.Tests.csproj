@@ -5,7 +5,7 @@
       <ImplicitUsings>enable</ImplicitUsings>
       <IsPackable>false</IsPackable>
       <GenerateDocumentationFile>True</GenerateDocumentationFile>
-      <RootNamespace>AutoGen.Anthropic</RootNamespace>
+      <RootNamespace>AutoGen.Anthropic.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
