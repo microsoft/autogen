@@ -2020,32 +2020,32 @@ def test_select_speaker_transform_messages():
     )
 
     coder = AssistantAgent(name="Coder", llm_config=None)
-    groupchat = GroupChat(messages=[], agents=[coder], select_speaker_auto_message_transforms=test_add_transforms)
+    groupchat = GroupChat(messages=[], agents=[coder], select_speaker_transform_messages=test_add_transforms)
 
     # Ensure the transform have been added to the GroupChat
-    assert groupchat._auto_message_transforms == test_add_transforms
+    assert groupchat._speaker_selection_transforms == test_add_transforms
 
     # Attempt to add a non MessageTransforms object, such as a list of transforms
-    with pytest.raises(ValueError, match="select_speaker_auto_message_transforms must be None or MessageTransforms."):
+    with pytest.raises(ValueError, match="select_speaker_transform_messages must be None or MessageTransforms."):
         groupchat = GroupChat(
             messages=[],
             agents=[coder],
-            select_speaker_auto_message_transforms=List[transforms.MessageHistoryLimiter(max_messages=10)],
+            select_speaker_transform_messages=List[transforms.MessageHistoryLimiter(max_messages=10)],
         )
 
     # Ensure if we don't pass any transforms in, none are on the GroupChat
     groupchat_missing = GroupChat(messages=[], agents=[coder])
 
-    assert groupchat_missing._auto_message_transforms is None
+    assert groupchat_missing._speaker_selection_transforms is None
 
     # Ensure we can pass in None
     groupchat_none = GroupChat(
         messages=[],
         agents=[coder],
-        select_speaker_auto_message_transforms=None,
+        select_speaker_transform_messages=None,
     )
 
-    assert groupchat_none._auto_message_transforms is None
+    assert groupchat_none._speaker_selection_transforms is None
 
 
 if __name__ == "__main__":
@@ -2078,5 +2078,5 @@ if __name__ == "__main__":
     # test_manager_resume_functions()
     # test_manager_resume_returns()
     # test_manager_resume_messages()
-    test_select_speaker_transform_messages()
+    # test_select_speaker_transform_messages()
     pass

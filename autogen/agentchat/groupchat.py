@@ -76,7 +76,7 @@ class GroupChat:
         of times until a single agent is returned or it exhausts the maximum attempts.
         Applies only to "auto" speaker selection method.
         Default is 2.
-    - select_speaker_auto_message_transforms: (optional) the message transformations to apply to the nested select speaker agent-to-agent chat messages. Takes a TransformMessages object, defaults to None and is only utilised when the speaker selection method is "auto".
+    - select_speaker_transform_messages: (optional) the message transformations to apply to the nested select speaker agent-to-agent chat messages. Takes a TransformMessages object, defaults to None and is only utilised when the speaker selection method is "auto".
     - select_speaker_auto_verbose: whether to output the select speaker responses and selections
         If set to True, the outputs from the two agents in the nested select speaker chat will be output, along with
         whether the responses were successful, or not, in selecting an agent
@@ -133,7 +133,7 @@ class GroupChat:
     The names are case-sensitive and should not be abbreviated or changed.
     The only names that are accepted are {agentlist}.
     Respond with ONLY the name of the speaker and DO NOT provide a reason."""
-    select_speaker_auto_message_transforms: Optional[transform_messages.TransformMessages] = None
+    select_speaker_transform_messages: Optional[transform_messages.TransformMessages] = None
     select_speaker_auto_verbose: Optional[bool] = False
     role_for_select_speaker_messages: Optional[str] = "system"
 
@@ -252,13 +252,13 @@ class GroupChat:
             raise ValueError("max_retries_for_selecting_speaker must be greater than or equal to zero")
 
         # Load message transforms here (load once for the Group Chat so we don't have to re-initiate it and it maintains the cache across subsequent select speaker calls)
-        if self.select_speaker_auto_message_transforms is not None:
-            if isinstance(self.select_speaker_auto_message_transforms, transform_messages.TransformMessages):
-                self._auto_message_transforms = self.select_speaker_auto_message_transforms
+        if self.select_speaker_transform_messages is not None:
+            if isinstance(self.select_speaker_transform_messages, transform_messages.TransformMessages):
+                self._speaker_selection_transforms = self.select_speaker_transform_messages
             else:
-                raise ValueError("select_speaker_auto_message_transforms must be None or MessageTransforms.")
+                raise ValueError("select_speaker_transform_messages must be None or MessageTransforms.")
         else:
-            self._auto_message_transforms = None
+            self._speaker_selection_transforms = None
 
         # Validate select_speaker_auto_verbose
         if self.select_speaker_auto_verbose is None or not isinstance(self.select_speaker_auto_verbose, bool):
@@ -646,8 +646,8 @@ class GroupChat:
         )
 
         # Add the message transforms, if any, to the speaker selection agent
-        if self._auto_message_transforms is not None:
-            self._auto_message_transforms.add_to_agent(speaker_selection_agent)
+        if self._speaker_selection_transforms is not None:
+            self._speaker_selection_transforms.add_to_agent(speaker_selection_agent)
 
         # Run the speaker selection chat
         result = checking_agent.initiate_chat(
@@ -655,7 +655,6 @@ class GroupChat:
             cache=None,  # don't use caching for the speaker selection chat
             message={
                 "content": self.select_speaker_prompt(agents),
-                "name": "checking_agent",
                 "override_role": self.role_for_select_speaker_messages,
             },
             max_turns=2
@@ -738,8 +737,8 @@ class GroupChat:
         )
 
         # Add the message transforms, if any, to the speaker selection agent
-        if self._auto_message_transforms is not None:
-            self._auto_message_transforms.add_to_agent(speaker_selection_agent)
+        if self._speaker_selection_transforms is not None:
+            self._speaker_selection_transforms.add_to_agent(speaker_selection_agent)
 
         # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
@@ -807,7 +806,6 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_multiple_template.format(agentlist=agentlist),
-                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
@@ -837,7 +835,6 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_none_template.format(agentlist=agentlist),
-                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
