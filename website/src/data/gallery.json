@@ -151,5 +151,12 @@
     "description": "Tutorial on building vision-enabled AI agents using AutoGen and llava.",
     "image": "default.png",
     "tags": ["tools", "app"]
+  },
+  { 
+    "title": "Albus - Enterprise Search and Productivity",
+    "link": "https://www.springworks.in/albus/",
+    "description":"Connect your work apps. Ask questions and get instant answers.",
+    "image":"default.png",
+    "tags": ["app"]
   }
 ]
