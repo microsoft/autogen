@@ -46,3 +46,14 @@ ruff check
 ```sh
 ruff format
 ```
+
+### Build docs
+
+```sh
+pip install -e ".[docs]"
+
+sphinx-build docs/src docs/build
+
+# To view the docs:
+python -m http.server -d docs/build/html
+```
