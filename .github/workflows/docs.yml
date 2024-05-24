@@ -34,11 +34,16 @@ jobs:
         with:
           python-version: '3.10'
       - run: pip install ".[docs]"
-      - run: sphinx-build docs/src /tmp/docsbuild
+      - run: |
+          sphinx-build docs/src docs/build
+          pwd
+          ls docs
+          ls docs/build
+          ls docs/build/html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '/tmp/docsbuild/html'
+          path: 'docs/build/html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
