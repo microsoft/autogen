@@ -1,8 +1,9 @@
 from typing import List, Optional, Union
 
+from typing_extensions import Literal
+
 from agnext.agent_components.types import AssistantMessage, LLMMessage, UserMessage
 from agnext.chat.types import FunctionCallMessage, Message, MultiModalMessage, TextMessage
-from typing_extensions import Literal
 
 
 def convert_content_message_to_assistant_message(

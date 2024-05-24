@@ -3,14 +3,16 @@ import asyncio
 
 import openai
 from agnext.agent_components.models_clients.openai_client import OpenAI
-from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
+from agnext.application_components.single_threaded_agent_runtime import (
+    SingleThreadedAgentRuntime,
+)
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.messages import ChatMessage
 from agnext.chat.patterns.group_chat import GroupChat
 from agnext.chat.patterns.orchestrator import Orchestrator
 
 
-async def group_chat() -> None:
+async def group_chat(message: str) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     joe_oai_assistant = openai.beta.assistants.create(
@@ -44,14 +46,14 @@ async def group_chat() -> None:
     )
 
     chat = GroupChat(
-        "chat_room",
+        "Host",
         "A round-robin chat room.",
         runtime,
         [joe, cathy],
         num_rounds=5,
     )
 
-    response = runtime.send_message(ChatMessage(body="Run a show!", sender="external"), chat)
+    response = runtime.send_message(ChatMessage(body=message, sender="host"), chat)
 
     while not response.done():
         await runtime.process_next()
@@ -59,7 +61,7 @@ async def group_chat() -> None:
     print((await response).body)  # type: ignore
 
 
-async def orchestrator() -> None:
+async def orchestrator(message: str) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     developer_oai_assistant = openai.beta.assistants.create(
@@ -93,8 +95,8 @@ async def orchestrator() -> None:
     )
 
     chat = Orchestrator(
-        "Team",
-        "A software development team.",
+        "Manager",
+        "A software development team manager.",
         runtime,
         [developer, product_manager],
         model_client=OpenAI(model="gpt-3.5-turbo"),
@@ -102,7 +104,7 @@ async def orchestrator() -> None:
 
     response = runtime.send_message(
         ChatMessage(
-            body="Write a simple FastAPI webapp for showing the current time.",
+            body=message,
             sender="customer",
         ),
         chat,
@@ -122,11 +124,12 @@ if __name__ == "__main__":
         choices=chocies,
         help="The pattern to demo.",
     )
+    parser.add_argument("--message", help="The message to send.")
     args = parser.parse_args()
 
     if args.pattern == "group_chat":
-        asyncio.run(group_chat())
+        asyncio.run(group_chat(args.message))
     elif args.pattern == "orchestrator":
-        asyncio.run(orchestrator())
+        asyncio.run(orchestrator(args.message))
     else:
         raise ValueError(f"Invalid pattern: {args.pattern}")

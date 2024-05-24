@@ -1,6 +1,8 @@
 from typing import List, Sequence
 
+from ...agent_components.type_routed_agent import message_handler
 from ...core.agent_runtime import AgentRuntime
+from ...core.cancellation_token import CancellationToken
 from ..agents.base import BaseChatAgent
 from ..messages import ChatMessage
 
@@ -19,7 +21,13 @@ class GroupChat(BaseChatAgent):
         self._num_rounds = num_rounds
         self._history: List[ChatMessage] = []
 
-    async def on_chat_message(self, message: ChatMessage) -> ChatMessage:
+    @message_handler(ChatMessage)
+    async def on_chat_message(
+        self,
+        message: ChatMessage,
+        require_response: bool,
+        cancellation_token: CancellationToken,
+    ) -> ChatMessage | None:
         if message.reset:
             # Reset the history.
             self._history = []

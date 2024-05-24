@@ -1,12 +1,11 @@
 import json
 from typing import Any, List, Sequence, Tuple
 
-from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.cancellation_token import CancellationToken
-
 from ...agent_components.model_client import ModelClient
 from ...agent_components.type_routed_agent import message_handler
 from ...agent_components.types import AssistantMessage, LLMMessage, UserMessage
+from ...core.agent_runtime import AgentRuntime
+from ...core.cancellation_token import CancellationToken
 from ..agents.base import BaseChatAgent
 from ..messages import ChatMessage
 
@@ -33,8 +32,11 @@ class Orchestrator(BaseChatAgent):
 
     @message_handler(ChatMessage)
     async def on_chat_message(
-        self, message: ChatMessage, require_response: bool, cancellation_token: CancellationToken
-    ) -> ChatMessage:
+        self,
+        message: ChatMessage,
+        require_response: bool,
+        cancellation_token: CancellationToken,
+    ) -> ChatMessage | None:
         # A task is received.
         task = message.body
 
