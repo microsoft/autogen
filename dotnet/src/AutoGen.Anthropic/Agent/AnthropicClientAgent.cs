@@ -13,6 +13,7 @@ public class AnthropicClientAgent : IStreamingAgent
     private readonly AnthropicClient _anthropicClient;
     public string Name { get; }
     private readonly string _modelName;
+    private readonly string _systemMessage;
     private readonly decimal _temperature;
     private readonly int _maxTokens;
 
@@ -20,12 +21,14 @@ public class AnthropicClientAgent : IStreamingAgent
         AnthropicClient anthropicClient,
         string name,
         string modelName,
+        string systemMessage = "You are a helpful AI assistant",
         decimal temperature = 0.7m,
         int maxTokens = 1024)
     {
         Name = name;
         _anthropicClient = anthropicClient;
         _modelName = modelName;
+        _systemMessage = systemMessage;
         _temperature = temperature;
         _maxTokens = maxTokens;
     }
@@ -51,18 +54,19 @@ public class AnthropicClientAgent : IStreamingAgent
     {
         var chatCompletionRequest = new ChatCompletionRequest()
         {
+            SystemMessage = _systemMessage,
             MaxTokens = options?.MaxToken ?? _maxTokens,
             Model = _modelName,
             Stream = shouldStream,
             Temperature = (decimal?)options?.Temperature ?? _temperature,
         };
 
-        chatCompletionRequest.Messages = BuildMessages(messages, chatCompletionRequest);
+        chatCompletionRequest.Messages = BuildMessages(messages);
 
         return chatCompletionRequest;
     }
 
-    private List<ChatMessage> BuildMessages(IEnumerable<IMessage> messages, ChatCompletionRequest chatCompletionRequest)
+    private List<ChatMessage> BuildMessages(IEnumerable<IMessage> messages)
     {
         List<ChatMessage> chatMessages = new();
         foreach (IMessage? message in messages)
@@ -70,10 +74,8 @@ public class AnthropicClientAgent : IStreamingAgent
             switch (message)
             {
                 case IMessage<ChatMessage> chatMessage when chatMessage.Content.Role == "system":
-                    if (!string.IsNullOrEmpty(chatCompletionRequest.SystemMessage))
-                        throw new InvalidOperationException($"${nameof(chatCompletionRequest.SystemMessage)} has already been set");
-                    chatCompletionRequest.SystemMessage = chatMessage.Content.Content;
-                    break;
+                    throw new InvalidOperationException(
+                        "system message has already been set and only one system message is supported. \"system\" role for input messages in the Message");
 
                 case IMessage<ChatMessage> chatMessage:
                     chatMessages.Add(chatMessage.Content);
