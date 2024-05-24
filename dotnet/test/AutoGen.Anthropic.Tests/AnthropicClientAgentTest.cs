@@ -1,9 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicClientAgentTest.cs
 
-using AutoGen.Anthropic.Middleware;
+using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
-using AutoGen.Core;
 using AutoGen.Tests;
 using Xunit.Abstractions;
 
@@ -21,10 +20,9 @@ public class AnthropicClientAgentTest
         var client = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
 
         var agent = new AnthropicClientAgent(
-                client,
-                name: "AnthropicAgent",
-                AnthropicConstants.Claude3Haiku)
-            .RegisterStreamingMiddleware(new AnthropicMessageConnector());
+            client,
+            name: "AnthropicAgent",
+            AnthropicConstants.Claude3Haiku).RegisterMessageConnector();
 
         var singleAgentTest = new SingleAgentTest(_output);
         await singleAgentTest.UpperCaseTestAsync(agent);

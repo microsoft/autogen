@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicSamples.cs
 
-using AutoGen.Anthropic.Middleware;
+using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 
@@ -18,9 +18,8 @@ public static class AnthropicSamples
         #endregion
 
         #region register_middleware
-        var anthropicMessageConnector = new AnthropicMessageConnector();
         var agentWithConnector = agent
-            .RegisterMiddleware(anthropicMessageConnector)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion register_middleware
 
