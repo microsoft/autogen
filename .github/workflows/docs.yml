@@ -37,9 +37,13 @@ jobs:
       - run: |
           sphinx-build docs/src docs/build
           pwd
+          echo "---"
           ls docs
+          echo "---"
           ls docs/build
+          echo "---"
           ls docs/build/html
+          echo "---"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
