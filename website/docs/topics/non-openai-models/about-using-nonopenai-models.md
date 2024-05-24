@@ -36,6 +36,7 @@ are provided below:
 - [Together AI example](/docs/topics/non-openai-models/cloud-togetherai)
 - [Mistral AI example](/docs/topics/non-openai-models/cloud-mistralai)
 - [Anthropic Claude example](/docs/topics/non-openai-models/cloud-anthropic)
+- [Keywords AI example](/docs/topics/non-openai-models/cloud-keywordsai)
 
 
 ### Locally run proxy servers
