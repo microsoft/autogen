@@ -76,7 +76,8 @@ class GroupChat:
         of times until a single agent is returned or it exhausts the maximum attempts.
         Applies only to "auto" speaker selection method.
         Default is 2.
-    - select_speaker_transform_messages: (optional) the message transformations to apply to the nested select speaker agent-to-agent chat messages. Takes a TransformMessages object, defaults to None and is only utilised when the speaker selection method is "auto".
+    - select_speaker_transform_messages: (optional) the message transformations to apply to the nested select speaker agent-to-agent chat messages.
+        Takes a TransformMessages object, defaults to None and is only utilised when the speaker selection method is "auto".
     - select_speaker_auto_verbose: whether to output the select speaker responses and selections
         If set to True, the outputs from the two agents in the nested select speaker chat will be output, along with
         whether the responses were successful, or not, in selecting an agent
