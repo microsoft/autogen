@@ -8,6 +8,7 @@ from termcolor import colored
 
 from autogen import token_count_utils
 from autogen.cache import AbstractCache, Cache
+from autogen.oai.openai_utils import filter_config
 
 from .text_compressors import LLMLingua, TextCompressor
 
@@ -130,6 +131,8 @@ class MessageTokenLimiter:
         max_tokens: Optional[int] = None,
         min_tokens: Optional[int] = None,
         model: str = "gpt-3.5-turbo-0613",
+        filter_dict: Optional[Dict] = None,
+        exclude_filter: bool = True,
     ):
         """
         Args:
@@ -140,11 +143,17 @@ class MessageTokenLimiter:
             min_tokens (Optional[int]): Minimum number of tokens in messages to apply the transformation.
                 Must be greater than or equal to 0 if not None.
             model (str): The target OpenAI model for tokenization alignment.
+            filter_dict (None or dict): A dictionary to filter out messages that you want/don't want to compress.
+                If None, no filters will be applied.
+            exclude_filter (bool): If exclude filter is True (the default value), messages that match the filter will be
+                excluded from token truncation. If False, messages that match the filter will be truncated.
         """
         self._model = model
         self._max_tokens_per_message = self._validate_max_tokens(max_tokens_per_message)
         self._max_tokens = self._validate_max_tokens(max_tokens)
         self._min_tokens = self._validate_min_tokens(min_tokens, max_tokens)
+        self._filter_dict = filter_dict
+        self._exclude_filter = exclude_filter
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies token truncation to the conversation history.
@@ -169,8 +178,13 @@ class MessageTokenLimiter:
 
         for msg in reversed(temp_messages):
             # Some messages may not have content.
-            if not isinstance(msg.get("content"), (str, list)):
+            if not _is_content_right_type(msg.get("content")):
                 processed_messages.insert(0, msg)
+                continue
+
+            if not _should_transform_message(msg, self._filter_dict, self._exclude_filter):
+                processed_messages.insert(0, msg)
+                processed_messages_tokens += _count_tokens(msg["content"])
                 continue
 
             expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
@@ -282,6 +296,8 @@ class TextMessageCompressor:
         min_tokens: Optional[int] = None,
         compression_params: Dict = dict(),
         cache: Optional[AbstractCache] = Cache.disk(),
+        filter_dict: Optional[Dict] = None,
+        exclude_filter: bool = True,
     ):
         """
         Args:
@@ -293,6 +309,10 @@ class TextMessageCompressor:
                 dictionary.
             cache (None or AbstractCache): The cache client to use to store and retrieve previously compressed messages.
                 If None, no caching will be used.
+            filter_dict (None or dict): A dictionary to filter out messages that you want/don't want to compress.
+                If None, no filters will be applied.
+            exclude_filter (bool): If exclude filter is True (the default value), messages that match the filter will be
+                excluded from compression. If False, messages that match the filter will be compressed.
         """
 
         if text_compressor is None:
@@ -303,6 +323,8 @@ class TextMessageCompressor:
         self._text_compressor = text_compressor
         self._min_tokens = min_tokens
         self._compression_args = compression_params
+        self._filter_dict = filter_dict
+        self._exclude_filter = exclude_filter
         self._cache = cache
 
         # Optimizing savings calculations to optimize log generation
@@ -334,7 +356,10 @@ class TextMessageCompressor:
         processed_messages = messages.copy()
         for message in processed_messages:
             # Some messages may not have content.
-            if not isinstance(message.get("content"), (str, list)):
+            if not _is_content_right_type(message.get("content")):
+                continue
+
+            if not _should_transform_message(message, self._filter_dict, self._exclude_filter):
                 continue
 
             if _is_content_text_empty(message["content"]):
@@ -397,7 +422,7 @@ class TextMessageCompressor:
         self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
     ):
         if self._cache:
-            value = (tokens_saved, json.dumps(compressed_content))
+            value = (tokens_saved, compressed_content)
             self._cache.set(self._cache_key(content), value)
 
     def _cache_key(self, content: Union[str, List[Dict]]) -> str:
@@ -427,6 +452,10 @@ def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
     return token_count
 
 
+def _is_content_right_type(content: Any) -> bool:
+    return isinstance(content, (str, list))
+
+
 def _is_content_text_empty(content: Union[str, List[Dict[str, Any]]]) -> bool:
     if isinstance(content, str):
         return content == ""
@@ -434,3 +463,10 @@ def _is_content_text_empty(content: Union[str, List[Dict[str, Any]]]) -> bool:
         return all(_is_content_text_empty(item.get("text", "")) for item in content)
     else:
         return False
+
+
+def _should_transform_message(message: Dict[str, Any], filter_dict: Optional[Dict[str, Any]], exclude: bool) -> bool:
+    if not filter_dict:
+        return True
+
+    return len(filter_config([message], filter_dict, exclude)) > 0
