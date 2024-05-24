@@ -636,6 +636,7 @@ class GroupChat:
             cache=None,  # don't use caching for the speaker selection chat
             message={
                 "content": self.select_speaker_prompt(agents),
+                "name": "checking_agent",
                 "override_role": self.role_for_select_speaker_messages,
             },
             max_turns=2
@@ -783,6 +784,7 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_multiple_template.format(agentlist=agentlist),
+                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
@@ -812,6 +814,7 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_none_template.format(agentlist=agentlist),
+                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
