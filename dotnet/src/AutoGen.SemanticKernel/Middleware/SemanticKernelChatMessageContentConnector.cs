@@ -47,20 +47,12 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return PostProcessMessage(reply);
     }
 
-    public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(InvokeStreamingAsync(context, agent, cancellationToken));
-    }
-
-    private async IAsyncEnumerable<IStreamingMessage> InvokeStreamingAsync(
-        MiddlewareContext context,
-        IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatMessageContents = ProcessMessage(context.Messages, agent)
             .Select(m => new MessageEnvelope<ChatMessageContent>(m));
 
-        await foreach (var reply in await agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
+        await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
         {
             yield return PostProcessStreamingMessage(reply);
         }
@@ -92,7 +84,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         {
             TextContent txt => new TextMessage(Role.Assistant, txt.Text!, messageEnvelope.From),
             ImageContent img when img.Uri is Uri uri => new ImageMessage(Role.Assistant, uri.ToString(), from: messageEnvelope.From),
-            ImageContent img when img.Uri is null => throw new InvalidOperationException("ImageContent.Uri is null"),
+            ImageContent img when img.Data is ReadOnlyMemory<byte> data => new ImageMessage(Role.Assistant, BinaryData.FromBytes(data), from: messageEnvelope.From),
             _ => throw new InvalidOperationException("Unsupported content type"),
         });
 
@@ -141,7 +133,9 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         {
             TextMessage textMessage => ProcessMessageForSelf(textMessage),
             MultiModalMessage multiModalMessage => ProcessMessageForSelf(multiModalMessage),
+#pragma warning disable CS0618 // deprecated
             Message m => ProcessMessageForSelf(m),
+#pragma warning restore CS0618 // deprecated
             _ => throw new System.NotImplementedException(),
         };
     }
@@ -153,7 +147,9 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
             TextMessage textMessage => ProcessMessageForOthers(textMessage),
             MultiModalMessage multiModalMessage => ProcessMessageForOthers(multiModalMessage),
             ImageMessage imageMessage => ProcessMessageForOthers(imageMessage),
+#pragma warning disable CS0618 // deprecated
             Message m => ProcessMessageForOthers(m),
+#pragma warning restore CS0618 // deprecated
             _ => throw new InvalidOperationException("unsupported message type, only support TextMessage, ImageMessage, MultiModalMessage and Message."),
         };
     }
@@ -185,9 +181,8 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
 
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(ImageMessage message)
     {
-        var imageContent = new ImageContent(new Uri(message.Url));
         var collectionItems = new ChatMessageContentItemCollection();
-        collectionItems.Add(imageContent);
+        collectionItems.Add(new ImageContent(new Uri(message.Url ?? message.BuildDataUri())));
         return [new ChatMessageContent(AuthorRole.User, collectionItems)];
     }
 
@@ -207,7 +202,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
             }
             else if (item is ImageMessage imageContent)
             {
-                collections.Add(new ImageContent(new Uri(imageContent.Url)));
+                collections.Add(new ImageContent(new Uri(imageContent.Url ?? imageContent.BuildDataUri())));
             }
             else
             {
@@ -217,7 +212,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return [new ChatMessageContent(AuthorRole.User, collections)];
     }
 
-
+    [Obsolete("This method is deprecated, please use the specific method instead.")]
     private IEnumerable<ChatMessageContent> ProcessMessageForSelf(Message message)
     {
         if (message.Role == Role.System)
@@ -238,6 +233,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         }
     }
 
+    [Obsolete("This method is deprecated, please use the specific method instead.")]
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(Message message)
     {
         if (message.Role == Role.System)

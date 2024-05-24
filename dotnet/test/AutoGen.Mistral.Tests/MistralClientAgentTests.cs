@@ -37,7 +37,7 @@ public partial class MistralClientAgentTests
             model: "open-mistral-7b")
             .RegisterMessageConnector();
         var singleAgentTest = new SingleAgentTest(_output);
-        await singleAgentTest.UpperCaseTest(agent);
+        await singleAgentTest.UpperCaseTestAsync(agent);
         await singleAgentTest.UpperCaseStreamingTestAsync(agent);
     }
 
@@ -87,12 +87,16 @@ public partial class MistralClientAgentTests
             }
             """;
         var functionCallResult = await this.GetWeatherWrapper(weatherFunctionArgumets);
-
+        var toolCall = new ToolCall(this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets)
+        {
+            ToolCallId = "012345678", // Mistral AI requires the tool call id to be a length of 9
+            Result = functionCallResult,
+        };
         IMessage[] chatHistory = [
             new TextMessage(Role.User, "what's the weather in Seattle?"),
-            new ToolCallMessage(this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets, from: agent.Name),
-            new ToolCallResultMessage(functionCallResult, this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets),
-            ];
+            new ToolCallMessage([toolCall], from: agent.Name),
+            new ToolCallResultMessage([toolCall], weatherFunctionArgumets),
+        ];
 
         var reply = await agent.SendAsync(chatHistory: chatHistory);
 
@@ -114,7 +118,7 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var functionCallMiddlewareExecutorMiddleware = new FunctionCallMiddleware(
             functionMap: new Dictionary<string, Func<string, Task<string>>>
@@ -127,7 +131,7 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddlewareExecutorMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddlewareExecutorMiddleware);
         await twoAgentTest.TwoAgentGetWeatherFunctionCallTestAsync(executorAgent, functionCallAgent);
     }
 
@@ -148,11 +152,11 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var question = new TextMessage(Role.User, "what's the weather in Seattle?");
         var reply = await functionCallAgent.SendAsync(question);
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        reply.Should().BeOfType<ToolCallAggregateMessage>();
 
         // resend the reply to the same agent so it can generate the final response
         // because the reply's from is the agent's name
@@ -193,7 +197,7 @@ public partial class MistralClientAgentTests
             toolChoice: ToolChoiceEnum.Any,
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
         await singleAgentTest.EchoFunctionCallExecutionTestAsync(agent);
         await singleAgentTest.EchoFunctionCallExecutionStreamingTestAsync(agent);
     }
@@ -214,7 +218,7 @@ public partial class MistralClientAgentTests
             systemMessage: "You are a helpful assistant that can call functions",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
         await singleAgentTest.EchoFunctionCallTestAsync(agent);
 
 
@@ -222,7 +226,7 @@ public partial class MistralClientAgentTests
         var question = new TextMessage(Role.User, "what's the weather in Seattle?");
         IMessage? finalReply = null;
 
-        await foreach (var reply in await agent.GenerateStreamingReplyAsync([question]))
+        await foreach (var reply in agent.GenerateStreamingReplyAsync([question]))
         {
             reply.From.Should().Be(agent.Name);
             if (reply is IMessage message)

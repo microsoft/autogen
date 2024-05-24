@@ -2,8 +2,8 @@
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
 using AutoGen;
-using AutoGen.Core;
 using AutoGen.BasicSample;
+using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.OpenAI;
 using FluentAssertions;
@@ -40,7 +40,8 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
             name: "groupAdmin",
             systemMessage: "You are the admin of the group chat",
             temperature: 0f,
-            config: gptConfig);
+            config: gptConfig)
+            .RegisterPrintMessage();
 
         var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
             .RegisterPrintMessage();

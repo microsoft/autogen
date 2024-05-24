@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.LMStudio;
 using AutoGen.OpenAI;
 
 namespace AutoGen;
@@ -74,24 +75,48 @@ public class ConversableAgent : IAgent
         this.functions = llmConfig?.FunctionContracts;
     }
 
+    /// <summary>
+    /// For test purpose only.
+    /// </summary>
+    internal IAgent? InnerAgent => this.innerAgent;
+
     private IAgent? CreateInnerAgentFromConfigList(ConversableAgentConfig config)
     {
         IAgent? agent = null;
         foreach (var llmConfig in config.ConfigList ?? Enumerable.Empty<ILLMConfig>())
         {
-            agent = agent switch
+            IAgent nextAgent = llmConfig switch
             {
-                null => llmConfig switch
-                {
-                    AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0),
-                    OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0),
-                    _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
-                },
-                IAgent innerAgent => innerAgent.RegisterReply(async (messages, cancellationToken) =>
-                {
-                    return await innerAgent.GenerateReplyAsync(messages, cancellationToken: cancellationToken);
-                }),
+                AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0),
+                OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0),
+                LMStudioConfig lmStudioConfig => new LMStudioAgent(
+                    name: this.Name,
+                    config: lmStudioConfig,
+                    systemMessage: this.systemMessage,
+                    temperature: config.Temperature ?? 0),
+                _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
             };
+
+            if (agent == null)
+            {
+                agent = nextAgent;
+            }
+            else
+            {
+                agent = agent.RegisterMiddleware(async (messages, option, agent, cancellationToken) =>
+                {
+                    var agentResponse = await nextAgent.GenerateReplyAsync(messages, option, cancellationToken: cancellationToken);
+
+                    if (agentResponse is null)
+                    {
+                        return await agent.GenerateReplyAsync(messages, option, cancellationToken);
+                    }
+                    else
+                    {
+                        return agentResponse;
+                    }
+                });
+            }
         }
 
         return agent;

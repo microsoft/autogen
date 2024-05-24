@@ -1,4 +1,5 @@
 import os
+import platform
 
 import setuptools
 
@@ -13,6 +14,9 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
     exec(fp.read(), version)
 __version__ = version["__version__"]
 
+
+current_os = platform.system()
+
 install_requires = [
     "openai>=1.3",
     "diskcache",
@@ -25,6 +29,7 @@ install_requires = [
     # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
     "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
     "docker",
+    "packaging",
 ]
 
 jupyter_executor = [
@@ -35,7 +40,22 @@ jupyter_executor = [
     "ipykernel>=6.29.0",
 ]
 
-retrieve_chat = ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
+retrieve_chat = [
+    "protobuf==4.25.3",
+    "chromadb",
+    "sentence_transformers",
+    "pypdf",
+    "ipython",
+    "beautifulsoup4",
+    "markdownify",
+]
+
+retrieve_chat_pgvector = [*retrieve_chat, "pgvector>=0.2.5"]
+
+if current_os in ["Windows", "Darwin"]:
+    retrieve_chat_pgvector.extend(["psycopg[binary]>=3.1.18"])
+elif current_os == "Linux":
+    retrieve_chat_pgvector.extend(["psycopg>=3.1.18"])
 
 extra_require = {
     "test": [
@@ -51,11 +71,7 @@ extra_require = {
     "blendsearch": ["flaml[blendsearch]"],
     "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
     "retrievechat": retrieve_chat,
-    "retrievechat-pgvector": [
-        *retrieve_chat,
-        "pgvector>=0.2.5",
-        "psycopg>=3.1.18",
-    ],
+    "retrievechat-pgvector": retrieve_chat_pgvector,
     "retrievechat-qdrant": [
         *retrieve_chat,
         "qdrant_client[fastembed]",
@@ -71,6 +87,7 @@ extra_require = {
     "websockets": ["websockets>=12.0,<13"],
     "jupyter-executor": jupyter_executor,
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
+    "long-context": ["llmlingua<0.3"],
 }
 
 setuptools.setup(
