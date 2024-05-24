@@ -38,7 +38,11 @@ defaults:
     working-directory: ./samples/marketing
 
 jobs:
-  build:
+  deployment:
+
+    # Environment is going to be used by GitHub to create the subject of the federated identity.
+    environment: dev
+    
     runs-on: ubuntu-latest
     env:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.MARKETING_AZURE_SUBSCRIPTION_ID }}
