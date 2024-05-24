@@ -64,13 +64,9 @@ public class OllamaMessageConnector : IStreamingMiddleware
 
         // if the chunks are not empty, aggregate them into a single message
         var messageContent = string.Join(string.Empty, chunks.Select(c => c.Message?.Value));
-        var message = new Message
-        {
-            Role = "assistant",
-            Value = messageContent,
-        };
+        var message = new TextMessage(Role.Assistant, messageContent, agent.Name);
 
-        yield return MessageEnvelope.Create(message, agent.Name);
+        yield return message;
     }
 
     private IEnumerable<IMessage> ProcessMessage(IEnumerable<IMessage> messages, IAgent agent)
@@ -96,18 +92,25 @@ public class OllamaMessageConnector : IStreamingMiddleware
 
     private IEnumerable<IMessage> ProcessMultiModalMessage(MultiModalMessage multiModalMessage, IAgent agent)
     {
-        var messages = new List<IMessage>();
-        foreach (var message in multiModalMessage.Content)
-        {
-            messages.AddRange(message switch
-            {
-                TextMessage textMessage => ProcessTextMessage(textMessage, agent),
-                ImageMessage imageMessage => ProcessImageMessage(imageMessage, agent),
-                _ => throw new InvalidOperationException("Invalid message type"),
-            });
-        }
+        var textMessages = multiModalMessage.Content.Where(m => m is TextMessage textMessage && textMessage.GetContent() is not null);
+        var imageMessages = multiModalMessage.Content.Where(m => m is ImageMessage);
 
-        return messages;
+        // aggregate the text messages into one message
+        // by concatenating the content using newline
+        var textContent = string.Join("\n", textMessages.Select(m => ((TextMessage)m).Content));
+
+        // collect all the images
+        var images = imageMessages.SelectMany(m => ProcessImageMessage((ImageMessage)m, agent)
+                    .SelectMany(m => (m as IMessage<Message>)?.Content.Images));
+
+        var message = new Message()
+        {
+            Role = "user",
+            Value = textContent,
+            Images = images.ToList(),
+        };
+
+        return [MessageEnvelope.Create(message, agent.Name)];
     }
 
     private IEnumerable<IMessage> ProcessImageMessage(ImageMessage imageMessage, IAgent agent)
