@@ -162,3 +162,4 @@ cython_debug/
 .ruff_cache/
 
 /docs/src/reference
+.DS_Store

@@ -1,14 +1,13 @@
 import openai
 
-from agnext.agent_components.type_routed_agent import message_handler
+from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.chat.agents.base import BaseChatAgent
+from agnext.chat.types import Reset, RespondNow, TextMessage
 from agnext.core.agent_runtime import AgentRuntime
 from agnext.core.cancellation_token import CancellationToken
 
-from ..messages import ChatMessage
 
-
-class OpenAIAssistantAgent(BaseChatAgent):
+class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
     def __init__(
         self,
         name: str,
@@ -25,29 +24,38 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._current_session_window_length = 0
 
     # TODO: use require_response
-    @message_handler(ChatMessage)
+    @message_handler(TextMessage)
     async def on_chat_message_with_cancellation(
-        self, message: ChatMessage, require_response: bool, cancellation_token: CancellationToken
-    ) -> ChatMessage | None:
+        self, message: TextMessage, require_response: bool, cancellation_token: CancellationToken
+    ) -> None:
         print("---------------")
-        print(f"{self.name} received message from {message.sender}: {message.body}")
+        print(f"{self.name} received message from {message.source}: {message.content}")
         print("---------------")
-        if message.reset:
-            # Reset the current session window.
-            self._current_session_window_length = 0
 
         # Save the message to the thread.
         _ = await self._client.beta.threads.messages.create(
             thread_id=self._thread_id,
-            content=message.body,
+            content=message.content,
             role="user",
-            metadata={"sender": message.sender},
+            metadata={"sender": message.source},
         )
         self._current_session_window_length += 1
 
-        # If the message is a save_message_only message, return early.
-        if message.save_message_only:
-            return ChatMessage(body="OK", sender=self.name)
+        if require_response:
+            # TODO ?
+            ...
+
+    @message_handler(Reset)
+    async def on_reset(self, message: Reset, require_response: bool, cancellation_token: CancellationToken) -> None:
+        # Reset the current session window.
+        self._current_session_window_length = 0
+
+    @message_handler(RespondNow)
+    async def on_respond_now(
+        self, message: RespondNow, require_response: bool, cancellation_token: CancellationToken
+    ) -> TextMessage | None:
+        if not require_response:
+            return None
 
         # Create a run and wait until it finishes.
         run = await self._client.beta.threads.runs.create_and_poll(
@@ -73,4 +81,4 @@ class OpenAIAssistantAgent(BaseChatAgent):
             raise ValueError(f"Expected text content in the last message: {last_message_content}")
 
         # TODO: handle multiple text content.
-        return ChatMessage(body=text_content[0].text.value, sender=self.name)
+        return TextMessage(content=text_content[0].text.value, source=self.name)

@@ -1,9 +1,8 @@
 from agnext.core.agent_runtime import AgentRuntime
+from agnext.core.base_agent import BaseAgent
 
-from ...agent_components.type_routed_agent import TypeRoutedAgent
 
-
-class BaseChatAgent(TypeRoutedAgent):
+class BaseChatAgent(BaseAgent):
     """The BaseAgent class for the chat API."""
 
     def __init__(self, name: str, description: str, runtime: AgentRuntime) -> None:

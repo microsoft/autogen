@@ -40,3 +40,9 @@ class FunctionExecutionResultMessage(BaseMessage):
 
 
 Message = Union[TextMessage, MultiModalMessage, FunctionCallMessage, FunctionExecutionResultMessage]
+
+
+class RespondNow: ...
+
+
+class Reset: ...

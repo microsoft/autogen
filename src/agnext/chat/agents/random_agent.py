@@ -1,21 +1,18 @@
 import random
 
-from agnext.agent_components.type_routed_agent import message_handler
+from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
+from agnext.chat.types import RespondNow, TextMessage
 from agnext.core.cancellation_token import CancellationToken
 
 from ..agents.base import BaseChatAgent
-from ..messages import ChatMessage
 
 
-class RandomResponseAgent(BaseChatAgent):
+class RandomResponseAgent(BaseChatAgent, TypeRoutedAgent):
     # TODO: use require_response
-    @message_handler(ChatMessage)
+    @message_handler(RespondNow)
     async def on_chat_message_with_cancellation(
-        self, message: ChatMessage, require_response: bool, cancellation_token: CancellationToken
-    ) -> ChatMessage | None:
-        print(f"{self.name} received message from {message.sender}: {message.body}")
-        if message.save_message_only:
-            return ChatMessage(body="OK", sender=self.name)
+        self, message: RespondNow, require_response: bool, cancellation_token: CancellationToken
+    ) -> TextMessage:
         # Generate a random response.
         response_body = random.choice(
             [
@@ -36,4 +33,4 @@ class RandomResponseAgent(BaseChatAgent):
                 "See you!",
             ]
         )
-        return ChatMessage(body=response_body, sender=self.name)
+        return TextMessage(content=response_body, source=self.name)

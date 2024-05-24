@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from typing import Any
 
 import openai
 from agnext.agent_components.models_clients.openai_client import OpenAI
@@ -8,8 +9,27 @@ from agnext.application_components.single_threaded_agent_runtime import (
 )
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.messages import ChatMessage
-from agnext.chat.patterns.group_chat import GroupChat
+from agnext.chat.patterns.group_chat import GroupChat, Output
 from agnext.chat.patterns.orchestrator import Orchestrator
+from agnext.chat.types import TextMessage
+
+
+class ConcatOutput(Output):
+    def __init__(self) -> None:
+        self._output = ""
+
+    def on_message_received(self, message: Any) -> None:
+        match message:
+            case TextMessage(content=content):
+                self._output += content
+            case _:
+                ...
+
+    def get_output(self) -> Any:
+        return self._output
+
+    def reset(self) -> None:
+        self._output = ""
 
 
 async def group_chat(message: str) -> None:
@@ -45,13 +65,7 @@ async def group_chat(message: str) -> None:
         thread_id=cathy_oai_thread.id,
     )
 
-    chat = GroupChat(
-        "Host",
-        "A round-robin chat room.",
-        runtime,
-        [joe, cathy],
-        num_rounds=5,
-    )
+    chat = GroupChat("Host", "A round-robin chat room.", runtime, [joe, cathy], num_rounds=5, output=ConcatOutput())
 
     response = runtime.send_message(ChatMessage(body=message, sender="host"), chat)
 

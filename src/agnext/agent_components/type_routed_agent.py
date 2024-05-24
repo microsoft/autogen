@@ -14,7 +14,7 @@ ProducesT = TypeVar("ProducesT", covariant=True)
 
 # NOTE: this works on concrete types and not inheritance
 def message_handler(
-    target_type: Type[ReceivesT],
+    *target_types: Type[ReceivesT],
 ) -> Callable[
     [Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]]],
     Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
@@ -22,7 +22,8 @@ def message_handler(
     def decorator(
         func: Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
     ) -> Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]]:
-        func._target_type = target_type  # type: ignore
+        # Convert target_types to list and stash
+        func._target_types = list(target_types)  # type: ignore
         return func
 
     return decorator
@@ -40,8 +41,9 @@ class TypeRoutedAgent(BaseAgent):
         for attr in dir(self):
             if callable(getattr(self, attr, None)):
                 handler = getattr(self, attr)
-                if hasattr(handler, "_target_type"):
-                    self._handlers[handler._target_type] = handler
+                if hasattr(handler, "_target_types"):
+                    for target_type in handler._target_types:
+                        self._handlers[target_type] = handler
 
     @property
     def subscriptions(self) -> Sequence[Type[Any]]:
@@ -60,4 +62,4 @@ class TypeRoutedAgent(BaseAgent):
     async def on_unhandled_message(
         self, message: Any, require_response: bool, cancellation_token: CancellationToken
     ) -> NoReturn:
-        raise CantHandleException()
+        raise CantHandleException(f"Unhandled message: {message}")
