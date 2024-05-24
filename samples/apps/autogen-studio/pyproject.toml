@@ -24,12 +24,16 @@ dependencies = [
     "typer",
     "uvicorn",
     "arxiv",
-    "pyautogen>=0.2.0",
+    "pyautogen[gemini]>=0.2.0",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
+    "sqlmodel",
+    "psycopg",
+    "alembic",
+    "loguru",
 ]
-optional-dependencies = {web = ["fastapi", "uvicorn"]}
+optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
 dynamic = ["version"]
 
