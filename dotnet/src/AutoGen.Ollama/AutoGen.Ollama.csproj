@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <RootNamespace>AutoGen.Ollama</RootNamespace>
+      <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    </ItemGroup>
+
+</Project>
