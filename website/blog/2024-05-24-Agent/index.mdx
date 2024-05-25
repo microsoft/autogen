@@ -11,9 +11,9 @@ tags: [thoughts, interview notes]
 - **AutoGen agents unify different agent definitions.**
 - **When talking about multi vs. single agents, it is beneficial to clarify whether we refer to the interface or the architecture.**
 
-I often got asked about two common questions.
+I often get asked about two common questions.
 1. What's an agent?
-1. What are pros and cons of multi vs. single agent?
+1. What are the pros and cons of multi vs. single agent?
 
 This blog collects my thoughts from several interviews and recent learnings.
 
@@ -23,9 +23,9 @@ There are many different types of definitions of agents. When building AutoGen, 
 the most generic notion that can incorporate all these different types of definitions. And to do that we
 really need to think about the minimal set of concepts that are needed.
 
-In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities the an agent needs to
+In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities that an agent needs to
 have underneath. They can have different types of backends to support them to perform
-actions and generate replies. Some of the agents can use AI models to generate replies. Some other agents can use tools
+actions and generate replies. Some of the agents can use AI models to generate replies. Some other agents can use programmed tools
 underneath to generate tool-based replies and other agents can use human input as a way to reply to
 other agents. And you can also have agents that mix these different types of backends or have more
 complex agents that have internal conversations among multiple agents. But on the surface, other
@@ -35,21 +35,21 @@ With this definition, we can incorporate both very simple agents that can solve 
 a single backend, but also we can have agents that are composed of multiple simpler agents. One can recursively build up more powerful agents. The
 agent concept in AutoGen can cover all these different complexities.
 
-## What are pros and cons of multi vs. single agent?
+## What are the pros and cons of multi vs. single agent?
 
-This question is asked in a variety of ways.
-> Why shall I use multiple agents instead of a single agent?
+This question can be asked in a variety of ways.
+> Why should I use multiple agents instead of a single agent?
 
-> Why think about multi agents when we don't have a strong single agent?
+> Why think about multi-agents when we don't have a strong single agent?
 
 > Does multi-agent increase the complexity, latency and cost?
 
-> When shall I use multi-agents vs. single agent?
+> When should I use multi-agents vs. single agent?
 
-When we use the word multi-agent and single-agent, I think there
+When we use the word 'multi-agent' and 'single-agent', I think there
 are at least two different dimensions we need to think about.
 
-* Interface. That means from the user's point of view, do they interact with the system in a single
+* Interface. This means, from the user's point of view, do they interact with the system in a single
 interaction point or do they see explicitly multiple agents working and need to interact with multiple of
 them?
 * Architecture. Are there multiple agents underneath running at the backend?
@@ -75,7 +75,7 @@ Starting from simple agents, one can compose and coordinate them
 effectively to exhibit a higher level of intelligence.
 
 We don't have a good single agent that
-can do everything we want yet. And why is that? It could be because we haven't figured out the right
+can do everything we want, yet. And why is that? It could be because we haven't figured out the right
 way of composing the multi-agent to build this powerful single agent. But firstly, we need to have the
 framework that allows easy experimentation of these different ways of combining models and agents. For example,
 - Different [conversation patterns](/docs/tutorial/conversation-patterns) like [sequential chats](/docs/tutorial/conversation-patterns#sequential-chats), [group chat](/docs/tutorial/conversation-patterns#group-chat), [constrained group chat](/docs/tutorial/conversation-patterns#constrained-speaker-selection), [customized group chat](/docs/topics/groupchat/customized_speaker_selection), [nested chat](/docs/tutorial/conversation-patterns#nested-chats) and recursive composition of them.
@@ -90,7 +90,7 @@ I have high hopes that they can figure out a robust way of building a complex, m
 Otherwise there are too many possibilities to build this single agent. Without good modularity, it is prone to hitting a complexity limit while keeping the system easy to maintain and modify.
 
 On the other hand, we
-don't have to stop there. We can think about multi-agent system as a way to multiply the
+don't have to stop there. We can think about a multi-agent system as a way to multiply the
 power of a single agent. We can connect them with other agents to accomplish bigger goals.
 
 ### Benefits of multi-agents
@@ -110,11 +110,11 @@ An example of a real-world production use case:
 >
 > > Tisson Mathew, CEO @ Skypoint
 
-- Multi-agent interface. For example a chess game needs to have at
+- Multi-agent interface. For example, a chess game needs to have at
 least two different players. A
-football game involves even more entities. Multi-agent debate
+football game involves even more entities. Multi-agent debates
 and social
-simulation are good examples too.
+simulations are good examples too.
 
 ![leadership](img/leadership.png)
 
@@ -126,7 +126,7 @@ Very complex mult-agent systems with leading frontier models are expensive, but 
 >
 > > Justin's name and title here
 
-Will using multiple agents always increase the cost, latency, and chance of failures, compared to using a single agent? It depends on how the multi-agent system is designed, and surprisingly, the answer can be the opposite.
+Will using multiple agents always increase the cost, latency, and chance of failures, compared to using a single agent? It depends on how the multi-agent system is designed, and surprisingly, the answer can, actually, be the opposite.
 
 - Even if the performance of a single agent is good enough, you may also want to make this single agent teach some other relatively cheaper agent so that they can become
 better with low cost. [EcoAssistant](/blog/2023/11/09/EcoAssistant) is a good example of combining GPT-4 and GPT-3.5 agents to reduce the cost while improving the performance even compared to using a single GPT-4 agent.
@@ -157,4 +157,4 @@ _Do you find this note helpful? Would you like to share your thoughts, use cases
 
 ### Acknowledgements
 
-This blogpost is revised based on feedback from [Wael Karkoub](https://github.com/WaelKarkoub), [Justin Trugman](https://github.com/jtrugman), [Eric Zhu](https://github.com/ekzhu).
+This blogpost is revised based on feedback from [Wael Karkoub](https://github.com/WaelKarkoub), [Mark Sze](https://github.com/marklysze), [Justin Trugman](https://github.com/jtrugman), [Eric Zhu](https://github.com/ekzhu).
