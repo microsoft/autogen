@@ -21,13 +21,17 @@ This blog collects my thoughts from several interviews and recent learnings.
 
 There are many different types of definitions of agents. When I thought about it when building AutoGen, I was looking for
 the most generic notion that can incorporate all these different types of definitions. And to do that we
-really need to think about the minimal set of concepts that are needed. In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities the an agent needs to
+really need to think about the minimal set of concepts that are needed.
+
+In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities the an agent needs to
 have underneath. They can have different types of backends to support them to perform
 actions and generate replies. Some of the agents can use large models to generate replies. Some other agents can use tools
 underneath to generate tool-based replies and other agents can use human input as a way to reply to
 other agents. And you can also have agents that mix these different types of backends or have more
 complex agents that have internal conversations among multiple agents. But on the surface, other
-agents still perceive it as a single entity to communicate to. With this definition, we can incorporate both very simple agents that can solve simple tasks with
+agents still perceive it as a single entity to communicate to.
+
+With this definition, we can incorporate both very simple agents that can solve simple tasks with
 a single backend, but also we can have agents that are composed of multiple simpler agents. One can recursively build up more powerful agents. The
 agent concept in AutoGen can cover all these different complexities.
 
@@ -131,8 +135,8 @@ There are certainly tradeoffs to make. The large design space of multi-agents of
 
 ## Watch/read the interviews/articles
 
+- Interview with Joanne Chen from Foundation Capital in _AI in the Real World_ ([Forbes article](https://www.forbes.com/sites/joannechen/2024/05/24/the-promise-of-multi-agent-ai/?sh=2c1e4f454d97), [YouTube](https://www.youtube.com/watch?v=RLwyXRVvlNk)).
 - Interview with Arthur Holland Michel from The Economist in [_Today’s AI models are impressive. Teams of them will be formidable_](https://www.economist.com/science-and-technology/2024/05/13/todays-ai-models-are-impressive-teams-of-them-will-be-formidable).
-- Interview with Joanne Chen from Foundation Capital in [_AI in the Real World_]
-- Interview with Thomas Maybrier from Valory in [_AI Frontiers_](https://www.youtube.com/watch?v=iMvq_z4LT0U)
+- Interview with Thomas Maybrier from Valory in [_AI Frontiers_](https://www.youtube.com/watch?v=iMvq_z4LT0U).
 
-_Do you find this note helpful? Would you like to share your thoughts, use cases, findings? Please join our [Discord](https://aka.ms/autogen-dc) server for discussion._
+_Do you find this note helpful? Would you like to share your thoughts, use cases, findings? Please join our [Discord](https://discord.gg/pAbnFJrkgZ) server for discussion._
