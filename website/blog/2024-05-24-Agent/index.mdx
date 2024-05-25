@@ -19,13 +19,13 @@ This blog collects my thoughts from several interviews and recent learnings.
 
 ## What's an agent?
 
-There are many different types of definitions of agents. When I thought about it when building AutoGen, I was looking for
+There are many different types of definitions of agents. When building AutoGen, I was looking for
 the most generic notion that can incorporate all these different types of definitions. And to do that we
 really need to think about the minimal set of concepts that are needed.
 
 In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities the an agent needs to
 have underneath. They can have different types of backends to support them to perform
-actions and generate replies. Some of the agents can use large models to generate replies. Some other agents can use tools
+actions and generate replies. Some of the agents can use AI models to generate replies. Some other agents can use tools
 underneath to generate tool-based replies and other agents can use human input as a way to reply to
 other agents. And you can also have agents that mix these different types of backends or have more
 complex agents that have internal conversations among multiple agents. But on the surface, other
@@ -58,10 +58,10 @@ A particular system can have a single-agent interface and a multi-agent architec
 
 ### Interface
 
-In some application it's better to have a single interaction point for
-the user to simplify it. But in other applications, for example, when the application is about having multiple
+A single interaction point can make many applications' user experience
+more straightforward. There are also cases where it is not the best solution. For example, when the application is about having multiple
 agents debate about a subject, the users need to see what each agent says.
-In that case it's beneficial for them to actually see the multi agents' behavior. Another example is the social
+In that case, it's beneficial for them to actually see the multi-agents' behavior. Another example is the social
 simulation experiment: People also want to see the behavior of each agent.
 
 ### Architecture
@@ -71,17 +71,23 @@ understand and extend than a single agent system. Even for the single agent
 based interface, a multi-agent implementation can potentially make the system more modular, and
 easier for developers to add or remove components of functionality. It's very important to
 recognize that the multi-agent architecture is a good way to build a single agent. While not obvious, it has a root in the society of mind theory by Marvin Minsky in 1986.
-One can start from relatively simple agents, compose them together and make them interact
-in a good way. Then they would exhibit a higher level of intelligence.
+Starting from simple agents, one can compose and coordinate them
+effectively to exhibit a higher level of intelligence.
 
 We don't have a good single agent that
 can do everything we want yet. And why is that? It could be because we haven't figured out the right
 way of composing the multi-agent to build this powerful single agent. But firstly, we need to have the
-framework that allows easy experimentation of these different ways of combining models and agents. My own experience is that if people practise using multi agents to solve a problem, they often reach a solution faster.
-I have high hopes that they can figure out a robust way of building a single agent using this way.
-Otherwise there are just too many possibilities. There are too many ways to build this single agent. If
-every time you rewrite the entire system, it's not going to be easy to maintain and make progress.
-So that's why this modularity from a programming point of view is very useful.
+framework that allows easy experimentation of these different ways of combining models and agents. For example,
+- Different [conversation patterns](/docs/tutorial/conversation-patterns) like [sequential chats](/docs/tutorial/conversation-patterns#sequential-chats), [group chat](/docs/tutorial/conversation-patterns#group-chat), [constrained group chat](/docs/tutorial/conversation-patterns#constrained-speaker-selection), [customized group chat](/docs/topics/groupchat/customized_speaker_selection), [nested chat](/docs/tutorial/conversation-patterns#nested-chats) and recursive composition of them.
+- Different prompting and reasoning techniques such as [reflection](/docs/topics/prompting-and-reasoning/reflection).
+- [Tool use](/docs/tutorial/tool-use) and [code execution](/docs/tutorial/code-executors), as well as their [combination](/topics/code-execution/user-defined-functions).
+- [Planning and task decomposition](/docs/topics/task_decomposition).
+- [Retrieve augmentation](/docs/topics/retrieval_augmentation).
+- Integrating multiple [models](/blog/2023/11/09/EcoAssistant), [APIs](/topics/openai-assistant/gpt_assistant_agent), [modalities](/blog/2023/11/06/LMM-Agent) and [memories](/blog/2023/10/26/TeachableAgent).
+
+My own experience is that if people practice using multi-agents to solve a problem, they often reach a solution faster.
+I have high hopes that they can figure out a robust way of building a complex, multi-faceted single agent using this way.
+Otherwise there are too many possibilities to build this single agent. Without good modularity, it is prone to hitting a complexity limit while keeping the system easy to maintain and modify.
 
 On the other hand, we
 don't have to stop there. We can think about multi-agent system as a way to multiply the
@@ -96,8 +102,10 @@ Developers often find that they need to extend the system with different capabil
 they implement that single agent interface with a multi-agent architecture, they can often increase the capability to
 handle more complex tasks or improve the quality of the response. One example is complex data analytics.
 It often requires agents of different roles to solve a task. Some agents are good at retrieving the data and
-presenting to others. Some other agents are good at running deep analytics and providing insights. We can also have agents which can do critics and suggest more actions. Or agents that can do planning, and so on.
+presenting to others. Some other agents are good at running deep analytics and providing insights. We can also have agents which can critique and suggest more actions. Or agents that can do planning, and so on.
 Usually, to accomplish a complex task, one can build these agents with different roles.
+
+An example of a real-world production use case:
 > If you don't know about Chi Wang and Microsoft Research's work, please check it out. I want to give a real world production use case for Skypoint AI platform client Tabor AI https://tabor.ai AI Copilot for Medicare brokers - selecting a health plan every year for seniors (65 million seniors have to do this every year in the US) is a cumbersome and frustrating task. This process took hours to complete by human research, now with AI agents 5 to 10 minutes without compromising on quality or accuracy of the results. It's fun to see agents doing retail shopping etc. where accuracy is not that mission critical. AI in regulated industries like healthcare, public sector, financial services is a different beast, this is Skypoint AI platform (AIP) focus.
 >
 > > Tisson Mathew, CEO @ Skypoint
@@ -112,7 +120,13 @@ simulation are good examples too.
 
 ### Cost of multi-agents
 
-Will using multiple agents increase the cost, latency, and chance of failures, compared to using a single agent? It depends on how the multi-agent system is designed, and surprisingly, the answer can be the opposite.
+Very complex mult-agent systems with leading frontier models are expensive, but compared to having humans accomplish the same task they can be exponentially more affordable.
+
+> Quote by Justin here
+>
+> > Justin's name and title here
+
+Will using multiple agents always increase the cost, latency, and chance of failures, compared to using a single agent? It depends on how the multi-agent system is designed, and surprisingly, the answer can be the opposite.
 
 - Even if the performance of a single agent is good enough, you may also want to make this single agent teach some other relatively cheaper agent so that they can become
 better with low cost. [EcoAssistant](/blog/2023/11/09/EcoAssistant) is a good example of combining GPT-4 and GPT-3.5 agents to reduce the cost while improving the performance even compared to using a single GPT-4 agent.
@@ -140,3 +154,7 @@ There are certainly tradeoffs to make. The large design space of multi-agents of
 - Interview with Thomas Maybrier from Valory in [_AI Frontiers_](https://www.youtube.com/watch?v=iMvq_z4LT0U).
 
 _Do you find this note helpful? Would you like to share your thoughts, use cases, findings? Please join our [Discord](https://discord.gg/pAbnFJrkgZ) server for discussion._
+
+### Acknowledgements
+
+This blogpost is revised based on feedback from [Wael Karkoub](https://github.com/WaelKarkoub), [Justin Trugman](https://github.com/jtrugman), [Eric Zhu](https://github.com/ekzhu).
