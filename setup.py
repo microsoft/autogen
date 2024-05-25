@@ -1,4 +1,5 @@
 import os
+import platform
 
 import setuptools
 
@@ -12,6 +13,9 @@ version = {}
 with open(os.path.join(here, "autogen/version.py")) as fp:
     exec(fp.read(), version)
 __version__ = version["__version__"]
+
+
+current_os = platform.system()
 
 install_requires = [
     "openai>=1.3",
@@ -46,6 +50,13 @@ retrieve_chat = [
     "markdownify",
 ]
 
+retrieve_chat_pgvector = [*retrieve_chat, "pgvector>=0.2.5"]
+
+if current_os in ["Windows", "Darwin"]:
+    retrieve_chat_pgvector.extend(["psycopg[binary]>=3.1.18"])
+elif current_os == "Linux":
+    retrieve_chat_pgvector.extend(["psycopg>=3.1.18"])
+
 extra_require = {
     "test": [
         "ipykernel",
@@ -60,11 +71,7 @@ extra_require = {
     "blendsearch": ["flaml[blendsearch]"],
     "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
     "retrievechat": retrieve_chat,
-    "retrievechat-pgvector": [
-        *retrieve_chat,
-        "pgvector>=0.2.5",
-        "psycopg>=3.1.18",
-    ],
+    "retrievechat-pgvector": retrieve_chat_pgvector,
     "retrievechat-qdrant": [
         *retrieve_chat,
         "qdrant_client[fastembed]",
