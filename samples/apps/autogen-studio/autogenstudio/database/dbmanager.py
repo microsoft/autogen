@@ -418,7 +418,7 @@ class DBManager:
         primary_id: int,
         secondary_id: int,
         agent_type: Optional[str] = None,
-        sequence_id: Optional[int] = None,
+        sequence_id: Optional[int] = 0,
     ) -> Response:
         """
         Unlink two entities.
@@ -434,6 +434,7 @@ class DBManager:
         """
         status = True
         status_message = ""
+        print("primary", primary_id, "secondary", secondary_id, "sequence", sequence_id, "agent_type", agent_type)
 
         if link_type not in valid_link_types:
             status = False

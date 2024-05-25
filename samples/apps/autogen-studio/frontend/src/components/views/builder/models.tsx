@@ -6,7 +6,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, Input, MenuProps, Modal, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -17,14 +17,7 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  BounceLoader,
-  Card,
-  CardHoverBar,
-  ControlRowView,
-  LoadingOverlay,
-} from "../../atoms";
-import TextArea from "antd/es/input/TextArea";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { ModelConfigView } from "./utils/modelconfig";
 
 const ModelsView = ({}: any) => {
@@ -175,13 +168,8 @@ const ModelsView = ({}: any) => {
         icon: DocumentDuplicateIcon,
         onClick: (e: any) => {
           e.stopPropagation();
-          let newModel = { ...model };
-          newModel.model = `${model.model} Copy`;
-          newModel.user_id = user?.email;
-          newModel.updated_at = new Date().toISOString();
-          if (newModel.id) {
-            delete newModel.id;
-          }
+          let newModel = { ...sanitizeConfig(model) };
+          newModel.model = `${model.model}_copy`;
           setNewModel(newModel);
           setShowNewModelModal(true);
         },

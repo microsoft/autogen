@@ -173,12 +173,8 @@ const SkillsView = ({}: any) => {
         icon: DocumentDuplicateIcon,
         onClick: (e: any) => {
           e.stopPropagation();
-          let newSkill = { ...skill };
-          newSkill.name = `${skill.name} Copy`;
-          newSkill.user_id = user?.email;
-          if (newSkill.id) {
-            delete newSkill.id;
-          }
+          let newSkill = { ...sanitizeConfig(skill) };
+          newSkill.name = `${skill.name}_copy`;
           setNewSkill(newSkill);
           setShowNewSkillModal(true);
         },

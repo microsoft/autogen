@@ -141,13 +141,9 @@ const AgentsView = ({}: any) => {
         icon: DocumentDuplicateIcon,
         onClick: (e: any) => {
           e.stopPropagation();
-          let newAgent = { ...agent };
+          let newAgent = { ...sanitizeConfig(agent) };
           newAgent.config.name = `${agent.config.name}_copy`;
-          newAgent.user_id = user?.email;
-          newAgent.updated_at = new Date().toISOString();
-          if (newAgent.id) {
-            delete newAgent.id;
-          }
+          console.log("newAgent", newAgent);
           setNewAgent(newAgent);
           setShowNewAgentModal(true);
         },

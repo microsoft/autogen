@@ -163,13 +163,8 @@ const WorkflowView = ({}: any) => {
           icon: DocumentDuplicateIcon,
           onClick: (e: any) => {
             e.stopPropagation();
-            let newWorkflow = { ...workflow };
-            newWorkflow.name = `${workflow.name} Copy`;
-            newWorkflow.user_id = user?.email;
-            if (newWorkflow.id) {
-              delete newWorkflow.id;
-            }
-
+            let newWorkflow = { ...sanitizeConfig(workflow) };
+            newWorkflow.name = `${workflow.name}_copy`;
             setNewWorkflow(newWorkflow);
             setShowNewWorkflowModal(true);
           },

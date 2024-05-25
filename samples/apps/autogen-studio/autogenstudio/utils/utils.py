@@ -429,7 +429,11 @@ def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, wo
     if code_execution_type == CodeExecutionConfigTypes.local:
         executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
     elif code_execution_type == CodeExecutionConfigTypes.docker:
-        executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+        try:
+            executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+        except Exception as e:
+            logger.error(f"Error initializing Docker executor: {e}")
+            return False
     elif code_execution_type == CodeExecutionConfigTypes.none:
         return False
     else:

@@ -9,6 +9,8 @@ export interface IMessage {
   session_id?: number;
   connection_id?: string;
   workflow_id?: number;
+  meta?: any;
+  id?: number;
 }
 
 export interface IStatus {
@@ -21,7 +23,7 @@ export interface IChatMessage {
   text: string;
   sender: "user" | "bot";
   meta?: any;
-  msg_id: string;
+  id?: number;
 }
 
 export interface ILLMConfig {
