@@ -32,6 +32,7 @@ repos:
       - id: ruff
         types_or: [ python, pyi, jupyter ]
         args: ["--fix", "--ignore=E402"]
+        exclude: notebook/agentchat_databricks_dbrx.ipynb
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
