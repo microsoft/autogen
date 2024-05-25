@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+__all__ = ("FileLogger",)
+
 
 class FileLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
