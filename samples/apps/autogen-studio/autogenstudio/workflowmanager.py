@@ -6,7 +6,16 @@ from typing import Any, Dict, List, Optional, Union
 
 import autogen
 
-from .datamodel import Agent, AgentType, Message, SocketMessage, Workflow, WorkFlowSummaryMethod, WorkFlowType
+from .datamodel import (
+    Agent,
+    AgentType,
+    CodeExecutionConfigTypes,
+    Message,
+    SocketMessage,
+    Workflow,
+    WorkFlowSummaryMethod,
+    WorkFlowType,
+)
 from .utils import (
     clear_folder,
     get_modified_files,
@@ -57,6 +66,14 @@ class AutoWorkflowManager:
         self.send_message_function = send_message_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
+        self.code_executor_pool = {
+            CodeExecutionConfigTypes.local: load_code_execution_config(
+                CodeExecutionConfigTypes.local, work_dir=self.work_dir
+            ),
+            CodeExecutionConfigTypes.docker: load_code_execution_config(
+                CodeExecutionConfigTypes.docker, work_dir=self.work_dir
+            ),
+        }
         if clear_work_dir:
             clear_folder(self.work_dir)
         self.agent_history = []
@@ -224,9 +241,13 @@ class AutoWorkflowManager:
                 config_list.append(sanitized_llm)
             agent.config.llm_config.config_list = config_list
 
-        agent.config.code_execution_config = load_code_execution_config(
-            agent.config.code_execution_config, work_dir=self.work_dir
-        )
+        agent.config.code_execution_config = self.code_executor_pool.get(agent.config.code_execution_config, False)
+
+        print("**** pool ****", self.code_executor_pool, "****", agent.config.code_execution_config)
+
+        # executor = self.code_executor_pool.get(
+        #     agent.config.code_execution_config)
+        # print("*****", executor, "****", agent.config.code_execution_config)
 
         if skills:
             skills_prompt = ""

@@ -16,9 +16,11 @@ from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
+from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
 
+profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
 # Create thread-safe queue for messages between api thread and autogen threads
 message_queue = queue.Queue()
@@ -381,6 +383,26 @@ async def get_linked_workflow_agents(workflow_id: int):
         primary_id=workflow_id,
         return_json=True,
     )
+
+
+@api.get("/profiler/{message_id}")
+async def profile_agent_task_run(message_id: int):
+    """Profile an agent task run"""
+    try:
+        agent_message = dbmanager.get(Message, filters={"id": message_id}).data[0]
+
+        profile = profiler.profile(agent_message)
+        return {
+            "status": True,
+            "message": "Agent task run profiled successfully",
+            "data": profile,
+        }
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while profiling agent task run: " + str(ex_error),
+        }
 
 
 @api.get("/sessions")

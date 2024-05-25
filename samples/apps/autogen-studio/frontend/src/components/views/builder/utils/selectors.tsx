@@ -1251,7 +1251,7 @@ export const WorkflowAgentSelector = ({
     });
 
     return (
-      <div>
+      <div className="text-primary">
         <div>
           {(!targetAgents || targetAgents.length === 0) && (
             <div className="text-sm border rounded text-secondary p-2 my-2">
@@ -1343,8 +1343,8 @@ export const WorkflowAgentSelector = ({
       )}
 
       {workflow.type === "sequential" && (
-        <div>
-          <h3 className="text-sm mb-2">Agents</h3>
+        <div className="text-primary">
+          <div className="text-sm mb-2">Agents</div>
           <ul>
             <AddAgentDropDown
               title="Agent"

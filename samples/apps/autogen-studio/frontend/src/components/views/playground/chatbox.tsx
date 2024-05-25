@@ -1,15 +1,18 @@
 import {
   ArrowPathIcon,
+  ChatBubbleLeftRightIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PaperAirplaneIcon,
+  SignalSlashIcon,
 } from "@heroicons/react/24/outline";
 import {
   Button,
   Dropdown,
   MenuProps,
+  Tabs,
   message as ToastMessage,
   Tooltip,
   message,
@@ -33,6 +36,7 @@ import {
   MarkdownView,
 } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
+import ProfilerView from "./utils/profiler";
 
 let socketMsgs: any[] = [];
 
@@ -93,7 +97,7 @@ const ChatBox = ({
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
 
-  const parseMessage = (message: any) => {
+  const parseMessage = (message: IMessage) => {
     let meta;
     try {
       meta = JSON.parse(message.meta);
@@ -104,7 +108,7 @@ const ChatBox = ({
       text: message.content,
       sender: message.role === "user" ? "user" : "bot",
       meta: meta,
-      msg_id: message.msg_id,
+      id: message.id,
     };
     return msg;
   };
@@ -237,10 +241,45 @@ const ChatBox = ({
                 />
               </div>
             )}
-            {message.meta && (
-              <div className="">
-                <MetaDataView metadata={message.meta} />
-              </div>
+            {message.meta && !isUser && (
+              <>
+                {" "}
+                <Tabs
+                  defaultActiveKey="1"
+                  items={[
+                    {
+                      label: (
+                        <>
+                          {" "}
+                          <ChatBubbleLeftRightIcon className="h-4 w-4 inline-block mr-1" />
+                          Agent Messages
+                        </>
+                      ),
+                      key: "1",
+                      children: (
+                        <div className="text-primary">
+                          <MetaDataView metadata={message.meta} />
+                        </div>
+                      ),
+                    },
+                    {
+                      label: (
+                        <div>
+                          {" "}
+                          <SignalSlashIcon className="h-4 w-4 inline-block mr-1" />{" "}
+                          Profiler
+                        </div>
+                      ),
+                      key: "2",
+                      children: (
+                        <div className="text-primary">
+                          <ProfilerView agentMessage={message} />
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+              </>
             )}
           </div>
         </div>
@@ -409,7 +448,6 @@ const ChatBox = ({
     const userMessage: IChatMessage = {
       text: query,
       sender: "user",
-      msg_id: guid(),
     };
     messageHolder.push(userMessage);
     setMessages(messageHolder);
