@@ -28,6 +28,7 @@ if not skip_openai:
         filter_dict={
             "api_type": ["openai"],
             "model": [
+                "gpt-4o",
                 "gpt-4-turbo",
                 "gpt-4-turbo-preview",
                 "gpt-4-0125-preview",
@@ -313,7 +314,7 @@ def test_assistant_retrieval() -> None:
         "description": "This is a test function 1",
     }
     function_2_schema = {
-        "name": "call_function_1",
+        "name": "call_function_2",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 2",
     }
@@ -383,12 +384,12 @@ def test_assistant_mismatch_retrieval() -> None:
     name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
-        "name": "call_function",
+        "name": "call_function_1",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 1",
     }
     function_2_schema = {
-        "name": "call_function",
+        "name": "call_function_2",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 2",
     }
