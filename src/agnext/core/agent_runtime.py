@@ -1,5 +1,5 @@
 from asyncio import Future
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 from agnext.core.agent import Agent
 from agnext.core.cancellation_token import CancellationToken
@@ -16,17 +16,15 @@ class AgentRuntime(Protocol):
         message: Any,
         recipient: Agent,
         *,
-        require_response: bool = True,
         sender: Agent | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[Any | None]: ...
+    ) -> Future[Any]: ...
 
-    # Returns the response of all handling agents
-    def broadcast_message(
+    # No responses from publishing
+    def publish_message(
         self,
         message: Any,
         *,
-        require_response: bool = True,
         sender: Agent | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[Sequence[Any] | None]: ...
+    ) -> Future[None]: ...

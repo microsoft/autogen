@@ -34,7 +34,6 @@ class Orchestrator(BaseChatAgent, TypeRoutedAgent):
     async def on_chat_message(
         self,
         message: ChatMessage,
-        require_response: bool,
         cancellation_token: CancellationToken,
     ) -> ChatMessage | None:
         # A task is received.

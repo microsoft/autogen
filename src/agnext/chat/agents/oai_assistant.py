@@ -26,7 +26,7 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
     # TODO: use require_response
     @message_handler(TextMessage)
     async def on_chat_message_with_cancellation(
-        self, message: TextMessage, require_response: bool, cancellation_token: CancellationToken
+        self, message: TextMessage, cancellation_token: CancellationToken
     ) -> None:
         print("---------------")
         print(f"{self.name} received message from {message.source}: {message.content}")
@@ -41,22 +41,13 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         )
         self._current_session_window_length += 1
 
-        if require_response:
-            # TODO ?
-            ...
-
     @message_handler(Reset)
-    async def on_reset(self, message: Reset, require_response: bool, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         # Reset the current session window.
         self._current_session_window_length = 0
 
     @message_handler(RespondNow)
-    async def on_respond_now(
-        self, message: RespondNow, require_response: bool, cancellation_token: CancellationToken
-    ) -> TextMessage | None:
-        if not require_response:
-            return None
-
+    async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
         # Create a run and wait until it finishes.
         run = await self._client.beta.threads.runs.create_and_poll(
             thread_id=self._thread_id,

@@ -20,7 +20,7 @@ class LoopbackAgent(TypeRoutedAgent):
 
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType, require_response: bool, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.num_calls += 1
         return message
 
@@ -28,7 +28,7 @@ class LoopbackAgent(TypeRoutedAgent):
 async def test_intervention_count_messages() -> None:
 
     class DebugInterventionHandler(DefaultInterventionHandler):
-        def __init__(self):
+        def __init__(self) -> None:
             self.num_messages = 0
 
         async def on_send(self, message: MessageType, *, sender: Agent | None, recipient: Agent) -> MessageType:

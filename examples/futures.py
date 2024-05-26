@@ -19,10 +19,7 @@ class Inner(TypeRoutedAgent):
         super().__init__(name, router)
 
     @message_handler(MessageType)
-    async def on_new_message(
-        self, message: MessageType, require_response: bool, cancellation_token: CancellationToken
-    ) -> MessageType:
-        assert require_response
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         return MessageType(body=f"Inner: {message.body}", sender=self.name)
 
 
@@ -32,11 +29,8 @@ class Outer(TypeRoutedAgent):
         self._inner = inner
 
     @message_handler(MessageType)
-    async def on_new_message(
-        self, message: MessageType, require_response: bool, cancellation_token: CancellationToken
-    ) -> MessageType:
-        assert require_response
-        inner_response = self._send_message(message, self._inner, require_response=True)
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+        inner_response = self._send_message(message, self._inner)
         inner_message = await inner_response
         assert isinstance(inner_message, MessageType)
         return MessageType(body=f"Outer: {inner_message.body}", sender=self.name)

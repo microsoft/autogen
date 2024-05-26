@@ -23,7 +23,7 @@ class LongRunningAgent(TypeRoutedAgent):
         self.cancelled = False
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType, require_response: bool, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
         cancellation_token.link_future(sleep)
@@ -42,10 +42,9 @@ class NestingLongRunningAgent(TypeRoutedAgent):
         self._nested_agent = nested_agent
 
     @message_handler(MessageType)
-    async def on_new_message(self, message: MessageType, require_response: bool, cancellation_token: CancellationToken) -> MessageType:
-        assert require_response == True
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
-        response = self._send_message(message, self._nested_agent, require_response=require_response, cancellation_token=cancellation_token)
+        response = self._send_message(message, self._nested_agent, cancellation_token=cancellation_token)
         try:
             val = await response
             assert isinstance(val, MessageType)

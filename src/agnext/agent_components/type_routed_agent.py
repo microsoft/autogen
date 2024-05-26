@@ -16,12 +16,12 @@ ProducesT = TypeVar("ProducesT", covariant=True)
 def message_handler(
     *target_types: Type[ReceivesT],
 ) -> Callable[
-    [Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]]],
-    Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
+    [Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT | None]]],
+    Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
 ]:
     def decorator(
-        func: Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
-    ) -> Callable[[Any, ReceivesT, bool, CancellationToken], Coroutine[Any, Any, ProducesT | None]]:
+        func: Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT | None]],
+    ) -> Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT | None]]:
         # Convert target_types to list and stash
         func._target_types = list(target_types)  # type: ignore
         return func
@@ -34,7 +34,7 @@ class TypeRoutedAgent(BaseAgent):
         super().__init__(name, router)
 
         # Self is already bound to the handlers
-        self._handlers: Dict[Type[Any], Callable[[Any, bool, CancellationToken], Coroutine[Any, Any, Any | None]]] = {}
+        self._handlers: Dict[Type[Any], Callable[[Any, CancellationToken], Coroutine[Any, Any, Any | None]]] = {}
 
         router.add_agent(self)
 
@@ -49,17 +49,13 @@ class TypeRoutedAgent(BaseAgent):
     def subscriptions(self) -> Sequence[Type[Any]]:
         return list(self._handlers.keys())
 
-    async def on_message(
-        self, message: Any, require_response: bool, cancellation_token: CancellationToken
-    ) -> Any | None:
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore
         handler = self._handlers.get(key_type)  # type: ignore
         if handler is not None:
-            return await handler(message, require_response, cancellation_token)
+            return await handler(message, cancellation_token)
         else:
-            return await self.on_unhandled_message(message, require_response, cancellation_token)
+            return await self.on_unhandled_message(message, cancellation_token)
 
-    async def on_unhandled_message(
-        self, message: Any, require_response: bool, cancellation_token: CancellationToken
-    ) -> NoReturn:
+    async def on_unhandled_message(self, message: Any, cancellation_token: CancellationToken) -> NoReturn:
         raise CantHandleException(f"Unhandled message: {message}")

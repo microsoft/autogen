@@ -36,9 +36,7 @@ class GroupChat(BaseChatAgent):
         agent_sublists = [agent.subscriptions for agent in self._agents]
         return [Reset, RespondNow] + [item for sublist in agent_sublists for item in sublist]
 
-    async def on_message(
-        self, message: Any, require_response: bool, cancellation_token: CancellationToken
-    ) -> Any | None:
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
         if isinstance(message, Reset):
             # Reset the history.
             self._history = []
@@ -48,10 +46,8 @@ class GroupChat(BaseChatAgent):
             # TODO reset...
             return self._output.get_output()
 
-        # TODO: should we do nothing here?
-        # Perhaps it should be saved into the message history?
-        if not require_response:
-            return None
+        # TODO: how should we handle the group chat receiving a message while in the middle of a conversation?
+        # Should this class disallow it?
 
         self._history.append(message)
         round = 0
@@ -67,14 +63,13 @@ class GroupChat(BaseChatAgent):
                 _ = await self._send_message(
                     self._history[-1],
                     agent,
-                    require_response=False,
                     cancellation_token=cancellation_token,
                 )
+                # TODO handle if response is not None
 
             response = await self._send_message(
                 RespondNow(),
                 speaker,
-                require_response=True,
                 cancellation_token=cancellation_token,
             )
 
@@ -88,4 +83,5 @@ class GroupChat(BaseChatAgent):
 
         output = self._output.get_output()
         self._output.reset()
+        self._history.clear()
         return output

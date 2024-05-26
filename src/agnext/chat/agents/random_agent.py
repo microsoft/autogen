@@ -11,7 +11,7 @@ class RandomResponseAgent(BaseChatAgent, TypeRoutedAgent):
     # TODO: use require_response
     @message_handler(RespondNow)
     async def on_chat_message_with_cancellation(
-        self, message: RespondNow, require_response: bool, cancellation_token: CancellationToken
+        self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage:
         # Generate a random response.
         response_body = random.choice(
