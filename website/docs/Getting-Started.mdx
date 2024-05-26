@@ -41,6 +41,7 @@ pip install pyautogen
     <TabItem value="nocode" label="No code execution" default>
 
 ```python
+import os
 from autogen import AssistantAgent, UserProxyAgent
 
 llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
@@ -62,6 +63,7 @@ When asked, be sure to check the generated code before continuing to ensure it i
 :::
 
 ```python
+import os
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
 
@@ -83,6 +85,7 @@ user_proxy.initiate_chat(
     <TabItem value="docker" label="Docker execution" default>
 
 ```python
+import os
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
 
