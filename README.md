@@ -55,5 +55,5 @@ pip install -e ".[docs]"
 sphinx-build docs/src docs/build
 
 # To view the docs:
-python -m http.server -d docs/build/html
+python -m http.server -d docs/build
 ```

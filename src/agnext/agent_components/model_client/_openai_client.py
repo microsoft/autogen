@@ -33,7 +33,6 @@ from typing_extensions import Required, TypedDict, Unpack
 
 # from ..._pydantic import type2schema
 from ..image import Image
-from ..model_client import ModelCapabilities, ModelClient
 from ..types import (
     AssistantMessage,
     CreateResult,
@@ -45,7 +44,8 @@ from ..types import (
     SystemMessage,
     UserMessage,
 )
-from . import model_info
+from . import _model_info
+from ._model_client import ModelCapabilities, ModelClient
 
 openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs)
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
@@ -273,13 +273,13 @@ class BaseOpenAI(ModelClient):
         if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
             raise ValueError("AzureOpenAI requires explicit model capabilities")
         elif model_capabilities is None:
-            self._model_capabilities = model_info.get_capabilties(create_args["model"])
+            self._model_capabilities = _model_info.get_capabilties(create_args["model"])
         else:
             self._model_capabilities = model_capabilities
 
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
-            self._resolved_model = model_info.resolve_model(create_args["model"])
+            self._resolved_model = _model_info.resolve_model(create_args["model"])
 
         if (
             "response_format" in create_args

@@ -3,7 +3,7 @@ import asyncio
 from typing import Any
 
 import openai
-from agnext.agent_components.models_clients.openai_client import OpenAI
+from agnext.agent_components.model_client import OpenAI
 from agnext.application_components.single_threaded_agent_runtime import (
     SingleThreadedAgentRuntime,
 )
