@@ -7,4 +7,4 @@ The [Databricks Data Intelligence Platform ](https://www.databricks.com/product/
 
 This example demonstrates how to use AutoGen alongside Databricks Foundation Model APIs and open-source LLM DBRX.
 
-- [Databricks + AutoGen Code Examples](https://microsoft.autogen.io/docs/notebooks/agentchat_databricks_dbrx)
+- [Databricks + AutoGen Code Examples](/docs/notebooks/agentchat_databricks_dbrx)
