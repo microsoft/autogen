@@ -122,6 +122,7 @@ def test_group_chat_with_lmm():
         system_message="Ask both image explainer 1 and 2 for their description.",
         human_input_mode="NEVER",  # Options: 'ALWAYS' or 'NEVER'
         max_consecutive_auto_reply=max_consecutive_auto_reply,
+        code_execution_config=False,
     )
 
     # Setting up the group chat

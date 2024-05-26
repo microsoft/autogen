@@ -1,5 +1,6 @@
 import os
 import sys
+import urllib.parse
 
 import pytest
 from conftest import reason
@@ -8,6 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 try:
     import pgvector
+    import psycopg
     import sentence_transformers
 
     from autogen.agentchat.contrib.vectordb.pgvectordb import PGVectorDB
@@ -24,12 +26,52 @@ reason = "do not run on MacOS or windows OR dependency is not installed OR " + r
     reason=reason,
 )
 def test_pgvector():
-    # test create collection
+    # test db config
     db_config = {
         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
     }
 
-    db = PGVectorDB(connection_string=db_config["connection_string"])
+    # test create collection with connection_string authentication
+    db = PGVectorDB(
+        connection_string=db_config["connection_string"],
+    )
+    collection_name = "test_collection"
+    collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
+    assert collection.name == collection_name
+
+    # test create collection with conn object authentication
+    parsed_connection = urllib.parse.urlparse(db_config["connection_string"])
+    encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
+    encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
+    encoded_host = urllib.parse.quote(parsed_connection.hostname, safe="")
+    encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe="")
+    connection_string_encoded = (
+        f"{parsed_connection.scheme}://{encoded_username}:{encoded_password}"
+        f"@{encoded_host}:{parsed_connection.port}/{encoded_database}"
+    )
+    conn = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
+
+    db = PGVectorDB(conn=conn)
+    collection_name = "test_collection"
+    collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
+    assert collection.name == collection_name
+
+    # test create collection with basic authentication
+    db_config = {
+        "username": "postgres",
+        "password": os.environ.get("POSTGRES_PASSWORD", default="postgres"),
+        "host": "localhost",
+        "port": 5432,
+        "dbname": "postgres",
+    }
+
+    db = PGVectorDB(
+        username=db_config["username"],
+        password=db_config["password"],
+        port=db_config["port"],
+        host=db_config["host"],
+        dbname=db_config["dbname"],
+    )
     collection_name = "test_collection"
     collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
     assert collection.name == collection_name
