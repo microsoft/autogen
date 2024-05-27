@@ -80,7 +80,7 @@ extra_require = {
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
     "graph": ["networkx", "matplotlib"],
-    "gemini": ["google-generativeai>=0.5,<1", "pillow", "pydantic"],
+    "gemini": ["google-generativeai>=0.5,<1", "google-cloud-aiplatform", "google-auth", "pillow", "pydantic"],
     "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
     "redis": ["redis"],
     "cosmosdb": ["azure-cosmos>=4.2.0"],
