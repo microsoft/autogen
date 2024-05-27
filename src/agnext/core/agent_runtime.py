@@ -8,7 +8,16 @@ from agnext.core.cancellation_token import CancellationToken
 
 
 class AgentRuntime(Protocol):
-    def add_agent(self, agent: Agent) -> None: ...
+    def add_agent(self, agent: Agent) -> None:
+        """Add an agent to the runtime.
+
+        Args:
+            agent (Agent): Agent to add to the runtime.
+
+        Note:
+            The name of the agent should be unique within the runtime.
+        """
+        ...
 
     # Returns the response of the message
     def send_message(

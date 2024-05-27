@@ -31,12 +31,8 @@ def message_handler(
 
 class TypeRoutedAgent(BaseAgent):
     def __init__(self, name: str, router: AgentRuntime) -> None:
-        super().__init__(name, router)
-
         # Self is already bound to the handlers
         self._handlers: Dict[Type[Any], Callable[[Any, CancellationToken], Coroutine[Any, Any, Any | None]]] = {}
-
-        router.add_agent(self)
 
         for attr in dir(self):
             if callable(getattr(self, attr, None)):
@@ -44,6 +40,8 @@ class TypeRoutedAgent(BaseAgent):
                 if hasattr(handler, "_target_types"):
                     for target_type in handler._target_types:
                         self._handlers[target_type] = handler
+
+        super().__init__(name, router)
 
     @property
     def subscriptions(self) -> Sequence[Type[Any]]:

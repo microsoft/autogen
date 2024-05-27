@@ -51,6 +51,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._before_send = before_send
 
     def add_agent(self, agent: Agent) -> None:
+        agent_names = {agent.name for agent in self._agents}
+        if agent.name in agent_names:
+            raise ValueError(f"Agent with name {agent.name} already exists. Agent names must be unique.")
+
         for message_type in agent.subscriptions:
             if message_type not in self._per_type_subscribers:
                 self._per_type_subscribers[message_type] = []

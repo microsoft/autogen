@@ -18,6 +18,7 @@ class BaseAgent(ABC, Agent):
     def __init__(self, name: str, router: AgentRuntime) -> None:
         self._name = name
         self._router = router
+        router.add_agent(self)
 
     @property
     def name(self) -> str:
@@ -29,7 +30,7 @@ class BaseAgent(ABC, Agent):
         return []
 
     @abstractmethod
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None: ...
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...
 
     # Returns the response of the message
     def _send_message(
