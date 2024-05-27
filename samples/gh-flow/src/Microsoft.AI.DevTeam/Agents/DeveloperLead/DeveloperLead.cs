@@ -2,6 +2,7 @@ using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 
@@ -65,7 +66,13 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
             var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
             var instruction = "Consider the following architectural guidelines:!waf!";
             var enhancedContext = await AddKnowledge(instruction, "waf", context);
-            return await CallFunction(DevLeadSkills.Plan, enhancedContext);
+            var settings = new OpenAIPromptExecutionSettings{
+                 ResponseFormat = "json_object",
+                 MaxTokens = 4096, 
+                 Temperature = 0.8,
+                 TopP = 1 
+            };
+            return await CallFunction(DevLeadSkills.Plan, enhancedContext, settings);
         }
         catch (Exception ex)
         {

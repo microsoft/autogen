@@ -11,6 +11,7 @@ At the moment the library resides in `src/` only, but we plan to publish them as
 We have created a few examples to help you get started with the framework and to explore its capabilities.
 
 - [GitHub Dev Team Sample](samples/gh-flow/README.md): Build an AI Developer Team using event-driven agents, that help you automate the requirements engineering, planning, and coding process on GitHub.
+- [Marketing Team Sample](samples/marketing/README.md): Create a marketing campaign using a content writer, graphic designer and social media manager.
 
 ## Contributing
 
