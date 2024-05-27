@@ -2,7 +2,7 @@ import random
 
 from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.chat.types import RespondNow, TextMessage
-from agnext.core.cancellation_token import CancellationToken
+from agnext.core import CancellationToken
 
 from ..agents.base import BaseChatAgent
 

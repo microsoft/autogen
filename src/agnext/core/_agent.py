@@ -1,6 +1,6 @@
 from typing import Any, Protocol, Sequence, runtime_checkable
 
-from agnext.core.cancellation_token import CancellationToken
+from agnext.core._cancellation_token import CancellationToken
 
 
 @runtime_checkable

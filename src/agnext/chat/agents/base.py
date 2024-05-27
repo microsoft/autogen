@@ -1,5 +1,4 @@
-from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.base_agent import BaseAgent
+from agnext.core import AgentRuntime, BaseAgent
 
 
 class BaseChatAgent(BaseAgent):

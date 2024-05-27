@@ -1,8 +1,8 @@
 from asyncio import Future
 from typing import Any, Protocol
 
-from agnext.core.agent import Agent
-from agnext.core.cancellation_token import CancellationToken
+from agnext.core._agent import Agent
+from agnext.core._cancellation_token import CancellationToken
 
 # Undeliverable - error
 

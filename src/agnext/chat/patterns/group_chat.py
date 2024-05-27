@@ -2,8 +2,7 @@ from typing import Any, List, Protocol, Sequence
 
 from agnext.chat.types import Reset, RespondNow
 
-from ...core.agent_runtime import AgentRuntime
-from ...core.cancellation_token import CancellationToken
+from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
 
 

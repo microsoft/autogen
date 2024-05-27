@@ -4,7 +4,7 @@ from typing import Any
 
 import openai
 from agnext.agent_components.model_client import OpenAI
-from agnext.application_components.single_threaded_agent_runtime import (
+from agnext.application_components import (
     SingleThreadedAgentRuntime,
 )
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent

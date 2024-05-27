@@ -3,10 +3,10 @@ import pytest
 from dataclasses import dataclass
 
 from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
-from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
-from agnext.core.agent import Agent
-from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.cancellation_token import CancellationToken
+from agnext.application_components import SingleThreadedAgentRuntime
+from agnext.core import Agent
+from agnext.core import AgentRuntime
+from agnext.core import CancellationToken
 
 @dataclass
 class MessageType:

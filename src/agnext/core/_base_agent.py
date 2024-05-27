@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from asyncio import Future
 from typing import Any, Sequence, TypeVar
 
-from agnext.core.agent_runtime import AgentRuntime
-from agnext.core.cancellation_token import CancellationToken
+from agnext.core._agent_runtime import AgentRuntime
+from agnext.core._cancellation_token import CancellationToken
 
-from .agent import Agent
+from ._agent import Agent
 
 ConsumesT = TypeVar("ConsumesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
