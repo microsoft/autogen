@@ -99,7 +99,7 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
                 inference_mode = _hf_cap_config_list[0].get("inference_mode", "auto")
 
                 hf_clients[_hf_cap] = HuggingFaceClient(
-                    hf_api_key=api_key,
+                    api_key=api_key,
                     model=model,
                     inference_mode=inference_mode,
                 )

@@ -13,18 +13,23 @@ class HuggingFaceClient:
 
     def __init__(
         self,
-        hf_api_key: Optional[Union[str, bool, None]] = None,
+        api_key: Optional[Union[str, bool, None]] = None,
         model: Optional[Union[str, None]] = None,
         inference_mode: Optional[Literal["auto", "local", "remote"]] = "auto",
+        **kwargs,
     ):
-        if inference_mode not in self.VALID_INFERENCE_MODES:
-            raise ValueError(f"Invalid inference mode: {inference_mode}. Choose from: {self.VALID_INFERENCE_MODES}")
+        self._api_key = api_key
+        if not self._api_key:
+            self._api_key = os.getenv("HF_TOKEN")
 
-        self._hf_api_key = hf_api_key
         self._default_model = model
         self._default_inference_mode = inference_mode
+        if self._default_inference_mode not in self.VALID_INFERENCE_MODES:
+            raise ValueError(
+                f"Invalid inference mode: {self._default_inference_mode}. Choose from: {self.VALID_INFERENCE_MODES}"
+            )
 
-        self._inference_client = InferenceClient(model=self._default_model, token=hf_api_key)
+        self._inference_client = InferenceClient(model=self._default_model, token=self._api_key, **kwargs)
 
     def _get_recommended_model(self, task: str):
         return self._inference_client.get_recommended_model(task)
@@ -86,7 +91,7 @@ class HuggingFaceClient:
         elif inference_mode.lower() == "local":
             from diffusers import AutoPipelineForText2Image
 
-            pipeline = AutoPipelineForText2Image.from_pretrained(model, token=self._hf_api_key)
+            pipeline = AutoPipelineForText2Image.from_pretrained(model, token=self._api_key)
             if self._is_cuda_available():
                 pipeline = pipeline.to("cuda")
 
@@ -114,7 +119,7 @@ class HuggingFaceClient:
             from transformers import pipeline as TransformersPipeline
 
             device = "cuda" if self._is_cuda_available() else "cpu"
-            pipeline = TransformersPipeline("image-to-text", model=model, token=self._hf_api_key, device=device)
+            pipeline = TransformersPipeline("image-to-text", model=model, token=self._api_key, device=device)
 
             image_data = img_utils.get_pil_image(image_file)
             generated_text = pipeline(image_data, **kwargs)[0]["generated_text"]
@@ -140,7 +145,7 @@ class HuggingFaceClient:
         elif inference_mode.lower() == "local":
             from diffusers import AutoPipelineForImage2Image
 
-            pipeline = AutoPipelineForImage2Image.from_pretrained(model, token=self._hf_api_key)
+            pipeline = AutoPipelineForImage2Image.from_pretrained(model, token=self._api_key)
             if self._is_cuda_available():
                 pipeline = pipeline.to("cuda")
 
@@ -172,7 +177,7 @@ class HuggingFaceClient:
 
             device = "cuda" if self._is_cuda_available() else "cpu"
             pipeline = TransformersPipeline(
-                "visual-question-answering", model=model, token=self._hf_api_key, device=device
+                "visual-question-answering", model=model, token=self._api_key, device=device
             )
 
             image_data = img_utils.get_pil_image(image_file)
