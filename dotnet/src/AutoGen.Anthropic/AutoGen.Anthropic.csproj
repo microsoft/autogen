@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <RootNamespace>AutoGen.Anthropic</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.Anthropic</Title>
+    <Description>
+      Provide support for consuming Anthropic models in AutoGen
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+  </ItemGroup>
+
+</Project>
