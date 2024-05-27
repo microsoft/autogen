@@ -2,7 +2,6 @@
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.AI.DevTeam.Extensions;
-using System.Globalization;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -24,44 +23,36 @@ public class AzureGenie : Agent
             throw new ArgumentNullException(nameof(item));
         }
 
-        var data = item.Data ?? throw new ArgumentNullException(nameof(item));
-        var parentNumber = data.TryParseLong("parentNumber");
-        var issueNumber = data.TryParseLong("issueNumber");
-        var org = data["org"].ToString();
-        var repo = data["repo"].ToString();
-        var subject = $"{org}/{repo}/{issueNumber}";
-
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.ReadmeCreated):
-                await Store(org, repo, parentNumber, issueNumber, "readme", "md", "output", data["readme"].ToString());
+            {
+                 var context = item.ToGithubContext();
+                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
                     Type = nameof(GithubFlowEventType.ReadmeStored),
-                    Subject = subject,
-                    Data = new Dictionary<string, string> {
-                            { "org", org },
-                            { "repo", repo },
-                            { "issueNumber", $"{issueNumber}" },
-                            { "parentNumber", $"{parentNumber}" }
-                        }
+                    Subject = context.Subject,
+                    Data = context.ToData()
                 });
-                break;
+                 break;
+            }
+               
+               
             case nameof(GithubFlowEventType.CodeCreated):
-                await Store(org, repo, parentNumber, issueNumber, "run", "sh", "output", data["code"].ToString());
-                await RunInSandbox(org, repo, parentNumber, issueNumber);
+            {
+                var context = item.ToGithubContext();
+                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
+                await RunInSandbox(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber);
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
                     Type = nameof(GithubFlowEventType.SandboxRunCreated),
-                    Subject = subject,
-                    Data = new Dictionary<string, string> {
-                        { "org", org },
-                        { "repo", repo },
-                        { "issueNumber", $"{issueNumber}" },
-                        { "parentNumber", $"{parentNumber}" }
-                    }
+                    Subject = context.Subject,
+                    Data = context.ToData()
                 });
-                break;
+                  break;
+            }
+
             default:
                 break;
         }
