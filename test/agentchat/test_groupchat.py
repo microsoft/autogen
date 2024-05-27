@@ -1916,6 +1916,51 @@ def test_manager_resume_functions():
     # TERMINATE should be removed
     assert messages[-1]["content"] == final_msg.replace("TERMINATE", "")
 
+    # Tests termination message replacement with function
+    def termination_func(x: str) -> str:
+        if "APPROVED" in x:
+            x = x.replace("APPROVED", "")
+        else:
+            x = x.replace("TERMINATE", "")
+        return x
+
+    final_msg1 = "Product_Manager has created 3 new product ideas. APPROVED"
+    messages1 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg1,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages1)
+
+    # APPROVED should be removed
+    assert messages1[-1]["content"] == final_msg1.replace("APPROVED", "")
+
+    final_msg2 = "Idea has been approved. TERMINATE"
+    messages2 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg2,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages2)
+
+    # TERMINATE should be removed, "approved" should still be present
+    assert messages2[-1]["content"] == final_msg2.replace("TERMINATE", "")
+    assert "approved" in messages2[-1]["content"]
+
     # Check if the termination string doesn't exist there's no replacing of content
     final_msg = (
         "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
@@ -2027,7 +2072,7 @@ if __name__ == "__main__":
     # test_clear_agents_history()
     # test_custom_speaker_selection_overrides_transition_graph()
     # test_role_for_select_speaker_messages()
-    test_select_speaker_message_and_prompt_templates()
+    # test_select_speaker_message_and_prompt_templates()
     # test_speaker_selection_agent_name_match()
     # test_role_for_reflection_summary()
     # test_speaker_selection_auto_process_result()
@@ -2036,7 +2081,7 @@ if __name__ == "__main__":
     # test_select_speaker_auto_messages()
     # test_manager_messages_to_string()
     # test_manager_messages_from_string()
-    # test_manager_resume_functions()
+    test_manager_resume_functions()
     # test_manager_resume_returns()
     # test_manager_resume_messages()
     pass
