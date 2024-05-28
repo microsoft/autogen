@@ -5,7 +5,7 @@ import logging
 import os
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from autogen.oai.gemini import GeminiClient
 
 logger = logging.getLogger(__name__)
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class FileLogger(BaseLogger):
@@ -57,6 +59,7 @@ class FileLogger(BaseLogger):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
+        source: Union[str, Agent],
         request: Dict[str, Union[float, str, List[Dict[str, str]]]],
         response: Union[str, ChatCompletion],
         is_cached: int,
@@ -196,6 +199,29 @@ class FileLogger(BaseLogger):
                     "json_state": json.dumps(init_args),
                     "timestamp": get_current_ts(),
                     "thread_id": thread_id,
+                }
+            )
+            self.logger.info(log_data)
+        except Exception as e:
+            self.logger.error(f"[file_logger] Failed to log event {e}")
+
+    def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: Any) -> None:
+        """
+        Log an event from an agent or a string source.
+        """
+        thread_id = threading.get_ident()
+
+        try:
+            log_data = json.dumps(
+                {
+                    "source_id": id(source),
+                    "source_name": str(source.name) if hasattr(source, "name") else source,
+                    "agent_module": source.__module__,
+                    "agent_class": source.__class__.__name__,
+                    "timestamp": get_current_ts(),
+                    "thread_id": thread_id,
+                    "input_args": json.dumps(args),
+                    "returns": json.dumps(returns),
                 }
             )
             self.logger.info(log_data)

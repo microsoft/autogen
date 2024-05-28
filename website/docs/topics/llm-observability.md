@@ -3,7 +3,7 @@
 AutoGen supports advanced LLM observability and monitoring through partner providers.
 
 ## What is LLM Observability
-AI agent observability is the ability to monitor, measure, and understand the internal states and behaviors of AI agent systems. 
+AI agent observability is the ability to monitor, measure, and understand the internal states and behaviors of AI agent systems.
 Observability is crucial for ensuring transparency, reliability, and accountability in your agent systems.
 
 

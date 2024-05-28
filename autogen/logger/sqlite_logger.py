@@ -6,7 +6,7 @@ import os
 import sqlite3
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple, TypeVar, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 lock = threading.Lock()
 
 __all__ = ("SqliteLogger",)
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class SqliteLogger(BaseLogger):
@@ -316,6 +318,24 @@ class SqliteLogger(BaseLogger):
             get_current_ts(),
         )
         self._run_query(query=query, args=args)
+
+    def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: Any) -> None:
+
+        if self.con is None:
+            return
+
+        query = """
+        INSERT INTO function_calls (source_id, source_name, function_name, args, returns, timestamp) VALUES (?, ?, ?, ?, ?, ?)
+        """
+        query_args: Tuple[Any, ...] = (
+            id(source),
+            source.name if hasattr(source, "name") else source,
+            function.__name__,
+            json.dumps(args),
+            json.dumps(returns),
+            get_current_ts(),
+        )
+        self._run_query(query=query, args=query_args)
 
     def log_new_client(
         self, client: Union[AzureOpenAI, OpenAI, GeminiClient], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
