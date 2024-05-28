@@ -108,3 +108,4 @@ class LLamaIndexConversableAgent(ConversableAgent):
                 if role == "user" or role == "assistant":
                     history_messages.append(ChatMessage(content=content, role=role))
         return message, history_messages
+    
