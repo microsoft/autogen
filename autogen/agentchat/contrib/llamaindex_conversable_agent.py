@@ -16,13 +16,14 @@ except ImportError as e:
     raise e
 
 class LLamaIndexConversableAgent(ConversableAgent):
+
     def __init__(        
         self,
         name: str,
         llama_index_agent: AgentRunner,
         description: Optional[str] = None,
         **kwargs,
-        ):
+    ):
         """
         Args:
             name (str): agent name.
@@ -78,7 +79,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
 
-        chatResponse : AgentChatResponse = await self._llama_index_agent.achat(
+        chatResponse: AgentChatResponse = await self._llama_index_agent.achat(
             message=user_message, chat_history=history
         )
        
@@ -88,7 +89,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
     
     def _extract_message_and_history(
         self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None
-        ) -> Tuple[str, List[ChatMessage]]:
+    ) -> Tuple[str, List[ChatMessage]]:
         """Extract the message and history from the messages."""
         if not messages:
             messages = self._oai_messages[sender]
