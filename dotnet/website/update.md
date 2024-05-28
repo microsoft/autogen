@@ -1,3 +1,18 @@
+##### Update on 0.0.14 (2024-05-28)
+###### New features
+- [Issue 2319](https://github.com/microsoft/autogen/issues/2319) Add `AutoGen.Ollama` package for Ollama support. Special thanks to @iddelacruz for the effort.
+- [Issue 2608](https://github.com/microsoft/autogen/issues/2608) Add `AutoGen.Anthropic` package for Anthropic support. Special thanks to @DavidLuong98 for the effort.
+- [Issue 2647](https://github.com/microsoft/autogen/issues/2647) Add `ToolCallAggregateMessage` for function call middleware.
+
+###### API Breaking Changes
+- [Issue 2648](https://github.com/microsoft/autogen/issues/2648) Deprecate `Message` type.
+- [Issue 2649](https://github.com/microsoft/autogen/issues/2649) Deprecate `Workflow` type.
+###### Bug Fixes
+- [Issue 2735](https://github.com/microsoft/autogen/issues/2735) Fix tool call issue in AutoGen.Mistral package.
+- [Issue 2722](https://github.com/microsoft/autogen/issues/2722) Fix parallel funciton call in function call middleware.
+- [Issue 2633](https://github.com/microsoft/autogen/issues/2633) Set up `name` field in `OpenAIChatMessageConnector`
+- [Issue 2660](https://github.com/microsoft/autogen/issues/2660) Fix dotnet interactive restoring issue when system language is Chinese
+- [Issue 2687](https://github.com/microsoft/autogen/issues/2687) Add `global::` prefix to generated code to avoid conflict with user-defined types. 
 ##### Update on 0.0.13 (2024-05-09)
 ###### New features
 - [Issue 2593](https://github.com/microsoft/autogen/issues/2593) Consume SK plugins in Agent.
