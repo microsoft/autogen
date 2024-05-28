@@ -53,7 +53,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         self.replace_reply_func(ConversableAgent.generate_oai_reply, LLamaIndexConversableAgent._generate_oai_reply)
         
         self.replace_reply_func(ConversableAgent.a_generate_oai_reply, LLamaIndexConversableAgent._a_generate_oai_reply)
-    
+
     def _generate_oai_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -68,7 +68,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
-    
+
     async def _a_generate_oai_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -86,7 +86,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
-    
+
     def _extract_message_and_history(
         self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None
     ) -> Tuple[str, List[ChatMessage]]:
@@ -108,4 +108,3 @@ class LLamaIndexConversableAgent(ConversableAgent):
                 if role == "user" or role == "assistant":
                     history_messages.append(ChatMessage(content=content, role=role))
         return message, history_messages
-    
