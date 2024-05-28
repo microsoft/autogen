@@ -8,8 +8,8 @@ from termcolor import colored
 from autogen import ConversableAgent, token_count_utils
 
 warn(
-    "Context handling with TransformChatHistory is deprecated. "
-    "Please use TransformMessages from autogen/agentchat/contrib/capabilities/transform_messages.py instead.",
+    "Context handling with TransformChatHistory is deprecated and will be removed in `0.2.30`. "
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages",
     DeprecationWarning,
     stacklevel=2,
 )

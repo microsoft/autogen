@@ -6,10 +6,11 @@
 - Help each other and encourage mutual help.
 - Actively post and respond.
 - Keep open communication.
+- Identify good maintainer candidates from active contributors.
 
 ## Pull Requests
 
-- For new PR, decide whether to close without review. If not, find the right reviewers. The default reviewer is microsoft/autogen. Ask users who can benefit from the PR to review it.
+- For new PR, decide whether to close without review. If not, find the right reviewers. One source to refer to is the roles on Discord. Another consideration is to ask users who can benefit from the PR to review it.
 
 - For old PR, check the blocker: reviewer or PR creator. Try to unblock. Get additional help when needed.
 - When requesting changes, make sure you can check back in time because it blocks merging.
