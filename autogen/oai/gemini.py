@@ -72,24 +72,33 @@ class GeminiClient:
         "max_output_tokens": "max_output_tokens",
     }
 
+    def initialize_vartexai(self, **params):
+        if "google_application_credentials" in params:
+            # Path to JSON Keyfile
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params["google_application_credentials"]
+        vertexai_init_args = {}
+        if "project_id" in params:
+            vertexai_init_args["project"] = params["project_id"]
+        if "location" in params:
+            vertexai_init_args["location"] = params["location"]
+        if vertexai_init_args:
+            vertexai.init(**vertexai_init_args)
+
     def __init__(self, **kwargs):
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
             self.api_key = os.getenv("GOOGLE_API_KEY")
             if self.api_key is None:
                 self.use_vertexai = True
-                if "google_application_credentials" in kwargs:
-                    # Path to JSON Keyfile
-                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = kwargs["google_application_credentials"]
-                vertexai_init_args = {}
-                if "project_id" in kwargs:
-                    vertexai_init_args["project"] = kwargs["project_id"]
-                if "location" in kwargs:
-                    vertexai_init_args["location"] = kwargs["location"]
-                if vertexai_init_args:
-                    vertexai.init(**vertexai_init_args)
+                self.initialize_vartexai(**kwargs)
             else:
                 self.use_vertexai = False
+        else:
+            self.use_vertexai = False
+        if not self.use_vertexai:
+            assert ("project_id" in kwargs) or (
+                "location" in kwargs
+            ), "Google Cloud project and compute location cannot be set when using an API Key!"
 
     def message_retrieval(self, response) -> List:
         """
@@ -118,8 +127,12 @@ class GeminiClient:
     def create(self, params: Dict) -> ChatCompletion:
         if self.api_key is None:
             self.use_vertexai = True
+            self.initialize_vartexai(**params)
         else:
             self.use_vertexai = False
+            assert ("project_id" not in params) and (
+                "location" not in params
+            ), "Google Cloud project and compute location cannot be set when using an API Key!"
         model_name = params.get("model", "gemini-pro")
         if not model_name:
             raise ValueError(

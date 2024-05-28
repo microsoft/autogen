@@ -33,6 +33,15 @@ def gemini_client():
     return GeminiClient(api_key="fake_api_key")
 
 
+# Test compute location initialization and configuration
+@pytest.mark.skipif(skip, reason="Google Cloud project and compute location cannot be set when using an API Key")
+def test_compute_location_initialization():
+    with pytest.raises(AssertionError):
+        GeminiClient(
+            api_key="fake_api_key", location="us-west1"
+        )  # Should raise an AssertionError due to specifying API key and compute location
+
+
 @pytest.fixture
 def gemini_google_auth_default_client():
     return GeminiClient()
