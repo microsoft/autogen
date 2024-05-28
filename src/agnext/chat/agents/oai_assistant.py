@@ -1,3 +1,5 @@
+from typing import Callable, Dict
+
 import openai
 
 from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
@@ -15,22 +17,18 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
+        tools: Dict[str, Callable[..., str]] | None = None,
     ) -> None:
         super().__init__(name, description, runtime)
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id
-        self._current_session_window_length = 0
+        # TODO: investigate why this is 1, as setting this to 0 causes the earlest message in the window to be ignored.
+        self._current_session_window_length = 1
+        self._tools = tools or {}
 
-    # TODO: use require_response
     @message_handler(TextMessage)
-    async def on_chat_message_with_cancellation(
-        self, message: TextMessage, cancellation_token: CancellationToken
-    ) -> None:
-        print("---------------")
-        print(f"{self.name} received message from {message.source}: {message.content}")
-        print("---------------")
-
+    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         # Save the message to the thread.
         _ = await self._client.beta.threads.messages.create(
             thread_id=self._thread_id,
@@ -43,7 +41,7 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
     @message_handler(Reset)
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         # Reset the current session window.
-        self._current_session_window_length = 0
+        self._current_session_window_length = 1
 
     @message_handler(RespondNow)
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
@@ -60,6 +58,9 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         if run.status != "completed":
             # TODO: handle other statuses.
             raise ValueError(f"Run did not complete successfully: {run}")
+
+        # Increment the current session window length.
+        self._current_session_window_length += 1
 
         # Get the last message from the run.
         response = await self._client.beta.threads.messages.list(self._thread_id, run_id=run.id, order="desc", limit=1)

@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from typing import Any
+import logging
 
 import openai
 from agnext.agent_components.model_client import OpenAI
@@ -8,13 +8,18 @@ from agnext.application_components import (
     SingleThreadedAgentRuntime,
 )
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
-from agnext.chat.messages import ChatMessage
-from agnext.chat.patterns.group_chat import GroupChat, Output
+from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
 from agnext.chat.patterns.orchestrator import Orchestrator
 from agnext.chat.types import TextMessage
+from agnext.core._agent import Agent
+from agnext.core.intervention import DefaultInterventionHandler, DropMessage
+from typing_extensions import Any, override
+
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("agnext").setLevel(logging.DEBUG)
 
 
-class ConcatOutput(Output):
+class ConcatOutput(GroupChatOutput):
     def __init__(self) -> None:
         self._output = ""
 
@@ -32,8 +37,26 @@ class ConcatOutput(Output):
         self._output = ""
 
 
+class LoggingHandler(DefaultInterventionHandler):
+    @override
+    async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]:
+        if sender is None:
+            print(f"Sending message to {recipient.name}: {message}")
+        else:
+            print(f"Sending message from {sender.name} to {recipient.name}: {message}")
+        return message
+
+    @override
+    async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:
+        if recipient is None:
+            print(f"Received response from {sender.name}: {message}")
+        else:
+            print(f"Received response from {sender.name} to {recipient.name}: {message}")
+        return message
+
+
 async def group_chat(message: str) -> None:
-    runtime = SingleThreadedAgentRuntime()
+    runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
 
     joe_oai_assistant = openai.beta.assistants.create(
         model="gpt-3.5-turbo",
@@ -67,16 +90,16 @@ async def group_chat(message: str) -> None:
 
     chat = GroupChat("Host", "A round-robin chat room.", runtime, [joe, cathy], num_rounds=5, output=ConcatOutput())
 
-    response = runtime.send_message(ChatMessage(body=message, sender="host"), chat)
+    response = runtime.send_message(TextMessage(content=message, source="host"), chat)
 
     while not response.done():
         await runtime.process_next()
 
-    print((await response).body)  # type: ignore
+    await response
 
 
 async def orchestrator(message: str) -> None:
-    runtime = SingleThreadedAgentRuntime()
+    runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
 
     developer_oai_assistant = openai.beta.assistants.create(
         model="gpt-3.5-turbo",
@@ -117,17 +140,14 @@ async def orchestrator(message: str) -> None:
     )
 
     response = runtime.send_message(
-        ChatMessage(
-            body=message,
-            sender="customer",
-        ),
+        TextMessage(content=message, source="customer"),
         chat,
     )
 
     while not response.done():
         await runtime.process_next()
 
-    print((await response).body)  # type: ignore
+    print((await response).content)  # type: ignore
 
 
 if __name__ == "__main__":

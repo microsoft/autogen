@@ -1,12 +1,12 @@
 from typing import Any, List, Protocol, Sequence
 
-from agnext.chat.types import Reset, RespondNow
-
+from ...agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
+from ..types import Reset, RespondNow, TextMessage
 
 
-class Output(Protocol):
+class GroupChatOutput(Protocol):
     def on_message_received(self, message: Any) -> None: ...
 
     def get_output(self) -> Any: ...
@@ -14,7 +14,7 @@ class Output(Protocol):
     def reset(self) -> None: ...
 
 
-class GroupChat(BaseChatAgent):
+class GroupChat(BaseChatAgent, TypeRoutedAgent):
     def __init__(
         self,
         name: str,
@@ -22,42 +22,43 @@ class GroupChat(BaseChatAgent):
         runtime: AgentRuntime,
         agents: Sequence[BaseChatAgent],
         num_rounds: int,
-        output: Output,
+        output: GroupChatOutput,
     ) -> None:
-        super().__init__(name, description, runtime)
         self._agents = agents
         self._num_rounds = num_rounds
         self._history: List[Any] = []
         self._output = output
+        super().__init__(name, description, runtime)
 
     @property
     def subscriptions(self) -> Sequence[type]:
         agent_sublists = [agent.subscriptions for agent in self._agents]
         return [Reset, RespondNow] + [item for sublist in agent_sublists for item in sublist]
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
-        if isinstance(message, Reset):
-            # Reset the history.
-            self._history = []
-            # TODO: reset sub-agents?
+    @message_handler(Reset)
+    async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+        self._history.clear()
 
-        if isinstance(message, RespondNow):
-            # TODO reset...
-            return self._output.get_output()
+    @message_handler(RespondNow)
+    async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> Any:
+        return self._output.get_output()
 
+    @message_handler(TextMessage)
+    async def on_text_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
         # TODO: how should we handle the group chat receiving a message while in the middle of a conversation?
         # Should this class disallow it?
 
         self._history.append(message)
         round = 0
+        prev_speaker = None
 
         while round < self._num_rounds:
             # TODO: add support for advanced speaker selection.
             # Select speaker (round-robin for now).
             speaker = self._agents[round % len(self._agents)]
 
-            # Send the last message to all agents.
-            for agent in [agent for agent in self._agents]:
+            # Send the last message to all agents except the previous speaker.
+            for agent in [agent for agent in self._agents if agent is not prev_speaker]:
                 # TODO gather and await
                 _ = await self._send_message(
                     self._history[-1],
@@ -66,6 +67,7 @@ class GroupChat(BaseChatAgent):
                 )
                 # TODO handle if response is not None
 
+            # Request the speaker to speak.
             response = await self._send_message(
                 RespondNow(),
                 speaker,
@@ -73,12 +75,13 @@ class GroupChat(BaseChatAgent):
             )
 
             if response is not None:
-                # 4. Append the response to the history.
+                # Append the response to the history.
                 self._history.append(response)
                 self._output.on_message_received(response)
 
-            # 6. Increment the round.
+            # Increment the round.
             round += 1
+            prev_speaker = speaker
 
         output = self._output.get_output()
         self._output.reset()

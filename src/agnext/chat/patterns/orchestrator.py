@@ -6,7 +6,7 @@ from ...agent_components.type_routed_agent import TypeRoutedAgent, message_handl
 from ...agent_components.types import AssistantMessage, LLMMessage, UserMessage
 from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
-from ..messages import ChatMessage
+from ..types import RespondNow, TextMessage
 
 
 class Orchestrator(BaseChatAgent, TypeRoutedAgent):
@@ -27,26 +27,19 @@ class Orchestrator(BaseChatAgent, TypeRoutedAgent):
         self._max_turns = max_turns
         self._max_stalled_turns_before_retry = max_stalled_turns_before_retry
         self._max_retry_attempts_before_educated_guess = max_retry_attempts
-        self._history: List[ChatMessage] = []
+        self._history: List[TextMessage] = []
 
-    @message_handler(ChatMessage)
-    async def on_chat_message(
+    @message_handler(TextMessage)
+    async def on_text_message(
         self,
-        message: ChatMessage,
+        message: TextMessage,
         cancellation_token: CancellationToken,
-    ) -> ChatMessage | None:
+    ) -> TextMessage | None:
         # A task is received.
-        task = message.body
-
-        if message.reset:
-            # Reset the history.
-            self._history = []
-        if message.save_message_only:
-            # TODO: what should we do with save_message_only messages for this pattern?
-            return ChatMessage(body="OK", sender=self.name)
+        task = message.content
 
         # Prepare the task.
-        team, names, facts, plan = await self._prepare_task(task, message.sender)
+        team, names, facts, plan = await self._prepare_task(task, message.source)
 
         # Main loop.
         total_turns = 0
@@ -74,11 +67,9 @@ Some additional points to consider:
             # Send the task specs to the team and signal a reset.
             for agent in self._agents:
                 self._send_message(
-                    ChatMessage(
-                        body=task_specs,
-                        sender=self.name,
-                        save_message_only=True,
-                        reset=True,
+                    TextMessage(
+                        content=task_specs,
+                        source=self.name,
                     ),
                     agent,
                 )
@@ -96,18 +87,13 @@ Some additional points to consider:
             stalled_turns = 0
             while total_turns < self._max_turns:
                 # Reflect on the task.
-                data = await self._reflect_on_task(task, team, names, ledger, message.sender)
+                data = await self._reflect_on_task(task, team, names, ledger, message.source)
 
                 # Check if the request is satisfied.
                 if data["is_request_satisfied"]["answer"]:
-                    return ChatMessage(
-                        body="The task has been successfully addressed.",
-                        sender=self.name,
-                        payload={
-                            "ledgers": ledgers,
-                            "status": "success",
-                            "reason": data["is_request_satisfied"]["reason"],
-                        },
+                    return TextMessage(
+                        content=f"The task has been successfully addressed. {data['is_request_satisfied']['reason']}",
+                        source=self.name,
                     )
 
                 # Update stalled turns.
@@ -121,7 +107,7 @@ Some additional points to consider:
                     # In a retry, we need to rewrite the facts and the plan.
 
                     # Rewrite the facts.
-                    facts = await self._rewrite_facts(facts, ledger, message.sender)
+                    facts = await self._rewrite_facts(facts, ledger, message.source)
 
                     # Increment the retry attempts.
                     retry_attempts += 1
@@ -129,20 +115,15 @@ Some additional points to consider:
                     # Check if we should just guess.
                     if retry_attempts > self._max_retry_attempts_before_educated_guess:
                         # Make an educated guess.
-                        educated_guess = await self._educated_guess(facts, ledger, message.sender)
+                        educated_guess = await self._educated_guess(facts, ledger, message.source)
                         if educated_guess["has_educated_guesses"]["answer"]:
-                            return ChatMessage(
-                                body="The task is addressed with an educated guess.",
-                                sender=self.name,
-                                payload={
-                                    "ledgers": ledgers,
-                                    "status": "educated_guess",
-                                    "reason": educated_guess["has_educated_guesses"]["reason"],
-                                },
+                            return TextMessage(
+                                content=f"The task is addressed with an educated guess. {educated_guess['has_educated_guesses']['reason']}",
+                                source=self.name,
                             )
 
                     # Come up with a new plan.
-                    plan = await self._rewrite_plan(team, ledger, message.sender)
+                    plan = await self._rewrite_plan(team, ledger, message.source)
 
                     # Exit the inner loop.
                     break
@@ -152,28 +133,21 @@ Some additional points to consider:
                 if subtask is None:
                     subtask = ""
 
+                # Update agents.
+                for agent in [agent for agent in self._agents]:
+                    _ = await self._send_message(
+                        TextMessage(content=subtask, source=self.name),
+                        agent,
+                    )
+
                 # Find the speaker.
                 try:
                     speaker = next(agent for agent in self._agents if agent.name == data["next_speaker"]["answer"])
                 except StopIteration as e:
                     raise ValueError(f"Invalid next speaker: {data['next_speaker']['answer']}") from e
 
-                # Update all other agents.
-                for agent in [agent for agent in self._agents if agent != speaker]:
-                    _ = await self._send_message(
-                        ChatMessage(
-                            body=subtask,
-                            sender=self.name,
-                            save_message_only=True,
-                        ),
-                        agent,
-                    )
-
-                # Update the speaker and ask to speak.
-                speaker_response = await self._send_message(
-                    ChatMessage(body=subtask, sender=self.name),
-                    speaker,
-                )
+                # As speaker to speak.
+                speaker_response = await self._send_message(RespondNow(), speaker)
 
                 assert speaker_response is not None
 
@@ -188,10 +162,9 @@ Some additional points to consider:
                 # Update all other agents with the speaker's response.
                 for agent in [agent for agent in self._agents if agent != speaker]:
                     _ = await self._send_message(
-                        ChatMessage(
-                            body=speaker_response.body,
-                            sender=speaker_response.sender,
-                            save_message_only=True,
+                        TextMessage(
+                            content=speaker_response.content,
+                            source=speaker_response.source,
                         ),
                         agent,
                     )
@@ -199,22 +172,17 @@ Some additional points to consider:
                 # Update the ledger.
                 ledger.append(
                     UserMessage(
-                        content=speaker_response.body,
-                        source=speaker_response.sender,
+                        content=speaker_response.content,
+                        source=speaker_response.source,
                     )
                 )
 
                 # Increment the total turns.
                 total_turns += 1
 
-        return ChatMessage(
-            body="The task was not addressed",
-            sender=self.name,
-            payload={
-                "ledgers": ledgers,
-                "status": "failure",
-                "reason": "The maximum number of turns was reached.",
-            },
+        return TextMessage(
+            content="The task was not addressed. The maximum number of turns was reached.",
+            source=self.name,
         )
 
     async def _prepare_task(self, task: str, sender: str) -> Tuple[str, str, str, str]:
