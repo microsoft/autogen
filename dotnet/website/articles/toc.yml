@@ -79,6 +79,14 @@
       href: AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md
     - name: Use kernel plugin in other agents
       href: AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md
+- name: AutoGen.Ollama
+  items:
+    - name: Examples
+      items:
+        - name: Chat with LLaMA
+          href: AutoGen.Ollama/Chat-with-LLaMA.md
+        - name: MultiModal Chat with LLaVA
+          href: AutoGen.Ollama/Chat-with-LLaVA.md
 - name: AutoGen.Mistral
   items:
     - name: Overview
