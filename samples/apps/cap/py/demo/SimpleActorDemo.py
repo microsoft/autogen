@@ -1,9 +1,5 @@
-import time
-
 from AppAgents import GreeterAgent
 from autogencap.ComponentEnsemble import ComponentEnsemble
-from autogencap.DebugLog import Error
-from autogencap.proto.CAP_pb2 import Ping
 
 
 def simple_actor_demo():
