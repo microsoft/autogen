@@ -1,9 +1,10 @@
-from autogen import OpenAIWrapper
-from autogen.agentchat import Agent, ConversableAgent
-from autogen.agentchat.contrib.vectordb.utils import get_logger
 from typing import Dict, List, Optional, Tuple, Union
 
 from llama_index_client import ChatMessage
+
+from autogen import OpenAIWrapper
+from autogen.agentchat import Agent, ConversableAgent
+from autogen.agentchat.contrib.vectordb.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -15,12 +16,13 @@ except ImportError as e:
     raise e
 
 class LLamaIndexConversableAgent(ConversableAgent):
-    def __init__(        self,
-        name: str,
-        llama_index_agent: AgentRunner,
-        description: Optional[str] = None,
-        **kwargs,
-    ):
+    def __init__(        
+            self,
+            name: str,
+            llama_index_agent: AgentRunner,
+            description: Optional[str] = None,
+            **kwargs,
+            ):
         """
         Args:
             name (str): agent name.
@@ -47,14 +49,9 @@ class LLamaIndexConversableAgent(ConversableAgent):
         self._llama_index_agent = llama_index_agent
 
         # Override the `generate_oai_reply`
-        self.replace_reply_func(
-            ConversableAgent.generate_oai_reply, 
-            LLamaIndexConversableAgent._generate_oai_reply)
+        self.replace_reply_func(ConversableAgent.generate_oai_reply, LLamaIndexConversableAgent._generate_oai_reply)
         
-        self.replace_reply_func(
-            ConversableAgent.a_generate_oai_reply,
-            LLamaIndexConversableAgent._a_generate_oai_reply,
-        )
+        self.replace_reply_func(ConversableAgent.a_generate_oai_reply, LLamaIndexConversableAgent._a_generate_oai_reply)
     
     def _generate_oai_reply(
         self,
@@ -63,9 +60,9 @@ class LLamaIndexConversableAgent(ConversableAgent):
         config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
-        user_message, history = self._extract_message_and_history(messages= messages, sender=sender)
+        user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
-        chatResponse : AgentChatResponse = self._llama_index_agent.chat(message = user_message, chat_history = history)
+        chatResponse : AgentChatResponse = self._llama_index_agent.chat(message=user_message, chat_history=history)
        
         extracted_response = chatResponse.response
 
@@ -78,16 +75,20 @@ class LLamaIndexConversableAgent(ConversableAgent):
         config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
-        user_message, history = self._extract_message_and_history(messages= messages, sender=sender)
+        user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
 
-        chatResponse : AgentChatResponse = await self._llama_index_agent.achat(message = user_message, chat_history = history)
+        chatResponse : AgentChatResponse = await self._llama_index_agent.achat(message=user_message, chat_history=history)
        
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
     
-    def _extract_message_and_history(self, messages: Optional[List[Dict]] = None,sender: Optional[Agent] = None) -> Tuple[str, List[ChatMessage]]:
+    def _extract_message_and_history(
+            self, 
+            messages: Optional[List[Dict]] = None,
+            sender: Optional[Agent] = None
+            ) -> Tuple[str, List[ChatMessage]]:
         """Extract the message and history from the messages."""
         if not messages:
             messages = self._oai_messages[sender]
@@ -98,7 +99,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         message = messages[-1].get("content", "")
 
         history = messages[:-1]
-        history_messages : List[ChatMessage] = []
+        history_messages: List[ChatMessage] = []
         for history_message in history:
             content = history_message.get("content", "")
             role = history_message.get("role", "user")
