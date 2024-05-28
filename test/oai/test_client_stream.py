@@ -1,14 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
-import json
 import os
 import sys
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from unittest.mock import MagicMock
 
 import pytest
 
-from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from autogen import OpenAIWrapper, config_list_from_json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -280,11 +279,11 @@ def test_chat_tools_stream() -> None:
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_completion_stream() -> None:
-    config_list = config_list_openai_aoai(KEY_LOC)
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+    )
     client = OpenAIWrapper(config_list=config_list)
-    # Azure can't have dot in model/deployment name
-    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
-    response = client.create(prompt="1+1=", model=model, stream=True)
+    response = client.create(prompt="1+1=", stream=True)
     print(response)
     print(client.extract_text_or_completion_object(response))
 
