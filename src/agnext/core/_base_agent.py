@@ -1,6 +1,7 @@
+import warnings
 from abc import ABC, abstractmethod
 from asyncio import Future
-from typing import Any, Sequence, TypeVar
+from typing import Any, Mapping, Sequence, TypeVar
 
 from agnext.core._agent_runtime import AgentRuntime
 from agnext.core._cancellation_token import CancellationToken
@@ -62,3 +63,11 @@ class BaseAgent(ABC, Agent):
             cancellation_token = CancellationToken()
         future = self._router.publish_message(message, sender=self, cancellation_token=cancellation_token)
         return future
+
+    def save_state(self) -> Mapping[str, Any]:
+        warnings.warn("save_state not implemented", stacklevel=2)
+        return {}
+
+    def load_state(self, state: Mapping[str, Any]) -> None:
+        warnings.warn("load_state not implemented", stacklevel=2)
+        pass

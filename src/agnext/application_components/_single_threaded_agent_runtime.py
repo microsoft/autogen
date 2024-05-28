@@ -1,7 +1,7 @@
 import asyncio
 from asyncio import Future
 from dataclasses import dataclass
-from typing import Any, Awaitable, Dict, List, Set
+from typing import Any, Awaitable, Dict, List, Mapping, Set
 
 from ..core import Agent, AgentRuntime, CancellationToken
 from ..core.exceptions import MessageDroppedException
@@ -107,6 +107,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         future = asyncio.get_event_loop().create_future()
         future.set_result(None)
         return future
+
+    def save_state(self) -> Mapping[str, Any]:
+        state: Dict[str, Dict[str, Any]] = {}
+        for agent in self._agents:
+            state[agent.name] = dict(agent.save_state())
+        return state
+
+    def load_state(self, state: Mapping[str, Any]) -> None:
+        for agent in self._agents:
+            agent.load_state(state[agent.name])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
         recipient = message_envelope.recipient

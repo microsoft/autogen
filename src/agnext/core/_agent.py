@@ -1,4 +1,4 @@
-from typing import Any, Protocol, Sequence, runtime_checkable
+from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
 
 from agnext.core._cancellation_token import CancellationToken
 
@@ -33,3 +33,7 @@ class Agent(Protocol):
             If there was a cancellation, this function should raise a `CancelledError`.
         """
         ...
+
+    def save_state(self) -> Mapping[str, Any]: ...
+
+    def load_state(self, state: Mapping[str, Any]) -> None: ...

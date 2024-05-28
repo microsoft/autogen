@@ -1,5 +1,5 @@
 from asyncio import Future
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 
 from agnext.core._agent import Agent
 from agnext.core._cancellation_token import CancellationToken
@@ -37,3 +37,7 @@ class AgentRuntime(Protocol):
         sender: Agent | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[None]: ...
+
+    def save_state(self) -> Mapping[str, Any]: ...
+
+    def load_state(self, state: Mapping[str, Any]) -> None: ...
