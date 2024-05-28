@@ -143,6 +143,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         responses: List[Awaitable[Any]] = []
         for agent in self._per_type_subscribers.get(type(message_envelope.message), []):  # type: ignore
+            if message_envelope.sender is not None and agent.name == message_envelope.sender.name:
+                continue
             future = agent.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
