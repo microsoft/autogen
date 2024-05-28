@@ -15,19 +15,20 @@ AutoGen is about Agents and Agent Orchestration.  CAP extends AutoGen to allows 
 
 Actors can register themselves with CAP, find other agents, construct arbitrary graphs, send and receive messages independently and many, many, many other things.
 ```python
-    # CAP Platform
-    network = LocalActorNetwork()
+    ensemble = ComponentEnsemble()
+    # Create an agent
+    agent = GreeterAgent()
     # Register an agent
-    network.register(GreeterAgent())
-    # Tell agents to connect to other agents
-    network.connect()
+    ensemble.register(agent) # start message processing
+    # call on_connect() on all Agents
+    ensemble.connect()
     # Get a channel to the agent
-    greeter_link = network.lookup_agent("Greeter")
-    # Send a message to the agent
+    greeter_link = ensemble.find_by_name("Greeter")
+    Send a message to the agent
     greeter_link.send_txt_msg("Hello World!")
     # Cleanup
     greeter_link.close()
-    network.disconnect()
+    ensemble.disconnect()
 ```
 ### Check out other demos in the `py/demo` directory.  We show the following: ###
 1) Hello World shown above
