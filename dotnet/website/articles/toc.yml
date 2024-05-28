@@ -70,11 +70,23 @@
 - name: AutoGen.SemanticKernel
   items:
     - name: Overview
-      href: AutoGen-SemanticKernel-Overview.md
-    - name: Simple chat and streaming chat
-      href: SemanticKernelAgent-simple-chat.md
-    - name: Use SemanticKernelChatMessageContentConnector to support more AutoGen built-in messages
-      href: SemanticKernelAgent-support-more-messages.md
+      href: AutoGen.SemanticKernel/AutoGen-SemanticKernel-Overview.md
+    - name: Chat with Semantic Kernel Agent
+      href: AutoGen.SemanticKernel/SemanticKernelAgent-simple-chat.md
+    - name: Chat with Semantic Kernel Chat Agent
+      href: AutoGen.SemanticKernel/SemanticKernelChatAgent-simple-chat.md
+    - name: Support AutoGen built-in messages
+      href: AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md
+    - name: Use kernel plugin in other agents
+      href: AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md
+- name: AutoGen.Ollama
+  items:
+    - name: Examples
+      items:
+        - name: Chat with LLaMA
+          href: AutoGen.Ollama/Chat-with-LLaMA.md
+        - name: MultiModal Chat with LLaVA
+          href: AutoGen.Ollama/Chat-with-LLaVA.md
 - name: AutoGen.Mistral
   items:
     - name: Overview
