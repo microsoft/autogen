@@ -2,8 +2,8 @@ You can chat with @AutoGen.SemanticKernel.SemanticKernelAgent using both streami
 
 The following example shows how to create an @AutoGen.SemanticKernel.SemanticKernelAgent and chat with it using non-streaming method:
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent)]
+[!code-csharp[](../../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent)]
 
 @AutoGen.SemanticKernel.SemanticKernelAgent also supports streaming chat via @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync*.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent_streaming)]
+[!code-csharp[](../../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent_streaming)]

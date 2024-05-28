@@ -7,4 +7,4 @@
 >
 > Function call message type like @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage are not supported yet.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=register_semantic_kernel_chat_message_content_connector)]
+[!code-csharp[](../../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=register_semantic_kernel_chat_message_content_connector)]

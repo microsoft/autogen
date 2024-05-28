@@ -6,6 +6,16 @@
       <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
 
+    <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+    <PropertyGroup>
+      <!-- NuGet Package Settings -->
+      <Title>AutoGen.Ollama</Title>
+      <Description>
+        Provide support for Ollama server in AutoGen
+      </Description>
+    </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     </ItemGroup>

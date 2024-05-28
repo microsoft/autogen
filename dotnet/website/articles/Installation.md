@@ -8,6 +8,8 @@ AutoGen.Net provides the following packages, you can choose to install one or mo
 - `AutoGen.Core`: The core package, this package provides the abstraction for message type, agent and group chat.
 - `AutoGen.OpenAI`: This package provides the integration agents over openai models.
 - `AutoGen.Mistral`: This package provides the integration agents for Mistral.AI models.
+- `AutoGen.Ollama`: This package provides the integration agents for [Ollama](https://ollama.com/).
+- `AutoGen.Anthropic`: This package provides the integration agents for [Anthropic](https://www.anthropic.com/api)
 - `AutoGen.LMStudio`: This package provides the integration agents from LM Studio.
 - `AutoGen.SemanticKernel`: This package provides the integration agents over semantic kernel.
 - `AutoGen.SourceGenerator`: This package carries a source generator that adds support for type-safe function definition generation.
