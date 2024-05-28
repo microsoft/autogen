@@ -139,7 +139,7 @@ class GeminiClient:
             # A. create and call the chat model.
             gemini_messages = oai_messages_to_gemini_messages(messages)
             gemini_tools = oai_tools_to_gemini_tools(tools)
-
+            
             # we use chat model by default
             model = genai.GenerativeModel(
                 model_name, generation_config=generation_config, safety_settings=safety_settings, tools=gemini_tools
@@ -322,6 +322,7 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
                 elif len(curr_parts) == 1:
                     rst.append(Content(parts=curr_parts, role=None if curr_parts[0].function_response else role))
                 rst.append(Content(parts=parts, role="user" if parts[0].function_response else role))
+                rst.append(Content(parts=oai_content_to_gemini_content("continue"), role="model"))
                 curr_parts = []
             else:
                 curr_parts += parts
