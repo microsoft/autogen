@@ -22,6 +22,7 @@ class Orchestrator(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         response_format_is_supported: bool = True,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        max_images: int = 1,
     ):
         super().__init__(
             name=name,
@@ -35,6 +36,7 @@ class Orchestrator(ConversableAgent):
             default_auto_reply=default_auto_reply,
         )
 
+        self.max_images = max_images
         self._agents = agents
         self.response_format_is_supported = response_format_is_supported
         self.orchestrated_messages = []
@@ -189,6 +191,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
         response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
+            max_images=self.max_images,
         )
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         _messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
@@ -205,6 +208,7 @@ Based on the team composition, and known and unknown facts, please devise a shor
         response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
+            max_images=self.max_images,
         )
 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
@@ -286,6 +290,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
+                        max_images=self.max_images,
                     )
                     self.orchestrated_messages.pop()
 
@@ -348,6 +353,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
+                        max_images=self.max_images,
                     )
                     self.orchestrated_messages.pop()
 
@@ -382,6 +388,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
+                        max_images=self.max_images,
                     )
                     facts = self.client.extract_text_or_completion_object(response)[0]
                     self.orchestrated_messages.append({"role": "assistant", "content": facts, "name": self.name})
@@ -395,6 +402,7 @@ Team membership:
                     response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
+                        max_images=self.max_images,
                     )
 
                     plan = self.client.extract_text_or_completion_object(response)[0]

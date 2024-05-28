@@ -28,6 +28,8 @@ from evaluation_harness.env_config import (
 testbed_utils.init()
 ##############################
 
+MAX_IMAGES = 8
+
 REPLACEMENTS = {
     "__REDDIT__": REDDIT,
     "__SHOPPING__": SHOPPING,
@@ -82,6 +84,7 @@ assistant = MultimodalAgent(
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config=False,
     llm_config=llm_config,
+    max_images=MAX_IMAGES,
 )
 
 user_proxy_name = "computer_terminal"
@@ -125,6 +128,7 @@ maestro = Orchestrator(
     agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
     response_format_is_supported=False,
+    max_images=MAX_IMAGES,
 )
 
 # Login to the necessary websites
