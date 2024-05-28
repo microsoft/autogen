@@ -30,7 +30,7 @@ class GreeterAgent(Actor):
     # Prints out the message it receives
     def on_txt_msg(self, msg):
         print(f"Greeter received: {msg}")
-        return "Greeter says: Hello!"
+        return True
 
 ensemble = ComponentEnsemble()
 # Create an agent
