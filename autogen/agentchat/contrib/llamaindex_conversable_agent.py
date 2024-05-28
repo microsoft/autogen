@@ -17,12 +17,12 @@ except ImportError as e:
 
 class LLamaIndexConversableAgent(ConversableAgent):
     def __init__(        
-            self,
-            name: str,
-            llama_index_agent: AgentRunner,
-            description: Optional[str] = None,
-            **kwargs,
-            ):
+        self,
+        name: str,
+        llama_index_agent: AgentRunner,
+        description: Optional[str] = None,
+        **kwargs,
+        ):
         """
         Args:
             name (str): agent name.
@@ -62,7 +62,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         """Generate a reply using autogen.oai."""
         user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
-        chatResponse : AgentChatResponse = self._llama_index_agent.chat(message=user_message, chat_history=history)
+        chatResponse: AgentChatResponse = self._llama_index_agent.chat(message=user_message, chat_history=history)
        
         extracted_response = chatResponse.response
 
@@ -78,17 +78,17 @@ class LLamaIndexConversableAgent(ConversableAgent):
         user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
 
-        chatResponse : AgentChatResponse = await self._llama_index_agent.achat(message=user_message, chat_history=history)
+        chatResponse : AgentChatResponse = await self._llama_index_agent.achat(
+            message=user_message, chat_history=history
+        )
        
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
     
     def _extract_message_and_history(
-            self, 
-            messages: Optional[List[Dict]] = None,
-            sender: Optional[Agent] = None
-            ) -> Tuple[str, List[ChatMessage]]:
+        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None
+        ) -> Tuple[str, List[ChatMessage]]:
         """Extract the message and history from the messages."""
         if not messages:
             messages = self._oai_messages[sender]
@@ -107,5 +107,3 @@ class LLamaIndexConversableAgent(ConversableAgent):
                 if role == "user" or role == "assistant":
                     history_messages.append(ChatMessage(content=content, role=role))
         return message, history_messages
-    
-  
