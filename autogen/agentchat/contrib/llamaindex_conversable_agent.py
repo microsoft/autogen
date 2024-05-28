@@ -15,9 +15,10 @@ except ImportError as e:
     logger.fatal("Failed to import llama-index. Try running 'pip install llama-index'")
     raise e
 
+
 class LLamaIndexConversableAgent(ConversableAgent):
 
-    def __init__(        
+    def __init__(
         self,
         name: str,
         llama_index_agent: AgentRunner,
@@ -37,21 +38,21 @@ class LLamaIndexConversableAgent(ConversableAgent):
 
         if llama_index_agent is None:
             raise ValueError("llama_index_agent must be provided")
-        
+
         if description is None or description.isspace():
             raise ValueError("description must be provided")
-               
+
         super().__init__(
             name,
             description=description,
             **kwargs,
         )
-        
+
         self._llama_index_agent = llama_index_agent
 
         # Override the `generate_oai_reply`
         self.replace_reply_func(ConversableAgent.generate_oai_reply, LLamaIndexConversableAgent._generate_oai_reply)
-        
+
         self.replace_reply_func(ConversableAgent.a_generate_oai_reply, LLamaIndexConversableAgent._a_generate_oai_reply)
 
     def _generate_oai_reply(
@@ -64,7 +65,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
         user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
         chatResponse: AgentChatResponse = self._llama_index_agent.chat(message=user_message, chat_history=history)
-       
+
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
@@ -78,11 +79,10 @@ class LLamaIndexConversableAgent(ConversableAgent):
         """Generate a reply using autogen.oai."""
         user_message, history = self._extract_message_and_history(messages=messages, sender=sender)
 
-
         chatResponse: AgentChatResponse = await self._llama_index_agent.achat(
             message=user_message, chat_history=history
         )
-       
+
         extracted_response = chatResponse.response
 
         return (True, extracted_response)
@@ -96,7 +96,7 @@ class LLamaIndexConversableAgent(ConversableAgent):
 
         if not messages:
             return "", []
-        
+
         message = messages[-1].get("content", "")
 
         history = messages[:-1]
