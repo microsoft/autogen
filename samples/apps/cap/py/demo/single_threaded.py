@@ -1,5 +1,4 @@
 import _paths
-
 from AppAgents import GreeterAgent
 from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Error
@@ -14,7 +13,7 @@ def single_threaded_demo():
     # CAP Platform
     ensemble = ComponentEnsemble()
     agent = GreeterAgent(start_thread=False)
-    ensemble.register(agent)    
+    ensemble.register(agent)
     ensemble.connect()
     greeter_link = ensemble.find_by_name("Greeter")
     greeter_link.send_txt_msg("Hello World!")
@@ -23,15 +22,18 @@ def single_threaded_demo():
     while no_msg < 5:
         message = agent.get_message()
         agent.dispatch_message(message)
-        if message is None: no_msg += 1
-            
+        if message is None:
+            no_msg += 1
+
     message = agent.get_message()
     agent.dispatch_message(message)
-    
+
     ensemble.disconnect()
+
 
 def main():
     single_threaded_demo()
+
 
 if __name__ == "__main__":
     main()

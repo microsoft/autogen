@@ -1,6 +1,8 @@
 import threading
 import traceback
+
 import zmq
+
 from .Config import xpub_url
 from .DebugLog import Debug, Error, Info
 
@@ -48,7 +50,7 @@ class Actor:
             traceback.print_exc()
             return None
         return topic, msg_type, sender_topic, msg
-    
+
     def dispatch_message(self, message):
         if message is None:
             return
@@ -62,7 +64,7 @@ class Actor:
         else:
             if not self.on_bin_msg(msg, msg_type, topic, sender_topic):
                 self.run = False
-    
+
     def _msg_loop(self):
         try:
             self._msg_loop_init()

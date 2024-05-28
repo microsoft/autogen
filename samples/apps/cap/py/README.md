@@ -26,7 +26,7 @@ class GreeterAgent(Actor):
         super().__init__(
             agent_name="Greeter",
             description="This is the greeter agent, who knows how to greet people.")
-    
+
     # Prints out the message it receives
     def on_txt_msg(self, msg):
         print(f"Greeter received: {msg}")
