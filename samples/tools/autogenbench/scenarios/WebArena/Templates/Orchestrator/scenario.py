@@ -29,6 +29,7 @@ testbed_utils.init()
 ##############################
 
 MAX_IMAGES = 8
+DEFAULT_TEMPERATURE = 0.1
 
 REPLACEMENTS = {
     "__REDDIT__": REDDIT,
@@ -62,6 +63,13 @@ with open("full_task.json", "wt") as fh:
 # Load the LLM config list
 config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
+
+# Set a low default temperature
+for config in llm_config["config_list"]:
+    if "temperature" not in config:
+        config["temperature"] = DEFAULT_TEMPERATURE
+llm_config["temperature"] = DEFAULT_TEMPERATURE
+
 
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
