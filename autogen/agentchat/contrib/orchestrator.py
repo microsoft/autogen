@@ -37,6 +37,7 @@ class Orchestrator(ConversableAgent):
         )
 
         self.max_images = max_images
+        self._temperature_bonus = 0.0
         self._agents = agents
         self.response_format_is_supported = response_format_is_supported
         self.orchestrated_messages = []
@@ -88,6 +89,11 @@ class Orchestrator(ConversableAgent):
 
             # Prepend the message -- since we are iterating backwards
             history.insert(0, message)
+
+        # Increase the temperature by a fixed amount (up to a max)
+        if "temperature" in kwargs:
+            kwargs["temperature"] = min(2.0, kwargs["temperature"] + self._temperature_bonus)
+
         return self.client.create(messages=history, **kwargs)
 
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
@@ -224,6 +230,8 @@ Based on the team composition, and known and unknown facts, please devise a shor
             self.orchestrated_messages = []
             for a in self._agents:
                 a.reset()
+                if total_turns > 0: # Raise the temperature with each outer loop
+                    self._temperature_bonus += 0.5
 
             self.orchestrated_messages.append(
                 {
