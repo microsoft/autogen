@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
+from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from sqlalchemy import ForeignKey, Integer, orm
 from sqlmodel import (
     JSON,
@@ -249,6 +250,26 @@ class Workflow(SQLModel, table=True):
         sa_column=Column(SqlEnum(WorkFlowSummaryMethod)),
     )
 
+
+class Criteria(SQLModel, table=True):
+    __tablename__ = "criteria" 
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # Foreign key that points to the Workflow  
+    session_id: Optional[int] = Field(default=None, foreign_key="session.id", on_delete="SET NULL")
+    session: Session = Relationship(back_populates="criteria")
+    workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
+    criteria: List["CriterionModel"] = Relationship(back_populates="criteria")
+
+
+class CriterionModel(Criterion, SQLModel, table=True):
+    __tablename__ = "criterion" 
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    criteria_id: Optional[int] = Field(default=None, foreign_key="criteria.id")  
+    # Establish a relationship to the criteria  
+    criteria: Optional[Criteria] = Relationship(back_populates="criteriamodel")
+    
 
 class Response(SQLModel):
     message: str

@@ -20,7 +20,7 @@ from openai import OpenAIError
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
-from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
+from ..datamodel import Agent, Criteria, CriterionModel, Message, Model, Response, Session, Skill, Workflow
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
 
@@ -407,8 +407,8 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         }
 
 
-@api.post("/agenteval/criteria/create/{session_id}")
-async def create_agenteval_criteria(user_id: str, session_id: int, model_id: int, task: Task, failed_example: bool,
+@api.post("/agenteval/criteria/generate")
+async def generate_agenteval_criteria(user_id: str, session_id: int, model_id: int, task: Task, failed_example: bool,
                                     additonal_instructions: str, max_round: int, use_subcritic: bool):
     messages = (await list_messages(user_id=user_id, session_id=session_id)).data
     if(failed_example):
@@ -430,6 +430,10 @@ async def create_agenteval_criteria(user_id: str, session_id: int, model_id: int
     criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
                                  max_round=max_round, use_subcritic=use_subcritic)
     # TODO: save criteria to DB
+    criteria_entry = create_entity(Criteria(session_id=session_id)) # TODO: get workflow id
+    for criterion in criteria:
+        criterion_model = CriterionModel(criteria_id=criteria_entry.id, **criterion.dict())
+        create_entity(criterion_model, CriterionModel)
     return Criterion.write_json(criteria)
 
 
