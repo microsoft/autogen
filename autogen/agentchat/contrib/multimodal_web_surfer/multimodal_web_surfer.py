@@ -131,7 +131,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
                     route.fulfill(
                         status=403,
                         content_type="text/html",
-                        body="<html><body>Navigation was blocked by the client. Click the <a href=\"javascript: history.back()\">browser back button</a> to go back, or click <a href=\"" + self.start_page + "\">here</a> return to the start page.</body></html>")
+                        body="<html><body><h1>Navigation Blocked</h1><p>Navigation was blocked by the client. Click the <a href=\"javascript: history.back()\">browser back button</a> to go back, or click <a href=\"" + self.start_page + "\">here</a> return to the start page.</p></body></html>")
                 else:
                     route.fulfill(response=response)
         self._route_handler = _route_handler
