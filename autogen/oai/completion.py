@@ -62,6 +62,8 @@ class Completion(openai_Completion):
         "gpt-4-0314",  # deprecate in Sep
         "gpt-4-0613",
         "gpt-4-32k-0613",
+        "gpt-4o",
+        "gpt-4o-2024-05-13",
     }
 
     # price per 1k tokens
@@ -88,6 +90,8 @@ class Completion(openai_Completion):
         "gpt-4-32k-0314": (0.06, 0.12),  # deprecate in Sep
         "gpt-4-0613": (0.03, 0.06),
         "gpt-4-32k-0613": (0.06, 0.12),
+        "gpt-4o": (0.005, 0.015),
+        "gpt-4o-2024-05-13": (0.005, 0.015),
     }
 
     default_search_space = {
