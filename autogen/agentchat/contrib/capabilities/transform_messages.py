@@ -61,7 +61,7 @@ class TransformMessages:
         """
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
-    def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
+    def _transform_messages(self, messages: List[Dict], **kwargs) -> List[Dict]:
         post_transform_messages = copy.deepcopy(messages)
         system_message = None
 

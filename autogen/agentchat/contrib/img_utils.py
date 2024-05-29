@@ -3,7 +3,7 @@ import copy
 import os
 import re
 from io import BytesIO
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Literal, Tuple, Union
 
 import requests
 from PIL import Image
@@ -163,7 +163,7 @@ def convert_base64_to_data_uri(base64_image):
     return data_uri
 
 
-def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dict]]:
+def gpt4v_formatter(prompt: str, img_format: Literal["uri", "url", "pil"] = "uri") -> List[Union[str, dict]]:
     """
     Formats the input prompt by replacing image tags and returns a list of text and images.
 
