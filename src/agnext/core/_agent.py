@@ -34,6 +34,15 @@ class Agent(Protocol):
         """
         ...
 
-    def save_state(self) -> Mapping[str, Any]: ...
+    def save_state(self) -> Mapping[str, Any]:
+        """Save the state of the agent. The result must be JSON serializable."""
+        ...
 
-    def load_state(self, state: Mapping[str, Any]) -> None: ...
+    def load_state(self, state: Mapping[str, Any]) -> None:
+        """Load in the state of the agent obtained from `save_state`.
+
+        Args:
+            state (Mapping[str, Any]): State of the agent. Must be JSON serializable.
+        """
+
+        ...

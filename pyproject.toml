@@ -16,7 +16,7 @@ classifiers = [
 dependencies = ["openai>=1.3", "pillow", "aiohttp", "typing-extensions"]
 
 [project.optional-dependencies]
-dev = ["ruff", "pyright", "mypy", "pytest", "pytest-asyncio", "types-Pillow"]
+dev = ["ruff==0.4.6", "pyright", "mypy", "pytest", "pytest-asyncio", "types-Pillow"]
 docs = [ "sphinx", "furo", "sphinxcontrib-apidoc"]
 
 [tool.setuptools.package-data]

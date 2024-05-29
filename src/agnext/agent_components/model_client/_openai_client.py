@@ -1,4 +1,5 @@
 import inspect
+import logging
 import warnings
 from typing import (
     Any,
@@ -31,6 +32,8 @@ from openai.types.chat import (
 )
 from typing_extensions import Required, TypedDict, Unpack
 
+from ...application_components.logging import EVENT_LOGGER_NAME, LLMCallEvent
+
 # from ..._pydantic import type2schema
 from ..image import Image
 from ..types import (
@@ -46,6 +49,8 @@ from ..types import (
 )
 from . import _model_info
 from ._model_client import ModelCapabilities, ModelClient
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs)
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
@@ -346,6 +351,11 @@ class BaseOpenAI(ModelClient):
         else:
             result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
 
+        if result.usage is not None:
+            logger.info(
+                LLMCallEvent(prompt_tokens=result.usage.prompt_tokens, completion_tokens=result.usage.completion_tokens)
+            )
+
         usage = RequestUsage(
             # TODO backup token counting
             prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
@@ -441,7 +451,6 @@ class BaseOpenAI(ModelClient):
             choice = chunk.choices[0]
             stop_reason = choice.finish_reason
             maybe_model = chunk.model
-
             # First try get content
             if choice.delta.content is not None:
                 content_deltas.append(choice.delta.content)
