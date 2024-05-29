@@ -44,11 +44,11 @@ from typing import Any, Dict, List
 
 import google.generativeai as genai
 import requests
-from google.ai.generativelanguage import Content, Part, Tool, FunctionDeclaration, FunctionCall, FunctionResponse
+from google.ai.generativelanguage import Content, FunctionCall, FunctionDeclaration, FunctionResponse, Part, Tool
 from google.api_core.exceptions import InternalServerError
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
-from openai.types.chat.chat_completion_message_tool_call import Function
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
+from openai.types.chat.chat_completion_message_tool_call import Function
 from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 
@@ -139,7 +139,7 @@ class GeminiClient:
             # A. create and call the chat model.
             gemini_messages = oai_messages_to_gemini_messages(messages)
             gemini_tools = oai_tools_to_gemini_tools(tools)
-            
+
             # we use chat model by default
             model = genai.GenerativeModel(
                 model_name, generation_config=generation_config, safety_settings=safety_settings, tools=gemini_tools
@@ -215,10 +215,23 @@ class GeminiClient:
 
 
 def calculate_gemini_cost(input_tokens: int, output_tokens: int, model_name: str) -> float:
-    if "1.5" in model_name or "gemini-experimental" in model_name:
-        # "gemini-1.5-pro-preview-0409"
+    if "1.5-pro" in model_name:
+        if (input_tokens + output_tokens) <= 128000:
+            # "gemini-1.5-pro"
+            # When total tokens is less than 128K cost is $3.5 per million input tokens and $10.5 per million output tokens
+            return 3.5 * input_tokens / 1e6 + 10.5 * output_tokens / 1e6
+        # "gemini-1.5-pro"
         # Cost is $7 per million input tokens and $21 per million output tokens
         return 7.0 * input_tokens / 1e6 + 21.0 * output_tokens / 1e6
+
+    if "1.5-flash" in model_name:
+        if (input_tokens + output_tokens) <= 128000:
+            # "gemini-1.5-flash"
+            # Cost is $0.35 per million input tokens and $1.05 per million output tokens
+            return 0.35 * input_tokens / 1e6 + 1.05 * output_tokens / 1e6
+        # "gemini-1.5-flash"
+        # When total tokens is less than 128K cost is $0.70 per million input tokens and $2.10 per million output tokens
+        return 0.70 * input_tokens / 1e6 + 2.10 * output_tokens / 1e6
 
     if "gemini-pro" not in model_name and "gemini-1.0-pro" not in model_name:
         warnings.warn(f"Cost calculation is not implemented for model {model_name}. Using Gemini-1.0-Pro.", UserWarning)
@@ -233,21 +246,24 @@ def oai_content_to_gemini_content(message: Dict[str, Any]) -> List:
     if isinstance(message, str):
         rst.append(Part(text=message))
         return rst
-        
+
     if "tool_calls" in message:
-        rst.append(Part(function_call=FunctionCall(
-            name=message["tool_calls"][0]["function"]["name"],
-            args=json.loads(message["tool_calls"][0]["function"]["arguments"])
-        )))
+        rst.append(
+            Part(
+                function_call=FunctionCall(
+                    name=message["tool_calls"][0]["function"]["name"],
+                    args=json.loads(message["tool_calls"][0]["function"]["arguments"]),
+                )
+            )
+        )
         return rst
-    
+
     if message["role"] == "tool":
-        rst.append(Part(function_response=FunctionResponse(
-            name=message["name"],
-            response=json.loads(message["content"])
-        )))
+        rst.append(
+            Part(function_response=FunctionResponse(name=message["name"], response=json.loads(message["content"])))
+        )
         return rst
-    
+
     if isinstance(message["content"], str):
         rst.append(Part(text=message["content"]))
         return rst
@@ -276,7 +292,7 @@ def concat_parts(parts: List[Part]) -> List:
     """
     if not parts:
         return []
-    
+
     if len(parts) == 1:
         return parts
 
@@ -306,11 +322,13 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
     rst = []
     curr_parts = []
     for i, message in enumerate(messages):
-        
+
         # Since the tool call message does not have the "name" field, we need to find the corresponding tool message.
         if message["role"] == "tool":
-            message["name"] = [m for m in messages if "tool_calls" in m and m["tool_calls"][0]["id"] == message["tool_call_id"]][0]["tool_calls"][0]["function"]["name"]
-        
+            message["name"] = [
+                m for m in messages if "tool_calls" in m and m["tool_calls"][0]["id"] == message["tool_call_id"]
+            ][0]["tool_calls"][0]["function"]["name"]
+
         parts = oai_content_to_gemini_content(message)
         role = "user" if message["role"] in ["user", "system"] else "model"
 
@@ -353,10 +371,13 @@ def oai_tools_to_gemini_tools(tools: List[Dict[str, Any]]) -> List[Tool]:
         function_declaration = FunctionDeclaration(
             name=tool["function"]["name"],
             description=tool["function"]["description"],
-            parameters=oai_function_parameters_to_gemini_function_parameters(copy.deepcopy(tool["function"]["parameters"]))
+            parameters=oai_function_parameters_to_gemini_function_parameters(
+                copy.deepcopy(tool["function"]["parameters"])
+            ),
         )
         function_declarations.append(function_declaration)
     return [Tool(function_declarations=function_declarations)]
+
 
 def oai_function_parameters_to_gemini_function_parameters(function_definition: dict[str, any]) -> dict[str, any]:
     """
@@ -367,9 +388,13 @@ def oai_function_parameters_to_gemini_function_parameters(function_definition: d
     del function_definition["type"]
     if "properties" in function_definition:
         for key in function_definition["properties"]:
-            function_definition["properties"][key] = oai_function_parameters_to_gemini_function_parameters(function_definition["properties"][key])
+            function_definition["properties"][key] = oai_function_parameters_to_gemini_function_parameters(
+                function_definition["properties"][key]
+            )
     if "items" in function_definition:
-        function_definition["items"] = oai_function_parameters_to_gemini_function_parameters(function_definition["items"])
+        function_definition["items"] = oai_function_parameters_to_gemini_function_parameters(
+            function_definition["items"]
+        )
     return function_definition
 
 
@@ -386,10 +411,7 @@ def gemini_content_to_oai_choices(response: Content) -> List[Choice]:
                 ChatCompletionMessageToolCall(
                     id=str(random.randint(0, 1000)),
                     type="function",
-                    function=Function(
-                        name=part.function_call.name,
-                        arguments=json.dumps(arguments)
-                    )
+                    function=Function(name=part.function_call.name, arguments=json.dumps(arguments)),
                 )
             ]
     message = ChatCompletionMessage(role="assistant", content=text, function_call=None, tool_calls=tool_calls)
