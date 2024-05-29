@@ -34,7 +34,7 @@ def gemini_client():
 
 
 # Test compute location initialization and configuration
-@pytest.mark.skipif(skip, reason="Google Cloud project and compute location cannot be set when using an API Key")
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_compute_location_initialization():
     with pytest.raises(AssertionError):
         GeminiClient(

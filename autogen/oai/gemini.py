@@ -96,8 +96,8 @@ class GeminiClient:
         else:
             self.use_vertexai = False
         if not self.use_vertexai:
-            assert ("project_id" in kwargs) or (
-                "location" in kwargs
+            assert ("project_id" not in kwargs) and (
+                "location" not in kwargs
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
 
     def message_retrieval(self, response) -> List:
@@ -125,11 +125,9 @@ class GeminiClient:
         }
 
     def create(self, params: Dict) -> ChatCompletion:
-        if self.api_key is None:
-            self.use_vertexai = True
+        if self.use_vertexai:
             self.initialize_vartexai(**params)
         else:
-            self.use_vertexai = False
             assert ("project_id" not in params) and (
                 "location" not in params
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
@@ -274,9 +272,10 @@ class GeminiClient:
                         rst.append(Part(text=msg["text"]))
                 elif msg["type"] == "image_url":
                     if self.use_vertexai:
-                        img = get_image_data(msg["image_url"]["url"], use_b64=False)
-                        # img = _to_pil(b64_img)
-                        # img_part = VertexAIPart.from_image(img)
+                        img_url = msg["image_url"]["url"]
+                        re.match(r"data:image/(?:png|jpeg);base64,", img_url)
+                        img = get_image_data(img_url, use_b64=False)
+                        # image/png works with jpeg as well
                         img_part = VertexAIPart.from_data(img, mime_type="image/png")
                         rst.append(img_part)
                     else:
