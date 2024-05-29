@@ -419,6 +419,7 @@ jobs:
 
   LlamaIndexAgent:
     runs-on: ${{ matrix.os }}
+    environment: openai1
     strategy:
       fail-fast: false
       matrix:
