@@ -13,11 +13,6 @@ MODALITIES = ["text", "image", "video", "audio"]
 ModalitiesType = Literal["text", "image", "video", "audio"]
 
 
-class ModalAdapter(MessageTransform, Protocol):
-    @property
-    def target_modality(self) -> ModalitiesType: ...
-
-
 class ImageCaptioner(Protocol):
     def caption_image(self, image_url: str) -> str: ...
 
@@ -47,14 +42,14 @@ class ImageAdapter:
         self._caption_template = caption_template
 
     def apply_transform(self, messages: List[Dict], **kwargs) -> List[Dict]:
-        for idx, message in enumerate(messages):
+        for message in messages:
             if not message.get("content") or message["content"] is None:
                 return messages
 
             if not isinstance(message["content"], (list, str)):
                 return messages
 
-            if self.target_modality in kwargs.get("supported_modalities", []):
+            if "image" in kwargs.get("supported_modalities", []):
                 message["content"] = self._convert_tags_to_multimodal_content(message["content"])
 
             else:
@@ -115,10 +110,6 @@ class ImageAdapter:
 
         return content
 
-    @property
-    def target_modality(self) -> ModalitiesType:
-        return "image"
-
 
 class DropUnsupportedModalities:
     def apply_transform(self, messages: List[Dict], **kwargs) -> List[Dict]:
@@ -129,60 +120,15 @@ class DropUnsupportedModalities:
             if message.get("content") is None or isinstance(message["content"], str):
                 continue
 
-            message["content"] = [
-                content for content in message["content"] if content.get("type") in kwargs["supported_modalities"]
-            ]
-
-        return messages
-
-
-class MultimodalityAdapter:
-    def __init__(
-        self,
-        modalities: Sequence[str],
-        modality_adapters: List[ModalAdapter],
-        cache: Optional[AbstractCache] = Cache.disk(),
-    ):
-        self._modalities = set(modalities)
-        self._modality_adapters = modality_adapters
-        self._cache = cache
-
-        if "image" in modalities:
-            self._modalities.add("image_url")
-
-    def add_to_agent(self, agent: ConversableAgent):
-        """Adds the message transformations capability to the specified ConversableAgent.
-
-        This function performs the following modifications to the agent:
-
-        1. Registers a hook that automatically transforms all messages before they are processed for
-            response generation.
-        """
-        agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._convert_modalities)
-
-    def _convert_modalities(self, messages: List[Dict]) -> List[Dict]:
-        translated_messages = copy.deepcopy(messages)
-        system_message = None
-
-        if messages[0]["role"] == "system":
-            system_message = copy.deepcopy(messages[0])
-            translated_messages.pop(0)
-
-        for modal_adapter in self._modality_adapters:
-            translated_messages = modal_adapter.apply_transform(translated_messages)
-
-        translated_messages = self._clean_messages(translated_messages)
-
-        if system_message:
-            translated_messages.insert(0, system_message)
-
-        return translated_messages
-
-    def _clean_messages(self, messages: List[Dict]) -> List[Dict]:
-        for message in messages:
-            if message.get("content") is None or isinstance(message["content"], str):
+            if not isinstance(message["content"], list):
                 continue
 
-            message["content"] = [content for content in message["content"] if content["type"] in self._modalities]
+            new_content = []
+            for item in message["content"]:
+                if isinstance(item, dict):
+                    if item.get("type") in kwargs["supported_modalities"]:
+                        new_content.append(item)
+
+            message["content"] = new_content
 
         return messages
