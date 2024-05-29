@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import warnings
+import traceback
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
@@ -2191,8 +2192,10 @@ class ConversableAgent(LLMAgent):
                 try:
                     content = func(**arguments)
                     is_exec_success = True
-                except Exception as e:
-                    content = f"Error: {e}"
+                except Exception:
+                    # get the traceback of the error
+                    content = traceback.format_exc()
+                    # content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
 
