@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 import openai
 
@@ -23,8 +23,6 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id
-        # TODO: investigate why this is 1, as setting this to 0 causes the earlest message in the window to be ignored.
-        self._current_session_window_length = 1
         self._tools = tools or {}
 
     @message_handler(TextMessage)
@@ -36,31 +34,39 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
             role="user",
             metadata={"sender": message.source},
         )
-        self._current_session_window_length += 1
 
     @message_handler(Reset)
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
-        # Reset the current session window.
-        self._current_session_window_length = 1
+        # Get all messages in this thread.
+        all_msgs: List[str] = []
+        while True:
+            if not all_msgs:
+                msgs = await self._client.beta.threads.messages.list(self._thread_id)
+            else:
+                msgs = await self._client.beta.threads.messages.list(self._thread_id, after=all_msgs[-1])
+            for msg in msgs.data:
+                all_msgs.append(msg.id)
+            if not msgs.has_next_page():
+                break
+        # Delete all the messages.
+        for msg_id in all_msgs:
+            status = await self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
+            assert status.deleted is True
 
     @message_handler(RespondNow)
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
+        # Handle response format.
+
         # Create a run and wait until it finishes.
         run = await self._client.beta.threads.runs.create_and_poll(
             thread_id=self._thread_id,
             assistant_id=self._assistant_id,
-            truncation_strategy={
-                "type": "last_messages",
-                "last_messages": self._current_session_window_length,
-            },
+            response_format=message.response_format,
         )
 
         if run.status != "completed":
             # TODO: handle other statuses.
             raise ValueError(f"Run did not complete successfully: {run}")
-
-        # Increment the current session window length.
-        self._current_session_window_length += 1
 
         # Get the last message from the run.
         response = await self._client.beta.threads.messages.list(self._thread_id, run_id=run.id, order="desc", limit=1)

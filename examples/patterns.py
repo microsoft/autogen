@@ -3,13 +3,12 @@ import asyncio
 import logging
 
 import openai
-from agnext.agent_components.model_client import OpenAI
 from agnext.application_components import (
     SingleThreadedAgentRuntime,
 )
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
-from agnext.chat.patterns.orchestrator import Orchestrator
+from agnext.chat.patterns.orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
 from agnext.core._agent import Agent
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
@@ -38,20 +37,28 @@ class ConcatOutput(GroupChatOutput):
 
 
 class LoggingHandler(DefaultInterventionHandler):
+    send_color = "\033[31m"
+    response_color = "\033[34m"
+    reset_color = "\033[0m"
+
     @override
     async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]:
         if sender is None:
-            print(f"Sending message to {recipient.name}: {message}")
+            print(f"{self.send_color}Sending message to {recipient.name}:{self.reset_color} {message}")
         else:
-            print(f"Sending message from {sender.name} to {recipient.name}: {message}")
+            print(
+                f"{self.send_color}Sending message from {sender.name} to {recipient.name}:{self.reset_color} {message}"
+            )
         return message
 
     @override
     async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:
         if recipient is None:
-            print(f"Received response from {sender.name}: {message}")
+            print(f"{self.response_color}Received response from {sender.name}:{self.reset_color} {message}")
         else:
-            print(f"Received response from {sender.name} to {recipient.name}: {message}")
+            print(
+                f"{self.response_color}Received response from {sender.name} to {recipient.name}:{self.reset_color} {message}"
+            )
         return message
 
 
@@ -131,18 +138,46 @@ async def orchestrator(message: str) -> None:
         thread_id=product_manager_oai_thread.id,
     )
 
-    chat = Orchestrator(
-        "Manager",
-        "A software development team manager.",
-        runtime,
-        [developer, product_manager],
-        model_client=OpenAI(model="gpt-3.5-turbo"),
+    planner_oai_assistant = openai.beta.assistants.create(
+        model="gpt-4-turbo",
+        name="Planner",
+        instructions="You are a planner of complex tasks.",
+    )
+    planner_oai_thread = openai.beta.threads.create()
+    planner = OpenAIAssistantAgent(
+        name="Planner",
+        description="A planner that organizes and schedules tasks.",
+        runtime=runtime,
+        client=openai.AsyncClient(),
+        assistant_id=planner_oai_assistant.id,
+        thread_id=planner_oai_thread.id,
     )
 
-    response = runtime.send_message(
-        TextMessage(content=message, source="customer"),
-        chat,
+    orchestrator_oai_assistant = openai.beta.assistants.create(
+        model="gpt-4-turbo",
+        name="Orchestrator",
+        instructions="You are an orchestrator that coordinates the team to complete a complex task.",
     )
+    orchestrator_oai_thread = openai.beta.threads.create()
+    orchestrator = OpenAIAssistantAgent(
+        name="Orchestrator",
+        description="An orchestrator that coordinates the team.",
+        runtime=runtime,
+        client=openai.AsyncClient(),
+        assistant_id=orchestrator_oai_assistant.id,
+        thread_id=orchestrator_oai_thread.id,
+    )
+
+    chat = OrchestratorChat(
+        "Orchestrator Chat",
+        "A software development team.",
+        runtime,
+        orchestrator=orchestrator,
+        planner=planner,
+        specialists=[developer, product_manager],
+    )
+
+    response = runtime.send_message(TextMessage(content=message, source="Customer"), chat)
 
     while not response.done():
         await runtime.process_next()

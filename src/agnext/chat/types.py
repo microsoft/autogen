@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, Literal, Union
+
+from openai.types.beta import AssistantResponseFormatParam
 
 from agnext.agent_components.image import Image
 from agnext.agent_components.types import FunctionCall
@@ -42,7 +44,9 @@ class FunctionExecutionResultMessage(BaseMessage):
 Message = Union[TextMessage, MultiModalMessage, FunctionCallMessage, FunctionExecutionResultMessage]
 
 
-class RespondNow: ...
+@dataclass
+class RespondNow:
+    response_format: Union[Literal["none", "auto"], AssistantResponseFormatParam] = "auto"
 
 
 class Reset: ...
