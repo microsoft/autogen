@@ -13,11 +13,26 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["openai>=1.3", "pillow", "aiohttp", "typing-extensions"]
+dependencies = [
+    "openai>=1.3",
+    "pillow",
+    "aiohttp",
+    "typing-extensions",
+    "pydantic>=1.10,<3",
+]
 
 [project.optional-dependencies]
-dev = ["ruff==0.4.6", "pyright", "mypy", "pytest", "pytest-asyncio", "types-Pillow"]
-docs = [ "sphinx", "furo", "sphinxcontrib-apidoc"]
+dev = [
+    "ruff==0.4.6",
+    "pyright",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-xdist",
+    "types-Pillow",
+    "polars",
+]
+docs = ["sphinx", "furo", "sphinxcontrib-apidoc"]
 
 [tool.setuptools.package-data]
 agnext = ["py.typed"]
@@ -30,8 +45,12 @@ target-version = "py310"
 include = ["src/**", "examples/**"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "B", "Q", "I"]
+select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
 ignore = ["F401", "E501"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"unittest".msg = "Use `pytest` instead."
 
 [tool.mypy]
 files = ["src", "examples", "tests"]

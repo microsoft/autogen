@@ -1,0 +1,66 @@
+# File based from: https://github.com/microsoft/autogen/blob/main/autogen/coding/base.py
+# Credit to original authors
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Protocol, runtime_checkable
+
+
+@dataclass
+class CodeBlock:
+    """A code block extracted fromm an agent message."""
+
+    code: str
+    language: str
+
+
+@dataclass
+class CodeResult:
+    """Result of a code execution."""
+
+    exit_code: int
+    output: str
+
+
+class CodeExtractor(Protocol):
+    """Extracts code blocks from a message."""
+
+    # TODO support text or multimodal message directly
+    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+        """Extract code blocks from a message.
+
+        Args:
+            message (str): The message to extract code blocks from.
+
+        Returns:
+            List[CodeBlock]: The extracted code blocks.
+        """
+        ...
+
+
+@runtime_checkable
+class CodeExecutor(Protocol):
+    """Executes code blocks and returns the result."""
+
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        """Execute code blocks and return the result.
+
+        This method should be implemented by the code executor.
+
+        Args:
+            code_blocks (List[CodeBlock]): The code blocks to execute.
+
+        Returns:
+            CodeResult: The result of the code execution.
+        """
+        ...
+
+    def restart(self) -> None:
+        """Restart the code executor.
+
+        This method should be implemented by the code executor.
+
+        This method is called when the agent is reset.
+        """
+        ...
