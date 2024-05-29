@@ -121,7 +121,7 @@ class DirectorySvc:
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
         if self._no_other_directory():
             self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
-            self._directory_actor.start(self._context)
+            self._directory_actor.on_start(self._context)
             Info("DirectorySvc", "Directory service started.")
         else:
             Info("DirectorySvc", "Another directory service is running. This instance will not start.")
