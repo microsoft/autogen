@@ -11,8 +11,6 @@ from .DebugLog import Debug, Warn
 from .DirectorySvc import DirectorySvc
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
 
-# TODO: remove time import
-
 
 class ComponentEnsemble:
     def __init__(self, name: str = "Local Actor Network", start_broker: bool = True):
@@ -43,7 +41,7 @@ class ComponentEnsemble:
         # that we can look up the actor by name
         self._directory_svc.register_actor_by_name(actor.actor_name)
         self.local_actors[actor.actor_name] = actor
-        actor.start(self._context)
+        actor.on_start(self._context)
         Debug("Local_Actor_Network", f"{actor.actor_name} registered in the network.")
 
     def connect(self):
