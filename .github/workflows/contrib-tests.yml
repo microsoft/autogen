@@ -461,7 +461,7 @@ jobs:
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for LlamaIndexConverableAgent
         run: |
           pip install -e .
