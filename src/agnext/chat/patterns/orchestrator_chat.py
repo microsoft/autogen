@@ -4,7 +4,7 @@ from typing import Any, Sequence, Tuple
 from ...agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
-from ..types import Reset, RespondNow, TextMessage
+from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
 
 class OrchestratorChat(BaseChatAgent, TypeRoutedAgent):
@@ -140,7 +140,11 @@ Some additional points to consider:
                 # Update all other agents with the speaker's response.
                 for agent in [agent for agent in self._specialists if agent != speaker] + [self._orchestrator]:
                     self._send_message(
-                        TextMessage(content=speaker_response.content, source=speaker_response.source), agent
+                        TextMessage(
+                            content=speaker_response.content,
+                            source=speaker_response.source,
+                        ),
+                        agent,
                     )
 
                 # Increment the total turns.
@@ -255,7 +259,7 @@ Please output an answer in pure JSON format according to the following schema. T
         self._send_message(TextMessage(content=step_prompt, source=sender), self._orchestrator)
         # Request a response.
         step_response = await self._send_message(
-            RespondNow(response_format={"type": "json_object"}), self._orchestrator
+            RespondNow(response_format=ResponseFormat.json_object), self._orchestrator
         )
         # TODO: handle invalid JSON.
         # TODO: use typed dictionary.
@@ -293,7 +297,7 @@ Please output an answer in pure JSON format according to the following schema. T
         self._send_message(TextMessage(content=educated_guess_promt, source=sender), self._orchestrator)
         # Request a response.
         educated_guess_response = await self._send_message(
-            RespondNow(response_format={"type": "json_object"}), self._orchestrator
+            RespondNow(response_format=ResponseFormat.json_object), self._orchestrator
         )
         # TODO: handle invalid JSON.
         # TODO: use typed dictionary.

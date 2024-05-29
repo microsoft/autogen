@@ -1,10 +1,11 @@
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List, Mapping
 
 import openai
+from openai.types.beta import AssistantResponseFormatParam
 
 from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.chat.agents.base import BaseChatAgent
-from agnext.chat.types import Reset, RespondNow, TextMessage
+from agnext.chat.types import Reset, RespondNow, ResponseFormat, TextMessage
 from agnext.core import AgentRuntime, CancellationToken
 
 
@@ -56,12 +57,16 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
     @message_handler(RespondNow)
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
         # Handle response format.
+        if message.response_format == ResponseFormat.json_object:
+            response_format = AssistantResponseFormatParam(type="json_object")
+        else:
+            response_format = AssistantResponseFormatParam(type="text")
 
         # Create a run and wait until it finishes.
         run = await self._client.beta.threads.runs.create_and_poll(
             thread_id=self._thread_id,
             assistant_id=self._assistant_id,
-            response_format=message.response_format,
+            response_format=response_format,
         )
 
         if run.status != "completed":
@@ -79,3 +84,15 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
 
         # TODO: handle multiple text content.
         return TextMessage(content=text_content[0].text.value, source=self.name)
+
+    def save_state(self) -> Mapping[str, Any]:
+        return {
+            "description": self.description,
+            "assistant_id": self._assistant_id,
+            "thread_id": self._thread_id,
+        }
+
+    def load_state(self, state: Mapping[str, Any]) -> None:
+        self._description = state["description"]
+        self._assistant_id = state["assistant_id"]
+        self._thread_id = state["thread_id"]

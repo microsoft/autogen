@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Literal, Union
-
-from openai.types.beta import AssistantResponseFormatParam
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import List, Union
 
 from agnext.agent_components.image import Image
 from agnext.agent_components.types import FunctionCall
@@ -44,9 +43,14 @@ class FunctionExecutionResultMessage(BaseMessage):
 Message = Union[TextMessage, MultiModalMessage, FunctionCallMessage, FunctionExecutionResultMessage]
 
 
+class ResponseFormat(Enum):
+    text = "text"
+    json_object = "json_object"
+
+
 @dataclass
 class RespondNow:
-    response_format: Union[Literal["none", "auto"], AssistantResponseFormatParam] = "auto"
+    response_format: ResponseFormat = field(default=ResponseFormat.text)
 
 
 class Reset: ...

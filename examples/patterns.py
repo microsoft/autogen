@@ -3,14 +3,17 @@ import asyncio
 import logging
 
 import openai
+from agnext.agent_components.types import SystemMessage
 from agnext.application_components import (
     SingleThreadedAgentRuntime,
 )
+from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
 from agnext.chat.patterns.orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
 from agnext.core._agent import Agent
+from agnext.agent_components.model_client import OpenAI
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
 from typing_extensions import Any, override
 
@@ -95,7 +98,14 @@ async def group_chat(message: str) -> None:
         thread_id=cathy_oai_thread.id,
     )
 
-    chat = GroupChat("Host", "A round-robin chat room.", runtime, [joe, cathy], num_rounds=5, output=ConcatOutput())
+    chat = GroupChat(
+        "Host",
+        "A round-robin chat room.",
+        runtime,
+        [joe, cathy],
+        num_rounds=5,
+        output=ConcatOutput(),
+    )
 
     response = runtime.send_message(TextMessage(content=message, source="host"), chat)
 
@@ -105,7 +115,7 @@ async def group_chat(message: str) -> None:
     await response
 
 
-async def orchestrator(message: str) -> None:
+async def orchestrator_oai_assistant(message: str) -> None:
     runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
 
     developer_oai_assistant = openai.beta.assistants.create(
@@ -169,7 +179,63 @@ async def orchestrator(message: str) -> None:
     )
 
     chat = OrchestratorChat(
-        "Orchestrator Chat",
+        "OrchestratorChat",
+        "A software development team.",
+        runtime,
+        orchestrator=orchestrator,
+        planner=planner,
+        specialists=[developer, product_manager],
+    )
+
+    response = runtime.send_message(TextMessage(content=message, source="Customer"), chat)
+
+    while not response.done():
+        await runtime.process_next()
+
+    print((await response).content)  # type: ignore
+
+
+async def orchestrator_chat_completion(message: str) -> None:
+    runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
+
+    developer = ChatCompletionAgent(
+        name="Developer",
+        description="A developer that writes code.",
+        runtime=runtime,
+        system_messages=[SystemMessage("You are a Python developer.")],
+        model_client=OpenAI(model="gpt-3.5-turbo"),
+    )
+
+    product_manager = ChatCompletionAgent(
+        name="ProductManager",
+        description="A product manager that plans and comes up with specs.",
+        runtime=runtime,
+        system_messages=[
+            SystemMessage("You are a product manager good at translating customer needs into software specifications.")
+        ],
+        model_client=OpenAI(model="gpt-3.5-turbo"),
+    )
+
+    planner = ChatCompletionAgent(
+        name="Planner",
+        description="A planner that organizes and schedules tasks.",
+        runtime=runtime,
+        system_messages=[SystemMessage("You are a planner of complex tasks.")],
+        model_client=OpenAI(model="gpt-4-turbo"),
+    )
+
+    orchestrator = ChatCompletionAgent(
+        name="Orchestrator",
+        description="An orchestrator that coordinates the team.",
+        runtime=runtime,
+        system_messages=[
+            SystemMessage("You are an orchestrator that coordinates the team to complete a complex task.")
+        ],
+        model_client=OpenAI(model="gpt-4-turbo"),
+    )
+
+    chat = OrchestratorChat(
+        "OrchestratorChat",
         "A software development team.",
         runtime,
         orchestrator=orchestrator,
@@ -187,18 +253,16 @@ async def orchestrator(message: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a pattern demo.")
-    chocies = ["group_chat", "orchestrator"]
+    choices = {
+        "group_chat": group_chat,
+        "orchestrator_oai_assistant": orchestrator_oai_assistant,
+        "orchestrator_chat_completion": orchestrator_chat_completion,
+    }
     parser.add_argument(
         "--pattern",
-        choices=chocies,
+        choices=list(choices.keys()),
         help="The pattern to demo.",
     )
     parser.add_argument("--message", help="The message to send.")
     args = parser.parse_args()
-
-    if args.pattern == "group_chat":
-        asyncio.run(group_chat(args.message))
-    elif args.pattern == "orchestrator":
-        asyncio.run(orchestrator(args.message))
-    else:
-        raise ValueError(f"Invalid pattern: {args.pattern}")
+    asyncio.run(choices[args.pattern](args.message))
