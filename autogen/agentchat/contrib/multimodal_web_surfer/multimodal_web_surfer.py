@@ -25,7 +25,7 @@ except ImportError:
         return x
 
 
-# Sentinels for constructor
+# Sentinels for constructor.
 DEFAULT_CHANNEL = object()
 
 # Viewport dimensions
