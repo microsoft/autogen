@@ -230,8 +230,6 @@ Based on the team composition, and known and unknown facts, please devise a shor
             self.orchestrated_messages = []
             for a in self._agents:
                 a.reset()
-                if total_turns > 0: # Raise the temperature with each outer loop
-                    self._temperature_bonus += 0.5
 
             self.orchestrated_messages.append(
                 {
@@ -385,6 +383,8 @@ Please output an answer in pure JSON format according to the following schema. T
                     stalled_count += 1
 
                 if stalled_count >= 3:
+                    self._temperature_bonus += 0.5 # Be more creative.
+
                     self._print_thought("We aren't making progress. Let's reset.")
                     new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).
 
