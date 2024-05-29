@@ -105,6 +105,7 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     assert all(len(arr) <= max_round for arr in trip_assistant.values()), "Agent 1 exceeded max rounds"
     assert all(len(arr) <= max_round for arr in user_proxy._oai_messages.values()), "User proxy exceeded max rounds"
 
+
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
     test_group_chat_with_llama_index_conversable_agent()
