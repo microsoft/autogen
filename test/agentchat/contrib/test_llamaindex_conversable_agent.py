@@ -1,5 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
+import os
+import sys
 import unittest
 
 import pytest
@@ -8,6 +10,9 @@ from conftest import MOCK_OPEN_AI_API_KEY
 from autogen import GroupChat, GroupChatManager
 from autogen.agentchat.contrib.llamaindex_conversable_agent import LLamaIndexConversableAgent
 from autogen.agentchat.conversable_agent import ConversableAgent
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import reason, skip_openai
 
 try:
     from llama_index.core import Settings
@@ -22,20 +27,29 @@ except ImportError:
 else:
     skip = False
 
+openaiKey = os.environ.get("OPENAPI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
-@pytest.mark.skipif(skip, reason="dependency is not installed")
+if openaiKey == MOCK_OPEN_AI_API_KEY:
+    skip_key = True
+else:
+    skip_key = False
+
+
+@pytest.mark.skipif(skip_key, reason="using mock openai key")
+@pytest.mark.skipif(skip_openai, reason=reason)
+@pytest.mark.skipif(skip, reason="dependency is not installed or openai key not found")
 class TestLLamaIndexConversableAgent(unittest.TestCase):
     def setUp(self):
         llm = OpenAI(
             model="gpt-3.5-turbo-0125",
             temperature=0.0,
-            api_key=MOCK_OPEN_AI_API_KEY,
+            api_key=openaiKey,
         )
 
         embed_model = OpenAIEmbedding(
             model="text-embedding-ada-002",
             temperature=0.0,
-            api_key=MOCK_OPEN_AI_API_KEY,
+            api_key=openaiKey,
         )
 
         Settings.llm = llm
