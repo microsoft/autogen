@@ -26,7 +26,7 @@ try:
     from llama_index.tools.wikipedia import WikipediaToolSpec
 except ImportError:
     skip_for_dependencies = True
-    skip_reasons.append("llama_index is not installed")
+    skip_reasons.append(f"dependency not installed: {ImportError.msg}")
 else:
     skip_for_dependencies = False
 
