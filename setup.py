@@ -26,8 +26,7 @@ install_requires = [
     "numpy>=1.17.0,<2",
     "python-dotenv",
     "tiktoken",
-    # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
-    "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
+    "pydantic>=1.10,<3",  # could be both V1 and V2
     "docker",
     "packaging",
 ]
