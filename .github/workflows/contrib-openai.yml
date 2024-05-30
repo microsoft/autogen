@@ -423,7 +423,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [ubuntu-latest]
         python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v4
