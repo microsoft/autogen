@@ -18,11 +18,13 @@ skip_reasons = [reason]
 try:
     from llama_index.core.agent import ReActAgent
     from llama_index.llms.openai import OpenAI
-except ImportError:
-    skip_for_dependencies = True
-    skip_reasons.append(f"dependency not installed: {ImportError.msg}")
-else:
+
     skip_for_dependencies = False
+except ImportError as e:
+    skip_for_dependencies = True
+    skip_reasons.append(f"dependency not installed: {e.msg}")
+    pass
+
 
 openaiKey = os.environ.get("OPENAI_API_KEY", "")
 
@@ -34,6 +36,9 @@ else:
 
 skip = skip_openai or skip_for_dependencies or skip_for_key
 skip_reason = ", ".join(skip_reasons)
+
+if skip:
+    print(f"Skipping test: {skip_reason}")
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)

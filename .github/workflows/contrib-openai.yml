@@ -442,7 +442,7 @@ jobs:
           pip install llama-index-llms-openai
       - name: Coverage
         run: |
-          pytest test/agentchat/contrib/test_llamaindex_conversable_agent.py
+          pytest test/agentchat/contrib/test_llamaindex_conversable_agent.py -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
