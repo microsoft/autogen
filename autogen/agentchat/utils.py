@@ -1,3 +1,4 @@
+import copy
 import re
 from typing import Any, Callable, Dict, List, Union
 
@@ -96,7 +97,7 @@ def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str,
     }
 
 
-def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Dict[str, str]]]:
+def parse_tags_from_content(tag: str, content: Union[str, List[Union[Dict, str]]]) -> List[Dict[str, Dict[str, str]]]:
     """Parses HTML style tags from message contents.
 
     The parsing is done by looking for patterns in the text that match the format of HTML tags. The tag to be parsed is
@@ -128,8 +129,11 @@ def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]])
     # Handles case for multimodal messages.
     elif isinstance(content, list):
         for item in content:
-            if item.get("type") == "text":
-                results.extend(_parse_tags_from_text(tag, item["text"]))
+            if isinstance(item, str):
+                results.extend(_parse_tags_from_text(tag, item))
+            else:
+                if item.get("type") == "text":
+                    results.extend(_parse_tags_from_text(tag, item["text"]))
     else:
         raise ValueError(f"content must be str or list, but got {type(content)}")
 
@@ -172,6 +176,29 @@ def _parse_attributes_from_tags(tag_content: str):
             _append_src_value(content, attr)
 
     return content
+
+
+def replace_tag_in_content(
+    tag: Dict[str, Any], content: Union[List[Union[Dict, str]], str], replacement_text: str
+) -> Union[List[Union[Dict, str]], str]:
+    content = copy.deepcopy(content)
+    if isinstance(content, List):
+        return _multimodal_replace_tag_in_content(content, tag, replacement_text)
+    else:
+        return content.replace(tag["match"].group(), replacement_text)
+
+
+def _multimodal_replace_tag_in_content(
+    content: List[Union[Dict, str]], tag: Dict[str, Any], replacement_text: str
+) -> List[Union[Dict, str]]:
+    modified_content = []
+    for item in content:
+        if isinstance(item, str):
+            modified_content.append(item.replace(tag["match"].group(), replacement_text))
+        else:
+            item["text"] = item["text"].replace(tag["match"].group(), replacement_text)
+            modified_content.append(item)
+    return modified_content
 
 
 def _reconstruct_attributes(attrs: List[str]) -> List[str]:

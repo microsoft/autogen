@@ -7,7 +7,7 @@ import logging
 import re
 import warnings
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
 
 from openai import BadRequestError
 
@@ -158,10 +158,6 @@ class ConversableAgent(LLMAgent):
 
         self._validate_llm_config(llm_config)
 
-        self._supported_modalities = (
-            self.llm_config.get("supported_modalities", ["text"]) if self.llm_config else ["text"]
-        )
-
         if logging_enabled():
             log_new_agent(self, locals())
 
@@ -287,11 +283,6 @@ class ConversableAgent(LLMAgent):
         if not hasattr(self, "_code_executor"):
             return None
         return self._code_executor
-
-    @property
-    def supported_modalities(self) -> Sequence[str]:
-        """Get the supported modalities of the agent."""
-        return self._supported_modalities
 
     def register_reply(
         self,

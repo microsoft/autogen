@@ -20,7 +20,7 @@ class MessageTransform(Protocol):
     that takes a list of messages and returns the transformed list.
     """
 
-    def apply_transform(self, messages: List[Dict], **kwargs) -> List[Dict]:
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies a transformation to a list of messages.
 
         Args:

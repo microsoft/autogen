@@ -61,7 +61,6 @@ class TransformMessages:
             response generation.
         """
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
-        self._supported_modalities = agent.supported_modalities
 
     def _transform_messages(self, messages: List[Dict], **kwargs) -> List[Dict]:
         post_transform_messages = copy.deepcopy(messages)
@@ -76,9 +75,7 @@ class TransformMessages:
             pre_transform_messages = (
                 copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
             )
-            post_transform_messages = transform.apply_transform(
-                pre_transform_messages, supported_modalities=self._supported_modalities
-            )
+            post_transform_messages = transform.apply_transform(pre_transform_messages)
 
             if self._verbose:
                 logs_str, had_effect = transform.get_logs(pre_transform_messages, post_transform_messages)

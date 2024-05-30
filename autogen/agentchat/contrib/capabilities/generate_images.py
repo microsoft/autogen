@@ -147,6 +147,7 @@ class ImageGeneration(AgentCapability):
         text_analyzer_instructions: str = PROMPT_INSTRUCTIONS,
         verbosity: int = 0,
         register_reply_position: int = 2,
+        output_prompt_template: str = "I generated an image with the prompt: {prompt}",
     ):
         """
         Args:
@@ -165,6 +166,7 @@ class ImageGeneration(AgentCapability):
             register_reply_position (int): The position of the reply function in the agent's list of reply functions.
                 This capability registers a new reply function to handle messages with image generation requests.
                 Defaults to 2 to place it after the check termination and human reply for a ConversableAgent.
+            output_prompt_template (str): The template for the output prompt.
         """
         self._image_generator = image_generator
         self._cache = cache
@@ -172,6 +174,7 @@ class ImageGeneration(AgentCapability):
         self._text_analyzer_instructions = text_analyzer_instructions
         self._verbosity = verbosity
         self._register_reply_position = register_reply_position
+        self._output_prompt_template = output_prompt_template
 
         self._agent: Optional[ConversableAgent] = None
         self._text_analyzer: Optional[TextAnalyzerAgent] = None
@@ -271,7 +274,7 @@ class ImageGeneration(AgentCapability):
     def _generate_content_message(self, prompt: str, image: Image) -> Dict[str, Any]:
         return {
             "content": [
-                {"type": "text", "text": f"I generated an image with the prompt: {prompt}"},
+                {"type": "text", "text": self._output_prompt_template.format(prompt=prompt)},
                 {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
             ]
         }
