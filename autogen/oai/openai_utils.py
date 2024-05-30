@@ -6,9 +6,8 @@ import re
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-import yaml
 from dotenv import find_dotenv, load_dotenv
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
@@ -64,6 +63,16 @@ OAI_PRICE1K = {
     "gpt-35-turbo-16k": (0.003, 0.004),
     "gpt-35-turbo-16k-0613": (0.003, 0.004),
 }
+
+
+def load_yaml_json(env_or_file: Union[str, bytes]) -> dict:
+    try:
+        import yaml
+
+        load_func = yaml.safe_load(env_or_file)
+    except ImportError:
+        load_func = json.loads(env_or_file)
+    return load_func
 
 
 def get_key(config: Dict[str, Any]) -> str:
@@ -475,7 +484,7 @@ def config_list_from_json(
 
     Args:
         env_or_file (str): The name of the environment variable, the filename, or the environment variable of the filename
-            that containing the JSON/YAML data.
+            that containing the JSON/YAML data; if you want to load from a yaml file, you need to do `pip install pyyaml`.
         file_location (str, optional): The directory path where the file is located, if `env_or_file` is a filename.
         filter_dict (dict, optional): A dictionary specifying the filtering criteria for the configurations, with
             keys representing field names and values being lists or sets of acceptable values for those fields.
@@ -525,7 +534,7 @@ def config_list_from_json(
         else:
             # Else, it should be a JSON string by itself.
             json_or_yaml_str = env_str
-        config_list = yaml.safe_load(json_or_yaml_str)
+        config_list = load_yaml_json(json_or_yaml_str)
     else:
         # The environment variable does not exist.
         # So, `env_or_file` is a filename. We should use the file location.
@@ -535,7 +544,7 @@ def config_list_from_json(
             config_list_path = env_or_file
 
         with open(config_list_path) as json_file:
-            config_list = yaml.safe_load(json_file)
+            config_list = load_yaml_json(json_file)
     return filter_config(config_list, filter_dict)
 
 
