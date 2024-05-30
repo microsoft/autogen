@@ -20,13 +20,13 @@ TOOL_WEB_SEARCH = {
     "type": "function",
     "function": {
         "name": "web_search",
-        "description": "Navigates to Bing.com, and performs a web search with the given query.",
+        "description": "Performs a web search on Bing.com with the given query.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The web search query to perform on Bing.com",
+                    "description": "The web search query to use.",
                 },
             },
             "required": ["query"],
@@ -38,7 +38,7 @@ TOOL_HISTORY_BACK = {
     "type": "function",
     "function": {
         "name": "history_back",
-        "description": "Navigates back one page in the browser's hisotry. This is equivalent to clicking the browser back button.",
+        "description": "Navigates back one page in the browser's history. This is equivalent to clicking the browser back button.",
         "parameters": {
             "type": "object",
             "properties": {},

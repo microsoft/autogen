@@ -284,7 +284,11 @@ setInterval(function() {{
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
         # What tools are available?
-        tools = [ TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_CLICK, TOOL_TYPE ]
+        tools = [ TOOL_VISIT_URL, TOOL_HISTORY_BACK, TOOL_CLICK, TOOL_TYPE ]
+
+        # Can we reach Bing to search?
+        if self._navigation_allow_list("https://www.bing.com/"):
+            tools.append( TOOL_WEB_SEARCH )
 
         # We can scroll up
         if viewport["pageTop"] > 5:
@@ -356,85 +360,90 @@ You are to respond to the user's most recent request by selecting an appropriate
         message = response.choices[0].message
 
         action_description = ""
-        if message.tool_calls:
-            # We will only call one tool
-            name = message.tool_calls[0].function.name
-            args = json.loads(message.tool_calls[0].function.arguments)
-            self._log_to_console(fname=name, args=args)
+        try:
+            if message.tool_calls:
+                # We will only call one tool
+                name = message.tool_calls[0].function.name
+                args = json.loads(message.tool_calls[0].function.arguments)
+                self._log_to_console(fname=name, args=args)
 
-            if name == "visit_url":
-                url = args.get("url")
-                action_description = f"I typed '{url}' into the browser address bar."
-                # Check if the argument starts with a known protocol
-                if url.startswith(("https://", "http://", "file://", "about:")):
-                    self._visit_page(url)
-                # If the argument contains a space, treat it as a search query
-                elif " " in argument:
-                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
-                # Otherwise, prefix with https://
-                else:
-                    self._visit_page("https://" + url)
+                if name == "visit_url":
+                    url = args.get("url")
+                    action_description = f"I typed '{url}' into the browser address bar."
+                    # Check if the argument starts with a known protocol
+                    if url.startswith(("https://", "http://", "file://", "about:")):
+                        self._visit_page(url)
+                    # If the argument contains a space, treat it as a search query
+                    elif " " in argument:
+                        self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
+                    # Otherwise, prefix with https://
+                    else:
+                        self._visit_page("https://" + url)
 
-            elif name == "history_back":
-                action_description = "I clicked the browser back button."
-                self._back()
+                elif name == "history_back":
+                    action_description = "I clicked the browser back button."
+                    self._back()
 
-            elif name == "web_search":
-                query = args.get("query")
-                action_description = f"I typed '{query}' into the browser search bar."
-                self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+                elif name == "web_search":
+                    query = args.get("query")
+                    action_description = f"I typed '{query}' into the browser search bar."
+                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
             
-            elif name == "page_up":
-                action_description = "I scrolled up one page in the browser."
-                self._page_up()
+                elif name == "page_up":
+                    action_description = "I scrolled up one page in the browser."
+                    self._page_up()
 
-            elif name == "page_down": 
-                action_description = "I scrolled down one page in the browser."
-                self._page_down()
+                elif name == "page_down": 
+                    action_description = "I scrolled down one page in the browser."
+                    self._page_down()
 
-            elif name == "click":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-                if target_name:
-                    action_description = f"I clicked '{target_name}'."
+                elif name == "click":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+                    if target_name:
+                        action_description = f"I clicked '{target_name}'."
+                    else:
+                        action_description = "I clicked the control."
+                    self._click_id(target_id)
+
+                elif name == "input_text":
+                    input_field_id = str(args.get("input_field_id"))
+                    text_value = str(args.get("text_value"))
+                    input_field_name = self._target_name(input_field_id, rects)
+                    if input_field_name:
+                        action_description = f"I typed '{text_value}' into '{input_field_name}'."
+                    else:
+                        action_description = f"I input '{text_value}'."
+                    self._fill_id(input_field_id, text_value)
+
+                elif name == "scroll_element_up":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+
+                    if target_name:
+                        action_description = f"I scrolled '{target_name}' up."
+                    else:
+                        action_description = "I scrolled the control up."
+
+                    self._scroll_id(target_id, "up")
+
+                elif name == "scroll_element_down":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+
+                    if target_name:
+                        action_description = f"I scrolled '{target_name}' down."
+                    else:
+                        action_description = "I scrolled the control down."
+
+                    self._scroll_id(target_id, "down")
                 else:
-                    action_description = "I clicked the control."
-                self._click_id(target_id)
-
-            elif name == "input_text":
-                input_field_id = str(args.get("input_field_id"))
-                text_value = str(args.get("text_value"))
-                input_field_name = self._target_name(input_field_id, rects)
-                if input_field_name:
-                    action_description = f"I typed '{text_value}' into '{input_field_name}'."
-                else:
-                    action_description = f"I input '{text_value}'."
-                self._fill_id(input_field_id, text_value)
-
-            elif name == "scroll_element_up":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' up."
-                else:
-                    action_description = "I scrolled the control up."
-
-                self._scroll_id(target_id, "up")
-
-            elif name == "scroll_element_down":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' down."
-                else:
-                    action_description = "I scrolled the control down."
-
-                self._scroll_id(target_id, "down")
-            else:
-                log_event(self, "Unknown tool", error=name)
-                raise ValueError("Unknown tool '" + name +"'")
+                    log_event(self, "Unknown tool", error=name)
+                    raise ValueError("Unknown tool '" + name +"'")
+        except ValueError as e:
+            if logging_enabled():
+                log_event(self, "ValueError", error=str(e))
+            return True, str(e)
 
         self._page.wait_for_load_state()
         time.sleep(1)
