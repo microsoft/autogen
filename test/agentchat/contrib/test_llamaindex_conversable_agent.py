@@ -17,7 +17,6 @@ from conftest import reason, skip_openai
 
 skip_reasons = [reason]
 try:
-    from llama_index.agent.openai import OpenAIAgent
     from llama_index.core import Settings
     from llama_index.core.agent import ReActAgent
     from llama_index.core.agent.runner.base import AgentRunner
@@ -50,7 +49,7 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     Each agent is set to describe an image in a unique style, but the chat should not exceed the specified max_rounds.
     """
     llm = OpenAI(
-        model="gpt-3.5-turbo-0125",
+        model="gpt-4",
         temperature=0.0,
         api_key=openaiKey,
     )
@@ -64,8 +63,8 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     Settings.llm = llm
     Settings.embed_model = embed_model
 
-    location_specialist = ReActAgent.from_tools(llm=llm, max_iterations=30)
-    entertainent_specialist = ReActAgent.from_tools(llm=llm, max_iterations=30)
+    location_specialist = ReActAgent.from_tools(llm=llm, max_iterations=5)
+    entertainent_specialist = ReActAgent.from_tools(llm=llm, max_iterations=5)
 
     # create an autogen agent using the react agent
     trip_assistant = LLamaIndexConversableAgent(
@@ -89,7 +88,7 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     user_proxy = ConversableAgent(
         "customer",
         description="This the customer trying to find information about Tokyo.",
-        human_input_mode="ALWAYS",
+        human_input_mode="NEVER",  # Options: 'ALWAYS' or 'NEVER'
     )
 
     group_chat = GroupChat(
@@ -113,6 +112,7 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
 
     # Assertions to check if the number of rounds does not exceed max_round
     assert all(len(arr) <= max_round for arr in trip_assistant.values()), "Agent 1 exceeded max rounds"
+    assert all(len(arr) <= max_round for arr in entertainent_assistant.values()), "Agent 2 exceeded max rounds"
     assert all(len(arr) <= max_round for arr in user_proxy._oai_messages.values()), "User proxy exceeded max rounds"
 
 
