@@ -31,7 +31,7 @@ class ImageModality:
         self._agent_has_image_modality = agent_has_image_modality
 
         drop_unsupported_transform = _drop_unsupported_factory(
-            _unsupported_agent_modalities=["image"] if not agent_has_image_modality else None,
+            unsupported_agent_modalities=["image"] if not agent_has_image_modality else None,
             modalities_alias=MODALITIES_ALIAS,
         )
 
@@ -175,7 +175,7 @@ class DropUnsupportedModalities:
 
 
 def _drop_unsupported_factory(
-    _unsupported_agent_modalities: Optional[List[ModalitiesType]], modalities_alias: Dict[ModalitiesType, List[str]]
+    unsupported_agent_modalities: Optional[List[ModalitiesType]], modalities_alias: Dict[ModalitiesType, List[str]]
 ) -> DropUnsupportedModalities:
     """
     Determines the supported modalities and returns an instance of DropUnsupportedModalities if necessary.
@@ -187,9 +187,9 @@ def _drop_unsupported_factory(
     Returns:
     - DropUnsupportedModalities instance if any modalities are unsupported, else None.
     """
-    if _unsupported_agent_modalities is not None:
+    if unsupported_agent_modalities is not None:
         supported_modalities: List[ModalitiesType] = [
-            modal for modal in modalities_alias.keys() if modal not in _unsupported_agent_modalities
+            modal for modal in modalities_alias.keys() if modal not in unsupported_agent_modalities
         ]
     else:
         supported_modalities: List[ModalitiesType] = list(modalities_alias.keys())
