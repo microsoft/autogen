@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import reason, skip_openai
 
+skip_reasons = [reason]
 try:
     from llama_index.core import Settings
     from llama_index.core.agent import ReActAgent
@@ -25,20 +26,23 @@ try:
     from llama_index.tools.wikipedia import WikipediaToolSpec
 except ImportError:
     skip_for_dependencies = True
+    skip_reasons.append("llama_index is not installed")
 else:
     skip_for_dependencies = False
 
 openaiKey = os.environ.get("OPENAPI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
 if openaiKey == MOCK_OPEN_AI_API_KEY:
+    skip_reasons.append("openai key not found")
     skip_for_key = True
 else:
     skip_for_key = False
 
+skip = skip_openai or skip_for_dependencies or skip_for_key
+skip_reason = ", ".join(skip_reasons)
 
-@pytest.mark.skipif(skip_for_key, reason="using mock openai key")
-@pytest.mark.skipif(skip_openai, reason=reason)
-@pytest.mark.skipif(skip_for_dependencies, reason="dependency is not installed or openai key not found")
+
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_group_chat_with_llama_index_conversable_agent() -> None:
     """
     Tests the group chat functionality with two MultimodalConversable Agents.
