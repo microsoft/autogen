@@ -16,6 +16,7 @@ from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
+from .tool_definitions import TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_PAGE_UP, TOOL_PAGE_DOWN, TOOL_CLICK, TOOL_TYPE, TOOL_SCROLL_ELEMENT_DOWN, TOOL_SCROLL_ELEMENT_UP
 
 try:
     from termcolor import colored
@@ -25,7 +26,7 @@ except ImportError:
         return x
 
 
-# Sentinels for constructor.
+# Sentinels for constructor
 DEFAULT_CHANNEL = object()
 
 # Viewport dimensions
@@ -249,6 +250,13 @@ setInterval(function() {{
         super().reset()
         self._visit_page(self.start_page)
 
+    def _target_name(self, target, rects):
+        target_name = rects.get(str(target), {}).get("aria-name")
+        if target_name:
+            return target_name.strip()
+        else:
+            return None
+
     def generate_surfer_reply(
         self,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -275,6 +283,17 @@ setInterval(function() {{
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
+        # What tools are available?
+        tools = [ TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_CLICK, TOOL_TYPE ]
+
+        # We can scroll up
+        if viewport["pageTop"] > 5:
+            tools.append( TOOL_PAGE_UP )
+
+        # Can scroll down
+        if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
+            tools.append( TOOL_PAGE_DOWN )
+
         # Focus hint
         focused = self._get_focused_rect_id()
         focused_hint = ""
@@ -292,35 +311,27 @@ setInterval(function() {{
                 + "currently has the input focus.\n"
             )
 
-        # Include all the static elements
-        text_labels = f"""
-  {{ "id": {MARK_ID_BACK}, "aria-role": "button", "html_tag": "button", "actions": ["click"], "name": "browser back button" }},
-  {{ "id": {MARK_ID_ADDRESS_BAR}, "aria-role": "textbox",   "html_tag": "input, type=text", "actions": ["type"],  "name": "browser address input" }},
-  {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},"""
-
-        # We can scroll up
-        if viewport["pageTop"] > 5:
-            text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_up"], "name": "browser scroll up control" }},"""
-
-        # Can scroll down
-        if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_down"], "name": "browser scroll down control" }},"""
-
         # Everything visible
+        text_labels = ""
+        has_scrollable_elements = False
         for r in visible_rects:
             if r in rects:
                 actions = ["'click'"]
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
-                    actions = ["'type'"]
+                    actions = ["'input_text'"]
                 if rects[r]["v-scrollable"]:
-                    actions.append("'scroll_up'")
-                    actions.append("'scroll_down'")
+                    has_scrollable_elements = True
+                    actions.append("'scroll_element_up'")
+                    actions.append("'scroll_element_down'")
                 actions = "[" + ",".join(actions) + "]"
 
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+
+        # If there are scrollable elements, then add the corresponding tools
+        if has_scrollable_elements:
+            tools.append(TOOL_SCROLL_ELEMENT_UP)
+            tools.append(TOOL_SCROLL_ELEMENT_DOWN)
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -329,11 +340,7 @@ Consider the following screenshot of a web browser, which is open to the page '{
 {text_labels}
 ]
 {focused_hint}
-You are to respond to the user's most recent request by selecting a browser action to perform. Please output the appropriate action in the following format:
-
-TARGET:   <id of interactive element>
-ACTION:   <One single action from the element's list of actions>
-ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
+You are to respond to the user's most recent request by selecting an appropriate tool from the provided set of browser tools, or by answering the question directly if possible.
 """.strip()
 
         # Scale the screenshot for the MLM, and close the original
@@ -345,96 +352,89 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         # Add the multimodal message and make the request
         history.append(self._make_mm_message(text_prompt, scaled_screenshot))
         som_screenshot.close()  # Don't do this if messages start accepting PIL images
-        response = self.client.create(messages=history)
-        text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
-
-        target = None
-        target_name = None
-        m = re.search(r"\nTARGET:\s*(.*?)\n", text_response)
-        if m:
-            target = m.group(1).strip()
-
-            # Non-critical. Mainly for pretty logs
-            target_name = rects.get(target, {}).get("aria-name")
-            if target_name:
-                target_name = target_name.strip()
-
-        action = None
-        m = re.search(r"\nACTION:\s*(.*?)\n", text_response)
-        if m:
-            action = m.group(1).strip().lower()
-
-        m = re.search(r"\nARGUMENT:\s*(.*?)\n", text_response)
-        if m:
-            argument = m.group(1).strip()
+        response = self.client.create(messages=history, tools=tools, tool_choice="auto")
+        message = response.choices[0].message
 
         action_description = ""
-        try:
-            if target == str(MARK_ID_ADDRESS_BAR) and argument:
-                action_description = f"I typed '{argument}' into the browser address bar."
-                self._log_to_console("goto", arg=argument)
+        if message.tool_calls:
+            # We will only call one tool
+            name = message.tool_calls[0].function.name
+            args = json.loads(message.tool_calls[0].function.arguments)
+            self._log_to_console(fname=name, args=args)
+
+            if name == "visit_url":
+                url = args.get("url")
+                action_description = f"I typed '{url}' into the browser address bar."
                 # Check if the argument starts with a known protocol
-                if argument.startswith(("https://", "http://", "file://", "about:")):
-                    self._visit_page(argument)
+                if url.startswith(("https://", "http://", "file://", "about:")):
+                    self._visit_page(url)
                 # If the argument contains a space, treat it as a search query
                 elif " " in argument:
-                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
+                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
                 # Otherwise, prefix with https://
                 else:
-                    argument = "https://" + argument
-                    self._visit_page(argument)
-            elif target == str(MARK_ID_BACK):
+                    self._visit_page("https://" + url)
+
+            elif name == "history_back":
                 action_description = "I clicked the browser back button."
-                self._log_to_console("back")
                 self._back()
-            elif target == str(MARK_ID_SEARCH_BAR) and argument:
-                action_description = f"I typed '{argument}' into the browser search bar."
-                self._log_to_console("search", arg=argument)
-                self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-            elif target == str(MARK_ID_PAGE_UP):
-                action_description = "I scrolled up one screen in the browser."
-                self._log_to_console("page_up")
+
+            elif name == "web_search":
+                query = args.get("query")
+                action_description = f"I typed '{query}' into the browser search bar."
+                self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+            
+            elif name == "page_up":
+                action_description = "I scrolled up one page in the browser."
                 self._page_up()
-            elif target == str(MARK_ID_PAGE_DOWN):
-                action_description = "I scrolled down one screen in the browser."
-                self._log_to_console("page_down")
+
+            elif name == "page_down": 
+                action_description = "I scrolled down one page in the browser."
                 self._page_down()
-            elif action == "click":
+
+            elif name == "click":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
                 if target_name:
                     action_description = f"I clicked '{target_name}'."
                 else:
                     action_description = "I clicked the control."
-                self._log_to_console("click", target=target_name if target_name else target)
-                self._click_id(target)
-            elif action == "type":
-                if target_name:
-                    action_description = f"I typed '{argument}' into '{target_name}'."
+                self._click_id(target_id)
+
+            elif name == "input_text":
+                input_field_id = str(args.get("input_field_id"))
+                text_value = str(args.get("text_value"))
+                input_field_name = self._target_name(input_field_id, rects)
+                if input_field_name:
+                    action_description = f"I typed '{text_value}' into '{input_field_name}'."
                 else:
-                    action_description = f"I input '{argument}'."
-                self._log_to_console("type", target=target_name if target_name else target, arg=argument)
-                self._fill_id(target, argument if argument else "")
-            elif action == "scroll_up":
+                    action_description = f"I input '{text_value}'."
+                self._fill_id(input_field_id, text_value)
+
+            elif name == "scroll_element_up":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
+
                 if target_name:
                     action_description = f"I scrolled '{target_name}' up."
                 else:
                     action_description = "I scrolled the control up."
-                self._log_to_console("scroll_up", target=target_name if target_name else target)
-                self._scroll_id(target, "up")
-            elif action == "scroll_down":
+
+                self._scroll_id(target_id, "up")
+
+            elif name == "scroll_element_down":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
+
                 if target_name:
                     action_description = f"I scrolled '{target_name}' down."
                 else:
                     action_description = "I scrolled the control down."
-                self._log_to_console("scroll_down", target=target_name if target_name else target)
-                self._scroll_id(target, "down")
+
+                self._scroll_id(target_id, "down")
             else:
-                self._log_to_console("no_action", target=target_name if target_name else target)
-                # No action
-                return True, text_response
-        except ValueError as e:
-            if logging_enabled():
-                log_event(self, "ValueError", error=str(e))
-            return True, str(e)
+                log_event(self, "Unknown tool", error=name)
+                raise ValueError("Unknown tool '" + name +"'")
 
         self._page.wait_for_load_state()
         time.sleep(1)
@@ -467,7 +467,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             )
         # Return the complete observation
         return True, self._make_mm_message(
-            f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
+            f"{message.content}\n\n{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
             new_screenshot,
         )
 
@@ -540,7 +540,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         except:
             pass
 
-        self._log_to_console("new_tab", arg=title if title else self._page.url)
+        self._log_to_console(fname="new_tab", args={"url": self._page.url})
 
     def _back(self):
         self._page.go_back()
@@ -605,27 +605,21 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         )
 
 
-    def _log_to_console(self, action, target="", arg=""):
+    def _log_to_console(self, fname, args):
+        if fname is None or fname == "":
+            fname = "[unknown]"
+        if args is None:
+            args = {}
 
-        if target is None:
-            target = ""
-        if arg is None:
-            arg = ""
+        _arg_strs= []
+        for a in args:
+            _arg_strs.append(a + "='" +str(args[a]) + "'")
 
-        if logging_enabled():
-            log_event(self, "browser_action", action=action, target=target, arg=arg)
+        # Need to update this
+        #if logging_enabled():
+        #    log_event(self, "browser_action", action=action, target=target, arg=arg)
 
-        if len(target) > 50:
-            target = target[0:47] + "..."
-        if len(arg) > 50:
-            arg = arg[0:47] + "..."
-        log_str = action + "("
-        if target:
-            log_str += '"' + re.sub(r"\s+", " ", target).strip() + '",'
-        if arg:
-            log_str += '"' + re.sub(r"\s+", " ", arg).strip() + '"'
-        log_str = log_str.rstrip(",") + ")"
         print(
-            colored("\n>>>>>>>> BROWSER ACTION " + log_str, "cyan"),
+            colored("\n>>>>>>>> BROWSER ACTION " + fname + "(" + ", ".join(_arg_strs) + ")", "cyan"),
             flush=True,
         )
