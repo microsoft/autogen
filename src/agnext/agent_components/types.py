@@ -18,7 +18,7 @@ class FunctionCall:
 
 
 @dataclass
-class FunctionDefinition:
+class FunctionSignature:
     name: str
     parameters: Dict[str, Any]
     description: str

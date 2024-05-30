@@ -40,8 +40,8 @@ from ..types import (
     AssistantMessage,
     CreateResult,
     FunctionCall,
-    FunctionDefinition,
     FunctionExecutionResultMessage,
+    FunctionSignature,
     LLMMessage,
     RequestUsage,
     SystemMessage,
@@ -250,7 +250,7 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
 
 
 def convert_functions(
-    functions: Sequence[FunctionDefinition],
+    functions: Sequence[FunctionSignature],
 ) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
     for func in functions:
@@ -304,7 +304,7 @@ class BaseOpenAI(ModelClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionDefinition] = [],
+        functions: Sequence[FunctionSignature] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> CreateResult:
@@ -353,7 +353,10 @@ class BaseOpenAI(ModelClient):
 
         if result.usage is not None:
             logger.info(
-                LLMCallEvent(prompt_tokens=result.usage.prompt_tokens, completion_tokens=result.usage.completion_tokens)
+                LLMCallEvent(
+                    prompt_tokens=result.usage.prompt_tokens,
+                    completion_tokens=result.usage.completion_tokens,
+                )
             )
 
         usage = RequestUsage(
@@ -400,7 +403,7 @@ class BaseOpenAI(ModelClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionDefinition] = [],
+        functions: Sequence[FunctionSignature] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

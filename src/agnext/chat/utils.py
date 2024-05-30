@@ -2,8 +2,24 @@ from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
-from agnext.agent_components.types import AssistantMessage, LLMMessage, UserMessage
-from agnext.chat.types import FunctionCallMessage, Message, MultiModalMessage, TextMessage
+from agnext.agent_components.types import (
+    AssistantMessage,
+    LLMMessage,
+    UserMessage,
+)
+from agnext.agent_components.types import (
+    FunctionExecutionResult as FunctionExecutionResultType,
+)
+from agnext.agent_components.types import (
+    FunctionExecutionResultMessage as FunctionExecutionResultMessageType,
+)
+from agnext.chat.types import (
+    FunctionCallMessage,
+    FunctionExecutionResultMessage,
+    Message,
+    MultiModalMessage,
+    TextMessage,
+)
 
 
 def convert_content_message_to_assistant_message(
@@ -20,7 +36,8 @@ def convert_content_message_to_assistant_message(
                 return None
             elif handle_unrepresentable == "try_slice":
                 return AssistantMessage(
-                    content="".join([x for x in message.content if isinstance(x, str)]), source=message.source
+                    content="".join([x for x in message.content if isinstance(x, str)]),
+                    source=message.source,
                 )
 
 
@@ -41,8 +58,21 @@ def convert_content_message_to_user_message(
                 raise NotImplementedError("Sliced function calls not yet implemented")
 
 
+def convert_tool_call_response_message(
+    message: FunctionExecutionResultMessage,
+    handle_unrepresentable: Literal["error", "ignore", "try_slice"] = "error",
+) -> Optional[FunctionExecutionResultMessageType]:
+    match message:
+        case FunctionExecutionResultMessage():
+            return FunctionExecutionResultMessageType(
+                content=[FunctionExecutionResultType(content=x.content, call_id=x.call_id) for x in message.content]
+            )
+
+
 def convert_messages_to_llm_messages(
-    messages: List[Message], self_name: str, handle_unrepresentable: Literal["error", "ignore", "try_slice"] = "error"
+    messages: List[Message],
+    self_name: str,
+    handle_unrepresentable: Literal["error", "ignore", "try_slice"] = "error",
 ) -> List[LLMMessage]:
     result: List[LLMMessage] = []
     for message in messages:
@@ -63,6 +93,10 @@ def convert_messages_to_llm_messages(
                 converted_message_2 = convert_content_message_to_user_message(message, handle_unrepresentable)
                 if converted_message_2 is not None:
                     result.append(converted_message_2)
+            case FunctionExecutionResultMessage(_, source=source) if source == self_name:
+                converted_message_3 = convert_tool_call_response_message(message, handle_unrepresentable)
+                if converted_message_3 is not None:
+                    result.append(converted_message_3)
             case _:
                 raise AssertionError("unreachable")
 

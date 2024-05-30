@@ -6,6 +6,8 @@ from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
+__all__ = ["OrchestratorChat"]
+
 
 class OrchestratorChat(BaseChatAgent, TypeRoutedAgent):
     def __init__(
@@ -255,15 +257,65 @@ Please output an answer in pure JSON format according to the following schema. T
         }}
     }}
 """.strip()
-        # Send a message to the orchestrator.
-        self._send_message(TextMessage(content=step_prompt, source=sender), self._orchestrator)
-        # Request a response.
-        step_response = await self._send_message(
-            RespondNow(response_format=ResponseFormat.json_object), self._orchestrator
-        )
-        # TODO: handle invalid JSON.
-        # TODO: use typed dictionary.
-        return json.loads(step_response.content)
+        request = step_prompt
+        while True:
+            # Send a message to the orchestrator.
+            self._send_message(TextMessage(content=request, source=sender), self._orchestrator)
+            # Request a response.
+            step_response = await self._send_message(
+                RespondNow(response_format=ResponseFormat.json_object),
+                self._orchestrator,
+            )
+            # TODO: use typed dictionary.
+            try:
+                result = json.loads(str(step_response.content))
+            except json.JSONDecodeError as e:
+                request = f"Invalid JSON: {str(e)}"
+                continue
+            if "is_request_satisfied" not in result:
+                request = "Missing key: is_request_satisfied"
+                continue
+            elif (
+                not isinstance(result["is_request_satisfied"], dict)
+                or "answer" not in result["is_request_satisfied"]
+                or "reason" not in result["is_request_satisfied"]
+            ):
+                request = "Invalid value for key: is_request_satisfied, expected 'answer' and 'reason'"
+                continue
+            if "is_progress_being_made" not in result:
+                request = "Missing key: is_progress_being_made"
+                continue
+            elif (
+                not isinstance(result["is_progress_being_made"], dict)
+                or "answer" not in result["is_progress_being_made"]
+                or "reason" not in result["is_progress_being_made"]
+            ):
+                request = "Invalid value for key: is_progress_being_made, expected 'answer' and 'reason'"
+                continue
+            if "next_speaker" not in result:
+                request = "Missing key: next_speaker"
+                continue
+            elif (
+                not isinstance(result["next_speaker"], dict)
+                or "answer" not in result["next_speaker"]
+                or "reason" not in result["next_speaker"]
+            ):
+                request = "Invalid value for key: next_speaker, expected 'answer' and 'reason'"
+                continue
+            elif result["next_speaker"]["answer"] not in names:
+                request = f"Invalid value for key: next_speaker, expected 'answer' in {names}"
+                continue
+            if "instruction_or_question" not in result:
+                request = "Missing key: instruction_or_question"
+                continue
+            elif (
+                not isinstance(result["instruction_or_question"], dict)
+                or "answer" not in result["instruction_or_question"]
+                or "reason" not in result["instruction_or_question"]
+            ):
+                request = "Invalid value for key: instruction_or_question, expected 'answer' and 'reason'"
+                continue
+            return result
 
     async def _rewrite_facts(self, facts: str, sender: str) -> str:
         new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).
@@ -293,15 +345,35 @@ Please output an answer in pure JSON format according to the following schema. T
         }}
     }}
 """.strip()
-        # Send a message to the orchestrator.
-        self._send_message(TextMessage(content=educated_guess_promt, source=sender), self._orchestrator)
-        # Request a response.
-        educated_guess_response = await self._send_message(
-            RespondNow(response_format=ResponseFormat.json_object), self._orchestrator
-        )
-        # TODO: handle invalid JSON.
-        # TODO: use typed dictionary.
-        return json.loads(str(educated_guess_response.content))
+        request = educated_guess_promt
+        while True:
+            # Send a message to the orchestrator.
+            self._send_message(
+                TextMessage(content=request, source=sender),
+                self._orchestrator,
+            )
+            # Request a response.
+            response = await self._send_message(
+                RespondNow(response_format=ResponseFormat.json_object),
+                self._orchestrator,
+            )
+            try:
+                result = json.loads(str(response.content))
+            except json.JSONDecodeError as e:
+                request = f"Invalid JSON: {str(e)}"
+                continue
+            # TODO: use typed dictionary.
+            if "has_educated_guesses" not in result:
+                request = "Missing key: has_educated_guesses"
+                continue
+            if (
+                not isinstance(result["has_educated_guesses"], dict)
+                or "answer" not in result["has_educated_guesses"]
+                or "reason" not in result["has_educated_guesses"]
+            ):
+                request = "Invalid value for key: has_educated_guesses, expected 'answer' and 'reason'"
+                continue
+            return result
 
     async def _rewrite_plan(self, team: str, sender: str) -> str:
         new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.

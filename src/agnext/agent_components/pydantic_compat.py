@@ -1,4 +1,4 @@
-# File based from: https://github.com/microsoft/autogen/blob/main/autogen/_pydantic.py
+# File based from: https://github.com/microsoft/autogen/blob/47f905267245e143562abfb41fcba503a9e1d56d/autogen/_pydantic.py
 # Credit to original authors
 
 
@@ -14,7 +14,9 @@ PYDANTIC_V1 = PYDANTIC_VERSION.startswith("1.")
 
 
 def evaluate_forwardref(
-    value: Any, globalns: dict[str, Any] | None = None, localns: dict[str, Any] | None = None
+    value: Any,
+    globalns: dict[str, Any] | None = None,
+    localns: dict[str, Any] | None = None,
 ) -> Any:
     if PYDANTIC_V1:
         from pydantic.typing import evaluate_forwardref as evaluate_forwardref_internal

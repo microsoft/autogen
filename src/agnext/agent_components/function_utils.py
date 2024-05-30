@@ -1,9 +1,21 @@
-# File based from: https://github.com/microsoft/autogen/blob/main/autogen/function_utils.py
+# File based from: https://github.com/microsoft/autogen/blob/47f905267245e143562abfb41fcba503a9e1d56d/autogen/function_utils.py
 # Credit to original authors
 
 import inspect
 from logging import getLogger
-from typing import Any, Callable, Dict, ForwardRef, List, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    ForwardRef,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal
@@ -74,7 +86,9 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
     return get_typed_annotation(annotation, globalns)
 
 
-def get_param_annotations(typed_signature: inspect.Signature) -> Dict[str, Union[Annotated[Type[Any], str], Type[Any]]]:
+def get_param_annotations(
+    typed_signature: inspect.Signature,
+) -> Dict[str, Union[Annotated[Type[Any], str], Type[Any]]]:
     """Get the type annotations of the parameters of a function
 
     Args:
