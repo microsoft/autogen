@@ -5,7 +5,6 @@ import sys
 import unittest
 
 import pytest
-from conftest import MOCK_OPEN_AI_API_KEY
 
 from autogen import GroupChat, GroupChatManager
 from autogen.agentchat.contrib.llamaindex_conversable_agent import LLamaIndexConversableAgent
@@ -17,11 +16,7 @@ from conftest import reason, skip_openai
 
 skip_reasons = [reason]
 try:
-    from llama_index.core import Settings
     from llama_index.core.agent import ReActAgent
-    from llama_index.core.agent.runner.base import AgentRunner
-    from llama_index.core.chat_engine.types import AgentChatResponse
-    from llama_index.embeddings.openai import OpenAIEmbedding
     from llama_index.llms.openai import OpenAI
 except ImportError:
     skip_for_dependencies = True
@@ -29,9 +24,9 @@ except ImportError:
 else:
     skip_for_dependencies = False
 
-openaiKey = os.environ.get("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+openaiKey = os.environ.get("OPENAI_API_KEY", "")
 
-if openaiKey == MOCK_OPEN_AI_API_KEY:
+if openaiKey == "":
     skip_reasons.append("openai key not found")
     skip_for_key = True
 else:
@@ -53,15 +48,6 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
         temperature=0.0,
         api_key=openaiKey,
     )
-
-    embed_model = OpenAIEmbedding(
-        model="text-embedding-ada-002",
-        temperature=0.0,
-        api_key=openaiKey,
-    )
-
-    Settings.llm = llm
-    Settings.embed_model = embed_model
 
     location_specialist = ReActAgent.from_tools(llm=llm, max_iterations=5)
 
