@@ -23,18 +23,24 @@ class FileSurferAgent(ConversableAgent):
     """
 
     DEFAULT_PROMPT = (
-        """You are a helpful AI assistant with ability to handle files.
+        """You are an AI assistant that can handle tasks that involve files (pdfs,
+ppts, txts, images, etc) .
 
-You can download, read, and navigate files (via the provided functions).
+When given a task, first reflect on the goal and if its already accomplished.
+If its accomplished already, reply with "TERMINATE".
+If not, proceed with the following routine:
 
-In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO THIS ABILITY,
+    When a task requires interacting with files,
+    - check if the chat history contains necessary information
+    - if it doesn't, navigate to the correct file and its content
+    - once relevant information is available, se the information to complete the task.
+    - when task is finished promptly reply with "TERMINATE"
+
+To navigate files use available functions.
+
+YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO THIS ABILITY,
 so help where you can by opening files, navigating pages in the files, and
 reporting what you find.
-
-If you can answer question directly based on the chat history, please do so.
-If you can't use the available functions to navigate to the information you need.
-
-When the task is completed reply with the word "TERMINATE".
 
 Today's date is """
         + datetime.now().date().isoformat()
@@ -208,7 +214,7 @@ page (ctrl+f), or even just scroll up or down in the viewport."""
                 # We are likely going to need to fix this later, but summarize only as many tokens that fit in the buffer
                 limit = 4096
                 try:
-                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
+                    limit = get_max_token_limit(self.llm_config["config_list"][0]["model"])  # type: ignore[index]
                 except ValueError:
                     pass  # limit is unknown
                 except TypeError:
