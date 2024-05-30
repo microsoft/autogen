@@ -50,7 +50,6 @@ class TransformMessages:
         """
         self._transforms = transforms
         self._verbose = verbose
-        self._supported_modalities: Sequence[str] = []
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds the message transformations capability to the specified ConversableAgent.
@@ -62,7 +61,7 @@ class TransformMessages:
         """
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
-    def _transform_messages(self, messages: List[Dict], **kwargs) -> List[Dict]:
+    def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
         post_transform_messages = copy.deepcopy(messages)
         system_message = None
 
