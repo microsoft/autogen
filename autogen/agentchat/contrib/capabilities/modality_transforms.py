@@ -54,9 +54,9 @@ class ImageModality:
                 message["content"] = self._replace_images_with_captions(message["content"])
                 message["content"] = self._replace_tags_with_captions(message["content"])
 
-                if self._drop_unsupported:
-                    # We want to only drop the image types
-                    messages = self._drop_unsupported.apply_transform(messages)
+        if self._drop_unsupported:
+            # We want to only drop the image types
+            messages = self._drop_unsupported.apply_transform(messages)
 
         return messages
 
