@@ -17,13 +17,13 @@ from conftest import reason, skip_openai
 
 skip_reasons = [reason]
 try:
+    from llama_index.agent.openai import OpenAIAgent
     from llama_index.core import Settings
     from llama_index.core.agent import ReActAgent
     from llama_index.core.agent.runner.base import AgentRunner
     from llama_index.core.chat_engine.types import AgentChatResponse
     from llama_index.embeddings.openai import OpenAIEmbedding
     from llama_index.llms.openai import OpenAI
-    from llama_index.tools.wikipedia import WikipediaToolSpec
 except ImportError:
     skip_for_dependencies = True
     skip_reasons.append(f"dependency not installed: {ImportError.msg}")
@@ -64,12 +64,8 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     Settings.llm = llm
     Settings.embed_model = embed_model
 
-    # create a react agent to use wikipedia tool
-    wiki_spec = WikipediaToolSpec()
-    # Get the search wikipedia tool
-    wikipedia_tool = wiki_spec.to_tool_list()[1]
-
-    location_specialist = ReActAgent.from_tools(tools=[wikipedia_tool], llm=llm, max_iterations=30, verbose=True)
+    location_specialist = ReActAgent.from_tools(llm=llm, max_iterations=30)
+    entertainent_specialist = ReActAgent.from_tools(llm=llm, max_iterations=30)
 
     # create an autogen agent using the react agent
     trip_assistant = LLamaIndexConversableAgent(
@@ -77,6 +73,14 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
         llama_index_agent=location_specialist,
         system_message="You help customers finding more about places they would like to visit. You can use external resources to provide more details as you engage with the customer.",
         description="This agents helps customers discover locations to visit, things to do, and other details about a location. It can use external resources to provide more details. This agent helps in finding attractions, history and all that there si to know about a place",
+    )
+
+    # create an autogen agent using the react agent
+    entertainent_assistant = LLamaIndexConversableAgent(
+        "entertainent_specialist",
+        llama_index_agent=entertainent_specialist,
+        system_message="You help customer discovering entartainment opportunities.",
+        description="This agents helps customers discovering entartainment opportunities like venues, musesms, and other places to visit. It can use external resources to provide more details. This agent helps in finding attractions, history and all that there si to know about a place",
     )
 
     llm_config = False
@@ -89,10 +93,11 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
     )
 
     group_chat = GroupChat(
-        agents=[user_proxy, trip_assistant],
+        agents=[user_proxy, trip_assistant, entertainent_assistant],
         messages=[],
         max_round=100,
         send_introductions=False,
+        speaker_selection_method="round_robin",
     )
 
     group_chat_manager = GroupChatManager(

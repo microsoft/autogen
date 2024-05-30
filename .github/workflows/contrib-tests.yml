@@ -465,13 +465,10 @@ jobs:
       - name: Install packages and dependencies for LlamaIndexConverableAgent
         run: |
           pip install -e .
-          pip install llama-index-core
-          pip install llama-index
-          pip install llama-index-llms-openai
-          pip install llama-index-embeddings-openai
-          pip install llama-index-tools-wikipedia
-          pip install llama-index-readers-wikipedia
-          pip install wikipedia
+          pip install llama-index-core==0.10.37
+          pip install llama-index==0.10.37
+          pip install llama-index-llms-openai==0.1.20
+          pip install llama-index-embeddings-openai==0.1.10
       - name: Coverage
         run: |
           pytest test/agentchat/contrib/test_llamaindex_conversable_agent.py --skip-openai

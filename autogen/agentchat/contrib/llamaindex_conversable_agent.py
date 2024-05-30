@@ -1,7 +1,5 @@
 from typing import Dict, List, Optional, Tuple, Union
 
-from llama_index_client import ChatMessage
-
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
 from autogen.agentchat.contrib.vectordb.utils import get_logger
@@ -11,6 +9,7 @@ logger = get_logger(__name__)
 try:
     from llama_index.core.agent.runner.base import AgentRunner
     from llama_index.core.chat_engine.types import AgentChatResponse
+    from llama_index_client import ChatMessage
 except ImportError as e:
     logger.fatal("Failed to import llama-index. Try running 'pip install llama-index'")
     raise e
