@@ -30,7 +30,7 @@ except ImportError:
 else:
     skip_for_dependencies = False
 
-openaiKey = os.environ.get("OPENAPI_API_KEY", MOCK_OPEN_AI_API_KEY)
+openaiKey = os.environ.get("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
 if openaiKey == MOCK_OPEN_AI_API_KEY:
     skip_reasons.append("openai key not found")
