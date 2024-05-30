@@ -68,7 +68,7 @@ public partial class TwoAgentTest
                 else
                 {
                     // terminate message
-                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE);
+                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE);
                 }
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>

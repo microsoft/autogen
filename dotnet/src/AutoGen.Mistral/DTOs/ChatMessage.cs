@@ -13,7 +13,7 @@ public class ChatMessage
     /// </summary>
     /// <param name="role">role.</param>
     /// <param name="content">content.</param>
-    public ChatMessage(RoleEnum? role = default(RoleEnum?), string? content = null)
+    public ChatMessage(RoleEnum? role = default, string? content = null)
     {
         this.Role = role;
         this.Content = content;
@@ -67,17 +67,24 @@ public class ChatMessage
 
     [JsonPropertyName("tool_calls")]
     public List<FunctionContent>? ToolCalls { get; set; }
+
+    [JsonPropertyName("tool_call_id")]
+    public string? ToolCallId { get; set; }
 }
 
 public class FunctionContent
 {
-    public FunctionContent(FunctionCall function)
+    public FunctionContent(string id, FunctionCall function)
     {
         this.Function = function;
+        this.Id = id;
     }
 
     [JsonPropertyName("function")]
     public FunctionCall Function { get; set; }
+
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
 
     public class FunctionCall
     {
