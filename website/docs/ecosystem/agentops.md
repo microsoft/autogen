@@ -1,6 +1,6 @@
 # AgentOps 🖇️
 
-<img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/banner.png" alt="AgentOps Logo" width="50%"/>
+![logo](https://raw.githubusercontent.com/AgentOps-AI/agentops/35d5682866921a9e28d8ef66ae3c3b3d92d8fa6b/img/logo.png)
 
 [AgentOps](https://agentops.ai/?=autogen) provides session replays, metrics, and monitoring for agents.
 
@@ -8,17 +8,23 @@ At a high level, AgentOps gives you the ability to monitor LLM calls, costs, lat
 
 <details open>
   <summary>Agent Dashboard</summary>
-   <img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/overview.png" style="width: 90%;" alt="Agent Dashboard"/>
+  <a href="https://app.agentops.ai?ref=gh">
+   <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/158e082a-9a7d-49b7-9b41-51a49a1f7d3d" style="width: 90%;" alt="Agent Dashboard"/>
+  </a>
 </details>
 
 <details>
-  <summary>Session Statistics</summary>
-   <img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/session.png" style="width: 90%;" alt="Agent Dashboard"/>
+  <summary>Session Analytics</summary>
+  <a href="https://app.agentops.ai?ref=gh">
+    <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/d7228019-1488-40d3-852f-a61e998658ad" style="width: 90%;" alt="Session Analytics"/>
+  </a>
 </details>
 
 <details>
-  <summary>Session Replay</summary>
-   <img src="https://raw.githubusercontent.com/AgentOps-AI/agentops/main/docs/img/replay.png" style="width: 90%;" alt="Agent Dashboard"/>
+  <summary>Session Replays</summary>
+  <a href="https://app.agentops.ai?ref=gh">
+    <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/561d59f3-c441-4066-914b-f6cfe32a598c" style="width: 90%;" alt="Session Replays"/>
+  </a>
 </details>
 
 
