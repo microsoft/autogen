@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, List, Sequence
+from typing import Dict, List
 
 from autogen import ConversableAgent
 
