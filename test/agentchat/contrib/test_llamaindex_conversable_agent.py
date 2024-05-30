@@ -24,21 +24,21 @@ try:
     from llama_index.llms.openai import OpenAI
     from llama_index.tools.wikipedia import WikipediaToolSpec
 except ImportError:
-    skip = True
+    skip_for_dependencies = True
 else:
-    skip = False
+    skip_for_dependencies = False
 
 openaiKey = os.environ.get("OPENAPI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
 if openaiKey == MOCK_OPEN_AI_API_KEY:
-    skip_key = True
+    skip_for_key = True
 else:
-    skip_key = False
+    skip_for_key = False
 
 
-@pytest.mark.skipif(skip_key, reason="using mock openai key")
+@pytest.mark.skipif(skip_for_key, reason="using mock openai key")
 @pytest.mark.skipif(skip_openai, reason=reason)
-@pytest.mark.skipif(skip, reason="dependency is not installed or openai key not found")
+@pytest.mark.skipif(skip_for_dependencies, reason="dependency is not installed or openai key not found")
 def test_group_chat_with_llama_index_conversable_agent() -> None:
     """
     Tests the group chat functionality with two MultimodalConversable Agents.
