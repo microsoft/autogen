@@ -15,8 +15,10 @@ from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
+from ....browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from ....token_count_utils import count_token, get_max_token_limit
 from .state_of_mark import add_state_of_mark
-from .tool_definitions import TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_PAGE_UP, TOOL_PAGE_DOWN, TOOL_CLICK, TOOL_TYPE, TOOL_SCROLL_ELEMENT_DOWN, TOOL_SCROLL_ELEMENT_UP
+from .tool_definitions import TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_PAGE_UP, TOOL_PAGE_DOWN, TOOL_CLICK, TOOL_TYPE, TOOL_SCROLL_ELEMENT_DOWN, TOOL_SCROLL_ELEMENT_UP, TOOL_SUMMARIZE_PAGE, TOOL_READ_PAGE_AND_ANSWER
 
 try:
     from termcolor import colored
@@ -38,19 +40,10 @@ VIEWPORT_WIDTH = 1440
 MLM_HEIGHT = 765
 MLM_WIDTH = 1224
 
-# State-of-mark IDs for static browser controls
-MARK_ID_ADDRESS_BAR = 0
-MARK_ID_BACK = 1
-MARK_ID_RELOAD = 2
-MARK_ID_SEARCH_BAR = 3
-MARK_ID_PAGE_UP = 4
-MARK_ID_PAGE_DOWN = 5
-
-
 class MultimodalWebSurferAgent(ConversableAgent):
     """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.)"
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page."
 
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
@@ -65,14 +58,16 @@ class MultimodalWebSurferAgent(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        mlm_config: Optional[Union[Dict, Literal[False]]] = None,  # TODO: Remove this
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+
+        # Browser-related stuff
         headless: bool = True,
         browser_channel=DEFAULT_CHANNEL,
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
         navigation_allow_list = lambda url: True,
+        markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
     ):
         """
         Create a new MultimodalWebSurferAgent.
@@ -107,8 +102,6 @@ class MultimodalWebSurferAgent(ConversableAgent):
             default_auto_reply=default_auto_reply,
         )
 
-        # self._mlm_config = mlm_config
-        # self._mlm_client = OpenAIWrapper(**self._mlm_config)
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
 
@@ -136,6 +129,12 @@ class MultimodalWebSurferAgent(ConversableAgent):
                 else:
                     route.fulfill(response=response)
         self._route_handler = _route_handler
+
+        # Create or use the provided MarkdownConverter
+        if markdown_converter is None:
+            self._markdown_converter = MarkdownConverter()
+        else:
+            self._markdown_converter = markdown_converter
 
         # Create the playwright instance
         launch_args = {"headless": headless}
@@ -284,7 +283,14 @@ setInterval(function() {{
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
         # What tools are available?
-        tools = [ TOOL_VISIT_URL, TOOL_HISTORY_BACK, TOOL_CLICK, TOOL_TYPE ]
+        tools = [
+            TOOL_VISIT_URL,
+            TOOL_HISTORY_BACK,
+            TOOL_CLICK,
+            TOOL_TYPE,
+            TOOL_SUMMARIZE_PAGE,
+            TOOL_READ_PAGE_AND_ANSWER
+        ]
 
         # Can we reach Bing to search?
         if self._navigation_allow_list("https://www.bing.com/"):
@@ -437,9 +443,19 @@ You are to respond to the user's most recent request by selecting an appropriate
                         action_description = "I scrolled the control down."
 
                     self._scroll_id(target_id, "down")
+
+                elif name == "read_page_and_answer":
+                    question = str(args.get("question"))
+                    action_description = self._summarize_page(question=question)
+
+                elif name == "summarize_page":
+                    action_description = self._summarize_page()
+
                 else:
                     log_event(self, "Unknown tool", error=name)
                     raise ValueError("Unknown tool '" + name +"'")
+
+
         except ValueError as e:
             if logging_enabled():
                 log_event(self, "ValueError", error=str(e))
@@ -476,7 +492,7 @@ You are to respond to the user's most recent request by selecting an appropriate
             )
         # Return the complete observation
         return True, self._make_mm_message(
-            f"{message.content}\n\n{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
+            re.sub(r"\s+", " ", f"{message.content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.", re.DOTALL).strip(),
             new_screenshot,
         )
 
@@ -534,6 +550,11 @@ You are to respond to the user's most recent request by selecting an appropriate
         except:
             pass
         return self._page.evaluate("MultimodalWebSurfer.getFocusedElementId();")
+
+    def _get_page_markdown(self):
+        html = self._page.evaluate("document.documentElement.outerHTML;")
+        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)
+        return res.text_content
 
     def _on_new_page(self, page):
         self._page = page
@@ -612,6 +633,39 @@ You are to respond to the user's most recent request by selecting an appropriate
         }})();
     """
         )
+
+    def _summarize_page( self, question=None, token_limit=100000 ):
+        page_markdown = self._get_page_markdown()
+
+        buffer = ""
+        for line in re.split(r"([\r\n]+)", page_markdown):
+            tokens = count_token(buffer + line)
+            if tokens + 1024 > token_limit:  # Leave room for our summary
+                break
+            buffer += line
+
+        buffer = buffer.strip()
+        if len(buffer) == 0:
+            return "Nothing to summarize."
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that can summarize long documents to answer question.",
+            }
+        ]
+
+        prompt = f"Please summarize the following into one or two paragraph:\n\n{buffer}"
+        if question is not None:
+            prompt = f"Please summarize the following into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+
+        messages.append(
+            {"role": "user", "content": prompt},
+        )
+
+        response = self.client.create(context=None, messages=messages) 
+        extracted_response = self.client.extract_text_or_completion_object(response)[0]
+        return str(extracted_response)
 
 
     def _log_to_console(self, fname, args):

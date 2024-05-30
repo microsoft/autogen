@@ -148,3 +148,34 @@ TOOL_SCROLL_ELEMENT_UP = {
         },
     },
 }
+
+TOOL_READ_PAGE_AND_ANSWER = {
+    "type": "function",
+    "function": {
+        "name": "read_page_and_answer",
+        "description": "Uses AI to read the page and directly answer a given question based on the content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "The question to directly answer.",
+                },
+            },
+            "required": ["question"],
+        },
+    },
+}
+
+TOOL_SUMMARIZE_PAGE = {
+    "type": "function",
+    "function": {
+        "name": "summarize_page",
+        "description": "Uses AI to summarize the entire page.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+}
