@@ -7,7 +7,6 @@ from typing_extensions import Annotated
 from autogen import code_utils
 from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
 from autogen.agentchat.contrib import img_utils
-from autogen.agentchat.contrib.huggingface_utils import HuggingFaceClient
 from autogen.oai.client import OpenAIWrapper
 
 
@@ -85,26 +84,14 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
 
     def _load_hf_capability_config(
         self, hf_capability: HuggingFaceCapability, hf_capability_config: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, HuggingFaceClient]:
+    ) -> Dict[str, OpenAIWrapper]:
         hf_clients = {}
         for _hf_cap in HuggingFaceCapability:
             if not hf_capability & _hf_cap:
                 continue
 
-            _hf_cap_config = hf_capability_config.get(_hf_cap, {})
-            _hf_cap_config_list = _hf_cap_config.get("config_list", [])
-            if len(_hf_cap_config_list) > 0:
-                model = _hf_cap_config_list[0].get("model", None)
-                api_key = _hf_cap_config_list[0].get("api_key", None)
-                inference_mode = _hf_cap_config_list[0].get("inference_mode", "auto")
-
-                hf_clients[_hf_cap] = HuggingFaceClient(
-                    api_key=api_key,
-                    model=model,
-                    inference_mode=inference_mode,
-                )
-            else:
-                hf_clients[_hf_cap] = HuggingFaceClient()
+            _hf_cap_config = hf_capability_config.get(_hf_cap, {"api_type": "huggingface"})
+            hf_clients[_hf_cap] = OpenAIWrapper(**_hf_cap_config)
 
         return hf_clients
 
@@ -121,7 +108,9 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
                 import tempfile
 
                 client = self._hf_clients[HuggingFaceCapability.TEXT_TO_IMAGE]
-                image = client.text_to_image(text)
+                response = client.create(task="text-to-image", prompt=text)
+                extracted_response = client.extract_text_or_completion_object(response)[0]
+                image = img_utils.get_pil_image(extracted_response)
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
                     image.save(temp_file.name)
                     response = f"I generated an image with the prompt: {text}"
@@ -142,7 +131,8 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
                 ]
             ) -> str:
                 client = self._hf_clients[HuggingFaceCapability.IMAGE_TO_TEXT]
-                generated_text = client.image_to_text(image_file)
+                response = client.create(task="image-to-text", prompt="", image_file=image_file)
+                generated_text = client.extract_text_or_completion_object(response)[0]
                 response = f"I generated the following text from the image: {generated_text}"
 
                 return response
@@ -164,7 +154,9 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
                 import tempfile
 
                 client = self._hf_clients[HuggingFaceCapability.IMAGE_TO_IMAGE]
-                tgt_image = client.image_to_image(image_file, text)
+                response = client.create(task="image-to-image", prompt=text, image_file=image_file)
+                extracted_response = client.extract_text_or_completion_object(response)[0]
+                tgt_image = img_utils.get_pil_image(extracted_response)
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
                     tgt_image.save(temp_file.name)
                     response = f"I generated an image from the input image with the prompt: {text}"
@@ -187,7 +179,8 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
                 question: Annotated[str, "The question to be answered."],
             ) -> str:
                 client = self._hf_clients[HuggingFaceCapability.VISUAL_QUESTION_ANSWERING]
-                answer = client.visual_question_answering(image_file, question)
+                response = client.create(task="visual-question-answering", prompt=question, image_file=image_file)
+                answer = client.extract_text_or_completion_object(response)[0]
                 response = f"The answer to the question '{question}' is: {answer}"
 
                 return response

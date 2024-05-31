@@ -49,6 +49,13 @@ try:
 except ImportError as e:
     gemini_import_exception = e
 
+try:
+    from autogen.oai.huggingface import HuggingFaceClient
+
+    huggingface_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    huggingface_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -436,6 +443,11 @@ class OpenAIWrapper:
                 if gemini_import_exception:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
                 client = GeminiClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("huggingface"):
+                if huggingface_import_exception:
+                    raise ImportError("Please install `huggingface_hub` to use HuggingFace API.")
+                client = HuggingFaceClient(**config)
                 self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)

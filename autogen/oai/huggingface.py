@@ -1,8 +1,11 @@
 import os
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Union
+import random
+import time
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
-import torch
 from huggingface_hub import ImageToTextOutput, InferenceClient
+from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from PIL.Image import Image
 
 from autogen.agentchat.contrib import img_utils
@@ -10,6 +13,7 @@ from autogen.agentchat.contrib import img_utils
 
 class HuggingFaceClient:
     VALID_INFERENCE_MODES = ["auto", "local", "remote"]
+    VALID_TASKS = ["text-to-image", "image-to-text", "image-to-image", "visual-question-answering"]
 
     def __init__(
         self,
@@ -29,7 +33,58 @@ class HuggingFaceClient:
                 f"Invalid inference mode: {self._default_inference_mode}. Choose from: {self.VALID_INFERENCE_MODES}"
             )
 
-        self._inference_client = InferenceClient(model=self._default_model, token=self._api_key, **kwargs)
+        self._inference_client = InferenceClient(model=self._default_model, token=self._api_key)
+
+    def create(self, params: Dict[str, Any]) -> ChatCompletion:
+        task = params.pop("task", "").lower()
+        if task not in self.VALID_TASKS:
+            raise ValueError(f"Invalid task: {task}. Choose from: {self.VALID_TASKS}")
+
+        model = params.get("model", None)
+        if model is None:
+            params["model"] = (
+                self._default_model if self._default_model is not None else self._get_recommended_model(task)
+            )
+
+        if task == "text-to-image":
+            img_res = self.text_to_image(**params)
+            res = img_utils.pil_to_data_uri(img_res)
+
+        if task == "image-to-text":
+            res = self.image_to_text(**params)
+
+        if task == "image-to-image":
+            img_res = self.image_to_image(**params)
+            res = img_utils.pil_to_data_uri(img_res)
+
+        if task == "visual-question-answering":
+            res = self.visual_question_answering(**params)
+
+        # Create ChatCompletion
+        message = ChatCompletionMessage(role="assistant", content=res)
+        choices = [Choice(finish_reason="stop", index=0, message=message)]
+
+        response_oai = ChatCompletion(
+            id=str(random.randint(0, 1000)),
+            choices=choices,
+            created=int(time.time() * 1000),
+            model=model,
+            object="chat.completion",
+        )
+
+        return response_oai
+
+    def message_retrieval(self, response) -> List:
+        return [choice.message.content for choice in response.choices]
+
+    def cost(self, response) -> float:
+        return 0.0
+
+    @staticmethod
+    def get_usage(response) -> Dict:
+        return {
+            "model": response.model,
+        }
 
     def _get_recommended_model(self, task: str):
         return self._inference_client.get_recommended_model(task)
@@ -52,6 +107,8 @@ class HuggingFaceClient:
         return "remote" if model_status.state == "Loadable" else "local"
 
     def _is_cuda_available(self):
+        import torch
+
         return torch.cuda.is_available()
 
     def _pre_check(
@@ -102,6 +159,7 @@ class HuggingFaceClient:
     def image_to_text(
         self,
         image_file: Union[str, Image],
+        prompt: Optional[str] = None,  # Not used
         model: Optional[str] = None,
         inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
@@ -157,7 +215,7 @@ class HuggingFaceClient:
     def visual_question_answering(
         self,
         image_file: Union[str, Image],
-        question: str,
+        prompt: str,
         model: Optional[str] = None,
         inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
@@ -168,7 +226,7 @@ class HuggingFaceClient:
         # Run inference
         if inference_mode.lower() == "remote":
             image_data = img_utils.get_image_data(image_file, use_b64=False)
-            answer = self._inference_client.visual_question_answering(image_data, question, model=model, **kwargs)[
+            answer = self._inference_client.visual_question_answering(image_data, prompt, model=model, **kwargs)[
                 0
             ].answer
 
@@ -181,7 +239,7 @@ class HuggingFaceClient:
             )
 
             image_data = img_utils.get_pil_image(image_file)
-            answer = pipeline(image_data, question, **kwargs)[0]["answer"]
+            answer = pipeline(image_data, prompt, **kwargs)[0]["answer"]
 
         return answer
 
