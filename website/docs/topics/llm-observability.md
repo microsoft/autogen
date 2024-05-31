@@ -39,4 +39,4 @@ Observability and monitoring is critical to ensure AI agent systems adhere to la
 ### Full-Service Partners
 Autogen is currently partnered with [AgentOps](https://agentops.ai) for seamless observability integration.
 
-[Learn how to install AgentOps](/docs/notebook/agentchat_agentops)
+[Learn how to install AgentOps](/docs/notebooks/agentchat_agentops)
