@@ -34,8 +34,7 @@ Observability and monitoring is critical to ensure AI agent systems adhere to la
 ## Available Observability Integrations
 
 ### Logging
-- Autogen SQL Logger - [Tutorial](/docs/notebook/agentchat_logging)
-- Autogen File Logger - [Tutorial](/docs/notebook/agentchat_logging)
+- Autogen SQLite and File Logger - [Tutorial](/docs/notebooks/agentchat_logging)
 
 ### Full-Service Partners
 Autogen is currently partnered with [AgentOps](https://agentops.ai) for seamless observability integration.
