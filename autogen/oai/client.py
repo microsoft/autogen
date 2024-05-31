@@ -319,6 +319,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     extra_kwargs = {
+        "agent",
         "cache",
         "cache_seed",
         "filter_func",
@@ -570,7 +571,6 @@ class OpenAIWrapper:
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
-            agent = full_config.get("agent")
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
             api_type = extra_kwargs.get("api_type")
@@ -578,12 +578,12 @@ class OpenAIWrapper:
                 create_config["model"] = create_config["model"].replace(".", "")
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
-            del params["agent"]
             # get the cache_seed, filter_func and context
             cache_seed = extra_kwargs.get("cache_seed", LEGACY_DEFAULT_CACHE_SEED)
             cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
+            agent = extra_kwargs.get("agent")
 
             total_usage = None
             actual_usage = None
