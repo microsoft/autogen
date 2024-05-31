@@ -3,8 +3,10 @@
 import os
 import sys
 import unittest
+from unittest.mock import MagicMock, patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 from autogen import GroupChat, GroupChatManager
 from autogen.agentchat.contrib.llamaindex_conversable_agent import LLamaIndexConversableAgent
@@ -17,32 +19,23 @@ from conftest import reason, skip_openai
 skip_reasons = [reason]
 try:
     from llama_index.core.agent import ReActAgent
+    from llama_index.core.chat_engine.types import AgentChatResponse
     from llama_index.llms.openai import OpenAI
 
     skip_for_dependencies = False
+    skip_reason = ""
 except ImportError as e:
     skip_for_dependencies = True
-    skip_reasons.append(f"dependency not installed: {e.msg}")
+    skip_reason = f"dependency not installed: {e.msg}"
     pass
 
 
-openaiKey = os.environ.get("OPENAI_API_KEY", "")
-
-if openaiKey == "":
-    skip_reasons.append("openai key not found")
-    skip_for_key = True
-else:
-    skip_for_key = False
-
-skip = skip_openai or skip_for_dependencies or skip_for_key
-skip_reason = ", ".join(skip_reasons)
-
-if skip:
-    print(f"Skipping test: {skip_reason}")
+openaiKey = MOCK_OPEN_AI_API_KEY
 
 
-@pytest.mark.skipif(skip, reason=skip_reason)
-def test_group_chat_with_llama_index_conversable_agent() -> None:
+@pytest.mark.skipif(skip_for_dependencies, reason=skip_reason)
+@patch("llama_index.core.agent.ReActAgent.chat")
+def test_group_chat_with_llama_index_conversable_agent(chat_mock: MagicMock) -> None:
     """
     Tests the group chat functionality with two MultimodalConversable Agents.
     Verifies that the chat is correctly limited by the max_round parameter.
@@ -52,6 +45,10 @@ def test_group_chat_with_llama_index_conversable_agent() -> None:
         model="gpt-4",
         temperature=0.0,
         api_key=openaiKey,
+    )
+
+    chat_mock.return_value = AgentChatResponse(
+        response="Visit ghibli studio in Tokyo, Japan. It is a must-visit place for fans of Hayao Miyazaki and his movies like Spirited Away."
     )
 
     location_specialist = ReActAgent.from_tools(llm=llm, max_iterations=5)
