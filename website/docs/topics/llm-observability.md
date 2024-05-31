@@ -1,6 +1,6 @@
 # LLM Observability
 
-AutoGen supports advanced LLM observability and monitoring through partner providers.
+AutoGen supports advanced LLM observability and monitoring through built-in logging and partner providers.
 
 ## What is LLM Observability
 AI agent observability is the ability to monitor, measure, and understand the internal states and behaviors of AI agent systems.
@@ -9,12 +9,12 @@ Observability is crucial for ensuring transparency, reliability, and accountabil
 
 ## Development
 
-### Agent Development in Terminal Sucks
+### Agent Development in Terminal is Limited
 - Lose track of what your agents did in between executions
 - Parsing through terminal output searching for LLM completions
 - Printing “tool called”
 
-### Agent Development Dashboards Don't
+### Agent Development Dashboards Enable More
 - Visual dashboard so you can see what your agents did in human-readable format
 - LLM calls are magically recorded - prompt, completion, timestamps for each - with one line of code
 - Agents and their events (including tool calls) are recorded with one more line of code
@@ -26,19 +26,18 @@ Observability is crucial for ensuring transparency, reliability, and accountabil
 
 Observability and monitoring is critical to ensure AI agent systems adhere to laws and regulations in industries like finance and healthcare, preventing violations such as data breaches and privacy issues.
 
-### Accountability and Transparency
-Observability provides insights into AI decision-making, allowing organizations to explain outcomes and build trust with stakeholders.
+- Insights into AI decision-making, allowing organizations to explain outcomes and build trust with stakeholders.
+- Helps detect anomalies and unintended behaviors early, mitigating operational, financial, and reputational risks.
+- Ensures compliance with data privacy regulations, preventing unauthorized access and misuse of sensitive information.
+- Quick identification and response to compliance violations, supporting incident analysis and prevention.
 
-### Risk Management
-Monitoring helps detect anomalies and unintended behaviors early, mitigating operational, financial, and reputational risks.
+## Available Observability Integrations
 
-### Data Privacy and Security
-Ensures compliance with data privacy regulations, preventing unauthorized access and misuse of sensitive information.
+### Logging
+- Autogen SQL Logger - [Tutorial](/docs/notebook/agentchat_logging)
+- Autogen File Logger - [Tutorial](/docs/notebook/agentchat_logging)
 
-### Incident Response and Reporting
-Robust monitoring aids in quick identification and response to compliance violations, supporting incident analysis and prevention.
-
-## Partners
+### Full-Service Partners
 Autogen is currently partnered with [AgentOps](https://agentops.ai) for seamless observability integration.
 
-[Learn how to install AgentOps](/notebook/agentchat_agentops)
+[Learn how to install AgentOps](/docs/notebook/agentchat_agentops)
