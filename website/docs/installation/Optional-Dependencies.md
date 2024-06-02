@@ -119,7 +119,7 @@ To use a graph in `GroupChat`, particularly for graph visualization, please inst
 pip install "pyautogen[graph]"
 ```
 
-Example notebook: [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
 
 ## Long Context Handling
 
