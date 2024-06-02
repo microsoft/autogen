@@ -297,7 +297,8 @@ $functions"""
                 path_with_virtualenv = rf"{self._virtual_env_context.bin_path}{os.pathsep}{env['PATH']}"
                 env["PATH"] = path_with_virtualenv
                 if WIN32:
-                    activation_script = os.path.join(self._virtual_env_context.bin_path, "activate.bat")
+                    absolute_bin_path = os.path.dirname(self._virtual_env_context.env_exec_cmd)
+                    activation_script = os.path.join(absolute_bin_path, "activate.bat")
                     cmd = [activation_script, "&&", *cmd]
 
             try:
