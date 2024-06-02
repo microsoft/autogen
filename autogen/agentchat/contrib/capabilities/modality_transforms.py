@@ -73,13 +73,16 @@ class ImageModality:
         if self._n_tags_converted > 0:
             logs.append(f"Converted {self._n_tags_converted} image tags to multimodal content.")
 
-        if self._n_images_captioned > 0:
-            logs.append(f"Captioned {self._n_images_captioned} images to text.")
-
         if self._n_tags_captioned > 0:
             logs.append(f"Captioned {self._n_tags_captioned} image tags to text.")
 
-        return "No logs for this modality.", False
+        if self._n_images_captioned > 0:
+            logs.append(f"Captioned {self._n_images_captioned} images to text.")
+
+        if len(logs) > 0:
+            return "\n".join(logs), True
+        else:
+            return "No images were found.", False
 
     def _convert_tags_to_multimodal_content(
         self, content: Union[str, List[Union[Dict, str]]]
