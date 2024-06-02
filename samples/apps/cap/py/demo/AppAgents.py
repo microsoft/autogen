@@ -17,10 +17,11 @@ class GreeterAgent(Actor):
 
     def __init__(
         self,
+        start_thread=True,
         agent_name="Greeter",
         description="This is the greeter agent, who knows how to greet people.",
     ):
-        super().__init__(agent_name, description)
+        super().__init__(agent_name, description, start_thread=start_thread)
 
 
 class FidelityAgent(Actor):
