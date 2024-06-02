@@ -2,6 +2,8 @@ import copy
 import re
 from typing import Any, Callable, Dict, List, Union
 
+from autogen.types import MessageContentType
+
 from .agent import Agent
 
 
@@ -97,7 +99,7 @@ def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str,
     }
 
 
-def parse_tags_from_content(tag: str, content: Union[str, List[Union[Dict, str]]]) -> List[Dict[str, Dict[str, str]]]:
+def parse_tags_from_content(tag: str, content: MessageContentType) -> List[Dict[str, Dict[str, str]]]:
     """Parses HTML style tags from message contents.
 
     The parsing is done by looking for patterns in the text that match the format of HTML tags. The tag to be parsed is

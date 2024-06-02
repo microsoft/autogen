@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.utils import parse_tags_from_content, replace_tag_in_content
 from autogen.cache.cache import AbstractCache, Cache
+from autogen.types import MessageContentType
 
 from .image_captioners import ImageCaptioner
 
@@ -84,14 +85,12 @@ class ImageModality:
         else:
             return "No images were found.", False
 
-    def _convert_tags_to_multimodal_content(
-        self, content: Union[str, List[Union[Dict, str]]]
-    ) -> List[Union[Dict, str]]:
-        initial_image_count = _count_message_type(content, "image_url")
+    def _convert_tags_to_multimodal_content(self, content: MessageContentType) -> List[Union[Dict, str]]:
+        initial_image_count = _count_content_type(content, "image_url")
 
         if isinstance(content, str):
             modified_content = img_utils.gpt4v_formatter(content)
-            current_image_count = _count_message_type(modified_content, "image_url")
+            current_image_count = _count_content_type(modified_content, "image_url")
             self._n_tags_converted += current_image_count - initial_image_count
             return img_utils.gpt4v_formatter(content)
 
@@ -106,13 +105,11 @@ class ImageModality:
                     else:
                         modified_content.append(item)
 
-        current_image_count = _count_message_type(modified_content, "image_url")
+        current_image_count = _count_content_type(modified_content, "image_url")
         self._n_tags_converted += current_image_count - initial_image_count
         return modified_content
 
-    def _replace_tags_with_captions(
-        self, content: Union[str, List[Union[Dict, str]]]
-    ) -> Union[List[Union[Dict, str]], str]:
+    def _replace_tags_with_captions(self, content: MessageContentType) -> Union[List[Union[Dict, str]], str]:
         assert self._captioner
         for tag in parse_tags_from_content("img", content):
             try:
@@ -127,7 +124,7 @@ class ImageModality:
             content = replace_tag_in_content(tag, content, replacement_text)
         return content
 
-    def _replace_images_with_captions(self, content: Union[str, List[Union[Dict, str]]]) -> List[Union[Dict, str]]:
+    def _replace_images_with_captions(self, content: MessageContentType) -> List[Union[Dict, str]]:
         assert self._captioner
 
         if isinstance(content, str):
@@ -227,7 +224,7 @@ def _expand_supported_modalities(
     return expanded_modalities
 
 
-def _count_message_type(content: Union[str, List[Union[Dict, str]]], message_type: str) -> int:
+def _count_content_type(content: MessageContentType, message_type: str) -> int:
     total_count = 0
     if isinstance(content, str) and message_type == "text":
         total_count += 1
