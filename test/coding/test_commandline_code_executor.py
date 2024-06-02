@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import uuid
@@ -411,3 +412,28 @@ def test_local_executor_with_custom_python_env():
 
         assert execution.exit_code == 0
         assert execution.output.strip() == "True"
+
+
+def test_local_executor_with_custom_python_env_in_local_relative_path():
+    try:
+        relative_folder_path = "temp_folder"
+        if not os.path.isdir(relative_folder_path):
+            os.mkdir(relative_folder_path)
+
+        venv_path = os.path.join(relative_folder_path, ".venv")
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(venv_path)
+        env_builder_context = env_builder.ensure_directories(venv_path)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
+        code_blocks = [
+            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
+            CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
+        ]
+        execution = executor.execute_code_blocks(code_blocks)
+
+        assert execution.exit_code == 0
+        assert execution.output.strip() == "True"
+    finally:
+        if os.path.isdir(relative_folder_path):
+            shutil.rmtree(relative_folder_path)
