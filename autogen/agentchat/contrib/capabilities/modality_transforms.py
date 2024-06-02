@@ -38,7 +38,15 @@ class ImageModality:
         self._drop_unsupported = drop_unsupported_transform if drop_unsupported_message_format else None
         self._cache = cache
 
+        self._n_tags_converted = 0
+        self._n_tags_captioned = 0
+        self._n_images_captioned = 0
+
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        self._n_tags_converted = 0
+        self._n_tags_captioned = 0
+        self._n_images_captioned = 0
+
         for message in messages:
             if not message.get("content") or message["content"] is None:
                 return messages
@@ -61,12 +69,27 @@ class ImageModality:
         return messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        logs = []
+        if self._n_tags_converted > 0:
+            logs.append(f"Converted {self._n_tags_converted} image tags to multimodal content.")
+
+        if self._n_images_captioned > 0:
+            logs.append(f"Captioned {self._n_images_captioned} images to text.")
+
+        if self._n_tags_captioned > 0:
+            logs.append(f"Captioned {self._n_tags_captioned} image tags to text.")
+
         return "No logs for this modality.", False
 
     def _convert_tags_to_multimodal_content(
         self, content: Union[str, List[Union[Dict, str]]]
     ) -> List[Union[Dict, str]]:
+        initial_image_count = _count_message_type(content, "image_url")
+
         if isinstance(content, str):
+            modified_content = img_utils.gpt4v_formatter(content)
+            current_image_count = _count_message_type(modified_content, "image_url")
+            self._n_tags_converted += current_image_count - initial_image_count
             return img_utils.gpt4v_formatter(content)
 
         modified_content = []
@@ -80,6 +103,8 @@ class ImageModality:
                     else:
                         modified_content.append(item)
 
+        current_image_count = _count_message_type(modified_content, "image_url")
+        self._n_tags_converted += current_image_count - initial_image_count
         return modified_content
 
     def _replace_tags_with_captions(
@@ -90,6 +115,7 @@ class ImageModality:
             try:
                 caption = self._captioner.caption_image(tag["attr"]["src"])
                 replacement_text = self._caption_template.format(caption=caption)
+                self._n_tags_captioned += 1
             except Exception:
                 replacement_text = (
                     "(You failed to convert the image tag to text. "
@@ -122,6 +148,7 @@ class ImageModality:
                 try:
                     caption = self._captioner.caption_image(img)
                     output_captions += self._caption_template.format(idx=img_number, caption=caption) + "\n"
+                    self._n_images_captioned += 1
                 except Exception:
                     output_captions += f"(Failed to generate caption for image {img_number}.)\n"
 
@@ -177,16 +204,7 @@ class DropUnsupportedModalities:
 def _drop_unsupported_factory(
     unsupported_agent_modalities: Optional[List[ModalitiesType]], modalities_alias: Dict[ModalitiesType, List[str]]
 ) -> DropUnsupportedModalities:
-    """
-    Determines the supported modalities and returns an instance of DropUnsupportedModalities if necessary.
-
-    Parameters:
-    - agent_modalities (Optional[List[ModalitiesType]]): List of modalities supported by the agent, or None if no modalities are supported.
-    - modalities_alias (Dict[ModalitiesType, List[str]]): Dictionary mapping modalities to their aliases.
-
-    Returns:
-    - DropUnsupportedModalities instance if any modalities are unsupported, else None.
-    """
+    """ """
     if unsupported_agent_modalities is not None:
         supported_modalities: List[ModalitiesType] = [
             modal for modal in modalities_alias.keys() if modal not in unsupported_agent_modalities
@@ -204,3 +222,18 @@ def _expand_supported_modalities(
     for modality in supported_modalities:
         expanded_modalities.update(modalities_mapping.get(modality, []))
     return expanded_modalities
+
+
+def _count_message_type(content: Union[str, List[Union[Dict, str]]], message_type: str) -> int:
+    total_count = 0
+    if isinstance(content, str) and message_type == "text":
+        total_count += 1
+
+    if isinstance(content, list) and len(content) > 0:
+        for item in content:
+            if isinstance(item, str) and message_type == "text":
+                total_count += 1
+            elif isinstance(item, dict) and item.get("type") == message_type:
+                total_count += 1
+
+    return total_count
