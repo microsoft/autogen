@@ -4,11 +4,13 @@ import sys
 from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
+import transforms_util
 from termcolor import colored
 
 from autogen import token_count_utils
 from autogen.cache import AbstractCache, Cache
 from autogen.oai.openai_utils import filter_config
+from autogen.types import MessageContentType
 
 from .text_compressors import LLMLingua, TextCompressor
 
@@ -169,7 +171,7 @@ class MessageTokenLimiter:
         assert self._min_tokens is not None
 
         # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
-        if not _min_tokens_reached(messages, self._min_tokens):
+        if not transforms_util.min_tokens_reached(messages, self._min_tokens):
             return messages
 
         temp_messages = copy.deepcopy(messages)
@@ -178,13 +180,13 @@ class MessageTokenLimiter:
 
         for msg in reversed(temp_messages):
             # Some messages may not have content.
-            if not _is_content_right_type(msg.get("content")):
+            if not transforms_util.is_content_right_type(msg.get("content")):
                 processed_messages.insert(0, msg)
                 continue
 
-            if not _should_transform_message(msg, self._filter_dict, self._exclude_filter):
+            if not transforms_util.should_transform_message(msg, self._filter_dict, self._exclude_filter):
                 processed_messages.insert(0, msg)
-                processed_messages_tokens += _count_tokens(msg["content"])
+                processed_messages_tokens += transforms_util.count_tokens(msg["content"])
                 continue
 
             expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
@@ -199,7 +201,7 @@ class MessageTokenLimiter:
                 break
 
             msg["content"] = self._truncate_str_to_tokens(msg["content"], self._max_tokens_per_message)
-            msg_tokens = _count_tokens(msg["content"])
+            msg_tokens = transforms_util.count_tokens(msg["content"])
 
             # prepend the message to the list to preserve order
             processed_messages_tokens += msg_tokens
@@ -209,10 +211,10 @@ class MessageTokenLimiter:
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_tokens = sum(
-            _count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
+            transforms_util.count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
         )
         post_transform_messages_tokens = sum(
-            _count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
+            transforms_util.count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
         )
 
         if post_transform_messages_tokens < pre_transform_messages_tokens:
@@ -349,28 +351,30 @@ class TextMessageCompressor:
             return messages
 
         # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
-        if not _min_tokens_reached(messages, self._min_tokens):
+        if not transforms_util.min_tokens_reached(messages, self._min_tokens):
             return messages
 
         total_savings = 0
         processed_messages = messages.copy()
         for message in processed_messages:
             # Some messages may not have content.
-            if not _is_content_right_type(message.get("content")):
+            if not transforms_util.is_content_right_type(message.get("content")):
                 continue
 
-            if not _should_transform_message(message, self._filter_dict, self._exclude_filter):
+            if not transforms_util.should_transform_message(message, self._filter_dict, self._exclude_filter):
                 continue
 
-            if _is_content_text_empty(message["content"]):
+            if transforms_util.is_content_text_empty(message["content"]):
                 continue
 
-            cached_content = self._cache_get(message["content"])
+            cache_key = self._cache_key(message["content"])
+            cached_content = transforms_util.cache_content_get(self._cache, cache_key)
             if cached_content is not None:
-                savings, compressed_content = cached_content
+                compressed_content, savings = cached_content
             else:
-                savings, compressed_content = self._compress(message["content"])
+                compressed_content, savings = self._compress(message["content"])
 
+            transforms_util.cache_content_set(self._cache, cache_key, compressed_content, savings)
             self._cache_set(message["content"], compressed_content, savings)
 
             message["content"] = compressed_content
@@ -385,7 +389,7 @@ class TextMessageCompressor:
         else:
             return "No tokens saved with text compression.", False
 
-    def _compress(self, content: Union[str, List[Dict]]) -> Tuple[int, Union[str, List[Dict]]]:
+    def _compress(self, content: Union[str, List[Dict]]) -> MessageContentType:
         """Compresses the given text or multimodal content using the specified compression method."""
         if isinstance(content, str):
             return self._compress_text(content)
@@ -431,42 +435,3 @@ class TextMessageCompressor:
     def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:
             raise ValueError("min_tokens must be greater than 0 or None")
-
-
-def _min_tokens_reached(messages: List[Dict], min_tokens: Optional[int]) -> bool:
-    """Returns True if the total number of tokens in the messages is greater than or equal to the specified value."""
-    if not min_tokens:
-        return True
-
-    messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
-    return messages_tokens >= min_tokens
-
-
-def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
-    token_count = 0
-    if isinstance(content, str):
-        token_count = token_count_utils.count_token(content)
-    elif isinstance(content, list):
-        for item in content:
-            token_count += _count_tokens(item.get("text", ""))
-    return token_count
-
-
-def _is_content_right_type(content: Any) -> bool:
-    return isinstance(content, (str, list))
-
-
-def _is_content_text_empty(content: Union[str, List[Dict[str, Any]]]) -> bool:
-    if isinstance(content, str):
-        return content == ""
-    elif isinstance(content, list):
-        return all(_is_content_text_empty(item.get("text", "")) for item in content)
-    else:
-        return False
-
-
-def _should_transform_message(message: Dict[str, Any], filter_dict: Optional[Dict[str, Any]], exclude: bool) -> bool:
-    if not filter_dict:
-        return True
-
-    return len(filter_config([message], filter_dict, exclude)) > 0
