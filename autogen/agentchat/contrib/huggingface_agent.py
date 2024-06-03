@@ -40,7 +40,8 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
         system_message: Optional[Union[str, List[str]]] = DEFAULT_PROMPT,
         hf_capability: Optional[HuggingFaceCapability] = DEFAULT_HF_CAPABILITY,
         hf_capability_config_map: Optional[Dict[str, Dict[str, Any]]] = {},
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        llm_config: Optional[Union[Dict, Literal[False], None]] = None,
+        assistant_agent: Optional[Union[ConversableAgent, None]] = None,
         is_gpt4v_format: Optional[bool] = False,
         is_silent: Optional[bool] = True,
         **kwargs,
@@ -55,12 +56,15 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
         # Set up the inner monologue
         inner_llm_config = copy.deepcopy(llm_config)
 
-        self._assistant = AssistantAgent(
-            self.name + "_inner_assistant",
-            system_message=system_message,
-            llm_config=inner_llm_config,
-            is_termination_msg=lambda x: False,
-        )
+        if assistant_agent is None:
+            self._assistant = AssistantAgent(
+                self.name + "_inner_assistant",
+                system_message=system_message,
+                llm_config=inner_llm_config,
+                is_termination_msg=lambda x: False,
+            )
+        else:
+            self._assistant = assistant_agent
 
         self._user_proxy = UserProxyAgent(
             self.name + "_inner_user_proxy",
