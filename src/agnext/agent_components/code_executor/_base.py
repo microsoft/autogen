@@ -23,22 +23,6 @@ class CodeResult:
     output: str
 
 
-class CodeExtractor(Protocol):
-    """Extracts code blocks from a message."""
-
-    # TODO support text or multimodal message directly
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
-        """Extract code blocks from a message.
-
-        Args:
-            message (str): The message to extract code blocks from.
-
-        Returns:
-            List[CodeBlock]: The extracted code blocks.
-        """
-        ...
-
-
 @runtime_checkable
 class CodeExecutor(Protocol):
     """Executes code blocks and returns the result."""

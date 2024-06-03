@@ -2,7 +2,6 @@
 # Credit to original authors
 
 import logging
-import re
 import subprocess
 import sys
 import warnings
@@ -19,9 +18,8 @@ from ...func_with_reqs import (
     build_python_functions_file,
     to_stub,
 )
-from .._base import CodeBlock, CodeExecutor, CodeExtractor
+from .._base import CodeBlock, CodeExecutor
 from .command_line_code_result import CommandLineCodeResult
-from .markdown_code_extractor import MarkdownCodeExtractor
 from .utils import PYTHON_VARIANTS, get_file_name_from_content, lang_to_cmd, silence_pip  # type: ignore
 
 __all__ = ("LocalCommandLineCodeExecutor",)
@@ -30,7 +28,15 @@ A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-    SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
+    SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
+        "bash",
+        "shell",
+        "sh",
+        "pwsh",
+        "powershell",
+        "ps1",
+        "python",
+    ]
     FUNCTION_PROMPT_TEMPLATE: ClassVar[
         str
     ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
@@ -44,7 +50,11 @@ $functions"""
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
         functions: Sequence[
-            Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]
+            Union[
+                FunctionWithRequirements[Any, A],
+                Callable[..., Any],
+                FunctionWithRequirementsStr,
+            ]
         ] = [],
         functions_module: str = "functions",
     ):
@@ -134,33 +144,6 @@ $functions"""
         """(Experimental) The working directory for the code execution."""
         return self._work_dir
 
-    @property
-    def code_extractor(self) -> CodeExtractor:
-        """(Experimental) Export a code extractor that can be used by an agent."""
-        return MarkdownCodeExtractor()
-
-    @staticmethod
-    def sanitize_command(lang: str, code: str) -> None:
-        """
-        Sanitize the code block to prevent dangerous commands.
-        This approach acknowledges that while Docker or similar
-        containerization/sandboxing technologies provide a robust layer of security,
-        not all users may have Docker installed or may choose not to use it.
-        Therefore, having a baseline level of protection helps mitigate risks for users who,
-        either out of choice or necessity, run code outside of a sandboxed environment.
-        """
-        dangerous_patterns = [
-            (r"\brm\s+-rf\b", "Use of 'rm -rf' command is not allowed."),
-            (r"\bmv\b.*?\s+/dev/null", "Moving files to /dev/null is not allowed."),
-            (r"\bdd\b", "Use of 'dd' command is not allowed."),
-            (r">\s*/dev/sd[a-z][1-9]?", "Overwriting disk blocks directly is not allowed."),
-            (r":\(\)\{\s*:\|\:&\s*\};:", "Fork bombs are not allowed."),
-        ]
-        if lang in ["bash", "shell", "sh"]:
-            for pattern, message in dangerous_patterns:
-                if re.search(pattern, code):
-                    raise ValueError(f"Potentially dangerous command detected: {message}")
-
     def _setup_functions(self) -> None:
         func_file_content = build_python_functions_file(self._functions)
         func_file = self._work_dir / f"{self._functions_module}.py"
@@ -178,7 +161,11 @@ $functions"""
 
             try:
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                    cmd,
+                    cwd=self._work_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=float(self._timeout),
                 )
             except subprocess.TimeoutExpired as e:
                 raise ValueError("Pip install timed out") from e
@@ -216,7 +203,6 @@ $functions"""
             lang, code = code_block.language, code_block.code
             lang = lang.lower()
 
-            LocalCommandLineCodeExecutor.sanitize_command(lang, code)
             code = silence_pip(code, lang)
 
             if lang in PYTHON_VARIANTS:
@@ -232,7 +218,11 @@ $functions"""
                 # Check if there is a filename comment
                 filename = get_file_name_from_content(code, self._work_dir)
             except ValueError:
-                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace", code_file=None)
+                return CommandLineCodeResult(
+                    exit_code=1,
+                    output="Filename is not in the workspace",
+                    code_file=None,
+                )
 
             if filename is None:
                 # create a file with an automatically generated name
@@ -249,7 +239,11 @@ $functions"""
 
             try:
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                    cmd,
+                    cwd=self._work_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=float(self._timeout),
                 )
             except subprocess.TimeoutExpired:
                 logs_all += "\n Timeout"
@@ -269,4 +263,7 @@ $functions"""
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
-        warnings.warn("Restarting local command line code executor is not supported. No action is taken.", stacklevel=2)
+        warnings.warn(
+            "Restarting local command line code executor is not supported. No action is taken.",
+            stacklevel=2,
+        )

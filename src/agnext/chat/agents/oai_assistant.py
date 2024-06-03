@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Mapping
+from typing import Any, List, Mapping
 
 import openai
 from openai.types.beta import AssistantResponseFormatParam
@@ -18,13 +18,11 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
-        tools: Dict[str, Callable[..., str]] | None = None,
     ) -> None:
         super().__init__(name, description, runtime)
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id
-        self._tools = tools or {}
 
     @message_handler(TextMessage)
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
