@@ -316,7 +316,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         return message.Data is null && message.Url is not null
             ? new ChatMessageImageContentItem(new Uri(message.Url))
-            : new ChatMessageImageContentItem(message.Data, message.Data.MediaType);
+            : new ChatMessageImageContentItem(message.Data, message.Data?.MediaType);
     }
 
     private IEnumerable<ChatRequestMessage> ProcessToolCallMessage(IAgent agent, ToolCallMessage message)

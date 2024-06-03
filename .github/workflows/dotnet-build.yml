@@ -73,6 +73,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         version: [ net8.0 ]
+    needs: build
     defaults:
       run:
         working-directory: dotnet
@@ -90,7 +91,7 @@ jobs:
 
     - name: publish AOT testApp, assert static analysis warning count, and run the app
       shell: pwsh
-      run: .\build\test-aot-compatibility.ps1 ${{ matrix.version }}
+      run: ./build/test-aot-compatibility.ps1 ${{ matrix.version }}
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
