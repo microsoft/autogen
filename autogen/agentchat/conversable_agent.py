@@ -242,7 +242,7 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists: Dict[str, List[Callable[[List[Dict]], List[Dict]]]] = {
+        self.hook_lists: Dict[str, List[Callable]] = {
             "process_last_received_message": [],
             "process_all_messages_before_reply": [],
             "process_message_before_send": [],
@@ -605,7 +605,12 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            message = hook(sender=self, message=message, recipient=recipient, silent=silent)
+            if isinstance(hook, Callable[[Agent, Union[Dict, str], Agent, bool], Union[Dict, str]]):
+                message = hook(sender=self, message=message, recipient=recipient, silent=silent)
+            else:
+                raise ValueError(
+                    "process_message_before_send hook must be a callable with signature (Agent, Union[Dict, str], Agent, bool) -> Union[Dict, str]"
+                )
         return message
 
     def send(
@@ -2721,7 +2726,12 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the messages.
         processed_messages = messages
         for hook in hook_list:
-            processed_messages = hook(processed_messages)
+            if isinstance(hook, Callable[[List[Dict]], List[Dict]]):
+                processed_messages = hook(processed_messages)
+            else:
+                raise TypeError(
+                    "process_all_messages_before_reply hook must be a callable with signature (Callable[[List[Dict]], List[Dict]])."
+                )
         return processed_messages
 
     def process_last_received_message(self, messages: List[Dict]) -> List[Dict]:
@@ -2757,7 +2767,13 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the user's message.
         processed_user_content = user_content
         for hook in hook_list:
-            processed_user_content = hook(processed_user_content)
+            if isinstance(hook, Callable[[List[Dict]], List[Dict]]):
+                processed_user_content = hook(processed_user_content)
+            else:
+                raise TypeError(
+                    "process_last_received_message hook must be a callable with signature (Callable[[List[Dict]], List[Dict]])."
+                )
+
         if processed_user_content == user_content:
             return messages  # No hooks actually modified the user's message.
 
