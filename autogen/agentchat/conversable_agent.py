@@ -605,12 +605,7 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            if isinstance(hook, Callable[[Agent, Union[Dict, str], Agent, bool], Union[Dict, str]]):
-                message = hook(sender=self, message=message, recipient=recipient, silent=silent)
-            else:
-                raise ValueError(
-                    "process_message_before_send hook must be a callable with signature (Agent, Union[Dict, str], Agent, bool) -> Union[Dict, str]"
-                )
+            message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
     def send(
@@ -2726,12 +2721,7 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the messages.
         processed_messages = messages
         for hook in hook_list:
-            if isinstance(hook, Callable[[List[Dict]], List[Dict]]):
-                processed_messages = hook(processed_messages)
-            else:
-                raise TypeError(
-                    "process_all_messages_before_reply hook must be a callable with signature (Callable[[List[Dict]], List[Dict]])."
-                )
+            processed_messages = hook(processed_messages)
         return processed_messages
 
     def process_last_received_message(self, messages: List[Dict]) -> List[Dict]:
@@ -2767,12 +2757,7 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the user's message.
         processed_user_content = user_content
         for hook in hook_list:
-            if isinstance(hook, Callable[[List[Dict]], List[Dict]]):
-                processed_user_content = hook(processed_user_content)
-            else:
-                raise TypeError(
-                    "process_last_received_message hook must be a callable with signature (Callable[[List[Dict]], List[Dict]])."
-                )
+            processed_user_content = hook(processed_user_content)
 
         if processed_user_content == user_content:
             return messages  # No hooks actually modified the user's message.
