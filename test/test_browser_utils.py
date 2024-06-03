@@ -29,7 +29,7 @@ BING_TITLE = f"{BING_QUERY} - Search"
 BING_STRING = f"A Bing search for '{BING_QUERY}' found"
 
 try:
-    from autogen.browser_utils import SimpleTextBrowser
+    from autogen.browser_utils.bing_browser import BingTextBrowser
 except ImportError:
     skip_all = True
 else:
@@ -66,7 +66,7 @@ def test_simple_text_browser():
     # Instantiate the browser
     user_agent = "python-requests/" + requests.__version__
     viewport_size = 1024
-    browser = SimpleTextBrowser(
+    browser = BingTextBrowser(
         downloads_folder=downloads_folder,
         viewport_size=viewport_size,
         request_kwargs={
@@ -128,7 +128,7 @@ def test_simple_text_browser():
     response.raise_for_status()
     expected_md5 = hashlib.md5(response.raw.read()).hexdigest()
 
-    # Visit an image causing it to be downloaded by the SimpleTextBrowser, then compute its md5
+    # Visit an image causing it to be downloaded by the BingTextBrowser, then compute its md5
     viewport = browser.visit_page(IMAGE_URL)
     m = re.search(r"Downloaded '(.*?)' to '(.*?)'", viewport)
     fetched_url = m.group(1)
@@ -156,7 +156,7 @@ def test_simple_text_browser():
 def test_bing_search():
     # Instantiate the browser
     user_agent = "python-requests/" + requests.__version__
-    browser = SimpleTextBrowser(
+    browser = BingTextBrowser(
         bing_api_key=BING_API_KEY,
         viewport_size=1024,
         request_kwargs={
