@@ -242,7 +242,7 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {
+        self.hook_lists : Dict[str, List[Callable[[List[Dict]], List[Dict]]]] = {
             "process_last_received_message": [],
             "process_all_messages_before_reply": [],
             "process_message_before_send": [],
@@ -2695,7 +2695,7 @@ class ConversableAgent(LLMAgent):
         """
         self.client.register_model_client(model_client_cls, **kwargs)
 
-    def register_hook(self, hookable_method: str, hook: Callable):
+    def register_hook(self, hookable_method: str, hook: Callable[[List[Dict]], List[Dict]]):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
@@ -2724,7 +2724,7 @@ class ConversableAgent(LLMAgent):
             processed_messages = hook(processed_messages)
         return processed_messages
 
-    def process_last_received_message(self, messages):
+    def process_last_received_message(self, messages:List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
