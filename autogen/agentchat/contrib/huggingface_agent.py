@@ -90,7 +90,16 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
             if not hf_capability & _hf_cap:
                 continue
 
-            _hf_cap_config = hf_capability_config.get(_hf_cap, {"api_type": "huggingface"})
+            _hf_cap_config = hf_capability_config.get(_hf_cap)
+            if _hf_cap_config is None:
+                # Use default config
+                _hf_cap_config = {"config_list": [{"api_type": "huggingface"}]}
+
+            assert (
+                "config_list" in _hf_cap_config
+                and len(_hf_cap_config["config_list"]) > 0
+                and all(config.get("api_type") == "huggingface" for config in _hf_cap_config["config_list"])
+            ), "Invalid LLM config. Must set 'api_type' to 'huggingface' in the config_list."
             hf_clients[_hf_cap] = OpenAIWrapper(**_hf_cap_config)
 
         return hf_clients

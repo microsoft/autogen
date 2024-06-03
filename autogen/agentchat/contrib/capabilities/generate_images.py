@@ -7,9 +7,9 @@ from PIL.Image import Image
 from autogen import Agent, ConversableAgent, code_utils
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen.agentchat.contrib.huggingface_utils import HuggingFaceClient
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 from autogen.cache import AbstractCache
+from autogen.oai.client import OpenAIWrapper
 
 SYSTEM_MESSAGE = "You've been given the special ability to generate images."
 DESCRIPTION_MESSAGE = "This agent has the ability to generate images."
@@ -138,6 +138,7 @@ class HuggingFaceImageGenerator:
                             "model": "<HF_MODEL_ID_OR_URL>",
                             "api_key": "<HF_API_KEY>",
                             "inference_mode": "auto",
+                            "api_type": "huggingface",
                         }
                     ]
                 }
@@ -147,35 +148,42 @@ class HuggingFaceImageGenerator:
             num_inference_steps (int or None): The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
             guidance_scale (float or None): Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
         """
-        if llm_config is None or "config_list" not in llm_config:
-            self._hf_client = HuggingFaceClient()
-            self._model = None
-            self._inference_mode = "auto"
-        else:
-            config_list = llm_config["config_list"]
-            self._hf_client = HuggingFaceClient(config_list[0].get("api_key"))
-            self._model = config_list[0].get("model")
-            self._inference_mode = config_list[0].get("inference_mode", "auto")
-            if self._inference_mode not in HuggingFaceClient.VALID_INFERENCE_MODES:
-                raise ValueError(
-                    f"Invalid inference mode: {self._inference_mode}. Must be one of: {HuggingFaceClient.VALID_INFERENCE_MODES}"
-                )
+        if llm_config is None:
+            # Use default config
+            llm_config = {
+                "config_list": [
+                    {
+                        "api_type": "huggingface",
+                    }
+                ]
+            }
 
+        assert (
+            "config_list" in llm_config
+            and len(llm_config["config_list"]) > 0
+            and all(config.get("api_type") == "huggingface" for config in llm_config["config_list"])
+        ), "Invalid LLM config. Must set 'api_type' to 'huggingface' in the config_list."
+        self._client = OpenAIWrapper(**llm_config)
+
+        self._model = llm_config["config_list"][0].get("model")
         self._height = height
         self._width = width
         self._num_inference_steps = num_inference_steps
         self._guidance_scale = guidance_scale
 
     def generate_image(self, prompt: str) -> Image:
-        return self._hf_client.text_to_image(
-            prompt,
-            model=self._model,
-            inference_mode=self._inference_mode,
+        response = self._client.create(
+            task="text-to-image",
+            prompt=prompt,
             height=self._height,
             width=self._width,
             num_inference_steps=self._num_inference_steps,
             guidance_scale=self._guidance_scale,
         )
+        extracted_response = self._client.extract_text_or_completion_object(response)[0]
+        image = img_utils.get_pil_image(extracted_response)
+
+        return image
 
     def cache_key(self, prompt: str) -> str:
         keys = (prompt, self._model, self._height, self._width, self._num_inference_steps, self._guidance_scale)
