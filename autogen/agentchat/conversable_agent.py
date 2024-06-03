@@ -2695,7 +2695,7 @@ class ConversableAgent(LLMAgent):
         """
         self.client.register_model_client(model_client_cls, **kwargs)
 
-    def register_hook(self, hookable_method: str, hook: Callable[[List[Dict]], List[Dict]]):
+    def register_hook(self, hookable_method: str, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
