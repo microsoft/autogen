@@ -17,7 +17,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    "sphinxcontrib.apidoc"
+    "sphinxcontrib.apidoc",
+    "myst_parser"
 ]
 
 apidoc_module_dir = '../../src/agnext'

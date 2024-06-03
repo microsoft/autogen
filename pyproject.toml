@@ -32,7 +32,7 @@ dev = [
     "types-Pillow",
     "polars",
 ]
-docs = ["sphinx", "furo", "sphinxcontrib-apidoc"]
+docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 
 [tool.setuptools.package-data]
 agnext = ["py.typed"]

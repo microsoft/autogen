@@ -2,6 +2,13 @@ agnext
 ------
 
 .. toctree::
+    :caption: Guides
+    :hidden:
+
+    guides/azure_openai_with_aad_auth
+
+
+.. toctree::
     :caption: Reference
     :hidden:
 
