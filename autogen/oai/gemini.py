@@ -72,7 +72,7 @@ class GeminiClient:
         "max_output_tokens": "max_output_tokens",
     }
 
-    def initialize_vartexai(self, **params):
+    def _initialize_vartexai(self, **params):
         if "google_application_credentials" in params:
             # Path to JSON Keyfile
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params["google_application_credentials"]
@@ -85,12 +85,27 @@ class GeminiClient:
             vertexai.init(**vertexai_init_args)
 
     def __init__(self, **kwargs):
+        """Uses either either api_key for authentication from the LLM config
+        (specifying the GOOGLE_API_KEY environment variable also works),
+        or follows the Google authentication mechanism for VertexAI in Google Cloud if no api_key is specified,
+        where project_id and location can also be passed as parameters. Service account key file can also be used.
+        If neither a service account key file, nor the api_key are passed, then the default credentials will be used,
+        which could be a personal account if the user is already authenticated in, like in Google Cloud Shell.
+
+        Args:
+            api_key (str): The API key for using Gemini.
+            google_application_credentials (str): Path to the JSON service account key file of the service account.
+            Alternatively, the GOOGLE_APPLICATION_CREDENTIALS can also be set instead of using this argument.
+            project_id (str): Google Cloud project id, which is only valid in case no API key is specified.
+            location (str): Compute region to be used, like 'us-west1'.
+            This parameter is only valid in case no API key is specified.
+        """
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
             self.api_key = os.getenv("GOOGLE_API_KEY")
             if self.api_key is None:
                 self.use_vertexai = True
-                self.initialize_vartexai(**kwargs)
+                self._initialize_vartexai(**kwargs)
             else:
                 self.use_vertexai = False
         else:
@@ -126,7 +141,7 @@ class GeminiClient:
 
     def create(self, params: Dict) -> ChatCompletion:
         if self.use_vertexai:
-            self.initialize_vartexai(**params)
+            self._initialize_vartexai(**params)
         else:
             assert ("project_id" not in params) and (
                 "location" not in params
@@ -162,7 +177,7 @@ class GeminiClient:
 
         if "vision" not in model_name:
             # A. create and call the chat model.
-            gemini_messages = self.oai_messages_to_gemini_messages(messages)
+            gemini_messages = self._oai_messages_to_gemini_messages(messages)
             if self.use_vertexai:
                 model = GenerativeModel(
                     model_name, generation_config=generation_config, safety_settings=safety_settings
@@ -212,7 +227,7 @@ class GeminiClient:
             # Gemini's vision model does not support chat history yet
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1])
-            user_message = self.oai_content_to_gemini_content(messages[-1]["content"])
+            user_message = self._oai_content_to_gemini_content(messages[-1]["content"])
             if len(messages) > 2:
                 warnings.warn(
                     "Warning: Gemini's vision model does not support chat history yet.",
@@ -250,7 +265,7 @@ class GeminiClient:
 
         return response_oai
 
-    def oai_content_to_gemini_content(self, content: Union[str, List]) -> List:
+    def _oai_content_to_gemini_content(self, content: Union[str, List]) -> List:
         """Convert content from OAI format to Gemini format"""
         rst = []
         if isinstance(content, str):
@@ -288,7 +303,7 @@ class GeminiClient:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
         return rst
 
-    def concat_parts(self, parts: List[Part]) -> List:
+    def _concat_parts(self, parts: List[Part]) -> List:
         """Concatenate parts with the same type.
         If two adjacent parts both have the "text" attribute, then it will be joined into one part.
         """
@@ -317,7 +332,7 @@ class GeminiClient:
 
         return concatenated_parts
 
-    def oai_messages_to_gemini_messages(self, messages: list[Dict[str, Any]]) -> list[dict[str, Any]]:
+    def _oai_messages_to_gemini_messages(self, messages: list[Dict[str, Any]]) -> list[dict[str, Any]]:
         """Convert messages from OAI format to Gemini format.
         Make sure the "user" role and "model" role are interleaved.
         Also, make sure the last item is from the "user" role.
@@ -326,21 +341,21 @@ class GeminiClient:
         rst = []
         curr_parts = []
         for i, message in enumerate(messages):
-            parts = self.oai_content_to_gemini_content(message["content"])
+            parts = self._oai_content_to_gemini_content(message["content"])
             role = "user" if message["role"] in ["user", "system"] else "model"
 
             if prev_role is None or role == prev_role:
                 curr_parts += parts
             elif role != prev_role:
                 if self.use_vertexai:
-                    rst.append(VertexAIContent(parts=self.concat_parts(curr_parts), role=prev_role))
+                    rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
                 else:
                     rst.append(Content(parts=curr_parts, role=prev_role))
             prev_role = role
 
         # handle the last message
         if self.use_vertexai:
-            rst.append(VertexAIContent(parts=self.concat_parts(curr_parts), role=role))
+            rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=role))
         else:
             rst.append(Content(parts=curr_parts, role=role))
 
@@ -350,9 +365,9 @@ class GeminiClient:
         # We add a dummy message "continue" if the last role is not the user.
         if rst[-1].role != "user":
             if self.use_vertexai:
-                rst.append(VertexAIContent(parts=self.oai_content_to_gemini_content("continue"), role="user"))
+                rst.append(VertexAIContent(parts=self._oai_content_to_gemini_content("continue"), role="user"))
             else:
-                rst.append(Content(parts=self.oai_content_to_gemini_content("continue"), role="user"))
+                rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="user"))
 
         return rst
 
