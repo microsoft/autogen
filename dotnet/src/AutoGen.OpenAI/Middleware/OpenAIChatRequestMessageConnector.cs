@@ -314,7 +314,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private ChatMessageImageContentItem CreateChatMessageImageContentItemFromImageMessage(ImageMessage message)
     {
-        return message.Data is null
+        return message.Data is null && message.Url is not null
             ? new ChatMessageImageContentItem(new Uri(message.Url))
             : new ChatMessageImageContentItem(message.Data, message.Data.MediaType);
     }
