@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, TYPE_CHECKING, Union
 
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from sqlalchemy import ForeignKey, Integer, orm
@@ -255,11 +255,9 @@ class Criteria(SQLModel, table=True):
     __tablename__ = "criteria" 
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
-    # Foreign key that points to the Workflow  
-    session_id: Optional[int] = Field(default=None, foreign_key="session.id", on_delete="SET NULL")
-    session: Session = Relationship(back_populates="criteria")
+    # Foreign key that points to the Workflow
     workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
-    criteria: List["CriterionModel"] = Relationship(back_populates="criteria")
+    # criteria: List["CriterionModel"] = Relationship(back_populates="criteria")
 
 
 class CriterionModel(Criterion, SQLModel, table=True):
@@ -268,8 +266,14 @@ class CriterionModel(Criterion, SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     criteria_id: Optional[int] = Field(default=None, foreign_key="criteria.id")  
     # Establish a relationship to the criteria  
-    criteria: Optional[Criteria] = Relationship(back_populates="criteriamodel")
-    
+    criteria: Optional[Criteria] = Relationship(back_populates="criterionmodel")
+    accepted_values: List[str] = Field(sa_column=Column(JSON))
+
+    # Establish a relationship to parent criterion  
+    parent: Optional['CriterionModel'] = Relationship(back_populates="sub_criteria")  
+    # Establish a relationship to sub criteria  
+    sub_criteria: 'CriterionModel' = Relationship(back_populates="parent")
+
 
 class Response(SQLModel):
     message: str

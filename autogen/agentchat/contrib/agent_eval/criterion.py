@@ -16,7 +16,7 @@ class Criterion(BaseModel):
     name: str
     description: str
     accepted_values: List[str]
-    sub_criteria: List[Criterion] = list()
+    # sub_criteria: List[Criterion]
 
     @staticmethod
     def parse_json_str(criteria: str):

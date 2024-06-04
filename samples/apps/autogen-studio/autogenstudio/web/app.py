@@ -408,13 +408,21 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
 
 
 @api.post("/agenteval/criteria/generate")
-async def generate_agenteval_criteria(user_id: str, session_id: int, model_id: int, task: Task, failed_example: bool,
-                                    additonal_instructions: str, max_round: int, use_subcritic: bool):
-    messages = (await list_messages(user_id=user_id, session_id=session_id)).data
-    if(failed_example):
-        task.failed_response = str(messages)
-    else:
+async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, workflow_id:int, success_session_id: int = None, failure_session_id: int = None, 
+                                    additonal_instructions: str = None, max_round: int = 5, use_subcritic: bool = False):
+    if(not success_session_id and not failure_session_id):
+        return {
+            "status": False,
+            "message": "At least one session is required to be selected."
+        }
+
+
+    if(success_session_id):
+        messages = (await list_messages(user_id=user_id, session_id=success_session_id)).data
         task.successful_response = str(messages)
+    if(failure_session_id):
+        messages = (await list_messages(user_id=user_id, session_id=failure_session_id)).data
+        task.failed_response = str(messages)
 
     filters = {"id": model_id, "user_id": user_id}
     model = list_entity(Model, filters=filters).data
@@ -430,9 +438,9 @@ async def generate_agenteval_criteria(user_id: str, session_id: int, model_id: i
     criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
                                  max_round=max_round, use_subcritic=use_subcritic)
     # TODO: save criteria to DB
-    criteria_entry = create_entity(Criteria(session_id=session_id)) # TODO: get workflow id
+    criteria_entry = create_entity(Criteria(workflow_id))
     for criterion in criteria:
-        criterion_model = CriterionModel(criteria_id=criteria_entry.id, **criterion.dict())
+        criterion_model = CriterionModel(criteria_id=criteria_entry.id, **criterion.model_dump())
         create_entity(criterion_model, CriterionModel)
     return Criterion.write_json(criteria)
 
