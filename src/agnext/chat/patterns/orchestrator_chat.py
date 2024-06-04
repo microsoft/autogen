@@ -30,6 +30,10 @@ class OrchestratorChat(BaseChatAgent, TypeRoutedAgent):
         self._max_stalled_turns_before_retry = max_stalled_turns_before_retry
         self._max_retry_attempts_before_educated_guess = max_retry_attempts
 
+    @property
+    def children(self) -> Sequence[str]:
+        return [agent.name for agent in self._specialists] + [self._orchestrator.name] + [self._planner.name]
+
     @message_handler(TextMessage)
     async def on_text_message(
         self,

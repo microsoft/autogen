@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Protocol, Sequence, final
+from typing import Any, Awaitable, Callable, Protocol, final
 
 from agnext.core import Agent
 
@@ -21,9 +21,6 @@ class InterventionHandler(Protocol):
     async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]: ...
     async def on_publish(self, message: Any, *, sender: Agent | None) -> Any | type[DropMessage]: ...
     async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]: ...
-    async def on_publish_response(
-        self, message: Sequence[Any], *, recipient: Agent | None
-    ) -> Sequence[Any] | type[DropMessage]: ...
 
 
 class DefaultInterventionHandler(InterventionHandler):
@@ -34,9 +31,4 @@ class DefaultInterventionHandler(InterventionHandler):
         return message
 
     async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:
-        return message
-
-    async def on_publish_response(
-        self, message: Sequence[Any], *, recipient: Agent | None
-    ) -> Sequence[Any] | type[DropMessage]:
         return message

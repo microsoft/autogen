@@ -1,11 +1,15 @@
 import asyncio
+import logging
 from asyncio import Future
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Awaitable, Dict, List, Mapping, Set
 
 from ..core import Agent, AgentRuntime, CancellationToken
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
+
+logger = logging.getLogger("agnext")
 
 
 @dataclass(kw_only=True)
@@ -57,6 +61,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._per_type_subscribers[message_type] = []
             self._per_type_subscribers[message_type].append(agent)
         self._agents.add(agent)
+
+    @property
+    def agents(self) -> Sequence[Agent]:
+        return list(self._agents)
+
+    @property
+    def unprocessed_messages(self) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
+        return self._message_queue
 
     # Returns the response of the message
     def send_message(
@@ -123,6 +135,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         assert recipient in self._agents
 
         try:
+            sender_name = message_envelope.sender.name if message_envelope.sender is not None else "Unknown"
+            logger.info(
+                f"Calling message handler for {recipient.name} with message type {type(message_envelope.message).__name__} from {sender_name}"
+            )
             response = await recipient.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
@@ -145,6 +161,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         for agent in self._per_type_subscribers.get(type(message_envelope.message), []):  # type: ignore
             if message_envelope.sender is not None and agent.name == message_envelope.sender.name:
                 continue
+
+            logger.info(
+                f"Calling message handler for {agent.name} with message type {type(message_envelope.message).__name__} published by {message_envelope.sender.name if message_envelope.sender is not None else 'Unknown'}"
+            )
+
             future = agent.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
@@ -154,12 +175,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         try:
             _all_responses = await asyncio.gather(*responses)
         except BaseException:
-            # TODO log error
+            logger.error("Error processing publish message", exc_info=True)
             return
 
         # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
+        recipient_name = message_envelope.recipient.name if message_envelope.recipient is not None else "Unknown"
+        logger.info(
+            f"Resolving response for recipient {recipient_name} from {message_envelope.sender.name} with message type {type(message_envelope.message).__name__}"
+        )
         message_envelope.future.set_result(message_envelope.message)
 
     async def process_next(self) -> None:
