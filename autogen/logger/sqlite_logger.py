@@ -28,10 +28,10 @@ __all__ = ("SqliteLogger",)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def safe_serialize(obj):
-    def default(o):
+def safe_serialize(obj: Any) -> str:
+    def default(o: Any) -> str:
         if hasattr(o, "to_json"):
-            return o.to_json()
+            return str(o.to_json())
         else:
             return f"<<non-serializable: {type(o).__qualname__}>>"
 
@@ -234,6 +234,12 @@ class SqliteLogger(BaseLogger):
         else:
             response_messages = json.dumps(to_dict(response), indent=4)
 
+        source_name = None
+        if isinstance(source, str):
+            source_name = source
+        else:
+            source_name = source.name
+
         query = """
             INSERT INTO chat_completions (
                 invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time, source_name
@@ -250,7 +256,7 @@ class SqliteLogger(BaseLogger):
             cost,
             start_time,
             end_time,
-            source.name,
+            source_name,
         )
 
         self._run_query(query=query, args=args)

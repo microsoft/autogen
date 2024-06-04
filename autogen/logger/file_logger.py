@@ -26,10 +26,10 @@ F = TypeVar("F", bound=Callable[..., Any])
 __all__ = ("FileLogger",)
 
 
-def safe_serialize(obj):
-    def default(o):
+def safe_serialize(obj: Any) -> str:
+    def default(o: Any) -> str:
         if hasattr(o, "to_json"):
-            return o.to_json()
+            return str(o.to_json())
         else:
             return f"<<non-serializable: {type(o).__qualname__}>>"
 
@@ -82,6 +82,11 @@ class FileLogger(BaseLogger):
         Log a chat completion.
         """
         thread_id = threading.get_ident()
+        source_name = None
+        if isinstance(source, str):
+            source_name = source
+        else:
+            source_name = source.name
         try:
             log_data = json.dumps(
                 {
@@ -95,7 +100,7 @@ class FileLogger(BaseLogger):
                     "start_time": start_time,
                     "end_time": get_current_ts(),
                     "thread_id": thread_id,
-                    "source_name": source.name,
+                    "source_name": source_name,
                 }
             )
 
