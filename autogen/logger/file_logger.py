@@ -26,6 +26,16 @@ F = TypeVar("F", bound=Callable[..., Any])
 __all__ = ("FileLogger",)
 
 
+def safe_serialize(obj):
+    def default(o):
+        if hasattr(o, "to_json"):
+            return o.to_json()
+        else:
+            return f"<<non-serializable: {type(o).__qualname__}>>"
+
+    return json.dumps(obj, default=default)
+
+
 class FileLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -85,7 +95,7 @@ class FileLogger(BaseLogger):
                     "start_time": start_time,
                     "end_time": get_current_ts(),
                     "thread_id": thread_id,
-                    "source": source.name,
+                    "source_name": source.name,
                 }
             )
 
@@ -223,8 +233,8 @@ class FileLogger(BaseLogger):
                     "agent_class": source.__class__.__name__,
                     "timestamp": get_current_ts(),
                     "thread_id": thread_id,
-                    "input_args": json.dumps(args),
-                    "returns": json.dumps(returns),
+                    "input_args": safe_serialize(args),
+                    "returns": safe_serialize(returns),
                 }
             )
             self.logger.info(log_data)

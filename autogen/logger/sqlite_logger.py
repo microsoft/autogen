@@ -28,6 +28,16 @@ __all__ = ("SqliteLogger",)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+def safe_serialize(obj):
+    def default(o):
+        if hasattr(o, "to_json"):
+            return o.to_json()
+        else:
+            return f"<<non-serializable: {type(o).__qualname__}>>"
+
+    return json.dumps(obj, default=default)
+
+
 class SqliteLogger(BaseLogger):
     schema_version = 1
 
@@ -344,8 +354,8 @@ class SqliteLogger(BaseLogger):
             id(source),
             source.name if hasattr(source, "name") else source,
             function.__name__,
-            json.dumps(args),
-            json.dumps(returns),
+            safe_serialize(args),
+            safe_serialize(returns),
             get_current_ts(),
         )
         self._run_query(query=query, args=query_args)
