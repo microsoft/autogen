@@ -244,6 +244,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
             def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1) -> None:
                 pass
 
+
             get_function_schema(f, description="function f")
 
             #   {'type': 'function',
