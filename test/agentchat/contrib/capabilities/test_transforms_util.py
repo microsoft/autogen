@@ -31,9 +31,12 @@ def test_cache_content(message: Dict[str, MessageContentType]) -> None:
         assert transforms_util.cache_content_get(cache, cache_key_1) == (message["content"],)
 
         cache_key_2 = "test_list"
-        cache_value_2 = [message["content"], 1, 2, 3]
+        cache_value_2 = [message["content"], 1, "some_string", {"new_key": "new_value"}]
         transforms_util.cache_content_set(cache, cache_key_2, *cache_value_2)
         assert transforms_util.cache_content_get(cache, cache_key_2) == tuple(cache_value_2)
+        assert isinstance(cache_value_2[1], int)
+        assert isinstance(cache_value_2[2], str)
+        assert isinstance(cache_value_2[3], dict)
 
         cache_key_3 = "test_None"
         transforms_util.cache_content_set(None, cache_key_3, message["content"])
