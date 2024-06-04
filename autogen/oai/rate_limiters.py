@@ -1,4 +1,9 @@
 import time
+from typing import Protocol
+
+
+class RateLimiter(Protocol):
+    def sleep(self, *args, **kwargs): ...
 
 
 class TimeRateLimiter:
@@ -16,7 +21,7 @@ class TimeRateLimiter:
         self._time_interval_seconds = 1.0 / rate
         self._last_time_called = 0.0
 
-    def wait(self):
+    def sleep(self, *args, **kwargs):
         """Synchronously waits until enough time has passed to allow the next operation.
 
         If the elapsed time since the last operation is less than the required time interval,

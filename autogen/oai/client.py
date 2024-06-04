@@ -16,7 +16,7 @@ from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
-from .rate_limiters import TimeRateLimiter
+from .rate_limiters import RateLimiter, TimeRateLimiter
 
 TOOL_ENABLED = False
 try:
@@ -380,18 +380,13 @@ class OpenAIWrapper:
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
-        self._rate_limiters: List[Optional[TimeRateLimiter]] = []
+        self._rate_limiters: List[Optional[RateLimiter]] = []
 
         if config_list:
+            self._initialize_rate_limiters(config_list)
+
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                # Instantiate the rate limiter
-                if "api_rate_limit" in config:
-                    self._rate_limiters.append(TimeRateLimiter(config["api_rate_limit"]))
-                    del config["api_rate_limit"]
-                else:
-                    self._rate_limiters.append(None)
-
                 self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(
                     {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
@@ -932,4 +927,13 @@ class OpenAIWrapper:
             limiter = self._rate_limiters[idx]
 
             assert limiter is not None
-            limiter.wait()
+            limiter.sleep()
+
+    def _initialize_rate_limiters(self, config_list: List[Dict[str, Any]]) -> None:
+        for config in config_list:
+            # Instantiate the rate limiter
+            if "api_rate_limit" in config:
+                self._rate_limiters.append(TimeRateLimiter(config["api_rate_limit"]))
+                del config["api_rate_limit"]
+            else:
+                self._rate_limiters.append(None)

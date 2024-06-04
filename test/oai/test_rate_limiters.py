@@ -14,7 +14,7 @@ def test_time_rate_limiter(execute_n_times):
 
     n_loops = 2
     for _ in range(n_loops):
-        rate_limiter.wait()
+        rate_limiter.sleep()
 
     total_time = time.time() - current_time_seconds
     min_expected_time = (n_loops - 1) / rate
