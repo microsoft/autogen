@@ -109,7 +109,7 @@ def test_log_completion(response, expected_logged_response, db_connection):
 
     query = """
         SELECT invocation_id, client_id, wrapper_id, request, response, is_cached,
-            cost, start_time FROM chat_completions
+            cost, start_time, source_name FROM chat_completions
     """
 
     for row in cur.execute(query):

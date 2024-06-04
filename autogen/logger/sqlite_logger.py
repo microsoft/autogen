@@ -135,6 +135,7 @@ class SqliteLogger(BaseLogger):
                         CREATE TABLE IF NOT EXISTS function_calls (
                             source_id INTEGER,
                             source_name TEXT,
+                            function_name TEXT,
                             args TEXT DEFAULT NULL,
                             returns TEXT DEFAULT NULL,
                             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
