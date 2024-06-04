@@ -14,7 +14,7 @@ class LLMCallEvent:
 
             .. code-block:: python
 
-                from agnext.application_components.logging import LLMCallEvent, EVENT_LOGGER_NAME
+                from agnext.application.logging import LLMCallEvent, EVENT_LOGGER_NAME
 
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
                 logger.info(LLMCallEvent(prompt_tokens=10, completion_tokens=20))

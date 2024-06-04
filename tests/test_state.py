@@ -1,7 +1,7 @@
 from typing import Any, Mapping, Sequence
 import pytest
 
-from agnext.application_components import SingleThreadedAgentRuntime
+from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import AgentRuntime
 from agnext.core import BaseAgent
 from agnext.core import CancellationToken

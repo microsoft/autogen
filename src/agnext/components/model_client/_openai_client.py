@@ -32,7 +32,7 @@ from openai.types.chat import (
 )
 from typing_extensions import Required, TypedDict, Unpack
 
-from ...application_components.logging import EVENT_LOGGER_NAME, LLMCallEvent
+from ...application.logging import EVENT_LOGGER_NAME, LLMCallEvent
 
 # from ..._pydantic import type2schema
 from ..image import Image

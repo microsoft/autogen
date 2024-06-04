@@ -2,8 +2,8 @@ import asyncio
 import pytest
 from dataclasses import dataclass
 
-from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
-from agnext.application_components import SingleThreadedAgentRuntime
+from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
+from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import Agent
 from agnext.core import AgentRuntime
 from agnext.core import CancellationToken

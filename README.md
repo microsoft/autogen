@@ -3,8 +3,8 @@
 ## Package layering
 
 - `core` are the the foundational generic interfaces upon which all else is built. This module must not depend on any other module.
-- `agent_components` are the building blocks for creating single agents
-- `application_components` are implementations of core components that are used to compose an application
+- `components` are the building blocks for creating single agents
+- `application` are implementations of core components that are used to compose an application
 - `chat` is the concrete implementation of multi-agent interactions. Most users will deal with this module.
 
 

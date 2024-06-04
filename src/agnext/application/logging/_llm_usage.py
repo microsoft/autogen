@@ -11,7 +11,7 @@ class LLMUsageTracker(logging.Handler):
 
             .. code-block:: python
 
-                from agnext.application_components.logging import LLMUsageTracker, EVENT_LOGGER_NAME
+                from agnext.application.logging import LLMUsageTracker, EVENT_LOGGER_NAME
 
                 # Set up the logging configuration to use the custom handler
                 logger = logging.getLogger(EVENT_LOGGER_NAME)

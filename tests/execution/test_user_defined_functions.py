@@ -5,11 +5,11 @@ import tempfile
 
 import polars
 import pytest
-from agnext.agent_components.code_executor import (
+from agnext.components.code_executor import (
     CodeBlock,
     LocalCommandLineCodeExecutor,
 )
-from agnext.agent_components.func_with_reqs import (
+from agnext.components.func_with_reqs import (
     FunctionWithRequirements,
     with_requirements,
 )

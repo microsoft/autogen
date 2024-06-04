@@ -2,23 +2,23 @@ from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
-from agnext.agent_components.types import (
-    AssistantMessage,
-    LLMMessage,
-    UserMessage,
-)
-from agnext.agent_components.types import (
-    FunctionExecutionResult as FunctionExecutionResultType,
-)
-from agnext.agent_components.types import (
-    FunctionExecutionResultMessage as FunctionExecutionResultMessageType,
-)
 from agnext.chat.types import (
     FunctionCallMessage,
     FunctionExecutionResultMessage,
     Message,
     MultiModalMessage,
     TextMessage,
+)
+from agnext.components.types import (
+    AssistantMessage,
+    LLMMessage,
+    UserMessage,
+)
+from agnext.components.types import (
+    FunctionExecutionResult as FunctionExecutionResultType,
+)
+from agnext.components.types import (
+    FunctionExecutionResultMessage as FunctionExecutionResultMessageType,
 )
 
 

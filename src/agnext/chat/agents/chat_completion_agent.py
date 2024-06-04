@@ -2,14 +2,6 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Tuple
 
-from agnext.agent_components.function_executor import FunctionExecutor
-from agnext.agent_components.model_client import ModelClient
-from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
-from agnext.agent_components.types import (
-    FunctionCall,
-    FunctionSignature,
-    SystemMessage,
-)
 from agnext.chat.agents.base import BaseChatAgent
 from agnext.chat.types import (
     FunctionCallMessage,
@@ -22,6 +14,14 @@ from agnext.chat.types import (
     TextMessage,
 )
 from agnext.chat.utils import convert_messages_to_llm_messages
+from agnext.components.function_executor import FunctionExecutor
+from agnext.components.model_client import ModelClient
+from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
+from agnext.components.types import (
+    FunctionCall,
+    FunctionSignature,
+    SystemMessage,
+)
 from agnext.core import AgentRuntime, CancellationToken
 
 

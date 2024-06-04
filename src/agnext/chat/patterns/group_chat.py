@@ -1,6 +1,6 @@
 from typing import Any, List, Protocol, Sequence
 
-from ...agent_components.type_routed_agent import TypeRoutedAgent, message_handler
+from ...components.type_routed_agent import TypeRoutedAgent, message_handler
 from ...core import AgentRuntime, CancellationToken
 from ..agents.base import BaseChatAgent
 from ..types import Reset, RespondNow, TextMessage
