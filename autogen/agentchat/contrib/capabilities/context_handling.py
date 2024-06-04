@@ -1,9 +1,18 @@
 import sys
-from termcolor import colored
-from typing import Dict, Optional, List
-from autogen import ConversableAgent
-from autogen import token_count_utils
+from typing import Dict, List, Optional
+from warnings import warn
+
 import tiktoken
+from termcolor import colored
+
+from autogen import ConversableAgent, token_count_utils
+
+warn(
+    "Context handling with TransformChatHistory is deprecated and will be removed in `0.2.30`. "
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class TransformChatHistory:
@@ -25,10 +34,10 @@ class TransformChatHistory:
     2. Second, it limits the number of message to keep
     3. Third, it limits the total number of tokens in the chat history
 
-    Args:
-        max_tokens_per_message (Optional[int]): Maximum number of tokens to keep in each message.
-        max_messages (Optional[int]): Maximum number of messages to keep in the context.
-        max_tokens (Optional[int]): Maximum number of tokens to keep in the context.
+    When adding this capability to an agent, the following are modified:
+    - A hook is added to the hookable method `process_all_messages_before_reply` to transform the
+    received messages for possible truncation.
+    Not modifying the stored message history.
     """
 
     def __init__(
@@ -38,6 +47,12 @@ class TransformChatHistory:
         max_messages: Optional[int] = None,
         max_tokens: Optional[int] = None,
     ):
+        """
+        Args:
+            max_tokens_per_message (Optional[int]): Maximum number of tokens to keep in each message.
+            max_messages (Optional[int]): Maximum number of messages to keep in the context.
+            max_tokens (Optional[int]): Maximum number of tokens to keep in the context.
+        """
         self.max_tokens_per_message = max_tokens_per_message if max_tokens_per_message else sys.maxsize
         self.max_messages = max_messages if max_messages else sys.maxsize
         self.max_tokens = max_tokens if max_tokens else sys.maxsize

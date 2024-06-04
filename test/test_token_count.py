@@ -1,11 +1,14 @@
+#!/usr/bin/env python3 -m pytest
+
+import pytest
+
 from autogen.token_count_utils import (
     count_token,
-    num_tokens_from_functions,
-    token_left,
-    percentile_used,
     get_max_token_limit,
+    num_tokens_from_functions,
+    percentile_used,
+    token_left,
 )
-import pytest
 
 func1 = {
     "name": "sh",

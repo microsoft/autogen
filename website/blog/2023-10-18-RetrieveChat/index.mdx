@@ -4,6 +4,8 @@ authors: thinkall
 tags: [LLM, RAG]
 ---
 
+*Last update: April 4, 2024; AutoGen version: v0.2.21*
+
 ![RAG Architecture](img/retrievechat-arch.png)
 
 **TL;DR:**
@@ -57,9 +59,16 @@ pip install "pyautogen[retrievechat]"
 RetrieveChat can handle various types of documents. By default, it can process
 plain text and PDF files, including formats such as 'txt', 'json', 'csv', 'tsv',
 'md', 'html', 'htm', 'rtf', 'rst', 'jsonl', 'log', 'xml', 'yaml', 'yml' and 'pdf'.
-If you install [unstructured](https://unstructured-io.github.io/unstructured/installation/full_installation.html)
-(`pip install "unstructured[all-docs]"`), additional document types such as 'docx',
+If you install [unstructured](https://unstructured-io.github.io/unstructured/installation/full_installation.html),
+additional document types such as 'docx',
 'doc', 'odt', 'pptx', 'ppt', 'xlsx', 'eml', 'msg', 'epub' will also be supported.
+
+- Install `unstructured` in ubuntu
+```bash
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr poppler-utils
+pip install unstructured[all-docs]
+```
 
 You can find a list of all supported document types by using `autogen.retrieve_utils.TEXT_FORMATS`.
 
@@ -90,7 +99,7 @@ ragproxyagent = RetrieveUserProxyAgent(
 3. Initialize Chat and ask a question
 ```python
 assistant.reset()
-ragproxyagent.initiate_chat(assistant, problem="What is autogen?")
+ragproxyagent.initiate_chat(assistant, message=ragproxyagent.message_generator, problem="What is autogen?")
 ```
 
 Output is like:
@@ -283,28 +292,6 @@ However, you may want to initialize the chat with another agent in some cases. T
 you'll need to call it from a function.
 
 ```python
-llm_config = {
-    "functions": [
-        {
-            "name": "retrieve_content",
-            "description": "retrieve content for code generation and question answering.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message": {
-                        "type": "string",
-                        "description": "Refined message which keeps the original meaning and can be used to retrieve content for code generation and question answering.",
-                    }
-                },
-                "required": ["message"],
-            },
-        },
-    ],
-    "config_list": config_list,
-    "timeout": 60,
-    "seed": 42,
-}
-
 boss = autogen.UserProxyAgent(
     name="Boss",
     is_termination_msg=termination_msg,
@@ -324,49 +311,62 @@ boss_aid = RetrieveUserProxyAgent(
     code_execution_config=False,  # we don't want to execute code in this case.
 )
 
-coder = AssistantAgent(
+coder = autogen.AssistantAgent(
     name="Senior_Python_Engineer",
     is_termination_msg=termination_msg,
     system_message="You are a senior python engineer. Reply `TERMINATE` in the end when everything is done.",
-    llm_config=llm_config,
+    llm_config={"config_list": config_list, "timeout": 60, "temperature": 0},
 )
 
 pm = autogen.AssistantAgent(
     name="Product_Manager",
     is_termination_msg=termination_msg,
     system_message="You are a product manager. Reply `TERMINATE` in the end when everything is done.",
-    llm_config=llm_config,
+    llm_config={"config_list": config_list, "timeout": 60, "temperature": 0},
 )
 
 reviewer = autogen.AssistantAgent(
     name="Code_Reviewer",
     is_termination_msg=termination_msg,
     system_message="You are a code reviewer. Reply `TERMINATE` in the end when everything is done.",
-    llm_config=llm_config,
+    llm_config={"config_list": config_list, "timeout": 60, "temperature": 0},
 )
 
-def retrieve_content(message, n_results=3):
-        boss_aid.n_results = n_results  # Set the number of results to be retrieved.
-        # Check if we need to update the context.
-        update_context_case1, update_context_case2 = boss_aid._check_update_context(message)
-        if (update_context_case1 or update_context_case2) and boss_aid.update_context:
-            boss_aid.problem = message if not hasattr(boss_aid, "problem") else boss_aid.problem
-            _, ret_msg = boss_aid._generate_retrieve_user_reply(message)
-        else:
-            ret_msg = boss_aid.generate_init_message(message, n_results=n_results)
-        return ret_msg if ret_msg else message
+def retrieve_content(
+    message: Annotated[
+        str,
+        "Refined message which keeps the original meaning and can be used to retrieve content for code generation and question answering.",
+    ],
+    n_results: Annotated[int, "number of results"] = 3,
+) -> str:
+    boss_aid.n_results = n_results  # Set the number of results to be retrieved.
+    # Check if we need to update the context.
+    update_context_case1, update_context_case2 = boss_aid._check_update_context(message)
+    if (update_context_case1 or update_context_case2) and boss_aid.update_context:
+        boss_aid.problem = message if not hasattr(boss_aid, "problem") else boss_aid.problem
+        _, ret_msg = boss_aid._generate_retrieve_user_reply(message)
+    else:
+        _context = {"problem": message, "n_results": n_results}
+        ret_msg = boss_aid.message_generator(boss_aid, None, _context)
+    return ret_msg if ret_msg else message
 
-for agent in [boss, coder, pm, reviewer]:
-    # register functions for all agents.
-    agent.register_function(
-        function_map={
-            "retrieve_content": retrieve_content,
-        }
-    )
+for caller in [pm, coder, reviewer]:
+    d_retrieve_content = caller.register_for_llm(
+        description="retrieve content for code generation and question answering.", api_style="function"
+    )(retrieve_content)
+
+for executor in [boss, pm]:
+    executor.register_for_execution()(d_retrieve_content)
 
 groupchat = autogen.GroupChat(
-    agents=[boss, coder, pm, reviewer], messages=[], max_round=12
+    agents=[boss, pm, coder, reviewer],
+    messages=[],
+    max_round=12,
+    speaker_selection_method="round_robin",
+    allow_repeat_speaker=False,
 )
+
+llm_config = {"config_list": config_list, "timeout": 60, "temperature": 0}
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
 # Start chatting with the boss as this is the user proxy agent.

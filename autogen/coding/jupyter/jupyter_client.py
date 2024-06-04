@@ -1,31 +1,38 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Any, Dict, List, Optional, cast
-import sys
+from typing import Any, Dict, List, Optional, Type, cast
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
 
+import datetime
 import json
 import uuid
-import datetime
-import requests
 
+import requests
 import websocket
+from requests.adapters import HTTPAdapter, Retry
 from websocket import WebSocket
 
 from .base import JupyterConnectionInfo
 
 
 class JupyterClient:
-    """(Experimental) A client for communicating with a Jupyter gateway server."""
-
     def __init__(self, connection_info: JupyterConnectionInfo):
+        """(Experimental) A client for communicating with a Jupyter gateway server.
+
+        Args:
+            connection_info (JupyterConnectionInfo): Connection information
+        """
         self._connection_info = connection_info
+        self._session = requests.Session()
+        retries = Retry(total=5, backoff_factor=0.1)
+        self._session.mount("http://", HTTPAdapter(max_retries=retries))
 
     def _get_headers(self) -> Dict[str, str]:
         if self._connection_info.token is None:
@@ -34,17 +41,19 @@ class JupyterClient:
 
     def _get_api_base_url(self) -> str:
         protocol = "https" if self._connection_info.use_https else "http"
-        return f"{protocol}://{self._connection_info.host}:{self._connection_info.port}"
+        port = f":{self._connection_info.port}" if self._connection_info.port else ""
+        return f"{protocol}://{self._connection_info.host}{port}"
 
     def _get_ws_base_url(self) -> str:
-        return f"ws://{self._connection_info.host}:{self._connection_info.port}"
+        port = f":{self._connection_info.port}" if self._connection_info.port else ""
+        return f"ws://{self._connection_info.host}{port}"
 
     def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
-        response = requests.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
+        response = self._session.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
         return cast(Dict[str, Dict[str, str]], response.json())
 
     def list_kernels(self) -> List[Dict[str, str]]:
-        response = requests.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
+        response = self._session.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
         return cast(List[Dict[str, str]], response.json())
 
     def start_kernel(self, kernel_spec_name: str) -> str:
@@ -57,15 +66,21 @@ class JupyterClient:
             str: ID of the started kernel
         """
 
-        response = requests.post(
+        response = self._session.post(
             f"{self._get_api_base_url()}/api/kernels",
             headers=self._get_headers(),
             json={"name": kernel_spec_name},
         )
         return cast(str, response.json()["id"])
 
+    def delete_kernel(self, kernel_id: str) -> None:
+        response = self._session.delete(
+            f"{self._get_api_base_url()}/api/kernels/{kernel_id}", headers=self._get_headers()
+        )
+        response.raise_for_status()
+
     def restart_kernel(self, kernel_id: str) -> None:
-        response = requests.post(
+        response = self._session.post(
             f"{self._get_api_base_url()}/api/kernels/{kernel_id}/restart", headers=self._get_headers()
         )
         response.raise_for_status()
@@ -98,8 +113,11 @@ class JupyterKernelClient:
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
+        self.stop()
+
+    def stop(self) -> None:
         self._websocket.close()
 
     def _send_message(self, *, content: Dict[str, Any], channel: str, message_type: str) -> str:

@@ -1,9 +1,12 @@
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Input, Modal, message, MenuProps, Dropdown } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -11,18 +14,17 @@ import {
   fetchJSON,
   getSampleSkill,
   getServerUrl,
+  sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
 import {
   BounceLoader,
   Card,
-  CodeBlock,
-  LaunchButton,
+  CardHoverBar,
   LoadingOverlay,
   MonacoEditor,
 } from "../../atoms";
-import TextArea from "antd/es/input/TextArea";
 
 const SkillsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -35,7 +37,6 @@ const SkillsView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
   const saveSkillsUrl = `${serverUrl}/skills`;
-  const deleteSkillsUrl = `${serverUrl}/skills/delete`;
 
   const [skills, setSkills] = React.useState<ISkill[] | null>([]);
   const [selectedSkill, setSelectedSkill] = React.useState<any>(null);
@@ -50,6 +51,7 @@ const SkillsView = ({}: any) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    const deleteSkillUrl = `${serverUrl}/skills/delete?user_id=${user?.email}&skill_id=${skill.id}`;
     const payLoad = {
       method: "DELETE",
       headers: {
@@ -64,7 +66,7 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setSkills(data.data);
+        fetchSkills();
       } else {
         message.error(data.message);
       }
@@ -75,7 +77,7 @@ const SkillsView = ({}: any) => {
       message.error(err.message);
       setLoading(false);
     };
-    fetchJSON(deleteSkillsUrl, payLoad, onSuccess, onError);
+    fetchJSON(deleteSkillUrl, payLoad, onSuccess, onError);
   };
 
   const fetchSkills = () => {
@@ -92,7 +94,7 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         // message.success(data.message);
-        // console.log("skills", data.data);
+        console.log("skills", data.data);
         setSkills(data.data);
       } else {
         message.error(data.message);
@@ -111,23 +113,21 @@ const SkillsView = ({}: any) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    skill.user_id = user?.email;
     const payLoad = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        user_id: user?.email,
-        skill: skill,
-      }),
+      body: JSON.stringify(skill),
     };
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        // console.log("skills", data.data);
-        setSkills(data.data);
+        const updatedSkills = [data.data].concat(skills || []);
+        setSkills(updatedSkills);
       } else {
         message.error(data.message);
       }
@@ -149,46 +149,84 @@ const SkillsView = ({}: any) => {
   }, []);
 
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
+    const cardItems = [
+      {
+        title: "Download",
+        icon: ArrowDownTrayIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          // download workflow as workflow.name.json
+          const element = document.createElement("a");
+          const sanitizedSkill = sanitizeConfig(skill);
+          const file = new Blob([JSON.stringify(sanitizedSkill)], {
+            type: "application/json",
+          });
+          element.href = URL.createObjectURL(file);
+          element.download = `skill_${skill.name}.json`;
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+        },
+        hoverText: "Download",
+      },
+      {
+        title: "Make a Copy",
+        icon: DocumentDuplicateIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          let newSkill = { ...skill };
+          newSkill.name = `${skill.name} Copy`;
+          newSkill.user_id = user?.email;
+          if (newSkill.id) {
+            delete newSkill.id;
+          }
+          setNewSkill(newSkill);
+          setShowNewSkillModal(true);
+        },
+        hoverText: "Make a Copy",
+      },
+      {
+        title: "Delete",
+        icon: TrashIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          deleteSkill(skill);
+        },
+        hoverText: "Delete",
+      },
+    ];
     return (
-      <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
+      <li key={"skillrow" + i} className=" " style={{ width: "200px" }}>
         <div>
           {" "}
           <Card
             className="h-full p-2 cursor-pointer group"
-            title={truncateText(skill.title, 25)}
+            title={truncateText(skill.name, 25)}
             onClick={() => {
               setSelectedSkill(skill);
               setShowSkillModal(true);
             }}
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(skill.content, 70)}
-            </div>
-            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
             <div
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-              }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
+              style={{ minHeight: "65px" }}
+              className="my-2   break-words"
+              aria-hidden="true"
             >
               {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSkill(skill);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
+              {skill.description
+                ? truncateText(skill.description || "", 70)
+                : truncateText(skill.content || "", 70)}
             </div>
+            <div
+              aria-label={`Updated ${timeAgo(skill.updated_at || "")}`}
+              className="text-xs"
+            >
+              {timeAgo(skill.updated_at || "")}
+            </div>
+            <CardHoverBar items={cardItems} />
           </Card>
           <div className="text-right mt-2"></div>
         </div>
-      </div>
+      </li>
     );
   });
 
@@ -212,7 +250,7 @@ const SkillsView = ({}: any) => {
         title={
           <>
             Skill Specification{" "}
-            <span className="text-accent font-normal">{localSkill?.title}</span>{" "}
+            <span className="text-accent font-normal">{localSkill?.name}</span>{" "}
           </>
         }
         width={800}
@@ -251,29 +289,14 @@ const SkillsView = ({}: any) => {
           <div style={{ minHeight: "70vh" }}>
             <div className="mb-2">
               <Input
-                placeholder="Skill Title"
-                value={localSkill.title}
+                placeholder="Skill Name"
+                value={localSkill.name}
                 onChange={(e) => {
-                  const updatedSkill = { ...localSkill, title: e.target.value };
+                  const updatedSkill = { ...localSkill, name: e.target.value };
                   setLocalSkill(updatedSkill);
                 }}
               />
             </div>
-
-            {/* <div className="mb-2">
-              <div className="inline-block  "> Skill Description </div>
-              <TextArea
-                placeholder="Skill Description"
-                value={localSkill.description}
-                onChange={(e) => {
-                  const updatedSkill = {
-                    ...localSkill,
-                    description: e.target.value,
-                  };
-                  setLocalSkill(updatedSkill);
-                }}
-              />
-            </div> */}
 
             <div style={{ height: "70vh" }} className="h-full  mt-2 rounded">
               <MonacoEditor
@@ -288,45 +311,56 @@ const SkillsView = ({}: any) => {
     );
   };
 
+  const uploadSkill = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+    fileInput.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result;
+        if (content) {
+          try {
+            const skill = JSON.parse(content as string);
+            if (skill) {
+              setNewSkill(skill);
+              setShowNewSkillModal(true);
+            }
+          } catch (e) {
+            message.error("Invalid skill file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    fileInput.click();
+  };
+
+  const skillsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadskill",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Skill
+        </div>
+      ),
+    },
+  ];
+
+  const skillsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadskill") {
+      uploadSkill();
+      return;
+    }
+  };
+
   return (
     <div className=" text-primary ">
-      {/* <Modal
-        title={
-          <div>
-            <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
-          </div>
-        }
-        width={800}
-        open={showNewSkillModal}
-        onOk={() => {
-          saveSkill();
-          setShowNewSkillModal(false);
-        }}
-        onCancel={() => {
-          setShowNewSkillModal(false);
-        }}
-      >
-        <>
-          <div className="mb-2">
-            Provide code for a new skill or create from current conversation.
-          </div>
-          <Input
-            className="mb-2"
-            placeholder="Skill Title"
-            onChange={(e) => {
-              setNewSkillTitle(e.target.value);
-            }}
-          />
-          <TextArea
-            value={skillCode}
-            onChange={(e) => {
-              setSkillCode(e.target.value);
-            }}
-            rows={10}
-          />
-        </>
-      </Modal> */}
-
       <SkillModal
         skill={selectedSkill}
         setSkill={setSelectedSkill}
@@ -350,20 +384,27 @@ const SkillsView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1 font-semibold mb-2 ">
+            <ul className="flex-1   font-semibold mb-2 ">
               {" "}
               Skills ({skillRows.length}){" "}
+            </ul>
+            <div>
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: skillsMenuItems,
+                  onClick: skillsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
+                onClick={() => {
+                  setShowNewSkillModal(true);
+                }}
+              >
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Skill
+              </Dropdown.Button>
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewSkillModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Skill
-            </LaunchButton>
           </div>
           <div className="text-xs mb-2 pb-1  ">
             {" "}

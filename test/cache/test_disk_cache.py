@@ -1,5 +1,8 @@
+#!/usr/bin/env python3 -m pytest
+
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from autogen.cache.disk_cache import DiskCache
 
 

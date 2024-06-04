@@ -15,8 +15,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-permissions: {}
-    # actions: read
+permissions:
+  {}
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read
@@ -26,26 +27,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [macos-latest, windows-2019]
         python-version: ["3.9", "3.10", "3.11"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10'
         run: |
-          pip install qdrant_client[fastembed]
-      - name: Install unstructured when python-version is 3.9 and not windows
-        if: matrix.python-version == '3.9' && matrix.os != 'windows-2019'
-        run: |
-          pip install unstructured[all-docs]
+          pip install -e .[retrievechat-qdrant]
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
@@ -55,14 +55,99 @@ jobs:
           if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
-      - name: Test RetrieveChat
-        run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
-          coverage xml
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/retrievechat/test_retrievechat.py test/agentchat/contrib/retrievechat/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  RetrieveChatTest-Ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install -e .[retrievechat-qdrant]
+      - name: Install pgvector when on linux
+        run: |
+          pip install -e .[retrievechat-pgvector]
+      - name: Install unstructured when python-version is 3.9 and on linux
+        if: matrix.python-version == '3.9'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr poppler-utils
+          pip install --no-cache-dir unstructured[all-docs]==0.13.0
+      - name: Install packages and dependencies for RetrieveChat
+        run: |
+          pip install -e .[retrievechat]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+      - name: Coverage
+        run: |
+          pip install pytest-cov>=5
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/retrievechat test/agentchat/contrib/vectordb --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  AgentEvalTest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for AgentEval
+        run: |
+          pip install -e .
+      - name: Coverage
+        run: |
+          pytest test/agentchat/contrib/agent_eval/ --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -75,17 +160,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8"]
+        python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for Compression
         run: |
           pip install -e .
@@ -97,9 +182,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py --skip-openai
-          coverage xml
+          pytest test/agentchat/contrib/test_compressible_agent.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -114,15 +197,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for GPTAssistantAgent
         run: |
           pip install -e .
@@ -134,9 +217,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
-          coverage xml
+          pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -151,15 +232,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.11"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
@@ -171,9 +252,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
-          coverage xml
+          pytest test/agentchat/contrib/capabilities/test_teachable_agent.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -188,15 +267,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for WebSurfer
         run: |
           pip install -e .[websurfer]
@@ -208,9 +287,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
-          coverage xml
+          pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -225,15 +302,17 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for LMM
         run: |
           pip install -e .[lmm]
@@ -245,9 +324,51 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
-          coverage xml
+          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_vision_capability.py --skip-openai
+      - name: Image Gen Coverage
+        if: ${{ matrix.os != 'windows-2019' && matrix.python-version != '3.12' }}
+        run: |
+          pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  GeminiTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for Gemini
+        run: |
+          pip install -e .[gemini,test]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pytest test/oai/test_gemini.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -262,15 +383,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.11"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Install packages and dependencies for Context Handling
         run: |
           pip install -e .
@@ -282,9 +403,73 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_context_handling.py --skip-openai
-          coverage xml
+          pytest test/agentchat/contrib/capabilities/test_context_handling.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  TransformMessages:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for Transform Messages
+        run: |
+          pip install -e '.[long-context]'
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pytest test/agentchat/contrib/capabilities/test_transform_messages.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittest
+
+  LlamaIndexAgent:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for LlamaIndexConverableAgent
+        run: |
+          pip install -e .
+          pip install llama-index
+          pip install llama-index-llms-openai
+      - name: Coverage
+        run: |
+          pytest test/agentchat/contrib/test_llamaindex_conversable_agent.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
