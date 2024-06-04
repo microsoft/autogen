@@ -2,6 +2,12 @@ agnext
 ------
 
 .. toctree::
+    :caption: Getting started
+    :hidden:
+
+    getting-started/installation
+
+.. toctree::
     :caption: Guides
     :hidden:
 
