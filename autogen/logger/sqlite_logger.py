@@ -235,7 +235,7 @@ class SqliteLogger(BaseLogger):
 
         args = to_dict(
             init_args,
-            exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"),
+            exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint", "azure_ad_token_provider"),
             no_recursive=(Agent,),
         )
 
@@ -300,7 +300,7 @@ class SqliteLogger(BaseLogger):
             return
 
         args = to_dict(
-            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint", "azure_ad_token_provider")
         )
 
         query = """
@@ -322,7 +322,7 @@ class SqliteLogger(BaseLogger):
             return
 
         args = to_dict(
-            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint", "azure_ad_token_provider")
         )
 
         query = """

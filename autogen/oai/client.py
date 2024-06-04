@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
 import inspect
@@ -398,6 +399,12 @@ class OpenAIWrapper:
         if openai_config["azure_deployment"] is not None:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
+
+        # Handled managed identities
+        bearer_token = os.environ.get("AZURE_BEARER_TOKEN")
+        if bearer_token:
+            del openai_config["api_key"]
+            openai_config["azure_ad_token_provider"] = lambda: bearer_token
 
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
