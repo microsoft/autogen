@@ -62,6 +62,10 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 """
 )
 
+
+def test_function(param1: str, param2: int) -> Any:
+    return param1 * param2
+
 ###############################################################
 
 
@@ -124,7 +128,7 @@ def test_log_function_use(db_connection):
     cur = db_connection.cursor()
 
     source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
-    func = Callable[..., Any]()
+    func: Callable[[str, int], Any] = test_function
     args = {'foo': 'bar'}
     returns = True
 

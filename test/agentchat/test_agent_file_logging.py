@@ -20,6 +20,9 @@ from autogen.logger.file_logger import FileLogger
 is_windows = sys.platform.startswith("win")
 
 
+def test_function(param1: str, param2: int) -> Any:
+    return param1 * param2
+
 @pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 @pytest.fixture
 def logger() -> FileLogger:
@@ -82,7 +85,7 @@ def test_log_chat_completion(logger: FileLogger):
 @pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_function_use(logger: FileLogger):
     source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
-    func = Callable[..., Any]()
+    func: Callable[[str, int], Any] = test_function
     args = {'foo': 'bar'}
     returns = True
 
