@@ -605,6 +605,37 @@ class PGVectorDB(VectorDB):
 
         Returns:
             None
+
+        Example:
+            RetrieveUserProxyAgent(
+                name="ragproxyagent",
+                human_input_mode="NEVER",
+                max_consecutive_auto_reply=3,
+                retrieve_config={
+                    "task": "code",
+                    "docs_path": [
+                        "https://raw.githubusercontent.com/microsoft/FLAML/main/website/docs/Examples/Integrate%20-%20Spark.md",
+                        "https://raw.githubusercontent.com/microsoft/FLAML/main/website/docs/Research.md",
+                        "https://raw.githubusercontent.com/Knuckles-Team/geniusbot/main/README.md",
+                        "https://raw.githubusercontent.com/Knuckles-Team/repository-manager/main/README.md",
+                        "https://raw.githubusercontent.com/Knuckles-Team/gitlab-api/main/README.md",
+                        "https://raw.githubusercontent.com/Knuckles-Team/media-downloader/main/README.md",
+                        os.path.join(os.path.abspath(""), "..", "website", "docs"),
+                    ],
+                    "custom_text_types": ["non-existent-type"],
+                    "chunk_token_size": 2000,
+                    "model": config_list[0]["model"],
+                    "vector_db": "pgvector",  # PGVector database
+                    "collection_name": "test_collection",
+                    "db_config": {
+                        "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
+                    },
+                    "embedding_function": "all-distilroberta-v1",
+                    "get_or_create": True,  # set to False if you don't want to reuse an existing collection
+                    "overwrite": False,  # set to True if you want to overwrite an existing collection
+                },
+                code_execution_config=False,  # set to False if you don't want to execute the code
+            )
         """
         self.client = self.establish_connection(
             conn=conn,
