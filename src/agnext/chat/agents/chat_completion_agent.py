@@ -5,8 +5,6 @@ from typing import Any, Coroutine, Dict, List, Mapping, Tuple
 from agnext.chat.agents.base import BaseChatAgent
 from agnext.chat.types import (
     FunctionCallMessage,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
     Message,
     Reset,
     RespondNow,
@@ -15,12 +13,11 @@ from agnext.chat.types import (
 )
 from agnext.chat.utils import convert_messages_to_llm_messages
 from agnext.components.function_executor import FunctionExecutor
-from agnext.components.model_client import ModelClient
+from agnext.components.llm import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
 from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.components.types import (
     FunctionCall,
     FunctionSignature,
-    SystemMessage,
 )
 from agnext.core import AgentRuntime, CancellationToken
 
@@ -141,7 +138,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
                 results.append(FunctionExecutionResult(content=execution_result, call_id=call_id))
 
         # Create a tool call result message.
-        tool_call_result_msg = FunctionExecutionResultMessage(content=results, source=self.name)
+        tool_call_result_msg = FunctionExecutionResultMessage(content=results)
 
         # Add tool call result message.
         self._chat_messages.append(tool_call_result_msg)

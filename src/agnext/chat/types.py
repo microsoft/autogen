@@ -5,6 +5,7 @@ from enum import Enum
 from typing import List, Union
 
 from agnext.components.image import Image
+from agnext.components.llm import FunctionExecutionResultMessage
 from agnext.components.types import FunctionCall
 
 
@@ -27,17 +28,6 @@ class MultiModalMessage(BaseMessage):
 @dataclass
 class FunctionCallMessage(BaseMessage):
     content: List[FunctionCall]
-
-
-@dataclass
-class FunctionExecutionResult:
-    content: str
-    call_id: str
-
-
-@dataclass
-class FunctionExecutionResultMessage(BaseMessage):
-    content: List[FunctionExecutionResult]
 
 
 Message = Union[TextMessage, MultiModalMessage, FunctionCallMessage, FunctionExecutionResultMessage]

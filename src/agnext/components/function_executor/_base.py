@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, Protocol, TypedDict, Union, runtime_chec
 
 from typing_extensions import NotRequired, Required
 
-from ..function_utils import get_function_schema
+from .._function_utils import get_function_schema
 from ..types import FunctionSignature
 
 

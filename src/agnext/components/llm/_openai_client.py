@@ -4,11 +4,8 @@ import warnings
 from typing import (
     Any,
     AsyncGenerator,
-    Awaitable,
-    Callable,
     Dict,
     List,
-    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -30,25 +27,26 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
     completion_create_params,
 )
-from typing_extensions import Required, TypedDict, Unpack
+from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, LLMCallEvent
-
-# from ..._pydantic import type2schema
 from ..image import Image
 from ..types import (
+    FunctionCall,
+    FunctionSignature,
+)
+from . import _model_info
+from ._model_client import ModelCapabilities, ModelClient
+from ._types import (
     AssistantMessage,
     CreateResult,
-    FunctionCall,
     FunctionExecutionResultMessage,
-    FunctionSignature,
     LLMMessage,
     RequestUsage,
     SystemMessage,
     UserMessage,
 )
-from . import _model_info
-from ._model_client import ModelCapabilities, ModelClient
+from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -200,53 +198,6 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
         prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
         completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
     )
-
-
-class ResponseFormat(TypedDict):
-    type: Literal["text", "json_object"]
-
-
-class CreateArguments(TypedDict, total=False):
-    frequency_penalty: Optional[float]
-    logit_bias: Optional[Dict[str, int]]
-    max_tokens: Optional[int]
-    n: Optional[int]
-    presence_penalty: Optional[float]
-    response_format: ResponseFormat
-    seed: Optional[int]
-    stop: Union[Optional[str], List[str]]
-    temperature: Optional[float]
-    top_p: Optional[float]
-    user: str
-
-
-AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
-
-
-class BaseOpenAIClientConfiguration(CreateArguments, total=False):
-    model: str
-    api_key: str
-    timeout: Union[float, None]
-    max_retries: int
-
-
-# See OpenAI docs for explanation of these parameters
-class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
-    organization: str
-    base_url: str
-    # Not required
-    model_capabilities: ModelCapabilities
-
-
-class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
-    # Azure specific
-    azure_endpoint: Required[str]
-    azure_deployment: str
-    api_version: Required[str]
-    azure_ad_token: str
-    azure_ad_token_provider: AsyncAzureADTokenProvider
-    # Must be provided
-    model_capabilities: Required[ModelCapabilities]
 
 
 def convert_functions(

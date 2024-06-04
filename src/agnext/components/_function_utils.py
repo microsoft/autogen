@@ -20,7 +20,7 @@ from typing import (
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal
 
-from .pydantic_compat import evaluate_forwardref, model_dump, type2schema
+from ._pydantic_compat import evaluate_forwardref, model_dump, type2schema
 
 logger = getLogger(__name__)
 

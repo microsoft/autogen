@@ -11,7 +11,8 @@ from typing_extensions import (
     Union,
 )
 
-from ..types import CreateResult, FunctionSignature, LLMMessage, RequestUsage
+from ..types import FunctionSignature
+from ._types import CreateResult, LLMMessage, RequestUsage
 
 
 class ModelCapabilities(TypedDict, total=False):

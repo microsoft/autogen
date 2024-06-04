@@ -4,21 +4,16 @@ from typing_extensions import Literal
 
 from agnext.chat.types import (
     FunctionCallMessage,
-    FunctionExecutionResultMessage,
     Message,
     MultiModalMessage,
     TextMessage,
 )
-from agnext.components.types import (
+from agnext.components.llm import (
     AssistantMessage,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
-)
-from agnext.components.types import (
-    FunctionExecutionResult as FunctionExecutionResultType,
-)
-from agnext.components.types import (
-    FunctionExecutionResultMessage as FunctionExecutionResultMessageType,
 )
 
 
@@ -61,11 +56,11 @@ def convert_content_message_to_user_message(
 def convert_tool_call_response_message(
     message: FunctionExecutionResultMessage,
     handle_unrepresentable: Literal["error", "ignore", "try_slice"] = "error",
-) -> Optional[FunctionExecutionResultMessageType]:
+) -> Optional[FunctionExecutionResultMessage]:
     match message:
         case FunctionExecutionResultMessage():
-            return FunctionExecutionResultMessageType(
-                content=[FunctionExecutionResultType(content=x.content, call_id=x.call_id) for x in message.content]
+            return FunctionExecutionResultMessage(
+                content=[FunctionExecutionResult(content=x.content, call_id=x.call_id) for x in message.content]
             )
 
 
@@ -93,7 +88,7 @@ def convert_messages_to_llm_messages(
                 converted_message_2 = convert_content_message_to_user_message(message, handle_unrepresentable)
                 if converted_message_2 is not None:
                     result.append(converted_message_2)
-            case FunctionExecutionResultMessage(_, source=source) if source == self_name:
+            case FunctionExecutionResultMessage(_):
                 converted_message_3 = convert_tool_call_response_message(message, handle_unrepresentable)
                 if converted_message_3 is not None:
                     result.append(converted_message_3)
