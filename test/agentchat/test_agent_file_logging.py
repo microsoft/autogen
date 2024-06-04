@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 import uuid
-from typing import Callable, Any
+from typing import Any, Callable
 
 import pytest
 
@@ -22,6 +22,7 @@ is_windows = sys.platform.startswith("win")
 
 def dummy_function(param1: str, param2: int) -> Any:
     return param1 * param2
+
 
 @pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 @pytest.fixture
@@ -64,7 +65,7 @@ def test_log_chat_completion(logger: FileLogger):
         is_cached=is_cached,
         cost=cost,
         start_time=start_time,
-        source=agent
+        source=agent,
     )
 
     with open(logger.log_file, "r") as f:
@@ -86,7 +87,7 @@ def test_log_chat_completion(logger: FileLogger):
 def test_log_function_use(logger: FileLogger):
     source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
     func: Callable[[str, int], Any] = dummy_function
-    args = {'foo': 'bar'}
+    args = {"foo": "bar"}
     returns = True
 
     logger.log_function_use(source=source, function=func, args=args, returns=returns)

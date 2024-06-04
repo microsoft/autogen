@@ -250,7 +250,7 @@ class SqliteLogger(BaseLogger):
             cost,
             start_time,
             end_time,
-            source.name
+            source.name,
         )
 
         self._run_query(query=query, args=args)

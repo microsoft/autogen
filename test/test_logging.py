@@ -1,7 +1,7 @@
 import json
 import sqlite3
 import uuid
-from typing import Callable, Any
+from typing import Any, Callable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -66,6 +66,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 def dummy_function(param1: str, param2: int) -> Any:
     return param1 * param2
 
+
 ###############################################################
 
 
@@ -89,7 +90,7 @@ def get_sample_chat_completion(response):
         "is_cached": 0,
         "cost": 0.347,
         "start_time": get_current_ts(),
-        "agent": autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
+        "agent": autogen.AssistantAgent(name="TestAgent", code_execution_config=False),
     }
 
 
@@ -129,13 +130,13 @@ def test_log_function_use(db_connection):
 
     source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
     func: Callable[[str, int], Any] = dummy_function
-    args = {'foo': 'bar'}
+    args = {"foo": "bar"}
     returns = True
 
     autogen.runtime_logging.log_function_use(agent=source, function=func, args=args, returns=returns)
 
     query = """
-        SELECT source_id, source_name, function_name, args, returns, timestamp 
+        SELECT source_id, source_name, function_name, args, returns, timestamp
         FROM function_calls
     """
 
