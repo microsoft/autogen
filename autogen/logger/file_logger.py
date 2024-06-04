@@ -85,6 +85,7 @@ class FileLogger(BaseLogger):
                     "start_time": start_time,
                     "end_time": get_current_ts(),
                     "thread_id": thread_id,
+                    "source": source.name,
                 }
             )
 

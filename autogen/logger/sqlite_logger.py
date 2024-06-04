@@ -125,7 +125,6 @@ class SqliteLogger(BaseLogger):
                         CREATE TABLE IF NOT EXISTS function_calls (
                             source_id INTEGER,
                             source_name TEXT,
-                            source_name TEXT,
                             args TEXT DEFAULT NULL,
                             returns TEXT DEFAULT NULL,
                             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -226,8 +225,8 @@ class SqliteLogger(BaseLogger):
 
         query = """
             INSERT INTO chat_completions (
-                invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time, source_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         args = (
             invocation_id,
@@ -240,6 +239,7 @@ class SqliteLogger(BaseLogger):
             cost,
             start_time,
             end_time,
+            source.name
         )
 
         self._run_query(query=query, args=args)
