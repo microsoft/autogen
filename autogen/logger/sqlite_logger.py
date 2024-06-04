@@ -120,6 +120,18 @@ class SqliteLogger(BaseLogger):
             """
             self._run_query(query=query)
 
+            query = """
+                        CREATE TABLE IF NOT EXISTS function_calls (
+                            source_id INTEGER,
+                            source_name TEXT,
+                            source_name TEXT,
+                            args TEXT DEFAULT NULL,
+                            returns TEXT DEFAULT NULL,
+                            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        );
+                        """
+            self._run_query(query=query)
+
             current_verion = self._get_current_db_version()
             if current_verion is None:
                 self._run_query(
