@@ -1311,6 +1311,156 @@ def test_messages_with_carryover():
     assert len(generated_message["content"]) == 2
 
 
+def test_chat_history():
+    alice = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+
+    charlie = autogen.ConversableAgent(
+        "charlie",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is charlie speaking.",
+    )
+
+    max_turns = 2
+
+    def bob_initiate_chat(agent: ConversableAgent, text: Literal["past", "future"]):
+        _ = agent.initiate_chat(
+            alice,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
+        )
+        _ = agent.initiate_chat(
+            charlie,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
+        )
+
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the past speaking.",
+    )
+    bob_initiate_chat(bob, "past")
+    context = bob.chat_messages
+
+    del bob
+
+    # Test agent with chat history
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the future speaking.",
+        chat_messages=context,
+    )
+
+    assert bool(bob.chat_messages)
+    assert bob.chat_messages == context
+
+    # two times the max turns due to bob replies
+    assert len(bob.chat_messages[alice]) == 2 * max_turns
+    assert len(bob.chat_messages[charlie]) == 2 * max_turns
+
+    bob_initiate_chat(bob, "future")
+    assert len(bob.chat_messages[alice]) == 4 * max_turns
+    assert len(bob.chat_messages[charlie]) == 4 * max_turns
+
+    assert bob.chat_messages[alice][0]["content"] == "This is bob from the past speaking."
+    assert bob.chat_messages[charlie][0]["content"] == "This is bob from the past speaking."
+
+    assert bob.chat_messages[alice][-2]["content"] == "This is bob from the future speaking."
+    assert bob.chat_messages[charlie][-2]["content"] == "This is bob from the future speaking."
+
+
+def test_http_client():
+
+    import httpx
+
+    with pytest.raises(TypeError):
+        config_list = [
+            {
+                "model": "my-gpt-4-deployment",
+                "api_key": "",
+                "http_client": httpx.Client(),
+            }
+        ]
+
+        autogen.ConversableAgent(
+            "test_agent",
+            human_input_mode="NEVER",
+            llm_config={"config_list": config_list},
+            default_auto_reply="This is alice speaking.",
+        )
+
+
+def test_adding_duplicate_function_warning():
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+
+    agent = autogen.ConversableAgent(
+        "jtoy",
+        llm_config={"config_list": config_base},
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1322,4 +1472,5 @@ if __name__ == "__main__":
     # test_process_before_send()
     # test_message_func()
     test_summary()
+    test_adding_duplicate_function_warning()
     # test_function_registration_e2e_sync()

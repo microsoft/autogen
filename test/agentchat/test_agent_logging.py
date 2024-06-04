@@ -6,13 +6,15 @@ import uuid
 
 import pytest
 
-import autogen
-import autogen.runtime_logging
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+
+
 from conftest import skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
+
+import autogen
+import autogen.runtime_logging
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -34,6 +36,9 @@ OAI_CLIENTS_QUERY = "SELECT id, client_id, wrapper_id, session_id, class, init_a
 
 OAI_WRAPPERS_QUERY = "SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers"
 
+EVENTS_QUERY = (
+    "SELECT source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp FROM events"
+)
 
 if not skip_openai:
     config_list = autogen.config_list_from_json(
@@ -241,6 +246,14 @@ def test_groupchat_logging(db_connection):
     cur.execute(OAI_WRAPPERS_QUERY)
     rows = cur.fetchall()
     assert len(rows) == 3
+
+    # Verify events
+    cur.execute(EVENTS_QUERY)
+    rows = cur.fetchall()
+    json_state = json.loads(rows[0]["json_state"])
+    assert rows[0]["event_name"] == "received_message"
+    assert json_state["message"] == "Can you explain the difference between eigenvalues and singular values again?"
+    assert len(rows) == 15
 
     # Verify schema version
     version_query = "SELECT id, version_number from version"

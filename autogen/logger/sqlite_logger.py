@@ -17,7 +17,8 @@ from autogen.logger.logger_utils import get_current_ts, to_dict
 from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.gemini import GeminiClient
 
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
@@ -99,6 +100,20 @@ class SqliteLogger(BaseLogger):
             CREATE TABLE IF NOT EXISTS version (
                 id INTEGER PRIMARY KEY CHECK (id = 1),                  -- id of the logging database
                 version_number INTEGER NOT NULL                         -- version of the logging database
+            );
+            """
+            self._run_query(query=query)
+
+            query = """
+            CREATE TABLE IF NOT EXISTS events (
+                event_name TEXT,
+                source_id INTEGER,
+                source_name TEXT,
+                agent_module TEXT DEFAULT NULL,
+                agent_class_name TEXT DEFAULT NULL,
+                id INTEGER PRIMARY KEY,
+                json_state TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             """
             self._run_query(query=query)
@@ -246,6 +261,41 @@ class SqliteLogger(BaseLogger):
         )
         self._run_query(query=query, args=args)
 
+    def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
+        from autogen import Agent
+
+        if self.con is None:
+            return
+
+        json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
+
+        if isinstance(source, Agent):
+            query = """
+            INSERT INTO events (source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """
+            args = (
+                id(source),
+                source.name if hasattr(source, "name") else source,
+                name,
+                source.__module__,
+                source.__class__.__name__,
+                json_args,
+                get_current_ts(),
+            )
+            self._run_query(query=query, args=args)
+        else:
+            query = """
+            INSERT INTO events (source_id, source_name, event_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?)
+            """
+            args_str_based = (
+                id(source),
+                source.name if hasattr(source, "name") else source,
+                name,
+                json_args,
+                get_current_ts(),
+            )
+            self._run_query(query=query, args=args_str_based)
+
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         if self.con is None:
             return
@@ -267,7 +317,7 @@ class SqliteLogger(BaseLogger):
         self._run_query(query=query, args=args)
 
     def log_new_client(
-        self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+        self, client: Union[AzureOpenAI, OpenAI, GeminiClient], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
     ) -> None:
         if self.con is None:
             return
