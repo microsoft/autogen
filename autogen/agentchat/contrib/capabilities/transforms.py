@@ -9,7 +9,6 @@ from termcolor import colored
 
 from autogen import token_count_utils
 from autogen.cache import AbstractCache, Cache
-from autogen.oai.openai_utils import filter_config
 from autogen.types import MessageContentType
 
 from .text_compressors import LLMLingua, TextCompressor
@@ -186,7 +185,7 @@ class MessageTokenLimiter:
 
             if not transforms_util.should_transform_message(msg, self._filter_dict, self._exclude_filter):
                 processed_messages.insert(0, msg)
-                processed_messages_tokens += transforms_util.count_tokens(msg["content"])
+                processed_messages_tokens += transforms_util.count_text_tokens(msg["content"])
                 continue
 
             expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
@@ -201,7 +200,7 @@ class MessageTokenLimiter:
                 break
 
             msg["content"] = self._truncate_str_to_tokens(msg["content"], self._max_tokens_per_message)
-            msg_tokens = transforms_util.count_tokens(msg["content"])
+            msg_tokens = transforms_util.count_text_tokens(msg["content"])
 
             # prepend the message to the list to preserve order
             processed_messages_tokens += msg_tokens
@@ -211,10 +210,10 @@ class MessageTokenLimiter:
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_tokens = sum(
-            transforms_util.count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
+            transforms_util.count_text_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
         )
         post_transform_messages_tokens = sum(
-            transforms_util.count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
+            transforms_util.count_text_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
         )
 
         if post_transform_messages_tokens < pre_transform_messages_tokens:
@@ -367,17 +366,16 @@ class TextMessageCompressor:
             if transforms_util.is_content_text_empty(message["content"]):
                 continue
 
-            cache_key = self._cache_key(message["content"])
+            cache_key = transforms_util.cache_key(message["content"], self._min_tokens)
             cached_content = transforms_util.cache_content_get(self._cache, cache_key)
             if cached_content is not None:
-                compressed_content, savings = cached_content
+                message["content"], savings = cached_content
             else:
-                compressed_content, savings = self._compress(message["content"])
+                message["content"], savings = self._compress(message["content"])
 
-            transforms_util.cache_content_set(self._cache, cache_key, compressed_content, savings)
-            self._cache_set(message["content"], compressed_content, savings)
+            transforms_util.cache_content_set(self._cache, cache_key, message["content"], savings)
 
-            message["content"] = compressed_content
+            assert isinstance(savings, int)
             total_savings += savings
 
         self._recent_tokens_savings = total_savings
@@ -389,24 +387,29 @@ class TextMessageCompressor:
         else:
             return "No tokens saved with text compression.", False
 
-    def _compress(self, content: Union[str, List[Dict]]) -> MessageContentType:
+    def _compress(self, content: MessageContentType) -> Tuple[MessageContentType, int]:
         """Compresses the given text or multimodal content using the specified compression method."""
         if isinstance(content, str):
             return self._compress_text(content)
         elif isinstance(content, list):
             return self._compress_multimodal(content)
         else:
-            return 0, content
+            return content, 0
 
-    def _compress_multimodal(self, content: List[Dict]) -> Tuple[int, List[Dict]]:
+    def _compress_multimodal(self, content: MessageContentType) -> Tuple[MessageContentType, int]:
         tokens_saved = 0
-        for msg in content:
-            if "text" in msg:
-                savings, msg["text"] = self._compress_text(msg["text"])
+        for item in content:
+            if isinstance(item, dict) and "text" in item:
+                item["text"], savings = self._compress_text(item["text"])
                 tokens_saved += savings
-        return tokens_saved, content
 
-    def _compress_text(self, text: str) -> Tuple[int, str]:
+            elif isinstance(item, str):
+                item, savings = self._compress_text(item)
+                tokens_saved += savings
+
+        return content, tokens_saved
+
+    def _compress_text(self, text: str) -> Tuple[str, int]:
         """Compresses the given text using the specified compression method."""
         compressed_text = self._text_compressor.compress_text(text, **self._compression_args)
 
@@ -414,23 +417,7 @@ class TextMessageCompressor:
         if "origin_tokens" in compressed_text and "compressed_tokens" in compressed_text:
             savings = compressed_text["origin_tokens"] - compressed_text["compressed_tokens"]
 
-        return savings, compressed_text["compressed_prompt"]
-
-    def _cache_get(self, content: Union[str, List[Dict]]) -> Optional[Tuple[int, Union[str, List[Dict]]]]:
-        if self._cache:
-            cached_value = self._cache.get(self._cache_key(content))
-            if cached_value:
-                return cached_value
-
-    def _cache_set(
-        self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
-    ):
-        if self._cache:
-            value = (tokens_saved, compressed_content)
-            self._cache.set(self._cache_key(content), value)
-
-    def _cache_key(self, content: Union[str, List[Dict]]) -> str:
-        return f"{json.dumps(content)}_{self._min_tokens}"
+        return compressed_text["compressed_prompt"], savings
 
     def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:
