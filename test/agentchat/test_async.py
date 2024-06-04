@@ -1,6 +1,16 @@
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
-import autogen
+import os
+import sys
+
+import pytest
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+import autogen
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import reason, skip_openai  # noqa: E402
 
 
 def get_market_news(ind, ind_upper):
@@ -44,12 +54,44 @@ def get_market_news(ind, ind_upper):
     return feeds_summary
 
 
+@pytest.mark.skipif(skip_openai, reason=reason)
+@pytest.mark.asyncio
+async def test_async_groupchat():
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
+
+    # create an AssistantAgent instance named "assistant"
+    assistant = autogen.AssistantAgent(
+        name="assistant",
+        llm_config={
+            "config_list": config_list,
+            "temperature": 0,
+        },
+        system_message="You are a helpful assistant.  Reply 'TERMINATE' to end the conversation.",
+    )
+    # create a UserProxyAgent instance named "user"
+    user_proxy = autogen.UserProxyAgent(
+        name="user",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=5,
+        code_execution_config=False,
+        default_auto_reply=None,
+    )
+
+    groupchat = autogen.GroupChat(
+        agents=[user_proxy, assistant], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
+    manager = autogen.GroupChatManager(
+        groupchat=groupchat,
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+    )
+    await user_proxy.a_initiate_chat(manager, message="""223434*3422=?.""")
+    assert len(user_proxy.chat_messages) > 0
+
+
+@pytest.mark.skipif(skip_openai, reason=reason)
+@pytest.mark.asyncio
 async def test_stream():
-    try:
-        import openai
-    except ImportError:
-        return
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
     data = asyncio.Future()
 
     async def add_stock_price_data():
@@ -68,8 +110,8 @@ async def test_stream():
     assistant = autogen.AssistantAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
-            "seed": 41,
+            "timeout": 600,
+            "cache_seed": 41,
             "config_list": config_list,
             "temperature": 0,
         },
@@ -98,17 +140,22 @@ async def test_stream():
                 )
             return False, None
 
-    user_proxy.register_reply(autogen.AssistantAgent, add_data_reply, 1, config={"news_stream": data})
+    user_proxy.register_reply(autogen.AssistantAgent, add_data_reply, position=2, config={"news_stream": data})
 
-    await user_proxy.a_initiate_chat(
-        assistant,
-        message="""Give me investment suggestion in 3 bullet points.""",
+    chat_res = await user_proxy.a_initiate_chat(
+        assistant, message="""Give me investment suggestion in 3 bullet points.""", summary_method="reflection_with_llm"
     )
+
+    print("Chat summary:", chat_res.summary)
+    print("Chat cost:", chat_res.cost)
+
     while not data_task.done() and not data_task.cancelled():
         reply = await user_proxy.a_generate_reply(sender=assistant)
         if reply is not None:
             await user_proxy.a_send(reply, assistant)
+            # print("Chat summary and cost:", res.summary, res.cost)
 
 
 if __name__ == "__main__":
-    asyncio.run(test_stream())
+    # asyncio.run(test_stream())
+    asyncio.run(test_async_groupchat())

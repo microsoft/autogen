@@ -1,42 +1,51 @@
-import pytest
+#!/usr/bin/env python3 -m pytest
+
+import os
 import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
-    _remove_print,
     _add_print_to_last_line,
+    _remove_print,
 )
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    skip or sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows",
 )
 def test_math_user_proxy_agent():
-    try:
-        import openai
-    except ImportError:
-        return
-
     from autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-3.5-turbo"],
         },
     )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
-            "seed": 42,
+            "cache_seed": 42,
             "config_list": config_list,
         },
     )
@@ -45,12 +54,10 @@ def test_math_user_proxy_agent():
     assistant.reset()
 
     math_problem = "$x^3=125$. What is x?"
-    # assistant.receive(
-    #     message=mathproxyagent.generate_init_message(math_problem),
-    #     sender=mathproxyagent,
-    # )
-    mathproxyagent.initiate_chat(assistant, problem=math_problem)
+    res = mathproxyagent.initiate_chat(assistant, message=mathproxyagent.message_generator, problem=math_problem)
     print(conversations)
+    print("Chat summary:", res.summary)
+    print("Chat history:", res.chat_history)
 
 
 def test_add_remove_print():
@@ -59,7 +66,7 @@ def test_add_remove_print():
     assert _add_print_to_last_line(code) == "a = 4\nb = 5\nprint(a,b)"
 
     # test remove print
-    code = """print("hello")\na = 4*5\nprint("wolrld")"""
+    code = """print("hello")\na = 4*5\nprint("world")"""
     assert _remove_print(code) == "a = 4*5"
 
     # test remove print. Only remove prints without indentation
@@ -105,14 +112,14 @@ def test_execute_one_wolfram_query():
     try:
         mathproxyagent.execute_one_wolfram_query(code)[0]
     except ValueError:
-        print("Wolfrma API key not found. Skip test.")
+        print("Wolfram API key not found. Skip test.")
 
 
 def test_generate_prompt():
     mathproxyagent = MathUserProxyAgent(name="MathChatAgent", human_input_mode="NEVER")
 
-    assert "customized" in mathproxyagent.generate_init_message(
-        problem="2x=4", prompt_type="python", customized_prompt="customized"
+    assert "customized" in mathproxyagent.message_generator(
+        mathproxyagent, None, {"problem": "2x=4", "prompt_type": "python", "customized_prompt": "customized"}
     )
 
 

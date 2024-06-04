@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+public/
+
+.env.development
+.env.production
+
+yarn.lock

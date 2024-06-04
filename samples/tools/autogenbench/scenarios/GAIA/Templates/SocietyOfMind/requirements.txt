@@ -1,0 +1,4 @@
+git+https://github.com/microsoft/autogen.git@society_of_mind_gaia
+pdfminer.six
+markdownify
+pathvalidate

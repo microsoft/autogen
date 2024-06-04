@@ -1,13 +1,12 @@
 # Enhanced Inference
 
-`autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` as an enhanced inference API.
+`autogen.OpenAIWrapper` provides enhanced LLM inference for `openai>=1`.
+`autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference using `openai<1`.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
-## Tune Inference Parameters
+## Tune Inference Parameters (for openai<1)
 
-*Links to notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#inference-hyperparameters-tuning)
 
 ### Choices to optimize
 
@@ -104,73 +103,124 @@ config, analysis = autogen.Completion.tune(
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
 The returned `config` contains the optimized configuration and `analysis` contains an ExperimentAnalysis object for all the tried configurations and results.
 
-The tuend config can be used to perform inference.
+The tuned config can be used to perform inference.
 
 ## API unification
 
-`autogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
-When chat models are used and `prompt` is given as the input to `autogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
+`autogen.OpenAIWrapper.create()` can be used to create completions for both chat and non-chat models, and both OpenAI API and Azure OpenAI API.
+
+```python
+from autogen import OpenAIWrapper
+# OpenAI endpoint
+client = OpenAIWrapper()
+# ChatCompletion
+response = client.create(messages=[{"role": "user", "content": "2+2="}], model="gpt-3.5-turbo")
+# extract the response text
+print(client.extract_text_or_completion_object(response))
+# get cost of this completion
+print(response.cost)
+# Azure OpenAI endpoint
+client = OpenAIWrapper(api_key=..., base_url=..., api_version=..., api_type="azure")
+# Completion
+response = client.create(prompt="2+2=", model="gpt-3.5-turbo-instruct")
+# extract the response text
+print(client.extract_text_or_completion_object(response))
+
+```
 
 For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
+For custom model clients, one can register the client with `autogen.OpenAIWrapper.register_model_client` and then use the same API to send a request. See [here](/blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
+
+## Usage Summary
+
+The `OpenAIWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
+
+- `mode=["actual", "total"]` (default): print usage summary for all completions and non-caching completions.
+- `mode='actual'`: only print non-cached usage.
+- `mode='total'`: only print all usage (including cache).
+
+Reset your session's usage data with `clear_usage_summary()` when needed. [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
+
+Example usage:
+```python
+from autogen import OpenAIWrapper
+
+client = OpenAIWrapper()
+client.create(messages=[{"role": "user", "content": "Python learning tips."}], model="gpt-3.5-turbo")
+client.print_usage_summary()  # Display usage
+client.clear_usage_summary()  # Reset usage data
+```
+
+Sample output:
+```
+Usage summary excluding cached usage:
+Total cost: 0.00015
+* Model 'gpt-3.5-turbo': cost: 0.00015, prompt_tokens: 25, completion_tokens: 58, total_tokens: 83
+
+Usage summary including cached usage:
+Total cost: 0.00027
+* Model 'gpt-3.5-turbo': cost: 0.00027, prompt_tokens: 50, completion_tokens: 100, total_tokens: 150
+```
+
+Note: if using a custom model client (see [here](/blog/2024/01/26/Custom-Models) for details) and if usage summary is not implemented, then the usage summary will not be available.
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using `set_cache` or specifying in `create()`.
+Moved to [here](/docs/topics/llm-caching).
 
 ## Error handling
 
 ### Runtime error
 
-It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Request timeout, max retry period and retry wait time can be configured via `request_timeout`, `max_retry_period` and `retry_wait_time`.
-
-- `request_timeout` (int): the timeout (in seconds) sent with a single request.
-- `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
-- `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
-
-Moreover, one can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
+One can pass a list of configurations of different models/endpoints to mitigate the rate limits and other runtime error. For example,
 
 ```python
-response = autogen.Completion.create(
+client = OpenAIWrapper(
     config_list=[
         {
             "model": "gpt-4",
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
-            "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2023-07-01-preview",
+            "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
+            "api_version": "2024-02-15-preview",
         },
         {
             "model": "gpt-3.5-turbo",
             "api_key": os.environ.get("OPENAI_API_KEY"),
-            "api_type": "open_ai",
-            "api_base": "https://api.openai.com/v1",
-            "api_version": None,
+            "base_url": "https://api.openai.com/v1",
         },
         {
-            "model": "llama-7B",
-            "api_base": "http://127.0.0.1:8080",
-            "api_type": "open_ai",
-            "api_version": None,
+            "model": "llama2-chat-7B",
+            "base_url": "http://127.0.0.1:8080",
+        },
+        {
+            "model": "microsoft/phi-2",
+            "model_client_cls": "CustomModelClient"
         }
     ],
-    prompt="Hi",
 )
 ```
 
-It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
+`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using a custom model client class named `CustomModelClient`, one by one,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
-For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/reference/oai/openai_utils#config_list_from_json): The config list like the list of dicts above can be saved in an environment variable or a file in json format and loaded with this function.
+For convenience, we provide a number of utility functions to load config lists.
+- `get_config_list`: Generates configurations for API calls, primarily from provided API keys.
+- `config_list_openai_aoai`: Constructs a list of configurations using both Azure OpenAI and OpenAI endpoints, sourcing API keys from environment variables or local files.
+- `config_list_from_json`: Loads configurations from a JSON structure, either from an environment variable or a local JSON file, with the flexibility of filtering configurations based on given criteria.
+- `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
+- `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
+
+We suggest that you take a look at this [notebook](/docs/topics/llm_configuration) for full code examples of the different methods to configure your model endpoints.
 
 ### Logic error
 
 Another type of error is that the returned response does not satisfy a requirement. For example, if the response is required to be a valid json string, one would like to filter the responses that are not. This can be achieved by providing a list of configurations and a filter function. For example,
 
 ```python
-def valid_json_filter(context, config, response):
-    for text in autogen.Completion.extract_text(response):
+def valid_json_filter(response, **_):
+    for text in OpenAIWrapper.extract_text_or_completion_object(response):
         try:
             json.loads(text)
             return True
@@ -178,14 +228,16 @@ def valid_json_filter(context, config, response):
             pass
     return False
 
-response = autogen.Completion.create(
-    config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+client = OpenAIWrapper(
+    config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo-instruct"}, {"model": "text-davinci-003"}],
+)
+response = client.create(
     prompt="How to construct a json request to Bing API to search for 'latest AI news'? Return the JSON request.",
     filter_func=valid_json_filter,
 )
 ```
 
-The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times to try one model multiple times for increasing the robustness of the final response.
+The example above will try to use text-ada-001, gpt-3.5-turbo-instruct, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times (with different seeds) to try one model multiple times for increasing the robustness of the final response.
 
 *Advanced use case: Check this [blogpost](/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
 
@@ -194,7 +246,7 @@ The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-
 If the provided prompt or message is a template, it will be automatically materialized with a given context. For example,
 
 ```python
-response = autogen.Completion.create(
+response = client.create(
     context={"problem": "How many positive integers, not exceeding 100, are multiples of 2 or 3 but not 4?"},
     prompt="{problem} Solve the problem carefully.",
     allow_format_str_template=True,
@@ -228,11 +280,11 @@ context = {
     "external_info_0": "Problem 1: ...",
 }
 
-response = autogen.ChatCompletion.create(context, messages=messages, **config)
+response = client.create(context=context, messages=messages, **config)
 messages.append(
     {
         "role": "assistant",
-        "content": autogen.ChatCompletion.extract_text(response)[0]
+        "content": client.extract_text(response)[0]
     }
 )
 messages.append(
@@ -247,12 +299,93 @@ context.append(
         "external_info_1": "Theorem 1: ...",
     }
 )
-response = autogen.ChatCompletion.create(context, messages=messages, **config)
+response = client.create(context=context, messages=messages, **config)
+```
+## Logging
+
+When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them.
+
+### For openai >= 1
+
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
+
+#### Start logging:
+```python
+import autogen.runtime_logging
+
+autogen.runtime_logging.start(logger_type="sqlite", config={"dbname": "YOUR_DB_NAME"})
+```
+`logger_type` and `config` are both optional. Default logger type is SQLite logger, that's the only one available in autogen at the moment. If you want to customize the database name, you can pass in through config, default is `logs.db`.
+
+#### Stop logging:
+```python
+autogen.runtime_logging.stop()
 ```
 
-## Logging (Experimental)
+#### LLM Runs
 
-When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
+AutoGen logging supports OpenAI's llm message schema. Each LLM run is saved in `chat_completions` table includes:
+- session_id: an unique identifier for the logging session
+- invocation_id: an unique identifier for the logging record
+- client_id: an unique identifier for the Azure OpenAI/OpenAI client
+- request: detailed llm request, see below for an example
+- response: detailed llm response, see below for an example
+- cost: total cost for the request and response
+- start_time
+- end_time
+
+##### Sample Request
+```json
+{
+  "messages":[
+    {
+      "content":"system_message_1",
+      "role":"system"
+    },
+    {
+      "content":"user_message_1",
+      "role":"user"
+    }
+  ],
+  "model":"gpt-4",
+  "temperature": 0.9
+}
+```
+
+##### Sample Response
+```json
+{
+  "id": "id_1",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "assistant_message_1",
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": "<timestamp>",
+  "model": "gpt-4",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "usage": {
+    "completion_tokens": 155,
+    "prompt_tokens": 53,
+    "total_tokens": 208
+  }
+}
+```
+
+Learn more about [request and response format](https://platform.openai.com/docs/api-reference/chat/create)
+
+### For openai < 1
+
+`autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
 autogen.ChatCompletion.start_logging()
 ```

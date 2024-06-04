@@ -1,27 +1,36 @@
+#!/usr/bin/env python3 -m pytest
+
 """
 Unit test for retrieve_utils.py
 """
-
-from autogen.retrieve_utils import (
-    split_text_to_chunks,
-    extract_text_from_pdf,
-    split_files_to_chunks,
-    get_files_from_dir,
-    get_file_from_url,
-    is_url,
-    create_vector_db_from_dir,
-    query_vector_db,
-    num_tokens_from_text,
-    num_tokens_from_messages,
-    TEXT_FORMATS,
-)
-
-import os
-import sys
 import pytest
-import chromadb
-import tiktoken
 
+try:
+    import chromadb
+
+    from autogen.retrieve_utils import (
+        create_vector_db_from_dir,
+        extract_text_from_pdf,
+        get_files_from_dir,
+        is_url,
+        parse_html_to_markdown,
+        query_vector_db,
+        split_files_to_chunks,
+        split_text_to_chunks,
+    )
+    from autogen.token_count_utils import count_token
+except ImportError:
+    skip = True
+else:
+    skip = False
+import os
+
+try:
+    from unstructured.partition.auto import partition
+
+    HAS_UNSTRUCTURED = True
+except ImportError:
+    HAS_UNSTRUCTURED = False
 
 test_dir = os.path.join(os.path.dirname(__file__), "test_files")
 expected_text = """AutoGen is an advanced tool designed to assist developers in harnessing the capabilities
@@ -30,36 +39,28 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestRetrieveUtils:
-    def test_num_tokens_from_text_custom_token_count_function(self):
-        def custom_token_count_function(text):
-            return len(text), 1, 2
-
-        text = "This is a sample text."
-        assert num_tokens_from_text(
-            text, return_tokens_per_name_and_message=True, custom_token_count_function=custom_token_count_function
-        ) == (22, 1, 2)
-
-    def test_num_tokens_from_text(self):
-        text = "This is a sample text."
-        assert num_tokens_from_text(text) == len(tiktoken.get_encoding("cl100k_base").encode(text))
-
-    def test_num_tokens_from_messages(self):
-        messages = [{"content": "This is a sample text."}, {"content": "Another sample text."}]
-        # Review the implementation of num_tokens_from_messages
-        # and adjust the expected_tokens accordingly.
-        actual_tokens = num_tokens_from_messages(messages)
-        expected_tokens = actual_tokens  # Adjusted to make the test pass temporarily.
-        assert actual_tokens == expected_tokens
-
     def test_split_text_to_chunks(self):
         long_text = "A" * 10000
         chunks = split_text_to_chunks(long_text, max_tokens=1000)
-        assert all(num_tokens_from_text(chunk) <= 1000 for chunk in chunks)
+        assert all(count_token(chunk) <= 1000 for chunk in chunks)
 
     def test_split_text_to_chunks_raises_on_invalid_chunk_mode(self):
         with pytest.raises(AssertionError):
             split_text_to_chunks("A" * 10000, chunk_mode="bogus_chunk_mode")
+
+    def test_split_text_to_chunks_overlapping(self):
+        long_text = "\n".join([chr(i) for i in range(ord("A"), ord("Z"))])
+        chunks = split_text_to_chunks(long_text, max_tokens=10, overlap=3)
+        assert chunks == [
+            "A\nB\nC\nD\nE\nF\nG\nH\nI",
+            "G\nH\nI\nJ\nK\nL\nM\nN\nO",
+            "M\nN\nO\nP\nQ\nR\nS\nT\nU",
+            "S\nT\nU\nV\nW\nX\nY",
+        ]
+        chunks = split_text_to_chunks(long_text, max_tokens=10, overlap=0)
+        assert chunks == ["A\nB\nC\nD\nE\nF\nG\nH\nI", "J\nK\nL\nM\nN\nO\nP\nQ\nR", "S\nT\nU\nV\nW\nX\nY"]
 
     def test_extract_text_from_pdf(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
@@ -68,12 +69,41 @@ class TestRetrieveUtils:
     def test_split_files_to_chunks(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
-        chunks = split_files_to_chunks([pdf_file_path, txt_file_path])
-        assert all(isinstance(chunk, str) and chunk.strip() for chunk in chunks)
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path])
+        assert all(
+            isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
+            for chunk in chunks
+        )
 
     def test_get_files_from_dir(self):
-        files = get_files_from_dir(test_dir)
+        files = get_files_from_dir(test_dir, recursive=False)
         assert all(os.path.isfile(file) for file in files)
+        pdf_file_path = os.path.join(test_dir, "example.pdf")
+        txt_file_path = os.path.join(test_dir, "example.txt")
+        files = get_files_from_dir([pdf_file_path, txt_file_path])
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
+        files = get_files_from_dir(
+            [
+                pdf_file_path,
+                txt_file_path,
+                os.path.join(test_dir, "..", "..", "website/docs"),
+                "https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
+            ],
+            recursive=True,
+        )
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
+        files = get_files_from_dir(
+            [
+                pdf_file_path,
+                txt_file_path,
+                os.path.join(test_dir, "..", "..", "website/docs"),
+                "https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
+            ],
+            recursive=True,
+            types=["pdf", "txt"],
+        )
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
+        assert len(files) == 3
 
     def test_is_url(self):
         assert is_url("https://www.example.com")
@@ -136,7 +166,7 @@ class TestRetrieveUtils:
                 db = lancedb.connect(db_path)
                 table = db.open_table("my_table")
                 query = table.search(vector).where(f"documents LIKE '%{search_string}%'").limit(n_results).to_df()
-                return {"ids": query["id"].tolist(), "documents": query["documents"].tolist()}
+                return {"ids": [query["id"].tolist()], "documents": [query["documents"].tolist()]}
 
             def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
                 results = self.query_vector_db(
@@ -162,7 +192,83 @@ class TestRetrieveUtils:
 
         create_lancedb()
         ragragproxyagent.retrieve_docs("This is a test document spark", n_results=10, search_string="spark")
-        assert ragragproxyagent._results["ids"] == [3, 1, 5]
+        assert ragragproxyagent._results["ids"] == [[3, 1, 5]]
+
+    def test_custom_text_split_function(self):
+        def custom_text_split_function(text):
+            return [text[: len(text) // 2], text[len(text) // 2 :]]
+
+        db_path = "/tmp/test_retrieve_utils_chromadb.db"
+        client = chromadb.PersistentClient(path=db_path)
+        create_vector_db_from_dir(
+            os.path.join(test_dir, "example.txt"),
+            client=client,
+            collection_name="mytestcollection",
+            custom_text_split_function=custom_text_split_function,
+            get_or_create=True,
+            recursive=False,
+        )
+        results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
+        assert (
+            "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities"
+            in results.get("documents")[0][0]
+        )
+
+    def test_retrieve_utils(self):
+        client = chromadb.PersistentClient(path="/tmp/chromadb")
+        create_vector_db_from_dir(
+            dir_path="./website/docs",
+            client=client,
+            collection_name="autogen-docs",
+            custom_text_types=["txt", "md", "rtf", "rst"],
+            get_or_create=True,
+        )
+        results = query_vector_db(
+            query_texts=[
+                "How can I use AutoGen UserProxyAgent and AssistantAgent to do code generation?",
+            ],
+            n_results=4,
+            client=client,
+            collection_name="autogen-docs",
+            search_string="AutoGen",
+        )
+        print(results["ids"][0])
+        assert len(results["ids"][0]) == 4
+
+    @pytest.mark.skipif(
+        not HAS_UNSTRUCTURED,
+        reason="do not run if unstructured is not installed",
+    )
+    def test_unstructured(self):
+        pdf_file_path = os.path.join(test_dir, "example.pdf")
+        txt_file_path = os.path.join(test_dir, "example.txt")
+        word_file_path = os.path.join(test_dir, "example.docx")
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
+        assert all(
+            isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
+            for chunk in chunks
+        )
+
+    def test_parse_html_to_markdown(self):
+        html = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Simple HTML Example</title>
+            </head>
+            <body>
+                <h1>Hello, World!</h1>
+                <p>This is a very simple HTML example.</p>
+            </body>
+            </html>
+        """
+        markdown = parse_html_to_markdown(html)
+        assert (
+            markdown
+            == "# Simple HTML Example\n\nSimple HTML Example\n\nHello, World!\n=============\n\nThis is a very simple HTML example."
+        )
 
 
 if __name__ == "__main__":

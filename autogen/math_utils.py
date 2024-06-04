@@ -1,5 +1,6 @@
 from typing import Optional
-from autogen import oai, DEFAULT_MODEL
+
+from autogen import DEFAULT_MODEL, oai
 
 _MATH_PROMPT = "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
 _MATH_CONFIG = {
@@ -9,7 +10,7 @@ _MATH_CONFIG = {
 
 
 def solve_problem(problem: str, **config) -> str:
-    """(Experimental) Solve the math problem.
+    """(openai<1) Solve the math problem.
 
     Args:
         problem (str): The problem statement.

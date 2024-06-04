@@ -1,13 +1,14 @@
-import re
 import os
-from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Callable, Dict, List, Optional, Union
+import re
 from time import sleep
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+from pydantic import BaseModel, Extra, root_validator
+
+from autogen._pydantic import PYDANTIC_V1
 from autogen.agentchat import Agent, UserProxyAgent
-from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
+from autogen.code_utils import UNKNOWN, execute_code, extract_code, infer_lang
 from autogen.math_utils import get_answer
-
 
 PROMPTS = {
     # default
@@ -165,7 +166,7 @@ class MathUserProxyAgent(UserProxyAgent):
             default_auto_reply=default_auto_reply,
             **kwargs,
         )
-        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, 1)
+        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, position=2)
         # fixed var
         self._max_invalid_q_per_step = max_invalid_q_per_step
 
@@ -176,28 +177,35 @@ class MathUserProxyAgent(UserProxyAgent):
         self._previous_code = ""
         self.last_reply = None
 
-    def generate_init_message(self, problem, prompt_type="default", customized_prompt=None):
-        """Generate a prompt for the assitant agent with the given problem and prompt.
+    @staticmethod
+    def message_generator(sender, recipient, context):
+        """Generate a prompt for the assistant agent with the given problem and prompt.
 
         Args:
-            problem (str): the problem to be solved.
-            prompt_type (str): the type of the prompt. Possible values are "default", "python", "wolfram".
-                (1) "default": the prompt that allows the agent to choose between 3 ways to solve a problem:
-                    1. write a python program to solve it directly.
-                    2. solve it directly without python.
-                    3. solve it step by step with python.
-                (2) "python":
-                    a simplified prompt from the third way of the "default" prompt, that asks the assistant
-                    to solve the problem step by step with python.
-                (3) "two_tools":
-                    a simplified prompt similar to the "python" prompt, but allows the model to choose between
-                    Python and Wolfram Alpha to solve the problem.
-            customized_prompt (str): a customized prompt to be used. If it is not None, the prompt_type will be ignored.
+            sender (Agent): the sender of the message.
+            recipient (Agent): the recipient of the message.
+            context (dict): a dictionary with the following fields:
+                problem (str): the problem to be solved.
+                prompt_type (str, Optional): the type of the prompt. Possible values are "default", "python", "wolfram".
+                    (1) "default": the prompt that allows the agent to choose between 3 ways to solve a problem:
+                        1. write a python program to solve it directly.
+                        2. solve it directly without python.
+                        3. solve it step by step with python.
+                    (2) "python":
+                        a simplified prompt from the third way of the "default" prompt, that asks the assistant
+                        to solve the problem step by step with python.
+                    (3) "two_tools":
+                        a simplified prompt similar to the "python" prompt, but allows the model to choose between
+                        Python and Wolfram Alpha to solve the problem.
+                customized_prompt (str, Optional): a customized prompt to be used. If it is not None, the prompt_type will be ignored.
 
         Returns:
             str: the generated prompt ready to be sent to the assistant agent.
         """
-        self._reset()
+        sender._reset()
+        problem = context.get("problem")
+        prompt_type = context.get("prompt_type", "default")
+        customized_prompt = context.get("customized_prompt", None)
         if customized_prompt is not None:
             return customized_prompt + problem
         return PROMPTS[prompt_type] + problem
@@ -384,7 +392,8 @@ class WolframAlphaAPIWrapper(BaseModel):
     class Config:
         """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+        if PYDANTIC_V1:
+            extra = Extra.forbid
 
     @root_validator(skip_on_failure=True)
     def validate_environment(cls, values: Dict) -> Dict:
@@ -395,14 +404,14 @@ class WolframAlphaAPIWrapper(BaseModel):
         try:
             import wolframalpha
 
-        except ImportError:
-            raise ImportError("wolframalpha is not installed. " "Please install it with `pip install wolframalpha`")
+        except ImportError as e:
+            raise ImportError("wolframalpha is not installed. Please install it with `pip install wolframalpha`") from e
         client = wolframalpha.Client(wolfram_alpha_appid)
         values["wolfram_client"] = client
 
         return values
 
-    def run(self, query: str) -> str:
+    def run(self, query: str) -> Tuple[str, bool]:
         """Run query through WolframAlpha and parse result."""
         from urllib.error import HTTPError
 
