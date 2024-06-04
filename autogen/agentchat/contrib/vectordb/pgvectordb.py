@@ -80,6 +80,14 @@ class Collection:
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
+        # This will get the model dimension size by computing the embeddings dimensions
+        sentences = [
+            "The weather is lovely today in paradise.",
+            "It's so sunny outside in the garden!",
+            "He reached his max potential within his lifetime.",
+        ]
+        embeddings = self.embedding_function.encode(sentences)
+        self.dimension = embeddings.shape[1]
 
     def set_collection_name(self, collection_name) -> str:
         name = re.sub("-", "_", collection_name)
@@ -304,7 +312,7 @@ class Collection:
                 )
         except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn) as e:
             logger.info(f"Error executing select on non-existent table: {self.name}. Creating it instead. Error: {e}")
-            self.create_collection(collection_name=self.name)
+            self.create_collection(collection_name=self.name, dimension=self.dimension)
             logger.info(f"Created table {self.name}")
 
         cursor.close()
@@ -541,10 +549,14 @@ class Collection:
         """
         if collection_name:
             self.name = collection_name
+
+        if dimension:
+            self.dimension = dimension
+
         cursor = self.client.cursor()
         cursor.execute(
             f"CREATE TABLE {self.name} ("
-            f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector({dimension}));"
+            f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector({self.dimension}));"
             f"CREATE INDEX "
             f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
             f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
@@ -783,7 +795,7 @@ class PGVectorDB(VectorDB):
                 model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
-            collection.create_collection(collection_name=collection_name, dimension=self.dimension)
+            collection.create_collection(collection_name=collection_name)
             return collection
         elif overwrite:
             self.delete_collection(collection_name)
@@ -796,7 +808,7 @@ class PGVectorDB(VectorDB):
                 model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
-            collection.create_collection(collection_name=collection_name, dimension=self.dimension)
+            collection.create_collection(collection_name=collection_name)
             return collection
         elif get_or_create:
             return collection
@@ -810,7 +822,7 @@ class PGVectorDB(VectorDB):
                 model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
-            collection.create_collection(collection_name=collection_name, dimension=self.dimension)
+            collection.create_collection(collection_name=collection_name)
             return collection
         else:
             raise ValueError(f"Collection {collection_name} already exists.")
