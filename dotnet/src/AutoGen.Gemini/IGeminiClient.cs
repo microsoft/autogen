@@ -10,5 +10,5 @@ namespace AutoGen.Gemini;
 public interface IGeminiClient
 {
     Task<GenerateContentResponse> GenerateContentAsync(GenerateContentRequest request, CancellationToken cancellationToken = default);
-    PredictionServiceClient.StreamGenerateContentStream StreamGenerateContentStreamAsync(GenerateContentRequest request);
+    PredictionServiceClient.StreamGenerateContentStream GenerateContentStreamAsync(GenerateContentRequest request);
 }

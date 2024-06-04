@@ -44,18 +44,3 @@ internal class InlinePart : Part
         public string Data { get; set; } = null!;
     }
 }
-
-internal class FunctionCallPart : Part
-{
-    [JsonPropertyName("data")]
-    public FunctionCall Data { get; set; } = null!;
-
-    public class FunctionCall
-    {
-        [JsonPropertyName("function")]
-        public string Function { get; set; } = null!;
-
-        [JsonPropertyName("arguments")]
-        public Argument[] Arguments { get; set; } = null!;
-    }
-}

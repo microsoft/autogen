@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
 using Google.Cloud.AIPlatform.V1;
-using Google.Protobuf.Collections;
 using Json.Schema;
 using Json.Schema.Generation;
 using OpenAPISchemaType = Google.Cloud.AIPlatform.V1.Type;
@@ -47,10 +46,12 @@ public class GeminiChatAgent : IStreamingAgent
 
     public string Name { get; }
 
-    public Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var request = BuildChatRequest(messages, options);
-        var response = this.client.GenerateContentAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false)
+        var response = this.client.GenerateContentAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        return MessageEnvelope.Create(response, this.Name);
     }
 
     public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
@@ -68,7 +69,7 @@ public class GeminiChatAgent : IStreamingAgent
             };
         }
 
-        var schema = new JsonSchemaBuilder().FromType(type).Build()
+        var schema = new JsonSchemaBuilder().FromType(type).Build();
 
         var openApiSchema = new OpenApiSchema
         {

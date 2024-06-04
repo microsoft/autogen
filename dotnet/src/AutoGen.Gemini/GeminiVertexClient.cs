@@ -7,15 +7,15 @@ using Google.Cloud.AIPlatform.V1;
 
 namespace AutoGen.Gemini;
 
-internal class VertexGeminiClient : IGeminiClient
+internal class GeminiVertexClient : IGeminiClient
 {
     private readonly PredictionServiceClient client;
-    public VertexGeminiClient(PredictionServiceClient client)
+    public GeminiVertexClient(PredictionServiceClient client)
     {
         this.client = client;
     }
 
-    public VertexGeminiClient(string location)
+    public GeminiVertexClient(string location)
     {
         PredictionServiceClientBuilder builder = new()
         {
@@ -30,7 +30,7 @@ internal class VertexGeminiClient : IGeminiClient
         return client.GenerateContentAsync(request, cancellationToken);
     }
 
-    public PredictionServiceClient.StreamGenerateContentStream StreamGenerateContentStreamAsync(GenerateContentRequest request)
+    public PredictionServiceClient.StreamGenerateContentStream GenerateContentStreamAsync(GenerateContentRequest request)
     {
         return client.StreamGenerateContent(request);
     }

@@ -16,9 +16,19 @@
     <IsPackable>false</IsPackable>
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="ApprovalTests" Version="$(ApprovalTestVersion)" />
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
+    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
+    <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
+  </ItemGroup>
 </Project>
