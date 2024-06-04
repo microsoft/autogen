@@ -209,7 +209,7 @@ class FileLogger(BaseLogger):
 
     def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: Any) -> None:
         """
-        Log an event from an agent or a string source.
+        Log a registered function(can be a tool) use from an agent or a string source.
         """
         thread_id = threading.get_ident()
 

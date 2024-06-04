@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import uuid
+from typing import Callable, Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -84,6 +85,7 @@ def get_sample_chat_completion(response):
         "is_cached": 0,
         "cost": 0.347,
         "start_time": get_current_ts(),
+        "agent": autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
     }
 
 
@@ -115,6 +117,28 @@ def test_log_completion(response, expected_logged_response, db_connection):
         assert row["is_cached"] == sample_completion["is_cached"]
         assert row["cost"] == sample_completion["cost"]
         assert row["start_time"] == sample_completion["start_time"]
+        assert row["source_name"] == "TestAgent"
+
+
+def test_log_function_use(db_connection):
+    cur = db_connection.cursor()
+
+    source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
+    func = Callable[..., Any]()
+    args = {'foo': 'bar'}
+    returns = True
+
+    autogen.runtime_logging.log_function_use(agent=source, function=func, args=args, returns=returns)
+
+    query = """
+        SELECT source_id, source_name, function_name, args, returns, timestamp 
+        FROM function_calls
+    """
+
+    for row in cur.execute(query):
+        assert row["source_name"] == "TestAgent"
+        assert row["args"] == json.dumps(args)
+        assert row["returns"] == json.dumps(returns)
 
 
 def test_log_new_agent(db_connection):
