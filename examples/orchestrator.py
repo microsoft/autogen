@@ -16,7 +16,7 @@ from agnext.chat.types import TextMessage
 from agnext.components.function_executor._impl.in_process_function_executor import (
     InProcessFunctionExecutor,
 )
-from agnext.components.llm import OpenAI, SystemMessage
+from agnext.components.models import OpenAI, SystemMessage
 from agnext.core import Agent, AgentRuntime
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
 from tavily import TavilyClient

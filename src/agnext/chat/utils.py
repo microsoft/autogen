@@ -8,7 +8,7 @@ from agnext.chat.types import (
     MultiModalMessage,
     TextMessage,
 )
-from agnext.components.llm import (
+from agnext.components.models import (
     AssistantMessage,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,

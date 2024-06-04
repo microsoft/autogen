@@ -13,7 +13,7 @@ from agnext.chat.types import (
 )
 from agnext.chat.utils import convert_messages_to_llm_messages
 from agnext.components.function_executor import FunctionExecutor
-from agnext.components.llm import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
+from agnext.components.models import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
 from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.components.types import (
     FunctionCall,

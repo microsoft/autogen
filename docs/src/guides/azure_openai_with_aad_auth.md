@@ -15,7 +15,7 @@ pip install azure-identity
 ## Using the Model Client
 
 ```python
-from agnext.components.llm import AzureOpenAI
+from agnext.components.models import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 # Create the token provider

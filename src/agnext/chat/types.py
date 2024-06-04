@@ -5,7 +5,7 @@ from enum import Enum
 from typing import List, Union
 
 from agnext.components.image import Image
-from agnext.components.llm import FunctionExecutionResultMessage
+from agnext.components.models import FunctionExecutionResultMessage
 from agnext.components.types import FunctionCall
 
 
