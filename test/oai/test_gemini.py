@@ -92,10 +92,11 @@ def test_create_response(mock_configure, mock_generative_model, mock_content, ge
     mock_configure.return_value = None
     mock_generative_model.return_value = mock_model
     mock_model.start_chat.return_value = mock_chat
-
+    
     # Set up a mock for the chat history item access and the text attribute return
     mock_history_part = MagicMock()
     mock_history_part.text = "Example response"
+    mock_history_part.function_call = None
     mock_chat.history.__getitem__.return_value.parts.__iter__.return_value = iter([mock_history_part])
 
     # Setup the mock to return a mocked chat response
@@ -170,7 +171,7 @@ def test_create_vision_model_response(mock_configure, mock_generative_model, gem
 
     # Set up a mock to simulate the vision model behavior
     mock_vision_response = MagicMock()
-    mock_vision_part = MagicMock(text="Vision model output")
+    mock_vision_part = MagicMock(text="Vision model output", function_call=None)
 
     # Setting up the chain of return values for vision model response
     mock_vision_response._result.candidates.__getitem__.return_value.content.parts.__iter__.return_value = iter(

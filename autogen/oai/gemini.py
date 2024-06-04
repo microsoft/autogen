@@ -527,7 +527,10 @@ class GeminiClient:
         tool_calls = None
         for part in response.parts:
             if part.function_call:
-                arguments = VertexAIPart.to_dict(part)["function_call"]["args"] if self.use_vertexai else Part.to_dict(part)["function_call"]["args"]
+                if self.use_vertexai:
+                    arguments = VertexAIPart.to_dict(part)["function_call"]["args"]
+                else:
+                    arguments = Part.to_dict(part)["function_call"]["args"]
                 tool_calls = [
                     ChatCompletionMessageToolCall(
                         id=str(random.randint(0, 1000)),
