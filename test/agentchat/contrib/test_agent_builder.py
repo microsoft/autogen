@@ -1,5 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
+#!/usr/bin/env python3 -m pytest
+
 import json
 import os
 import sys
@@ -12,7 +14,7 @@ from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-# from conftest import skip_openai as skip  # noqa: E402
+
 from conftest import reason, skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402  # noqa: E402
 
@@ -61,10 +63,7 @@ def ask_ossinsight(question: str) -> str:
     return "The repository microsoft/autogen has 123,456 stars on GitHub."
 
 
-@pytest.mark.skipif(
-    skip_openai,
-    reason=reason,
-)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_build():
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
@@ -90,10 +89,7 @@ def test_build():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
 
-@pytest.mark.skipif(
-    skip_openai or skip,
-    reason=reason + "OR dependency not installed",
-)
+@pytest.mark.skipif(skip_openai or skip, reason=reason + "OR dependency not installed")
 def test_build_assistant_with_function_calling():
     list_of_functions = [
         {
@@ -245,10 +241,7 @@ def test_build_from_library():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
 
-@pytest.mark.skipif(
-    skip_openai,
-    reason=reason,
-)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_save():
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
@@ -279,10 +272,7 @@ def test_save():
     _config_check(saved_configs)
 
 
-@pytest.mark.skipif(
-    skip_openai,
-    reason=reason,
-)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_load():
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
@@ -305,10 +295,7 @@ def test_load():
     _config_check(loaded_agent_configs)
 
 
-@pytest.mark.skipif(
-    skip_openai,
-    reason=reason,
-)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_clear_agent():
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
