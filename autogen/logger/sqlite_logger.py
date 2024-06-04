@@ -51,6 +51,7 @@ class SqliteLogger(BaseLogger):
                     client_id INTEGER,
                     wrapper_id INTEGER,
                     session_id TEXT,
+                    source_name TEXT,
                     request TEXT,
                     response TEXT,
                     is_cached INEGER,
