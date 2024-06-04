@@ -67,6 +67,31 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
+  aot-test: # this make sure the AutoGen.Core is aot compatible
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        os: [ ubuntu-latest ]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetching all
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: dotnet/global.json
+
+    - name: publish AOT testApp, assert static analysis warning count, and run the app
+      shell: pwsh
+      run: ./.tools/test-aot-compatibility.ps1 ${{ matrix.version }}
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
@@ -75,7 +100,7 @@ jobs:
       run:
         working-directory: dotnet
     if: success() && (github.ref == 'refs/heads/main')
-    needs: build
+    needs: aot-test
     steps:
     - uses: actions/checkout@v4
       with:
