@@ -28,7 +28,7 @@
 
 ## Issues and Discussions
 
-- For new issues, write a reply, apply a label if relevant. Ask on discord when necessary. For roadmap issues, add to the roadmap project and encourage community discussion. Mention relevant experts when necessary.
+- For new issues, write a reply, apply a label if relevant. Ask on discord when necessary. For roadmap issues, apply the roadmap label and encourage community discussion. Mention relevant experts when necessary.
 
 - For old issues, provide an update or close. Ask on discord when necessary. Encourage PR creation when relevant.
 - Use “good first issue” for easy fix suitable for first-time contributors.
