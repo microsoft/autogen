@@ -63,7 +63,9 @@ def parse_agb_console(file_path: str) -> List[Message]:
 
     def parse_source(line: str) -> Optional[str]:
         """Parse the source from a line. Return None if no source is found."""
-        regex = re.compile(r"(\w+) \(to (\w+)\):")
+        # regex = re.compile(r"(\w+) \(to (\w+)\):")
+        regex = re.compile(r"(\w+) \((to \w+|thought)\)")
+
         matches = regex.search(line)
         if matches:
             return matches.group(1)  # return the source
