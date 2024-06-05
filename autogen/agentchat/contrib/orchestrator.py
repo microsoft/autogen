@@ -383,7 +383,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     stalled_count += 1
 
                 if stalled_count >= 3:
-                    self._temperature_bonus += 0.5 # Be more creative.
+                    self._temperature_bonus += 0.5  # Be more creative.
 
                     self._print_thought("We aren't making progress. Let's reset.")
                     new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).

@@ -29,7 +29,7 @@ from .tool_definitions import (
     TOOL_SCROLL_ELEMENT_DOWN,
     TOOL_SCROLL_ELEMENT_UP,
     TOOL_SUMMARIZE_PAGE,
-    TOOL_READ_PAGE_AND_ANSWER
+    TOOL_READ_PAGE_AND_ANSWER,
 )
 
 try:
@@ -52,6 +52,7 @@ VIEWPORT_WIDTH = 1440
 MLM_HEIGHT = 765
 MLM_WIDTH = 1224
 
+
 class MultimodalWebSurferAgent(ConversableAgent):
     """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
@@ -71,14 +72,13 @@ class MultimodalWebSurferAgent(ConversableAgent):
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-
         # Browser-related stuff
         headless: bool = True,
         browser_channel=DEFAULT_CHANNEL,
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
-        navigation_allow_list = lambda url: True,
+        navigation_allow_list=lambda url: True,
         markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
     ):
         """
@@ -120,11 +120,13 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # Handle the allow list
         self._navigation_allow_list = navigation_allow_list
         if isinstance(self._navigation_allow_list, list):
+
             def _closure(url):
                 for entry in navigation_allow_list:
                     if url.startswith(entry):
                         return True
-                return False 
+                return False
+
             self._navigation_allow_list = _closure
 
         # Configure the router
@@ -137,9 +139,15 @@ class MultimodalWebSurferAgent(ConversableAgent):
                     route.fulfill(
                         status=403,
                         content_type="text/html",
-                        body="<html><body><h1>Navigation Blocked</h1><p>Navigation was blocked by the client. Click the <a href=\"javascript: history.back()\">browser back button</a> to go back, return Home to <a href=\"" + self.start_page + "\">" + self.start_page + "</a>.</p></body></html>")
+                        body='<html><body><h1>Navigation Blocked</h1><p>Navigation was blocked by the client. Click the <a href="javascript: history.back()">browser back button</a> to go back, return Home to <a href="'
+                        + self.start_page
+                        + '">'
+                        + self.start_page
+                        + "</a>.</p></body></html>",
+                    )
                 else:
                     route.fulfill(response=response)
+
         self._route_handler = _route_handler
 
         # Create or use the provided MarkdownConverter
@@ -153,7 +161,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         if browser_channel is not DEFAULT_CHANNEL:
             launch_args["channel"] = browser_channel
         self._playwright = sync_playwright().start()
- 
+
         # Create the context -- are we launching a persistent instance?
         if browser_data_dir is None:
             if browser_channel == "chromium":
@@ -301,20 +309,20 @@ setInterval(function() {{
             TOOL_CLICK,
             TOOL_TYPE,
             TOOL_SUMMARIZE_PAGE,
-            TOOL_READ_PAGE_AND_ANSWER
+            TOOL_READ_PAGE_AND_ANSWER,
         ]
 
         # Can we reach Bing to search?
         if self._navigation_allow_list("https://www.bing.com/"):
-            tools.append( TOOL_WEB_SEARCH )
+            tools.append(TOOL_WEB_SEARCH)
 
         # We can scroll up
         if viewport["pageTop"] > 5:
-            tools.append( TOOL_PAGE_UP )
+            tools.append(TOOL_PAGE_UP)
 
         # Can scroll down
         if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            tools.append( TOOL_PAGE_DOWN )
+            tools.append(TOOL_PAGE_DOWN)
 
         # Focus hint
         focused = self._get_focused_rect_id()
@@ -355,7 +363,7 @@ setInterval(function() {{
             tools.append(TOOL_SCROLL_ELEMENT_UP)
             tools.append(TOOL_SCROLL_ELEMENT_DOWN)
 
-        tool_names = [ t["function"]["name"] for t in tools ]
+        tool_names = [t["function"]["name"] for t in tools]
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -394,7 +402,7 @@ You are to respond to the user's most recent request by selecting an appropriate
                     if url.startswith(("https://", "http://", "file://", "about:")):
                         self._visit_page(url)
                     # If the argument contains a space, treat it as a search query
-                    elif " " in argument:
+                    elif " " in url:
                         self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
                     # Otherwise, prefix with https://
                     else:
@@ -408,12 +416,12 @@ You are to respond to the user's most recent request by selecting an appropriate
                     query = args.get("query")
                     action_description = f"I typed '{query}' into the browser search bar."
                     self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
-            
+
                 elif name == "page_up":
                     action_description = "I scrolled up one page in the browser."
                     self._page_up()
 
-                elif name == "page_down": 
+                elif name == "page_down":
                     action_description = "I scrolled down one page in the browser."
                     self._page_down()
 
@@ -467,8 +475,7 @@ You are to respond to the user's most recent request by selecting an appropriate
 
                 else:
                     log_event(self, "Unknown tool", error=name)
-                    raise ValueError("Unknown tool '" + name +"'")
-
+                    raise ValueError("Unknown tool '" + name + "'")
 
         except ValueError as e:
             if logging_enabled():
@@ -506,7 +513,12 @@ You are to respond to the user's most recent request by selecting an appropriate
             )
         # Return the complete observation
         return True, self._make_mm_message(
-            re.sub(r"\s+", " ", f"{message.content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.", re.DOTALL).strip(),
+            re.sub(
+                r"\s+",
+                " ",
+                f"{message.content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
+                re.DOTALL,
+            ).strip(),
             new_screenshot,
         )
 
@@ -577,13 +589,6 @@ You are to respond to the user's most recent request by selecting an appropriate
         time.sleep(0.2)
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.wait_for_load_state()
-
-        title = None
-        try:
-            title = self._page.title()
-        except:
-            pass
-
         self._log_to_console(fname="new_tab", args={"url": self._page.url})
 
     def _back(self):
@@ -648,7 +653,7 @@ You are to respond to the user's most recent request by selecting an appropriate
     """
         )
 
-    def _summarize_page( self, question=None, token_limit=100000 ):
+    def _summarize_page(self, question=None, token_limit=100000):
         page_markdown = self._get_page_markdown()
 
         buffer = ""
@@ -668,7 +673,7 @@ You are to respond to the user's most recent request by selecting an appropriate
         except:
             pass
 
-        # Take a screenshot and scale it 
+        # Take a screenshot and scale it
         screenshot = self._page.screenshot()
         if not isinstance(screenshot, io.BufferedIOBase):
             screenshot = io.BytesIO(screenshot)
@@ -676,7 +681,7 @@ You are to respond to the user's most recent request by selecting an appropriate
         scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
         screenshot.close()
 
-        messages = [ 
+        messages = [
             {
                 "role": "system",
                 "content": "You are a helpful assistant that can summarize long documents to answer question.",
@@ -685,7 +690,9 @@ You are to respond to the user's most recent request by selecting an appropriate
 
         prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
         if question is not None:
-            prompt += f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+            prompt += (
+                f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+            )
         else:
             prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
 
@@ -694,10 +701,9 @@ You are to respond to the user's most recent request by selecting an appropriate
         )
         scaled_screenshot.close()
 
-        response = self.client.create(context=None, messages=messages) 
+        response = self.client.create(context=None, messages=messages)
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         return str(extracted_response)
-
 
     def _log_to_console(self, fname, args):
         if fname is None or fname == "":
@@ -705,12 +711,12 @@ You are to respond to the user's most recent request by selecting an appropriate
         if args is None:
             args = {}
 
-        _arg_strs= []
+        _arg_strs = []
         for a in args:
-            _arg_strs.append(a + "='" +str(args[a]) + "'")
+            _arg_strs.append(a + "='" + str(args[a]) + "'")
 
         # Need to update this
-        #if logging_enabled():
+        # if logging_enabled():
         #    log_event(self, "browser_action", action=action, target=target, arg=arg)
 
         print(

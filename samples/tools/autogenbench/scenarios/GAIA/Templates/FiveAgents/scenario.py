@@ -6,12 +6,12 @@ import autogen
 import copy
 import traceback
 import pathlib
+import base64
 import re
 from datetime import datetime
 import testbed_utils
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.browser_utils import *
-
+from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
@@ -24,16 +24,20 @@ DEFAULT_TEMPERATURE = 0.1
 testbed_utils.init()
 ##############################
 
+
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
 
 # Read the prompt
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
 
-config_list = autogen.config_list_from_json("OAI_CONFIG_LIST",)
+config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+)
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
 # Set a low default temperature
@@ -42,6 +46,7 @@ for config in llm_config["config_list"]:
         config["temperature"] = DEFAULT_TEMPERATURE
 llm_config["temperature"] = DEFAULT_TEMPERATURE
 client = autogen.OpenAIWrapper(**llm_config)
+
 
 def response_preparer(inner_messages):
 
@@ -57,7 +62,7 @@ Your team then worked diligently to address that request. Here is a transcript o
     ]
 
     # The first message just repeats the question, so remove it
-    #if len(inner_messages) > 1:
+    # if len(inner_messages) > 1:
     #    del inner_messages[0]
 
     # copy them to this context
@@ -96,8 +101,11 @@ If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to
     # No answer
     if "unable to determine" in extracted_response.lower():
         print("\n>>>Making an educated guess.\n")
-        messages.append({"role": "assistant", "content": extracted_response })
-        messages.append({"role": "user", "content": """
+        messages.append({"role": "assistant", "content": extracted_response})
+        messages.append(
+            {
+                "role": "user",
+                "content": """
 I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
 
 To output the educated guess, use the following template: EDUCATED GUESS: [YOUR EDUCATED GUESS]
@@ -106,14 +114,16 @@ ADDITIONALLY, your EDUCATED GUESS MUST adhere to any formatting instructions spe
 If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and don't include units such as $ or percent signs unless specified otherwise.
 If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
-""".strip()})
+""".strip(),
+            }
+        )
 
         response = client.create(context=None, messages=messages)
         if "finish_reason='content_filter'" in str(response):
             raise Exception(str(response))
         extracted_response = client.extract_text_or_completion_object(response)[0]
 
-        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)  
+        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)
     else:
         return extracted_response
 
@@ -138,7 +148,7 @@ user_proxy = autogen.UserProxyAgent(
         "work_dir": "coding",
         "use_docker": False,
     },
-    default_auto_reply=f"Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning \"```python\" or \"```sh\" respectively.",
+    default_auto_reply=f'Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning "```python" or "```sh" respectively.',
     max_consecutive_auto_reply=15,
 )
 
@@ -150,7 +160,7 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
-    start_page=os.environ.get("HOMEPAGE", "about:blank"), 
+    start_page=os.environ.get("HOMEPAGE", "about:blank"),
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
@@ -173,8 +183,8 @@ if len(filename) > 0:
 
     filename_prompt = f"The question is about a file, document or image, which can be accessed by the filename '{filename}' in the current working directory. It can also be viewed in a web browser by visiting the URL {file_uri}"
 
-    mdconverter = MarkdownConverter( mlm_client=client)
-    mlm_prompt=f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
+    mdconverter = MarkdownConverter(mlm_client=client)
+    mlm_prompt = f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
 
 {PROMPT}
 """.strip()
@@ -183,7 +193,7 @@ if len(filename) > 0:
         res = mdconverter.convert(relpath, mlm_prompt=mlm_prompt)
 
         if res.text_content:
-            if count_token(res.text_content) < 8000: # Don't put overly-large documents into the prompt
+            if count_token(res.text_content) < 8000:  # Don't put overly-large documents into the prompt
                 filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
     except UnsupportedFormatException:
         pass

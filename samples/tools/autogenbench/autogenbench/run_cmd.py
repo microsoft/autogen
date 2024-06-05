@@ -40,6 +40,7 @@ DEFAULT_ENV_FILE = "ENV.json"
 # Get a random number generator for subsampling
 subsample_rng = random.Random(425)
 
+
 def run_scenarios(
     scenario,
     n_repeats,
@@ -731,15 +732,18 @@ def run_cli(args):
     if os.path.isdir(pathlib.Path("~/.azure").expanduser()):
         logging.disable(logging.CRITICAL)
         try:
-            azure_token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-            token = azure_token_provider()
-            print(f"Found Azure token provider.")
-        except ClientAuthenticationError as e:
+            azure_token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            azure_token_provider()  # Call it once to warm it up, and make sure it doesn't throw an error
+            print("Found Azure token provider.")
+        except ClientAuthenticationError:
             error_message = traceback.format_exc()
             azure_token_provider = None
-            print(f"Azure token provider failed to loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider...")
+            print(
+                f"Azure token provider failed loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider..."
+            )
         logging.disable(logging.NOTSET)
-
 
     # Run the scenario
     run_scenarios(
