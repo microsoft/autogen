@@ -69,7 +69,6 @@ public static class FunctionContractExtension
         }
 
         var schema = new JsonSchemaBuilder().FromType(type).Build();
-
         var openApiSchema = new OpenApiSchema
         {
             Type = schema.GetJsonType() switch
