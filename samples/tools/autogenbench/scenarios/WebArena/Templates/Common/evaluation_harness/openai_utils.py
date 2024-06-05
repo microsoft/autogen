@@ -12,8 +12,14 @@ import aiolimiter
 import openai
 from openai import AsyncOpenAI, OpenAI
 
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-aclient = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+client = None
+aclient = None
+if "OPENAI_API_KEY" not in os.environ and "OAI_CONFIG_LIST" not in os.environ:
+    raise ValueError("Neither OPENAI_API_KEY nor OAI_CONFIG_LIST is defined in the environment.")
+
+if "OPENAI_API_KEY" in os.environ:
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    aclient = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
 from tqdm.asyncio import tqdm_asyncio
 
 

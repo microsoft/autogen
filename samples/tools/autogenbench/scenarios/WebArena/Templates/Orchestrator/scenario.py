@@ -314,12 +314,17 @@ page = web_surfer._page
 cdp_session = context.new_cdp_session(page)
 config_file = "full_task.json"
 
+import nltk
+
+nltk.download("punkt")
+
 evaluator = evaluation_harness.evaluator_router(config_file)
 score = evaluator(
     trajectory=evaluation_harness.make_answer_trajecotry(final_answer),
     config_file=config_file,
     page=page,
     client=cdp_session,
+    azure_config=llm_config,
 )
 
 if logging_enabled():
