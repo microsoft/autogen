@@ -2,6 +2,7 @@
 // GoogleGeminiClient.cs
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Cloud.AIPlatform.V1;
@@ -28,7 +29,7 @@ public class GoogleGeminiClient : IGeminiClient
         throw new NotImplementedException();
     }
 
-    public PredictionServiceClient.StreamGenerateContentStream GenerateContentStreamAsync(GenerateContentRequest request)
+    public IAsyncEnumerable<GenerateContentResponse> GenerateContentStreamAsync(GenerateContentRequest request)
     {
         throw new NotImplementedException();
     }

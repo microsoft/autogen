@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // IGeminiClient.cs
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Cloud.AIPlatform.V1;
@@ -30,8 +31,8 @@ internal class VertexGeminiClient : IGeminiClient
         return client.GenerateContentAsync(request, cancellationToken);
     }
 
-    public PredictionServiceClient.StreamGenerateContentStream GenerateContentStreamAsync(GenerateContentRequest request)
+    public IAsyncEnumerable<GenerateContentResponse> GenerateContentStreamAsync(GenerateContentRequest request)
     {
-        return client.StreamGenerateContent(request);
+        return client.StreamGenerateContent(request).GetResponseStream();
     }
 }

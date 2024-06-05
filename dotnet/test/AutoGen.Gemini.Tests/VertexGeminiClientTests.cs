@@ -116,8 +116,7 @@ public class VertexGeminiClientTests
             }
         };
 
-        var completion = client.GenerateContentStreamAsync(request);
-        var response = completion.GetResponseStream();
+        var response = client.GenerateContentStreamAsync(request);
         var chunks = new List<GenerateContentResponse>();
         GenerateContentResponse? final = null;
         await foreach (var item in response)
