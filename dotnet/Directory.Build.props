@@ -31,4 +31,11 @@
     <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
   </ItemGroup>
+
+  <ItemGroup  Condition="'$(IsTestProject)' == 'true'">
+    <Content Include="$(RepoRoot)\testData\**\*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>testData\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
 </Project>

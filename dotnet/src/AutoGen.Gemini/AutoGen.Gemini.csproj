@@ -13,6 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AutoGen.Gemini.Tests"/>
+    <InternalsVisibleTo Include="AutoGen.Gemini.Tests" />
   </ItemGroup>
 </Project>

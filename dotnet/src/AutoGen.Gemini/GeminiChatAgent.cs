@@ -7,11 +7,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
+using AutoGen.Gemini.Extension;
 using Google.Cloud.AIPlatform.V1;
-using Json.Schema;
-using Json.Schema.Generation;
-using OpenAPISchemaType = Google.Cloud.AIPlatform.V1.Type;
-using Type = System.Type;
+using Google.Protobuf.Collections;
 namespace AutoGen.Gemini;
 
 public class GeminiChatAgent : IStreamingAgent
@@ -20,10 +18,22 @@ public class GeminiChatAgent : IStreamingAgent
     private readonly string? systemMessage;
     private readonly string model;
     private readonly ToolConfig? toolConfig;
-    private readonly SafetySetting? safetySettings;
+    private readonly RepeatedField<SafetySetting>? safetySettings;
     private readonly string responseMimeType;
     private readonly Tool[]? tools;
 
+    /// <summary>
+    /// Create <see cref="GeminiChatAgent"/> that connects to Gemini.
+    /// </summary>
+    /// <param name="client">the gemini client to use. e.g. <see cref="VertexGeminiClient"/> </param>
+    /// <param name="name">agent name</param>
+    /// <param name="model">the model id. It needs to be in the format of 
+    /// 'projects/{project}/locations/{location}/publishers/{provider}/models/{model}' if the <paramref name="client"/> is <see cref="VertexGeminiClient"/></param>
+    /// <param name="systemMessage">system message</param>
+    /// <param name="toolConfig">tool config</param>
+    /// <param name="tools">tools</param>
+    /// <param name="safetySettings">safety settings</param>
+    /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
     public GeminiChatAgent(
         IGeminiClient client,
         string name,
@@ -31,7 +41,7 @@ public class GeminiChatAgent : IStreamingAgent
         string? systemMessage = null,
         ToolConfig? toolConfig = null,
         Tool[]? tools = null,
-        SafetySetting? safetySettings = null,
+        RepeatedField<SafetySetting>? safetySettings = null,
         string responseMimeType = "text/plain")
     {
         this.client = client;
@@ -44,12 +54,48 @@ public class GeminiChatAgent : IStreamingAgent
         this.tools = tools;
     }
 
+    /// <summary>
+    /// Create <see cref="GeminiChatAgent"/> that connects to Vertex AI.
+    /// </summary>
+    /// <param name="name">agent name</param>
+    /// <param name="systemMessage">system message</param>
+    /// <param name="model">the name of gemini model, e.g. gemini-1.5-flash-001</param>
+    /// <param name="project">project id</param>
+    /// <param name="location">model location</param>
+    /// <param name="provider">model provider, default is 'google'</param>
+    /// <param name="toolConfig">tool config</param>
+    /// <param name="tools">tools</param>
+    /// <param name="safetySettings"></param>
+    /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
+    public GeminiChatAgent(
+        string name,
+        string model,
+        string project,
+        string location,
+        string provider = "google",
+        string? systemMessage = null,
+        ToolConfig? toolConfig = null,
+        Tool[]? tools = null,
+        RepeatedField<SafetySetting>? safetySettings = null,
+        string responseMimeType = "text/plain")
+        : this(
+              client: new VertexGeminiClient(location),
+              name: name,
+              model: $"projects/{project}/locations/{location}/publishers/{provider}/models/{model}",
+              systemMessage: systemMessage,
+              toolConfig: toolConfig,
+              tools: tools,
+              safetySettings: safetySettings,
+              responseMimeType: responseMimeType)
+    {
+    }
+
     public string Name { get; }
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var request = BuildChatRequest(messages, options);
-        var response = this.client.GenerateContentAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var response = await this.client.GenerateContentAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return MessageEnvelope.Create(response, this.Name);
     }
@@ -57,44 +103,6 @@ public class GeminiChatAgent : IStreamingAgent
     public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
-    }
-
-    private OpenApiSchema ToOpenApiSchema(Type type)
-    {
-        if (type == null)
-        {
-            return new OpenApiSchema
-            {
-                Type = OpenAPISchemaType.Unspecified
-            };
-        }
-
-        var schema = new JsonSchemaBuilder().FromType(type).Build();
-
-        var openApiSchema = new OpenApiSchema
-        {
-            Type = schema.GetJsonType() switch
-            {
-                SchemaValueType.Array => OpenAPISchemaType.Array,
-                SchemaValueType.Boolean => OpenAPISchemaType.Boolean,
-                SchemaValueType.Integer => OpenAPISchemaType.Integer,
-                SchemaValueType.Number => OpenAPISchemaType.Number,
-                SchemaValueType.Object => OpenAPISchemaType.Object,
-                SchemaValueType.String => OpenAPISchemaType.String,
-                _ => OpenAPISchemaType.Unspecified
-            },
-        };
-
-        if (schema.GetJsonType() == SchemaValueType.Object && schema.GetProperties() is var properties && properties != null)
-        {
-            //openApiSchema.Properties.Add(schema.GetProperties().Select(p => new KeyValuePair<string, OpenApiSchema>(p.Key, ToOpenApiSchema(p.Value.GetType()))));
-            foreach (var property in properties)
-            {
-                openApiSchema.Properties.Add(property.Key, ToOpenApiSchema(property.Value.GetType()));
-            }
-        }
-
-        return openApiSchema;
     }
 
     private GenerateContentRequest BuildChatRequest(IEnumerable<IMessage> messages, GenerateReplyOptions? options)
@@ -120,8 +128,6 @@ public class GeminiChatAgent : IStreamingAgent
             Contents = { geminiMessages },
             SystemInstruction = systemMessage,
             Model = this.model,
-            ToolConfig = this.toolConfig,
-            SafetySettings = { this.safetySettings },
             GenerationConfig = new GenerationConfig
             {
                 StopSequences = { options?.StopSequence ?? Enumerable.Empty<string>() },
@@ -130,6 +136,16 @@ public class GeminiChatAgent : IStreamingAgent
             },
             Tools = { this.tools ?? Enumerable.Empty<Tool>() }
         };
+
+        if (this.toolConfig is not null)
+        {
+            request.ToolConfig = this.toolConfig;
+        }
+
+        if (this.safetySettings is not null)
+        {
+            request.SafetySettings.Add(this.safetySettings);
+        }
 
         if (options?.MaxToken.HasValue is true)
         {
@@ -145,44 +161,7 @@ public class GeminiChatAgent : IStreamingAgent
         {
             foreach (var function in options.Functions)
             {
-                var required = function.Parameters.Where(p => p.IsRequired)
-                    .Select(p => p.Name)
-                    .ToList();
-                var parameterProperties = new Dictionary<string, OpenApiSchema>();
-
-                foreach (var parameter in function.Parameters ?? Enumerable.Empty<FunctionParameterContract>())
-                {
-                    var schema = ToOpenApiSchema(parameter.ParameterType!);
-                    schema.Description = parameter.Description;
-                    schema.Title = parameter.Name;
-                    schema.Nullable = !parameter.IsRequired;
-                    parameterProperties.Add(parameter.Name!, schema);
-                }
-
-                request.Tools.Add(new Tool
-                {
-                    FunctionDeclarations =
-                    {
-                        new FunctionDeclaration
-                        {
-                            Name = function.Name,
-                            Description = function.Description,
-                            Parameters = new OpenApiSchema
-                            {
-                                Description = function.Description,
-                                Title = function.Name,
-                                Required =
-                                {
-                                    required,
-                                },
-                                Properties =
-                                {
-                                    parameterProperties,
-                                },
-                            },
-                        },
-                    },
-                });
+                request.Tools.Add(function.ToTool());
             }
         }
 

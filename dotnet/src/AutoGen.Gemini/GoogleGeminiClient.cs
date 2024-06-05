@@ -1,37 +1,35 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// IGeminiClient.cs
+// GoogleGeminiClient.cs
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Cloud.AIPlatform.V1;
 
 namespace AutoGen.Gemini;
 
-internal class GeminiVertexClient : IGeminiClient
+public class GoogleGeminiClient : IGeminiClient
 {
+    private readonly string apiKey;
+    private const string endpoint = "https://generativelanguage.googleapis.com/v1beta";
     private readonly PredictionServiceClient client;
-    public GeminiVertexClient(PredictionServiceClient client)
+    public GoogleGeminiClient(string apiKey)
     {
-        this.client = client;
-    }
-
-    public GeminiVertexClient(string location)
-    {
+        this.apiKey = apiKey;
         PredictionServiceClientBuilder builder = new()
         {
-            Endpoint = $"{location}-aiplatform.googleapis.com",
+            Endpoint = endpoint,
         };
 
         this.client = builder.Build();
     }
-
     public Task<GenerateContentResponse> GenerateContentAsync(GenerateContentRequest request, CancellationToken cancellationToken = default)
     {
-        return client.GenerateContentAsync(request, cancellationToken);
+        throw new NotImplementedException();
     }
 
     public PredictionServiceClient.StreamGenerateContentStream GenerateContentStreamAsync(GenerateContentRequest request)
     {
-        return client.StreamGenerateContent(request);
+        throw new NotImplementedException();
     }
 }
