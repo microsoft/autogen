@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
-from openai import OpenAI
+from openai import AzureOpenAI, OpenAI
 from PIL.Image import Image
 
 from autogen import Agent, ConversableAgent, code_utils
@@ -18,6 +18,8 @@ DO NOT include any advice. RESPOND like the following example:
 EXAMPLE: Blue background, 3D shapes, ...
 """
 
+VALID_DALLE_MODELS = ["dall-e-2", "dall-e-3"]
+
 
 class ImageGenerator(Protocol):
     """This class defines an interface for image generators.
@@ -25,6 +27,7 @@ class ImageGenerator(Protocol):
     Concrete implementations of this protocol must provide a `generate_image` method that takes a string prompt as
     input and returns a PIL Image object.
 
+    NOTE: Only OpenAI's and Azure's DALL-E model are supported.
     NOTE: Current implementation does not allow you to edit a previously existing image.
     """
 
@@ -80,14 +83,17 @@ class DalleImageGenerator:
             num_images (int): The number of images to generate.
         """
         config_list = llm_config["config_list"]
-        _validate_dalle_model(config_list[0]["model"])
+        dalle_configs = _find_valid_dalle_config(config_list)
+        assert len(dalle_configs) > 0, "Invalid DALL-E config. Must contain a valid DALL-E model."
+
+        _validate_dalle_model(dalle_configs[0]["model"])
         _validate_resolution_format(resolution)
 
-        self._model = config_list[0]["model"]
+        self._model = dalle_configs[0]["model"]
         self._resolution = resolution
         self._quality = quality
         self._num_images = num_images
-        self._dalle_client = OpenAI(api_key=config_list[0]["api_key"])
+        self._dalle_client = self._dalle_client_factory(dalle_configs[0])
 
     def generate_image(self, prompt: str) -> Image:
         response = self._dalle_client.images.generate(
@@ -107,6 +113,12 @@ class DalleImageGenerator:
     def cache_key(self, prompt: str) -> str:
         keys = (prompt, self._model, self._resolution, self._quality, self._num_images)
         return ",".join([str(k) for k in keys])
+
+    def _dalle_client_factory(self, dalle_config: Dict) -> Union[OpenAI, AzureOpenAI]:
+        if dalle_config.get("api_type") == "azure":
+            return AzureOpenAI(api_key=dalle_config["api_key"])
+        else:
+            return OpenAI(api_key=dalle_config["api_key"])
 
 
 class ImageGeneration(AgentCapability):
@@ -287,5 +299,9 @@ def _validate_resolution_format(resolution: str):
 
 
 def _validate_dalle_model(model: str):
-    if model not in ["dall-e-3", "dall-e-2"]:
-        raise ValueError(f"Invalid DALL-E model: {model}. Must be 'dall-e-3' or 'dall-e-2'")
+    if model not in VALID_DALLE_MODELS:
+        raise ValueError(f"Invalid DALL-E model: {model}. Must be in {VALID_DALLE_MODELS}")
+
+
+def _find_valid_dalle_config(config_list: List[Dict]) -> List[Dict]:
+    return list(filter(lambda config: config["model"] in VALID_DALLE_MODELS, config_list))
