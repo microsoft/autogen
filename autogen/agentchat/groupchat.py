@@ -1399,7 +1399,7 @@ class GroupChatManager(ConversableAgent):
         args:
             remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
                 If a string is provided, this string will be removed from last message.
-                If a function is provided, the last message will be passed to this function.
+                If a function is provided, the last message will be passed to this function, and the function returns the string after processing.
 
         returns:
             None
