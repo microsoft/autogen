@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -149,12 +151,29 @@ public class GeminiMessageConnector : IStreamingMiddleware
         var functionCallResultParts = new List<Part>();
         foreach (var toolCallResult in toolCallResultMessage.ToolCalls)
         {
+            if (toolCallResult.Result is null)
+            {
+                continue;
+            }
+
+            // if result is already a json object, use it as is
+            var json = toolCallResult.Result;
+            try
+            {
+                JsonNode.Parse(json);
+            }
+            catch (JsonException)
+            {
+                // if the result is not a json object, wrap it in a json object
+                var result = new { result = json };
+                json = JsonSerializer.Serialize(result);
+            }
             var part = new Part
             {
                 FunctionResponse = new FunctionResponse
                 {
                     Name = toolCallResult.FunctionName,
-                    Response = Struct.Parser.ParseJson(toolCallResult.Result),
+                    Response = Struct.Parser.ParseJson(json),
                 }
             };
 
@@ -250,7 +269,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
             var content = new Content
             {
                 Parts = { new[] { new Part { Text = textMessage.Content } } },
-                Role = "system",
+                Role = "user",
             };
 
             return [MessageEnvelope.Create(content, textMessage.From)];
@@ -336,7 +355,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
         {
             TextMessage textMessage => (textMessage.Role == Role.User && textMessage.From is null)
                 || (textMessage.From != agent.Name),
-            _ => false,
+            _ => message.From != agent.Name,
         };
     }
 }
