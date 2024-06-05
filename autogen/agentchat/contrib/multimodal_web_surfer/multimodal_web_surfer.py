@@ -355,6 +355,8 @@ setInterval(function() {{
             tools.append(TOOL_SCROLL_ELEMENT_UP)
             tools.append(TOOL_SCROLL_ELEMENT_DOWN)
 
+        tool_names = [ t["function"]["name"] for t in tools ]
+
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
@@ -362,7 +364,7 @@ Consider the following screenshot of a web browser, which is open to the page '{
 {text_labels}
 ]
 {focused_hint}
-You are to respond to the user's most recent request by selecting an appropriate tool from the provided set of browser tools, or by answering the question directly if possible.
+You are to respond to the user's most recent request by selecting an appropriate tool from the provided set of browser tools ({ ', '.join(tool_names) }), or by answering the question directly if possible.
 """.strip()
 
         # Scale the screenshot for the MLM, and close the original
@@ -474,7 +476,7 @@ You are to respond to the user's most recent request by selecting an appropriate
             return True, str(e)
 
         self._page.wait_for_load_state()
-        time.sleep(1)
+        time.sleep(2)
 
         # Descrive the viewport of the new page in words
         viewport = self._get_visual_viewport()
