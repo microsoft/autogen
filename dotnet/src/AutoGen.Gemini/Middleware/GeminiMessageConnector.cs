@@ -40,9 +40,58 @@ public class GeminiMessageConnector : IStreamingMiddleware
         throw new NotImplementedException();
     }
 
-    public Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var messages = ProcessMessage(context.Messages, agent);
+        var reply = await agent.GenerateReplyAsync(messages, context.Options, cancellationToken);
+
+        return reply switch
+        {
+            Core.IMessage<GenerateContentResponse> m => PostProcessMessage(m.Content, agent),
+            _ when strictMode => throw new InvalidOperationException($"Unsupported message type: {reply.GetType()}"),
+            _ => reply,
+        };
+    }
+
+    private IMessage PostProcessMessage(GenerateContentResponse m, IAgent agent)
+    {
+        if (m.Candidates.Count != 1)
+        {
+            throw new InvalidOperationException("The response should contain exactly one candidate.");
+        }
+
+        var candidate = m.Candidates[0];
+        var parts = candidate.Content.Parts;
+
+        if (parts.Count == 1 && parts[0].DataCase == Part.DataOneofCase.Text)
+        {
+            var content = parts[0].Text;
+            return new TextMessage(Role.Assistant, content, agent.Name);
+        }
+        else
+        {
+            var toolCalls = new List<ToolCall>();
+            foreach (var part in parts)
+            {
+                if (part.DataCase == Part.DataOneofCase.FunctionCall)
+                {
+                    var fc = part.FunctionCall;
+                    var toolCall = new ToolCall(fc.Name, fc.Args.ToString());
+
+                    toolCalls.Add(toolCall);
+                }
+            }
+
+            if (toolCalls.Count > 0)
+            {
+                var toolCallMessage = new ToolCallMessage(toolCalls, agent.Name);
+                return toolCallMessage;
+            }
+            else
+            {
+                throw new InvalidOperationException("The response should contain either text or tool calls.");
+            }
+        }
     }
 
     private IEnumerable<IMessage> ProcessMessage(IEnumerable<IMessage> messages, IAgent agent)
