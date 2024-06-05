@@ -1,5 +1,9 @@
 # AutoGenNext
 
+- [Documentation](http://microsoft.github.io/agnext)
+- [Examples](https://github.com/microsoft/agnext/tree/main/examples)
+
+
 ## Package layering
 
 - `core` are the the foundational generic interfaces upon which all else is built. This module must not depend on any other module.
