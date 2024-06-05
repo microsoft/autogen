@@ -12,6 +12,7 @@ namespace AutoGen.Gemini.Tests;
 public class GeminiAgentTests
 {
     private readonly Functions functions = new Functions();
+
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
     public async Task VertexGeminiAgentGenerateReplyForTextContentAsync()
     {
@@ -31,7 +32,6 @@ public class GeminiAgentTests
             }
         };
 
-
         var agent = new GeminiChatAgent(
             name: "assistant",
             model: model,
@@ -49,6 +49,54 @@ public class GeminiAgentTests
         response.Should().NotBeNull();
         response.Candidates.Count.Should().BeGreaterThan(0);
         response.Candidates[0].Content.Parts[0].Text.Should().NotBeNullOrEmpty();
+    }
+
+    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    public async Task VertexGeminiAgentGenerateStreamingReplyForTextContentAsync()
+    {
+        var location = "us-central1";
+        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
+        var model = "gemini-1.5-flash-001";
+
+        var textContent = new Content
+        {
+            Role = "user",
+            Parts =
+            {
+                new Part
+                {
+                    Text = "Hello",
+                }
+            }
+        };
+
+        var agent = new GeminiChatAgent(
+            name: "assistant",
+            model: model,
+            project: project,
+            location: location,
+            systemMessage: "You are a helpful AI assistant");
+        var message = MessageEnvelope.Create(textContent, from: agent.Name);
+
+        var completion = agent.GenerateStreamingReplyAsync([message]);
+        var chunks = new List<IStreamingMessage>();
+        IStreamingMessage finalReply = null!;
+
+        await foreach (var item in completion)
+        {
+            item.Should().NotBeNull();
+            item.From.Should().Be(agent.Name);
+            var streamingMessage = (IMessage<GenerateContentResponse>)item;
+            streamingMessage.Content.Candidates.Should().NotBeNullOrEmpty();
+            chunks.Add(item);
+            finalReply = item;
+        }
+
+        chunks.Count.Should().BeGreaterThan(0);
+        finalReply.Should().NotBeNull();
+        finalReply.Should().BeOfType<MessageEnvelope<GenerateContentResponse>>();
+        var response = ((MessageEnvelope<GenerateContentResponse>)finalReply).Content;
+        response.UsageMetadata.CandidatesTokenCount.Should().BeGreaterThan(0);
     }
 
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
@@ -73,7 +121,6 @@ public class GeminiAgentTests
                 }
             }
         };
-
 
         var agent = new GeminiChatAgent(
             name: "assistant",
@@ -101,5 +148,71 @@ public class GeminiAgentTests
         response.Should().NotBeNull();
         response.Candidates.Count.Should().BeGreaterThan(0);
         response.Candidates[0].Content.Parts[0].DataCase.Should().Be(DataOneofCase.FunctionCall);
+    }
+
+    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    public async Task VertexGeminiAgentGenerateStreamingReplyWithToolsAsync()
+    {
+        var location = "us-central1";
+        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
+        var model = "gemini-1.5-flash-001";
+        var tools = new Tool[]
+        {
+            functions.GetWeatherAsyncFunctionContract.ToTool(),
+        };
+
+        var textContent = new Content
+        {
+            Role = "user",
+            Parts =
+            {
+                new Part
+                {
+                    Text = "what's the weather in seattle",
+                }
+            }
+        };
+
+        var agent = new GeminiChatAgent(
+            name: "assistant",
+            model: model,
+            project: project,
+            location: location,
+            systemMessage: "You are a helpful AI assistant",
+            tools: tools,
+            toolConfig: new ToolConfig()
+            {
+                FunctionCallingConfig = new FunctionCallingConfig()
+                {
+                    Mode = FunctionCallingConfig.Types.Mode.Auto,
+                }
+            });
+
+        var message = MessageEnvelope.Create(textContent, from: agent.Name);
+
+        var chunks = new List<IStreamingMessage>();
+        IStreamingMessage finalReply = null!;
+
+        var completion = agent.GenerateStreamingReplyAsync([message]);
+
+        await foreach (var item in completion)
+        {
+            item.Should().NotBeNull();
+            item.From.Should().Be(agent.Name);
+            var streamingMessage = (IMessage<GenerateContentResponse>)item;
+            streamingMessage.Content.Candidates.Should().NotBeNullOrEmpty();
+            if (streamingMessage.Content.Candidates[0].FinishReason != Candidate.Types.FinishReason.Stop)
+            {
+                streamingMessage.Content.Candidates[0].Content.Parts[0].DataCase.Should().Be(DataOneofCase.FunctionCall);
+            }
+            chunks.Add(item);
+            finalReply = item;
+        }
+
+        chunks.Count.Should().BeGreaterThan(0);
+        finalReply.Should().NotBeNull();
+        finalReply.Should().BeOfType<MessageEnvelope<GenerateContentResponse>>();
+        var response = ((MessageEnvelope<GenerateContentResponse>)finalReply).Content;
+        response.UsageMetadata.CandidatesTokenCount.Should().BeGreaterThan(0);
     }
 }

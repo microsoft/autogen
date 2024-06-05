@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -100,9 +101,15 @@ public class GeminiChatAgent : IStreamingAgent
         return MessageEnvelope.Create(response, this.Name);
     }
 
-    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var request = BuildChatRequest(messages, options);
+        var response = this.client.GenerateContentStreamAsync(request);
+
+        await foreach (var item in response.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return MessageEnvelope.Create(item, this.Name);
+        }
     }
 
     private GenerateContentRequest BuildChatRequest(IEnumerable<IMessage> messages, GenerateReplyOptions? options)
