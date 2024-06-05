@@ -30,11 +30,11 @@ from openai.types.chat import (
 from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, LLMCallEvent
-from ..image import Image
-from ..types import (
+from .. import (
     FunctionCall,
-    FunctionSignature,
+    Image,
 )
+from ..tools import Tool
 from . import _model_info
 from ._model_client import ModelCapabilities, ModelClient
 from ._types import (
@@ -200,19 +200,15 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
     )
 
 
-def convert_functions(
-    functions: Sequence[FunctionSignature],
+def convert_tools(
+    tools: Sequence[Tool],
 ) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
-    for func in functions:
+    for tool in tools:
         result.append(
             {
                 "type": "function",
-                "function": {
-                    "name": func.name,
-                    "parameters": func.parameters,
-                    "description": func.description,
-                },
+                "function": tool.schema,  # type: ignore
             }
         )
     return result
@@ -255,7 +251,7 @@ class BaseOpenAI(ModelClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionSignature] = [],
+        tools: Sequence[Tool] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> CreateResult:
@@ -291,13 +287,13 @@ class BaseOpenAI(ModelClient):
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
-        if self.capabilities["function_calling"] is False and len(functions) > 0:
+        if self.capabilities["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
 
-        if len(functions) > 0:
-            tools = convert_functions(functions)
+        if len(tools) > 0:
+            converted_tools = convert_tools(tools)
             result = await self._client.chat.completions.create(
-                messages=oai_messages, stream=False, tools=tools, **create_args
+                messages=oai_messages, stream=False, tools=converted_tools, **create_args
             )
         else:
             result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
@@ -354,7 +350,7 @@ class BaseOpenAI(ModelClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionSignature] = [],
+        tools: Sequence[Tool] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -387,10 +383,10 @@ class BaseOpenAI(ModelClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        if len(functions) > 0:
-            tools = convert_functions(functions)
+        if len(tools) > 0:
+            converted_tools = convert_tools(tools)
             stream = await self._client.chat.completions.create(
-                messages=oai_messages, stream=True, tools=tools, **create_args
+                messages=oai_messages, stream=True, tools=converted_tools, **create_args
             )
         else:
             stream = await self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)

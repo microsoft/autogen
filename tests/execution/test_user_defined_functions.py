@@ -7,10 +7,8 @@ import polars
 import pytest
 from agnext.components.code_executor import (
     CodeBlock,
-    LocalCommandLineCodeExecutor,
-)
-from agnext.components.func_with_reqs import (
     FunctionWithRequirements,
+    LocalCommandLineCodeExecutor,
     with_requirements,
 )
 

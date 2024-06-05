@@ -6,8 +6,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
-from agnext.components.code_executor import LocalCommandLineCodeExecutor, CodeBlock
+from agnext.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]

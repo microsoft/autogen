@@ -1,12 +1,11 @@
 import asyncio
-import pytest
 from dataclasses import dataclass
 
-from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
+import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import Agent
-from agnext.core import AgentRuntime
-from agnext.core import CancellationToken
+from agnext.components import TypeRoutedAgent, message_handler
+from agnext.core import Agent, AgentRuntime, CancellationToken
+
 
 @dataclass
 class MessageType:
@@ -95,8 +94,8 @@ async def test_nested_cancellation_only_outer_called() -> None:
     assert response.done()
     assert nested.called
     assert nested.cancelled
-    assert long_running.called == False
-    assert long_running.cancelled == False
+    assert long_running.called is False
+    assert long_running.cancelled is False
 
 @pytest.mark.asyncio
 async def test_nested_cancellation_inner_called() -> None:

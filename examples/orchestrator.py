@@ -3,7 +3,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Callable
+from typing import Callable
 
 import openai
 from agnext.application import (
@@ -13,17 +13,42 @@ from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.patterns.orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
-from agnext.components.function_executor._impl.in_process_function_executor import (
-    InProcessFunctionExecutor,
-)
 from agnext.components.models import OpenAI, SystemMessage
-from agnext.core import Agent, AgentRuntime
+from agnext.components.tools import BaseTool
+from agnext.core import Agent, AgentRuntime, CancellationToken
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
-from tavily import TavilyClient
+from pydantic import BaseModel, Field
+from tavily import TavilyClient  # type: ignore
 from typing_extensions import Any, override
 
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("agnext").setLevel(logging.DEBUG)
+
+
+class SearchQuery(BaseModel):
+    query: str = Field(description="The search query.")
+
+
+class SearchResult(BaseModel):
+    result: str = Field(description="The search results.")
+
+
+class SearchTool(BaseTool[SearchQuery, SearchResult]):
+    def __init__(self) -> None:
+        super().__init__(
+            args_type=SearchQuery,
+            return_type=SearchResult,
+            name="search",
+            description="Search the web.",
+        )
+
+    async def run(self, args: SearchQuery, cancellation_token: CancellationToken) -> SearchResult:
+        client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))  # type: ignore
+        result = await asyncio.create_task(client.search(args.query))  # type: ignore
+        if result:
+            return SearchResult(result=json.dumps(result, indent=2, ensure_ascii=False))
+
+        return SearchResult(result="No results found.")
 
 
 class LoggingHandler(DefaultInterventionHandler):  # type: ignore
@@ -76,16 +101,6 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         thread_id=tester_oai_thread.id,
     )
 
-    def search(query: Annotated[str, "The search query."]) -> Annotated[str, "The search results."]:
-        """Search the web."""
-        client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
-        result = client.search(query)  # type: ignore
-        if result:
-            return json.dumps(result, indent=2, ensure_ascii=False)  # type: ignore
-        return "No results found."
-
-    function_executor = InProcessFunctionExecutor(functions=[search])
-
     product_manager = ChatCompletionAgent(
         name="ProductManager",
         description="A product manager that performs research and comes up with specs.",
@@ -95,7 +110,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
             SystemMessage("You can use the search tool to find information on the web."),
         ],
         model_client=OpenAI(model="gpt-4-turbo"),
-        function_executor=function_executor,
+        tools=[SearchTool()],
     )
 
     planner = ChatCompletionAgent(

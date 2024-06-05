@@ -75,7 +75,7 @@ disallow_untyped_decorators = true
 disallow_any_unimported = true
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "examples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Coroutine, Dict, List, Mapping, Tuple
+from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
 from agnext.chat.agents.base import BaseChatAgent
 from agnext.chat.types import (
@@ -12,13 +12,13 @@ from agnext.chat.types import (
     TextMessage,
 )
 from agnext.chat.utils import convert_messages_to_llm_messages
-from agnext.components.function_executor import FunctionExecutor
-from agnext.components.models import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
-from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
-from agnext.components.types import (
+from agnext.components import (
     FunctionCall,
-    FunctionSignature,
+    TypeRoutedAgent,
+    message_handler,
 )
+from agnext.components.models import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
+from agnext.components.tools import Tool
 from agnext.core import AgentRuntime, CancellationToken
 
 
@@ -30,13 +30,13 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         runtime: AgentRuntime,
         system_messages: List[SystemMessage],
         model_client: ModelClient,
-        function_executor: FunctionExecutor | None = None,
+        tools: Sequence[Tool] = [],
     ) -> None:
         super().__init__(name, description, runtime)
         self._system_messages = system_messages
         self._client = model_client
         self._chat_messages: List[Message] = []
-        self._function_executor = function_executor
+        self._tools = tools
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
@@ -52,15 +52,10 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
     async def on_respond_now(
         self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage | FunctionCallMessage:
-        # Get function signatures.
-        function_signatures: List[FunctionSignature] = (
-            [] if self._function_executor is None else list(self._function_executor.function_signatures)
-        )
-
         # Get a response from the model.
         response = await self._client.create(
             self._system_messages + convert_messages_to_llm_messages(self._chat_messages, self.name),
-            functions=function_signatures,
+            tools=self._tools,
             json_output=message.response_format == ResponseFormat.json_object,
         )
 
@@ -68,7 +63,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         # tool calls, iterate with itself until we get a response that is not a
         # list of tool calls.
         while (
-            self._function_executor is not None
+            len(self._tools) > 0
             and isinstance(response.content, list)
             and all(isinstance(x, FunctionCall) for x in response.content)
         ):
@@ -81,7 +76,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
             # Make an assistant message from the response.
             response = await self._client.create(
                 self._system_messages + convert_messages_to_llm_messages(self._chat_messages, self.name),
-                functions=function_signatures,
+                tools=self._tools,
                 json_output=message.response_format == ResponseFormat.json_object,
             )
 
@@ -105,8 +100,8 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
     async def on_tool_call_message(
         self, message: FunctionCallMessage, cancellation_token: CancellationToken
     ) -> FunctionExecutionResultMessage:
-        if self._function_executor is None:
-            raise ValueError("Function executor is not set.")
+        if len(self._tools) == 0:
+            raise ValueError("No tools available")
 
         # Add a tool call message.
         self._chat_messages.append(message)
@@ -127,7 +122,9 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
                 )
                 continue
             # Execute the function.
-            future = self.execute_function(function_call.name, arguments, function_call.id)
+            future = self.execute_function(
+                function_call.name, arguments, function_call.id, cancellation_token=cancellation_token
+            )
             # Append the async result.
             execution_futures.append(future)
         if execution_futures:
@@ -146,14 +143,25 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         # Return the results.
         return tool_call_result_msg
 
-    async def execute_function(self, name: str, args: Dict[str, Any], call_id: str) -> Tuple[str, str]:
-        if self._function_executor is None:
-            raise ValueError("Function executor is not set.")
+    async def execute_function(
+        self, name: str, args: Dict[str, Any], call_id: str, cancellation_token: CancellationToken
+    ) -> Tuple[str, str]:
+        # Find tool
+        tool = next((t for t in self._tools if t.name == name), None)
+        if tool is None:
+            raise ValueError(f"Tool {name} not found.")
         try:
-            result = await self._function_executor.execute_function(name, args)
+            result = await tool.run_json(args, cancellation_token)
+            result_json_or_str = result.model_dump()
+            if isinstance(result, dict):
+                result_str = json.dumps(result_json_or_str)
+            elif isinstance(result_json_or_str, str):
+                result_str = result_json_or_str
+            else:
+                raise ValueError(f"Unexpected result type: {type(result)}")
         except Exception as e:
-            result = f"Error: {str(e)}"
-        return (result, call_id)
+            result_str = f"Error: {str(e)}"
+        return (result_str, call_id)
 
     def save_state(self) -> Mapping[str, Any]:
         return {

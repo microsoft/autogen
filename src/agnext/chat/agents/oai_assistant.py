@@ -5,7 +5,7 @@ from openai.types.beta import AssistantResponseFormatParam
 
 from agnext.chat.agents.base import BaseChatAgent
 from agnext.chat.types import Reset, RespondNow, ResponseFormat, TextMessage
-from agnext.components.type_routed_agent import TypeRoutedAgent, message_handler
+from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import AgentRuntime, CancellationToken
 
 

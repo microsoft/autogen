@@ -1,10 +1,9 @@
 from typing import Any, Sequence
-import pytest
 
+import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import AgentRuntime
-from agnext.core import BaseAgent
-from agnext.core import CancellationToken
+from agnext.core import AgentRuntime, BaseAgent, CancellationToken
+
 
 class NoopAgent(BaseAgent):
     def __init__(self, name: str, router: AgentRuntime) -> None:

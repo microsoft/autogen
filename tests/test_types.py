@@ -1,7 +1,7 @@
 from types import NoneType
 from typing import Any, Optional, Union
 
-from agnext.components.type_routed_agent import AnyType, get_types, message_handler
+from agnext.components._type_routed_agent import AnyType, get_types, message_handler
 from agnext.core import CancellationToken
 
 

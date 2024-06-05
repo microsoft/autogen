@@ -4,6 +4,7 @@
 import inspect
 from logging import getLogger
 from typing import (
+    Annotated,
     Any,
     Callable,
     Dict,
@@ -15,10 +16,13 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
 )
 
-from pydantic import BaseModel, Field
-from typing_extensions import Annotated, Literal
+from pydantic import BaseModel, Field, create_model  # type: ignore
+from pydantic_core import PydanticUndefined
+from typing_extensions import Literal
 
 from ._pydantic_compat import evaluate_forwardref, model_dump, type2schema
 
@@ -125,6 +129,18 @@ class ToolFunction(BaseModel):
     function: Annotated[Function, Field(description="Function under tool")]
 
 
+def type2description(k: str, v: Union[Annotated[Type[Any], str], Type[Any]]) -> str:
+    # handles Annotated
+    if hasattr(v, "__metadata__"):
+        retval = v.__metadata__[0]
+        if isinstance(retval, str):
+            return retval
+        else:
+            raise ValueError(f"Invalid description {retval} for parameter {k}, should be a string.")
+    else:
+        return k
+
+
 def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) -> Dict[str, Any]:
     """Get a JSON schema for a parameter as defined by the OpenAI API
 
@@ -136,17 +152,6 @@ def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) ->
     Returns:
         A Pydanitc model for the parameter
     """
-
-    def type2description(k: str, v: Union[Annotated[Type[Any], str], Type[Any]]) -> str:
-        # handles Annotated
-        if hasattr(v, "__metadata__"):
-            retval = v.__metadata__[0]
-            if isinstance(retval, str):
-                return retval
-            else:
-                raise ValueError(f"Invalid description {retval} for parameter {k}, should be a string.")
-        else:
-            return k
 
     schema = type2schema(v)
     if k in default_values:
@@ -297,3 +302,48 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
     )
 
     return model_dump(function)
+
+
+def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
+    """Normalize typing.Annotated types to the inner type."""
+    if get_origin(type_hint) is Annotated:
+        # Extract the inner type from Annotated
+        return get_args(type_hint)[0]  # type: ignore
+    return type_hint
+
+
+def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
+    fields: List[tuple[str, Any]] = []
+    for name, param in sig.parameters.items():
+        # This is handled externally
+        if name == "cancellation_token":
+            continue
+
+        if param.annotation is inspect.Parameter.empty:
+            raise ValueError("No annotation")
+
+        type = normalize_annotated_type(param.annotation)
+        description = type2description(name, param.annotation)
+        default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
+
+        fields.append((name, (type, Field(default=default_value, description=description))))
+
+    return create_model(name, *fields)
+
+
+def return_value_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
+    if issubclass(BaseModel, sig.return_annotation):
+        return sig.return_annotation  # type: ignore
+
+    fields: List[tuple[str, Any]] = []
+    for name, param in sig.return_annotation:
+        if param.annotation is inspect.Parameter.empty:
+            raise ValueError("No annotation")
+
+        type = normalize_annotated_type(param.annotation)
+        description = type2description(name, param.annotation)
+        default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
+
+        fields.append((name, (type, Field(default=default_value, description=description))))
+
+    return create_model(name, *fields)

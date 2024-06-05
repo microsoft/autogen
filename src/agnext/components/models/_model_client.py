@@ -11,7 +11,7 @@ from typing_extensions import (
     Union,
 )
 
-from ..types import FunctionSignature
+from ..tools import Tool
 from ._types import CreateResult, LLMMessage, RequestUsage
 
 
@@ -27,7 +27,7 @@ class ModelClient(Protocol):
     async def create(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionSignature] = [],
+        tools: Sequence[Tool] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
@@ -37,7 +37,7 @@ class ModelClient(Protocol):
     def create_stream(
         self,
         messages: Sequence[LLMMessage],
-        functions: Sequence[FunctionSignature] = [],
+        tools: Sequence[Tool] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,

@@ -12,13 +12,13 @@ from typing import Any, Callable, ClassVar, List, Sequence, Union
 
 from typing_extensions import ParamSpec
 
-from ...func_with_reqs import (
+from .._base import CodeBlock, CodeExecutor
+from .._func_with_reqs import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
     build_python_functions_file,
     to_stub,
 )
-from .._base import CodeBlock, CodeExecutor
 from .command_line_code_result import CommandLineCodeResult
 from .utils import PYTHON_VARIANTS, get_file_name_from_content, lang_to_cmd, silence_pip  # type: ignore
 
