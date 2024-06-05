@@ -35,16 +35,16 @@ class GroupChat(BaseChatAgent, TypeRoutedAgent):
         agent_sublists = [agent.subscriptions for agent in self._agents]
         return [Reset, RespondNow] + [item for sublist in agent_sublists for item in sublist]
 
-    @message_handler(Reset)
+    @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         self._history.clear()
 
-    @message_handler(RespondNow)
+    @message_handler()
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> Any:
         return self._output.get_output()
 
-    @message_handler(TextMessage)
-    async def on_text_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
+    @message_handler()
+    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> Any:
         # TODO: how should we handle the group chat receiving a message while in the middle of a conversation?
         # Should this class disallow it?
 

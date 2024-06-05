@@ -38,17 +38,17 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         self._chat_messages: List[Message] = []
         self._function_executor = function_executor
 
-    @message_handler(TextMessage)
+    @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         # Add a user message.
         self._chat_messages.append(message)
 
-    @message_handler(Reset)
+    @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         # Reset the chat messages.
         self._chat_messages = []
 
-    @message_handler(RespondNow)
+    @message_handler()
     async def on_respond_now(
         self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage | FunctionCallMessage:
@@ -101,7 +101,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         # Return the response.
         return final_response
 
-    @message_handler(FunctionCallMessage)
+    @message_handler()
     async def on_tool_call_message(
         self, message: FunctionCallMessage, cancellation_token: CancellationToken
     ) -> FunctionExecutionResultMessage:

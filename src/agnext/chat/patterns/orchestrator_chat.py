@@ -34,7 +34,7 @@ class OrchestratorChat(BaseChatAgent, TypeRoutedAgent):
     def children(self) -> Sequence[str]:
         return [agent.name for agent in self._specialists] + [self._orchestrator.name] + [self._planner.name]
 
-    @message_handler(TextMessage)
+    @message_handler()
     async def on_text_message(
         self,
         message: TextMessage,

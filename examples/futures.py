@@ -16,7 +16,7 @@ class Inner(TypeRoutedAgent):
     def __init__(self, name: str, router: AgentRuntime) -> None:
         super().__init__(name, router)
 
-    @message_handler(MessageType)
+    @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         return MessageType(body=f"Inner: {message.body}", sender=self.name)
 
@@ -26,7 +26,7 @@ class Outer(TypeRoutedAgent):
         super().__init__(name, router)
         self._inner = inner
 
-    @message_handler(MessageType)
+    @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         inner_response = self._send_message(message, self._inner)
         inner_message = await inner_response

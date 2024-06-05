@@ -22,7 +22,7 @@ class LongRunningAgent(TypeRoutedAgent):
         self.called = False
         self.cancelled = False
 
-    @message_handler(MessageType)
+    @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
@@ -41,7 +41,7 @@ class NestingLongRunningAgent(TypeRoutedAgent):
         self.cancelled = False
         self._nested_agent = nested_agent
 
-    @message_handler(MessageType)
+    @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
         response = self._send_message(message, self._nested_agent, cancellation_token=cancellation_token)

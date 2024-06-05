@@ -24,7 +24,7 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         self._assistant_id = assistant_id
         self._thread_id = thread_id
 
-    @message_handler(TextMessage)
+    @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         # Save the message to the thread.
         _ = await self._client.beta.threads.messages.create(
@@ -34,7 +34,7 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
             metadata={"sender": message.source},
         )
 
-    @message_handler(Reset)
+    @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         # Get all messages in this thread.
         all_msgs: List[str] = []
@@ -52,7 +52,7 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
             status = await self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
             assert status.deleted is True
 
-    @message_handler(RespondNow)
+    @message_handler()
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
         # Handle response format.
         if message.response_format == ResponseFormat.json_object:

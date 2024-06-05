@@ -19,7 +19,7 @@ class LoopbackAgent(TypeRoutedAgent):
         self.num_calls = 0
 
 
-    @message_handler(MessageType)
+    @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.num_calls += 1
         return message
