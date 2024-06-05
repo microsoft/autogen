@@ -5,20 +5,20 @@ from PIL import Image, ImageDraw, ImageFont
 TOP_NO_LABEL_ZONE = 20  # Don't print any labels close the top of the page
 
 
-def add_state_of_mark(screenshot, ROIs):
+def add_set_of_mark(screenshot, ROIs):
     if isinstance(screenshot, Image.Image):
-        return _add_state_of_mark(screenshot, ROIs)
+        return _add_set_of_mark(screenshot, ROIs)
 
     if not isinstance(screenshot, io.BufferedIOBase):
         screenshot = io.BytesIO(screenshot)
 
     image = Image.open(screenshot)
-    result = _add_state_of_mark(image, ROIs)
+    result = _add_set_of_mark(image, ROIs)
     image.close()
     return result
 
 
-def _add_state_of_mark(screenshot, ROIs):
+def _add_set_of_mark(screenshot, ROIs):
     visible_rects = list()
 
     fnt = ImageFont.load_default(14)

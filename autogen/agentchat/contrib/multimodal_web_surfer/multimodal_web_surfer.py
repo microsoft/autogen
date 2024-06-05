@@ -17,8 +17,20 @@ from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from ....browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from ....token_count_utils import count_token, get_max_token_limit
-from .state_of_mark import add_state_of_mark
-from .tool_definitions import TOOL_VISIT_URL, TOOL_WEB_SEARCH, TOOL_HISTORY_BACK, TOOL_PAGE_UP, TOOL_PAGE_DOWN, TOOL_CLICK, TOOL_TYPE, TOOL_SCROLL_ELEMENT_DOWN, TOOL_SCROLL_ELEMENT_UP, TOOL_SUMMARIZE_PAGE, TOOL_READ_PAGE_AND_ANSWER
+from .set_of_mark import add_set_of_mark
+from .tool_definitions import (
+    TOOL_VISIT_URL,
+    TOOL_WEB_SEARCH,
+    TOOL_HISTORY_BACK,
+    TOOL_PAGE_UP,
+    TOOL_PAGE_DOWN,
+    TOOL_CLICK,
+    TOOL_TYPE,
+    TOOL_SCROLL_ELEMENT_DOWN,
+    TOOL_SCROLL_ELEMENT_UP,
+    TOOL_SUMMARIZE_PAGE,
+    TOOL_READ_PAGE_AND_ANSWER
+)
 
 try:
     from termcolor import colored
@@ -277,7 +289,7 @@ setInterval(function() {{
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
         viewport = self._get_visual_viewport()
-        som_screenshot, visible_rects = add_state_of_mark(self._page.screenshot(), rects)
+        som_screenshot, visible_rects = add_set_of_mark(self._page.screenshot(), rects)
 
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
@@ -444,7 +456,7 @@ You are to respond to the user's most recent request by selecting an appropriate
 
                     self._scroll_id(target_id, "down")
 
-                elif name == "read_page_and_answer":
+                elif name == "answer_question":
                     question = str(args.get("question"))
                     action_description = self._summarize_page(question=question)
 
@@ -513,9 +525,9 @@ You are to respond to the user's most recent request by selecting an appropriate
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:image/png;base64,{image_base64}"
 
-    def _make_mm_message(self, text_content, image_content):
+    def _make_mm_message(self, text_content, image_content, role="user"):
         return {
-            "role": "user",
+            "role": role,
             "content": [
                 {"type": "text", "text": text_content},
                 {
@@ -648,20 +660,37 @@ You are to respond to the user's most recent request by selecting an appropriate
         if len(buffer) == 0:
             return "Nothing to summarize."
 
-        messages = [
+        title = self._page.url
+        try:
+            title = self._page.title()
+        except:
+            pass
+
+        # Take a screenshot and scale it 
+        screenshot = self._page.screenshot()
+        if not isinstance(screenshot, io.BufferedIOBase):
+            screenshot = io.BytesIO(screenshot)
+        screenshot = Image.open(screenshot)
+        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        screenshot.close()
+
+        messages = [ 
             {
                 "role": "system",
                 "content": "You are a helpful assistant that can summarize long documents to answer question.",
             }
         ]
 
-        prompt = f"Please summarize the following into one or two paragraph:\n\n{buffer}"
+        prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
         if question is not None:
-            prompt = f"Please summarize the following into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+            prompt += f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+        else:
+            prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
 
         messages.append(
-            {"role": "user", "content": prompt},
+            self._make_mm_message(prompt, scaled_screenshot),
         )
+        scaled_screenshot.close()
 
         response = self.client.create(context=None, messages=messages) 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
