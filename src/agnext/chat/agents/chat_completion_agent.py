@@ -17,7 +17,12 @@ from agnext.components import (
     TypeRoutedAgent,
     message_handler,
 )
-from agnext.components.models import FunctionExecutionResult, FunctionExecutionResultMessage, ModelClient, SystemMessage
+from agnext.components.models import (
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    SystemMessage,
+)
 from agnext.components.tools import Tool
 from agnext.core import AgentRuntime, CancellationToken
 
@@ -29,7 +34,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         description: str,
         runtime: AgentRuntime,
         system_messages: List[SystemMessage],
-        model_client: ModelClient,
+        model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
     ) -> None:
         super().__init__(name, description, runtime)

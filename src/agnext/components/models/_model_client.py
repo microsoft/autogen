@@ -22,7 +22,7 @@ class ModelCapabilities(TypedDict, total=False):
 
 
 @runtime_checkable
-class ModelClient(Protocol):
+class ChatCompletionClient(Protocol):
     # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
     async def create(
         self,

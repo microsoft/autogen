@@ -36,7 +36,7 @@ from .. import (
 )
 from ..tools import Tool
 from . import _model_info
-from ._model_client import ModelCapabilities, ModelClient
+from ._model_client import ChatCompletionClient, ModelCapabilities
 from ._types import (
     AssistantMessage,
     CreateResult,
@@ -214,7 +214,7 @@ def convert_tools(
     return result
 
 
-class BaseOpenAI(ModelClient):
+class BaseOpenAI(ChatCompletionClient):
     def __init__(
         self,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
@@ -245,7 +245,7 @@ class BaseOpenAI(ModelClient):
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
     @classmethod
-    def create_from_config(cls, config: Dict[str, Any]) -> ModelClient:
+    def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAI(**config)
 
     async def create(
