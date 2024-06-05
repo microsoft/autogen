@@ -9,8 +9,13 @@ import pathlib
 import argparse
 import docker
 import random
+import logging
+import traceback
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.core.exceptions import ClientAuthenticationError
 from .version import __version__
 
 # Figure out where everything is
@@ -32,7 +37,6 @@ DEFAULT_DOCKER_IMAGE_TAG = "autogenbench:webarena"
 
 DEFAULT_ENV_FILE = "ENV.json"
 
-
 # Get a random number generator for subsampling
 subsample_rng = random.Random(425)
 
@@ -42,6 +46,7 @@ def run_scenarios(
     n_repeats,
     is_native,
     config_list,
+    token_provider,
     requirements,
     docker_image=None,
     results_dir="Results",
@@ -142,7 +147,7 @@ def run_scenarios(
                 expand_scenario(scenario_dir, instance, results_repetition, requirements)
 
                 # Prepare the environment (keys/values that need to be added)
-                env = get_scenario_env(config_list)
+                env = get_scenario_env(config_list, token_provider)
 
                 # Run the scenario
                 if is_native:
@@ -237,7 +242,7 @@ def expand_scenario(scenario_dir, scenario, output_dir, requirements):
                 fh.write(line)
 
 
-def get_scenario_env(config_list, env_file=DEFAULT_ENV_FILE):
+def get_scenario_env(config_list, token_provider, env_file=DEFAULT_ENV_FILE):
     """
     Return a dictionary of environment variables needed to run a scenario.
 
@@ -257,6 +262,9 @@ def get_scenario_env(config_list, env_file=DEFAULT_ENV_FILE):
     bing_api_key = os.environ.get("BING_API_KEY")
     if bing_api_key is not None and len(bing_api_key.strip()) > 0:
         env["BING_API_KEY"] = bing_api_key
+
+    if token_provider:
+        env["AZURE_BEARER_TOKEN"] = token_provider()
 
     # Update with any values from the ENV.json file
     if os.path.isfile(env_file):
@@ -719,11 +727,31 @@ def run_cli(args):
                     )
                 )
 
+    # Get the Azure bearer token generator if there's any evidence of using Azure
+    azure_token_provider = None
+    if os.path.isdir(pathlib.Path("~/.azure").expanduser()):
+        logging.disable(logging.CRITICAL)
+        try:
+            azure_token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            azure_token_provider()  # Call it once to warm it up, and make sure it doesn't throw an error
+            print("Found Azure token provider.")
+        except ClientAuthenticationError:
+            error_message = traceback.format_exc()
+            azure_token_provider = None
+            print(
+                f"Azure token provider failed loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider..."
+            )
+        logging.disable(logging.NOTSET)
+
+    # Run the scenario
     run_scenarios(
         scenario=parsed_args.scenario,
         n_repeats=parsed_args.repeat,
         is_native=True if parsed_args.native else False,
         config_list=config_list,
+        token_provider=azure_token_provider,
         requirements=parsed_args.requirements,
         docker_image=parsed_args.docker_image,
         subsample=subsample,

@@ -15,7 +15,22 @@ from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
-from .state_of_mark import add_state_of_mark
+from ....browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from ....token_count_utils import count_token, get_max_token_limit
+from .set_of_mark import add_set_of_mark
+from .tool_definitions import (
+    TOOL_VISIT_URL,
+    TOOL_WEB_SEARCH,
+    TOOL_HISTORY_BACK,
+    TOOL_PAGE_UP,
+    TOOL_PAGE_DOWN,
+    TOOL_CLICK,
+    TOOL_TYPE,
+    TOOL_SCROLL_ELEMENT_DOWN,
+    TOOL_SCROLL_ELEMENT_UP,
+    TOOL_SUMMARIZE_PAGE,
+    TOOL_READ_PAGE_AND_ANSWER,
+)
 
 try:
     from termcolor import colored
@@ -37,19 +52,11 @@ VIEWPORT_WIDTH = 1440
 MLM_HEIGHT = 765
 MLM_WIDTH = 1224
 
-# State-of-mark IDs for static browser controls
-MARK_ID_ADDRESS_BAR = 0
-MARK_ID_BACK = 1
-MARK_ID_RELOAD = 2
-MARK_ID_SEARCH_BAR = 3
-MARK_ID_PAGE_UP = 4
-MARK_ID_PAGE_DOWN = 5
-
 
 class MultimodalWebSurferAgent(ConversableAgent):
     """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.)"
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page."
 
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
@@ -64,13 +71,15 @@ class MultimodalWebSurferAgent(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        mlm_config: Optional[Union[Dict, Literal[False]]] = None,  # TODO: Remove this
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        # Browser-related stuff
         headless: bool = True,
         browser_channel=DEFAULT_CHANNEL,
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
+        navigation_allow_list=lambda url: True,
+        markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
     ):
         """
         Create a new MultimodalWebSurferAgent.
@@ -104,10 +113,48 @@ class MultimodalWebSurferAgent(ConversableAgent):
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
         )
-        # self._mlm_config = mlm_config
-        # self._mlm_client = OpenAIWrapper(**self._mlm_config)
+
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
+
+        # Handle the allow list
+        self._navigation_allow_list = navigation_allow_list
+        if isinstance(self._navigation_allow_list, list):
+
+            def _closure(url):
+                for entry in navigation_allow_list:
+                    if url.startswith(entry):
+                        return True
+                return False
+
+            self._navigation_allow_list = _closure
+
+        # Configure the router
+        def _route_handler(route):
+            if route.request.url == "about:blank" or self._navigation_allow_list(route.request.url):
+                route.continue_()
+            else:
+                response = route.fetch()
+                if "html" in response.headers.get("content-type", "").lower():
+                    route.fulfill(
+                        status=403,
+                        content_type="text/html",
+                        body='<html><body><h1>Navigation Blocked</h1><p>Navigation was blocked by the client. Click the <a href="javascript: history.back()">browser back button</a> to go back, return Home to <a href="'
+                        + self.start_page
+                        + '">'
+                        + self.start_page
+                        + "</a>.</p></body></html>",
+                    )
+                else:
+                    route.fulfill(response=response)
+
+        self._route_handler = _route_handler
+
+        # Create or use the provided MarkdownConverter
+        if markdown_converter is None:
+            self._markdown_converter = MarkdownConverter()
+        else:
+            self._markdown_converter = markdown_converter
 
         # Create the playwright instance
         launch_args = {"headless": headless}
@@ -136,6 +183,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         # Create the page
         self._page = self._context.new_page()
+        self._page.route(lambda x: True, self._route_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.goto(self.start_page)
@@ -217,6 +265,17 @@ setInterval(function() {{
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
+    def reset(self):
+        super().reset()
+        self._visit_page(self.start_page)
+
+    def _target_name(self, target, rects):
+        target_name = rects.get(str(target), {}).get("aria-name")
+        if target_name:
+            return target_name.strip()
+        else:
+            return None
+
     def generate_surfer_reply(
         self,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -238,10 +297,32 @@ setInterval(function() {{
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
         viewport = self._get_visual_viewport()
-        som_screenshot, visible_rects = add_state_of_mark(self._page.screenshot(), rects)
+        som_screenshot, visible_rects = add_set_of_mark(self._page.screenshot(), rects)
 
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
+
+        # What tools are available?
+        tools = [
+            TOOL_VISIT_URL,
+            TOOL_HISTORY_BACK,
+            TOOL_CLICK,
+            TOOL_TYPE,
+            TOOL_SUMMARIZE_PAGE,
+            TOOL_READ_PAGE_AND_ANSWER,
+        ]
+
+        # Can we reach Bing to search?
+        if self._navigation_allow_list("https://www.bing.com/"):
+            tools.append(TOOL_WEB_SEARCH)
+
+        # We can scroll up
+        if viewport["pageTop"] > 5:
+            tools.append(TOOL_PAGE_UP)
+
+        # Can scroll down
+        if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
+            tools.append(TOOL_PAGE_DOWN)
 
         # Focus hint
         focused = self._get_focused_rect_id()
@@ -260,35 +341,29 @@ setInterval(function() {{
                 + "currently has the input focus.\n"
             )
 
-        # Include all the static elements
-        text_labels = f"""
-  {{ "id": {MARK_ID_BACK}, "aria-role": "button", "html_tag": "button", "actions": ["click"], "name": "browser back button" }},
-  {{ "id": {MARK_ID_ADDRESS_BAR}, "aria-role": "textbox",   "html_tag": "input, type=text", "actions": ["type"],  "name": "browser address input" }},
-  {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},"""
-
-        # We can scroll up
-        if viewport["pageTop"] > 5:
-            text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_up"], "name": "browser scroll up control" }},"""
-
-        # Can scroll down
-        if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_down"], "name": "browser scroll down control" }},"""
-
         # Everything visible
+        text_labels = ""
+        has_scrollable_elements = False
         for r in visible_rects:
             if r in rects:
                 actions = ["'click'"]
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
-                    actions = ["'type'"]
+                    actions = ["'input_text'"]
                 if rects[r]["v-scrollable"]:
-                    actions.append("'scroll_up'")
-                    actions.append("'scroll_down'")
+                    has_scrollable_elements = True
+                    actions.append("'scroll_element_up'")
+                    actions.append("'scroll_element_down'")
                 actions = "[" + ",".join(actions) + "]"
 
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+
+        # If there are scrollable elements, then add the corresponding tools
+        if has_scrollable_elements:
+            tools.append(TOOL_SCROLL_ELEMENT_UP)
+            tools.append(TOOL_SCROLL_ELEMENT_DOWN)
+
+        tool_names = [t["function"]["name"] for t in tools]
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -297,11 +372,7 @@ Consider the following screenshot of a web browser, which is open to the page '{
 {text_labels}
 ]
 {focused_hint}
-You are to respond to the user's most recent request by selecting a browser action to perform. Please output the appropriate action in the following format:
-
-TARGET:   <id of interactive element>
-ACTION:   <One single action from the element's list of actions>
-ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
+You are to respond to the user's most recent request by selecting an appropriate tool from the provided set of browser tools ({ ', '.join(tool_names) }), or by answering the question directly if possible.
 """.strip()
 
         # Scale the screenshot for the MLM, and close the original
@@ -313,99 +384,106 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         # Add the multimodal message and make the request
         history.append(self._make_mm_message(text_prompt, scaled_screenshot))
         som_screenshot.close()  # Don't do this if messages start accepting PIL images
-        response = self.client.create(messages=history)
-        text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
-
-        target = None
-        target_name = None
-        m = re.search(r"\nTARGET:\s*(.*?)\n", text_response)
-        if m:
-            target = m.group(1).strip()
-
-            # Non-critical. Mainly for pretty logs
-            target_name = rects.get(target, {}).get("aria-name")
-            if target_name:
-                target_name = target_name.strip()
-
-        action = None
-        m = re.search(r"\nACTION:\s*(.*?)\n", text_response)
-        if m:
-            action = m.group(1).strip().lower()
-
-        m = re.search(r"\nARGUMENT:\s*(.*?)\n", text_response)
-        if m:
-            argument = m.group(1).strip()
+        response = self.client.create(messages=history, tools=tools, tool_choice="auto")
+        message = response.choices[0].message
 
         action_description = ""
         try:
-            if target == str(MARK_ID_ADDRESS_BAR) and argument:
-                action_description = f"I typed '{argument}' into the browser address bar."
-                self._log_to_console("goto", arg=argument)
-                # Check if the argument starts with a known protocol
-                if argument.startswith(("https://", "http://", "file://")):
-                    self._visit_page(argument)
-                # If the argument contains a space, treat it as a search query
-                elif " " in argument:
-                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-                # Otherwise, prefix with https://
+            if message.tool_calls:
+                # We will only call one tool
+                name = message.tool_calls[0].function.name
+                args = json.loads(message.tool_calls[0].function.arguments)
+                self._log_to_console(fname=name, args=args)
+
+                if name == "visit_url":
+                    url = args.get("url")
+                    action_description = f"I typed '{url}' into the browser address bar."
+                    # Check if the argument starts with a known protocol
+                    if url.startswith(("https://", "http://", "file://", "about:")):
+                        self._visit_page(url)
+                    # If the argument contains a space, treat it as a search query
+                    elif " " in url:
+                        self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
+                    # Otherwise, prefix with https://
+                    else:
+                        self._visit_page("https://" + url)
+
+                elif name == "history_back":
+                    action_description = "I clicked the browser back button."
+                    self._back()
+
+                elif name == "web_search":
+                    query = args.get("query")
+                    action_description = f"I typed '{query}' into the browser search bar."
+                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+
+                elif name == "page_up":
+                    action_description = "I scrolled up one page in the browser."
+                    self._page_up()
+
+                elif name == "page_down":
+                    action_description = "I scrolled down one page in the browser."
+                    self._page_down()
+
+                elif name == "click":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+                    if target_name:
+                        action_description = f"I clicked '{target_name}'."
+                    else:
+                        action_description = "I clicked the control."
+                    self._click_id(target_id)
+
+                elif name == "input_text":
+                    input_field_id = str(args.get("input_field_id"))
+                    text_value = str(args.get("text_value"))
+                    input_field_name = self._target_name(input_field_id, rects)
+                    if input_field_name:
+                        action_description = f"I typed '{text_value}' into '{input_field_name}'."
+                    else:
+                        action_description = f"I input '{text_value}'."
+                    self._fill_id(input_field_id, text_value)
+
+                elif name == "scroll_element_up":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+
+                    if target_name:
+                        action_description = f"I scrolled '{target_name}' up."
+                    else:
+                        action_description = "I scrolled the control up."
+
+                    self._scroll_id(target_id, "up")
+
+                elif name == "scroll_element_down":
+                    target_id = str(args.get("target_id"))
+                    target_name = self._target_name(target_id, rects)
+
+                    if target_name:
+                        action_description = f"I scrolled '{target_name}' down."
+                    else:
+                        action_description = "I scrolled the control down."
+
+                    self._scroll_id(target_id, "down")
+
+                elif name == "answer_question":
+                    question = str(args.get("question"))
+                    action_description = self._summarize_page(question=question)
+
+                elif name == "summarize_page":
+                    action_description = self._summarize_page()
+
                 else:
-                    argument = "https://" + argument
-                    self._visit_page(argument)
-            elif target == str(MARK_ID_BACK):
-                action_description = "I clicked the browser back button."
-                self._log_to_console("back")
-                self._back()
-            elif target == str(MARK_ID_SEARCH_BAR) and argument:
-                action_description = f"I typed '{argument}' into the browser search bar."
-                self._log_to_console("search", arg=argument)
-                self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-            elif target == str(MARK_ID_PAGE_UP):
-                action_description = "I scrolled up one screen in the browser."
-                self._log_to_console("page_up")
-                self._page_up()
-            elif target == str(MARK_ID_PAGE_DOWN):
-                action_description = "I scrolled down one screen in the browser."
-                self._log_to_console("page_down")
-                self._page_down()
-            elif action == "click":
-                if target_name:
-                    action_description = f"I clicked '{target_name}'."
-                else:
-                    action_description = "I clicked the control."
-                self._log_to_console("click", target=target_name if target_name else target)
-                self._click_id(target)
-            elif action == "type":
-                if target_name:
-                    action_description = f"I typed '{argument}' into '{target_name}'."
-                else:
-                    action_description = f"I input '{argument}'."
-                self._log_to_console("type", target=target_name if target_name else target, arg=argument)
-                self._fill_id(target, argument if argument else "")
-            elif action == "scroll_up":
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' up."
-                else:
-                    action_description = "I scrolled the control up."
-                self._log_to_console("scroll_up", target=target_name if target_name else target)
-                self._scroll_id(target, "up")
-            elif action == "scroll_down":
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' down."
-                else:
-                    action_description = "I scrolled the control down."
-                self._log_to_console("scroll_down", target=target_name if target_name else target)
-                self._scroll_id(target, "down")
-            else:
-                self._log_to_console("no_action", target=target_name if target_name else target)
-                # No action
-                return True, text_response
+                    log_event(self, "Unknown tool", error=name)
+                    raise ValueError("Unknown tool '" + name + "'")
+
         except ValueError as e:
             if logging_enabled():
                 log_event(self, "ValueError", error=str(e))
             return True, str(e)
 
         self._page.wait_for_load_state()
-        time.sleep(1)
+        time.sleep(2)
 
         # Descrive the viewport of the new page in words
         viewport = self._get_visual_viewport()
@@ -435,7 +513,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             )
         # Return the complete observation
         return True, self._make_mm_message(
-            f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
+            re.sub(
+                r"\s+",
+                " ",
+                f"{message.content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
+                re.DOTALL,
+            ).strip(),
             new_screenshot,
         )
 
@@ -456,9 +539,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:image/png;base64,{image_base64}"
 
-    def _make_mm_message(self, text_content, image_content):
+    def _make_mm_message(self, text_content, image_content, role="user"):
         return {
-            "role": "user",
+            "role": role,
             "content": [
                 {"type": "text", "text": text_content},
                 {
@@ -494,20 +577,19 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             pass
         return self._page.evaluate("MultimodalWebSurfer.getFocusedElementId();")
 
+    def _get_page_markdown(self):
+        html = self._page.evaluate("document.documentElement.outerHTML;")
+        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)
+        return res.text_content
+
     def _on_new_page(self, page):
         self._page = page
+        self._page.route(lambda x: True, self._route_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.wait_for_load_state()
-
-        title = None
-        try:
-            title = self._page.title()
-        except:
-            pass
-
-        self._log_to_console("new_tab", arg=title if title else self._page.url)
+        self._log_to_console(fname="new_tab", args={"url": self._page.url})
 
     def _back(self):
         self._page.go_back()
@@ -533,7 +615,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         # Click it
         box = target.bounding_box()
         try:
-            # Git it a chance to open a new page
+            # Give it a chance to open a new page
             with self._page.expect_event("popup", timeout=1000) as page_info:
                 self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
             self._on_new_page(page_info.value)
@@ -571,27 +653,73 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
     """
         )
 
-    def _log_to_console(self, action, target="", arg=""):
+    def _summarize_page(self, question=None, token_limit=100000):
+        page_markdown = self._get_page_markdown()
 
-        if target is None:
-            target = ""
-        if arg is None:
-            arg = ""
+        buffer = ""
+        for line in re.split(r"([\r\n]+)", page_markdown):
+            tokens = count_token(buffer + line)
+            if tokens + 1024 > token_limit:  # Leave room for our summary
+                break
+            buffer += line
 
-        if logging_enabled():
-            log_event(self, "browser_action", action=action, target=target, arg=arg)
+        buffer = buffer.strip()
+        if len(buffer) == 0:
+            return "Nothing to summarize."
 
-        if len(target) > 50:
-            target = target[0:47] + "..."
-        if len(arg) > 50:
-            arg = arg[0:47] + "..."
-        log_str = action + "("
-        if target:
-            log_str += '"' + re.sub(r"\s+", " ", target).strip() + '",'
-        if arg:
-            log_str += '"' + re.sub(r"\s+", " ", arg).strip() + '"'
-        log_str = log_str.rstrip(",") + ")"
+        title = self._page.url
+        try:
+            title = self._page.title()
+        except:
+            pass
+
+        # Take a screenshot and scale it
+        screenshot = self._page.screenshot()
+        if not isinstance(screenshot, io.BufferedIOBase):
+            screenshot = io.BytesIO(screenshot)
+        screenshot = Image.open(screenshot)
+        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        screenshot.close()
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that can summarize long documents to answer question.",
+            }
+        ]
+
+        prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
+        if question is not None:
+            prompt += (
+                f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+            )
+        else:
+            prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
+
+        messages.append(
+            self._make_mm_message(prompt, scaled_screenshot),
+        )
+        scaled_screenshot.close()
+
+        response = self.client.create(context=None, messages=messages)
+        extracted_response = self.client.extract_text_or_completion_object(response)[0]
+        return str(extracted_response)
+
+    def _log_to_console(self, fname, args):
+        if fname is None or fname == "":
+            fname = "[unknown]"
+        if args is None:
+            args = {}
+
+        _arg_strs = []
+        for a in args:
+            _arg_strs.append(a + "='" + str(args[a]) + "'")
+
+        # Need to update this
+        # if logging_enabled():
+        #    log_event(self, "browser_action", action=action, target=target, arg=arg)
+
         print(
-            colored("\n>>>>>>>> BROWSER ACTION " + log_str, "cyan"),
+            colored("\n>>>>>>>> BROWSER ACTION " + fname + "(" + ", ".join(_arg_strs) + ")", "cyan"),
             flush=True,
         )

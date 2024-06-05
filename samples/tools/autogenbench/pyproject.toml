@@ -22,6 +22,7 @@ dependencies = [
     "docker",
     "huggingface_hub",
     "tabulate",
+    "azure.identity",
 ]
 
 dynamic = ["version"]

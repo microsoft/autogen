@@ -28,6 +28,9 @@ from evaluation_harness.env_config import (
 testbed_utils.init()
 ##############################
 
+MAX_IMAGES = 8
+DEFAULT_TEMPERATURE = 0.1
+
 REPLACEMENTS = {
     "__REDDIT__": REDDIT,
     "__SHOPPING__": SHOPPING,
@@ -61,6 +64,13 @@ with open("full_task.json", "wt") as fh:
 config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
+# Set a low default temperature
+for config in llm_config["config_list"]:
+    if "temperature" not in config:
+        config["temperature"] = DEFAULT_TEMPERATURE
+llm_config["temperature"] = DEFAULT_TEMPERATURE
+
+
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
 
@@ -82,6 +92,7 @@ assistant = MultimodalAgent(
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config=False,
     llm_config=llm_config,
+    max_images=MAX_IMAGES,
 )
 
 user_proxy_name = "computer_terminal"
@@ -106,7 +117,17 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
-    start_page=HOMEPAGE,
+    start_page=TASK["start_url"],
+    navigation_allow_list=[
+        "about:blank",
+        HOMEPAGE,
+        GITLAB,
+        MAP,
+        REDDIT,
+        SHOPPING,
+        SHOPPING_ADMIN,
+        WIKIPEDIA,
+    ],
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
@@ -115,6 +136,7 @@ maestro = Orchestrator(
     agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
     response_format_is_supported=False,
+    max_images=MAX_IMAGES,
 )
 
 # Login to the necessary websites
