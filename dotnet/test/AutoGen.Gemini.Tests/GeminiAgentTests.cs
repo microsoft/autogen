@@ -13,7 +13,7 @@ public class GeminiAgentTests
 {
     private readonly Functions functions = new Functions();
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
-    public async Task VertextGeminiAgentGenerateReplyForTextContentAsync()
+    public async Task VertexGeminiAgentGenerateReplyForTextContentAsync()
     {
         var location = "us-central1";
         var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
@@ -52,7 +52,7 @@ public class GeminiAgentTests
     }
 
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
-    public async Task VertextGeminiAgentGenerateReplyWithToolsAsync()
+    public async Task VertexGeminiAgentGenerateReplyWithToolsAsync()
     {
         var location = "us-central1";
         var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
