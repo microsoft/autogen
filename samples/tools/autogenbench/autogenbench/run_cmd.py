@@ -10,6 +10,7 @@ import argparse
 import docker
 import random
 import logging
+import traceback
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
 from openai import AzureOpenAI
@@ -725,15 +726,19 @@ def run_cli(args):
                     )
                 )
 
-    # Get the bearer token generator if possible
-    logging.disable(logging.CRITICAL)
+    # Get the Azure bearer token generator if there's any evidence of using Azure
     azure_token_provider = None
-    try:
-        azure_token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-        token = azure_token_provider()
-    except ClientAuthenticationError as e:
-        azure_token_provider = None
-    logging.disable(logging.NOTSET)
+    if os.path.isdir(pathlib.Path("~/.azure").expanduser()):
+        logging.disable(logging.CRITICAL)
+        try:
+            azure_token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+            token = azure_token_provider()
+            print(f"Found Azure token provider.")
+        except ClientAuthenticationError as e:
+            error_message = traceback.format_exc()
+            azure_token_provider = None
+            print(f"Azure token provider failed to loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider...")
+        logging.disable(logging.NOTSET)
 
 
     # Run the scenario
