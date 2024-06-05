@@ -1957,7 +1957,7 @@ def test_manager_resume_functions():
 
     manager._process_resume_termination(remove_termination_string=termination_func, messages=messages2)
 
-    # TERMINATE should be removed, "approved" should still be present
+    # TERMINATE should be removed, "approved" should still be present as the termination_func only replaces upper-cased "APPROVED".
     assert messages2[-1]["content"] == final_msg2.replace("TERMINATE", "")
     assert "approved" in messages2[-1]["content"]
 
