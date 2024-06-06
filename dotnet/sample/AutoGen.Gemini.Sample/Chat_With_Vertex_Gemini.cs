@@ -28,9 +28,9 @@ public class Chat_With_Vertex_Gemini
                 systemMessage: "You are a helpful C# engineer, put your code between ```csharp and ```, don't explain the code")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
+        #endregion Create_Gemini_Agent
 
         var reply = await geminiAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
-        #endregion Create_Gemini_Agent
 
         #region verify_reply
         reply.Should().BeOfType<TextMessage>();

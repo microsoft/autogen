@@ -68,6 +68,11 @@ public class GeminiChatAgent : IStreamingAgent
     /// <param name="tools">tools</param>
     /// <param name="safetySettings"></param>
     /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
+    /// <example>
+    /// <![CDATA[
+    /// [!code-csharp[Chat_With_Vertex_Gemini](~/../sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Create_Gemini_Agent)]
+    /// ]]>
+    /// </example>
     public GeminiChatAgent(
         string name,
         string model,
