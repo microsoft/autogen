@@ -50,10 +50,31 @@ export interface IAgentConfig {
   max_round?: number;
   speaker_selection_method?: string;
   allow_repeat_speaker?: boolean;
+  retrieve_config?: IAgentRetrieveConfig;
+}
+
+export interface IAgentRetrieveConfig {
+  docs_path?: Array<string>;
+  custom_text_types?: Array<string>;
+  chunk_token_size?: number;
+  vector_db?: "pgvector" | "chromadb";
+  db_config?: IAgentDBConfig;
+  collection_name?: string;
+  get_or_create?: boolean;
+  overwrite?: boolean;
+}
+
+export interface IAgentDBConfig {
+  connection_string?: string;
+  host?: string;
+  username?: string;
+  password?: string;
+  port?: number;
+  database?: string;
 }
 
 export interface IAgent {
-  type?: "assistant" | "userproxy" | "groupchat";
+  type?: "assistant" | "userproxy" | "retrieve_assistant" | "retrieve_userproxy" | "groupchat";
   config: IAgentConfig;
   created_at?: string;
   updated_at?: string;
