@@ -734,7 +734,7 @@ def run_cli(args):
 
     # Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure
     azure_token_provider = None
-    if not os.environ.get("AZURE_OPENAI_AD_TOKEN")) and os.path.isdir(pathlib.Path("~/.azure").expanduser()):
+    if not os.environ.get("AZURE_OPENAI_AD_TOKEN") and os.path.isdir(pathlib.Path("~/.azure").expanduser()):
         logging.disable(logging.CRITICAL)
         try:
             azure_token_provider = get_bearer_token_provider(
