@@ -3,4 +3,4 @@
 
 using AutoGen.Gemini.Sample;
 
-Chat_With_Vertex_Gemini.RunAsync().Wait();
+Function_Call_With_Gemini.RunAsync().Wait();

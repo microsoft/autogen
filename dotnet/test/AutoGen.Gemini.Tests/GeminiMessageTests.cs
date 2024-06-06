@@ -118,7 +118,7 @@ public class GeminiMessageTests
             })
             .RegisterMiddleware(messageConnector);
 
-        var imagePath = Path.Combine("testData", "images", "image.png");
+        var imagePath = Path.Combine("testData", "images", "background.png");
         var image = File.ReadAllBytes(imagePath);
         var message = new ImageMessage(Role.User, BinaryData.FromBytes(image, "image/png"));
         message.MimeType.Should().Be("image/png");
@@ -192,7 +192,7 @@ public class GeminiMessageTests
                 var innerMessage = msgs.First();
                 innerMessage.Should().BeOfType<MessageEnvelope<Content>>();
                 var message = (IMessage<Content>)innerMessage;
-                message.Content.Role.Should().BeEmpty();
+                message.Content.Role.Should().Be("model");
                 message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionCall);
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -213,7 +213,7 @@ public class GeminiMessageTests
                 var innerMessage = msgs.First();
                 innerMessage.Should().BeOfType<MessageEnvelope<Content>>();
                 var message = (IMessage<Content>)innerMessage;
-                message.Content.Role.Should().BeEmpty();
+                message.Content.Role.Should().Be("function");
                 message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionResponse);
                 message.Content.Parts.First().FunctionResponse.Response.ToString().Should().Be("{ \"result\": \"result\" }");
                 return await innerAgent.GenerateReplyAsync(msgs);
@@ -261,13 +261,13 @@ public class GeminiMessageTests
                 var functionCallMessage = msgs.First();
                 functionCallMessage.Should().BeOfType<MessageEnvelope<Content>>();
                 var message = (IMessage<Content>)functionCallMessage;
-                message.Content.Role.Should().BeEmpty();
+                message.Content.Role.Should().Be("model");
                 message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionCall);
 
                 var functionResultMessage = msgs.Last();
                 functionResultMessage.Should().BeOfType<MessageEnvelope<Content>>();
                 message = (IMessage<Content>)functionResultMessage;
-                message.Content.Role.Should().BeEmpty();
+                message.Content.Role.Should().Be("function");
                 message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionResponse);
 
                 return await innerAgent.GenerateReplyAsync(msgs);

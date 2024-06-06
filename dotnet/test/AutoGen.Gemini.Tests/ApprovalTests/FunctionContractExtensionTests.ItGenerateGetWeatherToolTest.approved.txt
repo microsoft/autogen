@@ -1,21 +1,17 @@
 ﻿{
-  "functionDeclarations": [
-    {
-      "name": "GetWeatherAsync",
-      "description": "Get weather for a city.",
-      "parameters": {
-        "type": "OBJECT",
-        "properties": {
-          "city": {
+  "name": "GetWeatherAsync",
+  "description": "Get weather for a city.",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "city": {
   "type": "STRING",
   "description": "city",
   "title": "city"
 }
-        },
-        "required": [
-          "city"
-        ]
-      }
-    }
-  ]
+    },
+    "required": [
+      "city"
+    ]
+  }
 }

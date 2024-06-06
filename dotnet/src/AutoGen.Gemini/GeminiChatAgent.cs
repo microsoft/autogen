@@ -120,19 +120,53 @@ public class GeminiChatAgent : IStreamingAgent
             _ => throw new NotSupportedException($"Message type {m.GetType()} is not supported.")
         });
 
+        // there are several rules applies to the messages that can be sent to Gemini in a multi-turn chat
+        // - The first message must be from the user or function
+        // - The (user|model) roles must alternate e.g. (user, model, user, model, ...)
+        // - The last message must be from the user or function
+
+        // check if the first message is from the user
+        if (geminiMessages.FirstOrDefault()?.Role != "user" && geminiMessages.FirstOrDefault()?.Role != "function")
+        {
+            throw new ArgumentException("The first message must be from the user or function", nameof(messages));
+        }
+
+        // check if the last message is from the user
+        if (geminiMessages.LastOrDefault()?.Role != "user" && geminiMessages.LastOrDefault()?.Role != "function")
+        {
+            throw new ArgumentException("The last message must be from the user or function", nameof(messages));
+        }
+
+        // merge continuous messages with the same role into one message
+        var mergedMessages = geminiMessages.Aggregate(new List<Content>(), (acc, message) =>
+        {
+            if (acc.Count == 0 || acc.Last().Role != message.Role)
+            {
+                acc.Add(message);
+            }
+            else
+            {
+                acc.Last().Parts.AddRange(message.Parts);
+            }
+
+            return acc;
+        });
+
         var systemMessage = this.systemMessage switch
         {
             null => null,
             string message => new Content
             {
                 Parts = { new[] { new Part { Text = message } } },
-                Role = "system"
+                Role = "system_instruction"
             }
         };
 
+        List<Tool> tools = this.tools?.ToList() ?? new List<Tool>();
+
         var request = new GenerateContentRequest()
         {
-            Contents = { geminiMessages },
+            Contents = { mergedMessages },
             SystemInstruction = systemMessage,
             Model = this.model,
             GenerationConfig = new GenerationConfig
@@ -141,7 +175,6 @@ public class GeminiChatAgent : IStreamingAgent
                 ResponseMimeType = this.responseMimeType,
                 CandidateCount = 1,
             },
-            Tools = { this.tools ?? Enumerable.Empty<Tool>() }
         };
 
         if (this.toolConfig is not null)
@@ -168,8 +201,24 @@ public class GeminiChatAgent : IStreamingAgent
         {
             foreach (var function in options.Functions)
             {
-                request.Tools.Add(function.ToTool());
+                tools.Add(new Tool
+                {
+                    FunctionDeclarations = { function.ToFunctionDeclaration() },
+                });
             }
+        }
+
+        // merge tools into one tool
+        // because multipe tools are currently not supported by Gemini
+        // see https://github.com/googleapis/python-aiplatform/issues/3771
+        var aggregatedTool = new Tool
+        {
+            FunctionDeclarations = { tools.SelectMany(t => t.FunctionDeclarations) },
+        };
+
+        if (aggregatedTool is { FunctionDeclarations: { Count: > 0 } })
+        {
+            request.Tools.Add(aggregatedTool);
         }
 
         return request;

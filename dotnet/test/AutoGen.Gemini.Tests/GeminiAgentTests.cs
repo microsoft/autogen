@@ -107,7 +107,19 @@ public class GeminiAgentTests
         var model = "gemini-1.5-flash-001";
         var tools = new Tool[]
         {
-            functions.GetWeatherAsyncFunctionContract.ToTool(),
+            new Tool
+            {
+                FunctionDeclarations = {
+                    functions.GetWeatherAsyncFunctionContract.ToFunctionDeclaration(),
+                },
+            },
+            new Tool
+            {
+                FunctionDeclarations =
+                {
+                    functions.GetMoviesFunctionContract.ToFunctionDeclaration(),
+                },
+            },
         };
 
         var textContent = new Content
@@ -158,7 +170,10 @@ public class GeminiAgentTests
         var model = "gemini-1.5-flash-001";
         var tools = new Tool[]
         {
-            functions.GetWeatherAsyncFunctionContract.ToTool(),
+            new Tool
+            {
+                FunctionDeclarations = { functions.GetWeatherAsyncFunctionContract.ToFunctionDeclaration() },
+            },
         };
 
         var textContent = new Content

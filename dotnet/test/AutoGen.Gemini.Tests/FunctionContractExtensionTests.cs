@@ -19,7 +19,7 @@ public class FunctionContractExtensionTests
     public void ItGenerateGetWeatherToolTest()
     {
         var contract = functions.GetWeatherAsyncFunctionContract;
-        var tool = contract.ToTool();
+        var tool = contract.ToFunctionDeclaration();
         var formatter = new JsonFormatter(JsonFormatter.Settings.Default.WithIndentation("  "));
         var json = formatter.Format(tool);
         Approvals.Verify(json);

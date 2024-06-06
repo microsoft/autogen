@@ -17,4 +17,12 @@ public partial class Functions
     {
         return await Task.FromResult($"The weather in {city} is sunny.");
     }
+
+    [Function]
+    public async Task<string> GetMovies(string location, string description)
+    {
+        var movies = new List<string> { "Barbie", "Spiderman", "Batman" };
+
+        return await Task.FromResult($"Movies playing in {location} based on {description} are: {string.Join(", ", movies)}");
+    }
 }

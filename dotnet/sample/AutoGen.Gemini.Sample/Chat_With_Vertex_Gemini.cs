@@ -17,13 +17,14 @@ public class Chat_With_Vertex_Gemini
             Console.WriteLine("Please set GCP_VERTEX_PROJECT_ID environment variable.");
             return;
         }
+
         #region Create_Gemini_Agent
         var geminiAgent = new GeminiChatAgent(
                 name: "gemini",
                 model: "gemini-1.5-flash-001",
                 location: "us-central1",
                 project: projectID,
-                systemMessage: "You are a helpful AI assistant")
+                systemMessage: "You are a helpful C# engineer, put your code between ```csharp and ```, don't explain the code")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
 

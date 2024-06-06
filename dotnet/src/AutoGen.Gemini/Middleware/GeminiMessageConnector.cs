@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -12,6 +13,7 @@ using AutoGen.Core;
 using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using IMessage = AutoGen.Core.IMessage;
 
 namespace AutoGen.Gemini.Middleware;
@@ -37,9 +39,76 @@ public class GeminiMessageConnector : IStreamingMiddleware
 
     public string Name => nameof(GeminiMessageConnector);
 
-    public IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var messages = ProcessMessage(context.Messages, agent);
+
+        var bucket = new List<GenerateContentResponse>();
+
+        await foreach (var reply in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
+        {
+            if (reply is Core.IMessage<GenerateContentResponse> m)
+            {
+                // if m.Content is empty and stop reason is Stop, ignore the message
+                if (m.Content.Candidates.Count == 1 && m.Content.Candidates[0].Content.Parts.Count == 1 && m.Content.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text)
+                {
+                    var text = m.Content.Candidates[0].Content.Parts[0].Text;
+                    var stopReason = m.Content.Candidates[0].FinishReason;
+                    if (string.IsNullOrEmpty(text) && stopReason == FinishReason.Stop)
+                    {
+                        continue;
+                    }
+                }
+
+                bucket.Add(m.Content);
+
+                yield return PostProcessStreamingMessage(m.Content, agent);
+            }
+            else if (strictMode)
+            {
+                throw new InvalidOperationException($"Unsupported message type: {reply.GetType()}");
+            }
+            else
+            {
+                yield return reply;
+            }
+
+            // aggregate the message updates from bucket into a single message
+            if (bucket is { Count: > 0 })
+            {
+                var isTextMessageUpdates = bucket.All(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.Text);
+                var isFunctionCallUpdates = bucket.Any(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall);
+                if (isTextMessageUpdates)
+                {
+                    var text = string.Join(string.Empty, bucket.Select(m => m.Candidates[0].Content.Parts[0].Text));
+                    var textMessage = new TextMessage(Role.Assistant, text, agent.Name);
+
+                    yield return textMessage;
+                }
+                else if (isFunctionCallUpdates)
+                {
+                    var functionCallParts = bucket.Where(m => m.Candidates.Count == 1 && m.Candidates[0].Content.Parts.Count == 1 && m.Candidates[0].Content.Parts[0].DataCase == Part.DataOneofCase.FunctionCall)
+                        .Select(m => m.Candidates[0].Content.Parts[0]).ToList();
+
+                    var toolCalls = new List<ToolCall>();
+                    foreach (var part in functionCallParts)
+                    {
+                        var fc = part.FunctionCall;
+                        var toolCall = new ToolCall(fc.Name, fc.Args.ToString());
+
+                        toolCalls.Add(toolCall);
+                    }
+
+                    var toolCallMessage = new ToolCallMessage(toolCalls, agent.Name);
+
+                    yield return toolCallMessage;
+                }
+                else
+                {
+                    throw new InvalidOperationException("The response should contain either text or tool calls.");
+                }
+            }
+        }
     }
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
@@ -53,6 +122,47 @@ public class GeminiMessageConnector : IStreamingMiddleware
             _ when strictMode => throw new InvalidOperationException($"Unsupported message type: {reply.GetType()}"),
             _ => reply,
         };
+    }
+
+    private IMessage PostProcessStreamingMessage(GenerateContentResponse m, IAgent agent)
+    {
+        if (m.Candidates.Count != 1)
+        {
+            throw new InvalidOperationException("The response should contain exactly one candidate.");
+        }
+
+        var candidate = m.Candidates[0];
+        var parts = candidate.Content.Parts;
+
+        if (parts.Count == 1 && parts[0].DataCase == Part.DataOneofCase.Text)
+        {
+            var content = parts[0].Text;
+            return new TextMessageUpdate(Role.Assistant, content, agent.Name);
+        }
+        else
+        {
+            var toolCalls = new List<ToolCall>();
+            foreach (var part in parts)
+            {
+                if (part.DataCase == Part.DataOneofCase.FunctionCall)
+                {
+                    var fc = part.FunctionCall;
+                    var toolCall = new ToolCall(fc.Name, fc.Args.ToString());
+
+                    toolCalls.Add(toolCall);
+                }
+            }
+
+            if (toolCalls.Count > 0)
+            {
+                var toolCallMessage = new ToolCallMessage(toolCalls, agent.Name);
+                return toolCallMessage;
+            }
+            else
+            {
+                throw new InvalidOperationException("The response should contain either text or tool calls.");
+            }
+        }
     }
 
     private IMessage PostProcessMessage(GenerateContentResponse m, IAgent agent)
@@ -183,6 +293,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
         var content = new Content
         {
             Parts = { functionCallResultParts },
+            Role = "function",
         };
 
         return [MessageEnvelope.Create(content, toolCallResultMessage.From)];
@@ -213,6 +324,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
         var content = new Content
         {
             Parts = { functionCallParts },
+            Role = "model"
         };
 
         return [MessageEnvelope.Create(content, toolCallMessage.From)];

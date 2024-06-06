@@ -15,9 +15,9 @@ namespace AutoGen.Gemini.Extension;
 public static class FunctionContractExtension
 {
     /// <summary>
-    /// Convert a <see cref="FunctionContract"/> to a <see cref="Tool"/> that can be used in gpt funciton call.
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="FunctionDeclaration"/> that can be used in gpt funciton call.
     /// </summary>
-    public static Tool ToTool(this FunctionContract function)
+    public static FunctionDeclaration ToFunctionDeclaration(this FunctionContract function)
     {
         var required = function.Parameters!.Where(p => p.IsRequired)
                     .Select(p => p.Name)
@@ -33,27 +33,21 @@ public static class FunctionContractExtension
             parameterProperties.Add(parameter.Name!, schema);
         }
 
-        return new Tool()
+        return new FunctionDeclaration
         {
-            FunctionDeclarations =
+            Name = function.Name,
+            Description = function.Description,
+            Parameters = new OpenApiSchema
             {
-                new FunctionDeclaration
-                {
-                    Name = function.Name,
-                    Description = function.Description,
-                    Parameters = new OpenApiSchema
-                    {
-                        Required =
+                Required =
                         {
                             required,
                         },
-                        Properties =
+                Properties =
                         {
                             parameterProperties,
                         },
-                        Type = OpenAPISchemaType.Object,
-                    },
-                },
+                Type = OpenAPISchemaType.Object,
             },
         };
     }
