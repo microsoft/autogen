@@ -1,8 +1,10 @@
 import time
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-from autogencap.DebugLog import Info
+
 from autogencap.ag_adapter.CAPPair import CAPPair
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Info
+
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 
 def cap_ag_pair_demo():
@@ -15,17 +17,19 @@ def cap_ag_pair_demo():
     )
 
     # Composable Agent Platform AutoGen Pair adapter
-    network = LocalActorNetwork()
+    ensemble = ComponentEnsemble()
 
-    pair = CAPPair(network, user_proxy, assistant)
+    pair = CAPPair(ensemble, user_proxy, assistant)
     pair.initiate_chat("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
     # Wait for the pair to finish
     try:
         while pair.running():
+            # Hang out for a while and print out
+            # status every now and then
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("Interrupted by user, shutting down.")
 
-    network.disconnect()
+    ensemble.disconnect()
     Info("App", "App Exit")

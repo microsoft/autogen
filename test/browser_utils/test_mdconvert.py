@@ -1,12 +1,13 @@
 #!/usr/bin/env python3 -m pytest
-import pytest
+import io
 import os
 import shutil
+
+import pytest
 import requests
-import io
 
 try:
-    from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException, FileConversionException
+    from autogen.browser_utils import FileConversionException, MarkdownConverter, UnsupportedFormatException
 except ImportError:
     skip_all = True
 else:

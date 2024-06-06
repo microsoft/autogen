@@ -4,10 +4,10 @@ Each agent represents a different role and knows how to connect to external syst
 to retrieve information.
 """
 
-from autogencap.DebugLog import Debug, Info, shorten
-from autogencap.LocalActorNetwork import LocalActorNetwork
-from autogencap.ActorConnector import ActorConnector
 from autogencap.Actor import Actor
+from autogencap.ActorConnector import ActorConnector
+from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Debug, Info, shorten
 
 
 class GreeterAgent(Actor):
@@ -135,7 +135,7 @@ class PersonalAssistant(Actor):
         self.quant: ActorConnector = None
         self.risk_manager: ActorConnector = None
 
-    def connect_network(self, network: LocalActorNetwork):
+    def on_connect(self, network: ComponentEnsemble):
         """
         Connects the personal assistant to the specified local actor network.
 
@@ -143,13 +143,13 @@ class PersonalAssistant(Actor):
             network (LocalActorNetwork): The local actor network to connect to.
         """
         Debug(self.actor_name, f"is connecting to {network}")
-        self.fidelity = network.lookup_actor("Fidelity")
-        self.financial_planner = network.lookup_actor("Financial Planner")
-        self.quant = network.lookup_actor("Quant")
-        self.risk_manager = network.lookup_actor("Risk Manager")
+        self.fidelity = network.find_by_name("Fidelity")
+        self.financial_planner = network.find_by_name("Financial Planner")
+        self.quant = network.find_by_name("Quant")
+        self.risk_manager = network.find_by_name("Risk Manager")
         Debug(self.actor_name, "connected")
 
-    def disconnect_network(self, network: LocalActorNetwork):
+    def disconnect_network(self, network: ComponentEnsemble):
         """
         Disconnects the personal assistant from the specified local actor network.
 
@@ -163,7 +163,7 @@ class PersonalAssistant(Actor):
         self.risk_manager.close()
         Debug(self.actor_name, "disconnected")
 
-    def _process_txt_msg(self, msg, msg_type, topic, sender):
+    def on_txt_msg(self, msg, msg_type, topic, sender):
         """
         Processes a text message received by the personal assistant.
 

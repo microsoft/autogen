@@ -1,7 +1,8 @@
-import os
 import io
-from typing import Optional, Union, Dict
-from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
+import os
+from typing import Dict, Optional, Union
+from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
+
 from .requests_markdown_browser import RequestsMarkdownBrowser
 
 # Check if Selenium dependencies are installed

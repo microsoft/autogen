@@ -1,23 +1,20 @@
 from __future__ import annotations
 
-import sys
-import os
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
-import logging
 import inspect
+import logging
+import sys
 import uuid
-from flaml.automl.logger import logger_formatter
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
+from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
-from typing import Protocol
 
 from autogen.cache import Cache
 from autogen.io.base import IOStream
-from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
-from autogen.token_count_utils import count_token
-
-from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
 from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
+from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
 try:
@@ -28,14 +25,15 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
+    from openai import APIError, APITimeoutError, AzureOpenAI, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
+        ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
-        ChoiceDeltaFunctionCall,
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
@@ -43,6 +41,13 @@ else:
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
     ERROR = None
+
+try:
+    from autogen.oai.gemini import GeminiClient
+
+    gemini_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    gemini_import_exception = e
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -291,6 +296,8 @@ class OpenAIClient:
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -400,12 +407,6 @@ class OpenAIWrapper:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
 
-        # Handled managed identities
-        bearer_token = os.environ.get("AZURE_BEARER_TOKEN")
-        if bearer_token:
-            del openai_config["api_key"]
-            openai_config["azure_ad_token_provider"] = lambda: bearer_token
-
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
@@ -431,6 +432,11 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("google"):
+                if gemini_import_exception:
+                    raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
+                client = GeminiClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
@@ -813,6 +819,8 @@ class OpenAIWrapper:
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
+            if completion_tokens is None:
+                completion_tokens = 0
             total_tokens = response_usage["total_tokens"]
 
             if usage_summary is None:

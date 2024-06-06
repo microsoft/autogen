@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AutoGen</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen</Title>
+    <Description>
+      The all-in-one package for AutoGen. This package provides contracts, core functionalities, OpenAI integration, source generator, etc. for AutoGen.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net.Generation" Version="$(JsonSchemaVersion)" />
+    <ProjectReference Include="..\AutoGen.LMStudio\AutoGen.LMStudio.csproj" />
+    <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
+    <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.Tests" />
+  </ItemGroup>
+
+</Project>

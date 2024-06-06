@@ -1,8 +1,10 @@
 import time
 from typing import Callable, Dict, List, Optional, Union
+
 from autogen import Agent, ConversableAgent
+
+from ..ComponentEnsemble import ComponentEnsemble
 from .AutoGenConnector import AutoGenConnector
-from ..LocalActorNetwork import LocalActorNetwork
 
 
 class AG2CAP(ConversableAgent):
@@ -12,13 +14,13 @@ class AG2CAP(ConversableAgent):
 
     def __init__(
         self,
-        network: LocalActorNetwork,
+        ensemble: ComponentEnsemble,
         agent_name: str,
         agent_description: Optional[str] = None,
     ):
         super().__init__(name=agent_name, description=agent_description, llm_config=False)
         self._agent_connector: AutoGenConnector = None
-        self._network: LocalActorNetwork = network
+        self._ensemble: ComponentEnsemble = ensemble
         self._recv_called = False
 
     def reset_receive_called(self):
@@ -36,8 +38,8 @@ class AG2CAP(ConversableAgent):
 
     def _check_connection(self):
         if self._agent_connector is None:
-            self._agent_connector = AutoGenConnector(self._network.lookup_actor(self.name))
-            self._terminate_connector = AutoGenConnector(self._network.lookup_termination())
+            self._agent_connector = AutoGenConnector(self._ensemble.find_by_name(self.name))
+            self._terminate_connector = AutoGenConnector(self._ensemble.find_termination())
 
     def receive(
         self,

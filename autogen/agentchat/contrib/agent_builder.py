@@ -1,10 +1,11 @@
-import autogen
-import time
-import subprocess as sp
-import socket
-import json
 import hashlib
-from typing import Optional, List, Dict, Tuple
+import json
+import socket
+import subprocess as sp
+import time
+from typing import Dict, List, Optional, Tuple
+
+import autogen
 
 
 def _config_check(config: Dict):
@@ -202,9 +203,6 @@ output after executing the code) and provide a corrected answer or code.
         Returns:
             agent: a set-up agent.
         """
-        from huggingface_hub import HfApi
-        from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
-
         config_list = autogen.config_list_from_json(
             self.config_file_or_env,
             file_location=self.config_file_location,
@@ -217,10 +215,15 @@ output after executing the code) and provide a corrected answer or code.
                 f"If you load configs from json, make sure the model in agent_configs is in the {self.config_file_or_env}."
             )
         try:
+            from huggingface_hub import HfApi
+            from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
+
             hf_api = HfApi()
             hf_api.model_info(model_name_or_hf_repo)
             model_name = model_name_or_hf_repo.split("/")[-1]
             server_id = f"{model_name}_{self.host}"
+        except ImportError:
+            server_id = self.online_server_name
         except GatedRepoError as e:
             raise e
         except RepositoryNotFoundError:
@@ -494,9 +497,6 @@ output after executing the code) and provide a corrected answer or code.
             agent_list: a list of agents.
             cached_configs: cached configs.
         """
-        import chromadb
-        from chromadb.utils import embedding_functions
-
         if code_execution_config is None:
             code_execution_config = {
                 "last_n_messages": 2,
@@ -527,6 +527,9 @@ output after executing the code) and provide a corrected answer or code.
 
         print("==> Looking for suitable agents in library...")
         if embedding_model is not None:
+            import chromadb
+            from chromadb.utils import embedding_functions
+
             chroma_client = chromadb.Client()
             collection = chroma_client.create_collection(
                 name="agent_list",

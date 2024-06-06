@@ -1,8 +1,10 @@
-from pkg_resources import packaging
-from datetime import datetime
-import os
-import autogen
 import json
+import os
+from datetime import datetime
+
+from pkg_resources import packaging
+
+import autogen
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 

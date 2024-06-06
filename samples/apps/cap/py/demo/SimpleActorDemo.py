@@ -1,6 +1,9 @@
 import time
+
 from AppAgents import GreeterAgent
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.DebugLog import Error
+from autogencap.proto.CAP_pb2 import Ping
 
 
 def simple_actor_demo():
@@ -9,16 +12,17 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
+    ensemble = ComponentEnsemble()
+    agent = GreeterAgent()
+    ensemble.register(agent)
+    ensemble.connect()
+    greeter_link = ensemble.find_by_name("Greeter")
+    ensemble.disconnect()
 
-    network = LocalActorNetwork()
-    # Register an actor
-    network.register(GreeterAgent())
-    # Tell actor to connect to other actors
-    network.connect()
-    # Get a channel to the actor
-    greeter_link = network.lookup_actor("Greeter")
-    # Send a message to the actor
+    ping = Ping()
+    # Serialize and send the message
+    msg_type_str = Ping.__name__
+    msg_bytes = ping.SerializeToString()
     greeter_link.send_txt_msg("Hello World!")
-    # Cleanup
-    greeter_link.close()
-    network.disconnect()
+    greeter_link.send_bin_msg(msg_type_str, msg_bytes)
+    _, resp_type, resp_msg_bytes = greeter_link.send_recv_msg(msg_type_str, msg_bytes)
