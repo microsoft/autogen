@@ -13,7 +13,7 @@ from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 from packaging.version import parse
 
-NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
+NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "azure_ad_token", "azure_ad_token_provider"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
     # https://openai.com/api/pricing/
