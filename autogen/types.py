@@ -1,6 +1,6 @@
 from typing import Dict, List, Literal, TypedDict, Union
 
-MessageContentType = Union[str, List[Union[Dict, str]]]
+MessageContentType = Union[str, List[Union[Dict, str]], None]
 
 
 class UserMessageTextContentPart(TypedDict):

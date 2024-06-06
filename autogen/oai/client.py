@@ -407,6 +407,14 @@ class OpenAIWrapper:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
 
+        # Create a default Azure token provider if requested
+        if openai_config.get("azure_ad_token_provider") == "DEFAULT":
+            import azure.identity
+
+            openai_config["azure_ad_token_provider"] = azure.identity.get_bearer_token_provider(
+                azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
