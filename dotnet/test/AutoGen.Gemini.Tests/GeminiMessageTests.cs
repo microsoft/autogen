@@ -203,6 +203,42 @@ public class GeminiMessageTests
     }
 
     [Fact]
+    public async Task ItProcessStreamingTextMessageAsync()
+    {
+        var messageConnector = new GeminiMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterStreamingMiddleware(messageConnector);
+
+        var messageChunks = Enumerable.Range(0, 10)
+            .Select(i => new GenerateContentResponse()
+            {
+                Candidates =
+                {
+                    new Candidate()
+                    {
+                        Content = new Content()
+                        {
+                            Role = "user",
+                            Parts = { new Part { Text = i.ToString() } },
+                        }
+                    }
+                }
+            })
+            .Select(m => MessageEnvelope.Create(m));
+
+        IStreamingMessage? finalReply = null;
+        await foreach (var reply in agent.GenerateStreamingReplyAsync(messageChunks))
+        {
+            reply.Should().BeAssignableTo<IStreamingMessage>();
+            finalReply = reply;
+        }
+
+        finalReply.Should().BeOfType<TextMessage>();
+        var textMessage = (TextMessage)finalReply!;
+        textMessage.GetContent().Should().Be("0123456789");
+    }
+
+    [Fact]
     public async Task ItProcessToolCallResultMessageAsync()
     {
         var messageConnector = new GeminiMessageConnector();
