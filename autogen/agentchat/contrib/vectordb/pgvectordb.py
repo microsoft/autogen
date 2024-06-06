@@ -32,10 +32,11 @@ class Collection:
         client: The PGVector client.
         collection_name (str): The name of the collection. Default is "documents".
         embedding_function (Callable): The embedding function used to generate the vector representation.
+            Default is None. SentenceTransformer("all-MiniLM-L6-v2") will be used when None.
+            Models can be chosen from:
+            https://huggingface.co/models?library=sentence-transformers
         metadata (Optional[dict]): The metadata of the collection.
         get_or_create (Optional): The flag indicating whether to get or create the collection.
-        model_name: (Optional str) | Sentence embedding model to use. Models can be chosen from:
-            https://huggingface.co/models?library=sentence-transformers
     """
 
     def __init__(
@@ -45,7 +46,6 @@ class Collection:
         embedding_function: Callable = None,
         metadata=None,
         get_or_create=None,
-        model_name="all-MiniLM-L6-v2",
     ):
         """
         Initialize the Collection object.
@@ -56,38 +56,33 @@ class Collection:
             embedding_function: The embedding function used to generate the vector representation.
             metadata: The metadata of the collection.
             get_or_create: The flag indicating whether to get or create the collection.
-            model_name: | Sentence embedding model to use. Models can be chosen from:
-                https://huggingface.co/models?library=sentence-transformers
         Returns:
             None
         """
         self.client = client
-        self.embedding_function = embedding_function
-        self.model_name = model_name
         self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
-        try:
-            self.embedding_function = (
-                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-            )
-        except Exception as e:
-            logger.error(
-                f"Validate the model name entered: {self.model_name} "
-                f"from https://huggingface.co/models?library=sentence-transformers\nError: {e}"
-            )
-            raise e
+        if embedding_function:
+            self.embedding_function = embedding_function
+        else:
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2")
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
         # This will get the model dimension size by computing the embeddings dimensions
         sentences = [
             "The weather is lovely today in paradise.",
-            "It's so sunny outside in the garden!",
-            "He reached his max potential within his lifetime.",
         ]
         embeddings = self.embedding_function.encode(sentences)
-        self.dimension = embeddings.shape[1]
+        if hasattr(embeddings, "shape"):
+            self.dimension = embeddings.shape[1]
+        else:
+            logger.error(
+                "Dimension of embeddings was not calculated successfully. "
+                "Was the 'shape' attribute missing in the embedding function?"
+            )
+            self.dimension = 384
 
     def set_collection_name(self, collection_name) -> str:
         name = re.sub("-", "_", collection_name)
@@ -588,7 +583,6 @@ class PGVectorDB(VectorDB):
         connect_timeout: Optional[int] = 10,
         embedding_function: Callable = None,
         metadata: Optional[dict] = None,
-        model_name: Optional[str] = "all-MiniLM-L6-v2",
     ) -> None:
         """
         Initialize the vector database.
@@ -606,15 +600,14 @@ class PGVectorDB(VectorDB):
             username: str | The database username to use. Default is None.
             password: str | The database user password to use. Default is None.
             connect_timeout: int | The timeout to set for the connection. Default is 10.
-            embedding_function: Callable | The embedding function used to generate the vector representation
-                of the documents. Default is None.
+            embedding_function (Callable): The embedding function used to generate the vector representation.
+                Default is None. SentenceTransformer("all-MiniLM-L6-v2") will be used when None.
+                Models can be chosen from:
+                https://huggingface.co/models?library=sentence-transformers
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
                 setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 16}. Creates Index on table
                 using hnsw (embedding vector_l2_ops) WITH (m = hnsw:M) ef_construction = "hnsw:construction_ef".
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
-            model_name: str | Sentence embedding model to use. Models can be chosen from:
-                https://huggingface.co/models?library=sentence-transformers
-
         Returns:
             None
 
@@ -642,7 +635,7 @@ class PGVectorDB(VectorDB):
                     "db_config": {
                         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
                     },
-                    "embedding_function": "all-distilroberta-v1",
+                    "embedding_function": SentenceTransformer("all-distilroberta-v1"),
                     "get_or_create": True,  # set to False if you don't want to reuse an existing collection
                     "overwrite": False,  # set to True if you want to overwrite an existing collection
                 },
@@ -659,25 +652,10 @@ class PGVectorDB(VectorDB):
             password=password,
             connect_timeout=connect_timeout,
         )
-        self.model_name = model_name
-        try:
-            self.embedding_function = (
-                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-            )
-            # This will get the model dimension size by computing the embeddings dimensions
-            sentences = [
-                "The weather is lovely today in paradise.",
-                "It's so sunny outside in the garden!",
-                "He reached his max potential within his lifetime.",
-            ]
-            embeddings = self.embedding_function.encode(sentences)
-            self.dimension = embeddings.shape[1]
-        except Exception as e:
-            logger.error(
-                f"Validate the model name entered: {self.model_name} "
-                f"from https://huggingface.co/models?library=sentence-transformers\nError: {e}"
-            )
-            raise e
+        if embedding_function:
+            self.embedding_function = embedding_function
+        else:
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2")
         self.metadata = metadata
         register_vector(self.client)
         self.active_collection = None
@@ -792,7 +770,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -805,7 +782,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -819,7 +795,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -851,7 +826,6 @@ class PGVectorDB(VectorDB):
                     client=self.client,
                     collection_name=collection_name,
                     embedding_function=self.embedding_function,
-                    model_name=self.model_name,
                 )
         return self.active_collection
 
