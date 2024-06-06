@@ -32,6 +32,7 @@ repos:
       - id: ruff
         types_or: [ python, pyi, jupyter ]
         args: ["--fix", "--ignore=E402"]
+        exclude: notebook/agentchat_databricks_dbrx.ipynb
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -43,6 +44,8 @@ repos:
               website/static/img/ag.svg |
               website/yarn.lock |
               website/docs/tutorial/code-executors.ipynb |
+              website/docs/topics/code-execution/custom-executor.ipynb |
+              website/docs/topics/non-openai-models/cloud-gemini.ipynb |
               notebook/.*
             )$
   # See https://jaredkhan.com/blog/mypy-pre-commit

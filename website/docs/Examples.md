@@ -19,7 +19,7 @@ Links to notebook examples:
 - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_vis)
 - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_research)
 - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
-- Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+- Automated Task Solving with transition paths specified in a graph - [View Notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
 - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](/docs/notebooks/agentchat_society_of_mind)
 - Running a group chat with custom speaker selection function - [View Notebook](/docs/notebooks/agentchat_groupchat_customized)
 
@@ -45,7 +45,7 @@ Links to notebook examples:
 ### Tool Use
 
 - **Web Search**: Solve Tasks Requiring Web Info - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_web_info.ipynb)
-- Use Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb)
+- Use Provided Tools as Functions - [View Notebook](/docs/notebooks/agentchat_function_call_currency_calculator)
 - Use Tools via Sync and Async Function Calling - [View Notebook](/docs/notebooks/agentchat_function_call_async)
 - Task Solving with Langchain Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_langchain.ipynb)
 - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_RAG)
@@ -54,7 +54,8 @@ Links to notebook examples:
 - Constrained Responses via Guidance - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_guidance.ipynb)
 - Browse the Web with Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_surfer.ipynb)
 - **SQL**: Natural Language Text to SQL Query using the [Spider](https://yale-lily.github.io/spider) Text-to-SQL Benchmark - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_sql_spider.ipynb)
-- **Web Scraping**: Web Scraping with Apify - [View Notebook](/docs/notebooks/agentchat_webscraping_with_apify).
+- **Web Scraping**: Web Scraping with Apify - [View Notebook](/docs/notebooks/agentchat_webscraping_with_apify)
+- **Write a software app, task by task, with specially designed functions.** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_code_writing.ipynb).
 
 ### Human Involvement
 
@@ -77,6 +78,7 @@ Links to notebook examples:
 - Chat with OpenAI Assistant with Code Interpreter - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
 - Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
 - OpenAI Assistant in a Group Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_groupchat.ipynb)
+- GPTAssistantAgent based Multi-Agent Tool Use - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/gpt_assistant_agent_function_call.ipynb)
 
 ### Multimodal Agent
 
@@ -87,7 +89,7 @@ Links to notebook examples:
 ### Long Context Handling
 
 <!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
-- Long Context Handling as A Capability - [View Notebook](/docs/notebooks/agentchat_capability_long_context_handling)
+- Long Context Handling as A Capability - [View Notebook](/docs/notebooks/agentchat_transform_messages)
 
 ### Evaluation and Assessment
 

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -15,9 +17,10 @@ from conftest import skip_openai  # noqa: E402
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 @pytest.mark.asyncio
 async def test_async_chats():
-    config_list = autogen.config_list_from_json(
+    config_list_35 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 
     financial_tasks = [
@@ -30,16 +33,16 @@ async def test_async_chats():
 
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="You are a knowledgeable AI Assistant. Reply TERMINATE when everything is done.",
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
     writer = AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a professional writer, known for

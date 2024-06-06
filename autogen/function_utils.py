@@ -110,9 +110,7 @@ class ToolFunction(BaseModel):
     function: Annotated[Function, Field(description="Function under tool")]
 
 
-def get_parameter_json_schema(
-    k: str, v: Union[Annotated[Type[Any], str], Type[Any]], default_values: Dict[str, Any]
-) -> JsonSchemaValue:
+def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) -> JsonSchemaValue:
     """Get a JSON schema for a parameter as defined by the OpenAI API
 
     Args:
@@ -355,4 +353,4 @@ def serialize_to_str(x: Any) -> str:
     elif isinstance(x, BaseModel):
         return model_dump_json(x)
     else:
-        return json.dumps(x)
+        return json.dumps(x, ensure_ascii=False)

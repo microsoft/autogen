@@ -25,7 +25,7 @@ topics:
 
 ## Dig Deeper
 
-- Read the [topic docs](/docs/topics) to learn more
+- Read the [user guide](/docs/topics) to learn more
 - Read the examples and guides in the [notebooks section](/docs/notebooks)
 - Check [research](/docs/Research) and [blog](/blog)
 

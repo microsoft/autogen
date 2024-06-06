@@ -1,16 +1,15 @@
-from collections import defaultdict
-import openai
-import json
-import time
-import logging
 import copy
+import json
+import logging
+import time
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
-from autogen.oai.openai_utils import retrieve_assistants_by_name
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.assistant_agent import AssistantAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
+from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
+from autogen.oai.openai_utils import create_gpt_assistant, retrieve_assistants_by_name, update_gpt_assistant
+from autogen.runtime_logging import log_new_agent, logging_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,8 @@ class GPTAssistantAgent(ConversableAgent):
                 - check_every_ms: check thread run status interval
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
-                - file_ids: files used by retrieval in run
+                - file_ids: (Deprecated) files used by retrieval in run. It is Deprecated, use tool_resources instead. https://platform.openai.com/docs/assistants/migration/what-has-changed.
+                - tool_resources: A set of resources that are used by the assistant's tools. The resources are specific to the type of tool.
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             overwrite_tools (bool): whether to overwrite the tools of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             kwargs (dict): Additional configuration options for the agent.
@@ -64,6 +64,8 @@ class GPTAssistantAgent(ConversableAgent):
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
@@ -90,7 +92,6 @@ class GPTAssistantAgent(ConversableAgent):
                     candidate_assistants,
                     instructions,
                     openai_assistant_cfg.get("tools", []),
-                    openai_assistant_cfg.get("file_ids", []),
                 )
 
             if len(candidate_assistants) == 0:
@@ -101,12 +102,12 @@ class GPTAssistantAgent(ConversableAgent):
                         "No instructions were provided for new assistant. Using default instructions from AssistantAgent.DEFAULT_SYSTEM_MESSAGE."
                     )
                     instructions = AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                self._openai_assistant = self._openai_client.beta.assistants.create(
+                self._openai_assistant = create_gpt_assistant(
+                    self._openai_client,
                     name=name,
                     instructions=instructions,
-                    tools=openai_assistant_cfg.get("tools", []),
                     model=model_name,
-                    file_ids=openai_assistant_cfg.get("file_ids", []),
+                    assistant_config=openai_assistant_cfg,
                 )
             else:
                 logger.warning(
@@ -127,9 +128,12 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.warning(
                     "overwrite_instructions is True. Provided instructions will be used and will modify the assistant in the API"
                 )
-                self._openai_assistant = self._openai_client.beta.assistants.update(
+                self._openai_assistant = update_gpt_assistant(
+                    self._openai_client,
                     assistant_id=openai_assistant_id,
-                    instructions=instructions,
+                    assistant_config={
+                        "instructions": instructions,
+                    },
                 )
             else:
                 logger.warning(
@@ -154,18 +158,23 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.warning(
                     "overwrite_tools is True. Provided tools will be used and will modify the assistant in the API"
                 )
-                self._openai_assistant = self._openai_client.beta.assistants.update(
+                self._openai_assistant = update_gpt_assistant(
+                    self._openai_client,
                     assistant_id=openai_assistant_id,
-                    tools=openai_assistant_cfg.get("tools", []),
+                    assistant_config={
+                        "tools": specified_tools,
+                        "tool_resources": openai_assistant_cfg.get("tool_resources", None),
+                    },
                 )
             else:
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
+        self.update_system_message(self._openai_assistant.instructions)
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
-        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant, position=2)
+        self.register_reply([Agent, None], GPTAssistantAgent._invoke_assistant, position=2)
 
     def _invoke_assistant(
         self,
@@ -198,6 +207,8 @@ class GPTAssistantAgent(ConversableAgent):
         assistant_thread = self._openai_threads[sender]
         # Process each unread message
         for message in pending_messages:
+            if message["content"].strip() == "":
+                continue
             self._openai_client.beta.threads.messages.create(
                 thread_id=assistant_thread.id,
                 content=message["content"],
@@ -426,22 +437,23 @@ class GPTAssistantAgent(ConversableAgent):
         logger.warning("Permanently deleting assistant...")
         self._openai_client.beta.assistants.delete(self.assistant_id)
 
-    def find_matching_assistant(self, candidate_assistants, instructions, tools, file_ids):
+    def find_matching_assistant(self, candidate_assistants, instructions, tools):
         """
         Find the matching assistant from a list of candidate assistants.
-        Filter out candidates with the same name but different instructions, file IDs, and function names.
-        TODO: implement accurate match based on assistant metadata fields.
+        Filter out candidates with the same name but different instructions, and function names.
         """
         matching_assistants = []
 
         # Preprocess the required tools for faster comparison
-        required_tool_types = set(tool.get("type") for tool in tools)
+        required_tool_types = set(
+            "file_search" if tool.get("type") in ["retrieval", "file_search"] else tool.get("type") for tool in tools
+        )
+
         required_function_names = set(
             tool.get("function", {}).get("name")
             for tool in tools
-            if tool.get("type") not in ["code_interpreter", "retrieval"]
+            if tool.get("type") not in ["code_interpreter", "retrieval", "file_search"]
         )
-        required_file_ids = set(file_ids)  # Convert file_ids to a set for unordered comparison
 
         for assistant in candidate_assistants:
             # Check if instructions are similar
@@ -454,11 +466,12 @@ class GPTAssistantAgent(ConversableAgent):
                 continue
 
             # Preprocess the assistant's tools
-            assistant_tool_types = set(tool.type for tool in assistant.tools)
+            assistant_tool_types = set(
+                "file_search" if tool.type in ["retrieval", "file_search"] else tool.type for tool in assistant.tools
+            )
             assistant_function_names = set(tool.function.name for tool in assistant.tools if hasattr(tool, "function"))
-            assistant_file_ids = set(getattr(assistant, "file_ids", []))  # Convert to set for comparison
 
-            # Check if the tool types, function names, and file IDs match
+            # Check if the tool types, function names match
             if required_tool_types != assistant_tool_types or required_function_names != assistant_function_names:
                 logger.warning(
                     "tools not match, skip assistant(%s): tools %s, functions %s",
@@ -466,9 +479,6 @@ class GPTAssistantAgent(ConversableAgent):
                     assistant_tool_types,
                     assistant_function_names,
                 )
-                continue
-            if required_file_ids != assistant_file_ids:
-                logger.warning("file_ids not match, skip assistant(%s): %s", assistant.id, assistant_file_ids)
                 continue
 
             # Append assistant to matching list if all conditions are met
@@ -496,7 +506,7 @@ class GPTAssistantAgent(ConversableAgent):
 
         # Move the assistant related configurations to assistant_config
         # It's important to keep forward compatibility
-        assistant_config_items = ["assistant_id", "tools", "file_ids", "check_every_ms"]
+        assistant_config_items = ["assistant_id", "tools", "file_ids", "tool_resources", "check_every_ms"]
         for item in assistant_config_items:
             if openai_client_cfg.get(item) is not None and openai_assistant_cfg.get(item) is None:
                 openai_assistant_cfg[item] = openai_client_cfg[item]
