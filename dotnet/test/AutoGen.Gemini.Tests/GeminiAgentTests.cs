@@ -7,11 +7,19 @@ using AutoGen.Core;
 using FluentAssertions;
 using AutoGen.Gemini.Extension;
 using static Google.Cloud.AIPlatform.V1.Part;
+using Xunit.Abstractions;
+using AutoGen.Gemini.Middleware;
 namespace AutoGen.Gemini.Tests;
 
 public class GeminiAgentTests
 {
     private readonly Functions functions = new Functions();
+    private readonly ITestOutputHelper _output;
+
+    public GeminiAgentTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
     public async Task VertexGeminiAgentGenerateReplyForTextContentAsync()
@@ -229,5 +237,75 @@ public class GeminiAgentTests
         finalReply.Should().BeOfType<MessageEnvelope<GenerateContentResponse>>();
         var response = ((MessageEnvelope<GenerateContentResponse>)finalReply).Content;
         response.UsageMetadata.CandidatesTokenCount.Should().BeGreaterThan(0);
+    }
+
+    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    public async Task GeminiAgentUpperCaseTestAsync()
+    {
+        var location = "us-central1";
+        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
+        var model = "gemini-1.5-flash-001";
+        var agent = new GeminiChatAgent(
+            name: "assistant",
+            model: model,
+            project: project,
+            location: location)
+            .RegisterMessageConnector();
+
+        var singleAgentTest = new SingleAgentTest(_output);
+        await singleAgentTest.UpperCaseStreamingTestAsync(agent);
+        await singleAgentTest.UpperCaseTestAsync(agent);
+    }
+
+    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    public async Task GeminiAgentEchoFunctionCallTestAsync()
+    {
+        var location = "us-central1";
+        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
+        var model = "gemini-1.5-flash-001";
+        var singleAgentTest = new SingleAgentTest(_output);
+        var echoFunctionContract = singleAgentTest.EchoAsyncFunctionContract;
+        var agent = new GeminiChatAgent(
+            name: "assistant",
+            model: model,
+            project: project,
+            location: location,
+            tools:
+            [
+                new Tool
+                {
+                    FunctionDeclarations = { echoFunctionContract.ToFunctionDeclaration() },
+                },
+            ])
+            .RegisterMessageConnector();
+
+        await singleAgentTest.EchoFunctionCallTestAsync(agent);
+    }
+
+    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    public async Task GeminiAgentEchoFunctionCallExecutionTestAsync()
+    {
+        var location = "us-central1";
+        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID") ?? throw new InvalidOperationException("GCP_VERTEX_PROJECT_ID is not set.");
+        var model = "gemini-1.5-flash-001";
+        var singleAgentTest = new SingleAgentTest(_output);
+        var echoFunctionContract = singleAgentTest.EchoAsyncFunctionContract;
+        var functionMiddleware = new FunctionCallMiddleware(
+            functions: [echoFunctionContract],
+            functionMap: new Dictionary<string, Func<string, Task<string>>>()
+            {
+                { echoFunctionContract.Name!, singleAgentTest.EchoAsyncWrapper },
+            });
+
+        var agent = new GeminiChatAgent(
+            name: "assistant",
+            model: model,
+            project: project,
+            location: location)
+            .RegisterMessageConnector()
+            .RegisterStreamingMiddleware(functionMiddleware);
+
+        await singleAgentTest.EchoFunctionCallExecutionStreamingTestAsync(agent);
+        await singleAgentTest.EchoFunctionCallExecutionTestAsync(agent);
     }
 }

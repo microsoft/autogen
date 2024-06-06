@@ -126,10 +126,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
 
     private IMessage PostProcessStreamingMessage(GenerateContentResponse m, IAgent agent)
     {
-        if (m.Candidates.Count != 1)
-        {
-            throw new InvalidOperationException("The response should contain exactly one candidate.");
-        }
+        this.ValidateGenerateContentResponse(m);
 
         var candidate = m.Candidates[0];
         var parts = candidate.Content.Parts;
@@ -167,11 +164,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
 
     private IMessage PostProcessMessage(GenerateContentResponse m, IAgent agent)
     {
-        if (m.Candidates.Count != 1)
-        {
-            throw new InvalidOperationException("The response should contain exactly one candidate.");
-        }
-
+        this.ValidateGenerateContentResponse(m);
         var candidate = m.Candidates[0];
         var parts = candidate.Content.Parts;
 
@@ -253,6 +246,23 @@ public class GeminiMessageConnector : IStreamingMiddleware
             var toolCallResultContents = ProcessToolCallResultMessage(toolCallAggregateMessage.Message2, agent);
 
             return toolCallContents.Concat(toolCallResultContents);
+        }
+    }
+
+    private void ValidateGenerateContentResponse(GenerateContentResponse response)
+    {
+        if (response.Candidates.Count != 1)
+        {
+            throw new InvalidOperationException("The response should contain exactly one candidate.");
+        }
+
+        var candidate = response.Candidates[0];
+        if (candidate.Content is null)
+        {
+            var finishReason = candidate.FinishReason;
+            var finishMessage = candidate.FinishMessage;
+
+            throw new InvalidOperationException($"The response should contain content but the content is empty. FinishReason: {finishReason}, FinishMessage: {finishMessage}");
         }
     }
 

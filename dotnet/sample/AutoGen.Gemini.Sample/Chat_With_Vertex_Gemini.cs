@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.Gemini.Middleware;
+using FluentAssertions;
 
 namespace AutoGen.Gemini.Sample;
 
@@ -22,13 +23,17 @@ public class Chat_With_Vertex_Gemini
         var geminiAgent = new GeminiChatAgent(
                 name: "gemini",
                 model: "gemini-1.5-flash-001",
-                location: "us-central1",
+                location: "us-east1",
                 project: projectID,
                 systemMessage: "You are a helpful C# engineer, put your code between ```csharp and ```, don't explain the code")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
 
-        await geminiAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
+        var reply = await geminiAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
         #endregion Create_Gemini_Agent
+
+        #region verify_reply
+        reply.Should().BeOfType<TextMessage>();
+        #endregion verify_reply
     }
 }

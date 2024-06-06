@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.Gemini.Middleware;
+using FluentAssertions;
 
 namespace AutoGen.Gemini.Sample;
 
@@ -22,7 +23,7 @@ public class Image_Chat_With_Vertex_Gemini
         var geminiAgent = new GeminiChatAgent(
             name: "gemini",
             model: "gemini-1.5-flash-001",
-            location: "us-central1",
+            location: "us-east4",
             project: projectID,
             systemMessage: "You explain image content to user")
             .RegisterMessageConnector()
@@ -33,7 +34,11 @@ public class Image_Chat_With_Vertex_Gemini
         var imagePath = Path.Combine("resource", "images", "background.png");
         var image = File.ReadAllBytes(imagePath);
         var imageMessage = new ImageMessage(Role.User, BinaryData.FromBytes(image, "image/png"));
-        await geminiAgent.SendAsync("what's in the image", [imageMessage]);
+        var reply = await geminiAgent.SendAsync("what's in the image", [imageMessage]);
         #endregion Send_Image_Request
+
+        #region Verify_Reply
+        reply.Should().BeOfType<TextMessage>();
+        #endregion Verify_Reply
     }
 }

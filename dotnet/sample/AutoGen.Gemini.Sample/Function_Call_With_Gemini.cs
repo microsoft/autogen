@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.Gemini.Middleware;
+using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
 
 namespace AutoGen.Gemini.Sample;
@@ -113,8 +114,16 @@ public partial class Function_Call_With_Gemini
         var functionCallReply = await geminiAgent.SendAsync(question);
         #endregion Single_turn
 
+        #region Single_turn_verify_reply
+        functionCallReply.Should().BeOfType<ToolCallAggregateMessage>();
+        #endregion Single_turn_verify_reply
+
         #region Multi_turn
         var finalReply = await geminiAgent.SendAsync(chatHistory: [question, functionCallReply]);
         #endregion Multi_turn
+
+        #region Multi_turn_verify_reply
+        finalReply.Should().BeOfType<TextMessage>();
+        #endregion Multi_turn_verify_reply
     }
 }
