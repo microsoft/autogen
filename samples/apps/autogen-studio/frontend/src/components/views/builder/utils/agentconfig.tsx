@@ -399,7 +399,137 @@ export const AgentConfigView = ({
               />
             </div>
           )}
+          {/* ====================== Retrieve Chat Config ======================= */}
+          {agent.type === "retrieve_userproxy" && (
+            <div>
+              <ControlRowView
+                title="Database Type"
+                className="mt-4"
+                description="Allow the same speaker to speak multiple times in a row"
+                value={agent.config?.vector_db || false}
+                control={
+                  <Select
+                    className="mt-2 w-full"
+                    defaultValue={agent.config.vector_db}
+                    onChange={(value: any) => {
+                      onControlChange(value, "vector_db");
+                    }}
+                    options={
+                      [
+                        { label: "ChromaDB", value: true },
+                        { label: "PGVector", value: false },
+                      ] as any
+                    }
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Connection String"
+                className="mt-4"
+                description="Postgres connection string"
+                value={agent.config.retrieve_config.db_config.connection_string || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres connection string"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "connection_string");
+                    }}
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Username"
+                className="mt-4"
+                description="Postgres username"
+                value={agent.config.retrieve_config.db_config.connection_string || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres username"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "username");
+                    }}
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Password"
+                className="mt-4"
+                description="Postgres password"
+                value={agent.config.retrieve_config.db_config.password || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres password"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "password");
+                    }}
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Host"
+                className="mt-4"
+                description="Postgres connection string"
+                value={agent.config.retrieve_config.db_config.host || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres host"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "host");
+                    }}
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Port"
+                className="mt-4"
+                description="Postgres port"
+                value={agent.config.retrieve_config.db_config.port || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres port"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "port");
+                    }}
+                  />
+                }
+              />
+
+              <ControlRowView
+                title="PGVector Database"
+                className="mt-4"
+                description="Postgres database name"
+                value={agent.config.retrieve_config.db_config.dbname || ""}
+                control={
+                  <Input
+                    className="mt-2"
+                    placeholder="Postgres database"
+                    value={agent.config.admin_name || ""}
+                    onChange={(e) => {
+                      onControlChange(e.target.value, "dbname");
+                    }}
+                  />
+                }
+              />
+            </div>
+            </div>
+          )}
         </div>
+
       </Form>
 
       <div className="w-full mt-4 text-right">

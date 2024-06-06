@@ -312,13 +312,25 @@ export const AgentTypeSelector = ({
     {
       label: "Assistant Agent",
       value: "assistant",
-      description: <>Plan and generate code to solve user tasks</>,
+      description: <>Plan and generate code to solve user tasks. </>,
+      icon: <CodeBracketSquareIcon className={iconClass} />,
+    },
+    {
+      label: "Retrieve User Proxy Agent",
+      value: "retrieve_userproxy",
+      description: <>Typically represents the user and executes code using a vector database for knowledge. </>,
+      icon: <UserCircleIcon className={iconClass} />,
+    },
+    {
+      label: "Retrieve Assistant Agent",
+      value: "retrieve_assistant",
+      description: <>Plan and generate code to solve user tasks using a vector database for knowledge. </>,
       icon: <CodeBracketSquareIcon className={iconClass} />,
     },
     {
       label: "GroupChat ",
       value: "groupchat",
-      description: <>Manage group chat interactions</>,
+      description: <>Manage group chat interactions. </>,
       icon: <RectangleGroupIcon className={iconClass} />,
     },
   ];

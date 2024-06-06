@@ -167,6 +167,8 @@ class AgentConfig(SQLModel, table=False):
 class AgentType(str, Enum):
     assistant = "assistant"
     userproxy = "userproxy"
+    retrieve_assistant = "retrieve_assistant"
+    retrieve_userproxy = "retrieve_userproxy"
     groupchat = "groupchat"
 
 
