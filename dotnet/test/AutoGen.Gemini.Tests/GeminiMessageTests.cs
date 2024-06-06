@@ -229,21 +229,94 @@ public class GeminiMessageTests
     }
 
     [Fact]
-    public async Task ItProcessToolCallAggregateMessageAsync()
+    public async Task ItProcessToolCallAggregateMessageAsTextContentAsync()
     {
-        throw new NotImplementedException();
+        var messageConnector = new GeminiMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, ct) =>
+            {
+                msgs.Count().Should().Be(1);
+                var innerMessage = msgs.First();
+                innerMessage.Should().BeOfType<MessageEnvelope<Content>>();
+                var message = (IMessage<Content>)innerMessage;
+                message.Content.Role.Should().Be("user");
+                message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.Text);
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(messageConnector);
+        var toolCallMessage = new ToolCallMessage("test", "{}", "user");
+        var toolCallResultMessage = new ToolCallResultMessage("result", "test", "{}", "user");
+        var message = new ToolCallAggregateMessage(toolCallMessage, toolCallResultMessage, from: "user");
+        await agent.SendAsync(message);
+    }
+
+    [Fact]
+    public async Task ItProcessToolCallAggregateMessageAsFunctionContentAsync()
+    {
+        var messageConnector = new GeminiMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, ct) =>
+            {
+                msgs.Count().Should().Be(2);
+                var functionCallMessage = msgs.First();
+                functionCallMessage.Should().BeOfType<MessageEnvelope<Content>>();
+                var message = (IMessage<Content>)functionCallMessage;
+                message.Content.Role.Should().BeEmpty();
+                message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionCall);
+
+                var functionResultMessage = msgs.Last();
+                functionResultMessage.Should().BeOfType<MessageEnvelope<Content>>();
+                message = (IMessage<Content>)functionResultMessage;
+                message.Content.Role.Should().BeEmpty();
+                message.Content.Parts.First().DataCase.Should().Be(Part.DataOneofCase.FunctionResponse);
+
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(messageConnector);
+        var toolCallMessage = new ToolCallMessage("test", "{}", agent.Name);
+        var toolCallResultMessage = new ToolCallResultMessage("result", "test", "{}", agent.Name);
+        var message = new ToolCallAggregateMessage(toolCallMessage, toolCallResultMessage, from: agent.Name);
+        await agent.SendAsync(message);
     }
 
     [Fact]
     public async Task ItThrowExceptionWhenProcessingUnknownMessageTypeInStrictModeAsync()
     {
-        throw new NotImplementedException();
+        var messageConnector = new GeminiMessageConnector(true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(messageConnector);
+
+        var unknownMessage = new
+        {
+            text = "Hello",
+        };
+
+        var message = MessageEnvelope.Create(unknownMessage, from: agent.Name);
+        var action = new Func<Task>(async () => await agent.SendAsync(message));
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
     public async Task ItReturnUnknownMessageTypeInNonStrictModeAsync()
     {
-        throw new NotImplementedException();
+        var messageConnector = new GeminiMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, ct) =>
+            {
+                var message = msgs.First();
+                message.Should().BeAssignableTo<IMessage>();
+                return message;
+            })
+            .RegisterMiddleware(messageConnector);
+
+        var unknownMessage = new
+        {
+            text = "Hello",
+        };
+
+        var message = MessageEnvelope.Create(unknownMessage, from: agent.Name);
+        await agent.SendAsync(message);
     }
 
     [Fact]
