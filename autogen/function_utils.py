@@ -353,4 +353,4 @@ def serialize_to_str(x: Any) -> str:
     elif isinstance(x, BaseModel):
         return model_dump_json(x)
     else:
-        return json.dumps(x)
+        return json.dumps(x, ensure_ascii=False)

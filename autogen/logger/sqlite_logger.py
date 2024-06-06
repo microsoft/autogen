@@ -243,6 +243,7 @@ class SqliteLogger(BaseLogger):
                 "organization",
                 "base_url",
                 "azure_endpoint",
+                "azure_ad_token",
                 "azure_ad_token_provider",
             ),
             no_recursive=(Agent,),
@@ -317,6 +318,7 @@ class SqliteLogger(BaseLogger):
                 "organization",
                 "base_url",
                 "azure_endpoint",
+                "azure_ad_token",
                 "azure_ad_token_provider",
             ),
         )
@@ -348,6 +350,7 @@ class SqliteLogger(BaseLogger):
                 "organization",
                 "base_url",
                 "azure_endpoint",
+                "azure_ad_token",
                 "azure_ad_token_provider",
             ),
         )

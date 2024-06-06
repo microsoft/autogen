@@ -49,7 +49,9 @@ public class ImageMessage : IMessage
     public string BuildDataUri()
     {
         if (this.Data is null)
+        {
             throw new NullReferenceException($"{nameof(Data)}");
+        }
 
         return $"data:{this.Data.MediaType};base64,{Convert.ToBase64String(this.Data.ToArray())}";
     }
