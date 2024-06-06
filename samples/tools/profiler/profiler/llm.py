@@ -17,7 +17,7 @@ class ChatCompletionService(Protocol):
 
 class OpenAIJSONService:
 
-    MODEL = "gpt-4-turbo"
+    MODEL = "gpt-4o"
 
     def __init__(self, api_key: Optional[str] = None):
 
