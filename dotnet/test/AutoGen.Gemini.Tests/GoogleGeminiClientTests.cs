@@ -1,27 +1,27 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// GeminiVertexClientTests.cs
+// GoogleGeminiClientTests.cs
 
 using AutoGen.Tests;
 using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf;
 using static Google.Cloud.AIPlatform.V1.Candidate.Types;
+
 namespace AutoGen.Gemini.Tests;
 
-public class VertexGeminiClientTests
+public class GoogleGeminiClientTests
 {
-    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]
     public async Task ItGenerateContentAsync()
     {
-        var location = "us-central1";
-        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID");
-        var client = new VertexGeminiClient(location);
+        var apiKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_API_KEY") ?? throw new InvalidOperationException("GOOGLE_GEMINI_API_KEY is not set");
+        var client = new GoogleGeminiClient(apiKey);
         var model = "gemini-1.5-flash-001";
 
-        var text = "Hello";
+        var text = "Write a long, tedious story";
         var request = new GenerateContentRequest
         {
-            Model = $"projects/{project}/locations/{location}/publishers/google/models/{model}",
+            Model = model,
             Contents =
             {
                 new Content
@@ -44,20 +44,19 @@ public class VertexGeminiClientTests
         completion.Candidates[0].Content.Parts[0].Text.Should().NotBeNullOrEmpty();
     }
 
-    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]
     public async Task ItGenerateContentWithImageAsync()
     {
-        var location = "us-central1";
-        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID");
-        var client = new VertexGeminiClient(location);
+        var apiKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_API_KEY") ?? throw new InvalidOperationException("GOOGLE_GEMINI_API_KEY is not set");
+        var client = new GoogleGeminiClient(apiKey);
         var model = "gemini-1.5-flash-001";
 
         var text = "what's in the image";
-        var imagePath = Path.Combine("testData", "images", "image.png");
+        var imagePath = Path.Combine("testData", "images", "background.png");
         var image = File.ReadAllBytes(imagePath);
         var request = new GenerateContentRequest
         {
-            Model = $"projects/{project}/locations/{location}/publishers/google/models/{model}",
+            Model = model,
             Contents =
             {
                 new Content
@@ -88,18 +87,17 @@ public class VertexGeminiClientTests
         completion.Candidates[0].Content.Parts[0].Text.Should().NotBeNullOrEmpty();
     }
 
-    [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
+    [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]
     public async Task ItStreamingGenerateContentTestAsync()
     {
-        var location = "us-central1";
-        var project = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID");
-        var client = new VertexGeminiClient(location);
+        var apiKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_API_KEY") ?? throw new InvalidOperationException("GOOGLE_GEMINI_API_KEY is not set");
+        var client = new GoogleGeminiClient(apiKey);
         var model = "gemini-1.5-flash-001";
 
-        var text = "Hello, write a long tedious joke";
+        var text = "Tell me a long tedious joke";
         var request = new GenerateContentRequest
         {
-            Model = $"projects/{project}/locations/{location}/publishers/google/models/{model}",
+            Model = model,
             Contents =
             {
                 new Content

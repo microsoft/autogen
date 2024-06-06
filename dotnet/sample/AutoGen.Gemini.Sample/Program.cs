@@ -3,4 +3,4 @@
 
 using AutoGen.Gemini.Sample;
 
-Function_Call_With_Gemini.RunAsync().Wait();
+Chat_With_Google_Gemini.RunAsync().Wait();

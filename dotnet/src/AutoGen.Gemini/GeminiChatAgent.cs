@@ -56,6 +56,43 @@ public class GeminiChatAgent : IStreamingAgent
     }
 
     /// <summary>
+    /// Create <see cref="GeminiChatAgent"/> that connects to Gemini using <see cref="GoogleGeminiClient"/>
+    /// </summary>
+    /// <param name="name">agent name</param>
+    /// <param name="model">the name of gemini model, e.g. gemini-1.5-flash-001</param>
+    /// <param name="apiKey">google gemini api key</param>
+    /// <param name="systemMessage">system message</param>
+    /// <param name="toolConfig">tool config</param>
+    /// <param name="tools">tools</param>
+    /// <param name="safetySettings"></param>
+    /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
+    /// /// <example>
+    /// <![CDATA[
+    /// [!code-csharp[Chat_With_Google_Gemini](~/../sample/AutoGen.Gemini.Sample/Chat_With_Google_Gemini.cs?name=Create_Gemini_Agent)]
+    /// ]]>
+    /// </example>
+    public GeminiChatAgent(
+        string name,
+        string model,
+        string apiKey,
+        string systemMessage = "You are a helpful AI assistant",
+        ToolConfig? toolConfig = null,
+        Tool[]? tools = null,
+        RepeatedField<SafetySetting>? safetySettings = null,
+        string responseMimeType = "text/plain")
+        : this(
+              client: new GoogleGeminiClient(apiKey),
+              name: name,
+              model: model,
+              systemMessage: systemMessage,
+              toolConfig: toolConfig,
+              tools: tools,
+              safetySettings: safetySettings,
+              responseMimeType: responseMimeType)
+    {
+    }
+
+    /// <summary>
     /// Create <see cref="GeminiChatAgent"/> that connects to Vertex AI.
     /// </summary>
     /// <param name="name">agent name</param>
