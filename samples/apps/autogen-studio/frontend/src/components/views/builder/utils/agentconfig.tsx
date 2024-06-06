@@ -108,7 +108,7 @@ export const AgentConfigView = ({
         <Form>
           <div
               className={`grid  gap-3 ${
-                  agent.type === "groupchat" ? "grid-cols-2" : "grid-cols-1"
+                  agent.type === "groupchat" || agent.type === "retrieve_userproxy" ? "grid-cols-2" : "grid-cols-1"
               }`}
           >
             <div className="">
@@ -300,221 +300,221 @@ export const AgentConfigView = ({
             </div>
             {/* ====================== Group Chat Config ======================= */}
             {agent.type === "groupchat" && (
-                <div>
-                  <ControlRowView
-                      title="Speaker Selection Method"
-                      description="How the next speaker is selected"
-                      className=""
-                      value={agent?.config?.speaker_selection_method || "auto"}
-                      control={
-                        <Select
-                            className="mt-2 w-full"
-                            defaultValue={
-                                agent?.config?.speaker_selection_method || "auto"
+              <div>
+                <ControlRowView
+                    title="Speaker Selection Method"
+                    description="How the next speaker is selected"
+                    className=""
+                    value={agent?.config?.speaker_selection_method || "auto"}
+                    control={
+                      <Select
+                          className="mt-2 w-full"
+                          defaultValue={
+                              agent?.config?.speaker_selection_method || "auto"
+                          }
+                          onChange={(value: any) => {
+                            if (agent?.config) {
+                              onControlChange(value, "speaker_selection_method");
                             }
-                            onChange={(value: any) => {
-                              if (agent?.config) {
-                                onControlChange(value, "speaker_selection_method");
-                              }
-                            }}
-                            options={
-                              [
-                                { label: "Auto", value: "auto" },
-                                { label: "Round Robin", value: "round_robin" },
-                                { label: "Random", value: "random" },
-                              ] as any
-                            }
-                        />
-                      }
-                  />
+                          }}
+                          options={
+                            [
+                              { label: "Auto", value: "auto" },
+                              { label: "Round Robin", value: "round_robin" },
+                              { label: "Random", value: "random" },
+                            ] as any
+                          }
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="Admin Name"
-                      className="mt-4"
-                      description="Name of the admin of the group chat"
-                      value={agent.config.admin_name || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Agent Description"
-                            value={agent.config.admin_name || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "admin_name");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="Admin Name"
+                    className="mt-4"
+                    description="Name of the admin of the group chat"
+                    value={agent.config.admin_name || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Agent Description"
+                          value={agent.config.admin_name || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "admin_name");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="Max Rounds"
-                      className="mt-4"
-                      description="Max rounds before termination."
-                      value={agent.config?.max_round || 10}
-                      control={
-                        <Slider
-                            min={10}
-                            max={600}
-                            defaultValue={agent.config.max_round}
-                            step={1}
-                            onChange={(value: any) => {
-                              onControlChange(value, "max_round");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="Max Rounds"
+                    className="mt-4"
+                    description="Max rounds before termination."
+                    value={agent.config?.max_round || 10}
+                    control={
+                      <Slider
+                          min={10}
+                          max={600}
+                          defaultValue={agent.config.max_round}
+                          step={1}
+                          onChange={(value: any) => {
+                            onControlChange(value, "max_round");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="Allow Repeat Speaker"
-                      className="mt-4"
-                      description="Allow the same speaker to speak multiple times in a row"
-                      value={agent.config?.allow_repeat_speaker || false}
-                      control={
-                        <Select
-                            className="mt-2 w-full"
-                            defaultValue={agent.config.allow_repeat_speaker}
-                            onChange={(value: any) => {
-                              onControlChange(value, "allow_repeat_speaker");
-                            }}
-                            options={
-                              [
-                                { label: "True", value: true },
-                                { label: "False", value: false },
-                              ] as any
-                            }
-                        />
-                      }
-                  />
-                </div>
+                <ControlRowView
+                    title="Allow Repeat Speaker"
+                    className="mt-4"
+                    description="Allow the same speaker to speak multiple times in a row"
+                    value={agent.config?.allow_repeat_speaker || false}
+                    control={
+                      <Select
+                          className="mt-2 w-full"
+                          defaultValue={agent.config.allow_repeat_speaker}
+                          onChange={(value: any) => {
+                            onControlChange(value, "allow_repeat_speaker");
+                          }}
+                          options={
+                            [
+                              { label: "True", value: true },
+                              { label: "False", value: false },
+                            ] as any
+                          }
+                      />
+                    }
+                />
+              </div>
             )}
             {/* ====================== Retrieve Chat Config ======================= */}
             {agent.type === "retrieve_userproxy" && (
-                <div>
-                  <ControlRowView
-                      title="Database Type"
-                      className="mt-4"
-                      description="Allow the same speaker to speak multiple times in a row"
-                      value={agent.config?.retrieve_config?.vector_db || false}
-                      control={
-                        <Select
-                            className="mt-2 w-full"
-                            defaultValue={agent.config?.retrieve_config?.vector_db}
-                            onChange={(value: any) => {
-                              onControlChange(value, "vector_db");
-                            }}
-                            options={
-                              [
-                                { label: "ChromaDB", value: true },
-                                { label: "PGVector", value: false },
-                              ] as any
-                            }
-                        />
-                      }
-                  />
+              <div>
+                <ControlRowView
+                    title="Database Type"
+                    className="mt-4"
+                    description="Allow the same speaker to speak multiple times in a row"
+                    value={agent.config?.retrieve_config?.vector_db || false}
+                    control={
+                      <Select
+                          className="mt-2 w-full"
+                          defaultValue={agent.config?.retrieve_config?.vector_db}
+                          onChange={(value: any) => {
+                            onControlChange(value, "vector_db");
+                          }}
+                          options={
+                            [
+                              { label: "ChromaDB", value: true },
+                              { label: "PGVector", value: false },
+                            ] as any
+                          }
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Connection String"
-                      className="mt-4"
-                      description="Postgres connection string"
-                      value={
-                        agent.config?.retrieve_config?.db_config?.connection_string || ""
-                      }
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres connection string"
-                            value={agent.config?.retrieve_config?.db_config?.connection_string || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "connection_string");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="PGVector Connection String"
+                    className="mt-4"
+                    description="Postgres connection string"
+                    value={
+                      agent.config?.retrieve_config?.db_config?.connection_string || ""
+                    }
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres connection string"
+                          value={agent.config?.retrieve_config?.db_config?.connection_string || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "connection_string");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Username"
-                      className="mt-4"
-                      description="Postgres username"
-                      value={agent.config?.retrieve_config?.db_config?.username || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres username"
-                            value={agent.config?.retrieve_config?.db_config?.username || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "username");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="PGVector Username"
+                    className="mt-4"
+                    description="Postgres username"
+                    value={agent.config?.retrieve_config?.db_config?.username || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres username"
+                          value={agent.config?.retrieve_config?.db_config?.username || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "username");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Password"
-                      className="mt-4"
-                      description="Postgres password"
-                      value={agent.config?.retrieve_config?.db_config?.password || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres password"
-                            value={agent.config?.retrieve_config?.db_config?.password || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "password");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="PGVector Password"
+                    className="mt-4"
+                    description="Postgres password"
+                    value={agent.config?.retrieve_config?.db_config?.password || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres password"
+                          value={agent.config?.retrieve_config?.db_config?.password || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "password");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Host"
-                      className="mt-4"
-                      description="Postgres connection string"
-                      value={agent.config?.retrieve_config?.db_config?.host || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres host"
-                            value={agent.config?.retrieve_config?.db_config?.host || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "host");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="PGVector Host"
+                    className="mt-4"
+                    description="Postgres connection string"
+                    value={agent.config?.retrieve_config?.db_config?.host || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres host"
+                          value={agent.config?.retrieve_config?.db_config?.host || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "host");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Port"
-                      className="mt-4"
-                      description="Postgres port"
-                      value={agent.config?.retrieve_config?.db_config?.port || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres port"
-                            value={agent.config?.retrieve_config?.db_config?.port || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "port");
-                            }}
-                        />
-                      }
-                  />
+                <ControlRowView
+                    title="PGVector Port"
+                    className="mt-4"
+                    description="Postgres port"
+                    value={agent.config?.retrieve_config?.db_config?.port || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres port"
+                          value={agent.config?.retrieve_config?.db_config?.port || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "port");
+                          }}
+                      />
+                    }
+                />
 
-                  <ControlRowView
-                      title="PGVector Database"
-                      className="mt-4"
-                      description="Postgres database name"
-                      value={agent.config?.retrieve_config?.db_config?.database || ""}
-                      control={
-                        <Input
-                            className="mt-2"
-                            placeholder="Postgres database"
-                            value={agent.config?.retrieve_config?.db_config?.database || ""}
-                            onChange={(e) => {
-                              onControlChange(e.target.value, "database");
-                            }}
-                        />
-                      }
-                  />
-                </div>
+                <ControlRowView
+                    title="PGVector Database"
+                    className="mt-4"
+                    description="Postgres database name"
+                    value={agent.config?.retrieve_config?.db_config?.database || ""}
+                    control={
+                      <Input
+                          className="mt-2"
+                          placeholder="Postgres database"
+                          value={agent.config?.retrieve_config?.db_config?.database || ""}
+                          onChange={(e) => {
+                            onControlChange(e.target.value, "database");
+                          }}
+                      />
+                    }
+                />
+              </div>
             )}
           </div>
         </Form>

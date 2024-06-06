@@ -338,6 +338,7 @@ export const AgentTypeSelector = ({
     string | null
   >(null);
 
+
   const agentTypeRows = agentTypes.map((agentType: any, i: number) => {
     return (
       <li role="listitem" key={"agenttyperow" + i} className="w-36">

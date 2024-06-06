@@ -1,6 +1,8 @@
 import {
   IAgent,
   IAgentConfig,
+  IAgentRetrieveConfig,
+  IAgentDBConfig,
   ILLMConfig,
   IModelConfig,
   ISkill,
@@ -328,6 +330,7 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
     llm_config: false,
     code_execution_config: "local",
   };
+
   const userProxyFlowSpec: IAgent = {
     type: "userproxy",
     config: userProxyConfig,
@@ -347,6 +350,58 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
   const assistantFlowSpec: IAgent = {
     type: "assistant",
     config: assistantConfig,
+  };
+
+  const db_config: IAgentDBConfig = {
+    connection_string: "postgresql://postgres:postgrespass@dbserver.example:5432/database",
+    host: "dbserver.example",
+    username: "Postgres Username",
+    password: "Postgres Password",
+    port: 5432,
+    database: "Postgres Database",
+  }
+
+  const retrieve_config: IAgentRetrieveConfig = {
+    docs_path: [""],
+    chunk_token_size: 2000,
+    vector_db: "chromadb",
+    db_config: db_config,
+    collection_name: "autogen_docs",
+    get_or_create: true,
+    overwrite: false,
+  }
+
+  const retrieveUserProxyConfig: IAgentConfig = {
+    name: "retrieve_userproxy",
+    human_input_mode: "NEVER",
+    description: "Retrieve User Proxy",
+    max_consecutive_auto_reply: 25,
+    system_message: "You are a helpful assistant.",
+    default_auto_reply: "TERMINATE",
+    llm_config: false,
+    code_execution_config: "local",
+    retrieve_config: retrieve_config,
+  };
+
+  const retrieveUserProxyFlowSpec: IAgent = {
+    type: "retrieve_userproxy",
+    config: retrieveUserProxyConfig,
+  };
+
+  const retrieveAssistantConfig: IAgentConfig = {
+    name: "retrieve_primary_assistant",
+    description: "Retrieve Primary Assistant",
+    llm_config: llm_config,
+    human_input_mode: "NEVER",
+    max_consecutive_auto_reply: 25,
+    code_execution_config: "none",
+    system_message:
+      "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
+  };
+
+  const retrieveAssistantFlowSpec: IAgent = {
+    type: "retrieve_assistant",
+    config: retrieveAssistantConfig,
   };
 
   const groupChatAssistantConfig = Object.assign(
@@ -373,6 +428,10 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
     return userProxyFlowSpec;
   } else if (agent_type === "assistant") {
     return assistantFlowSpec;
+  } else if (agent_type === "retrieve_userproxy") {
+    return retrieveUserProxyFlowSpec;
+  } else if (agent_type === "retrieve_assistant") {
+    return retrieveAssistantFlowSpec;
   } else if (agent_type === "groupchat") {
     return groupChatFlowSpec;
   } else {
