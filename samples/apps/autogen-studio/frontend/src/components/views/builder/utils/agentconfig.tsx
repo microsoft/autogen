@@ -249,6 +249,7 @@ export const AgentConfigView = ({
             />
 
             <div className="mt-4">
+              {" "}
               <CollapseBox
                 className="bg-secondary mt-4"
                 open={false}
@@ -632,7 +633,7 @@ export const AgentViewer = ({
   let items = [
     {
       label: (
-        <div className="w-full">
+        <div className="w-full ">
           {" "}
           <BugAntIcon className="h-4 w-4 inline-block mr-1" />
           Agent Configuration
@@ -657,7 +658,7 @@ export const AgentViewer = ({
       if (agent.type && agent.type === "groupchat") {
         items.push({
           label: (
-            <div className="w-full">
+            <div className="w-full ">
               {" "}
               <UserGroupIcon className="h-4 w-4 inline-block mr-1" />
               Agents
@@ -670,7 +671,7 @@ export const AgentViewer = ({
 
       items.push({
         label: (
-          <div className="w-full">
+          <div className="w-full ">
             {" "}
             <CpuChipIcon className="h-4 w-4 inline-block mr-1" />
             Models
