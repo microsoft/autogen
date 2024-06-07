@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Union
 # Mistral libraries
 # pip install mistralai
 from mistralai.client import MistralClient
+from mistralai.exceptions import MistralAPIException
 from mistralai.models.chat_completion import ChatCompletionResponse, ChatMessage, ToolCall
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
@@ -20,9 +21,12 @@ from typing_extensions import Annotated
 
 
 class MistralAIClient:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], change_last_system_to_user=True):
         self._config = config
         self.model = config.get("model", None)
+        self.change_last_system_to_user = (
+            change_last_system_to_user  # If the first and last message role is 'system' it will change it to 'user'
+        )
 
         assert (
             self.model
@@ -35,10 +39,6 @@ class MistralAIClient:
         assert (
             self.api_key
         ), "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
-
-        self._client = MistralClient(api_key=self.api_key)
-
-        self._last_tooluse_status = {}
 
     def message_retrieval(self, response: ChatCompletionResponse) -> Union[List[str], List[ChatCompletionMessage]]:
         """Retrieve the messages from the response."""
@@ -78,22 +78,28 @@ class MistralAIClient:
                 mistral_messages.append(
                     ChatMessage(role=message["role"], content=message["content"], tool_calls=mistral_toolcalls)
                 )
-            # elif message["role"] == "tool":
-            # mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+
             elif message["role"] in ("system", "user", "assistant", "tool"):
-                # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API, so no the 'name' field is not used.
+                # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API, so, no, the 'name' field is not used.
                 mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+
             else:
                 warnings.warn(f"Unknown message role {message['role']}", UserWarning)
-            """
-            # When using functions, the system role seems to affect whether tools are called, so changing system to user seems more effective
-            elif message["role"] == "system":
-                mistral_messages.append(ChatMessage(role="user", content=message["content"]))
-            """
 
-        mistral_response = self._client.chat(
-            model=self.model, messages=mistral_messages, tools=converted_functions, tool_choice="auto"
-        )
+        client = MistralClient(api_key=self.api_key)
+
+        # If a 'system' message follows an 'assistant' message, change it to 'user'
+        # This can occur when using LLM summarisation
+        for i in range(1, len(mistral_messages)):
+            if mistral_messages[i - 1].role == "assistant" and mistral_messages[i].role == "system":
+                mistral_messages[i].role = "user"
+
+        try:
+            mistral_response = client.chat(
+                model=self.model, messages=mistral_messages, tools=converted_functions, tool_choice="auto"
+            )
+        except MistralAPIException:
+            raise RuntimeError("Mistral.AI exception occurred while calling Mistral.AI API")
 
         if mistral_response.choices[0].finish_reason == "tool_calls":
             mistral_finish = "tool_calls"
