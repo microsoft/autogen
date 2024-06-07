@@ -1,6 +1,7 @@
 import argparse
 import errno
 import json
+import logging
 import os
 import pathlib
 import random
@@ -8,14 +9,16 @@ import shutil
 import subprocess
 import sys
 import time
-import docker
-import logging
 import traceback
+
+import docker
+from azure.core.exceptions import ClientAuthenticationError
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from openai import AzureOpenAI
+
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
-from openai import AzureOpenAI
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from azure.core.exceptions import ClientAuthenticationError
+
 from .version import __version__
 
 # Figure out where everything is
