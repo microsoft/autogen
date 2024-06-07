@@ -355,16 +355,16 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
   const db_config: IAgentDBConfig = {
     connection_string: "postgresql://postgres:postgrespass@dbserver.example:5432/database",
     host: "dbserver.example",
-    username: "Postgres Username",
-    password: "Postgres Password",
+    username: "Username",
+    password: "Password",
     port: 5432,
-    database: "Postgres Database",
+    database: "Database",
   }
 
   const retrieve_config: IAgentRetrieveConfig = {
     docs_path: [""],
     chunk_token_size: 2000,
-    vector_db: "chromadb",
+    vector_db: "ChromaDB",
     db_config: db_config,
     collection_name: "autogen_docs",
     get_or_create: true,

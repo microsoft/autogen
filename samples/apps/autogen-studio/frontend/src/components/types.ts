@@ -57,7 +57,7 @@ export interface IAgentRetrieveConfig {
   docs_path?: Array<string>;
   custom_text_types?: Array<string>;
   chunk_token_size?: number;
-  vector_db?: "pgvector" | "chromadb";
+  vector_db?: "PGVector" | "ChromaDB";
   db_config?: IAgentDBConfig;
   collection_name?: string;
   get_or_create?: boolean;
