@@ -1,6 +1,7 @@
-from typing import Any, List, Mapping
+from typing import Any, Callable, List, Mapping
 
 import openai
+from openai import AsyncAssistantEventHandler
 from openai.types.beta import AssistantResponseFormatParam
 
 from agnext.chat.agents.base import BaseChatAgent
@@ -18,11 +19,13 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
+        assistant_event_handler_factory: Callable[[], AsyncAssistantEventHandler] | None = None,
     ) -> None:
         super().__init__(name, description, runtime)
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id
+        self._assistant_event_handler_factory = assistant_event_handler_factory
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
@@ -60,12 +63,22 @@ class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
         else:
             response_format = AssistantResponseFormatParam(type="text")
 
-        # Create a run and wait until it finishes.
-        run = await self._client.beta.threads.runs.create_and_poll(
-            thread_id=self._thread_id,
-            assistant_id=self._assistant_id,
-            response_format=response_format,
-        )
+        if self._assistant_event_handler_factory is not None:
+            # Use event handler and streaming mode if available.
+            async with self._client.beta.threads.runs.stream(
+                thread_id=self._thread_id,
+                assistant_id=self._assistant_id,
+                event_handler=self._assistant_event_handler_factory(),
+                response_format=response_format,
+            ) as stream:
+                run = await stream.get_final_run()
+        else:
+            # Use blocking mode.
+            run = await self._client.beta.threads.runs.create(
+                thread_id=self._thread_id,
+                assistant_id=self._assistant_id,
+                response_format=response_format,
+            )
 
         if run.status != "completed":
             # TODO: handle other statuses.

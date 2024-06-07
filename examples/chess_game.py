@@ -1,6 +1,8 @@
 """This is an example of simulating a chess game with two agents
 that play against each other, using tools to reason about the game state
-and make moves."""
+and make moves.
+You must have OPENAI_API_KEY set up in your environment to run this example.
+"""
 
 import argparse
 import asyncio
