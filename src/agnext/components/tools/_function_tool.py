@@ -32,7 +32,12 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
         else:
             if self._has_cancellation_support:
                 result = await asyncio.get_event_loop().run_in_executor(
-                    None, functools.partial(self._func, **args.model_dump(), cancellation_token=cancellation_token)
+                    None,
+                    functools.partial(
+                        self._func,
+                        **args.model_dump(),
+                        cancellation_token=cancellation_token,
+                    ),
                 )
             else:
                 future = asyncio.get_event_loop().run_in_executor(

@@ -36,9 +36,54 @@ def test_tool_schema_generation() -> None:
     schema = MyTool().schema
 
     assert schema["name"] == "TestTool"
+    assert "description" in schema
     assert schema["description"] == "Description of test tool."
-    assert schema["parameters"]["query"]["description"] == "The description."
-    assert len(schema["parameters"]) == 1
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert "properties" in schema["parameters"]
+    assert schema["parameters"]["properties"]["query"]["description"] == "The description."
+    assert schema["parameters"]["properties"]["query"]["type"] == "string"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["query"]
+    assert len(schema["parameters"]["properties"]) == 1
+
+def test_func_tool_schema_generation() -> None:
+    def my_function(arg: str, other: Annotated[int, "int arg"], nonrequired: int = 5) -> MyResult:
+        return MyResult(result="test")
+    tool = FunctionTool(my_function, description="Function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "my_function"
+    assert "description" in schema
+    assert schema["description"] == "Function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"arg", "other", "nonrequired"}
+    assert schema["parameters"]["properties"]["arg"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
+    assert schema["parameters"]["properties"]["other"]["type"] == "integer"
+    assert schema["parameters"]["properties"]["other"]["description"] == "int arg"
+    assert schema["parameters"]["properties"]["nonrequired"]["type"] == "integer"
+    assert schema["parameters"]["properties"]["nonrequired"]["description"] == "nonrequired"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["arg", "other"]
+    assert len(schema["parameters"]["properties"]) == 3
+
+def test_func_tool_schema_generation_only_default_arg() -> None:
+    def my_function(arg: str = "default") -> MyResult:
+        return MyResult(result="test")
+    tool = FunctionTool(my_function, description="Function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "my_function"
+    assert "description" in schema
+    assert schema["description"] == "Function tool."
+    assert "parameters" in schema
+    assert len(schema["parameters"]["properties"]) == 1
+    assert schema["parameters"]["properties"]["arg"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
+    assert "required" not in schema["parameters"]
+
 
 @pytest.mark.asyncio
 async def test_tool_run()-> None:
@@ -128,7 +173,7 @@ def test_func_tool_return_annotated()-> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() == Annotated[str, "test description"]
+    assert tool.return_type() == str
     assert tool.state_type() is None
 
 def test_func_tool_no_args()-> None:

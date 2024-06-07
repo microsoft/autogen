@@ -1,5 +1,6 @@
 import inspect
 import logging
+import re
 import warnings
 from typing import (
     Any,
@@ -11,6 +12,7 @@ from typing import (
     Sequence,
     Set,
     Union,
+    cast,
 )
 
 from openai import AsyncAzureOpenAI, AsyncOpenAI
@@ -27,6 +29,7 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
     completion_create_params,
 )
+from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, LLMCallEvent
@@ -205,13 +208,45 @@ def convert_tools(
 ) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
     for tool in tools:
+        tool_schema = tool.schema
         result.append(
-            {
-                "type": "function",
-                "function": tool.schema,  # type: ignore
-            }
+            ChatCompletionToolParam(
+                type="function",
+                function=FunctionDefinition(
+                    name=tool_schema["name"],
+                    description=tool_schema["description"] if "description" in tool_schema else "",
+                    parameters=cast(FunctionParameters, tool_schema["parameters"])
+                    if "parameters" in tool_schema
+                    else {},
+                ),
+            )
         )
+    # Check if all tools have valid names.
+    for tool_param in result:
+        assert_valid_name(tool_param["function"]["name"])
     return result
+
+
+def normalize_name(name: str) -> str:
+    """
+    LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
+
+    Prefer _assert_valid_name for validating user configuration or input
+    """
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
+
+
+def assert_valid_name(name: str) -> str:
+    """
+    Ensure that configured names are valid, raises ValueError if not.
+
+    For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
+    """
+    if not re.match(r"^[a-zA-Z0-9_-]+$", name):
+        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
+    if len(name) > 64:
+        raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
+    return name
 
 
 class BaseOpenAI(ChatCompletionClient):
@@ -293,7 +328,10 @@ class BaseOpenAI(ChatCompletionClient):
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
             result = await self._client.chat.completions.create(
-                messages=oai_messages, stream=False, tools=converted_tools, **create_args
+                messages=oai_messages,
+                stream=False,
+                tools=converted_tools,
+                **create_args,
             )
         else:
             result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
@@ -331,7 +369,11 @@ class BaseOpenAI(ChatCompletionClient):
 
             # NOTE: If OAI response type changes, this will need to be updated
             content = [
-                FunctionCall(id=x.id, arguments=x.function.arguments, name=x.function.name)
+                FunctionCall(
+                    id=x.id,
+                    arguments=x.function.arguments,
+                    name=normalize_name(x.function.name),
+                )
                 for x in choice.message.tool_calls
             ]
             finish_reason = "function_calls"

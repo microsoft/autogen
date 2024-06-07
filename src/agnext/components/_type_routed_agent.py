@@ -105,18 +105,18 @@ def message_handler(
 
         @wraps(func)
         async def wrapper(self: Any, message: ReceivesT, cancellation_token: CancellationToken) -> ProducesT:
-            if strict:
-                if type(message) not in target_types:
+            if type(message) not in target_types:
+                if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
                 else:
                     logger.warning(f"Message type {type(message)} not in target types {target_types}")
 
             return_value = await func(self, message, cancellation_token)
 
-            if strict:
-                if return_value is not AnyType and type(return_value) not in return_types:
+            if AnyType not in return_types and type(return_value) not in return_types:
+                if strict:
                     raise ValueError(f"Return type {type(return_value)} not in return types {return_types}")
-                elif return_value is not AnyType:
+                else:
                     logger.warning(f"Return type {type(return_value)} not in return types {return_types}")
 
             return return_value
@@ -134,7 +134,10 @@ def message_handler(
 class TypeRoutedAgent(BaseAgent):
     def __init__(self, name: str, router: AgentRuntime) -> None:
         # Self is already bound to the handlers
-        self._handlers: Dict[Type[Any], Callable[[Any, CancellationToken], Coroutine[Any, Any, Any | None]]] = {}
+        self._handlers: Dict[
+            Type[Any],
+            Callable[[Any, CancellationToken], Coroutine[Any, Any, Any | None]],
+        ] = {}
 
         for attr in dir(self):
             if callable(getattr(self, attr, None)):

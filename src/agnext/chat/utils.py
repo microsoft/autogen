@@ -73,17 +73,17 @@ def convert_messages_to_llm_messages(
     for message in messages:
         match message:
             case (
-                TextMessage(_, source=source)
-                | MultiModalMessage(_, source=source)
-                | FunctionCallMessage(_, source=source)
+                TextMessage(content=_, source=source)
+                | MultiModalMessage(content=_, source=source)
+                | FunctionCallMessage(content=_, source=source)
             ) if source == self_name:
                 converted_message_1 = convert_content_message_to_assistant_message(message, handle_unrepresentable)
                 if converted_message_1 is not None:
                     result.append(converted_message_1)
             case (
-                TextMessage(_, source=source)
-                | MultiModalMessage(_, source=source)
-                | FunctionCallMessage(_, source=source)
+                TextMessage(content=_, source=source)
+                | MultiModalMessage(content=_, source=source)
+                | FunctionCallMessage(content=_, source=source)
             ) if source != self_name:
                 converted_message_2 = convert_content_message_to_user_message(message, handle_unrepresentable)
                 if converted_message_2 is not None:

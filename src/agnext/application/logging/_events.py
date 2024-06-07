@@ -1,5 +1,8 @@
 import json
+from enum import Enum
 from typing import Any, cast
+
+from ...core import Agent
 
 
 class LLMCallEvent:
@@ -23,6 +26,50 @@ class LLMCallEvent:
         self.kwargs = kwargs
         self.kwargs["prompt_tokens"] = prompt_tokens
         self.kwargs["completion_tokens"] = completion_tokens
+        self.kwargs["type"] = "LLMCall"
+
+    @property
+    def prompt_tokens(self) -> int:
+        return cast(int, self.kwargs["prompt_tokens"])
+
+    @property
+    def completion_tokens(self) -> int:
+        return cast(int, self.kwargs["completion_tokens"])
+
+    # This must output the event in a json serializable format
+    def __str__(self) -> str:
+        return json.dumps(self.kwargs)
+
+
+class MessageKind(Enum):
+    DIRECT = 1
+    PUBLISH = 2
+    RESPOND = 3
+
+
+class DeliveryStage(Enum):
+    SEND = 1
+    DELIVER = 2
+
+
+class MessageEvent:
+    def __init__(
+        self,
+        *,
+        payload: Any,
+        sender: Agent | None,
+        receiver: Agent | None,
+        kind: MessageKind,
+        delivery_stage: DeliveryStage,
+        **kwargs: Any,
+    ) -> None:
+        self.kwargs = kwargs
+        self.kwargs["payload"] = payload
+        self.kwargs["sender"] = None if sender is None else sender.name
+        self.kwargs["receiver"] = None if receiver is None else receiver.name
+        self.kwargs["kind"] = kind
+        self.kwargs["delivery_stage"] = delivery_stage
+        self.kwargs["type"] = "Message"
 
     @property
     def prompt_tokens(self) -> int:

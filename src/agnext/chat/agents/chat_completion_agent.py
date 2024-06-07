@@ -128,7 +128,10 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
                 continue
             # Execute the function.
             future = self.execute_function(
-                function_call.name, arguments, function_call.id, cancellation_token=cancellation_token
+                function_call.name,
+                arguments,
+                function_call.id,
+                cancellation_token=cancellation_token,
             )
             # Append the async result.
             execution_futures.append(future)
@@ -149,24 +152,22 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         return tool_call_result_msg
 
     async def execute_function(
-        self, name: str, args: Dict[str, Any], call_id: str, cancellation_token: CancellationToken
+        self,
+        name: str,
+        args: Dict[str, Any],
+        call_id: str,
+        cancellation_token: CancellationToken,
     ) -> Tuple[str, str]:
         # Find tool
         tool = next((t for t in self._tools if t.name == name), None)
         if tool is None:
-            raise ValueError(f"Tool {name} not found.")
+            return (f"Error: tool {name} not found.", call_id)
         try:
             result = await tool.run_json(args, cancellation_token)
-            result_json_or_str = result.model_dump()
-            if isinstance(result, dict):
-                result_str = json.dumps(result_json_or_str)
-            elif isinstance(result_json_or_str, str):
-                result_str = result_json_or_str
-            else:
-                raise ValueError(f"Unexpected result type: {type(result)}")
+            result_as_str = tool.return_value_as_string(result)
         except Exception as e:
-            result_str = f"Error: {str(e)}"
-        return (result_str, call_id)
+            result_as_str = f"Error: {str(e)}"
+        return (result_as_str, call_id)
 
     def save_state(self) -> Mapping[str, Any]:
         return {

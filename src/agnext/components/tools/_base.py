@@ -1,12 +1,27 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar
+from collections.abc import Sequence
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar
 
 from pydantic import BaseModel
+from typing_extensions import NotRequired
 
 from ...core import CancellationToken
+from .._function_utils import normalize_annotated_type
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
+
+
+class ParametersSchema(TypedDict):
+    type: str
+    properties: Dict[str, Any]
+    required: NotRequired[Sequence[str]]
+
+
+class ToolSchema(TypedDict):
+    parameters: NotRequired[ParametersSchema]
+    name: str
+    description: NotRequired[str]
 
 
 class Tool(Protocol):
@@ -17,7 +32,7 @@ class Tool(Protocol):
     def description(self) -> str: ...
 
     @property
-    def schema(self) -> Mapping[str, Any]: ...
+    def schema(self) -> ToolSchema: ...
 
     def args_type(self) -> Type[BaseModel]: ...
 
@@ -40,20 +55,36 @@ StateT = TypeVar("StateT", bound=BaseModel)
 
 
 class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
-    def __init__(self, args_type: Type[ArgsT], return_type: Type[ReturnT], name: str, description: str) -> None:
+    def __init__(
+        self,
+        args_type: Type[ArgsT],
+        return_type: Type[ReturnT],
+        name: str,
+        description: str,
+    ) -> None:
         self._args_type = args_type
-        self._return_type = return_type
+        # Normalize Annotated to the base type.
+        self._return_type = normalize_annotated_type(return_type)
         self._name = name
         self._description = description
 
     @property
-    def schema(self) -> Mapping[str, Any]:
+    def schema(self) -> ToolSchema:
         model_schema = self._args_type.model_json_schema()
-        parameter_schema: Dict[str, Any] = dict()
-        parameter_schema["parameters"] = model_schema["properties"]
-        parameter_schema["name"] = self._name
-        parameter_schema["description"] = self._description
-        return parameter_schema
+
+        tool_schema = ToolSchema(
+            name=self._name,
+            description=self._description,
+            parameters=ParametersSchema(
+                type="object",
+                properties=model_schema["properties"],
+            ),
+        )
+        if "required" in model_schema:
+            assert "parameters" in tool_schema
+            tool_schema["parameters"]["required"] = model_schema["required"]
+
+        return tool_schema
 
     @property
     def name(self) -> str:
@@ -97,7 +128,12 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
 
 class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT]):
     def __init__(
-        self, args_type: Type[ArgsT], return_type: Type[ReturnT], state_type: Type[StateT], name: str, description: str
+        self,
+        args_type: Type[ArgsT],
+        return_type: Type[ReturnT],
+        state_type: Type[StateT],
+        name: str,
+        description: str,
     ) -> None:
         super().__init__(args_type, return_type, name, description)
         self._state_type = state_type

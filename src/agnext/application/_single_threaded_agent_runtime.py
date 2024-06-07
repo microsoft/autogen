@@ -10,6 +10,7 @@ from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
 
 logger = logging.getLogger("agnext")
+event_logger = logging.getLogger("agnext.events")
 
 
 @dataclass(kw_only=True)
@@ -67,7 +68,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         return list(self._agents)
 
     @property
-    def unprocessed_messages(self) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
+    def unprocessed_messages(
+        self,
+    ) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
         return self._message_queue
 
     # Returns the response of the message
@@ -81,6 +84,18 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     ) -> Future[Any | None]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
+
+        logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {message.__dict__}")
+
+        # event_logger.info(
+        #     MessageEvent(
+        #         payload=message,
+        #         sender=sender,
+        #         receiver=recipient,
+        #         kind=MessageKind.DIRECT,
+        #         delivery_stage=DeliveryStage.SEND,
+        #     )
+        # )
 
         future = asyncio.get_event_loop().create_future()
         if recipient not in self._agents:
@@ -107,6 +122,18 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     ) -> Future[None]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
+
+        logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {message.__dict__}")
+
+        # event_logger.info(
+        #     MessageEvent(
+        #         payload=message,
+        #         sender=sender,
+        #         receiver=None,
+        #         kind=MessageKind.PUBLISH,
+        #         delivery_stage=DeliveryStage.SEND,
+        #     )
+        # )
 
         self._message_queue.append(
             PublishMessageEnvelope(
@@ -137,8 +164,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         try:
             sender_name = message_envelope.sender.name if message_envelope.sender is not None else "Unknown"
             logger.info(
-                f"Calling message handler for {recipient.name} with message type {type(message_envelope.message).__name__} from {sender_name}"
+                f"Calling message handler for {recipient.name} with message type {type(message_envelope.message).__name__} sent by {sender_name}"
             )
+            # event_logger.info(
+            #     MessageEvent(
+            #         payload=message_envelope.message,
+            #         sender=message_envelope.sender,
+            #         receiver=recipient,
+            #         kind=MessageKind.DIRECT,
+            #         delivery_stage=DeliveryStage.DELIVER,
+            #     )
+            # )
             response = await recipient.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
@@ -162,9 +198,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if message_envelope.sender is not None and agent.name == message_envelope.sender.name:
                 continue
 
+            sender_name = message_envelope.sender.name if message_envelope.sender is not None else "Unknown"
             logger.info(
-                f"Calling message handler for {agent.name} with message type {type(message_envelope.message).__name__} published by {message_envelope.sender.name if message_envelope.sender is not None else 'Unknown'}"
+                f"Calling message handler for {agent.name} with message type {type(message_envelope.message).__name__} published by {sender_name}"
             )
+            # event_logger.info(
+            #     MessageEvent(
+            #         payload=message_envelope.message,
+            #         sender=message_envelope.sender,
+            #         receiver=agent,
+            #         kind=MessageKind.PUBLISH,
+            #         delivery_stage=DeliveryStage.DELIVER,
+            #     )
+            # )
 
             future = agent.on_message(
                 message_envelope.message,
@@ -182,9 +228,23 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
         recipient_name = message_envelope.recipient.name if message_envelope.recipient is not None else "Unknown"
-        logger.info(
-            f"Resolving response for recipient {recipient_name} from {message_envelope.sender.name} with message type {type(message_envelope.message).__name__}"
+        content = (
+            message_envelope.message.__dict__
+            if hasattr(message_envelope.message, "__dict__")
+            else message_envelope.message
         )
+        logger.info(
+            f"Resolving response with message type {type(message_envelope.message).__name__} for recipient {recipient_name} from {message_envelope.sender.name}: {content}"
+        )
+        # event_logger.info(
+        #     MessageEvent(
+        #         payload=message_envelope.message,
+        #         sender=message_envelope.sender,
+        #         receiver=message_envelope.recipient,
+        #         kind=MessageKind.RESPOND,
+        #         delivery_stage=DeliveryStage.DELIVER,
+        #     )
+        # )
         message_envelope.future.set_result(message_envelope.message)
 
     async def process_next(self) -> None:

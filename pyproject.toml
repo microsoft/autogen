@@ -31,6 +31,9 @@ dev = [
     "pytest-xdist",
     "types-Pillow",
     "polars",
+    # Dependencies for the examples.
+    "chess",
+    "tavily-python",
 ]
 docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 
