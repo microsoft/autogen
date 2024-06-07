@@ -1160,7 +1160,7 @@ class GroupChatManager(ConversableAgent):
     def resume(
         self,
         messages: Union[List[Dict], str],
-        remove_termination_string: str = None,
+        remove_termination_string: Union[str, Callable[[str], str]] = None,
         silent: Optional[bool] = False,
     ) -> Tuple[ConversableAgent, Dict]:
         """Resumes a group chat using the previous messages as a starting point. Requires the agents, group chat, and group chat manager to be established
@@ -1168,7 +1168,9 @@ class GroupChatManager(ConversableAgent):
 
         Args:
             - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
-            - remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
+            - remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function.
             - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
 
         Returns:
@@ -1263,7 +1265,7 @@ class GroupChatManager(ConversableAgent):
     async def a_resume(
         self,
         messages: Union[List[Dict], str],
-        remove_termination_string: str = None,
+        remove_termination_string: Union[str, Callable[[str], str]],
         silent: Optional[bool] = False,
     ) -> Tuple[ConversableAgent, Dict]:
         """Resumes a group chat using the previous messages as a starting point, asynchronously. Requires the agents, group chat, and group chat manager to be established
@@ -1271,7 +1273,9 @@ class GroupChatManager(ConversableAgent):
 
         Args:
             - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
-            - remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
+            - remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function, and the function returns the string after processing.
             - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
 
         Returns:
@@ -1390,11 +1394,15 @@ class GroupChatManager(ConversableAgent):
                 ):
                     raise Exception(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
 
-    def _process_resume_termination(self, remove_termination_string: str, messages: List[Dict]):
+    def _process_resume_termination(
+        self, remove_termination_string: Union[str, Callable[[str], str]], messages: List[Dict]
+    ):
         """Removes termination string, if required, and checks if termination may occur.
 
         args:
-            remove_termination_string (str): termination string to remove from the last message
+            remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function, and the function returns the string after processing.
 
         returns:
             None
@@ -1403,9 +1411,17 @@ class GroupChatManager(ConversableAgent):
         last_message = messages[-1]
 
         # Replace any given termination string in the last message
-        if remove_termination_string:
-            if messages[-1].get("content") and remove_termination_string in messages[-1]["content"]:
-                messages[-1]["content"] = messages[-1]["content"].replace(remove_termination_string, "")
+        if isinstance(remove_termination_string, str):
+
+            def _remove_termination_string(content: str) -> str:
+                return content.replace(remove_termination_string, "")
+
+        else:
+            _remove_termination_string = remove_termination_string
+
+        if _remove_termination_string:
+            if messages[-1].get("content"):
+                messages[-1]["content"] = _remove_termination_string(messages[-1]["content"])
 
         # Check if the last message meets termination (if it has one)
         if self._is_termination_msg:
