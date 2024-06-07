@@ -16,6 +16,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
     get_args,
     get_origin,
 )
@@ -67,7 +68,8 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
         )
         for param in signature.parameters.values()
     ]
-    typed_signature = inspect.Signature(typed_params)
+    return_annotation = get_typed_annotation(signature.return_annotation, globalns)
+    typed_signature = inspect.Signature(typed_params, return_annotation=return_annotation)
     return typed_signature
 
 
@@ -313,7 +315,7 @@ def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
 
 
 def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
-    fields: List[tuple[str, Any]] = []
+    fields: Dict[str, tuple[Type[Any], Any]] = {}
     for name, param in sig.parameters.items():
         # This is handled externally
         if name == "cancellation_token":
@@ -326,24 +328,6 @@ def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[Ba
         description = type2description(name, param.annotation)
         default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
 
-        fields.append((name, (type, Field(default=default_value, description=description))))
+        fields[name] = (type, Field(default=default_value, description=description))
 
-    return create_model(name, *fields)
-
-
-def return_value_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
-    if issubclass(BaseModel, sig.return_annotation):
-        return sig.return_annotation  # type: ignore
-
-    fields: List[tuple[str, Any]] = []
-    for name, param in sig.return_annotation:
-        if param.annotation is inspect.Parameter.empty:
-            raise ValueError("No annotation")
-
-        type = normalize_annotated_type(param.annotation)
-        description = type2description(name, param.annotation)
-        default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
-
-        fields.append((name, (type, Field(default=default_value, description=description))))
-
-    return create_model(name, *fields)
+    return cast(BaseModel, create_model(name, **fields))  # type: ignore

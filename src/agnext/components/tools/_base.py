@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar
 
@@ -20,11 +21,13 @@ class Tool(Protocol):
 
     def args_type(self) -> Type[BaseModel]: ...
 
-    def return_type(self) -> Type[BaseModel]: ...
+    def return_type(self) -> Type[Any]: ...
 
     def state_type(self) -> Type[BaseModel] | None: ...
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> BaseModel: ...
+    def return_value_as_string(self, value: Any) -> str: ...
+
+    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
 
     def save_state_json(self) -> Mapping[str, Any]: ...
 
@@ -63,16 +66,25 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
     def args_type(self) -> Type[BaseModel]:
         return self._args_type
 
-    def return_type(self) -> Type[BaseModel]:
+    def return_type(self) -> Type[Any]:
         return self._return_type
 
     def state_type(self) -> Type[BaseModel] | None:
         return None
 
+    def return_value_as_string(self, value: Any) -> str:
+        if isinstance(value, BaseModel):
+            dumped = value.model_dump()
+            if isinstance(dumped, dict):
+                return json.dumps(dumped)
+            return str(dumped)
+
+        return str(value)
+
     @abstractmethod
     async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> BaseModel:
+    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
         return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
         return return_value
 

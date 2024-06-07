@@ -8,7 +8,6 @@ from ...core import CancellationToken
 from .._function_utils import (
     args_base_model_from_signature,
     get_typed_signature,
-    return_value_base_model_from_signature,
 )
 from ._base import BaseTool
 
@@ -19,12 +18,12 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
         signature = get_typed_signature(func)
         func_name = name or func.__name__
         args_model = args_base_model_from_signature(func_name + "args", signature)
-        return_model = return_value_base_model_from_signature(func_name + "return", signature)
+        return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
 
-        super().__init__(args_model, return_model, func_name, description)
+        super().__init__(args_model, return_type, func_name, description)
 
-    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> BaseModel:
+    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         if asyncio.iscoroutinefunction(self._func):
             if self._has_cancellation_support:
                 result = await self._func(**args.model_dump(), cancellation_token=cancellation_token)
@@ -42,5 +41,5 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
                 cancellation_token.link_future(future)
                 result = await future
 
-        assert isinstance(result, BaseModel)
+        assert isinstance(result, self.return_type())
         return result
