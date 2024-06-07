@@ -512,11 +512,12 @@ You are to respond to the user's most recent request by selecting an appropriate
                 percent_scrolled=percent_scrolled,
             )
         # Return the complete observation
+        message_content = message.content or ""
         return True, self._make_mm_message(
             re.sub(
                 r"\s+",
                 " ",
-                f"{message.content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
+                f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
                 re.DOTALL,
             ).strip(),
             new_screenshot,
