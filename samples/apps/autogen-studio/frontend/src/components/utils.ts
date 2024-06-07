@@ -353,12 +353,12 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
   };
 
   const db_config: IAgentDBConfig = {
-    connection_string: "postgresql://postgres:postgrespass@dbserver.example:5432/database",
-    host: "dbserver.example",
-    username: "Username",
-    password: "Password",
+    connection_string: "",
+    host: "",
+    username: "",
+    password: "",
     port: 5432,
-    database: "Database",
+    database: "",
   }
 
   const retrieve_config: IAgentRetrieveConfig = {
