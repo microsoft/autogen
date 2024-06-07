@@ -74,7 +74,7 @@ class Collection:
         sentences = [
             "The weather is lovely today in paradise.",
         ]
-        embeddings = self.embedding_function.encode(sentences)
+        embeddings = self.embedding_function(sentences)
         if hasattr(embeddings, "shape"):
             self.dimension = embeddings.shape[1]
         else:
@@ -118,14 +118,14 @@ class Collection:
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, metadata, embedding, document))
             sql_string = (
                 f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n" f"VALUES (%s, %s, %s, %s);\n"
             )
         else:
             for doc_id, document in zip(ids, documents):
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, document, embedding))
             sql_string = f"INSERT INTO {self.name} (id, documents, embedding)\n" f"VALUES (%s, %s, %s);\n"
         logger.debug(f"Add SQL String:\n{sql_string}\n{sql_values}")
@@ -169,7 +169,7 @@ class Collection:
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, metadata, embedding, document, metadata, document, embedding))
             sql_string = (
                 f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
@@ -179,7 +179,7 @@ class Collection:
             )
         else:
             for doc_id, document in zip(ids, documents):
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, document, embedding, document))
             sql_string = (
                 f"INSERT INTO {self.name} (id, documents, embedding)\n"
@@ -422,7 +422,7 @@ class Collection:
         cursor = self.client.cursor()
         results = []
         for query_text in query_texts:
-            vector = self.embedding_function.encode(query_text, convert_to_tensor=False).tolist()
+            vector = self.embedding_function(query_text, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
                 index_function = "<=>"
             elif distance_type.lower() == "euclidean":
@@ -600,8 +600,8 @@ class PGVectorDB(VectorDB):
             username: str | The database username to use. Default is None.
             password: str | The database user password to use. Default is None.
             connect_timeout: int | The timeout to set for the connection. Default is 10.
-            embedding_function (Callable): The embedding function used to generate the vector representation.
-                Default is None. SentenceTransformer("all-MiniLM-L6-v2") will be used when None.
+            embedding_function: Callable | The embedding function used to generate the vector representation.
+                Default is None. SentenceTransformer("all-MiniLM-L6-v2").encode will be used when None.
                 Models can be chosen from:
                 https://huggingface.co/models?library=sentence-transformers
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
@@ -635,7 +635,7 @@ class PGVectorDB(VectorDB):
                     "db_config": {
                         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
                     },
-                    "embedding_function": SentenceTransformer("all-distilroberta-v1"),
+                    "embedding_function": SentenceTransformer("all-distilroberta-v1").encode,
                     "get_or_create": True,  # set to False if you don't want to reuse an existing collection
                     "overwrite": False,  # set to True if you want to overwrite an existing collection
                 },
@@ -655,7 +655,7 @@ class PGVectorDB(VectorDB):
         if embedding_function:
             self.embedding_function = embedding_function
         else:
-            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2")
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         self.metadata = metadata
         register_vector(self.client)
         self.active_collection = None
