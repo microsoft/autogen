@@ -29,10 +29,10 @@ import TextArea from "antd/es/input/TextArea";
 const { useToken } = theme;
 
 export const AgentConfigView = ({
-                                  agent,
-                                  setAgent,
-                                  close,
-                                }: {
+  agent,
+  setAgent,
+  close,
+}: {
   agent: IAgent;
   setAgent: (agent: IAgent) => void;
   close: () => void;
@@ -90,6 +90,7 @@ export const AgentConfigView = ({
   const createAgent = (agent: IAgent) => {
     setError(null);
     setLoading(true);
+    // const fetch;
 
     console.log("agent", agent);
     agent.user_id = user?.email;
@@ -112,6 +113,7 @@ export const AgentConfigView = ({
         message.error(data.message);
       }
       setLoading(false);
+      // setNewAgent(sampleAgent);
     };
     const onError = (err: any) => {
       setError(err);
@@ -144,7 +146,7 @@ export const AgentConfigView = ({
       <Form>
         <div
           className={`grid  gap-3 ${
-              agent.type === "groupchat" || agent.type === "retrieve_userproxy" ? "grid-cols-2" : "grid-cols-1"
+            agent.type === "groupchat" || agent.type === "retrieve_userproxy" ? "grid-cols-2" : "grid-cols-1"
           }`}
         >
           <div className="">
@@ -221,6 +223,8 @@ export const AgentConfigView = ({
                   options={
                     [
                       { label: "NEVER", value: "NEVER" },
+                      { label: "TERMINATE", value: "TERMINATE" },
+                      { label: "ALWAYS", value: "ALWAYS" },
                     ] as any
                   }
                 />
@@ -346,7 +350,7 @@ export const AgentConfigView = ({
                   <Select
                     className="mt-2 w-full"
                     defaultValue={
-                        agent?.config?.speaker_selection_method || "auto"
+                      agent?.config?.speaker_selection_method || "auto"
                     }
                     onChange={(value: any) => {
                       if (agent?.config) {
@@ -588,6 +592,7 @@ export const AgentConfigView = ({
       </Form>
 
       <div className="w-full mt-4 text-right">
+        {" "}
         {!hasChanged && (
           <Button
             type="primary"
@@ -628,6 +633,7 @@ export const AgentViewer = ({
     {
       label: (
         <div className="w-full">
+          {" "}
           <BugAntIcon className="h-4 w-4 inline-block mr-1" />
           Agent Configuration
         </div>
@@ -652,6 +658,7 @@ export const AgentViewer = ({
         items.push({
           label: (
             <div className="w-full">
+              {" "}
               <UserGroupIcon className="h-4 w-4 inline-block mr-1" />
               Agents
             </div>
@@ -664,6 +671,7 @@ export const AgentViewer = ({
       items.push({
         label: (
           <div className="w-full">
+            {" "}
             <CpuChipIcon className="h-4 w-4 inline-block mr-1" />
             Models
           </div>
@@ -675,6 +683,7 @@ export const AgentViewer = ({
       items.push({
         label: (
           <>
+            {" "}
             <BugAntIcon className="h-4 w-4 inline-block mr-1" />
             Skills
           </>
