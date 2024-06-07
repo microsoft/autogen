@@ -39,14 +39,14 @@ const BarChartViewer = ({ data }: { data: any | null }) => {
           <div>
             <div className=" text-gray-700  border-b border-dashed p-4">
               {" "}
-              Total Messages (by Tool Call)
+              Tool Call
             </div>
             <Bar {...config} />
           </div>
           <div className=" ">
             <div className=" text-gray-700  border-b border-dashed p-4">
               {" "}
-              Total Messages (by Code Execution Status)
+              Code Execution Status
             </div>
             <Bar {...config_code_exec} />
           </div>

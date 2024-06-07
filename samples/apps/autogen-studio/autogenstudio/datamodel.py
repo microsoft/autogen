@@ -26,6 +26,7 @@ class MessageMeta(SQLModel, table=False):
     summary_method: Optional[str] = "last"
     files: Optional[List[dict]] = None
     time: Optional[datetime] = None
+    log: Optional[List[dict]] = None
 
 
 class Message(SQLModel, table=True):
@@ -94,8 +95,8 @@ class Skill(SQLModel, table=True):
     name: str
     content: str
     description: Optional[str] = None
-    secrets: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
-    libraries: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    secrets: Optional[List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
+    libraries: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="skills", link_model=AgentSkillLink)
 
 

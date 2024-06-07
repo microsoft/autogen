@@ -1,5 +1,5 @@
 import type { GatsbyConfig } from "gatsby";
-import fs from 'fs';
+import fs from "fs";
 
 const envFile = `.env.${process.env.NODE_ENV}`;
 

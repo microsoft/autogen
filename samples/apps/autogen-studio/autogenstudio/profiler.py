@@ -66,20 +66,21 @@ class Profiler:
         :param task: The task instance that was run.
         """
         meta = MessageMeta(**agent_message.meta)
+        print(meta.log)
         messages = meta.messages
         profile = []
         bar = []
         stats = {}
-        total_code_execution = 0
-        success_code_execution = 0
+        total_code_executed = 0
+        success_code_executed = 0
         agents = []
         for message in messages:
             agent = message.get("sender")
             is_code = self._is_code(message)
             is_tool = self._is_tool(message)
             is_code_execution = self._is_code_execution(message)
-            total_code_execution += is_code_execution["is_code"]
-            success_code_execution += 1 if is_code_execution["status"] else 0
+            total_code_executed += is_code_execution["is_code"]
+            success_code_executed += 1 if is_code_execution["status"] else 0
 
             row = {
                 "agent": agent,
@@ -100,6 +101,7 @@ class Profiler:
             profile.append(row)
             bar.append(bar_row)
             agents.append(agent)
-        code_success_rate = (success_code_execution / total_code_execution if total_code_execution > 0 else 0) * 100
+        code_success_rate = (success_code_executed / total_code_executed if total_code_executed > 0 else 0) * 100
         stats["code_success_rate"] = code_success_rate
+        stats["total_code_executed"] = total_code_executed
         return {"profile": profile, "bar": bar, "stats": stats, "agents": set(agents)}

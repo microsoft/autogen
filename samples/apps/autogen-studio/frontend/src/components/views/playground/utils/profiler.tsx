@@ -1,13 +1,10 @@
-import { Select, message } from "antd";
+import { message } from "antd";
 import * as React from "react";
-import { LoadingOverlay } from "../../../atoms";
-import { IWorkflow, IStatus, IMessage, IChatMessage } from "../../../types";
+import { IStatus, IChatMessage } from "../../../types";
 import { fetchJSON, getServerUrl } from "../../../utils";
 import { appContext } from "../../../../hooks/provider";
-import { Link } from "gatsby";
-import RadarMetrics from "./charts/radar";
-import BarChart from "@ant-design/plots/es/components/bar";
-import BarChartViewer from "./charts/bar";
+
+const BarChartViewer = React.lazy(() => import("./charts/bar"));
 
 const ProfilerView = ({
   agentMessage,

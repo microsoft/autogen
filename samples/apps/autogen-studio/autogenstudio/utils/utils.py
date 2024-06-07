@@ -469,3 +469,39 @@ def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: Mo
     ]
     response = client.create(messages=summarization_prompt, cache_seed=None)
     return response.choices[0].message.content
+
+
+def get_autogen_log(db_path="logs.db"):
+    """
+    Fetches data the autogen logs database.
+    Args:
+        dbname (str): Name of the database file. Defaults to "logs.db".
+        table (str): Name of the table to query. Defaults to "chat_completions".
+
+    Returns:
+        list: A list of dictionaries, where each dictionary represents a row from the table.
+    """
+    import json
+    import sqlite3
+
+    con = sqlite3.connect(db_path)
+    query = """
+        SELECT
+            chat_completions.*,
+            agents.name AS agent_name
+        FROM
+            chat_completions
+        JOIN
+            agents ON chat_completions.wrapper_id = agents.wrapper_id
+    """
+    cursor = con.execute(query)
+    rows = cursor.fetchall()
+    column_names = [description[0] for description in cursor.description]
+    data = [dict(zip(column_names, row)) for row in rows]
+    for row in data:
+        response = json.loads(row["response"])
+        print(response)
+        total_tokens = response.get("usage", {}).get("total_tokens", 0)
+        row["total_tokens"] = total_tokens
+    con.close()
+    return data

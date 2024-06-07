@@ -117,6 +117,8 @@ export interface IGalleryItem {
 export interface ISkill {
   name: string;
   content: string;
+  secrets?: any[];
+  libraries?: string[];
   id?: number;
   description?: string;
   user_id?: string;
