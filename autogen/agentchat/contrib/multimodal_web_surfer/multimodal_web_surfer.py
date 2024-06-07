@@ -77,6 +77,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         browser_channel=DEFAULT_CHANNEL,
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
+        downloads_folder: Optional[Union[str, None]] = None,
         debug_dir: Optional[str] = None,
         navigation_allow_list=lambda url: True,
         markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
@@ -116,6 +117,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
+        self.downloads_folder = downloads_folder
 
         # Handle the allow list
         self._navigation_allow_list = navigation_allow_list
@@ -596,7 +598,27 @@ You are to respond to the user's most recent request by selecting an appropriate
         self._page.go_back()
 
     def _visit_page(self, url):
-        self._page.goto(url)
+        try:
+            # Regular webpage
+            self._page.goto(url)
+        except Exception as e:
+            # Downloaded file
+            if self.downloads_folder and "net::ERR_ABORTED" in str(e):
+                with self._page.expect_download() as download_info:
+                    try:
+                        self._page.goto(url)
+                    except Exception as e:
+                        if "net::ERR_ABORTED" in str(e):
+                            pass
+                        else:
+                            raise e
+                    download = download_info.value
+                    fname = os.path.join(self.downloads_folder, download.suggested_filename)
+                    download.save_as(fname)
+                    message = f"<body style=\"margin: 20px;\"><h1>Successfully downloaded '{download.suggested_filename}' to local path:<br><br>{fname}</h1></body>"
+                    self._page.goto("data:text/html;base64," + base64.b64encode(message.encode("utf-8")).decode("utf-8"))
+            else:
+                raise e
 
     def _page_down(self):
         self._page.evaluate(f"window.scrollBy(0, {VIEWPORT_HEIGHT-50});")

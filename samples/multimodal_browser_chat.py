@@ -20,7 +20,8 @@ def main():
         headless=True,
         browser_channel="chromium",
         browser_data_dir=None,
-        start_page="https://www.bing.com/",
+        start_page="about:blank",
+        downloads_folder=os.getcwd(),
         debug_dir=os.path.join(os.getcwd(), "debug"),
     )
 
