@@ -45,6 +45,7 @@ export const AgentConfigView = ({
   const createAgentUrl = `${serverUrl}/agents`;
   const [controlChanged, setControlChanged] = React.useState<boolean>(false);
   const [selectedDbType, setSelectedDbType] = React.useState(agent.config?.retrieve_config?.vector_db);
+  const [dbConfig, setDbConfig] = React.useState(agent.config?.retrieve_config?.db_config || {});
   const [selectedAuthType, setSelectedAuthType] = React.useState("String");
 
   const onControlChange = (value: any, key: string) => {
@@ -57,6 +58,7 @@ export const AgentConfigView = ({
             [key]: value,
             db_config: {
               ...agent.config.retrieve_config?.db_config,
+              ...dbConfig,
               [key]: value,
             },
           },
@@ -68,6 +70,12 @@ export const AgentConfigView = ({
     }
     if (value === "String" || value === "Basic") {
       setSelectedAuthType(value);
+    }
+    if (["connection_string", "username", "password", "host", "port", "database"].includes(key)) {
+      setDbConfig({
+        ...dbConfig,
+        [key]: value,
+      });
     }
     setAgent(updatedAgent);
     setControlChanged(true);
@@ -120,6 +128,16 @@ export const AgentConfigView = ({
 
   const hasChanged =
       (!controlChanged || !nameValidation.status) && agent?.id !== undefined;
+
+  const validatePort = (value: any) => {
+    const port = parseInt(value, 10);
+    if (port >= 1 && port <= 65535) {
+      onControlChange(port, "port");
+    } else {
+      // Optionally, you can show a message or handle invalid input differently
+      console.warn("Port number must be between 1 and 65535");
+    }
+  };
 
   return (
       <div className="text-primary">
@@ -475,71 +493,40 @@ export const AgentConfigView = ({
                     {selectedAuthType === "Basic" && (
                       <div>
                         <ControlRowView
-                            title="Username"
-                            className="mt-4"
-                            description="Postgres username"
-                            value={agent.config?.retrieve_config?.db_config?.username || ""}
-                            control={
-                              <Input
-                                  className="mt-2"
-                                  placeholder="Postgres username"
-                                  value={agent.config.retrieve_config.db_config.username || ""}
-                                  onChange={(e) => {
-                                    onControlChange(e.target.value, "username");
-                                  }}
-                              />
-                            }
+                          title="PGVector Host"
+                          className="mt-4"
+                          description="Postgres connection string"
+                          value={dbConfig.host || ""}
+                          control={
+                            <Input
+                                className="mt-2"
+                                placeholder="Postgres host"
+                                value={dbConfig.host || ""}
+                                onChange={(e) => {
+                                  onControlChange(e.target.value, "host");
+                                }}
+                            />
+                          }
                         />
 
                         <ControlRowView
-                            title="Password"
-                            className="mt-4"
-                            description="Postgres password"
-                            value={agent.config?.retrieve_config?.db_config?.password || ""}
-                            control={
-                              <Input
-                                  className="mt-2"
-                                  placeholder="Postgres password"
-                                  value={agent.config.retrieve_config.db_config.password || ""}
-                                  onChange={(e) => {
-                                    onControlChange(e.target.value, "password");
-                                  }}
-                              />
-                            }
-                        />
-
-                        <ControlRowView
-                            title="PGVector Host"
-                            className="mt-4"
-                            description="Postgres connection string"
-                            value={agent.config?.retrieve_config?.db_config?.host || ""}
-                            control={
-                              <Input
-                                  className="mt-2"
-                                  placeholder="Postgres host"
-                                  value={agent.config.retrieve_config.db_config.host || ""}
-                                  onChange={(e) => {
-                                    onControlChange(e.target.value, "host");
-                                  }}
-                              />
-                            }
-                        />
-
-                        <ControlRowView
-                            title="PGVector Port"
-                            className="mt-4"
-                            description="Postgres port"
-                            value={agent.config?.retrieve_config?.db_config?.port || ""}
-                            control={
-                              <Input
-                                  className="mt-2"
-                                  placeholder="Postgres port"
-                                  value={agent.config.retrieve_config.db_config.port || ""}
-                                  onChange={(e) => {
-                                    onControlChange(e.target.value, "port");
-                                  }}
-                              />
-                            }
+                          title="PGVector Port"
+                          className="mt-4"
+                          description="Postgres port"
+                          value={dbConfig.port || ""}
+                          control={
+                            <Input
+                              className="mt-2"
+                              placeholder="Postgres port"
+                              type="number"
+                              min={1}
+                              max={65535}
+                              value={dbConfig.port || ""}
+                              onChange={(e) => {
+                                validatePort(e.target.value);
+                              }}
+                            />
+                          }
                         />
 
                         <ControlRowView
@@ -557,6 +544,40 @@ export const AgentConfigView = ({
                                   }}
                               />
                             }
+                        />
+                        <ControlRowView
+                            title="Username"
+                            className="mt-4"
+                            description="Postgres username"
+                            value={dbConfig.username || ""}
+                            control={
+                              <Input
+                                  className="mt-2"
+                                  placeholder="Postgres username"
+                                  value={dbConfig.username || ""}
+                                  onChange={(e) => {
+                                    onControlChange(e.target.value, "username");
+                                  }}
+                              />
+                            }
+                        />
+
+                        <ControlRowView
+                          title="PGVector Password"
+                          className="mt-4"
+                          description="Postgres password"
+                          value="Password"
+                          control={
+                            <Input
+                              type="password"
+                              className="mt-2"
+                              placeholder="Postgres password"
+                              value={dbConfig.password || ""}
+                              onChange={(e) => {
+                                onControlChange(e.target.value, "password");
+                              }}
+                            />
+                          }
                         />
                       </div>
                     )}
