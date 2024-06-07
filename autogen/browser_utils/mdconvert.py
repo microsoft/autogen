@@ -1,43 +1,42 @@
 # ruff: noqa: E722
-import os
-import re
-import io
-import sys
-import requests
-import json
-import markdownify
-
-# File-format detection
-import puremagic
-import mimetypes
-from binaryornot.check import is_binary
-
-import html
-import pathlib
-import tempfile
-import copy
-import mammoth
-import pptx
-import traceback
-import shutil
-import subprocess
 import base64
 import binascii
+import copy
+import html
+import io
+import json
+import mimetypes
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import traceback
+from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlunparse
+from urllib.request import url2pathname
+
+import mammoth
+import markdownify
 import pandas as pd
 import pdfminer
 import pdfminer.high_level
+import pptx
 
-from urllib.parse import urljoin, urlparse, parse_qs, quote, unquote, urlunparse
-from urllib.request import url2pathname
+# File-format detection
+import puremagic
+import requests
+from binaryornot.check import is_binary
 from bs4 import BeautifulSoup
-from typing import Any, Dict, List, Optional, Union, Tuple
 
 # Optional OCR support
 IS_OCR_CAPABLE = False
 try:
     import easyocr
-    import PIL
     import numpy as np
+    import PIL
 
     IS_OCR_CAPABLE = True
 except ModuleNotFoundError:

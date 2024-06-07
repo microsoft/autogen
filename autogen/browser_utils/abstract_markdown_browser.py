@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 
 class AbstractMarkdownBrowser(ABC):

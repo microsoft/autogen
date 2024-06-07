@@ -3,6 +3,7 @@ import sys
 import argparse
 import tabulate as tb
 from .load_module import load_module
+from copy import deepcopy
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -11,14 +12,8 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 TABULATE_FILE = "custom_tabulate.py"
 
-# Is the task considered a success?
 SUCCESS_STRINGS = [
     "ALL TESTS PASSED !#!#",
-]
-
-# Did the task exit cleanly, or did it crash?
-EXIT_SUCCESS_STRINGS = [
-    "SCENARIO.PY COMPLETE !#!#",
 ]
 
 EXCLUDE_DIR_NAMES = ["__pycache__"]
@@ -58,21 +53,11 @@ def find_tabulate_module(search_dir, stop_dir=None):
         search_dir = parent_dir
 
 
-def default_scorer(instance_dir, success_strings=SUCCESS_STRINGS, exit_success_strings=EXIT_SUCCESS_STRINGS):
+def default_scorer(instance_dir, success_strings=SUCCESS_STRINGS):
     console_log = os.path.join(instance_dir, "console_log.txt")
     if os.path.isfile(console_log):
         with open(console_log, "rt") as fh:
             content = fh.read()
-
-            exit_success = False
-            for s in exit_success_strings:
-                if s in content:
-                    exit_success = True
-                    break
-
-            if not exit_success:
-                return None
-
             for s in success_strings:
                 if s in content:
                     return True
@@ -102,6 +87,10 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
         "--csv",
         action="store_true",
         help="Output the results in CSV format.",
+    )
+
+    parser.add_argument(
+        "-e", "--excel", help="Output the results in Excel format. Please specify a path for the Excel file.", type=str
     )
 
     parsed_args = parser.parse_args(args)
@@ -161,15 +150,17 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
         def _count_equals(value, trial):
             count = 0
             for row in all_results:
+                is_answer_matched = row[trial + 1][0] if isinstance(row[trial + 1], tuple) else row[trial + 1]
+
                 # Count missing
                 if value is None:
                     if trial + 1 < len(row):
-                        if row[trial + 1] is None:
+                        if is_answer_matched is None:
                             count += 1
                     else:
                         count += 1
                 # Count match
-                elif trial + 1 < len(row) and row[trial + 1] == value:
+                elif trial + 1 < len(row) and is_answer_matched == value:
                     count += 1
             return count
 
@@ -194,7 +185,12 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
             footer_row.append(footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1])
         footer.append(footer_row)
 
-        table = all_results.copy()
+        table = deepcopy(all_results)
+        for row in table:
+            for trial in range(0, max_instances):
+                if isinstance(row[trial + 1], tuple):
+                    row[trial + 1] = row[trial + 1][0]
+
         table.append(tb.SEPARATING_LINE)
         table.extend(footer)
 
@@ -202,6 +198,7 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
 
         # Print out alpha-version warning
         sys.stderr.write("\n" + warning + "\n\n")
+    return parsed_args, all_results
 
 
 def tabulate_cli(args):

@@ -1,6 +1,5 @@
-import time
 from AppAgents import GreeterAgent
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ComponentEnsemble import ComponentEnsemble
 
 
 def simple_actor_demo():
@@ -9,16 +8,10 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
-
-    network = LocalActorNetwork()
-    # Register an actor
-    network.register(GreeterAgent())
-    # Tell actor to connect to other actors
-    network.connect()
-    # Get a channel to the actor
-    greeter_link = network.lookup_actor("Greeter")
-    # Send a message to the actor
+    ensemble = ComponentEnsemble()
+    agent = GreeterAgent()
+    ensemble.register(agent)
+    ensemble.connect()
+    greeter_link = ensemble.find_by_name("Greeter")
     greeter_link.send_txt_msg("Hello World!")
-    # Cleanup
-    greeter_link.close()
-    network.disconnect()
+    ensemble.disconnect()

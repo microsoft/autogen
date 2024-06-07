@@ -4,7 +4,7 @@ import threading
 from contextlib import contextmanager
 from functools import partial
 from time import sleep
-from typing import Any, Callable, Dict, Iterable, Iterator, Optional, TYPE_CHECKING, Protocol, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, Optional, Protocol, Union
 
 from .base import IOStream
 

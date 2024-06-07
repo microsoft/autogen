@@ -1,33 +1,41 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
-import sys
-import pytest
 from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+from conftest import skip_docker
 
 import autogen
 from autogen.code_utils import (
     UNKNOWN,
+    check_can_use_docker_or_throw,
     content_str,
+    create_virtual_env,
+    decide_use_docker,
     execute_code,
     extract_code,
-    improve_code,
     get_powershell_command,
+    improve_code,
     improve_function,
+    in_docker_container,
     infer_lang,
     is_docker_running,
-    in_docker_container,
-    decide_use_docker,
-    check_can_use_docker_or_throw,
 )
-from conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
+
+if skip_docker or not is_docker_running() or not decide_use_docker(use_docker=None):
+    skip_docker_test = True
+else:
+    skip_docker_test = False
 
 
 # def test_find_code():
@@ -301,10 +309,7 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
+@pytest.mark.skipif(skip_docker_test, reason="docker is not running or requested to skip docker tests")
 def test_execute_code(use_docker=True):
     # Test execute code and save the code to a file.
     with tempfile.TemporaryDirectory() as tempdir:
@@ -368,10 +373,7 @@ def test_execute_code(use_docker=True):
             assert isinstance(image, str)
 
 
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
+@pytest.mark.skipif(skip_docker_test, reason="docker is not running or requested to skip docker tests")
 def test_execute_code_with_custom_filename_on_docker():
     with tempfile.TemporaryDirectory() as tempdir:
         filename = "codetest.py"
@@ -386,7 +388,7 @@ def test_execute_code_with_custom_filename_on_docker():
 
 
 @pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
+    skip_docker_test,
     reason="docker is not running or requested to skip docker tests",
 )
 def test_execute_code_with_misformed_filename_on_docker():
@@ -498,6 +500,20 @@ def test_can_use_docker_or_throw():
     if not is_docker_running() and not in_docker_container():
         with pytest.raises(RuntimeError):
             check_can_use_docker_or_throw(True)
+
+
+def test_create_virtual_env():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        venv_context = create_virtual_env(temp_dir)
+        assert isinstance(venv_context, SimpleNamespace)
+        assert venv_context.env_name == os.path.split(temp_dir)[1]
+
+
+def test_create_virtual_env_with_extra_args():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        venv_context = create_virtual_env(temp_dir, with_pip=False)
+        assert isinstance(venv_context, SimpleNamespace)
+        assert venv_context.env_name == os.path.split(temp_dir)[1]
 
 
 def _test_improve():

@@ -10,9 +10,9 @@ class JupyterConnectionInfo:
     """`str` - Host of the Jupyter gateway server"""
     use_https: bool
     """`bool` - Whether to use HTTPS"""
-    port: int
-    """`int` - Port of the Jupyter gateway server"""
-    token: Optional[str]
+    port: Optional[int] = None
+    """`Optional[int]` - Port of the Jupyter gateway server. If None, the default port is used"""
+    token: Optional[str] = None
     """`Optional[str]` - Token for authentication. If None, no token is used"""
 
 

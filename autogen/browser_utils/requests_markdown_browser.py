@@ -1,24 +1,25 @@
 # ruff: noqa: E722
-import json
-import os
-import requests
-import re
-import io
-import uuid
-import mimetypes
-import time
 import datetime
-import pathlib
-import pathvalidate
 import html
+import io
+import json
+import mimetypes
+import os
+import pathlib
+import re
+import time
 import traceback
-from urllib.parse import urljoin, urlparse, unquote, parse_qs
+import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
 from urllib.request import url2pathname
-from typing import Any, Dict, List, Optional, Union, Tuple
 
-from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+import pathvalidate
+import requests
+
 from .abstract_markdown_browser import AbstractMarkdownBrowser
 from .markdown_search import AbstractMarkdownSearch, BingMarkdownSearch
+from .mdconvert import FileConversionException, MarkdownConverter, UnsupportedFormatException
 
 
 class RequestsMarkdownBrowser(AbstractMarkdownBrowser):

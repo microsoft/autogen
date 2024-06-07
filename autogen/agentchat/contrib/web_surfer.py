@@ -1,16 +1,16 @@
 import copy
-import re
-import time
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
-from typing_extensions import Annotated
-from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
-from ...code_utils import content_str
-from ...token_count_utils import count_token, get_max_token_limit
-from ...oai.openai_utils import filter_config
+import re
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
+from typing_extensions import Annotated
+
+from ... import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper, UserProxyAgent
+from ...browser_utils import AbstractMarkdownBrowser, BingMarkdownSearch, RequestsMarkdownBrowser
+from ...code_utils import content_str
+from ...oai.openai_utils import filter_config
+from ...token_count_utils import count_token, get_max_token_limit
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +18,7 @@ logger = logging.getLogger(__name__)
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
-    DEFAULT_PROMPT = (
-        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
-        + datetime.now().date().isoformat()
-    )
+    DEFAULT_PROMPT = "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find."
 
     DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, download files, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
 
@@ -151,12 +148,6 @@ class WebSurferAgent(ConversableAgent):
 
             current_page = self.browser.viewport_current_page
             total_pages = len(self.browser.viewport_pages)
-
-            address = self.browser.address
-            for i in range(len(self.browser.history) - 2, -1, -1):  # Start from the second last
-                if self.browser.history[i][0] == address:
-                    header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
-                    break
 
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 -m pytest
-import pytest
 import os
+
+import pytest
 
 try:
     from autogen.browser_utils import BingMarkdownSearch

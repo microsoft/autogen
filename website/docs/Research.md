@@ -61,15 +61,39 @@ For technical details, please check our technical report and research publicatio
 }
 ```
 
-* [Training Language Model Agents without Modifying Language Models](https://arxiv.org/abs/2402.11359). Shaokun Zhang, Jieyu Zhang, Jiale Liu, Linxin Song, Chi Wang, Ranjay Krishna, Qingyun Wu. ArXiv preprint arXiv:2402.09015 (2024).
+* [Training Language Model Agents without Modifying Language Models](https://arxiv.org/abs/2402.11359). Shaokun Zhang, Jieyu Zhang, Jiale Liu, Linxin Song, Chi Wang, Ranjay Krishna, Qingyun Wu. ICML'24.
 
 ```bibtex
 @misc{zhang2024agentoptimizer,
       title={Training Language Model Agents without Modifying Language Models},
       author={Shaokun Zhang and Jieyu Zhang and Jiale Liu and Linxin Song and Chi Wang and Ranjay Krishna and Qingyun Wu},
       year={2024},
-      eprint={2402.11359},
+      booktitle={ICML'24},
+}
+```
+
+* [AutoDefense: Multi-Agent LLM Defense against Jailbreak Attacks](https://arxiv.org/abs/2403.04783). Yifan Zeng, Yiran Wu, Xiao Zhang, Huazheng Wang, Qingyun Wu. ArXiv preprint arXiv:2403.04783 (2024).
+
+```bibtex
+@misc{zeng2024autodefense,
+      title={AutoDefense: Multi-Agent LLM Defense against Jailbreak Attacks},
+      author={Yifan Zeng and Yiran Wu and Xiao Zhang and Huazheng Wang and Qingyun Wu},
+      year={2024},
+      eprint={2403.04783},
       archivePrefix={arXiv},
-      primaryClass={cs.AI}
+      primaryClass={cs.LG}
+}
+```
+
+* [StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows](https://arxiv.org/abs/2403.11322). Yiran Wu, Tianwei Yue, Shaokun Zhang, Chi Wang, Qingyun Wu. ArXiv preprint arXiv:2403.11322 (2024).
+
+```bibtex
+@misc{wu2024stateflow,
+        title={StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows},
+        author={Yiran Wu and Tianwei Yue and Shaokun Zhang and Chi Wang and Qingyun Wu},
+        year={2024},
+        eprint={2403.11322},
+        archivePrefix={arXiv},
+        primaryClass={cs.CL}
 }
 ```

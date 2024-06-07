@@ -1,21 +1,24 @@
-import os
+import argparse
 import errno
+import json
+import logging
+import os
+import pathlib
+import random
 import shutil
 import subprocess
-import json
 import sys
 import time
-import pathlib
-import argparse
-import docker
-import random
-import logging
 import traceback
+
+import docker
+from azure.core.exceptions import ClientAuthenticationError
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from openai import AzureOpenAI
+
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
-from openai import AzureOpenAI
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from azure.core.exceptions import ClientAuthenticationError
+
 from .version import __version__
 
 # Figure out where everything is
@@ -263,8 +266,13 @@ def get_scenario_env(config_list, token_provider, env_file=DEFAULT_ENV_FILE):
     if bing_api_key is not None and len(bing_api_key.strip()) > 0:
         env["BING_API_KEY"] = bing_api_key
 
-    if token_provider:
-        env["AZURE_BEARER_TOKEN"] = token_provider()
+    # Support Azure auth tokens
+    azure_openai_ad_token = os.environ.get("AZURE_OPENAI_AD_TOKEN")
+    if not azure_openai_ad_token and token_provider:
+        azure_openai_ad_token = token_provider()
+
+    if azure_openai_ad_token is not None and len(azure_openai_ad_token.strip()) > 0:
+        env["AZURE_OPENAI_AD_TOKEN"] = azure_openai_ad_token
 
     # Update with any values from the ENV.json file
     if os.path.isfile(env_file):
@@ -727,9 +735,9 @@ def run_cli(args):
                     )
                 )
 
-    # Get the Azure bearer token generator if there's any evidence of using Azure
+    # Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure
     azure_token_provider = None
-    if os.path.isdir(pathlib.Path("~/.azure").expanduser()):
+    if not os.environ.get("AZURE_OPENAI_AD_TOKEN") and os.path.isdir(pathlib.Path("~/.azure").expanduser()):
         logging.disable(logging.CRITICAL)
         try:
             azure_token_provider = get_bearer_token_provider(
