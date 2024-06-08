@@ -326,6 +326,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     extra_kwargs = {
+        "agent",
         "cache",
         "cache_seed",
         "filter_func",
@@ -413,6 +414,14 @@ class OpenAIWrapper:
         if openai_config["azure_deployment"] is not None:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
+
+        # Create a default Azure token provider if requested
+        if openai_config.get("azure_ad_token_provider") == "DEFAULT":
+            import azure.identity
+
+            openai_config["azure_ad_token_provider"] = azure.identity.get_bearer_token_provider(
+                azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
 
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
@@ -546,6 +555,7 @@ class OpenAIWrapper:
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
+            - agent (AbstractAgent | None): The object responsible for creating a completion if an agent.
             - (Legacy) cache_seed (int | None) for using the DiskCache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
@@ -593,6 +603,7 @@ class OpenAIWrapper:
             cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
+            agent = extra_kwargs.get("agent")
 
             total_usage = None
             actual_usage = None
@@ -630,6 +641,7 @@ class OpenAIWrapper:
                                 invocation_id=invocation_id,
                                 client_id=id(client),
                                 wrapper_id=id(self),
+                                agent=agent,
                                 request=params,
                                 response=response,
                                 is_cached=1,
@@ -662,6 +674,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        agent=agent,
                         request=params,
                         response=f"error_code:{error_code}, config {i} failed",
                         is_cached=0,
@@ -692,6 +705,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        agent=agent,
                         request=params,
                         response=response,
                         is_cached=0,

@@ -7,8 +7,8 @@ from IPython import get_ipython
 
 try:
     import chromadb
-except ImportError:
-    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
+except ImportError as e:
+    raise ImportError(f"{e}. You can try `pip install pyautogen[retrievechat]`, or install `chromadb` manually.")
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
@@ -253,7 +253,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._vector_db = self._retrieve_config.get("vector_db", "chroma")
         self._db_config = self._retrieve_config.get("db_config", {})
-        self._client = self._retrieve_config.get("client", chromadb.Client())
+        self._client = self._retrieve_config.get("client", None)
+        if self._client is None:
+            self._client = chromadb.Client()
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
         self._new_docs = self._retrieve_config.get("new_docs", True)
