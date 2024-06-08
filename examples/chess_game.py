@@ -7,20 +7,18 @@ You must have OPENAI_API_KEY set up in your environment to run this example.
 import argparse
 import asyncio
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
 from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
+from agnext.chat.patterns.two_agent_chat import TwoAgentChat
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
-from chess import SQUARE_NAMES, Board, Move
+from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-
-logging.basicConfig(level=logging.WARNING)
-logging.getLogger("agnext").setLevel(logging.DEBUG)
 
 
 class ChessGameOutput(GroupChatOutput):  # type: ignore
@@ -34,34 +32,136 @@ class ChessGameOutput(GroupChatOutput):  # type: ignore
         pass
 
 
+def validate_turn(board: Board, player: Literal["white", "black"]) -> None:
+    """Validate that it is the player's turn to move."""
+    last_move = board.peek() if board.move_stack else None
+    if last_move is not None:
+        if player == "white" and board.color_at(last_move.to_square) == WHITE:
+            raise ValueError("It is not your turn to move. Wait for black to move.")
+        if player == "black" and board.color_at(last_move.to_square) == BLACK:
+            raise ValueError("It is not your turn to move. Wait for white to move.")
+    elif last_move is None and player != "white":
+        raise ValueError("It is not your turn to move. Wait for white to move first.")
+
+
+def get_legal_moves(
+    board: Board, player: Literal["white", "black"]
+) -> Annotated[str, "A list of legal moves in UCI format."]:
+    """Get legal moves for the given player."""
+    validate_turn(board, player)
+    legal_moves = list(board.legal_moves)
+    if player == "black":
+        legal_moves = [move for move in legal_moves if board.color_at(move.from_square) == BLACK]
+    elif player == "white":
+        legal_moves = [move for move in legal_moves if board.color_at(move.from_square) == WHITE]
+    else:
+        raise ValueError("Invalid player, must be either 'black' or 'white'.")
+    if not legal_moves:
+        return "No legal moves. The game is over."
+
+    return "Possible moves are: " + ", ".join([move.uci() for move in legal_moves])
+
+
+def get_board(board: Board) -> str:
+    return str(board)
+
+
+def make_move(
+    board: Board,
+    player: Literal["white", "black"],
+    thinking: Annotated[str, "Thinking for the move."],
+    move: Annotated[str, "A move in UCI format."],
+) -> Annotated[str, "Result of the move."]:
+    """Make a move on the board."""
+    validate_turn(board, player)
+    newMove = Move.from_uci(move)
+    board.push(newMove)
+
+    # Print the move.
+    print("-" * 50)
+    print("Player:", player)
+    print("Move:", newMove.uci())
+    print("Thinking:", thinking)
+    print("Board:")
+    print(board.unicode(borders=True))
+
+    # Get the piece name.
+    piece = board.piece_at(newMove.to_square)
+    assert piece is not None
+    piece_symbol = piece.unicode_symbol()
+    piece_name = get_piece_name(piece.piece_type)
+    if piece_symbol.isupper():
+        piece_name = piece_name.capitalize()
+    return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[newMove.from_square]} to {SQUARE_NAMES[newMove.to_square]}."
+
+
 def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
     """Create agents for a chess game and return the group chat."""
 
     # Create the board.
     board = Board()
 
-    # Create shared tools.
-    def get_legal_moves() -> Annotated[str, "A list of legal moves in UCI format."]:
-        return "Possible moves are: " + ", ".join([str(move) for move in board.legal_moves])
+    # Create tools for each player.
+    # @functools.wraps(get_legal_moves)
+    def get_legal_moves_black() -> str:
+        return get_legal_moves(board, "black")
 
-    get_legal_moves_tool = FunctionTool(get_legal_moves, description="Get legal moves.")
+    # @functools.wraps(get_legal_moves)
+    def get_legal_moves_white() -> str:
+        return get_legal_moves(board, "white")
 
-    def make_move(input: Annotated[str, "A move in UCI format."]) -> Annotated[str, "Result of the move."]:
-        move = Move.from_uci(input)
-        board.push(move)
-        print(board.unicode(borders=True))
-        # Get the piece name.
-        piece = board.piece_at(move.to_square)
-        assert piece is not None
-        piece_symbol = piece.unicode_symbol()
-        piece_name = get_piece_name(piece.piece_type)
-        if piece_symbol.isupper():
-            piece_name = piece_name.capitalize()
-        return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[move.from_square]} to {SQUARE_NAMES[move.to_square]}."
+    # @functools.wraps(make_move)
+    def make_move_black(
+        thinking: Annotated[str, "Thinking for the move"],
+        move: Annotated[str, "A move in UCI format"],
+    ) -> str:
+        return make_move(board, "black", thinking, move)
 
-    make_move_tool = FunctionTool(make_move, description="Call this tool to make a move.")
+    # @functools.wraps(make_move)
+    def make_move_white(
+        thinking: Annotated[str, "Thinking for the move"],
+        move: Annotated[str, "A move in UCI format"],
+    ) -> str:
+        return make_move(board, "white", thinking, move)
 
-    tools = [get_legal_moves_tool, make_move_tool]
+    def get_board_text() -> Annotated[str, "The current board state"]:
+        return get_board(board)
+
+    black_tools = [
+        FunctionTool(
+            get_legal_moves_black,
+            name="get_legal_moves",
+            description="Get legal moves.",
+        ),
+        FunctionTool(
+            make_move_black,
+            name="make_move",
+            description="Make a move.",
+        ),
+        FunctionTool(
+            get_board_text,
+            name="get_board",
+            description="Get the current board state.",
+        ),
+    ]
+
+    white_tools = [
+        FunctionTool(
+            get_legal_moves_white,
+            name="get_legal_moves",
+            description="Get legal moves.",
+        ),
+        FunctionTool(
+            make_move_white,
+            name="make_move",
+            description="Make a move.",
+        ),
+        FunctionTool(
+            get_board_text,
+            name="get_board",
+            description="Get the current board state.",
+        ),
+    ]
 
     black = ChatCompletionAgent(
         name="PlayerBlack",
@@ -70,12 +170,13 @@ def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
         system_messages=[
             SystemMessage(
                 content="You are a chess player and you play as black. "
-                "First call get_legal_moves() first, to get list of legal moves. "
-                "Then call make_move(move) to make a move."
+                "Use get_legal_moves() to get list of legal moves. "
+                "Use get_board() to get the current board state. "
+                "Think about your strategy and call make_move(thinking, move) to make a move."
             ),
         ],
         model_client=OpenAI(model="gpt-4-turbo"),
-        tools=tools,
+        tools=black_tools,
     )
     white = ChatCompletionAgent(
         name="PlayerWhite",
@@ -84,19 +185,21 @@ def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
         system_messages=[
             SystemMessage(
                 content="You are a chess player and you play as white. "
-                "First call get_legal_moves() first, to get list of legal moves. "
-                "Then call make_move(move) to make a move."
+                "Use get_legal_moves() to get list of legal moves. "
+                "Use get_board() to get the current board state. "
+                "Think about your strategy and call make_move(thinking, move) to make a move."
             ),
         ],
         model_client=OpenAI(model="gpt-4-turbo"),
-        tools=tools,
+        tools=white_tools,
     )
-    game_chat = GroupChat(
+    game_chat = TwoAgentChat(
         name="ChessGame",
         description="A chess game between two agents.",
         runtime=runtime,
-        agents=[white, black],
-        num_rounds=10,
+        first_speaker=white,
+        second_speaker=black,
+        num_rounds=100,
         output=ChessGameOutput(),
     )
     return game_chat
@@ -117,5 +220,10 @@ if __name__ == "__main__":
         default="Please make a move.",
         help="The initial message to send to the agent playing white.",
     )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.WARNING)
+        logging.getLogger("agnext").setLevel(logging.DEBUG)
+
     asyncio.run(main(args.initial_message))

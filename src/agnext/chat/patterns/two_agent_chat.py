@@ -12,8 +12,8 @@ class TwoAgentChat(GroupChat):
         name: str,
         description: str,
         runtime: AgentRuntime,
-        initial_sender: BaseChatAgent,
-        initial_recipient: BaseChatAgent,
+        first_speaker: BaseChatAgent,
+        second_speaker: BaseChatAgent,
         num_rounds: int,
         output: GroupChatOutput,
     ) -> None:
@@ -21,7 +21,7 @@ class TwoAgentChat(GroupChat):
             name,
             description,
             runtime,
-            [initial_recipient, initial_sender],
+            [first_speaker, second_speaker],
             num_rounds,
             output,
         )
