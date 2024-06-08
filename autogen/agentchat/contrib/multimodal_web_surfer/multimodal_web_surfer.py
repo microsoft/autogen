@@ -152,6 +152,13 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         self._route_handler = _route_handler
 
+        # Download handler
+        def _download_handler(download):
+            self._last_download = download
+
+        self._download_handler = _download_handler
+        self._last_download = None
+
         # Create or use the provided MarkdownConverter
         if markdown_converter is None:
             self._markdown_converter = MarkdownConverter()
@@ -186,6 +193,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # Create the page
         self._page = self._context.new_page()
         self._page.route(lambda x: True, self._route_handler)
+        self._page.on("download", self._download_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.goto(self.start_page)
@@ -390,6 +398,7 @@ You are to respond to the user's most recent request by selecting an appropriate
         message = response.choices[0].message
 
         action_description = ""
+        self._last_download = None
         try:
             if message.tool_calls:
                 # We will only call one tool
@@ -486,6 +495,14 @@ You are to respond to the user's most recent request by selecting an appropriate
 
         self._page.wait_for_load_state()
         time.sleep(2)
+
+        # Handle downloads
+        if self._last_download is not None and self.downloads_folder is not None:
+            fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
+            self._last_download.save_as(fname)
+            page_body = f"<body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body>"
+            self._page.goto("data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8"))
+            self._page.wait_for_load_state()
 
         # Descrive the viewport of the new page in words
         viewport = self._get_visual_viewport()
@@ -588,6 +605,7 @@ You are to respond to the user's most recent request by selecting an appropriate
     def _on_new_page(self, page):
         self._page = page
         self._page.route(lambda x: True, self._route_handler)
+        self._page.on("download", self._download_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
@@ -617,6 +635,7 @@ You are to respond to the user's most recent request by selecting an appropriate
                     download.save_as(fname)
                     message = f"<body style=\"margin: 20px;\"><h1>Successfully downloaded '{download.suggested_filename}' to local path:<br><br>{fname}</h1></body>"
                     self._page.goto("data:text/html;base64," + base64.b64encode(message.encode("utf-8")).decode("utf-8"))
+                    self._last_download = None # Since we already handled it
             else:
                 raise e
 
@@ -641,7 +660,7 @@ You are to respond to the user's most recent request by selecting an appropriate
             # Give it a chance to open a new page
             with self._page.expect_event("popup", timeout=1000) as page_info:
                 self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            self._on_new_page(page_info.value)
+                self._on_new_page(page_info.value)
         except TimeoutError:
             pass
 
