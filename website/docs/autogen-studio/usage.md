@@ -60,3 +60,22 @@ The agent workflow responds by _writing and executing code_ to create a python p
 - Playground: Users can start a new session, select an agent workflow, and engage in a "chat" with this agent workflow. It is important to note the significant differences between a traditional chat with a Large Language Model (LLM) and a chat with a group of agents. In the former, the response is typically a single formatted reply, while in the latter, it consists of a history of conversations among the agents.
 
 ## Entities and Concepts -->
+
+## Testing an Agent Workflow
+
+AutoGen Studio allows users to immediately test workflows on tasks and review resulting artifacts (such as images, code, and documents).
+
+![AGS Test Workflow](./img/workflow_test.png)
+
+Users can also review the “inner monologue” of agent workflows as they address tasks, and view profiling information such as costs associated with the run (such as number of turns, number of tokens etc.), and agent actions (such as whether tools were called and the outcomes of code execution).
+
+![AGS Profile Workflow Results](./img/workflow_profile.png)
+
+## Exporting Agent Workflows
+
+Users can download the skills, agents, and workflow configurations they create as well as share and reuse these artifacts. AutoGen Studio also offers a seamless process to export workflows and deploy them as application programming interfaces (APIs) that can be consumed in other applications deploying workflows as APIs.
+
+Specifically, workflows can be exported as JavaScript Object Notation (JSON) files and loaded into any python application, launched as an API endpoint from the command line or wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps.
+Specifically, workflows can be exported as JavaScript Object Notation (JSON) files and loaded into any python application, launched as an API endpoint from the command line or wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps.
+
+![AGS Export Workflow](./img/workflow_export.png)
