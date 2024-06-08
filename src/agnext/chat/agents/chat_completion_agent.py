@@ -2,8 +2,21 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
-from agnext.chat.agents.base import BaseChatAgent
-from agnext.chat.types import (
+from ...components import (
+    FunctionCall,
+    TypeRoutedAgent,
+    message_handler,
+)
+from ...components.models import (
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    SystemMessage,
+)
+from ...components.tools import Tool
+from ...core import AgentRuntime, CancellationToken
+from ..memory import ChatMemory
+from ..types import (
     FunctionCallMessage,
     Message,
     Reset,
@@ -11,20 +24,8 @@ from agnext.chat.types import (
     ResponseFormat,
     TextMessage,
 )
-from agnext.chat.utils import convert_messages_to_llm_messages
-from agnext.components import (
-    FunctionCall,
-    TypeRoutedAgent,
-    message_handler,
-)
-from agnext.components.models import (
-    ChatCompletionClient,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    SystemMessage,
-)
-from agnext.components.tools import Tool
-from agnext.core import AgentRuntime, CancellationToken
+from ..utils import convert_messages_to_llm_messages
+from .base import BaseChatAgent
 
 
 class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
@@ -34,24 +35,25 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         description: str,
         runtime: AgentRuntime,
         system_messages: List[SystemMessage],
+        memory: ChatMemory,
         model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
     ) -> None:
         super().__init__(name, description, runtime)
         self._system_messages = system_messages
         self._client = model_client
-        self._chat_messages: List[Message] = []
+        self._memory = memory
         self._tools = tools
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         # Add a user message.
-        self._chat_messages.append(message)
+        self._memory.add_message(message)
 
     @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         # Reset the chat messages.
-        self._chat_messages = []
+        self._memory.clear()
 
     @message_handler()
     async def on_respond_now(
@@ -59,7 +61,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
     ) -> TextMessage | FunctionCallMessage:
         # Get a response from the model.
         response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(self._chat_messages, self.name),
+            self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
             tools=self._tools,
             json_output=message.response_format == ResponseFormat.json_object,
         )
@@ -80,7 +82,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
             )
             # Make an assistant message from the response.
             response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(self._chat_messages, self.name),
+                self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
                 tools=self._tools,
                 json_output=message.response_format == ResponseFormat.json_object,
             )
@@ -96,7 +98,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
             raise ValueError(f"Unexpected response: {response.content}")
 
         # Add the response to the chat messages.
-        self._chat_messages.append(final_response)
+        self._memory.add_message(final_response)
 
         # Return the response.
         return final_response
@@ -109,7 +111,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
             raise ValueError("No tools available")
 
         # Add a tool call message.
-        self._chat_messages.append(message)
+        self._memory.add_message(message)
 
         # Execute the tool calls.
         results: List[FunctionExecutionResult] = []
@@ -146,7 +148,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         tool_call_result_msg = FunctionExecutionResultMessage(content=results)
 
         # Add tool call result message.
-        self._chat_messages.append(tool_call_result_msg)
+        self._memory.add_message(tool_call_result_msg)
 
         # Return the results.
         return tool_call_result_msg
@@ -172,11 +174,11 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
     def save_state(self) -> Mapping[str, Any]:
         return {
             "description": self.description,
-            "chat_messages": self._chat_messages,
+            "memory": self._memory.save_state(),
             "system_messages": self._system_messages,
         }
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._chat_messages = state["chat_messages"]
+        self._memory.load_state(state["memory"])
         self._system_messages = state["system_messages"]
         self._description = state["description"]

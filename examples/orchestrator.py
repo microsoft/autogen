@@ -11,6 +11,7 @@ from agnext.application import (
 )
 from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
+from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns.orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
@@ -83,6 +84,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         description="A developer that writes code.",
         runtime=runtime,
         system_messages=[SystemMessage("You are a Python developer.")],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
     )
 
@@ -109,6 +111,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
             SystemMessage("You are a product manager good at translating customer needs into software specifications."),
             SystemMessage("You can use the search tool to find information on the web."),
         ],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
         tools=[SearchTool()],
     )
@@ -118,6 +121,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         description="A planner that organizes and schedules tasks.",
         runtime=runtime,
         system_messages=[SystemMessage("You are a planner of complex tasks.")],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
     )
 
@@ -128,6 +132,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         system_messages=[
             SystemMessage("You are an orchestrator that coordinates the team to complete a complex task.")
         ],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
     )
 

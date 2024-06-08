@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
+from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
 from agnext.chat.patterns.two_agent_chat import TwoAgentChat
 from agnext.chat.types import TextMessage
@@ -175,6 +176,7 @@ def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
                 "Think about your strategy and call make_move(thinking, move) to make a move."
             ),
         ],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
         tools=black_tools,
     )
@@ -190,6 +192,7 @@ def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
                 "Think about your strategy and call make_move(thinking, move) to make a move."
             ),
         ],
+        memory=BufferedChatMemory(buffer_size=10),
         model_client=OpenAI(model="gpt-4-turbo"),
         tools=white_tools,
     )
