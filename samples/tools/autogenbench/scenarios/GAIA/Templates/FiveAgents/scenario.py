@@ -160,6 +160,7 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
+    downloads_folder = "coding",
     start_page=os.environ.get("HOMEPAGE", "about:blank"),
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )

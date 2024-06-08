@@ -23,12 +23,9 @@ class FileSurferAgent(ConversableAgent):
     """
 
     DEFAULT_PROMPT = (
-        """You are an AI assistant that can handle tasks that involve files (pdfs,
-ppts, txts, images, etc) .
+        """You are an AI assistant that can handle tasks that involve files (pdfs, ppts, txts, images, etc) .
 
-When given a task, first reflect on the goal and if its already accomplished.
-If its accomplished already, reply with "TERMINATE".
-If not, proceed with the following routine:
+When given a task, first reflect on the goal and if its already accomplished.  If its accomplished already, reply with "TERMINATE".  If not, proceed with the following routine:
 
     When a task requires interacting with files,
     - check if the chat history contains necessary information
@@ -38,19 +35,13 @@ If not, proceed with the following routine:
 
 To navigate files use available functions.
 
-YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO THIS ABILITY,
-so help where you can by opening files, navigating pages in the files, and
-reporting what you find.
+YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO THIS ABILITY, so help where you can by opening files, navigating pages in the files, and reporting what you find.
 
 Today's date is """
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = """A helpful assistant with access to ability to navigate
-files. Ask them to open files (local or on the web), download files, etc.
-Once on a desired page, ask them to answer questions by
-reading the page, generate summaries, find specific words or phrases on the
-page (ctrl+f), or even just scroll up or down in the viewport."""
+    DEFAULT_DESCRIPTION = """A helpful assistant with access to ability to navigate local files. When asking this agent to open a file, please provide the file's path (relative or absolute). Once the desired file is open, ask this agent to answer questions by reading the file, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."""
 
     def __init__(
         self,
