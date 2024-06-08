@@ -21,12 +21,9 @@ from typing_extensions import Annotated
 
 
 class MistralAIClient:
-    def __init__(self, config: Dict[str, Any], change_last_system_to_user=True):
+    def __init__(self, config: Dict[str, Any]):
         self._config = config
         self.model = config.get("model", None)
-        self.change_last_system_to_user = (
-            change_last_system_to_user  # If the first and last message role is 'system' it will change it to 'user'
-        )
 
         assert (
             self.model
