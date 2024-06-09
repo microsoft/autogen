@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace AutoGen.Anthropic.DTO;
-
-using System.Collections.Generic;
 
 public class ChatCompletionRequest
 {
@@ -50,9 +49,15 @@ public class ChatMessage
     public string Role { get; set; }
 
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    public List<ContentBase> Content { get; set; }
 
     public ChatMessage(string role, string content)
+    {
+        Role = role;
+        Content = new List<ContentBase>() { new TextContent { Text = content } };
+    }
+
+    public ChatMessage(string role, List<ContentBase> content)
     {
         Role = role;
         Content = content;
