@@ -456,7 +456,7 @@ class OpenAIWrapper:
             elif api_type is not None and api_type.startswith("mistral"):
                 if mistral_import_exception:
                     raise ImportError("Please install `mistralai` to use the Mistral.AI API.")
-                client = MistralAIClient(**openai_config)
+                client = MistralAIClient(config=config)
                 self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
