@@ -25,10 +25,9 @@ from ..types import (
     TextMessage,
 )
 from ..utils import convert_messages_to_llm_messages
-from .base import BaseChatAgent
 
 
-class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
+class ChatCompletionAgent(TypeRoutedAgent):
     def __init__(
         self,
         name: str,
@@ -40,6 +39,7 @@ class ChatCompletionAgent(BaseChatAgent, TypeRoutedAgent):
         tools: Sequence[Tool] = [],
     ) -> None:
         super().__init__(name, description, runtime)
+        self._description = description
         self._system_messages = system_messages
         self._client = model_client
         self._memory = memory

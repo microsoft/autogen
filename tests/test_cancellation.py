@@ -15,14 +15,14 @@ class MessageType:
 # To do cancellation, only the token should be interacted with as a user
 # If you cancel a future, it may not work as you expect.
 
-class LongRunningAgent(TypeRoutedAgent):
-    def __init__(self, name: str, router: AgentRuntime) -> None:
-        super().__init__(name, router)
+class LongRunningAgent(TypeRoutedAgent): # type: ignore
+    def __init__(self, name: str, router: AgentRuntime) -> None: # type: ignore
+        super().__init__(name, "A long running agent", router) 
         self.called = False
         self.cancelled = False
 
-    @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    @message_handler() # type: ignore
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType: # type: ignore
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
         cancellation_token.link_future(sleep)
@@ -33,15 +33,15 @@ class LongRunningAgent(TypeRoutedAgent):
             self.cancelled = True
             raise
 
-class NestingLongRunningAgent(TypeRoutedAgent):
-    def __init__(self, name: str, router: AgentRuntime, nested_agent: Agent) -> None:
-        super().__init__(name, router)
+class NestingLongRunningAgent(TypeRoutedAgent): # type: ignore
+    def __init__(self, name: str, router: AgentRuntime, nested_agent: Agent) -> None: # type: ignore
+        super().__init__(name, "A nesting long running agent", router)
         self.called = False
         self.cancelled = False
         self._nested_agent = nested_agent
 
-    @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    @message_handler() # type: ignore
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType: # type: ignore
         self.called = True
         response = self._send_message(message, self._nested_agent, cancellation_token=cancellation_token)
         try:

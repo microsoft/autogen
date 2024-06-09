@@ -1,7 +1,5 @@
-from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
-
-from ...core import AgentRuntime
-from ..agents.base import BaseChatAgent
+from ...core import Agent, AgentRuntime
+from .group_chat import GroupChat, GroupChatOutput
 
 
 # TODO: rewrite this with a new message type calling for add to message
@@ -12,8 +10,8 @@ class TwoAgentChat(GroupChat):
         name: str,
         description: str,
         runtime: AgentRuntime,
-        first_speaker: BaseChatAgent,
-        second_speaker: BaseChatAgent,
+        first_speaker: Agent,
+        second_speaker: Agent,
         num_rounds: int,
         output: GroupChatOutput,
     ) -> None:

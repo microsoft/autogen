@@ -1,6 +1,6 @@
 from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
 
-from agnext.core._cancellation_token import CancellationToken
+from ._cancellation_token import CancellationToken
 
 
 @runtime_checkable
@@ -12,6 +12,13 @@ class Agent(Protocol):
         Note:
             This name should be unique within the runtime.
         """
+        ...
+
+    @property
+    def description(self) -> str:
+        """Description of the agent.
+
+        A human-readable description of the agent."""
         ...
 
     @property

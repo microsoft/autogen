@@ -1,8 +1,7 @@
 from typing import Any, List, Protocol, Sequence
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentRuntime, CancellationToken
-from ..agents.base import BaseChatAgent
+from ...core import Agent, AgentRuntime, CancellationToken
 from ..types import Reset, RespondNow, TextMessage
 
 
@@ -14,17 +13,18 @@ class GroupChatOutput(Protocol):
     def reset(self) -> None: ...
 
 
-class GroupChat(BaseChatAgent, TypeRoutedAgent):
+class GroupChat(TypeRoutedAgent):
     def __init__(
         self,
         name: str,
         description: str,
         runtime: AgentRuntime,
-        agents: Sequence[BaseChatAgent],
+        participants: Sequence[Agent],
         num_rounds: int,
         output: GroupChatOutput,
     ) -> None:
-        self._agents = agents
+        self._description = description
+        self._participants = participants
         self._num_rounds = num_rounds
         self._history: List[Any] = []
         self._output = output
@@ -32,7 +32,7 @@ class GroupChat(BaseChatAgent, TypeRoutedAgent):
 
     @property
     def subscriptions(self) -> Sequence[type]:
-        agent_sublists = [agent.subscriptions for agent in self._agents]
+        agent_sublists = [agent.subscriptions for agent in self._participants]
         return [Reset, RespondNow] + [item for sublist in agent_sublists for item in sublist]
 
     @message_handler()
@@ -55,10 +55,10 @@ class GroupChat(BaseChatAgent, TypeRoutedAgent):
         while round < self._num_rounds:
             # TODO: add support for advanced speaker selection.
             # Select speaker (round-robin for now).
-            speaker = self._agents[round % len(self._agents)]
+            speaker = self._participants[round % len(self._participants)]
 
             # Send the last message to all agents except the previous speaker.
-            for agent in [agent for agent in self._agents if agent is not prev_speaker]:
+            for agent in [agent for agent in self._participants if agent is not prev_speaker]:
                 # TODO gather and await
                 _ = await self._send_message(
                     self._history[-1],

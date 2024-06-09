@@ -2,22 +2,21 @@ import json
 from typing import Any, Sequence, Tuple
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentRuntime, CancellationToken
-from ..agents.base import BaseChatAgent
+from ...core import Agent, AgentRuntime, CancellationToken
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
 __all__ = ["OrchestratorChat"]
 
 
-class OrchestratorChat(BaseChatAgent, TypeRoutedAgent):
+class OrchestratorChat(TypeRoutedAgent):
     def __init__(
         self,
         name: str,
         description: str,
         runtime: AgentRuntime,
-        orchestrator: BaseChatAgent,
-        planner: BaseChatAgent,
-        specialists: Sequence[BaseChatAgent],
+        orchestrator: Agent,
+        planner: Agent,
+        specialists: Sequence[Agent],
         max_turns: int = 30,
         max_stalled_turns_before_retry: int = 2,
         max_retry_attempts: int = 1,

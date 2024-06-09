@@ -10,7 +10,6 @@ from typing import Any, List
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents.base import BaseChatAgent
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
 from agnext.chat.patterns.group_chat import GroupChatOutput
 from agnext.chat.patterns.two_agent_chat import TwoAgentChat
@@ -38,7 +37,7 @@ class TwoAgentChatOutput(GroupChatOutput):  # type: ignore
 sep = "-" * 50
 
 
-class UserProxyAgent(BaseChatAgent, TypeRoutedAgent):  # type: ignore
+class UserProxyAgent(TypeRoutedAgent):  # type: ignore
     def __init__(
         self,
         name: str,
@@ -52,7 +51,7 @@ class UserProxyAgent(BaseChatAgent, TypeRoutedAgent):  # type: ignore
             name=name,
             description="A human user",
             runtime=runtime,
-        )
+        )  # type: ignore
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id

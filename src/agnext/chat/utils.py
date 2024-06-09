@@ -2,18 +2,18 @@ from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
-from agnext.chat.types import (
-    FunctionCallMessage,
-    Message,
-    MultiModalMessage,
-    TextMessage,
-)
-from agnext.components.models import (
+from ..components.models import (
     AssistantMessage,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
+)
+from .types import (
+    FunctionCallMessage,
+    Message,
+    MultiModalMessage,
+    TextMessage,
 )
 
 

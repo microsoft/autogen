@@ -12,22 +12,22 @@ class MessageType:
     sender: str
 
 
-class Inner(TypeRoutedAgent):
-    def __init__(self, name: str, router: AgentRuntime) -> None:
-        super().__init__(name, router)
+class Inner(TypeRoutedAgent):  # type: ignore
+    def __init__(self, name: str, router: AgentRuntime) -> None:  # type: ignore
+        super().__init__(name, "The inner agent", router)
 
-    @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    @message_handler()  # type: ignore
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:  # type: ignore
         return MessageType(body=f"Inner: {message.body}", sender=self.name)
 
 
-class Outer(TypeRoutedAgent):
-    def __init__(self, name: str, router: AgentRuntime, inner: Agent) -> None:
-        super().__init__(name, router)
+class Outer(TypeRoutedAgent):  # type: ignore
+    def __init__(self, name: str, router: AgentRuntime, inner: Agent) -> None:  # type: ignore
+        super().__init__(name, "The outter agent", router)
         self._inner = inner
 
-    @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    @message_handler()  # type: ignore
+    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:  # type: ignore
         inner_response = self._send_message(message, self._inner)
         inner_message = await inner_response
         assert isinstance(inner_message, MessageType)

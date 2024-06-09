@@ -5,15 +5,15 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import AgentRuntime, BaseAgent, CancellationToken
 
 
-class NoopAgent(BaseAgent):
-    def __init__(self, name: str, router: AgentRuntime) -> None:
-        super().__init__(name, router)
+class NoopAgent(BaseAgent): # type: ignore
+    def __init__(self, name: str, router: AgentRuntime) -> None: # type: ignore
+        super().__init__(name, "A no op agent", router)
 
     @property
     def subscriptions(self) -> Sequence[type]:
         return []
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: # type: ignore
         raise NotImplementedError
 
 

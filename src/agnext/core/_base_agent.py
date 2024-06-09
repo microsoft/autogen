@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 from asyncio import Future
 from typing import Any, Mapping, Sequence, TypeVar
 
-from agnext.core._agent_runtime import AgentRuntime
-from agnext.core._cancellation_token import CancellationToken
-
 from ._agent import Agent
+from ._agent_runtime import AgentRuntime
+from ._cancellation_token import CancellationToken
 
 ConsumesT = TypeVar("ConsumesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
@@ -16,14 +15,19 @@ OtherProducesT = TypeVar("OtherProducesT")
 
 
 class BaseAgent(ABC, Agent):
-    def __init__(self, name: str, router: AgentRuntime) -> None:
+    def __init__(self, name: str, description: str, router: AgentRuntime) -> None:
         self._name = name
+        self._description = description
         self._router = router
         router.add_agent(self)
 
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def description(self) -> str:
+        return self._description
 
     @property
     @abstractmethod

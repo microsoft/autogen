@@ -5,16 +5,16 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import AgentRuntime, BaseAgent, CancellationToken
 
 
-class StatefulAgent(BaseAgent):
-    def __init__(self, name: str, runtime: AgentRuntime) -> None:
-        super().__init__(name, runtime)
+class StatefulAgent(BaseAgent): # type: ignore
+    def __init__(self, name: str, runtime: AgentRuntime) -> None: # type: ignore
+        super().__init__(name, "A stateful agent", runtime)
         self.state = 0
 
     @property
     def subscriptions(self) -> Sequence[type]:
         return []
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: # type: ignore
         raise NotImplementedError
 
     def save_state(self) -> Mapping[str, Any]:

@@ -4,13 +4,12 @@ import openai
 from openai import AsyncAssistantEventHandler
 from openai.types.beta import AssistantResponseFormatParam
 
-from agnext.chat.agents.base import BaseChatAgent
-from agnext.chat.types import Reset, RespondNow, ResponseFormat, TextMessage
-from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentRuntime, CancellationToken
+from ...components import TypeRoutedAgent, message_handler
+from ...core import AgentRuntime, CancellationToken
+from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
 
-class OpenAIAssistantAgent(BaseChatAgent, TypeRoutedAgent):
+class OpenAIAssistantAgent(TypeRoutedAgent):
     def __init__(
         self,
         name: str,
