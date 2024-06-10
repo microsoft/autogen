@@ -23,7 +23,7 @@ For other OSS models, we recommend using a server such as vllm, LMStudio, Ollama
 
 ## Q: The server starts but I can't access the UI
 
-A: If you are running the server on a remote machine (or a local machine that fails to resolve localhost correstly), you may need to specify the host address. By default, the host address is set to `localhost`. You can specify the host address using the `--host <host>` argument. For example, to start the server on port 8081 and local address such that it is accessible from other machines on the network, you can run the following command:
+A: If you are running the server on a remote machine (or a local machine that fails to resolve localhost correctly), you may need to specify the host address. By default, the host address is set to `localhost`. You can specify the host address using the `--host <host>` argument. For example, to start the server on port 8081 and local address such that it is accessible from other machines on the network, you can run the following command:
 
 ```bash
 autogenstudio ui --port 8081 --host 0.0.0.0

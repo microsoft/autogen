@@ -22,7 +22,7 @@ The AutoGen Studio interface supports multiple model types including OpenAI mode
 
 ### Agents
 
-An agent entity declaratively specifies properties for an AutoGen agent (mirrors most but not all of the members of a base AutoGen Conversable agent class). Currently `UserProxyAgent` and `AssistantAgent` and `GroupChat` agent absctractions are supported.
+An agent entity declaratively specifies properties for an AutoGen agent (mirrors most but not all of the members of a base AutoGen Conversable agent class). Currently `UserProxyAgent` and `AssistantAgent` and `GroupChat` agent abstractions are supported.
 
 ![AutoGen Studio Create new agent](./img/agent_new.png)
 ![AutoGen Studio Createan assistant agent](./img/agent_groupchat.png)
@@ -33,13 +33,17 @@ Once agents have been created, existing models or skills can be _added_ to the a
 
 ### Workflows
 
-An agent workflow is a specification of a set of agents (team of agents) that can work together to accomplish a task. AutoGen Studio supports two types of high level workflows
+An agent workflow is a specification of a set of agents (team of agents) that can work together to accomplish a task. AutoGen Studio supports two types of high level workflow patterns:
 
-- Autonomous Chat : This workflow implements a paradigm where agents are defined and a chat is initiated between the agents to accomplish a task. AutoGen simplifies this into defining an `initiator` agent and a `receiver` agent where the receiver agent selected from a list of previously created agents. Note that when the receiver is a `GroupChat` agent (i.e., contains multiple agents), the communication pattern between those agents is determined by the `speaker_selection_method` parameter in the `GroupChat` agent configuration.
+#### Autonomous Chat :
+
+This workflow implements a paradigm where agents are defined and a chat is initiated between the agents to accomplish a task. AutoGen simplifies this into defining an `initiator` agent and a `receiver` agent where the receiver agent is selected from a list of previously created agents. Note that when the receiver is a `GroupChat` agent (i.e., contains multiple agents), the communication pattern between those agents is determined by the `speaker_selection_method` parameter in the `GroupChat` agent configuration.
 
 ![AutoGen Studio Autonomous Chat Workflow](./img/workflow_chat.png)
 
-- Sequential Chat : This workflow allows users specify a list of `AssistantAgent` agents that are executed in sequence to accomplish a task. The runtime behavior here follows the following pattern: at each step, each `AssistantAgent` is _paired_ with a `UserProxyAgent` and chat initiated between this pair to process the input task. The result of this exchange is summarized and provided to the next `AssistantAgent` which is also paired with a `UserProxyAgent` and their summarized result is passed to the next `AssistantAgent` in the sequence. This continues until the last `AssistantAgent` in the sequence is reached.
+#### Sequential Chat
+
+This workflow allows users to specify a list of `AssistantAgent` agents that are executed in sequence to accomplish a task. The runtime behavior here follows the following pattern: at each step, each `AssistantAgent` is _paired_ with a `UserProxyAgent` and chat initiated between this pair to process the input task. The result of this exchange is summarized and provided to the next `AssistantAgent` which is also paired with a `UserProxyAgent` and their summarized result is passed to the next `AssistantAgent` in the sequence. This continues until the last `AssistantAgent` in the sequence is reached.
 
 ![AutoGen Studio Sequential Workflow](./img/workflow_sequential.png)
 
@@ -101,7 +105,7 @@ workflow_manager.run(message=task_query)
 
 ### Deploying AutoGen Studio Workflows as APIs
 
-The workflow can launched as an API endpoint from the command line using the autogenstudio commandline tool.
+The workflow can be launched as an API endpoint from the command line using the autogenstudio commandline tool.
 
 ```bash
 autogenstudio serve --workflow=workflow.json --port=5000
