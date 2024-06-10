@@ -97,10 +97,28 @@ module.exports = {
       type: "category",
       label: "AutoGen Studio",
       collapsed: true,
-      items: ["autogen-studio/usage", "autogen-studio/faqs"],
+      items: [
+        {
+          type: "doc",
+          id: "autogen-studio/getting-started",
+          label: "Getting Started",
+        },
+        {
+          type: "doc",
+          id: "autogen-studio/usage",
+          label: "Using AutoGen Studio",
+        },
+        {
+          type: "doc",
+          id: "autogen-studio/faqs",
+          label: "AutoGen Studio FAQs",
+        },
+      ],
       link: {
-        type: "doc",
-        id: "autogen-studio/getting-started",
+        type: "generated-index",
+        title: "AutoGen Studio",
+        description: "Learn about AutoGen Studio",
+        slug: "autogen-studio",
       },
     },
     {

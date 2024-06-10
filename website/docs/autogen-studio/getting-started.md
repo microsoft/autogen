@@ -108,6 +108,14 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 - If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
 - Please use the tag `studio` for any issues, questions, and PRs related to Studio
 
+## A Note on Security
+
+AutoGen Studio is a research prototype and is not meant to be used in a production environment. Some baseline practices are encouraged e.g., using Docker code execution environment for your agents.
+
+However, other considerations such as rigorous tests related to jailbreaking, ensuring LLMs only have access to the right keys of data given the end user's permissions, and other security features are not implemented in AutoGen Studio.
+
+If you are building a production application, please use the AutoGen framework and implement the necessary security features.
+
 ## Acknowledgements
 
 AutoGen Studio is Based on the [AutoGen](https://microsoft.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).

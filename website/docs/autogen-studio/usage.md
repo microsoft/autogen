@@ -1,6 +1,6 @@
 # Using AutoGen Studio
 
-AutoGen Studio supports the declarative creation of an agent workflow and tasks can be specified and run in a chat interface for the agents to complete.
+AutoGen Studio supports the declarative creation of an agent workflow and tasks can be specified and run in a chat interface for the agents to complete. The expected usage behavior is that developers can create skills and models, _attach_ them to agents, and compose agents into workflows that can be tested interactively in the chat interface.
 
 ## Building an Agent Workflow
 
@@ -63,7 +63,7 @@ The agent workflow responds by _writing and executing code_ to create a python p
 
 ## Testing an Agent Workflow
 
-AutoGen Studio allows users to immediately test workflows on tasks and review resulting artifacts (such as images, code, and documents).
+AutoGen Studio allows users to interactively test workflows on tasks and review resulting artifacts (such as images, code, and documents).
 
 ![AutoGen Studio Test Workflow](./img/workflow_test.png)
 
@@ -75,7 +75,36 @@ Users can also review the “inner monologue” of agent workflows as they addre
 
 Users can download the skills, agents, and workflow configurations they create as well as share and reuse these artifacts. AutoGen Studio also offers a seamless process to export workflows and deploy them as application programming interfaces (APIs) that can be consumed in other applications deploying workflows as APIs.
 
-Specifically, workflows can be exported as JavaScript Object Notation (JSON) files and loaded into any python application, launched as an API endpoint from the command line or wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps.
-Specifically, workflows can be exported as JavaScript Object Notation (JSON) files and loaded into any python application, launched as an API endpoint from the command line or wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps.
+### Export Workflow
+
+AutoGen Studio allows you to export a selected workflow as a JSON configuration file.
+
+Build -> Workflows -> (On workflow card) -> Export
 
 ![AutoGen Studio Export Workflow](./img/workflow_export.png)
+
+### Using AutoGen Studio Workflows in a Python Application
+
+An exported workflow can be easily integrated into any Python application using the `WorkflowManager` class with just two lines of code. Underneath, the WorkflowManager rehydrates the workflow specification into AutoGen agents that are subsequently used to address tasks.
+
+```python
+
+from autogenstudio import WorkflowManager
+# load workflow from exported json workflow file.
+workflow_manager = WorkflowManager(workflow="path/to/your/workflow_.json")
+
+# run the workflow on a task
+task_query = "What is the height of the Eiffel Tower?. Dont write code, just respond to the question."
+workflow_manager.run(message=task_query)
+
+```
+
+### Deploying AutoGen Studio Workflows as APIs
+
+The workflow can launched as an API endpoint from the command line using the autogenstudio commandline tool.
+
+```bash
+autogenstudio serve --workflow=workflow.json --port=5000
+```
+
+Similarly, the workflow launch command above can be wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps.
