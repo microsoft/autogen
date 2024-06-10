@@ -34,16 +34,16 @@
   </ItemGroup>
 
   <ItemGroup  Condition="'$(IsTestProject)' == 'true'">
-    <Content Include="$(RepoRoot)\resource\**\*.*">
+    <Content Include="$(RepoRoot)resource/**/*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <Link>testData\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>testData/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
   </ItemGroup>
 
   <ItemGroup  Condition="'$(IncludeResourceFolder)' == 'true'">
-    <Content Include="$(RepoRoot)\resource\**\*.*">
+    <Content Include="$(RepoRoot)resource/**/*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <Link>resource\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>resource/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
   </ItemGroup>
 </Project>
