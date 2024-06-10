@@ -75,15 +75,7 @@ class Collection:
             "The weather is lovely today in paradise.",
         ]
         embeddings = self.embedding_function(sentences)
-        try:
-            self.dimension = embeddings.shape[1]
-        except Exception as e:
-            self.dimension = 384
-            raise Exception(
-                "Dimension of embeddings was not calculated successfully. "
-                "Was the 'shape' attribute missing in the embedding function?\n"
-                f"Error: {e}"
-            )
+        self.dimension = len(embeddings[0])
 
     def set_collection_name(self, collection_name) -> str:
         name = re.sub("-", "_", collection_name)
