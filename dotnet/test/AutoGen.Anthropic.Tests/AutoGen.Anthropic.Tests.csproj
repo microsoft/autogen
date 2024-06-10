@@ -6,18 +6,17 @@
       <IsPackable>false</IsPackable>
       <GenerateDocumentationFile>True</GenerateDocumentationFile>
       <RootNamespace>AutoGen.Anthropic.Tests</RootNamespace>
+      <IsTestProject>True</IsTestProject>
     </PropertyGroup>
-
-    <ItemGroup>
-      <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
-      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
-      <PackageReference Include="xunit" Version="$(XUnitVersion)" />
-      <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
-      <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
-    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
       <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="images\square.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>
