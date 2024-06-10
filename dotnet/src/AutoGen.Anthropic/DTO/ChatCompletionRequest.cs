@@ -49,9 +49,15 @@ public class ChatMessage
     public string Role { get; set; }
 
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    public List<ContentBase> Content { get; set; }
 
     public ChatMessage(string role, string content)
+    {
+        Role = role;
+        Content = new List<ContentBase>() { new TextContent { Text = content } };
+    }
+
+    public ChatMessage(string role, List<ContentBase> content)
     {
         Role = role;
         Content = content;

@@ -23,7 +23,8 @@ public sealed class AnthropicClient : IDisposable
 
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new ContentBaseConverter() }
     };
 
     private static readonly JsonSerializerOptions JsonDeserializerOptions = new()

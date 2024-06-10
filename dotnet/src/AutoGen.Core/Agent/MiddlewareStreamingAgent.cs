@@ -49,7 +49,6 @@ public class MiddlewareStreamingAgent : IMiddlewareStreamAgent
 
     public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
-
         return _agent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
     }
 

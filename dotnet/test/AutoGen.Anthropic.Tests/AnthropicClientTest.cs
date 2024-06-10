@@ -7,7 +7,7 @@ using AutoGen.Tests;
 using FluentAssertions;
 using Xunit;
 
-namespace AutoGen.Anthropic;
+namespace AutoGen.Anthropic.Tests;
 
 public class AnthropicClientTests
 {
@@ -71,6 +71,41 @@ public class AnthropicClientTests
         person.Email.Should().Be("g123456@gmail.com");
         Assert.NotNull(results.First().streamingMessage);
         results.First().streamingMessage!.Role.Should().Be("assistant");
+    }
+
+    [ApiKeyFact("ANTHROPIC_API_KEY")]
+    public async Task AnthropicClientImageChatCompletionTestAsync()
+    {
+        var anthropicClient = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
+
+        var request = new ChatCompletionRequest();
+        request.Model = AnthropicConstants.Claude3Haiku;
+        request.Stream = false;
+        request.MaxTokens = 100;
+        request.SystemMessage = "You are a LLM that is suppose to describe the content of the image. Give me a description of the provided image.";
+
+        var base64Image = await AnthropicTestUtils.Base64FromImageAsync("square.png");
+        var messages = new List<ChatMessage>
+        {
+            new("user",
+            [
+                new ImageContent { Source = new ImageSource {MediaType = "image/png", Data = base64Image} }
+            ])
+        };
+
+        request.Messages = messages;
+
+        var response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+
+        Assert.NotNull(response);
+        Assert.NotNull(response.Content);
+        Assert.NotEmpty(response.Content);
+        response.Content.Count.Should().Be(1);
+        response.Content.First().Should().BeOfType<TextContent>();
+        var textContent = (TextContent)response.Content.First();
+        Assert.Equal("text", textContent.Type);
+        Assert.NotNull(response.Usage);
+        response.Usage.OutputTokens.Should().BeGreaterThan(0);
     }
 
     private sealed class Person
