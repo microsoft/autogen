@@ -344,21 +344,21 @@ class GeminiClient:
         for i, message in enumerate(messages):
             parts = self._oai_content_to_gemini_content(message["content"])
             role = "user" if message["role"] in ["user", "system"] else "model"
-
-            if prev_role is None or role == prev_role:
+            if (prev_role is None) or (role == prev_role):
                 curr_parts += parts
             elif role != prev_role:
                 if self.use_vertexai:
                     rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
                 else:
                     rst.append(Content(parts=curr_parts, role=prev_role))
+                curr_parts = parts
             prev_role = role
 
         # handle the last message
         if self.use_vertexai:
             rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=role))
         else:
-            rst.append(Content(parts=curr_parts, role=role))
+            rst.append(Content(parts=self._concat_parts(curr_parts), role=role))
 
         # The Gemini is restrict on order of roles, such that
         # 1. The messages should be interleaved between user and model.
