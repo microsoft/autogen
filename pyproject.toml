@@ -36,6 +36,7 @@ dev = [
     "tavily-python",
     "aiofiles",
     "types-aiofiles",
+    "colorama",
 ]
 docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 
