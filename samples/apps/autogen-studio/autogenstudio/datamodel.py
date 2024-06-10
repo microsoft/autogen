@@ -251,28 +251,21 @@ class Workflow(SQLModel, table=True):
     )
 
 
+class CriterionModel(Criterion, SQLModel, table=True):
+    __tablename__ = "criterion"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    accepted_values: List[str] = Field(sa_column=Column(JSON))
+    criteria_list_id: Optional[int] = Field(default=None, foreign_key="criteria.id")
+    criteria_list: Optional["Criteria"] = Relationship(back_populates="criteria")
+
+
 class Criteria(SQLModel, table=True):
     __tablename__ = "criteria" 
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     # Foreign key that points to the Workflow
     workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
-    # criteria: List["CriterionModel"] = Relationship(back_populates="criteria")
-
-
-class CriterionModel(Criterion, SQLModel, table=True):
-    __tablename__ = "criterion" 
-    __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    criteria_id: Optional[int] = Field(default=None, foreign_key="criteria.id")  
-    # Establish a relationship to the criteria  
-    criteria: Optional[Criteria] = Relationship(back_populates="criterionmodel")
-    accepted_values: List[str] = Field(sa_column=Column(JSON))
-
-    # Establish a relationship to parent criterion  
-    parent: Optional['CriterionModel'] = Relationship(back_populates="sub_criteria")  
-    # Establish a relationship to sub criteria  
-    sub_criteria: 'CriterionModel' = Relationship(back_populates="parent")
+    criteria: List[CriterionModel] = Relationship(back_populates="criteria_list")
 
 
 class Response(SQLModel):

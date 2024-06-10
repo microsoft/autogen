@@ -409,39 +409,47 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
 
 @api.post("/agenteval/criteria/generate")
 async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, workflow_id:int, success_session_id: int = None, failure_session_id: int = None, 
-                                    additonal_instructions: str = None, max_round: int = 5, use_subcritic: bool = False):
+                                    additonal_instructions: str = "", max_round: int = 5, use_subcritic: bool = False):
     if(not success_session_id and not failure_session_id):
         return {
             "status": False,
             "message": "At least one session is required to be selected."
         }
 
+    # if(success_session_id):
+    #     messages = (await list_messages(user_id=user_id, session_id=success_session_id)).data
+    #     task.successful_response = str(messages)
+    # if(failure_session_id):
+    #     messages = (await list_messages(user_id=user_id, session_id=failure_session_id)).data
+    #     task.failed_response = str(messages)
 
-    if(success_session_id):
-        messages = (await list_messages(user_id=user_id, session_id=success_session_id)).data
-        task.successful_response = str(messages)
-    if(failure_session_id):
-        messages = (await list_messages(user_id=user_id, session_id=failure_session_id)).data
-        task.failed_response = str(messages)
+    # filters = {"id": model_id}
+    # model = list_entity(Model, filters=filters).data
+    # print(model)
+    # if(model and len(model) > 0):
+    #     model = model[0]
+    # else:
+    #     return {
+    #         "status": False,
+    #         "message": "Invalid model id"
+    #     }
 
-    filters = {"id": model_id, "user_id": user_id}
-    model = list_entity(Model, filters=filters).data
-    if(model and len(model) > 0):
-        model = model[0]
-    else:
-        return {
-            "status": False,
-            "message": "Invalid model id"
-        }
+    # model = sanitize_model(model)
 
-    model = sanitize_model(model)
-    criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
-                                 max_round=max_round, use_subcritic=use_subcritic)
+    # TODO: remove and replace with actual agenteval call when openai is more consistent
+    criteria_file = "/home/jluey/code/autogen/test/test_files/agenteval-in-out/samples/sample_math_criteria.json"
+    criteria = open(criteria_file, "r").read()
+    criteria = Criterion.parse_json_str(criteria)
+
+    # criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
+    #                              max_round=max_round, use_subcritic=use_subcritic)
     # TODO: save criteria to DB
-    criteria_entry = create_entity(Criteria(workflow_id))
+    
+    criteria_entry = Criteria(workflow_id=workflow_id, criteria=[])
+    create_entity(criteria_entry, Criteria)
     for criterion in criteria:
-        criterion_model = CriterionModel(criteria_id=criteria_entry.id, **criterion.model_dump())
-        create_entity(criterion_model, CriterionModel)
+        create_entity(CriterionModel(criteria_list_id=criteria_entry.id, **criterion.model_dump()), CriterionModel)
+    
     return Criterion.write_json(criteria)
 
 

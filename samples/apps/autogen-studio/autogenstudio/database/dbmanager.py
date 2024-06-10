@@ -15,6 +15,8 @@ from ..datamodel import (
     Skill,
     Workflow,
     WorkflowAgentLink,
+    CriterionModel,
+    Criteria
 )
 from .utils import init_db_samples
 
