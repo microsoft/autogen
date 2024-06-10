@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Anthropic.DTO;
@@ -43,7 +43,7 @@ public class AnthropicClientTests
         request.Model = AnthropicConstants.Claude3Haiku;
         request.Stream = true;
         request.MaxTokens = 500;
-        request.SystemMessage = "You are a helpful assistant that convert input to json object";
+        request.SystemMessage = "You are a helpful assistant that convert input to json object, use JSON format.";
         request.Messages = new List<ChatMessage>()
         {
             new("user", "name: John, age: 41, email: g123456@gmail.com")
