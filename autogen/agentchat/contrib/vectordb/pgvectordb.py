@@ -66,7 +66,7 @@ class Collection:
         if embedding_function:
             self.embedding_function = embedding_function
         else:
-            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2")
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
