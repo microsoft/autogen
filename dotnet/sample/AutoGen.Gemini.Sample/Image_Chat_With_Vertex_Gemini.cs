@@ -32,7 +32,7 @@ public class Image_Chat_With_Vertex_Gemini
 
         #region Send_Image_Request
         var imagePath = Path.Combine("resource", "images", "background.png");
-        var image = File.ReadAllBytes(imagePath);
+        var image = await File.ReadAllBytesAsync(imagePath);
         var imageMessage = new ImageMessage(Role.User, BinaryData.FromBytes(image, "image/png"));
         var reply = await geminiAgent.SendAsync("what's in the image", [imageMessage]);
         #endregion Send_Image_Request

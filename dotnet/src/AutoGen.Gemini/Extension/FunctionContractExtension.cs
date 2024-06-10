@@ -26,7 +26,7 @@ public static class FunctionContractExtension
 
         foreach (var parameter in function.Parameters ?? Enumerable.Empty<FunctionParameterContract>())
         {
-            var schema = ToOpenApiSchema(parameter.ParameterType!);
+            var schema = ToOpenApiSchema(parameter.ParameterType);
             schema.Description = parameter.Description;
             schema.Title = parameter.Name;
             schema.Nullable = !parameter.IsRequired;
@@ -52,7 +52,7 @@ public static class FunctionContractExtension
         };
     }
 
-    private static OpenApiSchema ToOpenApiSchema(Type type)
+    private static OpenApiSchema ToOpenApiSchema(Type? type)
     {
         if (type == null)
         {
@@ -79,7 +79,6 @@ public static class FunctionContractExtension
 
         if (schema.GetJsonType() == SchemaValueType.Object && schema.GetProperties() is var properties && properties != null)
         {
-            //openApiSchema.Properties.Add(schema.GetProperties().Select(p => new KeyValuePair<string, OpenApiSchema>(p.Key, ToOpenApiSchema(p.Value.GetType()))));
             foreach (var property in properties)
             {
                 openApiSchema.Properties.Add(property.Key, ToOpenApiSchema(property.Value.GetType()));
