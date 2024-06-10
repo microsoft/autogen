@@ -350,7 +350,7 @@ class GeminiClient:
                 if self.use_vertexai:
                     rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
                 else:
-                    rst.append(Content(parts=curr_parts, role=prev_role))
+                    rst.append(Content(parts=self._concat_parts(curr_parts), role=prev_role))
                 curr_parts = parts
             prev_role = role
 
