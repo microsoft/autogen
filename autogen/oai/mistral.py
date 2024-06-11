@@ -23,20 +23,66 @@ from typing_extensions import Annotated
 class MistralAIClient:
     """Client for Mistral.AI's API."""
 
-    def __init__(self, config: Dict[str, Any]):
-        self._config = config
-        self.model = config.get("model", None)
+    def load_params(self, **kwargs):
+        """Loads the parameters for Mistral.AI API from the config. We load them specifically here for loading, type checks and defaults"""
+        self._config_model = kwargs.get("model", None)
+        self._config_api_key = kwargs.get("api_key", None)
 
+        self._config_stream = kwargs.get("stream", False)  # TODO: Handle streaming
+        if self._config_stream is not None and not isinstance(self._config_stream, bool):
+            warnings.warn(
+                "Config error - stream must be a bool value or None, defaulting to False. Note: Streaming is not yet handled.",
+                UserWarning,
+            )
+            self._config_stream = False
+        elif self._config_stream:
+            warnings.warn("Config warning - Streaming is not yet handled.", UserWarning)
+            self._config_stream = False
+
+        self._config_temperature = kwargs.get("temperature", 0.7)
+        if self._config_temperature is not None and not isinstance(self._config_temperature, float):
+            warnings.warn("Config error - Temperature must be a float value or None, defaulting to 0.7", UserWarning)
+            self._config_temperature = 0.7  # Default is 0.7
+
+        self._config_top_p = kwargs.get("top_p", None)
+        if self._config_top_p is not None and not isinstance(self._config_top_p, float):
+            warnings.warn("Config error - top_p must be a float value or None, defaulting to None", UserWarning)
+            self._config_top_p = None
+
+        self._config_max_tokens = kwargs.get("max_tokens", None)
+        if self._config_max_tokens is not None and (
+            not isinstance(self._config_max_tokens, int) or self._config_max_tokens < 0
+        ):
+            warnings.warn(
+                "Config error - max_tokens must be an int (>= 0) value or None, defaulting to None", UserWarning
+            )
+            self._config_max_tokens = None
+
+        self._config_safe_prompt = kwargs.get("safe_prompt", False)
+        if self._config_safe_prompt is not None and not isinstance(self._config_safe_prompt, bool):
+            warnings.warn("Config error - safe_prompt must be a bool value or None, defaulting to False", UserWarning)
+            self._config_safe_prompt = False
+
+        self._config_random_seed = kwargs.get("random_seed", None)
+        if self._config_random_seed is not None and not isinstance(self._config_random_seed, int):
+            warnings.warn("Config error - random_seed must be an int value or None, defaulting to None", UserWarning)
+            self._config_random_seed = None
+
+    def __init__(self, **kwargs):
+
+        # Load config from parameters, setting defaults, checking types
+        self.load_params(**kwargs)
+
+        # Check that we have what we need to use Mistral.AI's API
         assert (
-            self.model
+            self._config_model
         ), "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use."
 
-        self.api_key = config.get("api_key", None)
-        if not self.api_key:
-            self.api_key = os.getenv("MISTRAL_API_KEY")
+        if not self._config_api_key:
+            self._config_api_key = os.getenv("MISTRAL_API_KEY", None)
 
         assert (
-            self.api_key
+            self._config_api_key is not None
         ), "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
 
     def message_retrieval(self, response: ChatCompletionResponse) -> Union[List[str], List[ChatCompletionMessage]]:
@@ -85,7 +131,7 @@ class MistralAIClient:
             else:
                 warnings.warn(f"Unknown message role {message['role']}", UserWarning)
 
-        client = MistralClient(api_key=self.api_key)
+        client = MistralClient(api_key=self._config_api_key)
 
         # If a 'system' message follows an 'assistant' message, change it to 'user'
         # This can occur when using LLM summarisation
@@ -93,17 +139,19 @@ class MistralAIClient:
             if mistral_messages[i - 1].role == "assistant" and mistral_messages[i].role == "system":
                 mistral_messages[i].role = "user"
 
+        # TODO: Handle streaming
+
         try:
             mistral_response = client.chat(
-                model=self.model,
+                model=self._config_model,
                 messages=mistral_messages,
                 tools=converted_functions,
                 tool_choice="auto",
-                temperature=self._config.get("temperature", 0.7),
-                top_p=self._config.get("top_p", 1),
-                max_tokens=self._config.get("max_tokens", None),
-                safe_prompt=self._config.get("safe_prompt", False),
-                random_seed=self._config.get("random_seed", None),
+                temperature=self._config_temperature,
+                top_p=self._config_top_p,
+                max_tokens=self._config_max_tokens,
+                safe_prompt=self._config_safe_prompt,
+                random_seed=self._config_random_seed,
             )
         except MistralAPIException as e:
             raise RuntimeError(f"Mistral.AI exception occurred while calling Mistral.AI API: {e}")
