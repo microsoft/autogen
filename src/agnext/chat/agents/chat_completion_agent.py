@@ -2,6 +2,8 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
+from tqdm.asyncio import tqdm
+
 from ...components import (
     FunctionCall,
     TypeRoutedAgent,
@@ -60,13 +62,22 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def on_respond_now(
         self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage | FunctionCallMessage:
+        # Generate a response.
+        with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}") as pbar:
+            response = await self._generate_response(message.response_format, cancellation_token)
+            pbar.close()
+
         # Return the response.
-        return await self._generate_response(message.response_format, cancellation_token)
+        return response
 
     @message_handler()
     async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
         # Generate a response.
-        response = await self._generate_response(message.response_format, cancellation_token)
+        # TODO: refactor this to use message_handler decorator.
+        with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}", leave=False) as pbar:
+            response = await self._generate_response(message.response_format, cancellation_token)
+            pbar.close()
+
         # Publish the response.
         await self._publish_message(response)
 
