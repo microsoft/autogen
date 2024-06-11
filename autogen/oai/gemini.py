@@ -194,7 +194,7 @@ class GeminiClient:
             for attempt in range(max_retries):
                 ans = None
                 try:
-                    response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
+                    response = chat.send_message(gemini_messages[-1], stream=stream)
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
@@ -348,17 +348,17 @@ class GeminiClient:
                 curr_parts += parts
             elif role != prev_role:
                 if self.use_vertexai:
-                    rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
+                    rst.append(VertexAIContent(parts=curr_parts, role=prev_role))
                 else:
-                    rst.append(Content(parts=self._concat_parts(curr_parts), role=prev_role))
+                    rst.append(Content(parts=curr_parts, role=prev_role))
                 curr_parts = parts
             prev_role = role
 
         # handle the last message
         if self.use_vertexai:
-            rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=role))
+            rst.append(VertexAIContent(parts=curr_parts, role=role))
         else:
-            rst.append(Content(parts=self._concat_parts(curr_parts), role=role))
+            rst.append(Content(parts=curr_parts, role=role))
 
         # The Gemini is restrict on order of roles, such that
         # 1. The messages should be interleaved between user and model.
