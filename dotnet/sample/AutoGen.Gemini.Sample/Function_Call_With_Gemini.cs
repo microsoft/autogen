@@ -3,7 +3,6 @@
 
 #region Using
 using AutoGen.Core;
-using AutoGen.Gemini.Middleware;
 using Google.Cloud.AIPlatform.V1;
 #endregion Using
 using FluentAssertions;
