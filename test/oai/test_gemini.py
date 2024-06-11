@@ -52,6 +52,23 @@ def test_valid_initialization(gemini_client):
     assert gemini_client.api_key == "fake_api_key", "API Key should be correctly set"
 
 
+@patch("autogen.oai.gemini.genai")
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_gemini_message_handling(mock_genai, gemini_client):
+    messages = [
+        {"role": "system", "content": "You are my personal assistant."},
+        {"role": "model", "content": "How can I help you?"},
+        {"role": "user", "content": "Which planet is the nearest to the sun?"},
+        {"role": "user", "content": "Which planet is the farthest from the sun?"},
+    ]
+    converted_messages = gemini_client._oai_messages_to_gemini_messages(messages)
+    assert len(converted_messages) == 3, "The number of messages is not as expected"
+    assert converted_messages[0].parts[0].text == messages[0]["content"]
+    assert converted_messages[1].parts[0].text == messages[1]["content"]
+    assert converted_messages[2].parts[0].text == messages[2]["content"]
+    assert converted_messages[2].parts[1].text == messages[3]["content"]
+
+
 # Test error handling
 @patch("autogen.oai.gemini.genai")
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
