@@ -5,8 +5,8 @@ import inspect
 import json
 import logging
 import re
-import warnings
 import traceback
+import warnings
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
@@ -2252,7 +2252,8 @@ class ConversableAgent(LLMAgent):
                     content = traceback.format_exc()
                     # content = f"Error: {e}"
         else:
-            content = f"Error: Function {func_name} not found."
+            valid_func_names = ", ".join(self._function_map.keys())
+            content = f"Error: Function {func_name} not found." + f" Valid function names are: {valid_func_names}"
 
         if verbose:
             iostream.print(

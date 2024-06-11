@@ -1,16 +1,16 @@
 import copy
+import logging
 import re
 import time
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
 from typing_extensions import Annotated
 
-from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, OpenAIWrapper
+from ... import Agent, AssistantAgent, ConversableAgent, OpenAIWrapper, UserProxyAgent
 from ...browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser
-from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
-
+from ...token_count_utils import count_token, get_max_token_limit
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,20 @@ Today's date is """
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = """A helpful assistant with access to ability to navigate local files. When asking this agent to open a file, please provide the file's path (relative or absolute). Once the desired file is open, ask this agent to answer questions by reading the file, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."""
+    DEFAULT_DESCRIPTION = """
+A helpful assistant with access to ability to navigate local files.
+When asking this agent to open a file, please provide the file's path (relative or absolute).
+Once the desired file is open, ask this agent to answer questions by reading the file, generate
+summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport.
+
+This agent specializes in navigating a document and can help you find the information you need. Preferably
+ask this agent to open a file/document, and then ask questions about the its content.
+"""
 
     def __init__(
         self,
         name: str,
-        system_message: Optional[Union[str, List[str]]] = DEFAULT_PROMPT,
+        system_message: Optional[Union[str, List[str]]] = None,
         description: Optional[str] = DEFAULT_DESCRIPTION,
         is_termination_msg: Optional[Callable[[Dict[str, Any]], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -76,9 +84,15 @@ Today's date is """
 
     def _setup_agents(self) -> None:
 
+        tool_names = ["open_local_file", "download_file", "page_up", "page_down", "find_on_page_ctrl_f", "find_next"]
+
         self._assistant = AssistantAgent(
             self.name + "_inner_assistant",
-            system_message=self.system_message,  # type: ignore[arg-type]
+            system_message=f"""You are a helpful assistant that navigate files. Following functions are valid
+            {tool_names}
+
+Do not choose or suggest any other functions/tools. If you are unsure about the tool to use, please ask for help.
+""",  # type: ignore[arg-type]
             llm_config=self.llm_config,
             is_termination_msg=lambda m: False,
         )
@@ -277,14 +291,16 @@ Today's date is """
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
 
+        message = f"Your browser is currently open to the page '{self._browser.page_title}' at the address '{self._browser.address}'."
+        # print("User proxy sent: ", message)
         # Remind the agent where it is
         self._user_proxy.send(
-            f"Your browser is currently open to the page '{self._browser.page_title}' at the address '{self._browser.address}'.",
+            message,
             self._assistant,
             request_reply=False,
             silent=True,
         )
-
+        # print("User proxy sent: ", messages[-1]["content"])
         self._user_proxy.send(messages[-1]["content"], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
         proxy_reply = self._user_proxy.generate_reply(
