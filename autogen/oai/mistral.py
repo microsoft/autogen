@@ -23,14 +23,6 @@ from typing_extensions import Annotated
 class MistralAIClient:
     """Client for Mistral.AI's API."""
 
-    # Mapping, where Key is a term used by Autogen, and Value is a term used by Mistral.AI
-    PARAMS_MAPPING = {
-        "temperature": "temperature",
-        "top_p": "top_p",
-        "max_tokens": "max_tokens",
-        "random_seed": "random_seed",
-    }
-
     def __init__(self, config: Dict[str, Any]):
         self._config = config
         self.model = config.get("model", None)
@@ -113,8 +105,8 @@ class MistralAIClient:
                 safe_prompt=self._config.get("safe_prompt", False),
                 random_seed=self._config.get("random_seed", None),
             )
-        except MistralAPIException:
-            raise RuntimeError("Mistral.AI exception occurred while calling Mistral.AI API")
+        except MistralAPIException as e:
+            raise RuntimeError(f"Mistral.AI exception occurred while calling Mistral.AI API: {e}")
 
         if mistral_response.choices[0].finish_reason == "tool_calls":
             mistral_finish = "tool_calls"
