@@ -32,7 +32,7 @@ class Collection:
         client: The PGVector client.
         collection_name (str): The name of the collection. Default is "documents".
         embedding_function (Callable): The embedding function used to generate the vector representation.
-            Default is None. SentenceTransformer("all-MiniLM-L6-v2") will be used when None.
+            Default is None. SentenceTransformer("all-MiniLM-L6-v2").encode will be used when None.
             Models can be chosen from:
             https://huggingface.co/models?library=sentence-transformers
         metadata (Optional[dict]): The metadata of the collection.
