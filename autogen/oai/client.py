@@ -290,7 +290,7 @@ class OpenAIClient:
         """Calculate the cost of the response."""
         model = response.model
         if model not in OAI_PRICE1K:
-            # TODO: add logging to warn that the model is not found
+            # log warning that the model is not found
             logger.warning(
                 f'Model {model} is not found. The cost will be 0. In your config_list, add field {{"price" : [prompt_price_per_1k, completion_token_price_per_1k]}} for customized pricing.'
             )
