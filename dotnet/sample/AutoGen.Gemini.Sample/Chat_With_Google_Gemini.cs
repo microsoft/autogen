@@ -3,7 +3,6 @@
 
 #region Using
 using AutoGen.Core;
-using AutoGen.Gemini.Middleware;
 #endregion Using
 using FluentAssertions;
 
