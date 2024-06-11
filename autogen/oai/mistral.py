@@ -21,6 +21,16 @@ from typing_extensions import Annotated
 
 
 class MistralAIClient:
+    """Client for Mistral.AI's API."""
+
+    # Mapping, where Key is a term used by Autogen, and Value is a term used by Mistral.AI
+    PARAMS_MAPPING = {
+        "temperature": "temperature",
+        "top_p": "top_p",
+        "max_tokens": "max_tokens",
+        "random_seed": "random_seed",
+    }
+
     def __init__(self, config: Dict[str, Any]):
         self._config = config
         self.model = config.get("model", None)
@@ -93,7 +103,15 @@ class MistralAIClient:
 
         try:
             mistral_response = client.chat(
-                model=self.model, messages=mistral_messages, tools=converted_functions, tool_choice="auto"
+                model=self.model,
+                messages=mistral_messages,
+                tools=converted_functions,
+                tool_choice="auto",
+                temperature=self._config.get("temperature", 0.7),
+                top_p=self._config.get("top_p", 1),
+                max_tokens=self._config.get("max_tokens", None),
+                safe_prompt=self._config.get("safe_prompt", False),
+                random_seed=self._config.get("random_seed", None),
             )
         except MistralAPIException:
             raise RuntimeError("Mistral.AI exception occurred while calling Mistral.AI API")
