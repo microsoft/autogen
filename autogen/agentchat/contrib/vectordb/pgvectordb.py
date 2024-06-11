@@ -523,7 +523,7 @@ class Collection:
         cursor.close()
 
     def create_collection(
-        self, collection_name: Optional[str] = None, dimension: Optional[Union[str, int]] = 384
+        self, collection_name: Optional[str] = None, dimension: Optional[Union[str, int]] = None
     ) -> None:
         """
         Create a new collection.
@@ -540,6 +540,8 @@ class Collection:
 
         if dimension:
             self.dimension = dimension
+        elif self.dimension is None:
+            self.dimension = 384
 
         cursor = self.client.cursor()
         cursor.execute(
