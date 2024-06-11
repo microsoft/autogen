@@ -90,9 +90,9 @@ def test_gemini_message_handling(mock_genai, gemini_client):
     assert len(converted_messages) == len(expected_gemini_struct), "The number of messages is not as expected"
 
     for i, expected_msg in enumerate(expected_gemini_struct):
-        assert expected_msg["role"] == converted_messages[i].role
+        assert expected_msg["role"] == converted_messages[i].role, "Incorrect mapped message role"
         for j, part in enumerate(expected_msg["parts"]):
-            assert converted_messages[i].parts[j].text == part
+            assert converted_messages[i].parts[j].text == part, "Incorrect mapped message text"
 
 
 # Test error handling
