@@ -105,7 +105,7 @@ def test_chat_completion():
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_completion():
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo-instruct"]}
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+1=")
@@ -123,7 +123,7 @@ def test_completion():
 )
 def test_cost(cache_seed):
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo-instruct"]}
     )
     client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
     response = client.create(prompt="1+3=")
@@ -133,7 +133,7 @@ def test_cost(cache_seed):
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo-instruct"]}
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+3=", cache_seed=None)
