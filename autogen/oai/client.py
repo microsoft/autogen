@@ -49,6 +49,13 @@ try:
 except ImportError as e:
     gemini_import_exception = e
 
+try:
+    from autogen.oai.togetherai import TogetherClient
+
+    together_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    together_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
