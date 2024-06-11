@@ -35,7 +35,7 @@ def _get_config_list() -> List[Dict[str, str]]:
                 'api_key': '0123456789abcdef0123456789abcdef',
                 'base_url': 'https://my-deployment.openai.azure.com/',
                 'api_type': 'azure',
-                'api_version': '2024-02-15-preview',
+                'api_version': '2024-02-01',
             },
             {
                 'model': 'gpt-4',
