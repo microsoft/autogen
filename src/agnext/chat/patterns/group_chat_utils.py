@@ -10,11 +10,12 @@ from ..types import TextMessage
 
 
 async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[Agent]) -> Agent:
+    """Selects the next speaker in a group chat using a ChatCompletion client."""
     # TODO: Handle multi-modal messages.
 
     # Construct formated current message history.
     history_messages: List[str] = []
-    for msg in memory.get_messages():
+    for msg in await memory.get_messages():
         assert isinstance(msg, TextMessage)
         history_messages.append(f"{msg.source}: {msg.content}")
     history = "\n".join(history_messages)

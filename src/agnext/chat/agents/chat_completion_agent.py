@@ -31,6 +31,26 @@ from ..utils import convert_messages_to_llm_messages
 
 
 class ChatCompletionAgent(TypeRoutedAgent):
+    """An agent implementation that uses the ChatCompletion API to gnenerate
+    responses and execute tools.
+
+    Args:
+        name (str): The name of the agent.
+        description (str): The description of the agent.
+        runtime (AgentRuntime): The runtime to register the agent.
+        system_messages (List[SystemMessage]): The system messages to use for
+            the ChatCompletion API.
+        memory (ChatMemory): The memory to store and retrieve messages.
+        model_client (ChatCompletionClient): The client to use for the
+            ChatCompletion API.
+        tools (Sequence[Tool], optional): The tools used by the agent. Defaults
+            to []. If no tools are provided, the agent cannot handle tool calls.
+            If tools are provided, and the response from the model is a list of
+            tool calls, the agent will call itselfs with the tool calls until it
+            gets a response that is not a list of tool calls, and then use that
+            response as the final response.
+    """
+
     def __init__(
         self,
         name: str,
@@ -50,18 +70,23 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a text message. This method adds the message to the memory and
+        does not generate any message."""
         # Add a user message.
-        self._memory.add_message(message)
+        await self._memory.add_message(message)
 
     @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+        """Handle a reset message. This method clears the memory."""
         # Reset the chat messages.
-        self._memory.clear()
+        await self._memory.clear()
 
     @message_handler()
     async def on_respond_now(
         self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage | FunctionCallMessage:
+        """Handle a respond now message. This method generates a response and
+        returns it to the sender."""
         # Generate a response.
         with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}") as pbar:
             response = await self._generate_response(message.response_format, cancellation_token)
@@ -72,6 +97,8 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+        """Handle a publish now message. This method generates a response and
+        publishes it."""
         # Generate a response.
         # TODO: refactor this to use message_handler decorator.
         with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}", leave=False) as pbar:
@@ -85,11 +112,13 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def on_tool_call_message(
         self, message: FunctionCallMessage, cancellation_token: CancellationToken
     ) -> FunctionExecutionResultMessage:
+        """Handle a tool call message. This method executes the tools and
+        returns the results."""
         if len(self._tools) == 0:
             raise ValueError("No tools available")
 
         # Add a tool call message.
-        self._memory.add_message(message)
+        await self._memory.add_message(message)
 
         # Execute the tool calls.
         results: List[FunctionExecutionResult] = []
@@ -126,7 +155,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         tool_call_result_msg = FunctionExecutionResultMessage(content=results)
 
         # Add tool call result message.
-        self._memory.add_message(tool_call_result_msg)
+        await self._memory.add_message(tool_call_result_msg)
 
         # Return the results.
         return tool_call_result_msg
@@ -137,8 +166,9 @@ class ChatCompletionAgent(TypeRoutedAgent):
         cancellation_token: CancellationToken,
     ) -> TextMessage | FunctionCallMessage:
         # Get a response from the model.
+        hisorical_messages = await self._memory.get_messages()
         response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
+            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.name),
             tools=self._tools,
             json_output=response_format == ResponseFormat.json_object,
         )
@@ -158,8 +188,9 @@ class ChatCompletionAgent(TypeRoutedAgent):
                 cancellation_token=cancellation_token,
             )
             # Make an assistant message from the response.
+            hisorical_messages = await self._memory.get_messages()
             response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
+                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.name),
                 tools=self._tools,
                 json_output=response_format == ResponseFormat.json_object,
             )
@@ -175,7 +206,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             raise ValueError(f"Unexpected response: {response.content}")
 
         # Add the response to the chat messages.
-        self._memory.add_message(final_response)
+        await self._memory.add_message(final_response)
 
         return final_response
 

@@ -66,17 +66,18 @@ Use the following JSON format to provide your thought on the latest message and 
         from_message = TextMessage(
             content=json.dumps({"sender": message.source, "content": message.content}), source=message.source
         )
-        self._memory.add_message(from_message)
+        await self._memory.add_message(from_message)
 
         # Get a response from the model.
         raw_response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self_name=self.name),
+            self._system_messages
+            + convert_messages_to_llm_messages(await self._memory.get_messages(), self_name=self.name),
             json_output=True,
         )
         assert isinstance(raw_response.content, str)
 
         # Save the response to memory.
-        self._memory.add_message(ChatRoomMessage(source=self.name, content=raw_response.content))
+        await self._memory.add_message(ChatRoomMessage(source=self.name, content=raw_response.content))
 
         # Parse the response.
         data = json.loads(raw_response.content)

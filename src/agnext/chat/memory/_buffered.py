@@ -1,21 +1,38 @@
 from typing import Any, List, Mapping
 
+from ...components.models import FunctionExecutionResultMessage
 from ..types import Message
 from ._base import ChatMemory
 
 
 class BufferedChatMemory(ChatMemory):
+    """A buffered chat memory that keeps a view of the last n messages,
+    where n is the buffer size. The buffer size is set at initialization.
+
+    Args:
+        buffer_size (int): The size of the buffer.
+
+    """
+
     def __init__(self, buffer_size: int) -> None:
         self._messages: List[Message] = []
         self._buffer_size = buffer_size
 
-    def add_message(self, message: Message) -> None:
+    async def add_message(self, message: Message) -> None:
+        """Add a message to the memory."""
         self._messages.append(message)
 
-    def get_messages(self) -> List[Message]:
-        return self._messages[-self._buffer_size :]
+    async def get_messages(self) -> List[Message]:
+        """Get at most `buffer_size` recent messages."""
+        messages = self._messages[-self._buffer_size :]
+        # Handle the first message is a function call result message.
+        if messages and isinstance(messages[0], FunctionExecutionResultMessage):
+            # Remove the first message from the list.
+            messages = messages[1:]
+        return messages
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
+        """Clear the message memory."""
         self._messages = []
 
     def save_state(self) -> Mapping[str, Any]:

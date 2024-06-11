@@ -10,6 +10,22 @@ from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
 
 class OpenAIAssistantAgent(TypeRoutedAgent):
+    """An agent implementation that uses the OpenAI Assistant API to generate
+    responses.
+
+    Args:
+        name (str): The name of the agent.
+        description (str): The description of the agent.
+        runtime (AgentRuntime): The runtime to register the agent.
+        client (openai.AsyncClient): The client to use for the OpenAI API.
+        assistant_id (str): The assistant ID to use for the OpenAI API.
+        thread_id (str): The thread ID to use for the OpenAI API.
+        assistant_event_handler_factory (Callable[[], AsyncAssistantEventHandler], optional):
+            A factory function to create an async assistant event handler. Defaults to None.
+            If provided, the agent will use the streaming mode with the event handler.
+            If not provided, the agent will use the blocking mode to generate responses.
+    """
+
     def __init__(
         self,
         name: str,
@@ -28,6 +44,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a text message. This method adds the message to the thread."""
         # Save the message to the thread.
         _ = await self._client.beta.threads.messages.create(
             thread_id=self._thread_id,
@@ -38,6 +55,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+        """Handle a reset message. This method deletes all messages in the thread."""
         # Get all messages in this thread.
         all_msgs: List[str] = []
         while True:
@@ -56,10 +74,12 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
+        """Handle a respond now message. This method generates a response and returns it to the sender."""
         return await self._generate_response(message.response_format, cancellation_token)
 
     @message_handler()
     async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+        """Handle a publish now message. This method generates a response and publishes it."""
         response = await self._generate_response(message.response_format, cancellation_token)
         await self._publish_message(response)
 
