@@ -1,8 +1,6 @@
 """This is an example of simulating a chess game with two agents
 that play against each other, using tools to reason about the game state
-and make moves.
-You must have OPENAI_API_KEY set up in your environment to run this example.
-"""
+and make moves, and using a group chat manager to orchestrate the conversation."""
 
 import argparse
 import asyncio
@@ -12,25 +10,13 @@ from typing import Annotated, Literal
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
 from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns.group_chat import GroupChat, GroupChatOutput
-from agnext.chat.patterns.two_agent_chat import TwoAgentChat
+from agnext.chat.patterns.group_chat_manager import GroupChatManager
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-
-
-class ChessGameOutput(GroupChatOutput):  # type: ignore
-    def on_message_received(self, message: TextMessage) -> None:  # type: ignore
-        pass
-
-    def get_output(self) -> None:
-        pass
-
-    def reset(self) -> None:
-        pass
 
 
 def validate_turn(board: Board, player: Literal["white", "black"]) -> None:
@@ -96,7 +82,7 @@ def make_move(
     return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[newMove.from_square]} to {SQUARE_NAMES[newMove.to_square]}."
 
 
-def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
+def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
     """Create agents for a chess game and return the group chat."""
 
     # Create the board.
@@ -196,37 +182,33 @@ def chess_game(runtime: AgentRuntime) -> GroupChat:  # type: ignore
         model_client=OpenAI(model="gpt-4-turbo"),
         tools=white_tools,
     )
-    game_chat = TwoAgentChat(
+    # Create a group chat manager for the chess game to orchestrate a turn-based
+    # conversation between the two agents.
+    _ = GroupChatManager(
         name="ChessGame",
         description="A chess game between two agents.",
         runtime=runtime,
-        first_speaker=white,
-        second_speaker=black,
-        num_rounds=100,
-        output=ChessGameOutput(),
+        memory=BufferedChatMemory(buffer_size=10),
+        participants=[white, black],  # white goes first
     )
-    return game_chat
 
 
-async def main(message: str) -> None:
+async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    game_chat = chess_game(runtime)
-    future = runtime.send_message(TextMessage(content=message, source="Human"), game_chat)
-    while not future.done():
+    chess_game(runtime)
+    # Publish an initial message to trigger the group chat manager to start orchestration.
+    runtime.publish_message(TextMessage(content="Game started.", source="System"))
+    while True:
         await runtime.process_next()
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a chess game between two agents.")
-    parser.add_argument(
-        "--initial-message",
-        default="Please make a move.",
-        help="The initial message to send to the agent playing white.",
-    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
         logging.getLogger("agnext").setLevel(logging.DEBUG)
 
-    asyncio.run(main(args.initial_message))
+    asyncio.run(main())

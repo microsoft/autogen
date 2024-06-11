@@ -1,19 +1,20 @@
-"""This is an example of a chat with an OpenAIAssistantAgent.
-You must have OPENAI_API_KEY set up in your environment to
-run this example.
-"""
+"""This is an example of a terminal-based ChatGPT clone
+using an OpenAIAssistantAgent and event-based orchestration."""
 
+import argparse
+import asyncio
+import logging
 import os
 import re
-from typing import Any, List
+from typing import List
 
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
-from agnext.chat.patterns.group_chat import GroupChatOutput
-from agnext.chat.patterns.two_agent_chat import TwoAgentChat
-from agnext.chat.types import RespondNow, TextMessage
+from agnext.chat.memory import BufferedChatMemory
+from agnext.chat.patterns.group_chat_manager import GroupChatManager
+from agnext.chat.types import PublishNow, TextMessage
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import AgentRuntime, CancellationToken
 from openai import AsyncAssistantEventHandler
@@ -22,27 +23,15 @@ from openai.types.beta.threads import Message, Text, TextDelta
 from openai.types.beta.threads.runs import RunStep, RunStepDelta
 from typing_extensions import override
 
-
-class TwoAgentChatOutput(GroupChatOutput):  # type: ignore
-    def on_message_received(self, message: Any) -> None:
-        pass
-
-    def get_output(self) -> Any:
-        return None
-
-    def reset(self) -> None:
-        pass
-
-
 sep = "-" * 50
 
 
 class UserProxyAgent(TypeRoutedAgent):  # type: ignore
-    def __init__(
+    def __init__(  # type: ignore
         self,
         name: str,
-        runtime: AgentRuntime,
-        client: openai.AsyncClient,
+        runtime: AgentRuntime,  # type: ignore
+        client: openai.AsyncClient,  # type: ignore
         assistant_id: str,
         thread_id: str,
         vector_store_id: str,
@@ -63,10 +52,14 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
         # print(f"{message.source}: {message.content}")
         pass
 
+    async def _get_user_input(self, prompt: str) -> str:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, input, prompt)
+
     @message_handler()  # type: ignore
-    async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:  # type: ignore
+    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:  # type: ignore
         while True:
-            user_input = input(f"\n{sep}\nYou: ")
+            user_input = await self._get_user_input(f"\n{sep}\nYou: ")
             # Parse upload file command '[upload code_interpreter | file_search filename]'.
             match = re.search(r"\[upload\s+(code_interpreter|file_search)\s+(.+)\]", user_input)
             if match:
@@ -110,9 +103,13 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
             elif user_input.startswith("[upload"):
                 print("Invalid upload command. Please use '[upload code_interpreter | file_search filename]'.")
                 continue
+            elif user_input.strip().lower() == "exit":
+                # Exit handler.
+                return
             else:
-                # Send user input to assistant.
-                return TextMessage(content=user_input, source=self.name)
+                # Publish user input and exit handler.
+                await self._publish_message(TextMessage(content=user_input, source=self.name))
+                return
 
 
 class EventHandler(AsyncAssistantEventHandler):
@@ -169,7 +166,7 @@ class EventHandler(AsyncAssistantEventHandler):
             print("\n".join(citations))
 
 
-def assistant_chat(runtime: AgentRuntime) -> TwoAgentChat:  # type: ignore
+def assistant_chat(runtime: AgentRuntime) -> UserProxyAgent:  # type: ignore
     oai_assistant = openai.beta.assistants.create(
         model="gpt-4-turbo",
         description="An AI assistant that helps with everyday tasks.",
@@ -197,15 +194,15 @@ def assistant_chat(runtime: AgentRuntime) -> TwoAgentChat:  # type: ignore
         thread_id=thread.id,
         vector_store_id=vector_store.id,
     )
-    return TwoAgentChat(
-        name="AssistantChat",
-        description="A chat with an AI assistant",
+    # Create a group chat manager to facilitate a turn-based conversation.
+    _ = GroupChatManager(
+        name="GroupChatManager",
+        description="A group chat manager.",
         runtime=runtime,
-        first_speaker=assistant,
-        second_speaker=user,
-        num_rounds=100,
-        output=TwoAgentChatOutput(),
+        memory=BufferedChatMemory(buffer_size=10),
+        participants=[assistant, user],
     )
+    return user
 
 
 async def main() -> None:
@@ -220,19 +217,25 @@ where 'code_interpreter' or 'file_search' is the purpose of the file and
 [upload code_interpreter data.csv]
 
 This will upload data.csv to the assistant for use with the code interpreter tool.
+
+Type "exit" to exit the chat.
 """
     runtime = SingleThreadedAgentRuntime()
-    chat = assistant_chat(runtime)
+    user = assistant_chat(runtime)
     print(usage)
-    future = runtime.send_message(
-        TextMessage(content="Hello.", source="User"),
-        chat,
-    )
-    while not future.done():
+    # Request the user to start the conversation.
+    runtime.send_message(PublishNow(), user)
+    while True:
+        # TODO: have a way to exit the loop.
         await runtime.process_next()
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
-    import asyncio
-
+    parser = argparse.ArgumentParser(description="Chat with an AI assistant.")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.WARNING)
+        logging.getLogger("agnext").setLevel(logging.DEBUG)
     asyncio.run(main())

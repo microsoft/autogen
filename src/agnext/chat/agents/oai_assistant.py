@@ -6,7 +6,7 @@ from openai.types.beta import AssistantResponseFormatParam
 
 from ...components import TypeRoutedAgent, message_handler
 from ...core import AgentRuntime, CancellationToken
-from ..types import Reset, RespondNow, ResponseFormat, TextMessage
+from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
 
 class OpenAIAssistantAgent(TypeRoutedAgent):
@@ -56,8 +56,18 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     @message_handler()
     async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
+        return await self._generate_response(message.response_format, cancellation_token)
+
+    @message_handler()
+    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+        response = await self._generate_response(message.response_format, cancellation_token)
+        await self._publish_message(response)
+
+    async def _generate_response(
+        self, requested_response_format: ResponseFormat, cancellation_token: CancellationToken
+    ) -> TextMessage:
         # Handle response format.
-        if message.response_format == ResponseFormat.json_object:
+        if requested_response_format == ResponseFormat.json_object:
             response_format = AssistantResponseFormatParam(type="json_object")
         else:
             response_format = AssistantResponseFormatParam(type="text")

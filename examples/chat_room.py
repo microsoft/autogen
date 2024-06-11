@@ -1,6 +1,6 @@
 """This is an example of a chat room with AI agents. It demonstrates how to use the
 `TypeRoutedAgent` class to create custom agents that can use custom message types,
-and interact with other using event-based messaging."""
+and interact with other using event-based messaging without an orchestrator."""
 
 import argparse
 import asyncio
@@ -85,7 +85,7 @@ Use the following JSON format to provide your thought on the latest message and 
 
         # Publish the response if needed.
         if respond is True or str(respond).lower().strip() == "true":
-            self._publish_message(ChatRoomMessage(source=self.name, content=str(response)))
+            await self._publish_message(ChatRoomMessage(source=self.name, content=str(response)))
             print(f"{sep}\n{self._color}{self.name}:{Style.RESET_ALL}\n{response}")
 
 
@@ -100,7 +100,6 @@ def chat_room(runtime: AgentRuntime) -> None:  # type: ignore
         model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
         color=Fore.CYAN,
     )
-
     _ = ChatRoomAgent(
         name="Bob",
         description="Bob in the chat room.",
@@ -110,7 +109,6 @@ def chat_room(runtime: AgentRuntime) -> None:  # type: ignore
         model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
         color=Fore.GREEN,
     )
-
     _ = ChatRoomAgent(
         name="Charlie",
         description="Charlie in the chat room.",
@@ -133,10 +131,11 @@ async def main(user_name: str, wait_seconds: int) -> None:
     while True:
         # TODO: allow user to input at any time while runtime is running.
         # Get user input and send messages to the chat room.
+        # TODO: use Textual to build the UI.
         user_input = await get_user_input(f"{sep}\nYou:\n")
         if user_input.strip():
             # Publish user message if it is not empty.
-            runtime.publish_message(ChatRoomMessage(source=user_name, content=user_input))
+            await runtime.publish_message(ChatRoomMessage(source=user_name, content=user_input))
         # Wait for agents to respond.
         while runtime.unprocessed_messages:
             await runtime.process_next()

@@ -51,7 +51,7 @@ class OrchestratorChat(TypeRoutedAgent):
         while total_turns < self._max_turns:
             # Reset all agents.
             for agent in [*self._specialists, self._orchestrator]:
-                self._send_message(Reset(), agent)
+                await self._send_message(Reset(), agent)
 
             # Create the task specs.
             task_specs = f"""
@@ -73,7 +73,7 @@ Some additional points to consider:
 
             # Send the task specs to the orchestrator and specialists.
             for agent in [*self._specialists, self._orchestrator]:
-                self._send_message(TextMessage(content=task_specs, source=self.name), agent)
+                await self._send_message(TextMessage(content=task_specs, source=self.name), agent)
 
             # Inner loop.
             stalled_turns = 0
@@ -144,7 +144,7 @@ Some additional points to consider:
 
                 # Update all other agents with the speaker's response.
                 for agent in [agent for agent in self._specialists if agent != speaker] + [self._orchestrator]:
-                    self._send_message(
+                    await self._send_message(
                         TextMessage(
                             content=speaker_response.content,
                             source=speaker_response.source,
@@ -162,7 +162,7 @@ Some additional points to consider:
 
     async def _prepare_task(self, task: str, sender: str) -> Tuple[str, str, str, str]:
         # Reset planner.
-        self._send_message(Reset(), self._planner)
+        await self._send_message(Reset(), self._planner)
 
         # A reusable description of the team.
         team = "\n".join([agent.name + ": " + agent.description for agent in self._specialists])
@@ -197,7 +197,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 """.strip()
 
         # Ask the planner to obtain prior knowledge about facts.
-        self._send_message(TextMessage(content=closed_book_prompt, source=sender), self._planner)
+        await self._send_message(TextMessage(content=closed_book_prompt, source=sender), self._planner)
         facts_response = await self._send_message(RespondNow(), self._planner)
 
         facts = str(facts_response.content)
@@ -210,7 +210,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
 
         # Send second messag eto the planner.
-        self._send_message(TextMessage(content=plan_prompt, source=sender), self._planner)
+        await self._send_message(TextMessage(content=plan_prompt, source=sender), self._planner)
         plan_response = await self._send_message(RespondNow(), self._planner)
         plan = str(plan_response.content)
 
@@ -263,7 +263,7 @@ Please output an answer in pure JSON format according to the following schema. T
         request = step_prompt
         while True:
             # Send a message to the orchestrator.
-            self._send_message(TextMessage(content=request, source=sender), self._orchestrator)
+            await self._send_message(TextMessage(content=request, source=sender), self._orchestrator)
             # Request a response.
             step_response = await self._send_message(
                 RespondNow(response_format=ResponseFormat.json_object),
@@ -326,7 +326,7 @@ Please output an answer in pure JSON format according to the following schema. T
 {facts}
 """.strip()
         # Send a message to the orchestrator.
-        self._send_message(TextMessage(content=new_facts_prompt, source=sender), self._orchestrator)
+        await self._send_message(TextMessage(content=new_facts_prompt, source=sender), self._orchestrator)
         # Request a response.
         new_facts_response = await self._send_message(RespondNow(), self._orchestrator)
         return str(new_facts_response.content)
@@ -351,7 +351,7 @@ Please output an answer in pure JSON format according to the following schema. T
         request = educated_guess_promt
         while True:
             # Send a message to the orchestrator.
-            self._send_message(
+            await self._send_message(
                 TextMessage(content=request, source=sender),
                 self._orchestrator,
             )
@@ -385,7 +385,7 @@ Team membership:
 {team}
 """.strip()
         # Send a message to the orchestrator.
-        self._send_message(TextMessage(content=new_plan_prompt, source=sender), self._orchestrator)
+        await self._send_message(TextMessage(content=new_plan_prompt, source=sender), self._orchestrator)
         # Request a response.
         new_plan_response = await self._send_message(RespondNow(), self._orchestrator)
         return str(new_plan_response.content)

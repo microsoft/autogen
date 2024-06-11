@@ -19,6 +19,7 @@ from ..memory import ChatMemory
 from ..types import (
     FunctionCallMessage,
     Message,
+    PublishNow,
     Reset,
     RespondNow,
     ResponseFormat,
@@ -59,49 +60,15 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def on_respond_now(
         self, message: RespondNow, cancellation_token: CancellationToken
     ) -> TextMessage | FunctionCallMessage:
-        # Get a response from the model.
-        response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
-            tools=self._tools,
-            json_output=message.response_format == ResponseFormat.json_object,
-        )
-
-        # If the agent has function executor, and the response is a list of
-        # tool calls, iterate with itself until we get a response that is not a
-        # list of tool calls.
-        while (
-            len(self._tools) > 0
-            and isinstance(response.content, list)
-            and all(isinstance(x, FunctionCall) for x in response.content)
-        ):
-            # Send a function call message to itself.
-            response = await self._send_message(
-                message=FunctionCallMessage(content=response.content, source=self.name),
-                recipient=self,
-                cancellation_token=cancellation_token,
-            )
-            # Make an assistant message from the response.
-            response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
-                tools=self._tools,
-                json_output=message.response_format == ResponseFormat.json_object,
-            )
-
-        final_response: Message
-        if isinstance(response.content, str):
-            # If the response is a string, return a text message.
-            final_response = TextMessage(content=response.content, source=self.name)
-        elif isinstance(response.content, list) and all(isinstance(x, FunctionCall) for x in response.content):
-            # If the response is a list of function calls, return a function call message.
-            final_response = FunctionCallMessage(content=response.content, source=self.name)
-        else:
-            raise ValueError(f"Unexpected response: {response.content}")
-
-        # Add the response to the chat messages.
-        self._memory.add_message(final_response)
-
         # Return the response.
-        return final_response
+        return await self._generate_response(message.response_format, cancellation_token)
+
+    @message_handler()
+    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+        # Generate a response.
+        response = await self._generate_response(message.response_format, cancellation_token)
+        # Publish the response.
+        await self._publish_message(response)
 
     @message_handler()
     async def on_tool_call_message(
@@ -129,7 +96,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
                 )
                 continue
             # Execute the function.
-            future = self.execute_function(
+            future = self._execute_function(
                 function_call.name,
                 arguments,
                 function_call.id,
@@ -153,7 +120,55 @@ class ChatCompletionAgent(TypeRoutedAgent):
         # Return the results.
         return tool_call_result_msg
 
-    async def execute_function(
+    async def _generate_response(
+        self,
+        response_format: ResponseFormat,
+        cancellation_token: CancellationToken,
+    ) -> TextMessage | FunctionCallMessage:
+        # Get a response from the model.
+        response = await self._client.create(
+            self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
+            tools=self._tools,
+            json_output=response_format == ResponseFormat.json_object,
+        )
+
+        # If the agent has function executor, and the response is a list of
+        # tool calls, iterate with itself until we get a response that is not a
+        # list of tool calls.
+        while (
+            len(self._tools) > 0
+            and isinstance(response.content, list)
+            and all(isinstance(x, FunctionCall) for x in response.content)
+        ):
+            # Send a function call message to itself.
+            response = await self._send_message(
+                message=FunctionCallMessage(content=response.content, source=self.name),
+                recipient=self,
+                cancellation_token=cancellation_token,
+            )
+            # Make an assistant message from the response.
+            response = await self._client.create(
+                self._system_messages + convert_messages_to_llm_messages(self._memory.get_messages(), self.name),
+                tools=self._tools,
+                json_output=response_format == ResponseFormat.json_object,
+            )
+
+        final_response: Message
+        if isinstance(response.content, str):
+            # If the response is a string, return a text message.
+            final_response = TextMessage(content=response.content, source=self.name)
+        elif isinstance(response.content, list) and all(isinstance(x, FunctionCall) for x in response.content):
+            # If the response is a list of function calls, return a function call message.
+            final_response = FunctionCallMessage(content=response.content, source=self.name)
+        else:
+            raise ValueError(f"Unexpected response: {response.content}")
+
+        # Add the response to the chat messages.
+        self._memory.add_message(final_response)
+
+        return final_response
+
+    async def _execute_function(
         self,
         name: str,
         args: Dict[str, Any],
