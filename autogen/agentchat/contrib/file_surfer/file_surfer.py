@@ -95,6 +95,23 @@ class FileSurferAgent(ConversableAgent):
 
         return (header, self._browser.viewport)
 
+    def validate_tool_call(self, tool_name, arguments):
+        """Checks if the tool call is valid."""
+        tool_names = [tool["function"]["name"] for tool in self.tools]
+
+        if tool_name not in tool_names:
+            return False, f"Invalid tool name '{tool_name}'. Please choose from the following: {tool_names}"
+
+        # validate the arguments
+        if tool_name == "open_local_file":
+            if "path" not in arguments:
+                return False, "Missing 'path' argument in 'open_local_file' tool call."
+        elif tool_name == "find_on_page_ctrl_f":
+            if "search_string" not in arguments:
+                return False, "Missing 'search_string' argument in 'find_on_page_ctrl_f' tool call."
+
+        return True, None
+
     def generate_surfer_reply(
         self,
         messages=None,
@@ -127,9 +144,13 @@ class FileSurferAgent(ConversableAgent):
         elif response.message.tool_calls:
             tool_calls = response.message.tool_calls
             for tool_call in tool_calls:
-                print(tool_call)
                 tool_name = tool_call.function.name
                 arguments = json.loads(tool_call.function.arguments)
+
+                is_valid, reason = self.validate_tool_call(tool_name, arguments)
+
+                if not is_valid:
+                    return True, reason
 
                 self._log_to_console(tool_name, arguments)
 
