@@ -15,7 +15,7 @@ from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException,
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
-from autogen.agentchat.contrib.filesurfer import FileSurferAgent
+from autogen.agentchat.contrib.file_surfer.file_surfer import FileSurferAgent
 from autogen.code_utils import content_str
 
 MAX_IMAGES = 9
@@ -160,12 +160,12 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
-    downloads_folder = "coding",
+    downloads_folder="coding",
     start_page=os.environ.get("HOMEPAGE", "about:blank"),
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
-file_surfer = FileSurferAgent(name="file_surfer", llm_config=llm_config)
+file_surfer = FileSurferAgent(name="file surfer agent", llm_config=llm_config)
 
 maestro = Orchestrator(
     "orchestrator",
