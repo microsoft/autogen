@@ -348,7 +348,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
        }
        for (let key in metaTags) {
 	   if (metaTags.hasOwnProperty(key)) {
-	       results["meta"] = metaTags;
+	       results["meta_tags"] = metaTags;
 	       break;
            }
        }
