@@ -50,7 +50,7 @@ except ImportError as e:
     gemini_import_exception = e
 
 try:
-    from autogen.oai.togetherai import TogetherClient
+    from autogen.oai.together import TogetherClient
 
     together_import_exception: Optional[ImportError] = None
 except ImportError as e:
@@ -453,6 +453,10 @@ class OpenAIWrapper:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
                 client = GeminiClient(**openai_config)
                 self._clients.append(client)
+            elif api_type is not None and api_type.startswith("together"):
+                if together_import_exception:
+                    raise ImportError("Please install `together` to use the Together.AI API.")
+                self._clients.append(TogetherClient(**config))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
