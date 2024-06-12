@@ -1,5 +1,15 @@
-agnext
+AGNext
 ------
+
+AGNext is a framework for building multi-agent applications. It is designed to be easy to use, flexible, and scalable.
+
+At a high level it provides both a framework for inter-agent communication and a set of components for building and managing agents.
+
+:doc:`Agents <core-concepts/agent>` are hosted by and managed by a :doc:`runtime <core-concepts/runtime>`.
+AGNext supports both RPC or event based based
+communication between agents, allowing for a :doc:`diverse set of agent patterns
+<core-concepts/patterns>`. AGNext provides default agent implementations for
+common uses, such as chat completion agents, but also allows for fully custom agents.
 
 .. toctree::
     :caption: Getting started
@@ -7,7 +17,6 @@ agnext
 
     getting-started/installation
     getting-started/tutorial
-    getting-started/contributing
 
 .. toctree::
     :caption: Core Concepts
@@ -34,3 +43,10 @@ agnext
     reference/agnext.application
     reference/agnext.chat
     reference/agnext.core
+
+.. toctree::
+    :caption: Other
+    :hidden:
+
+    contributing
+

@@ -8,5 +8,5 @@ debugging multi-agent interactions.
 
 Further readings:
 
-1. `agnext.core.AgentRuntime`
-2. `agnext.application.SingleThreadedAgentRuntime`
+1. {py:class}`agnext.core.AgentRuntime`
+2. {py:class}`agnext.application.SingleThreadedAgentRuntime`
