@@ -89,6 +89,8 @@ To see which existing benchmarks are available to clone, run:
 autogenbench clone --list
 ```
 
+> Note: You might need to log in to HuggingFace to access certain datasets like GAIA. To do this, run `huggingface-cli login` in your terminal and follow the prompts.
+
 ## Running AutoGenBench
 
 To run a benchmark (which executes the tasks, but does not compute metrics), simply execute:
