@@ -75,12 +75,12 @@ def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserM
             raise TypeError("Wrong content format: every element should be dict if the content is a list.")
         assert "type" in item, "Wrong content format. Missing 'type' key in content's dict."
         if item["type"] == "text":
-            rst += item["text"]
+            rst += "\n" + item["text"] + "\n"
         elif item["type"] == "image_url":
-            rst += "<image>"
+            rst += "\n<image>\n"
         else:
             raise ValueError(f"Wrong content format: unknown type {item['type']} within the content")
-    return rst
+    return rst.strip()
 
 
 def infer_lang(code: str) -> str:

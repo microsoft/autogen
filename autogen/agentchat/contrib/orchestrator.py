@@ -274,7 +274,7 @@ Recall we are working on the following request:
 To make progress on the request, please answer the following questions, including necessary reasoning:
 
     - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
-    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
+    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop -- such as scrolling endlessly -- or there is evidence of significant barriers to success such as the inability to read from a required file)
 
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
@@ -328,7 +328,7 @@ And we have assembled the following team:
 To make progress on the request, please answer the following questions, including necessary reasoning:
 
     - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
-    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
+    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop -- such as scrolling endlessly -- or there is evidence of significant barriers to success such as the inability to read from a required file)
     - Who should speak next? (select from: {names})
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
 
