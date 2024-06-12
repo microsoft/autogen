@@ -151,7 +151,7 @@ class GeminiClient:
         if not model_name:
             raise ValueError(
                 "Please provide a model name for the Gemini Client. "
-                "You can configurate it in the OAI Config List file. "
+                "You can configure it in the OAI Config List file. "
                 "See this [LLM configuration tutorial](https://microsoft.github.io/autogen/docs/topics/llm_configuration/) for more details."
             )
 
