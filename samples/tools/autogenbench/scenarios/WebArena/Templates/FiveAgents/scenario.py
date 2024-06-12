@@ -184,9 +184,9 @@ for site in TASK["sites"]:
 if logging_enabled():
     log_event(os.path.basename(__file__), name="navigate_start_url")
 start_url = TASK["start_url"]
-if start_url == REDDIT:
-    start_url = start_url + "/forums"
-user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
+if start_url == REDDIT: 
+    start_url = start_url + "/forums/all"
+user_proxy.send(f"Navigate DIRECTLY to '{start_url}'.", web_surfer, request_reply=True)
 
 login_assistant.reset()
 web_surfer.reset()  # NOTE: This resets the message history, but not the browser state. We rely on this.. but it's notat all a very obvious behavior.
@@ -206,7 +206,7 @@ try:
     web_surfer.initiate_chat(
         maestro,
         message=f"""
-We are visiting the website {start_url}{site_description_prompt}. On this website, please complete the following task:
+Your web browser is currently open to the website {start_url}{site_description_prompt}. On this website, please complete the following task:
 
 {TASK['intent']}
 """.strip(),

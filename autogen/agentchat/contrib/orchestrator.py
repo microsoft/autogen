@@ -266,55 +266,28 @@ Some additional points to consider:
 
                 data = None
                 if len(code_blocks) > 0 and len(execution_enabled_agents) > 0:
-                    step_prompt = f"""
-Recall we are working on the following request:
-
-{task}
-
-To make progress on the request, please answer the following questions, including necessary reasoning:
-
-    - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
-    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop -- such as scrolling endlessly -- or there is evidence of significant barriers to success such as the inability to read from a required file)
-
-Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
-
-    {{
-        "is_request_satisfied": {{
-            "reason": string,
-            "answer": boolean
-        }},
-        "is_progress_being_made": {{
-            "reason": string,
-            "answer": boolean
-        }}
-    }}
-""".strip()
-
-                    # This is a temporary message we will immediately pop
-                    self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
-                    response = self._create_with_retry(
-                        messages=self.orchestrated_messages,
-                        cache=self.client_cache,
-                        response_format={"type": "json_object"},
-                        max_images=self.max_images,
-                    )
-                    self.orchestrated_messages.pop()
-
-                    extracted_response = self.client.extract_text_or_completion_object(response)[0]
-                    try:
-                        data = json.loads(extracted_response)
-                        data["next_speaker"] = {
+                    data = { 
+                        "is_request_satisfied": {
+                            "reason": "There is code that needs to be executed.",
+                            "answer": False,
+                        },
+                        "is_in_loop": {
+                            "reason": "Code execution does not count towards loop detection.",
+                            "answer": None
+                        },
+                        "is_progress_being_made": {
+                            "reason": "Code execution does not count towards progress.",
+                            "answer": None
+                        },
+                        "next_speaker": {
                             "reason": "Assigning to an agent that can execute the script.",
                             "answer": execution_enabled_agents[0].name,
-                        }
-                        data["instruction_or_question"] = {
+                        },
+                        "instruction_or_question": {
                             "reason": "Assigning to an agent that can execute the script.",
                             "answer": "Please execute the above script.",
                         }
-                    except json.decoder.JSONDecodeError as e:
-                        # Something went wrong. Restart this loop.
-                        self._print_thought(str(e))
-                        break
+                    }
                 else:
                     step_prompt = f"""
 Recall we are working on the following request:
@@ -328,7 +301,8 @@ And we have assembled the following team:
 To make progress on the request, please answer the following questions, including necessary reasoning:
 
     - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
-    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop -- such as scrolling endlessly -- or there is evidence of significant barriers to success such as the inability to read from a required file)
+    - Are we in a loop where we are repeating the same requests and / or getting the same responses as before? Loops can span multiple turns, and can include repeated actions like scrolling up or down more than a handful of times. 
+    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a loop or if there is evidence of significant barriers to success such as the inability to read from a required file)
     - Who should speak next? (select from: {names})
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
 
@@ -336,6 +310,10 @@ Please output an answer in pure JSON format according to the following schema. T
 
     {{
         "is_request_satisfied": {{
+            "reason": string,
+            "answer": boolean
+        }},
+        "is_in_loop": {{
             "reason": string,
             "answer": boolean
         }},
@@ -380,7 +358,9 @@ Please output an answer in pure JSON format according to the following schema. T
                     stalled_count -= 1
                     stalled_count = max(stalled_count, 0)
                 else:
-                    stalled_count += 1
+                    # If it's false, but not None, increment the counter
+                    if data["is_progress_being_made"]["answer"] is not None:
+                        stalled_count += 1
 
                 if stalled_count >= 3:
                     self._temperature_bonus += 0.5  # Be more creative.
