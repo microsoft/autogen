@@ -310,7 +310,7 @@ const SkillsView = ({}: any) => {
       />
 
       <SkillModal
-        skill={newSkill}
+        skill={newSkill || sampleSkill}
         setSkill={setNewSkill}
         showSkillModal={showNewSkillModal}
         setShowSkillModal={setShowNewSkillModal}

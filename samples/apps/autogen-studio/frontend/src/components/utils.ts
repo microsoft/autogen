@@ -434,7 +434,7 @@ def generate_and_save_images(query: str, image_size: str = "1024x1024") -> List[
   `;
 
   const skill: ISkill = {
-    name: "generate_images",
+    name: "generate_and_save_images",
     description: "Generate and save images based on a user's query.",
     content: content,
   };

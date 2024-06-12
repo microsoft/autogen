@@ -211,7 +211,7 @@ export const SkillConfigView = ({
                       className="mt-2 w-full"
                       value={skill?.name}
                       onChange={(e) => {
-                        updateSkillConfig("skill", e.target.value);
+                        updateSkillConfig("name", e.target.value);
                       }}
                     />
                   }
