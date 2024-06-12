@@ -348,7 +348,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    self._max_tokens,
+                    self._chunk_token_size,
                     self._chunk_mode,
                     self._must_break_at_empty_line,
                 )
