@@ -9,11 +9,12 @@
         "tags": ["gpt-4", "tool"]
     },
     {
-        "model": "<your Azure OpenAI deployment name>",
-        "api_key": "<your Azure OpenAI API key here>",
-        "base_url": "<your Azure OpenAI API base here>",
+        "model": "gpt-4o",
+        "api_key": "AZURE_OPENAI_API_KEY",
+        "base_url": "https://URL.azure.com/ ",
         "api_type": "azure",
-        "api_version": "2024-02-15-preview"
+        "api_version": "2024-05-13",
+        "tags": ["gpt-4o", "gpt-4", "tool"]
     },
     {
         "model": "<your Azure OpenAI deployment name>",
