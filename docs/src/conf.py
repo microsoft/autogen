@@ -50,3 +50,9 @@ html_theme_options = {
     "source_branch": "main",
     "source_directory": "docs/src/",
 }
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "private-members": True
+}

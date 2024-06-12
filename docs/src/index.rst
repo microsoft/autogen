@@ -27,12 +27,15 @@ common uses, such as chat completion agents, but also allows for fully custom ag
     core-concepts/patterns
     core-concepts/memory
     core-concepts/tools
+    core-concepts/cancellation
+    core-concepts/logging
 
 .. toctree::
     :caption: Guides
     :hidden:
 
-    guides/azure_openai_with_aad_auth
+    guides/type-routed-agent
+    guides/azure-openai-with-aad-auth
 
 
 .. toctree::
