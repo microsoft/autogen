@@ -30,34 +30,28 @@ def mock_response():
 
 @pytest.fixture
 def mistral_client():
-    return MistralAIClient(config={"model": "mistral-small-latest", "api_key": "fake_api_key"})
+    return MistralAIClient(model="mistral-small-latest", api_key="fake_api_key")
 
 
 # Test initialization and configuration
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
 def test_initialization():
 
-    # 1. Missing config parameter
-    with pytest.raises(TypeError):
-        MistralAIClient()  # Should raise a TypeError due to missing 'config' parameter
+    # 1. Missing any configuration
+    with pytest.raises(AssertionError):
+        MistralAIClient()  # Should raise an AssertionError due to missing model
 
     # 2. Missing model in config
-    test_config = {
-        "nothing": "something",
-    }
-
     with pytest.raises(AssertionError) as assertinfo:
-        MistralAIClient(test_config)
+        MistralAIClient(max_tokens=10)
 
     assert "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use." in str(
         assertinfo.value
     )
 
     # 3. Missing api_key in config
-    test_config["model"] = "mistral-small-latest"
-
     with pytest.raises(AssertionError) as assertinfo:
-        MistralAIClient(test_config)  # Should raise an AssertionError due to missing api_key in config
+        MistralAIClient(model="mistral-large-latest")  # Should raise an AssertionError due to missing api_key in config
 
     assert (
         "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
@@ -65,20 +59,14 @@ def test_initialization():
     )
 
     # 4. Creation works
-    test_config["api_key"] = "1234"
-
-    MistralAIClient(test_config)  # Should create okay now.
+    MistralAIClient(model="mistral-medium-latest", api_key="fake")  # Should create okay now.
 
 
 # Test standard initialization
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
 def test_valid_initialization(mistral_client):
-
-    print(mistral_client)
-    assert mistral_client._config == {
-        "model": "mistral-small-latest",
-        "api_key": "fake_api_key",
-    }, "Config should be correctly set"
+    assert mistral_client._config_model == "mistral-small-latest", "Config model should be correctly set"
+    assert mistral_client._config_api_key == "fake_api_key", "Config api_key should be correctly set"
 
 
 # Test cost calculation

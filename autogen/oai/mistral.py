@@ -44,6 +44,10 @@ class MistralAIClient:
 
     def load_params(self, **kwargs):
         """Loads the parameters for Mistral.AI API from the config. We load them specifically here for loading, type checks and defaults"""
+
+        if "config" in kwargs:
+            kwargs = kwargs.get("config")
+
         self._config_model = kwargs.get("model", None)
         self._config_api_key = kwargs.get("api_key", None)
 
@@ -101,7 +105,7 @@ class MistralAIClient:
             self._config_api_key = os.getenv("MISTRAL_API_KEY", None)
 
         assert (
-            self._config_api_key is not None
+            self._config_api_key
         ), "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
 
     def message_retrieval(self, response: ChatCompletionResponse) -> Union[List[str], List[ChatCompletionMessage]]:
