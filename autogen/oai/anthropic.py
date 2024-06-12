@@ -15,7 +15,7 @@ config_list = [
     }
 ]
 
-assistant = autogen.AssistantAgent("assitant", llm_config={"config_list": config_list})
+assistant = autogen.AssistantAgent("assistant", llm_config={"config_list": config_list})
 """
 
 import inspect
@@ -35,7 +35,7 @@ TOOL_ENABLED = anthropic_version >= "0.23.1"
 if TOOL_ENABLED:
     from anthropic.types.beta.tools import ToolsBetaMessage
 else:
-    ToolsBetaMessage = objectcm
+    ToolsBetaMessage = object
 
 ANTHROPIC_PRICING_1k = {
     "claude-3-sonnet-20240229": (0.003, 0.015),
@@ -59,14 +59,13 @@ class AnthropicClient:
             self._api_key is not None
         ), "Please provide an `api_key` in the config_list to use the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable."
 
-        self._client = Anthropic(model=self._model, api_key=self._api_key)
+        self._client = Anthropic(api_key=self._api_key)
 
     def load_config(self, **kwargs: Any):
         """Load the configuration for the Anthropic API client."""
-        if config in kwargs:
-            self._config = kwargs.get("config")
-        self._model = kwargs.get("model", None)
-        self._api_key = kwargs.get("api_key", None)
+        self._config = kwargs.get("config", None)
+        self._model = self._config.get("model", None)
+        self._api_key = self._config.get("api_key", None)
 
         self._temperature = kwargs.get("temperature", 0.7)
         if self._temperature is not None and not isinstance(self._temperature, float):
