@@ -94,7 +94,6 @@ class AnthropicClient:
 
         return total
 
-
     def create(self, params: Dict[str, Any]) -> Completion:
         """Create a completion for a given config.
 
@@ -132,7 +131,7 @@ class AnthropicClient:
         else:
             completions: Completion = self._client.messages  # type: ignore [attr-defined]
 
-        #TODO: support stream
+        # TODO: support stream
         params = params.copy()
         params["stream"] = False
         params.pop("model_client_cls")
@@ -144,7 +143,7 @@ class AnthropicClient:
         response = completions.create(**params)
 
         return response
-    
+
     def message_retrieval(
         self, response: Union[Message, ToolsBetaMessage]
     ) -> Union[List[str], List[ChatCompletionMessage]]:
@@ -169,7 +168,7 @@ class AnthropicClient:
                 choice.text if choice.message.function_call is not None else choice.message.content  # type: ignore [union-attr]
                 for choice in messages
             ]
-    
+
     def response_to_openai_message(self, response) -> ChatCompletionMessage:
         dict_response = response.model_dump()
         return ChatCompletionMessage(
