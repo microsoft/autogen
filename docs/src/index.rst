@@ -6,6 +6,18 @@ agnext
     :hidden:
 
     getting-started/installation
+    getting-started/tutorial
+    getting-started/contributing
+
+.. toctree::
+    :caption: Core Concepts
+    :hidden:
+
+    core-concepts/runtime
+    core-concepts/agent
+    core-concepts/patterns
+    core-concepts/memory
+    core-concepts/tools
 
 .. toctree::
     :caption: Guides
