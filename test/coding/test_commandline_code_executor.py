@@ -427,13 +427,13 @@ def test_local_executor_with_custom_python_env_in_local_relative_path():
 
         executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
         code_blocks = [
-            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
             CodeBlock(code="import sys; print(sys.executable)", language="python"),
         ]
         execution = executor.execute_code_blocks(code_blocks)
 
         assert execution.exit_code == 0
 
+        # Check if the expected venv is used
         bin_path = os.path.abspath(env_builder_context.bin_path)
         assert Path(execution.output.strip()).parent.samefile(bin_path)
     finally:
