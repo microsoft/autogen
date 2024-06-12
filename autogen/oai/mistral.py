@@ -1,3 +1,22 @@
+"""Create a OpenAI-compatible client using Mistral.AI's API.
+
+Example:
+    llm_config={
+        "config_list": [{
+            "api_type": "mistral",
+            "model": "open-mixtral-8x22b",
+            "api_key": os.environ.get("MISTRAL_API_KEY")
+            }
+    ]}
+
+    agent = autogen.AssistantAgent("my_agent", llm_config=llm_config)
+
+Install Mistral.AI python library using: pip install --upgrade mistralai
+
+Resources:
+- https://docs.mistral.ai/getting-started/quickstart/
+"""
+
 # Important notes when using the Mistral.AI API:
 # The first system message can greatly affect whether the model returns a tool call, including text that references the ability to use functions will help.
 # Changing the role on the first system message to 'user' improved the chances of the model recommending a tool call.
