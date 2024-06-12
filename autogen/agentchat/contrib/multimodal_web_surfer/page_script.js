@@ -232,9 +232,133 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       };
   };
 
-  return {
-      getInteractiveRects: getInteractiveRects,
-      getVisualViewport: getVisualViewport,
-      getFocusedElementId: getFocusedElementId
+  let _getMetaTags = function() {
+      let meta = document.querySelectorAll("meta");
+      let results = {};
+      for (let i = 0; i<meta.length; i++) {
+          let key = null;
+          if (meta[i].hasAttribute("name")) {
+              key = meta[i].getAttribute("name");
+          }
+          else if (meta[i].hasAttribute("property")) {
+              key = meta[i].getAttribute("property");
+          }
+          else {
+              continue;
+          }
+          if (meta[i].hasAttribute("content")) {
+              results[key] = meta[i].getAttribute("content");
+          }
+      }
+      return results;
   };
+
+  let _getJsonLd = function() {
+      let jsonld = [];
+      let scripts = document.querySelectorAll('script[type="application/ld+json"]');
+      for (let i=0; i<scripts.length; i++) {
+          jsonld.push(scripts[i].innerHTML.trim());
+      }
+      return jsonld;
+   };
+
+   // From: https://www.stevefenton.co.uk/blog/2022/12/parse-microdata-with-javascript/
+   let _getMicrodata = function() {
+      function sanitize(input) {
+          return input.replace(/\s/gi, ' ').trim();
+      }
+
+      function addValue(information, name, value) {
+          if (information[name]) {
+              if (typeof information[name] === 'array') {
+                  information[name].push(value);
+              } else {
+                  const arr = [];
+                  arr.push(information[name]);
+                  arr.push(value);
+                  information[name] = arr;
+              }
+          } else {
+              information[name] = value;
+          }
+      }
+
+      function traverseItem(item, information) {
+         const children = item.children;
+        
+         for (let i = 0; i < children.length; i++) {
+             const child = children[i];
+
+             if (child.hasAttribute('itemscope')) {
+                 if (child.hasAttribute('itemprop')) {
+                     const itemProp = child.getAttribute('itemprop');
+                     const itemType = child.getAttribute('itemtype');
+
+                     const childInfo = {
+                         itemType: itemType
+                     };
+
+                     traverseItem(child, childInfo);
+
+                     itemProp.split(' ').forEach(propName => {
+                         addValue(information, propName, childInfo);
+                     });
+                 }
+
+             } else if (child.hasAttribute('itemprop')) {
+                 const itemProp = child.getAttribute('itemprop');
+                 itemProp.split(' ').forEach(propName => {
+                     if (propName === 'url') {
+                         addValue(information, propName, child.href);
+                     } else {
+                         addValue(information, propName, sanitize(child.getAttribute("content") || child.content || child.textContent || child.src || ""));
+                     }
+                 });
+                 traverseItem(child, information);
+             } else {
+                 traverseItem(child, information);
+             }
+         }
+      }
+
+      const microdata = [];
+
+      document.querySelectorAll("[itemscope]").forEach(function(elem, i) {
+         const itemType = elem.getAttribute('itemtype');
+         const information = {
+             itemType: itemType
+         };
+         traverseItem(elem, information);
+         microdata.push(information);
+      });
+    
+      return microdata;
+   };
+
+   let getPageMetadata = function() {
+       let jsonld = _getJsonLd();
+       let metaTags = _getMetaTags();
+       let microdata = _getMicrodata();
+       let results = {}
+       if (jsonld.length > 0) {
+           results["jsonld"] = jsonld;
+       }
+       if (microdata.length > 0) {
+	   results["microdata"] = microdata;
+       }
+       for (let key in metaTags) {
+	   if (metaTags.hasOwnProperty(key)) {
+	       results["meta"] = metaTags;
+	       break;
+           }
+       }
+       return results;
+   };	
+
+   return {
+       getInteractiveRects: getInteractiveRects,
+       getVisualViewport: getVisualViewport,
+       getFocusedElementId: getFocusedElementId,
+       getPageMetadata: getPageMetadata,
+   };
 })();

@@ -6,12 +6,16 @@ TOOL_VISIT_URL = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "url": {
                     "type": "string",
                     "description": "The URL to visit in the browser.",
                 },
             },
-            "required": ["url"],
+            "required": ["reasoning", "url"],
         },
     },
 }
@@ -24,12 +28,16 @@ TOOL_WEB_SEARCH = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "query": {
                     "type": "string",
                     "description": "The web search query to use.",
                 },
             },
-            "required": ["query"],
+            "required": ["reasoning", "query"],
         },
     },
 }
@@ -41,8 +49,13 @@ TOOL_HISTORY_BACK = {
         "description": "Navigates back one page in the browser's history. This is equivalent to clicking the browser back button.",
         "parameters": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
+            },
+            "required": ["reasoning"],
         },
     },
 }
@@ -54,8 +67,13 @@ TOOL_PAGE_UP = {
         "description": "Scrolls the entire browser viewport one page UP towards the beginning.",
         "parameters": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
+            },
+            "required": ["reasoning"],
         },
     },
 }
@@ -67,8 +85,13 @@ TOOL_PAGE_DOWN = {
         "description": "Scrolls the entire browser viewport one page DOWN towards the end.",
         "parameters": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
+            },
+            "required": ["reasoning"],
         },
     },
 }
@@ -81,12 +104,16 @@ TOOL_CLICK = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "target_id": {
                     "type": "integer",
                     "description": "The numeric id of the target to click.",
                 },
             },
-            "required": ["target_id"],
+            "required": ["reasoning", "target_id"],
         },
     },
 }
@@ -99,6 +126,10 @@ TOOL_TYPE = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "input_field_id": {
                     "type": "integer",
                     "description": "The numeric id of the input field to receive the text.",
@@ -108,7 +139,7 @@ TOOL_TYPE = {
                     "description": "The text to type into the input field.",
                 },
             },
-            "required": ["input_field_id", "text_value"],
+            "required": ["reasoning", "input_field_id", "text_value"],
         },
     },
 }
@@ -121,12 +152,16 @@ TOOL_SCROLL_ELEMENT_DOWN = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "target_id": {
                     "type": "integer",
                     "description": "The numeric id of the target to scroll down.",
                 },
             },
-            "required": ["target_id"],
+            "required": ["reasoning", "target_id"],
         },
     },
 }
@@ -139,12 +174,16 @@ TOOL_SCROLL_ELEMENT_UP = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "target_id": {
                     "type": "integer",
                     "description": "The numeric id of the target to scroll UP.",
                 },
             },
-            "required": ["target_id"],
+            "required": ["reasoning", "target_id"],
         },
     },
 }
@@ -157,12 +196,16 @@ TOOL_READ_PAGE_AND_ANSWER = {
         "parameters": {
             "type": "object",
             "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
                 "question": {
                     "type": "string",
                     "description": "The question to answer.",
                 },
             },
-            "required": ["question"],
+            "required": ["reasoning", "question"],
         },
     },
 }
@@ -174,8 +217,13 @@ TOOL_SUMMARIZE_PAGE = {
         "description": "Uses AI to summarize the entire page.",
         "parameters": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
+            },
+            "required": ["reasoning"],
         },
     },
 }

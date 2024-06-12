@@ -6,6 +6,9 @@ import json
 import io
 import base64
 import pathlib
+import hashlib
+#import numpy as np
+#import easyocr
 from PIL import Image
 from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
@@ -119,6 +122,8 @@ class MultimodalWebSurferAgent(ConversableAgent):
         self.debug_dir = debug_dir or os.getcwd()
         self.downloads_folder = downloads_folder
 
+        #self._ocr_reader = easyocr.Reader(["en"])
+
         # Handle the allow list
         self._navigation_allow_list = navigation_allow_list
         if isinstance(self._navigation_allow_list, list):
@@ -158,6 +163,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         self._download_handler = _download_handler
         self._last_download = None
+        self._prior_metadata_hash = None
 
         # Create or use the provided MarkdownConverter
         if markdown_converter is None:
@@ -359,10 +365,10 @@ setInterval(function() {{
                 actions = ["'click'"]
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
                     actions = ["'input_text'"]
-                if rects[r]["v-scrollable"]:
-                    has_scrollable_elements = True
-                    actions.append("'scroll_element_up'")
-                    actions.append("'scroll_element_down'")
+                #if rects[r]["v-scrollable"]:
+                #    has_scrollable_elements = True
+                #    actions.append("'scroll_element_up'")
+                #    actions.append("'scroll_element_down'")
                 actions = "[" + ",".join(actions) + "]"
 
                 text_labels += f"""
@@ -373,7 +379,7 @@ setInterval(function() {{
             tools.append(TOOL_SCROLL_ELEMENT_UP)
             tools.append(TOOL_SCROLL_ELEMENT_DOWN)
 
-        tool_names = [t["function"]["name"] for t in tools]
+        tool_names = "\n".join([t["function"]["name"] for t in tools])
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -382,7 +388,14 @@ Consider the following screenshot of a web browser, which is open to the page '{
 {text_labels}
 ]
 {focused_hint}
-You are to respond to the user's most recent request by selecting an appropriate tool from the provided set of browser tools ({ ', '.join(tool_names) }), or by answering the question directly if possible.
+You are to respond to the user's most recent request by selecting an appropriate tool the following set, or by answering the question directly if possible:
+
+{tool_names}
+
+When deciding between tools, consider if the request can be best addressed by:
+    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, or inputting text might be most appropriate) 
+    - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
+    - on some other website entirely (in which case actions like performing a new web search might be the best option)
 """.strip()
 
         # Scale the screenshot for the MLM, and close the original
@@ -500,9 +513,18 @@ You are to respond to the user's most recent request by selecting an appropriate
         if self._last_download is not None and self.downloads_folder is not None:
             fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
             self._last_download.save_as(fname)
-            page_body = f"<body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body>"
+            page_body = f"<html><head><title>Download Successful</title></head><body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body></html>"
             self._page.goto("data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8"))
             self._page.wait_for_load_state()
+
+        # Handle metadata
+        page_metadata = json.dumps(self._get_page_metadata(), indent=4)
+        metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
+        if metadata_hash != self._prior_metadata_hash:
+            page_metadata = "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
+        else:
+            page_metadata = ""
+        self._prior_metadata_hash = metadata_hash
 
         # Descrive the viewport of the new page in words
         viewport = self._get_visual_viewport()
@@ -520,6 +542,8 @@ You are to respond to the user's most recent request by selecting an appropriate
             with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
                 png.write(new_screenshot)
 
+        ocr_text = self._get_ocr_text(new_screenshot)
+        
         if logging_enabled():
             log_event(self, "cookies", cookies=self._page.context.cookies())
             log_event(
@@ -533,12 +557,7 @@ You are to respond to the user's most recent request by selecting an appropriate
         # Return the complete observation
         message_content = message.content or ""
         return True, self._make_mm_message(
-            re.sub(
-                r"\s+",
-                " ",
-                f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
-                re.DOTALL,
-            ).strip(),
+            f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.{page_metadata}\nAutomatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}".strip(),
             new_screenshot,
         )
 
@@ -596,6 +615,14 @@ You are to respond to the user's most recent request by selecting an appropriate
         except:
             pass
         return self._page.evaluate("MultimodalWebSurfer.getFocusedElementId();")
+
+    def _get_page_metadata(self):
+        try:
+            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+                self._page.evaluate(fh.read())
+        except:
+            pass
+        return self._page.evaluate("MultimodalWebSurfer.getPageMetadata();")
 
     def _get_page_markdown(self):
         html = self._page.evaluate("document.documentElement.outerHTML;")
@@ -746,6 +773,65 @@ You are to respond to the user's most recent request by selecting an appropriate
         response = self.client.create(context=None, messages=messages)
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         return str(extracted_response)
+
+
+    def _get_ocr_text(self, image):
+        
+        scaled_screenshot = None
+        if isinstance(image, Image.Image):
+            scaled_screenshot = image.resize((MLM_WIDTH, MLM_HEIGHT))
+        else:
+            pil_image = None
+            if not isinstance(image, io.BufferedIOBase):
+                pil_image = Image.open(io.BytesIO(image))
+            else:
+                pil_image = Image.open(image)
+            scaled_screenshot = pil_image.resize((MLM_WIDTH, MLM_HEIGHT))
+            pil_image.close()
+
+        messages = [
+            self._make_mm_message("Please transcribe all visible text on this page, including both main content and the labels of UI elements.", scaled_screenshot),
+        ]
+        scaled_screenshot.close()
+
+        response = self.client.create(context=None, messages=messages)
+        extracted_response = self.client.extract_text_or_completion_object(response)[0]
+        return str(extracted_response)
+
+
+    #def _get_ocr_text(self, image, ocr_min_confidence=0.5):
+    #    pil_image = None
+    #
+    #    if isinstance(image, Image.Image):
+    #        pil_image = image
+    #    else:
+    #        if not isinstance(image, io.BufferedIOBase):
+    #            pil_image = Image.open(io.BytesIO(image))
+    #        else:
+    #            pil_image = Image.open(image)
+    #    
+    #    # Remove transparency
+    #    if pil_image.mode in ("RGBA", "P"):
+    #        tmp = pil_image.convert("RGB")
+    #        pil_image.close()
+    #        pil_image = tmp
+    #
+    #    output = self._ocr_reader.readtext(np.array(pil_image))
+    #        # The output is a list of tuples, each containing the coordinates of the text and the text itself.
+    #        # We join all the text pieces together to get the final text.
+    #    ocr_text = " "
+    #    for item in output:
+    #        if item[2] >= ocr_min_confidence:
+    #            ocr_text += item[1] + "\n"
+    #    ocr_text = ocr_text.strip()
+    #
+    #    if not isinstance(image, Image.Image):
+    #        # If we created the image, then close it
+    #        pil_image.close()
+    #
+    #    print(ocr_text)
+    #    return ocr_text
+
 
     def _log_to_console(self, fname, args):
         if fname is None or fname == "":

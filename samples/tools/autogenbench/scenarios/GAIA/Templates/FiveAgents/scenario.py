@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 import testbed_utils
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException, FileConversionException, RequestsMarkdownBrowser
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
@@ -165,7 +165,12 @@ web_surfer = MultimodalWebSurferAgent(
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
-file_surfer = FileSurferAgent(name="file surfer agent", llm_config=llm_config)
+file_browser = RequestsMarkdownBrowser(
+    viewport_size = 1024 * 5,
+    downloads_folder = "coding",
+    markdown_converter = MarkdownConverter(mlm_client=client),
+)
+file_surfer = FileSurferAgent(name="file_surfer_agent", llm_config=llm_config, browser=file_browser)
 
 maestro = Orchestrator(
     "orchestrator",
@@ -180,9 +185,10 @@ filename = "__FILE_NAME__".strip()
 filename_prompt = ""
 if len(filename) > 0:
     relpath = os.path.join("coding", filename)
-    file_uri = pathlib.Path(os.path.abspath(os.path.expanduser(relpath))).as_uri()
+    abspath = os.path.abspath(os.path.expanduser(relpath))
+    file_uri = pathlib.Path(abspath).as_uri()
 
-    filename_prompt = f"The question is about a file, document or image, which can be accessed by the filename '{filename}' in the current working directory. It can also be viewed in a web browser by visiting the URL {file_uri}"
+    filename_prompt = f"The question is about a file, document or image which can be accessed at '{abspath}'. It can also be viewed in a web browser by visiting the URL {file_uri}"
 
     mdconverter = MarkdownConverter(mlm_client=client)
     mlm_prompt = f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
