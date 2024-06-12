@@ -8,7 +8,7 @@ import copy
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
-from autogen.agentchat.contrib.filesurfer import FileSurferAgent
+from autogen.agentchat.contrib.file_surfer.file_surfer import FileSurferAgent
 from autogen.browser_utils import MarkdownConverter, RequestsMarkdownBrowser
 from autogen.runtime_logging import logging_enabled, log_event
 from autogen.code_utils import content_str
@@ -134,13 +134,12 @@ web_surfer = MultimodalWebSurferAgent(
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
-
 file_browser = RequestsMarkdownBrowser(
     viewport_size = 1024 * 5,
     downloads_folder = "coding",
     markdown_converter = MarkdownConverter(mlm_client=autogen.OpenAIWrapper(**llm_config)),
 )
-file_surfer = FileSurferAgent(name="file_surfer", llm_config=llm_config, browser=file_browser)
+file_surfer = FileSurferAgent(name="file_surfer_agent", llm_config=llm_config, browser=file_browser)
 
 maestro = Orchestrator(
     "orchestrator",
