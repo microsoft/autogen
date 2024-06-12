@@ -88,7 +88,7 @@ def test_eval_math_responses_api_style_function():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         KEY_LOC,
-        filter_dict={"tags": ["gpt-4", "gpt4", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]},
+        filter_dict={"tags": ["tool"]},
     )
     functions = [
         {
