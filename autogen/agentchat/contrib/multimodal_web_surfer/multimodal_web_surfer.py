@@ -292,6 +292,30 @@ setInterval(function() {{
         else:
             return None
 
+    def _format_target_list(self, ids, rects):
+        targets = []
+        for r in list(set(ids)):
+            if r in rects:
+                
+                # Get the role
+                aria_role = rects[r].get("role", "").strip()
+                if len(aria_role) == 0:
+                    aria_role = rects[r].get("tag_name", "").strip()
+                    
+                # Get the name
+                aria_name = rects[r].get("aria-name", "").strip()
+
+                # What are the actions?
+                actions = ['"click"']
+                if rects[r]["role"] in ["textbox", "searchbox", "search"]:
+                    actions = ['"input_text"']
+                actions = "[" + ",".join(actions) + "]"
+
+                targets.append(f'{{"id": {r}, "name": "{aria_name}", "role": "{aria_role}", "tools": {actions} }}')
+
+        return targets
+
+
     def generate_surfer_reply(
         self,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -354,66 +378,35 @@ setInterval(function() {{
                 + focused
                 + " "
                 + name
-                + "currently has the input focus.\n"
+                + "currently has the input focus.\n\n"
             )
 
         # Everything visible
-        visible_labels = ""
-        has_scrollable_elements = False
-        for r in visible_rects:
-            if r in rects:
-                actions = ["'click'"]
-                if rects[r]["role"] in ["textbox", "searchbox", "search"]:
-                    actions = ["'input_text'"]
-                #if rects[r]["v-scrollable"]:
-                #    has_scrollable_elements = True
-                #    actions.append("'scroll_element_up'")
-                #    actions.append("'scroll_element_down'")
-                actions = "[" + ",".join(actions) + "]"
+        visible_targets = "\n".join(self._format_target_list(visible_rects, rects)) + "\n\n"
 
-                visible_labels += f"""
-   {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+        # Everything else
+        other_targets = []
+        other_targets.extend(self._format_target_list(rects_above, rects))
+        other_targets.extend(self._format_target_list(rects_below, rects))
 
-        # Everything Above
-        rects_above_labels = []
-        for r in rects_above:
-            if r in rects:
-                if rects[r]['aria-name']:
-                    rects_above_labels.append('"' + rects[r]['aria-name'] + '"')
-        
-        # Everything Below 
-        rects_below_labels = []
-        for r in rects_below:
-            if r in rects:
-                if rects[r]['aria-name']:
-                    rects_below_labels.append('"' + rects[r]['aria-name'] + '"')
-
-        if len(rects_above_labels) > 0:
-            rects_above_labels = f"Additionally, you can use page_up() to scroll up and find the following controls or links:\n[{', '.join(rects_above_labels)}]\n"
+        if len(other_targets) > 0:
+            other_targets = "Additional valid interaction targets (not shown) include:\n" + "\n".join(other_targets) + "\n\n"
         else:
-            rects_above_labels = ""
+            other_targets = ""
 
-        if len(rects_below_labels) > 0:
-            rects_below_labels = f"Additionally, you can use page_down() to scroll down and find the following controls or links:\n[{', '.join(rects_below_labels)}]\n"
-        else:
-            rects_below_labels = ""
 
         # If there are scrollable elements, then add the corresponding tools
-        if has_scrollable_elements:
-            tools.append(TOOL_SCROLL_ELEMENT_UP)
-            tools.append(TOOL_SCROLL_ELEMENT_DOWN)
+        #has_scrollable_elements = False
+        #if has_scrollable_elements:
+        #    tools.append(TOOL_SCROLL_ELEMENT_UP)
+        #    tools.append(TOOL_SCROLL_ELEMENT_DOWN)
 
         tool_names = "\n".join([t["function"]["name"] for t in tools])
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
-[
-{visible_labels}
-]
-
-{focused_hint}{rects_above_labels}{rects_below_labels}
-You are to respond to the user's most recent request by selecting an appropriate tool the following set, or by answering the question directly if possible:
+{visible_targets}{other_targets}{focused_hint}You are to respond to the user's most recent request by selecting an appropriate tool the following set, or by answering the question directly if possible:
 
 {tool_names}
 
@@ -707,6 +700,7 @@ When deciding between tools, consider if the request can be best addressed by:
             raise ValueError("No such element.")
 
         # Click it
+        target.scroll_into_view_if_needed()
         box = target.bounding_box()
         try:
             # Give it a chance to open a new page
@@ -726,6 +720,7 @@ When deciding between tools, consider if the request can be best addressed by:
             raise ValueError("No such element.")
 
         # Fill it
+        target.scroll_into_view_if_needed()
         target.focus()
         target.fill(value)
         self._page.keyboard.press("Enter")

@@ -53,6 +53,8 @@ with open("task_prompt.json", "wt") as fh:
         task_prompt = task_prompt.replace(k, REPLACEMENTS[k])
     fh.write(task_prompt)
     TASK = json.loads(task_prompt)
+    if TASK["start_url"] == REDDIT: 
+        TASK["start_url"] = TASK["start_url"] + "/forums/all"
 
 full_task = ""
 with open("full_task.json.txt", "rt") as fh:
@@ -179,23 +181,18 @@ for site in TASK["sites"]:
         login_assistant.reset()
         web_surfer.reset()
 
-
-# Navigate to the starting url
-if logging_enabled():
-    log_event(os.path.basename(__file__), name="navigate_start_url")
-start_url = TASK["start_url"]
-if start_url == REDDIT: 
-    start_url = start_url + "/forums/all"
-user_proxy.send(f"Navigate DIRECTLY to '{start_url}'.", web_surfer, request_reply=True)
+#if logging_enabled():
+#    log_event(os.path.basename(__file__), name="navigate_start_url")
+#user_proxy.send(f"Navigate DIRECTLY to '" + TASK["start_url"] + "'", web_surfer, request_reply=True)
 
 login_assistant.reset()
-web_surfer.reset()  # NOTE: This resets the message history, but not the browser state. We rely on this.. but it's notat all a very obvious behavior.
+web_surfer.reset()  # This returns us to the starting page too
 
 print("MAIN TASK STARTING !#!#")
 
 # Provide some background about the pages
 site_description_prompt = ""
-sitename = url_to_sitename(start_url)
+sitename = url_to_sitename(TASK["start_url"])
 if sitename:
     site_description_prompt = ", " + SITE_DESCRIPTIONS[sitename]
 
@@ -206,7 +203,7 @@ try:
     web_surfer.initiate_chat(
         maestro,
         message=f"""
-Your web browser is currently open to the website {start_url}{site_description_prompt}. On this website, please complete the following task:
+Your web browser is currently open to the website {TASK['start_url']}{site_description_prompt}. On this website, please complete the following task:
 
 {TASK['intent']}
 """.strip(),
