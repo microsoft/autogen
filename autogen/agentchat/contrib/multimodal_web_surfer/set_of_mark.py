@@ -20,6 +20,8 @@ def add_set_of_mark(screenshot, ROIs):
 
 def _add_set_of_mark(screenshot, ROIs):
     visible_rects = list()
+    rects_above = list() # Scroll up to see
+    rects_below = list() # Scroll down to see
 
     fnt = ImageFont.load_default(14)
     base = screenshot.convert("L").convert("RGBA")
@@ -36,14 +38,18 @@ def _add_set_of_mark(screenshot, ROIs):
 
             mid = ((rect["right"] + rect["left"]) / 2.0, (rect["top"] + rect["bottom"]) / 2.0)
 
-            if 0 <= mid[0] and mid[0] < base.size[0] and 0 <= mid[1] and mid[1] < base.size[1]:
-                visible_rects.append(r)
-
-            _draw_roi(draw, int(r), fnt, rect)
+            if 0 <= mid[0] and mid[0] < base.size[0]:
+                if mid[1] < 0:
+                    rects_above.append(r)
+                elif mid[1] >= base.size[1]:
+                    rects_below.append(r)
+                else:
+                    visible_rects.append(r)
+                    _draw_roi(draw, int(r), fnt, rect)
 
     comp = Image.alpha_composite(base, overlay)
     overlay.close()
-    return comp, visible_rects
+    return comp, visible_rects, rects_above, rects_below
 
 
 def _trim_drawn_text(draw, text, font, max_width):

@@ -87,6 +87,12 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
   let isTopmost = function(element, x, y) {
      let hit = document.elementFromPoint(x, y);
+
+     // Hack to handle elements outside the viewport
+     if (hit === null) {
+         return true; 
+     }
+
      while (hit) {
          if (hit == element) return true;
          hit = hit.parentNode;

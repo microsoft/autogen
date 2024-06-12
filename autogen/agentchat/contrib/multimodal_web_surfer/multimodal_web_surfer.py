@@ -313,7 +313,7 @@ setInterval(function() {{
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
         viewport = self._get_visual_viewport()
-        som_screenshot, visible_rects = add_set_of_mark(self._page.screenshot(), rects)
+        som_screenshot, visible_rects, rects_above, rects_below = add_set_of_mark(self._page.screenshot(), rects)
 
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
@@ -358,7 +358,7 @@ setInterval(function() {{
             )
 
         # Everything visible
-        text_labels = ""
+        visible_labels = ""
         has_scrollable_elements = False
         for r in visible_rects:
             if r in rects:
@@ -371,8 +371,32 @@ setInterval(function() {{
                 #    actions.append("'scroll_element_down'")
                 actions = "[" + ",".join(actions) + "]"
 
-                text_labels += f"""
+                visible_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+
+        # Everything Above
+        rects_above_labels = []
+        for r in rects_above:
+            if r in rects:
+                if rects[r]['aria-name']:
+                    rects_above_labels.append('"' + rects[r]['aria-name'] + '"')
+        
+        # Everything Below 
+        rects_below_labels = []
+        for r in rects_below:
+            if r in rects:
+                if rects[r]['aria-name']:
+                    rects_below_labels.append('"' + rects[r]['aria-name'] + '"')
+
+        if len(rects_above_labels) > 0:
+            rects_above_labels = f"Additionally, you can use page_up() to scroll up and find the following controls or links:\n[{', '.join(rects_above_labels)}]\n"
+        else:
+            rects_above_labels = ""
+
+        if len(rects_below_labels) > 0:
+            rects_below_labels = f"Additionally, you can use page_down() to scroll down and find the following controls or links:\n[{', '.join(rects_below_labels)}]\n"
+        else:
+            rects_below_labels = ""
 
         # If there are scrollable elements, then add the corresponding tools
         if has_scrollable_elements:
@@ -385,9 +409,10 @@ setInterval(function() {{
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
 [
-{text_labels}
+{visible_labels}
 ]
-{focused_hint}
+
+{focused_hint}{rects_above_labels}{rects_below_labels}
 You are to respond to the user's most recent request by selecting an appropriate tool the following set, or by answering the question directly if possible:
 
 {tool_names}
