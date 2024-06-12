@@ -1,8 +1,8 @@
 import json
-import time
 import logging
+import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from .... import Agent, ConversableAgent
 from ....browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser
