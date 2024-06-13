@@ -8,7 +8,6 @@ using FluentAssertions;
 using AutoGen.Gemini.Extension;
 using static Google.Cloud.AIPlatform.V1.Part;
 using Xunit.Abstractions;
-using AutoGen.Gemini.Middleware;
 namespace AutoGen.Gemini.Tests;
 
 public class GeminiAgentTests
