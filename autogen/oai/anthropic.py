@@ -33,12 +33,15 @@ from typing_extensions import Annotated
 
 TOOL_ENABLED = anthropic_version >= "0.23.1"
 if TOOL_ENABLED:
-    from anthropic.types.tool_use_block_param import ToolUseBlockParam
+    from anthropic.types.tool_use_block_param import (
+        ToolUseBlockParam,
+    )
 else:
     ToolUseBlockParam = object
 
 ANTHROPIC_PRICING_1k = {
     "claude-3-sonnet-20240229": (0.003, 0.015),
+    "claude-3-opus-20240229": (0.015, 0.075),
     "claude-2.0": (0.008, 0.024),
     "claude-2.1": (0.008, 0.024),
     "claude-3.0-opus": (0.015, 0.075),
@@ -79,6 +82,21 @@ class AnthropicClient:
             warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
             self._max_tokens = None
 
+        self._stop_sequences = kwargs.get("stop_sequences", None)
+        if self._stop_sequences is not None and not isinstance(self._stop_sequences, list):
+            warnings.warn("Config error: stop_sequences must be a list or None", UserWarning)
+            self._stop_sequences = None
+
+        self._top_k = kwargs.get("top_k", None)
+        if self._top_k is not None and not isinstance(self._top_k, int):
+            warnings.warn("Config error: top_k must be an int or None", UserWarning)
+            self._top_k = None
+
+        self._top_p = kwargs.get("top_p", None)
+        if self._top_p is not None and not isinstance(self._top_p, float):
+            warnings.warn("Config error: top_p must be a float or None", UserWarning)
+            self._top_p = None
+
     @property
     def api_key(self):
         return self._api_key
@@ -107,7 +125,6 @@ class AnthropicClient:
             elif "function_call" in message:
                 processed_messages.append(self.restore_last_tooluse_status())
             elif message["content"] == "":
-                # I'm not sure how to elegantly terminate the conversation, please give me some advice about this.
                 message["content"] = "I'm done. Please send TERMINATE"
                 processed_messages.append(message)
             else:
@@ -115,15 +132,11 @@ class AnthropicClient:
 
         params["messages"] = processed_messages
 
-        if TOOL_ENABLED and "functions" in params:
-            completions: Completion = self._client.beta.tools.messages
-        else:
-            completions: Completion = self._client.messages  # type: ignore [attr-defined]
+        completions: Completion = self._client.messages  # type: ignore [attr-defined]
 
         # TODO: support stream
         params = params.copy()
         params["stream"] = False
-        params.pop("model_client_cls")
         params["max_tokens"] = params.get("max_tokens", 4096)
         if "functions" in params:
             tools_configs = params.pop("functions")
@@ -213,19 +226,20 @@ class AnthropicClient:
 
         return functions
 
+    def calculate_cost(self, response: Completion) -> float:
+        """Calculate the cost of the completion using the Anthropic pricing."""
+        total = 0.0
+        tokens = {
+            "input": response.usage.input_tokens if response.usage is not None else 0,
+            "output": response.usage.output_tokens if response.usage is not None else 0,
+        }
 
-def calculate_cost(self, response: Completion) -> float:
-    """Calculate the cost of the completion using the Anthropic pricing."""
-    total = 0.0
-    tokens = {
-        "input": response.usage.input_tokens if response.usage is not None else 0,
-        "output": response.usage.output_tokens if response.usage is not None else 0,
-    }
+        if self._model in ANTHROPIC_PRICING_1k:
+            input_cost_per_1k, output_cost_per_1k = ANTHROPIC_PRICING_1k[self._model]
+            input_cost = (tokens["input"] / 1000) * input_cost_per_1k
+            output_cost = (tokens["output"] / 1000) * output_cost_per_1k
+            total = input_cost + output_cost
+        else:
+            warnings.warn(f"Cost calculation not available for model {self._model}", UserWarning)
 
-    if self._model in ANTHROPIC_PRICING_1k:
-        cost_per_1k = ANTHROPIC_PRICING_1k[self._model]
-        total = (tokens["input"] + tokens["output"]) / 1000 * cost_per_1k[0]
-    else:
-        warnings.warn(f"Cost calculation not available for model {self._model}", UserWarning)
-
-    return total
+        return total
