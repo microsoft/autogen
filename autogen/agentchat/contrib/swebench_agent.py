@@ -360,7 +360,7 @@ class SweUserProxy(UserProxyAgent):
         return parsed_action
 
     def _reset(self):
-        
+        """Reset the agent's state."""
         self.done = False
         self.system_msg = None
         self.answer = None
@@ -373,7 +373,15 @@ class SweUserProxy(UserProxyAgent):
         sender: Optional[Agent] = None,
         config: Optional[Union[Dict, Literal[False]]] = None,
     ):
-
+        """
+        Generate a reply to the evaluation message.
+        Args:
+            messages: The messages to evaluate.
+            sender: The agent that sent the messages.
+            config: The configuration for the evaluation.
+        Returns:
+            (bool, str)
+        """
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]["content"]
