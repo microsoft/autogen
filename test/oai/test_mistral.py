@@ -5,7 +5,7 @@ import pytest
 try:
     from mistralai.models.chat_completion import ChatMessage
 
-    from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.mistral import MistralAIClient, calculate_mistral_cost
 
     skip = False
 except ImportError:
@@ -30,43 +30,94 @@ def mock_response():
 
 @pytest.fixture
 def mistral_client():
-    return MistralAIClient(model="mistral-small-latest", api_key="fake_api_key")
+    return MistralAIClient(api_key="fake_api_key")
 
 
 # Test initialization and configuration
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
 def test_initialization():
 
-    # 1. Missing any configuration
-    with pytest.raises(AssertionError):
-        MistralAIClient()  # Should raise an AssertionError due to missing model
-
-    # 2. Missing model in config
+    # Missing any api_key
     with pytest.raises(AssertionError) as assertinfo:
-        MistralAIClient(max_tokens=10)
-
-    assert "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use." in str(
-        assertinfo.value
-    )
-
-    # 3. Missing api_key in config
-    with pytest.raises(AssertionError) as assertinfo:
-        MistralAIClient(model="mistral-large-latest")  # Should raise an AssertionError due to missing api_key in config
+        MistralAIClient()  # Should raise an AssertionError due to missing api_key
 
     assert (
         "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
         in str(assertinfo.value)
     )
 
-    # 4. Creation works
-    MistralAIClient(model="mistral-medium-latest", api_key="fake")  # Should create okay now.
+    # Creation works
+    MistralAIClient(api_key="fake_api_key")  # Should create okay now.
 
 
 # Test standard initialization
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
 def test_valid_initialization(mistral_client):
-    assert mistral_client._config_model == "mistral-small-latest", "Config model should be correctly set"
-    assert mistral_client._config_api_key == "fake_api_key", "Config api_key should be correctly set"
+    assert mistral_client.api_key == "fake_api_key", "Config api_key should be correctly set"
+
+
+# Test parameters
+@pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
+def test_parsing_params(mistral_client):
+    # All parameters
+    params = {
+        "model": "mistral-medium-latest",
+        "stream": False,
+        "temperature": 1,
+        "top_p": 0.8,
+        "max_tokens": 100,
+        "safe_prompt": True,
+        "random_seed": 42,
+    }
+    expected_params = {
+        "model": "mistral-medium-latest",
+        "stream": False,
+        "temperature": 1,
+        "top_p": 0.8,
+        "max_tokens": 100,
+        "safe_prompt": True,
+        "random_seed": 42,
+    }
+    result = mistral_client.parse_params(params)
+    assert result == expected_params
+
+    # Only model, others set as defaults
+    params = {
+        "model": "mistral-medium-latest",
+    }
+    expected_params = {
+        "model": "mistral-medium-latest",
+        "stream": False,
+        "temperature": 0.7,
+        "top_p": None,
+        "max_tokens": None,
+        "safe_prompt": False,
+        "random_seed": None,
+    }
+    result = mistral_client.parse_params(params)
+    assert result == expected_params
+
+    # Incorrect types, defaults should be set, will show warnings but not trigger assertions
+    params = {
+        "model": "mistral-medium-latest",
+        "stream": 13,
+        "temperature": "0.7",
+        "top_p": "0.3",
+        "max_tokens": "True",
+        "safe_prompt": "True",
+        "random_seed": "False",
+    }
+    expected_params = {
+        "model": "mistral-medium-latest",
+        "stream": False,
+        "temperature": 0.7,
+        "top_p": None,
+        "max_tokens": None,
+        "safe_prompt": False,
+        "random_seed": None,
+    }
+    result = mistral_client.parse_params(params)
+    assert result == expected_params
 
 
 # Test cost calculation
@@ -76,10 +127,13 @@ def test_cost_calculation(mistral_client, mock_response):
         text="Example response",
         choices=[{"message": "Test message 1"}],
         usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-        cost=0.01,
+        cost=None,
         model="mistral-large-latest",
     )
-    assert mistral_client.cost(response) > 0, "Cost should be correctly calculated as greater than zero"
+    assert (
+        calculate_mistral_cost(response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model)
+        == 0.0001
+    ), "Cost for this should be $0.0001"
 
 
 # Test text generation
