@@ -17,11 +17,11 @@ class MessageType:
 
 class LongRunningAgent(TypeRoutedAgent): # type: ignore
     def __init__(self, name: str, router: AgentRuntime) -> None: # type: ignore
-        super().__init__(name, "A long running agent", router) 
+        super().__init__(name, "A long running agent", router)
         self.called = False
         self.cancelled = False
 
-    @message_handler() # type: ignore
+    @message_handler
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType: # type: ignore
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
@@ -40,7 +40,7 @@ class NestingLongRunningAgent(TypeRoutedAgent): # type: ignore
         self.cancelled = False
         self._nested_agent = nested_agent
 
-    @message_handler() # type: ignore
+    @message_handler
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType: # type: ignore
         self.called = True
         response = self._send_message(message, self._nested_agent, cancellation_token=cancellation_token)

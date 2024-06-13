@@ -18,6 +18,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    overload,
     runtime_checkable,
 )
 
@@ -74,12 +75,36 @@ class MessageHandler(Protocol[ReceivesT, ProducesT]):
 
 # NOTE: this works on concrete types and not inheritance
 # TODO: Use a protocl for the outer function to check checked arg names
+
+
+@overload
 def message_handler(
-    strict: bool = True,
+    func: Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]],
+) -> MessageHandler[ReceivesT, ProducesT]: ...
+
+
+@overload
+def message_handler(
+    func: None = None,
+    *,
+    strict: bool = ...,
 ) -> Callable[
     [Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]]],
     MessageHandler[ReceivesT, ProducesT],
-]:
+]: ...
+
+
+def message_handler(
+    func: None | Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]] = None,
+    *,
+    strict: bool = True,
+) -> (
+    Callable[
+        [Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]]],
+        MessageHandler[ReceivesT, ProducesT],
+    ]
+    | MessageHandler[ReceivesT, ProducesT]
+):
     def decorator(
         func: Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]],
     ) -> MessageHandler[ReceivesT, ProducesT]:
@@ -128,7 +153,12 @@ def message_handler(
 
         return wrapper_handler
 
-    return decorator
+    if func is None and not callable(func):
+        return decorator
+    elif callable(func):
+        return decorator(func)
+    else:
+        raise ValueError("Invalid arguments")
 
 
 class TypeRoutedAgent(BaseAgent):
