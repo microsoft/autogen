@@ -42,100 +42,20 @@ from together import Together, error
 class TogetherClient:
     """Client for Together.AI's API."""
 
-    def load_params(self, **kwargs):
-        """Loads the parameters for Together.AI API from the config. We load them specifically here for loading, type checks and defaults"""
-
-        self._config_model = kwargs.get("model", None)
-        self._config_api_key = kwargs.get("api_key", None)
-
-        self._config_max_tokens = kwargs.get("max_tokens", None)
-        if self._config_max_tokens is not None and not isinstance(self._config_max_tokens, int):
-            warnings.warn("Config error - max_tokens must be an int value or None, defaulting to 512", UserWarning)
-            self._config_max_tokens = 512
-
-        self._config_stream = kwargs.get("stream", False)
-        if self._config_stream is not None and not isinstance(self._config_stream, bool):
-            warnings.warn(
-                "Config error - stream must be a bool value or None, defaulting to False. Note: Streaming is not yet handled.",
-                UserWarning,
-            )
-            self._config_stream = False
-
-        self._config_temperature = kwargs.get("temperature", None)
-        if self._config_temperature is not None and not isinstance(self._config_temperature, float):
-            warnings.warn("Config error - Temperature must be a float value or None, defaulting to None", UserWarning)
-            self._config_temperature = None
-
-        self._config_top_p = kwargs.get("top_p", None)
-        if self._config_top_p is not None and not isinstance(self._config_top_p, float):
-            warnings.warn("Config error - top_p must be a float value or None, defaulting to None", UserWarning)
-            self._config_top_p = None
-
-        self._config_top_k = kwargs.get("top_k", None)
-        if self._config_top_k is not None and not isinstance(self._config_top_k, int):
-            warnings.warn("Config error - top_k must be an int value or None, defaulting to None", UserWarning)
-            self._config_top_k = None
-
-        self._config_repetition_penalty = kwargs.get("repetition_penalty", None)
-        if self._config_repetition_penalty is not None and not isinstance(self._config_repetition_penalty, float):
-            warnings.warn(
-                "Config error - repetition_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            self._config_repetition_penalty = None
-        elif isinstance(self._config_repetition_penalty, float) and (
-            self._config_repetition_penalty < -2 or self._config_repetition_penalty > 2
-        ):
-            warnings.warn("Config error - repetition_penalty must be between -2 and 2, defaulting to None", UserWarning)
-            self._config_repetition_penalty = None
-
-        self._config_presence_penalty = kwargs.get("presence_penalty", None)
-        if self._config_presence_penalty is not None and not isinstance(self._config_presence_penalty, float):
-            warnings.warn(
-                "Config error - presence_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            self._config_presence_penalty = None
-
-        self._config_frequency_penalty = kwargs.get("frequency_penalty", None)
-        if self._config_frequency_penalty is not None and not isinstance(self._config_frequency_penalty, float):
-            warnings.warn(
-                "Config error - frequency_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            self._config_frequency_penalty = None
-        elif isinstance(self._config_frequency_penalty, float) and (
-            self._config_frequency_penalty < -2 or self._config_frequency_penalty > 2
-        ):
-            warnings.warn("Config error - frequency_penalty must be between -2 and 2, defaulting to None", UserWarning)
-            self._config_frequency_penalty = None
-
-        self._config_min_p = kwargs.get("min_p", None)
-        if self._config_min_p is not None and not isinstance(self._config_min_p, float):
-            warnings.warn("Config error - min_p must be a float value or None, defaulting to None", UserWarning)
-            self._config_min_p = None
-        elif isinstance(self._config_min_p, float) and (self._config_min_p < 0 or self._config_min_p > 1):
-            warnings.warn("Config error - min_p must be between 0 and 1, defaulting to None", UserWarning)
-            self._config_min_p = None
-
-        self._config_safety_model = kwargs.get("safety_model", None)
-        if self._config_safety_model is not None and not isinstance(self._config_safety_model, str):
-            warnings.warn("Config error - safety_model must be a string value or None, defaulting to None", UserWarning)
-            self._config_safety_model = None
-
     def __init__(self, **kwargs):
+        """Requires api_key or environment variable to be set
 
-        # Load config from parameters, setting defaults, checking types
-        self.load_params(**kwargs)
-
-        # Check that we have what we need to use Mistral.AI's API
-        assert (
-            self._config_model
-        ), "Please specify the 'model' in your config list entry to nominate the Together.AI model to use."
-
-        if not self._config_api_key:
-            self._config_api_key = os.getenv("TOGETHER_API_KEY")
+        Args:
+            api_key (str): The API key for using Together.AI (or environment variable TOGETHER_API_KEY needs to be set)
+        """
+        # Ensure we have the api_key upon instantiation
+        self.api_key = kwargs.get("api_key", None)
+        if not self.api_key:
+            self.api_key = os.getenv("TOGETHER_API_KEY")
 
         assert (
-            self._config_api_key
-        ), "Please provide api_key in your config list entry for Together.AI or set the TOGETHER_API_KEY env variable."
+            self.api_key
+        ), "Please include the api_key in your config list entry for Together.AI or set the TOGETHER_API_KEY env variable."
 
     def message_retrieval(self, response) -> List:
         """
@@ -161,6 +81,111 @@ class TogetherClient:
             "model": response.model,
         }
 
+    def parse_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Loads the parameters for Together.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
+        together_params = {}
+
+        # Check that we have what we need to use Together.AI's API
+        together_params["model"] = params.get("model", None)
+        assert together_params[
+            "model"
+        ], "Please specify the 'model' in your config list entry to nominate the Together.AI model to use."
+
+        together_params["max_tokens"] = params.get("max_tokens", None)
+        if together_params["max_tokens"] is not None and (
+            not isinstance(together_params["max_tokens"], int) or together_params["max_tokens"] < 0
+        ):
+            warnings.warn(
+                "Config error - max_tokens must be an int (>= 0) value or None, defaulting to 512", UserWarning
+            )
+            together_params["max_tokens"] = 512
+
+        together_params["stream"] = params.get("stream", False)
+        if together_params["stream"] is not None and not isinstance(together_params["stream"], bool):
+            warnings.warn(
+                "Config error - stream must be a bool value or None, defaulting to False.",
+                UserWarning,
+            )
+            together_params["stream"] = False
+
+        # Check if they want to stream and use tools, which isn't currently supported (TODO)
+        if together_params["stream"] and "tools" in params:
+            warnings.warn(
+                "Streaming is not supported when using tools, streaming will be disabled.",
+                UserWarning,
+            )
+
+            together_params["stream"] = False
+
+        together_params["temperature"] = params.get("temperature", None)
+        if together_params["temperature"] is not None and not isinstance(together_params["temperature"], (int, float)):
+            warnings.warn("Config error - Temperature must be a float value or None, defaulting to None", UserWarning)
+            together_params["temperature"] = None
+
+        together_params["top_p"] = params.get("top_p", None)
+        if together_params["top_p"] is not None and not isinstance(together_params["top_p"], (int, float)):
+            warnings.warn("Config error - top_p must be a float value or None, defaulting to None", UserWarning)
+            together_params["top_p"] = None
+
+        together_params["top_k"] = params.get("top_k", None)
+        if together_params["top_k"] is not None and not isinstance(together_params["top_k"], int):
+            warnings.warn("Config error - top_k must be an int value or None, defaulting to None", UserWarning)
+            together_params["top_k"] = None
+
+        together_params["repetition_penalty"] = params.get("repetition_penalty", None)
+        if together_params["repetition_penalty"] is not None and not isinstance(
+            together_params["repetition_penalty"], float
+        ):
+            warnings.warn(
+                "Config error - repetition_penalty must be a float value or None, defaulting to None", UserWarning
+            )
+            together_params["repetition_penalty"] = None
+        elif isinstance(together_params["repetition_penalty"], float) and (
+            together_params["repetition_penalty"] < -2 or together_params["repetition_penalty"] > 2
+        ):
+            warnings.warn("Config error - repetition_penalty must be between -2 and 2, defaulting to None", UserWarning)
+            together_params["repetition_penalty"] = None
+
+        together_params["presence_penalty"] = params.get("presence_penalty", None)
+        if together_params["presence_penalty"] is not None and not isinstance(
+            together_params["presence_penalty"], float
+        ):
+            warnings.warn(
+                "Config error - presence_penalty must be a float value or None, defaulting to None", UserWarning
+            )
+            together_params["presence_penalty"] = None
+
+        together_params["frequency_penalty"] = params.get("frequency_penalty", None)
+        if together_params["frequency_penalty"] is not None and not isinstance(
+            together_params["frequency_penalty"], float
+        ):
+            warnings.warn(
+                "Config error - frequency_penalty must be a float value or None, defaulting to None", UserWarning
+            )
+            together_params["frequency_penalty"] = None
+        elif isinstance(together_params["frequency_penalty"], float) and (
+            together_params["frequency_penalty"] < -2 or together_params["frequency_penalty"] > 2
+        ):
+            warnings.warn("Config error - frequency_penalty must be between -2 and 2, defaulting to None", UserWarning)
+            together_params["frequency_penalty"] = None
+
+        together_params["min_p"] = params.get("min_p", None)
+        if together_params["min_p"] is not None and not isinstance(together_params["min_p"], float):
+            warnings.warn("Config error - min_p must be a float value or None, defaulting to None", UserWarning)
+            together_params["min_p"] = None
+        elif isinstance(together_params["min_p"], float) and (
+            together_params["min_p"] < 0 or together_params["min_p"] > 1
+        ):
+            warnings.warn("Config error - min_p must be between 0 and 1, defaulting to None", UserWarning)
+            together_params["min_p"] = None
+
+        together_params["safety_model"] = params.get("safety_model", None)
+        if together_params["safety_model"] is not None and not isinstance(together_params["safety_model"], str):
+            warnings.warn("Config error - safety_model must be a string value or None, defaulting to None", UserWarning)
+            together_params["safety_model"] = None
+
+        return together_params
+
     def create(self, params: Dict) -> ChatCompletion:
 
         messages = params.get("messages", [])
@@ -168,18 +193,11 @@ class TogetherClient:
         # Convert AutoGen messages to Together.AI messages
         together_messages = oai_messages_to_together_messages(messages)
 
-        if self._config_stream and "tools" in params:
-
-            # Streaming with tool calling is not supported (TODO)
-            warnings.warn(
-                "Streaming is not supported when using tools, streaming will be disabled.",
-                UserWarning,
-            )
-
-            self._config_stream = False
+        # Parse parameters to Together.AI API's parameters
+        together_params = self.parse_params(params)
 
         # We use chat model by default
-        client = Together(api_key=self._config_api_key)
+        client = Together(api_key=self.api_key)
 
         # Token counts will be returned
         prompt_tokens = 0
@@ -191,23 +209,21 @@ class TogetherClient:
             ans = None
             try:
                 response = client.chat.completions.create(
-                    model=self._config_model,
-                    max_tokens=self._config_max_tokens,
-                    temperature=self._config_temperature,
-                    top_p=self._config_top_p,
-                    top_k=self._config_top_k,
-                    repetition_penalty=self._config_repetition_penalty,
-                    presence_penalty=self._config_presence_penalty,
-                    frequency_penalty=self._config_frequency_penalty,
-                    min_p=self._config_min_p,
-                    stream=self._config_stream,
+                    model=together_params["model"],
+                    max_tokens=together_params["max_tokens"],
+                    temperature=together_params["temperature"],
+                    top_p=together_params["top_p"],
+                    top_k=together_params["top_k"],
+                    repetition_penalty=together_params["repetition_penalty"],
+                    presence_penalty=together_params["presence_penalty"],
+                    frequency_penalty=together_params["frequency_penalty"],
+                    min_p=together_params["min_p"],
+                    stream=together_params["stream"],
                     messages=together_messages,  # Main messages
-                    tool_choice=(
-                        "auto" if "tools" in params else None
-                    ),  # "auto",  # Model to select the tool/function, we could also set it to choose a specific one
+                    tool_choice=("auto" if "tools" in params else None),
                     tools=params.get("tools", None),  # Include any tools/functions
-                    n=1,  # API supports more than one response, limiting to one
-                    safety_model=self._config_safety_model,
+                    n=1,  # API supports more than one response, however we will limit it to one
+                    safety_model=together_params["safety_model"],
                 )
             except error.AuthenticationError as e:
                 raise RuntimeError(
@@ -221,7 +237,7 @@ class TogetherClient:
                 raise RuntimeError(f"Together.AI exception occurred while calling Together.API: {e}")
             else:
 
-                if self._config_stream:
+                if together_params["stream"]:
                     # Read in the chunks as they stream
                     ans = ""
                     for chunk in response:
@@ -232,22 +248,12 @@ class TogetherClient:
                     total_tokens = chunk.usage.total_tokens
                 else:
                     ans: str = response.choices[0].message.content
-                    # `ans = response.text` is unstable. Use the following code instead.
-
-                    """
-                    choice.message  # type: ignore [union-attr]
-                    if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
-                    else choice.message.content
-                    """
-
-                    # Is it returning a function call
-                    # toolcall_result = response.choices[0].messages.tool_calls[0]
 
                     prompt_tokens = response.usage.prompt_tokens
                     completion_tokens = response.usage.completion_tokens
                     total_tokens = response.usage.total_tokens
 
-                    response.cost = 0  # MS Address later.
+                    response.cost = calculate_together_cost(prompt_tokens, completion_tokens, together_params["model"])
 
                     return response
                 break
@@ -261,7 +267,7 @@ class TogetherClient:
 
         response_oai = ChatCompletion(
             id=str(random.randint(0, 1000)),
-            model=self._config_model,
+            model=together_params["model"],
             created=int(time.time() * 1000),
             object="chat.completion",
             choices=choices,
@@ -270,7 +276,7 @@ class TogetherClient:
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,
             ),
-            cost=calculate_together_cost(prompt_tokens, completion_tokens, self._config_model),
+            cost=calculate_together_cost(prompt_tokens, completion_tokens, together_params["model"]),
         )
 
         return response_oai
