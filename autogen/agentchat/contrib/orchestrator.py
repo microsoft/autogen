@@ -362,7 +362,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     if data["is_progress_being_made"]["answer"] is not None:
                         stalled_count += 1
 
-                if stalled_count >= 3:
+                if stalled_count >= 4:
                     self._temperature_bonus += 0.5  # Be more creative.
 
                     self._print_thought("We aren't making progress. Let's reset.")
