@@ -95,6 +95,28 @@ class FileSurferAgent(ConversableAgent):
 
         return (header, self._browser.viewport)
 
+    def validate_call(self, create_response):
+        """
+        Validate a response from create and return whether it is valid
+        and the reason if it is not.
+
+        no tool calls are allowed in the response
+        but if there are tool calls, they must be valid
+        """
+
+        if create_response.choices[0].message.tool_calls:
+            tool_calls = create_response.choices[0].message.tool_calls
+            for tool_call in tool_calls:
+                tool_name = tool_call.function.name
+                arguments = tool_call.function.arguments
+
+                is_valid, reason = self.validate_tool_call(tool_name, arguments)
+
+                if not is_valid:
+                    return False, reason
+
+        return True, None
+
     def validate_tool_call(self, tool_name, arguments):
         """Checks if the tool call is valid."""
         tool_names = [tool["function"]["name"] for tool in self.tools]
@@ -140,6 +162,19 @@ class FileSurferAgent(ConversableAgent):
         history.extend([context_message, task_message])
 
         response = self.client.create(messages=history, tools=self.tools, tool_choice="auto")
+
+        is_valid_response, reason = self.validate_call(response)
+        max_attempts = 10
+        while not is_valid_response and max_attempts > 0:
+            history.append(
+                {
+                    "role": "user",
+                    "content": f"Invalid response. Reason: {reason}. Please try again.",
+                }
+            )
+            response = self.client.create(messages=history, tools=self.tools, tool_choice="auto")
+            max_attempts -= 1
+            is_valid_response, reason = self.validate_call(response)
 
         response = response.choices[0]
 
