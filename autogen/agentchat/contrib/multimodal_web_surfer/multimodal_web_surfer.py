@@ -60,7 +60,7 @@ MLM_WIDTH = 1224
 class MultimodalWebSurferAgent(ConversableAgent):
     """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page. It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load."
 
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
