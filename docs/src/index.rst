@@ -35,6 +35,7 @@ common uses, such as chat completion agents, but also allows for fully custom ag
     :hidden:
 
     guides/type-routed-agent
+    guides/group-chat-coder-reviewer
     guides/azure-openai-with-aad-auth
 
 
