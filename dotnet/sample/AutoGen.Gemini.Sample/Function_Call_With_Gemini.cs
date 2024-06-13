@@ -1,13 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Function_Call_With_Gemini.cs
 
+#region Using
 using AutoGen.Core;
-using AutoGen.Gemini.Middleware;
-using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
+#endregion Using
+using FluentAssertions;
 
 namespace AutoGen.Gemini.Sample;
 
+#region MovieFunction
 public partial class MovieFunction
 {
     /// <summary>
@@ -58,8 +60,8 @@ public partial class MovieFunction
 
         return result;
     }
-
 }
+#endregion MovieFunction
 
 /// <summary>
 /// Modified from https://ai.google.dev/gemini-api/docs/function-calling
@@ -68,6 +70,7 @@ public partial class Function_Call_With_Gemini
 {
     public static async Task RunAsync()
     {
+        #region Create_Gemini_Agent
         var projectID = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID");
 
         if (projectID is null)
@@ -90,7 +93,6 @@ public partial class Function_Call_With_Gemini
                 { movieFunction.GetShowtimesFunctionContract.Name!, movieFunction.GetShowtimesWrapper },
             });
 
-        #region Create_Gemini_Agent
         var geminiAgent = new GeminiChatAgent(
                 name: "gemini",
                 model: "gemini-1.5-flash-001",
