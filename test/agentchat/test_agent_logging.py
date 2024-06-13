@@ -40,20 +40,6 @@ EVENTS_QUERY = (
     "SELECT source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp FROM events"
 )
 
-if not skip_openai:
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        filter_dict={
-            "tags": ["gpt-3.5-turbo"],
-        },
-        file_location=KEY_LOC,
-    )
-
-    llm_config = {"config_list": config_list}
-
-    num_of_configs = len(config_list)
-###############################################################
-
 
 @pytest.fixture(scope="function")
 def db_connection():
@@ -72,6 +58,17 @@ def db_connection():
 def test_two_agents_logging(db_connection):
     cur = db_connection.cursor()
 
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "tags": ["gpt-3.5-turbo"],
+        },
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {"config_list": config_list}
+
+    num_of_configs = len(config_list)
     teacher = autogen.AssistantAgent(
         "teacher",
         system_message=TEACHER_MESSAGE,
@@ -194,7 +191,17 @@ def test_two_agents_logging(db_connection):
 )
 def test_groupchat_logging(db_connection):
     cur = db_connection.cursor()
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "tags": ["gpt-3.5-turbo"],
+        },
+        file_location=KEY_LOC,
+    )
 
+    llm_config = {"config_list": config_list}
+
+    num_of_configs = len(config_list)
     teacher = autogen.AssistantAgent(
         "teacher",
         system_message=TEACHER_MESSAGE,
