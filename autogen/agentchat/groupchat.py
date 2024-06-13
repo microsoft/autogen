@@ -609,7 +609,6 @@ class GroupChat:
 
         # Registered reply function for checking_agent, checks the result of the response for agent names
         def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
-
             # The number of retries left, starting at max_retries_for_selecting_speaker
             nonlocal attempts_left
             nonlocal attempt
@@ -708,7 +707,6 @@ class GroupChat:
 
         # Registered reply function for checking_agent, checks the result of the response for agent names
         def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
-
             # The number of retries left, starting at max_retries_for_selecting_speaker
             nonlocal attempts_left
             nonlocal attempt
@@ -782,7 +780,6 @@ class GroupChat:
         mentions = self._mentioned_agents(select_name, agents)
 
         if len(mentions) == 1:
-
             # Success on retry, we have just one name mentioned
             selected_agent_name = next(iter(mentions))
 
@@ -864,17 +861,14 @@ class GroupChat:
 
         Used by auto_select_speaker and a_auto_select_speaker."""
         if len(result.chat_history) > 0:
-
             # Use the final message, which will have the selected agent or reason for failure
             final_message = result.chat_history[-1]["content"]
 
             if "[AGENT SELECTED]" in final_message:
-
                 # Have successfully selected an agent, return it
                 return self.agent_by_name(final_message.replace("[AGENT SELECTED]", ""))
 
             else:  # "[AGENT SELECTION FAILED]"
-
                 # Failed to select an agent, so we'll select the next agent in the list
                 next_agent = self.next_agent(last_speaker, agents)
 
@@ -945,7 +939,7 @@ class GroupChatManager(ConversableAgent):
         name: Optional[str] = "chat_manager",
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
         silent: bool = False,
         **kwargs,
@@ -1207,7 +1201,6 @@ class GroupChatManager(ConversableAgent):
 
         # Load the messages into the group chat
         for i, message in enumerate(messages):
-
             if "name" in message:
                 message_speaker_agent = self._groupchat.agent_by_name(message["name"])
             else:
@@ -1312,7 +1305,6 @@ class GroupChatManager(ConversableAgent):
 
         # Load the messages into the group chat
         for i, message in enumerate(messages):
-
             if "name" in message:
                 message_speaker_agent = self._groupchat.agent_by_name(message["name"])
             else:
