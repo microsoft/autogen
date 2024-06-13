@@ -85,9 +85,9 @@
     - name: Examples
       items:
         - name: Chat with LLaMA
-          href: AutoGen.Ollama/Chat-with-LLaMA.md
+          href: AutoGen.Ollama/Chat-with-llama.md
         - name: MultiModal Chat with LLaVA
-          href: AutoGen.Ollama/Chat-with-LLaVA.md
+          href: AutoGen.Ollama/Chat-with-llava.md
 
 - name: AutoGen.Gemini
   items:
