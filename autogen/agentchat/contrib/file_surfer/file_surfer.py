@@ -102,6 +102,11 @@ class FileSurferAgent(ConversableAgent):
         if tool_name not in tool_names:
             return False, f"Invalid tool name '{tool_name}'. Please choose from the following: {tool_names}"
 
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            return False, f"Invalid JSON format for arguments '{arguments}'."
+
         # validate the arguments
         if tool_name == "open_local_file":
             if "path" not in arguments:
@@ -145,12 +150,14 @@ class FileSurferAgent(ConversableAgent):
             tool_calls = response.message.tool_calls
             for tool_call in tool_calls:
                 tool_name = tool_call.function.name
-                arguments = json.loads(tool_call.function.arguments)
+                arguments = tool_call.function.arguments
 
                 is_valid, reason = self.validate_tool_call(tool_name, arguments)
 
                 if not is_valid:
                     return True, reason
+
+                arguments = json.loads(arguments)
 
                 self._log_to_console(tool_name, arguments)
 
