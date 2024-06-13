@@ -79,6 +79,10 @@ class AnthropicClient:
             warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
             self._max_tokens = None
 
+    @property
+    def api_key(self):
+        return self._api_key
+
     def create(self, params: Dict[str, Any]) -> Completion:
         """Create a completion for a given config.
 

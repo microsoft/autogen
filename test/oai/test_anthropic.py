@@ -28,7 +28,7 @@ def anthropic_client():
         "model": "claude-3-sonnet-20240229",
         "api_key": "dummy_api_key",
     }
-    return AnthropicClient(config)
+    return AnthropicClient(config=config)
 
 
 @pytest.mark.skipif(skip, reason=reason)
@@ -42,7 +42,11 @@ def test_anthropic_client():
     )
 
     # Creation works
-    AnthropicClient(api_key="fake_api_key")  # Should create okay now.
+    config = {
+        "model": "claude-3-sonnet-20240229",
+        "api_key": "dummy_api_key",
+    }
+    AnthropicClient(config=config)  # Should create okay now.
 
 
 @pytest.mark.skipif(skip, reason=reason)
