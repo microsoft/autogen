@@ -66,8 +66,8 @@ class AnthropicClient:
     def load_config(self, **kwargs: Any):
         """Load the configuration for the Anthropic API client."""
         self._config = kwargs.get("config", None)
-        self._model = self._config.get("model", None)
-        self._api_key = self._config.get("api_key", None)
+        self._model = self._config.get("model", None) if self._config is not None else None
+        self._api_key = self._config.get("api_key", None) if self._config is not None else None
 
         self._temperature = kwargs.get("temperature", 0.7)
         if self._temperature is not None and not isinstance(self._temperature, float):
