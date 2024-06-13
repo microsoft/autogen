@@ -40,6 +40,7 @@ else:
 ANTHROPIC_PRICING_1k = {
     "claude-3-sonnet-20240229": (0.003, 0.015),
     "claude-2.0": (0.008, 0.024),
+    "claude-2.1": (0.008, 0.024),
     "claude-3.0-opus": (0.015, 0.075),
     "claude-3.0-haiku": (0.00025, 0.00125),
 }
@@ -60,6 +61,7 @@ class AnthropicClient:
         ), "Please provide an `api_key` in the config_list to use the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable."
 
         self._client = Anthropic(api_key=self._api_key)
+        self._last_tooluse_status = {}
 
     def load_config(self, **kwargs: Any):
         """Load the configuration for the Anthropic API client."""
@@ -76,22 +78,6 @@ class AnthropicClient:
         if self._max_tokens is not None and not isinstance(self._max_tokens, int):
             warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
             self._max_tokens = None
-
-    def cost(self, response: Completion) -> float:
-        """Calculate the cost of the completion using the Anthropic pricing."""
-        total = 0.0
-        tokens = {
-            "input": response.usage.input_tokens if response.usage is not None else 0,
-            "output": response.usage.output_tokens if response.usage is not None else 0,
-        }
-
-        if self._model in ANTHROPIC_PRICING_1k:
-            cost_per_1k = ANTHROPIC_PRICING_1k[self._model]
-            total = (tokens["input"] + tokens["output"]) / 1000 * cost_per_1k[0]
-        else:
-            warnings.warn(f"Cost calculation not available for model {self._model}", UserWarning)
-
-        return total
 
     def create(self, params: Dict[str, Any]) -> Completion:
         """Create a completion for a given config.
@@ -222,3 +208,20 @@ class AnthropicClient:
                 functions.append(tool["function"])
 
         return functions
+
+
+def calculate_cost(self, response: Completion) -> float:
+    """Calculate the cost of the completion using the Anthropic pricing."""
+    total = 0.0
+    tokens = {
+        "input": response.usage.input_tokens if response.usage is not None else 0,
+        "output": response.usage.output_tokens if response.usage is not None else 0,
+    }
+
+    if self._model in ANTHROPIC_PRICING_1k:
+        cost_per_1k = ANTHROPIC_PRICING_1k[self._model]
+        total = (tokens["input"] + tokens["output"]) / 1000 * cost_per_1k[0]
+    else:
+        warnings.warn(f"Cost calculation not available for model {self._model}", UserWarning)
+
+    return total
