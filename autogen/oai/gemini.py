@@ -32,7 +32,6 @@ Resources:
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import random
 import re
@@ -44,7 +43,6 @@ from typing import Any, Dict, List, Mapping, Union
 import google.generativeai as genai
 import requests
 import vertexai
-from flaml.automl.logger import logger_formatter
 from google.ai.generativelanguage import Content, Part
 from google.api_core.exceptions import InternalServerError
 from openai.types.chat import ChatCompletion
@@ -53,12 +51,7 @@ from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 from vertexai.generative_models import Content as VertexAIContent
 from vertexai.generative_models import GenerativeModel
-from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
-from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
 from vertexai.generative_models import Part as VertexAIPart
-from vertexai.generative_models import SafetySetting as VertexAISafetySetting
-
-logger = logging.getLogger(__name__)
 
 
 class GeminiClient:
@@ -173,7 +166,6 @@ class GeminiClient:
             if autogen_term in params
         }
         safety_settings = params.get("safety_settings", {})
-        vertexai_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
 
         if stream:
             warnings.warn(
@@ -189,7 +181,7 @@ class GeminiClient:
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
             if self.use_vertexai:
                 model = GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=vertexai_safety_settings
+                    model_name, generation_config=generation_config, safety_settings=safety_settings
                 )
             else:
                 # we use chat model by default
@@ -226,7 +218,7 @@ class GeminiClient:
             # B. handle the vision model
             if self.use_vertexai:
                 model = GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=vertexai_safety_settings
+                    model_name, generation_config=generation_config, safety_settings=safety_settings
                 )
             else:
                 model = genai.GenerativeModel(
@@ -379,24 +371,6 @@ class GeminiClient:
                 rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="user"))
 
         return rst
-
-    @staticmethod
-    def _to_vertexai_safety_settings(safety_settings):
-        vertexai_safety_settings = []
-        for safety_setting in safety_settings:
-            if safety_setting["category"] not in VertexAIHarmCategory.__members__:
-                invalid_category = safety_setting["category"]
-                logger.error(f"Safety setting category {invalid_category} is invalid")
-            elif safety_setting["threshold"] not in VertexAIHarmBlockThreshold.__members__:
-                invalid_threshold = safety_setting["threshold"]
-                logger.error(f"Safety threshold {invalid_threshold} is invalid")
-            else:
-                vertexai_safety_setting = VertexAISafetySetting(
-                    category=safety_setting["category"],
-                    threshold=safety_setting["threshold"],
-                )
-                vertexai_safety_settings.append(vertexai_safety_setting)
-        return vertexai_safety_settings
 
 
 def _to_pil(data: str) -> Image.Image:
