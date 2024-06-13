@@ -81,6 +81,7 @@ Context is: {input_context}
 """
 
 HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
+UPDATE_CONTEXT_IN_PROMPT = "you should reply exactly `UPDATE CONTEXT`"
 
 
 class RetrieveUserProxyAgent(UserProxyAgent):
@@ -348,7 +349,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    self._max_tokens,
+                    self._chunk_token_size,
                     self._chunk_mode,
                     self._must_break_at_empty_line,
                 )
@@ -471,7 +472,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
+        update_context_case1 = "UPDATE CONTEXT" in message.upper() and UPDATE_CONTEXT_IN_PROMPT not in message
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
 

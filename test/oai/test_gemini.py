@@ -33,11 +33,18 @@ def gemini_client():
     return GeminiClient(api_key="fake_api_key")
 
 
-# Test initialization and configuration
+# Test compute location initialization and configuration
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
-def test_initialization():
+def test_compute_location_initialization():
     with pytest.raises(AssertionError):
-        GeminiClient()  # Should raise an AssertionError due to missing API key
+        GeminiClient(
+            api_key="fake_api_key", location="us-west1"
+        )  # Should raise an AssertionError due to specifying API key and compute location
+
+
+@pytest.fixture
+def gemini_google_auth_default_client():
+    return GeminiClient()
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
