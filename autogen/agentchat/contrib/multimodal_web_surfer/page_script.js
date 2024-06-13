@@ -347,7 +347,12 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
        let microdata = _getMicrodata();
        let results = {}
        if (jsonld.length > 0) {
-           results["jsonld"] = jsonld;
+           try {
+               results["jsonld"] = JSON.parse(jsonld);
+           } 
+	   catch (e) {
+               results["jsonld"] = jsonld;
+	   }
        }
        if (microdata.length > 0) {
 	   results["microdata"] = microdata;

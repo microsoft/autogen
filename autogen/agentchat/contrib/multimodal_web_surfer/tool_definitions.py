@@ -227,3 +227,21 @@ TOOL_SUMMARIZE_PAGE = {
         },
     },
 }
+
+TOOL_SLEEP = {
+    "type": "function",
+    "function": {
+        "name": "sleep",
+        "description": "Wait a short period of time. Call this function if the page has not yet fully loaded, or if it is determined that a small delay would increase the task's chances of success.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                },
+            },
+            "required": ["reasoning"],
+        },
+    },
+}

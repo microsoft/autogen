@@ -33,6 +33,7 @@ from .tool_definitions import (
     TOOL_SCROLL_ELEMENT_UP,
     TOOL_SUMMARIZE_PAGE,
     TOOL_READ_PAGE_AND_ANSWER,
+    TOOL_SLEEP,
 )
 
 try:
@@ -322,6 +323,20 @@ setInterval(function() {{
         sender: Optional[Agent] = None,
         config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Optional[Union[str, Dict[str, str]]]]:
+        try:
+            return self._generate_surfer_reply(messages, sender, config)
+        except Exception as e:
+            if logging_enabled():
+                log_event(self, "MultimodalWebSurerError", error=str(e))
+            return True, "Web surfing error:\n\n" + str(e)
+
+
+    def _generate_surfer_reply(
+        self,
+        messages: Optional[List[Dict[str, str]]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[OpenAIWrapper] = None,
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, str]]]]:
         """Generate a reply using autogen.oai."""
         if messages is None:
             messages = self._oai_messages[sender]
@@ -350,6 +365,7 @@ setInterval(function() {{
             TOOL_TYPE,
             TOOL_SUMMARIZE_PAGE,
             TOOL_READ_PAGE_AND_ANSWER,
+            TOOL_SLEEP,
         ]
 
         # Can we reach Bing to search?
@@ -515,9 +531,13 @@ When deciding between tools, consider if the request can be best addressed by:
                 elif name == "summarize_page":
                     action_description = self._summarize_page()
 
+                elif name == "sleep":
+                    action_description = "I am waiting a short period of time before taking further action."
+                    time.sleep(3) # There's a 2s sleep below too
+
                 else:
                     log_event(self, "Unknown tool", error=name)
-                    raise ValueError("Unknown tool '" + name + "'")
+                    raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
 
         except ValueError as e:
             if logging_enabled():
@@ -653,6 +673,7 @@ When deciding between tools, consider if the request can be best addressed by:
         self._page.on("download", self._download_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
+        self._prior_metadata_hash = None
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.wait_for_load_state()
         self._log_to_console(fname="new_tab", args={"url": self._page.url})
@@ -664,6 +685,7 @@ When deciding between tools, consider if the request can be best addressed by:
         try:
             # Regular webpage
             self._page.goto(url)
+            self._prior_metadata_hash = None
         except Exception as e:
             # Downloaded file
             if self.downloads_folder and "net::ERR_ABORTED" in str(e):
