@@ -33,9 +33,9 @@ from typing_extensions import Annotated
 
 TOOL_ENABLED = anthropic_version >= "0.23.1"
 if TOOL_ENABLED:
-    from anthropic.types.beta.tools import ToolsBetaMessage
+    from anthropic.types.tool_use_block_param import ToolUseBlockParam
 else:
-    ToolsBetaMessage = object
+    ToolUseBlockParam = object
 
 ANTHROPIC_PRICING_1k = {
     "claude-3-sonnet-20240229": (0.003, 0.015),
@@ -130,7 +130,7 @@ class AnthropicClient:
         return response
 
     def message_retrieval(
-        self, response: Union[Message, ToolsBetaMessage]
+        self, response: Union[Message, ToolUseBlockParam]
     ) -> Union[List[str], List[ChatCompletionMessage]]:
         """Retrieve the messages from the response."""
         messages = response.content

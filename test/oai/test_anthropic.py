@@ -8,10 +8,10 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import pytest
 
-from autogen.oai.anthropic import AnthropicClient, calculate_cost
-
 try:
     from openai.types.chat.chat_completion import ChatCompletionMessage
+
+    from autogen.oai.anthropic import AnthropicClient, calculate_cost
 
     skip = False
 except ImportError:
