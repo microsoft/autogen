@@ -500,7 +500,8 @@ jobs:
 
       - name: Install packages and dependencies for Anthropic
         run: |
-          pip install -e .[anthropic,test]
+          pip install -e .[test]
+          pip install -e .[anthropic]
 
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash

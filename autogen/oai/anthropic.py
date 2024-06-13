@@ -51,12 +51,13 @@ ANTHROPIC_PRICING_1k = {
 
 class AnthropicClient:
     def __init__(self, **kwargs: Any):
-        self.load_config(**kwargs)
+        """
+        Initialize the Anthropic API client.
+        Args:
+            api_key (str): The API key for the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable.
+        """
+        self._api_key = kwargs.get("api_key", None)
 
-        # validate the configuration
-        assert self._model is not None, "Please provide a `model` in the config_list to use the Anthropic API."
-
-        # check if the api_key is provided in the environment variables
         if not self._api_key:
             self._api_key = os.getenv("ANTHROPIC_API_KEY")
         assert (
@@ -66,36 +67,47 @@ class AnthropicClient:
         self._client = Anthropic(api_key=self._api_key)
         self._last_tooluse_status = {}
 
-    def load_config(self, **kwargs: Any):
+    def load_config(self, params: Dict[str, Any]):
         """Load the configuration for the Anthropic API client."""
-        self._config = kwargs.get("config", None)
-        self._model = self._config.get("model", None) if self._config is not None else None
-        self._api_key = self._config.get("api_key", None) if self._config is not None else None
+        anthropic_params = {}
 
-        self._temperature = kwargs.get("temperature", 0.7)
-        if self._temperature is not None and not isinstance(self._temperature, float):
-            warnings.warn("Config error: temperature must be a float or None, is default set to 0.7", UserWarning)
-            self._temperature = 0.7
+        anthropic_params["model"] = params.get("model", None)
+        assert anthropic_params["model"], "Please provide a `model` in the config_list to use the Anthropic API."
 
-        self._max_tokens = kwargs.get("max_tokens", None)
-        if self._max_tokens is not None and not isinstance(self._max_tokens, int):
+        anthropic_params["temperature"] = params.get("temperature", 0.7)
+        if anthropic_params["temperature"] is not None and not isinstance(anthropic_params["temperature"], float):
+            warnings.warn("Config error: temperature must be a float or None, defaulting to 0.7", UserWarning)
+            anthropic_params["temperature"] = 0.7
+
+        # Update max_tokens with validation
+        anthropic_params["max_tokens"] = params.get("max_tokens", None)
+        if anthropic_params["max_tokens"] is not None and not isinstance(anthropic_params["max_tokens"], int):
             warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
-            self._max_tokens = None
+            anthropic_params["max_tokens"] = None
 
-        self._stop_sequences = kwargs.get("stop_sequences", None)
-        if self._stop_sequences is not None and not isinstance(self._stop_sequences, list):
+        # Update stop_sequences with validation
+        anthropic_params["stop_sequences"] = params.get("stop_sequences", None)
+        if anthropic_params["stop_sequences"] is not None and not isinstance(anthropic_params["stop_sequences"], list):
             warnings.warn("Config error: stop_sequences must be a list or None", UserWarning)
-            self._stop_sequences = None
+            anthropic_params["stop_sequences"] = None
 
-        self._top_k = kwargs.get("top_k", None)
-        if self._top_k is not None and not isinstance(self._top_k, int):
+        # Update top_k with validation
+        anthropic_params["top_k"] = params.get("top_k", None)
+        if anthropic_params["top_k"] is not None and not isinstance(anthropic_params["top_k"], int):
             warnings.warn("Config error: top_k must be an int or None", UserWarning)
-            self._top_k = None
+            anthropic_params["top_k"] = None
 
-        self._top_p = kwargs.get("top_p", None)
-        if self._top_p is not None and not isinstance(self._top_p, float):
+        # Update top_p with validation
+        anthropic_params["top_p"] = params.get("top_p", None)
+        if anthropic_params["top_p"] is not None and not isinstance(anthropic_params["top_p"], float):
             warnings.warn("Config error: top_p must be a float or None", UserWarning)
-            self._top_p = None
+            anthropic_params["top_p"] = None
+
+        return anthropic_params
+
+    def cost(self, response: Completion) -> float:
+        """Calculate the cost of the completion using the Anthropic pricing."""
+        return self._calculate_cost(response)
 
     @property
     def api_key(self):
@@ -115,6 +127,8 @@ class AnthropicClient:
             params["functions"] = params.get("functions", []) + converted_functions
 
         raw_contents = params["messages"]
+        anthropic_params = self.load_config(params)
+
         processed_messages = []
         for message in raw_contents:
 
@@ -142,7 +156,18 @@ class AnthropicClient:
             tools_configs = params.pop("functions")
             tools_configs = [self.openai_func_to_anthropic(tool) for tool in tools_configs]
             params["tools"] = tools_configs
-        response = completions.create(**params)
+
+        response = completions.create(
+            model=anthropic_params["model"],
+            tools=params["tools"],
+            tool_choice="auto",
+            messages=params["messages"],
+            temperature=anthropic_params["temperature"],
+            max_tokens=anthropic_params["max_tokens"],
+            stop_sequences=anthropic_params["stop_sequences"],
+            top_k=anthropic_params["top_k"],
+            top_p=anthropic_params["top_p"],
+        )
 
         return response
 
@@ -213,7 +238,7 @@ class AnthropicClient:
             "total_tokens": (
                 response.usage.input_tokens + response.usage.output_tokens if response.usage is not None else 0
             ),
-            "cost": response.cost if hasattr(response, "cost") else 0,
+            "cost": response.cost if hasattr(response, "cost") else 0.0,
             "model": response.model,
         }
 
@@ -226,7 +251,7 @@ class AnthropicClient:
 
         return functions
 
-    def calculate_cost(self, response: Completion) -> float:
+    def _calculate_cost(self, response: Completion) -> float:
         """Calculate the cost of the completion using the Anthropic pricing."""
         total = 0.0
         tokens = {

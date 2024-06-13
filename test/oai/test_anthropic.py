@@ -20,30 +20,16 @@ reason = "Anthropic dependency not installed"
 
 @pytest.fixture()
 def anthropic_client():
-    config = {
-        "model": "claude-3-sonnet-20240229",
-        "api_key": "dummy_api_key",
-    }
-    return AnthropicClient(config=config)
+    return AnthropicClient(api_key="dummy_api_key")
 
 
 @pytest.mark.skipif(skip, reason=reason)
 def test_initialization_missing_api_key():
-    config = {
-        "model": "claude-3-sonnet-20240229",
-    }
     with pytest.raises(AssertionError) as exc_info:
-        AnthropicClient(config=config)
+        AnthropicClient()
     assert "Please provide an `api_key`" in str(exc_info.value)
 
-
-@pytest.mark.skipif(skip, reason=reason)
-def test_anthropic_client():
-    config = {
-        "model": "claude-3-sonnet-20240229",
-        "api_key": "dummy_api_key",
-    }
-    AnthropicClient(config=config)  # Should create okay now.
+    AnthropicClient(api_key="dummy_api_key")
 
 
 @pytest.mark.skipif(skip, reason=reason)
@@ -52,7 +38,7 @@ def test_intialization(anthropic_client):
 
 
 @pytest.mark.skipif(skip, reason=reason)
-def test_calculate_cost():
+def test_calculate_cost(anthropic_client):
     response = {
         "content": [{"text": "Hi! My name is Claude.", "type": "text"}],
         "id": "msg_013Zva2CMHLNnXjNJJKqJ2EF",
@@ -65,3 +51,24 @@ def test_calculate_cost():
     }
     cost = calculate_cost(anthropic_client, response)
     assert cost == 0.002025, "Cost should be calculated correctly"
+
+
+@pytest.mark.skipif(skip, reason=reason)
+def test_load_config(anthropic_client):
+    # All parameters
+    params = {
+        "model": "claude-3-sonnet-20240229",
+        "stream": False,
+        "temperature": 1,
+        "top_p": 0.8,
+        "max_tokens": 100,
+    }
+    expected_params = {
+        "model": "claude-3-sonnet-20240229",
+        "stream": False,
+        "temperature": 1,
+        "top_p": 0.8,
+        "max_tokens": 100,
+    }
+    result = anthropic_client.load_config(params)
+    assert result == expected_params
