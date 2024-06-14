@@ -16,7 +16,7 @@ public class Example13_OpenAIAgent_JsonMode
     public static async Task RunAsync()
     {
         #region create_agent
-        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo(deployName: "gpt-35-turbo-0125"); // json mode only works with 0125 and later model.
+        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo(deployName: "gpt-35-turbo"); // json mode only works with 0125 and later model.
         var apiKey = config.ApiKey;
         var endPoint = new Uri(config.Endpoint);
 

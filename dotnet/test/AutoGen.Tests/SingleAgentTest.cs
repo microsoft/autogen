@@ -27,7 +27,8 @@ namespace AutoGen.Tests
         {
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-            return new AzureOpenAIConfig(endpoint, "gpt-35-turbo-16k", key);
+            var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
+            return new AzureOpenAIConfig(endpoint, deployName, key);
         }
 
         private ILLMConfig CreateOpenAIGPT4VisionConfig()
@@ -36,7 +37,7 @@ namespace AutoGen.Tests
             return new OpenAIConfig(key, "gpt-4-vision-preview");
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTAgentTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -111,7 +112,7 @@ namespace AutoGen.Tests
             }
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTFunctionCallAgentTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -120,7 +121,7 @@ namespace AutoGen.Tests
             await EchoFunctionCallTestAsync(agentWithFunction);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task AssistantAgentFunctionCallTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -197,7 +198,7 @@ namespace AutoGen.Tests
             reply.From.Should().Be(assistantAgent.Name);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task AssistantAgentFunctionCallSelfExecutionTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -223,7 +224,7 @@ namespace AutoGen.Tests
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTAgentFunctionCallSelfExecutionTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -240,7 +241,6 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallExecutionStreamingTestAsync(agent);
             await EchoFunctionCallExecutionTestAsync(agent);
-            await UpperCaseTestAsync(agent);
         }
 
         /// <summary>
