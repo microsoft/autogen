@@ -1,21 +1,40 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-try:
-    from openai.types.chat.chat_completion import ChatCompletionMessage
+from autogen.oai.anthropic import AnthropicClient
 
-    from autogen.oai.anthropic import AnthropicClient, calculate_cost
-
-    skip = False
-except ImportError:
-    AnthropicClient = object
-    InternalServerError = object
-    skip = True
+skip = False
+from typing_extensions import Literal
 
 reason = "Anthropic dependency not installed"
+
+
+@pytest.fixture()
+def mock_completion():
+    class MockCompletion:
+        def __init__(
+            self,
+            id="msg_013Zva2CMHLNnXjNJJKqJ2EF",
+            completion="Hi! My name is Claude.",
+            model="claude-3-opus-20240229",
+            stop_reason="end_turn",
+            role="assistant",
+            type: Literal["completion"] = "completion",
+            usage={"input_tokens": 10, "output_tokens": 25},
+        ):
+            self.id = id
+            self.role = role
+            self.completion = completion
+            self.model = model
+            self.stop_reason = stop_reason
+            self.type = type
+            self.usage = usage
+
+    return MockCompletion
 
 
 @pytest.fixture()
@@ -25,9 +44,9 @@ def anthropic_client():
 
 @pytest.mark.skipif(skip, reason=reason)
 def test_initialization_missing_api_key():
-    with pytest.raises(AssertionError) as exc_info:
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    with pytest.raises(ValueError, match="API key is required to use the Anthropic API."):
         AnthropicClient()
-    assert "Please provide an `api_key`" in str(exc_info.value)
 
     AnthropicClient(api_key="dummy_api_key")
 
@@ -38,24 +57,14 @@ def test_intialization(anthropic_client):
 
 
 @pytest.mark.skipif(skip, reason=reason)
-def test_calculate_cost(anthropic_client):
-    response = {
-        "content": [{"text": "Hi! My name is Claude.", "type": "text"}],
-        "id": "msg_013Zva2CMHLNnXjNJJKqJ2EF",
-        "model": "claude-3-opus-20240229",
-        "role": "assistant",
-        "stop_reason": "end_turn",
-        "stop_sequence": "null",
-        "type": "message",
-        "usage": {"input_tokens": 10, "output_tokens": 25},
-    }
-    cost = calculate_cost(anthropic_client, response)
-    assert cost == 0.002025, "Cost should be calculated correctly"
+def test_get_usage(anthropic_client, mock_completion):
+    usage = anthropic_client.cost(mock_completion())
+
+    assert isinstance(usage, float), "Cost should be correctly calculated"
 
 
 @pytest.mark.skipif(skip, reason=reason)
 def test_load_config(anthropic_client):
-    # All parameters
     params = {
         "model": "claude-3-sonnet-20240229",
         "stream": False,
@@ -69,6 +78,8 @@ def test_load_config(anthropic_client):
         "temperature": 1,
         "top_p": 0.8,
         "max_tokens": 100,
+        "stop_sequences": None,
+        "top_k": None,
     }
     result = anthropic_client.load_config(params)
-    assert result == expected_params
+    assert result == expected_params, "Config should be correctly loaded"

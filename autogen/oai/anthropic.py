@@ -18,6 +18,8 @@ config_list = [
 assistant = autogen.AssistantAgent("assistant", llm_config={"config_list": config_list})
 """
 
+from __future__ import annotations
+
 import inspect
 import json
 import os
@@ -36,8 +38,7 @@ if TOOL_ENABLED:
     from anthropic.types.tool_use_block_param import (
         ToolUseBlockParam,
     )
-else:
-    ToolUseBlockParam = object
+
 
 ANTHROPIC_PRICING_1k = {
     "claude-3-sonnet-20240229": (0.003, 0.015),
@@ -60,9 +61,9 @@ class AnthropicClient:
 
         if not self._api_key:
             self._api_key = os.getenv("ANTHROPIC_API_KEY")
-        assert (
-            self._api_key is not None
-        ), "Please provide an `api_key` in the config_list to use the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable."
+
+        if self._api_key is None:
+            raise ValueError("API key is required to use the Anthropic API.")
 
         self._client = Anthropic(api_key=self._api_key)
         self._last_tooluse_status = {}
@@ -74,12 +75,16 @@ class AnthropicClient:
         anthropic_params["model"] = params.get("model", None)
         assert anthropic_params["model"], "Please provide a `model` in the config_list to use the Anthropic API."
 
+        anthropic_params["stream"] = params.get("stream", False)
+        if not isinstance(anthropic_params["stream"], bool):
+            warnings.warn("Config error: stream must be a bool, defaulting to False", UserWarning)
+            anthropic_params["stream"] = False
+
         anthropic_params["temperature"] = params.get("temperature", 0.7)
         if anthropic_params["temperature"] is not None and not isinstance(anthropic_params["temperature"], float):
             warnings.warn("Config error: temperature must be a float or None, defaulting to 0.7", UserWarning)
-            anthropic_params["temperature"] = 0.7
+            anthropic_params["temperature"] = 0.7  # Ensure the default is set
 
-        # Update max_tokens with validation
         anthropic_params["max_tokens"] = params.get("max_tokens", None)
         if anthropic_params["max_tokens"] is not None and not isinstance(anthropic_params["max_tokens"], int):
             warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
@@ -105,7 +110,7 @@ class AnthropicClient:
 
         return anthropic_params
 
-    def cost(self, response: Completion) -> float:
+    def cost(self, response: Message) -> float:
         """Calculate the cost of the completion using the Anthropic pricing."""
         return self._calculate_cost(response)
 
@@ -171,9 +176,7 @@ class AnthropicClient:
 
         return response
 
-    def message_retrieval(
-        self, response: Union[Message, ToolUseBlockParam]
-    ) -> Union[List[str], List[ChatCompletionMessage]]:
+    def message_retrieval(self, response: Union[Message]) -> Union[List[str], List[ChatCompletionMessage]]:
         """Retrieve the messages from the response."""
         messages = response.content
         if len(messages) == 0:
@@ -231,7 +234,7 @@ class AnthropicClient:
         return res
 
     @staticmethod
-    def get_usage(response: Completion) -> Dict:
+    def get_usage(response: Message) -> Dict:
         return {
             "prompt_tokens": response.usage.input_tokens if response.usage is not None else 0,
             "completion_tokens": response.usage.output_tokens if response.usage is not None else 0,
@@ -251,7 +254,7 @@ class AnthropicClient:
 
         return functions
 
-    def _calculate_cost(self, response: Completion) -> float:
+    def _calculate_cost(self, response: Message) -> float:
         """Calculate the cost of the completion using the Anthropic pricing."""
         total = 0.0
         tokens = {
