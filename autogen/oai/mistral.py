@@ -93,7 +93,7 @@ class MistralAIClient:
                 if (lower_bound is not None and param_value < lower_bound) or (
                     upper_bound is not None and param_value > upper_bound
                 ):
-                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound else ''}{' and ' if lower_bound and upper_bound else ''}{'<= ' + str(upper_bound) if upper_bound else ''}{', or can be None' if allow_None else ''}"
+                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
             elif allowed_values:
                 if not (allow_None and param_value is None):
                     if param_value not in allowed_values:
