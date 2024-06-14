@@ -12,6 +12,7 @@ AutoGen.Net provides the following packages, you can choose to install one or mo
 - `AutoGen.Anthropic`: This package provides the integration agents for [Anthropic](https://www.anthropic.com/api)
 - `AutoGen.LMStudio`: This package provides the integration agents from LM Studio.
 - `AutoGen.SemanticKernel`: This package provides the integration agents over semantic kernel.
+- `AutoGen.Gemini`: This package provides the integration agents from [Google Gemini](https://gemini.google.com/).
 - `AutoGen.SourceGenerator`: This package carries a source generator that adds support for type-safe function definition generation.
 - `AutoGen.DotnetInteractive`: This packages carries dotnet interactive support to execute dotnet code snippet.
 
