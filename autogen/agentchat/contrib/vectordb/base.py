@@ -207,6 +207,10 @@ class VectorDBFactory:
             from .pgvectordb import PGVectorDB
 
             return PGVectorDB(**kwargs)
+        if db_type.lower() in ["mdb", "mongodb"]:
+            from .mongodb import MongoDBVectorDB
+
+            return MongoDBVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."
