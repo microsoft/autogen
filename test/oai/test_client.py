@@ -36,7 +36,7 @@ def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"api_type": ["azure"], "tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
@@ -58,7 +58,7 @@ def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"api_type": ["azure"], "tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(
@@ -105,7 +105,9 @@ def test_chat_completion():
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_completion():
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+1=")
@@ -123,7 +125,9 @@ def test_completion():
 )
 def test_cost(cache_seed):
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
     )
     client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
     response = client.create(prompt="1+3=")
@@ -145,7 +149,9 @@ def test_customized_cost():
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+3=", cache_seed=None)
@@ -181,7 +187,7 @@ def test_legacy_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 
     # Prompt to use for testing.
@@ -250,7 +256,7 @@ def test_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 
     # Prompt to use for testing.

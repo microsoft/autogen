@@ -37,7 +37,7 @@ def test_aoai_chat_completion_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"api_type": ["azure"], "tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], stream=True)
@@ -50,7 +50,7 @@ def test_chat_completion_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "1+1="}], stream=True)
@@ -202,7 +202,7 @@ def test_chat_functions_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
     functions = [
         {
