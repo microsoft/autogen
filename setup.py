@@ -76,7 +76,7 @@ extra_require = {
         *retrieve_chat,
         "qdrant_client[fastembed]",
     ],
-    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
+    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
     "graph": ["networkx", "matplotlib"],
