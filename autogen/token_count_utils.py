@@ -1,9 +1,21 @@
 import json
 import logging
 import re
+import warnings
 from typing import Dict, List, Union
 
 import tiktoken
+
+try:
+    from autogen.agentchat.contrib.img_utils import num_tokens_from_gpt_image
+
+    img_util_imported = True
+except ImportError:
+
+    def num_tokens_from_gpt_image(_):
+        return 0
+
+    img_util_imported = False
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +128,6 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
     elif "gpt-4" in model:
         logger.info("gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
         return _num_token_from_messages(messages, model="gpt-4-0613")
-    elif "gemini" in model:
-        logger.info("Gemini is not supported in tiktoken. Returning num tokens assuming gpt-4-0613.")
-        return _num_token_from_messages(messages, model="gpt-4-0613")
     else:
         raise NotImplementedError(
             f"""_num_token_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens."""
@@ -130,7 +139,25 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
             if value is None:
                 continue
 
-            # function calls
+            # handle content if images are in GPT-4-vision
+            if key == "content" and isinstance(value, list):
+                for part in value:
+                    if not isinstance(part, dict) or "type" not in part:
+                        continue
+                    if part["type"] == "text":
+                        num_tokens += len(encoding.encode(part["text"]))
+                    if "image_url" in part:
+                        assert "url" in part["image_url"]
+                        if not img_util_imported:
+                            warnings.warn(
+                                "img_utils or PIL not imported. Skipping image token count."
+                                "Please install autogen with [lmm] option.",
+                                ImportWarning,
+                            )
+                        num_tokens += num_tokens_from_gpt_image(part["image_url"]["url"])
+                continue
+
+            # function calls and other objects
             if not isinstance(value, str):
                 try:
                     value = json.dumps(value)
