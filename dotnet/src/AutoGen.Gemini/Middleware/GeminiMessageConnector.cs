@@ -16,7 +16,7 @@ using Google.Protobuf.WellKnownTypes;
 using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using IMessage = AutoGen.Core.IMessage;
 
-namespace AutoGen.Gemini.Middleware;
+namespace AutoGen.Gemini;
 
 public class GeminiMessageConnector : IStreamingMiddleware
 {
