@@ -5,9 +5,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autogen.oai.anthropic import AnthropicClient
+try:
+    from autogen.oai.anthropic import AnthropicClient
 
-skip = False
+    skip = False
+except ImportError:
+    AnthropicClient = object
+    skip = True
+
 from typing_extensions import Literal
 
 reason = "Anthropic dependency not installed"
