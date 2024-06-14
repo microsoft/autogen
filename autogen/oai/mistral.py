@@ -85,7 +85,7 @@ class MistralAIClient:
                     formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
                 else:
                     formatted_types = f"{allowed_types.__name__}"
-                warning = f"must be of type {formatted_types}{'or None' if allow_None else ''}"
+                warning = f"must be of type {formatted_types}{' or None' if allow_None else ''}"
             elif param_value is None and not allow_None:
                 warning = "cannot be None"
             elif numerical_bound:
