@@ -96,7 +96,7 @@ class AnthropicClient:
                 if (lower_bound is not None and param_value < lower_bound) or (
                     upper_bound is not None and param_value > upper_bound
                 ):
-                    warning = f"has numerical bounds, {'>= ' + lower_bound if lower_bound else ''}{' and ' if lower_bound and upper_bound else ''}{'<= ' + upper_bound if upper_bound else ''}{', or can be None' if allow_None else ''}"
+                    warning = f"has numerical bounds, {'>= ' + lower_bound if lower_bound else ''}{' and ' if lower_bound and upper_bound else ''}{'<= ' + upper_bound if upper_bound else ''}{', or can be None' if allow_none else ''}"
             elif allowed_values:
                 if not (allow_none and param_value is None):
                     if param_value not in allowed_values:
