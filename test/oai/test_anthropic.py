@@ -63,9 +63,11 @@ def test_intialization(anthropic_client):
 
 @pytest.mark.skipif(skip, reason=reason)
 def test_get_usage(anthropic_client, mock_completion):
-    usage = anthropic_client.cost(mock_completion())
+    completion = mock_completion()
+    usage = anthropic_client.cost(completion)
 
     assert isinstance(usage, float), "Cost should be correctly calculated"
+    assert usage == 0.002025, "Cost should be $0.002025"
 
 
 @pytest.mark.skipif(skip, reason=reason)

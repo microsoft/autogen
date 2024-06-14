@@ -24,7 +24,7 @@ import inspect
 import json
 import os
 import warnings
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from anthropic import Anthropic
 from anthropic import __version__ as anthropic_version
@@ -72,41 +72,57 @@ class AnthropicClient:
         """Load the configuration for the Anthropic API client."""
         anthropic_params = {}
 
+        def validate_parameter(
+            param_name: str,
+            allowed_types: Tuple,
+            allow_none: bool,
+            default_value: Any,
+            numerical_bound: Tuple,
+            allowed_values: list,
+        ):
+            param_value = params.get(param_name, default_value)
+            warning = ""
+
+            if not isinstance(param_value, allowed_types):
+                if isinstance(allowed_types, tuple):
+                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
+                else:
+                    formatted_types = f"{allowed_types.__name__}"
+                warning = f"must be of type {formatted_types}{' or None' if allow_none else ''}"
+            elif param_value is None and not allow_none:
+                warning = "cannot be None"
+            elif numerical_bound:
+                lower_bound, upper_bound = numerical_bound
+                if (lower_bound is not None and param_value < lower_bound) or (
+                    upper_bound is not None and param_value > upper_bound
+                ):
+                    warning = f"has numerical bounds, {'>= ' + lower_bound if lower_bound else ''}{' and ' if lower_bound and upper_bound else ''}{'<= ' + upper_bound if upper_bound else ''}{', or can be None' if allow_None else ''}"
+            elif allowed_values:
+                if not (allow_none and param_value is None):
+                    if param_value not in allowed_values:
+                        warning = (
+                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_none else ''}"
+                        )
+
+            # If we failed any checks, warn and set to default value
+            if warning:
+                warnings.warn(
+                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
+                    UserWarning,
+                )
+                param_value = default_value
+
+            return param_value
+
         anthropic_params["model"] = params.get("model", None)
         assert anthropic_params["model"], "Please provide a `model` in the config_list to use the Anthropic API."
 
-        anthropic_params["stream"] = params.get("stream", False)
-        if not isinstance(anthropic_params["stream"], bool):
-            warnings.warn("Config error: stream must be a bool, defaulting to False", UserWarning)
-            anthropic_params["stream"] = False
-
-        anthropic_params["temperature"] = params.get("temperature", 0.7)
-        if anthropic_params["temperature"] is not None and not isinstance(anthropic_params["temperature"], float):
-            warnings.warn("Config error: temperature must be a float or None, defaulting to 0.7", UserWarning)
-            anthropic_params["temperature"] = 0.7  # Ensure the default is set
-
-        anthropic_params["max_tokens"] = params.get("max_tokens", None)
-        if anthropic_params["max_tokens"] is not None and not isinstance(anthropic_params["max_tokens"], int):
-            warnings.warn("Config error: max_tokens must be an int or None", UserWarning)
-            anthropic_params["max_tokens"] = None
-
-        # Update stop_sequences with validation
-        anthropic_params["stop_sequences"] = params.get("stop_sequences", None)
-        if anthropic_params["stop_sequences"] is not None and not isinstance(anthropic_params["stop_sequences"], list):
-            warnings.warn("Config error: stop_sequences must be a list or None", UserWarning)
-            anthropic_params["stop_sequences"] = None
-
-        # Update top_k with validation
-        anthropic_params["top_k"] = params.get("top_k", None)
-        if anthropic_params["top_k"] is not None and not isinstance(anthropic_params["top_k"], int):
-            warnings.warn("Config error: top_k must be an int or None", UserWarning)
-            anthropic_params["top_k"] = None
-
-        # Update top_p with validation
-        anthropic_params["top_p"] = params.get("top_p", None)
-        if anthropic_params["top_p"] is not None and not isinstance(anthropic_params["top_p"], float):
-            warnings.warn("Config error: top_p must be a float or None", UserWarning)
-            anthropic_params["top_p"] = None
+        anthropic_params["temperature"] = validate_parameter("temperature", (float, int), False, 0.0, (0.0, 1.0), [])
+        anthropic_params["max_tokens"] = validate_parameter("max_tokens", int, False, 4096, (1, None), [])
+        anthropic_params["top_k"] = validate_parameter("top_k", int, False, None, (1, None), [])
+        anthropic_params["top_p"] = validate_parameter("top_p", (float, int), False, 1.0, (0.0, 1.0), [])
+        anthropic_params["stop_sequences"] = validate_parameter("stop_sequences", list, True, None, None, [])
+        anthropic_params["stream"] = validate_parameter("stream", bool, True, False, None, [True, False])
 
         return anthropic_params
 
@@ -258,16 +274,16 @@ class AnthropicClient:
         """Calculate the cost of the completion using the Anthropic pricing."""
         total = 0.0
         tokens = {
-            "input": response.usage.input_tokens if response.usage is not None else 0,
-            "output": response.usage.output_tokens if response.usage is not None else 0,
+            "input": response.usage["input_tokens"] if response.usage is not None else 0,
+            "output": response.usage["output_tokens"] if response.usage is not None else 0,
         }
 
-        if self._model in ANTHROPIC_PRICING_1k:
-            input_cost_per_1k, output_cost_per_1k = ANTHROPIC_PRICING_1k[self._model]
+        if response.model in ANTHROPIC_PRICING_1k:
+            input_cost_per_1k, output_cost_per_1k = ANTHROPIC_PRICING_1k[response.model]
             input_cost = (tokens["input"] / 1000) * input_cost_per_1k
             output_cost = (tokens["output"] / 1000) * output_cost_per_1k
             total = input_cost + output_cost
         else:
-            warnings.warn(f"Cost calculation not available for model {self._model}", UserWarning)
+            warnings.warn(f"Cost calculation not available for model {response.model}", UserWarning)
 
         return total
