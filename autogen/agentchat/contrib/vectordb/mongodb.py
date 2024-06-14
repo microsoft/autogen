@@ -278,7 +278,7 @@ class MongoDBVectorDB(VectorDB):
                         }
                     }
                 }]
-            if distance_threshold > 0:
+            if distance_threshold >= 0:
                 pipeline.append({"$match": {"score": {"$lte": distance_threshold}}})
             
             results = list(search_collection.aggregate(pipeline))
