@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.0.6" />
+    <PackageReference Include="Elsa.EntityFrameworkCore.Sqlite" Version="3.0.6" />
+    <PackageReference Include="Elsa.Identity" Version="3.0.6" />
+    <PackageReference Include="Elsa" Version="3.0.6" />
+    <PackageReference Include="Elsa.Http" Version="3.0.6" />
+    <PackageReference Include="Elsa.Workflows.Api" Version="3.0.6" />
+    <PackageReference Include="Elsa.Workflows.Core" Version="3.0.6" />
+    <PackageReference Include="Elsa.Workflows.Management" Version="3.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <PackageReference Include="AspNetCore.Authentication.ApiKey" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.0.0" />
+    <PackageReference Include="Elsa.Workflows.Designer" Version="3.0.0-preview.727" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
+  </ItemGroup>
+
+</Project>

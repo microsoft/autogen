@@ -1,0 +1,59 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "environmentName": {
+        "value": "${AZURE_ENV_NAME}"
+      },
+      "location": {
+        "value": "${AZURE_LOCATION}"
+      },
+      "backendExists": {
+        "value": "${SERVICE_BACKEND_RESOURCE_EXISTS=false}"
+      },
+      "backendDefinition": {
+        "value": {
+          "settings": [
+            {
+              "name": "",
+              "value": "${VAR}",
+              "_comment_name": "The name of the environment variable when running in Azure. If empty, ignored.",
+              "_comment_value": "The value to provide. This can be a fixed literal, or an expression like ${VAR} to use the value of 'VAR' from the current environment."
+            },
+            {
+              "name": "",
+              "value": "${VAR_S}",
+              "secret": true,
+              "_comment_name": "The name of the environment variable when running in Azure. If empty, ignored.",
+              "_comment_value": "The value to provide. This can be a fixed literal, or an expression like ${VAR_S} to use the value of 'VAR_S' from the current environment."
+            }
+          ]
+        }
+      },
+      "frontendExists": {
+        "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
+      },
+      "frontendDefinition": {
+        "value": {
+          "settings": [
+            {
+              "name": "",
+              "value": "${VAR}",
+              "_comment_name": "The name of the environment variable when running in Azure. If empty, ignored.",
+              "_comment_value": "The value to provide. This can be a fixed literal, or an expression like ${VAR} to use the value of 'VAR' from the current environment."
+            },
+            {
+              "name": "",
+              "value": "${VAR_S}",
+              "secret": true,
+              "_comment_name": "The name of the environment variable when running in Azure. If empty, ignored.",
+              "_comment_value": "The value to provide. This can be a fixed literal, or an expression like ${VAR_S} to use the value of 'VAR_S' from the current environment."
+            }
+          ]
+        }
+      },
+      "principalId": {
+        "value": "${AZURE_PRINCIPAL_ID}"
+      }
+    }
+}

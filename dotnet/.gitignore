@@ -1,0 +1,146 @@
+syntax: glob
+
+### VisualStudio ###
+
+# Tools directory
+.dotnet/
+.packages/
+.tools/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+
+artifacts/
+artifacts_stage_1/
+[Dd]ebug/
+[Rr]elease/
+x64/ !eng/common/cross/x64/
+x86/ !eng/common/cross/x86/
+[Bb]in/
+[Oo]bj/
+msbuild.log
+msbuild.err
+msbuild.wrn
+*.binlog
+
+# Visual Studio 2015
+.vs/
+
+# Visual Studio 2015 Pre-CTP6
+*.sln.ide
+*.ide/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+#NUNIT
+*.VisualState.xml
+TestResult.xml
+
+# ReSharper is a .NET coding add-in
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# DotCover is a Code Coverage Tool
+*.dotCover
+
+# NuGet Packages
+*.nuget.props
+*.nuget.targets
+*.nupkg
+**/packages/*
+
+### Windows ###
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+### Linux ###
+
+*~
+
+# KDE directory preferences
+.directory
+
+### OSX ###
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# vim temporary files
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+# Visual Studio Code
+.vscode/
+
+# Private test configuration and binaries.
+config.ps1
+**/IISApplications
+
+
+# Node.js modules
+node_modules/
+
+# Python Compile Outputs
+
+*.pyc
+
+# IntelliJ
+.idea/
+
+# vscode python env files
+.env
+
+# Storage emulator storage files
+**/.azurite/*
+
+# Azure Developer CLI files
+/playground/**/.gitignore
+/playground/**/azure.yaml
+/playground/**/next-steps.md
