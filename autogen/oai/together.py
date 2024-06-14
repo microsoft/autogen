@@ -27,7 +27,7 @@ import re
 import time
 import warnings
 from io import BytesIO
-from typing import Any, Dict, List, Mapping, Union
+from typing import Any, Dict, List, Mapping, Tuple, Union
 
 import requests
 from openai.types.chat import ChatCompletion
@@ -83,6 +83,50 @@ class TogetherClient:
 
     def parse_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Loads the parameters for Together.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
+
+        # Validate individual parameters
+        def validate_parameter(
+            param_name: str,
+            allowed_types: Tuple,
+            allow_None: bool,
+            default_value: Any,
+            numerical_bound: Tuple,
+            allowed_values: list,
+        ):
+            param_value = params.get(param_name, default_value)
+            warning = ""
+
+            if not isinstance(param_value, allowed_types):
+                if isinstance(allowed_types, tuple):
+                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
+                else:
+                    formatted_types = f"{allowed_types.__name__}"
+                warning = f"must be of type {formatted_types}{' or None' if allow_None else ''}"
+            elif param_value is None and not allow_None:
+                warning = "cannot be None"
+            elif numerical_bound:
+                lower_bound, upper_bound = numerical_bound
+                if (lower_bound is not None and param_value < lower_bound) or (
+                    upper_bound is not None and param_value > upper_bound
+                ):
+                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
+            elif allowed_values:
+                if not (allow_None and param_value is None):
+                    if param_value not in allowed_values:
+                        warning = (
+                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_None else ''}"
+                        )
+
+            # If we failed any checks, warn and set to default value
+            if warning:
+                warnings.warn(
+                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
+                    UserWarning,
+                )
+                param_value = default_value
+
+            return param_value
+
         together_params = {}
 
         # Check that we have what we need to use Together.AI's API
@@ -91,22 +135,24 @@ class TogetherClient:
             "model"
         ], "Please specify the 'model' in your config list entry to nominate the Together.AI model to use."
 
-        together_params["max_tokens"] = params.get("max_tokens", None)
-        if together_params["max_tokens"] is not None and (
-            not isinstance(together_params["max_tokens"], int) or together_params["max_tokens"] < 0
-        ):
-            warnings.warn(
-                "Config error - max_tokens must be an int (>= 0) value or None, defaulting to 512", UserWarning
-            )
-            together_params["max_tokens"] = 512
-
-        together_params["stream"] = params.get("stream", False)
-        if together_params["stream"] is not None and not isinstance(together_params["stream"], bool):
-            warnings.warn(
-                "Config error - stream must be a bool value or None, defaulting to False.",
-                UserWarning,
-            )
-            together_params["stream"] = False
+        # Validate allowed Together.AI parameters
+        # https://github.com/togethercomputer/together-python/blob/94ffb30daf0ac3e078be986af7228f85f79bde99/src/together/resources/completions.py#L44
+        together_params["max_tokens"] = validate_parameter("max_tokens", int, True, 512, (0, None), None)
+        together_params["stream"] = validate_parameter("stream", bool, False, False, None, None)
+        together_params["temperature"] = validate_parameter("temperature", (int, float), True, None, None, None)
+        together_params["top_p"] = validate_parameter("top_p", (int, float), True, None, None, None)
+        together_params["top_k"] = validate_parameter("top_k", int, True, None, None, None)
+        together_params["repetition_penalty"] = validate_parameter("repetition_penalty", float, True, None, None, None)
+        together_params["presence_penalty"] = validate_parameter(
+            "presence_penalty", (int, float), True, None, (-2, 2), None
+        )
+        together_params["frequency_penalty"] = validate_parameter(
+            "frequency_penalty", (int, float), True, None, (-2, 2), None
+        )
+        together_params["min_p"] = validate_parameter("min_p", (int, float), True, None, (0, 1), None)
+        together_params["safety_model"] = validate_parameter(
+            "safety_model", str, True, None, None, None
+        )  # We won't enforce the available models as they are likely to change
 
         # Check if they want to stream and use tools, which isn't currently supported (TODO)
         if together_params["stream"] and "tools" in params:
@@ -116,73 +162,6 @@ class TogetherClient:
             )
 
             together_params["stream"] = False
-
-        together_params["temperature"] = params.get("temperature", None)
-        if together_params["temperature"] is not None and not isinstance(together_params["temperature"], (int, float)):
-            warnings.warn("Config error - Temperature must be a float value or None, defaulting to None", UserWarning)
-            together_params["temperature"] = None
-
-        together_params["top_p"] = params.get("top_p", None)
-        if together_params["top_p"] is not None and not isinstance(together_params["top_p"], (int, float)):
-            warnings.warn("Config error - top_p must be a float value or None, defaulting to None", UserWarning)
-            together_params["top_p"] = None
-
-        together_params["top_k"] = params.get("top_k", None)
-        if together_params["top_k"] is not None and not isinstance(together_params["top_k"], int):
-            warnings.warn("Config error - top_k must be an int value or None, defaulting to None", UserWarning)
-            together_params["top_k"] = None
-
-        together_params["repetition_penalty"] = params.get("repetition_penalty", None)
-        if together_params["repetition_penalty"] is not None and not isinstance(
-            together_params["repetition_penalty"], float
-        ):
-            warnings.warn(
-                "Config error - repetition_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            together_params["repetition_penalty"] = None
-        elif isinstance(together_params["repetition_penalty"], float) and (
-            together_params["repetition_penalty"] < -2 or together_params["repetition_penalty"] > 2
-        ):
-            warnings.warn("Config error - repetition_penalty must be between -2 and 2, defaulting to None", UserWarning)
-            together_params["repetition_penalty"] = None
-
-        together_params["presence_penalty"] = params.get("presence_penalty", None)
-        if together_params["presence_penalty"] is not None and not isinstance(
-            together_params["presence_penalty"], float
-        ):
-            warnings.warn(
-                "Config error - presence_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            together_params["presence_penalty"] = None
-
-        together_params["frequency_penalty"] = params.get("frequency_penalty", None)
-        if together_params["frequency_penalty"] is not None and not isinstance(
-            together_params["frequency_penalty"], float
-        ):
-            warnings.warn(
-                "Config error - frequency_penalty must be a float value or None, defaulting to None", UserWarning
-            )
-            together_params["frequency_penalty"] = None
-        elif isinstance(together_params["frequency_penalty"], float) and (
-            together_params["frequency_penalty"] < -2 or together_params["frequency_penalty"] > 2
-        ):
-            warnings.warn("Config error - frequency_penalty must be between -2 and 2, defaulting to None", UserWarning)
-            together_params["frequency_penalty"] = None
-
-        together_params["min_p"] = params.get("min_p", None)
-        if together_params["min_p"] is not None and not isinstance(together_params["min_p"], float):
-            warnings.warn("Config error - min_p must be a float value or None, defaulting to None", UserWarning)
-            together_params["min_p"] = None
-        elif isinstance(together_params["min_p"], float) and (
-            together_params["min_p"] < 0 or together_params["min_p"] > 1
-        ):
-            warnings.warn("Config error - min_p must be between 0 and 1, defaulting to None", UserWarning)
-            together_params["min_p"] = None
-
-        together_params["safety_model"] = params.get("safety_model", None)
-        if together_params["safety_model"] is not None and not isinstance(together_params["safety_model"], str):
-            warnings.warn("Config error - safety_model must be a string value or None, defaulting to None", UserWarning)
-            together_params["safety_model"] = None
 
         return together_params
 

@@ -95,7 +95,7 @@ def test_parsing_params(together_client):
     }
     expected_params = {
         "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "max_tokens": None,
+        "max_tokens": 512,
         "stream": False,
         "temperature": None,
         "top_p": None,
@@ -143,7 +143,7 @@ def test_parsing_params(together_client):
     params = {
         "model": "WizardLM/WizardLM-13B-V1.2",
         "max_tokens": -200,
-        "repetition_penalty": -5,
+        "presence_penalty": -5,
         "frequency_penalty": 5,
         "min_p": -0.5,
     }
