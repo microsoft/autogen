@@ -122,7 +122,7 @@ def test_parsing_params(mistral_client):
 
 # Test cost calculation
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
-def test_cost_calculation(mistral_client, mock_response):
+def test_cost_calculation(mock_response):
     response = mock_response(
         text="Example response",
         choices=[{"message": "Test message 1"}],

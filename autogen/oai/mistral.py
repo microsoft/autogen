@@ -26,7 +26,7 @@ import json
 import os
 import time
 import warnings
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 # Mistral libraries
 # pip install mistralai
@@ -67,6 +67,50 @@ class MistralAIClient:
 
     def parse_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Loads the parameters for Mistral.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
+
+        # Validate individual parameters
+        def validate_parameter(
+            param_name: str,
+            allowed_types: Tuple,
+            allow_None: bool,
+            default_value: Any,
+            numerical_bound: Tuple,
+            allowed_values: list,
+        ):
+            param_value = params.get(param_name, default_value)
+            warning = ""
+
+            if not isinstance(param_value, allowed_types):
+                if isinstance(allowed_types, tuple):
+                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
+                else:
+                    formatted_types = f"{allowed_types.__name__}"
+                warning = f"must be of type {formatted_types}{'or None' if allow_None else ''}"
+            elif param_value is None and not allow_None:
+                warning = "cannot be None"
+            elif numerical_bound:
+                lower_bound, upper_bound = numerical_bound
+                if (lower_bound is not None and param_value < lower_bound) or (
+                    upper_bound is not None and param_value > upper_bound
+                ):
+                    warning = f"has numerical bounds, {'>= ' + lower_bound if lower_bound else ''}{' and ' if lower_bound and upper_bound else ''}{'<= ' + upper_bound if upper_bound else ''}{', or can be None' if allow_None else ''}"
+            elif allowed_values:
+                if not (allow_None and param_value is None):
+                    if param_value not in allowed_values:
+                        warning = (
+                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_None else ''}"
+                        )
+
+            # If we failed any checks, warn and set to default value
+            if warning:
+                warnings.warn(
+                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
+                    UserWarning,
+                )
+                param_value = default_value
+
+            return param_value
+
         mistral_params = {}
 
         # Check that we have what we need to use Mistral.AI's API
@@ -75,45 +119,13 @@ class MistralAIClient:
             "model"
         ], "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use."
 
-        mistral_params["stream"] = params.get("stream", False)  # TODO: Handle streaming
-        if mistral_params["stream"] is not None and not isinstance(mistral_params["stream"], bool):
-            warnings.warn(
-                "Config error - stream must be a bool value or None, defaulting to False. Note: Streaming is not yet handled.",
-                UserWarning,
-            )
-            mistral_params["stream"] = False
-        elif mistral_params["stream"]:
-            warnings.warn("Config warning - Streaming is not yet handled.", UserWarning)
-            mistral_params["stream"] = False
-
-        mistral_params["temperature"] = params.get("temperature", 0.7)
-        if mistral_params["temperature"] is not None and not isinstance(mistral_params["temperature"], (int, float)):
-            warnings.warn("Config error - Temperature must be a float value or None, defaulting to 0.7", UserWarning)
-            mistral_params["temperature"] = 0.7  # Default is 0.7
-
-        mistral_params["top_p"] = params.get("top_p", None)
-        if mistral_params["top_p"] is not None and not isinstance(mistral_params["top_p"], (int, float)):
-            warnings.warn("Config error - top_p must be a float value or None, defaulting to None", UserWarning)
-            mistral_params["top_p"] = None
-
-        mistral_params["max_tokens"] = params.get("max_tokens", None)
-        if mistral_params["max_tokens"] is not None and (
-            not isinstance(mistral_params["max_tokens"], int) or mistral_params["max_tokens"] < 0
-        ):
-            warnings.warn(
-                "Config error - max_tokens must be an int (>= 0) value or None, defaulting to None", UserWarning
-            )
-            mistral_params["max_tokens"] = None
-
-        mistral_params["safe_prompt"] = params.get("safe_prompt", False)
-        if mistral_params["safe_prompt"] is not None and not isinstance(mistral_params["safe_prompt"], bool):
-            warnings.warn("Config error - safe_prompt must be a bool value or None, defaulting to False", UserWarning)
-            mistral_params["safe_prompt"] = False
-
-        mistral_params["random_seed"] = params.get("random_seed", None)
-        if mistral_params["random_seed"] is not None and not isinstance(mistral_params["random_seed"], int):
-            warnings.warn("Config error - random_seed must be an int value or None, defaulting to None", UserWarning)
-            mistral_params["random_seed"] = None
+        # Validate allowed Mistral.AI parameters
+        mistral_params["stream"] = validate_parameter("stream", bool, False, False, None, [False])
+        mistral_params["temperature"] = validate_parameter("temperature", (int, float), True, 0.7, None, None)
+        mistral_params["top_p"] = validate_parameter("top_p", (int, float), True, None, None, None)
+        mistral_params["max_tokens"] = validate_parameter("max_tokens", int, True, None, (0, None), None)
+        mistral_params["safe_prompt"] = validate_parameter("safe_prompt", bool, False, False, None, [True, False])
+        mistral_params["random_seed"] = validate_parameter("random_seed", int, True, None, False, False)
 
         return mistral_params
 
