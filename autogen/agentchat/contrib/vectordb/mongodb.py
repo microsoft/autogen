@@ -255,10 +255,6 @@ class MongoDBVectorDB(VectorDB):
                 raise ValueError("n_results must be less than or equal to n_candidates.")
             if n_candidates < 1:
                 raise ValueError("n_candidates must be greater than or equal to 1.")
-            if not self.is_valid_index_name(index_name):
-                raise ValueError("Invalid index name.")
-            if not self.is_valid_collection_name(collection_name):
-                raise ValueError("Invalid collection name.")
             pipeline = [
                 {"$vectorSearch": {
                     "index": index_name, 
