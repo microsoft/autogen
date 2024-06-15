@@ -181,8 +181,6 @@ class MongoDBVectorDB(VectorDB):
                 doc["embedding"] = np.array(self.embedding_function([
                     str(doc["content"])
                 ])).tolist()[0]
-                print("embedding")
-                print(doc["embedding"])
             if upsert:
                 return collection.replace_one({'id': doc['id']}, doc, upsert=True)
             else:
