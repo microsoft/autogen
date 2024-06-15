@@ -36,6 +36,7 @@ class MongoDBVectorDB(VectorDB):
         ]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+
     def is_valid_index_name(self, name: str) -> bool:
         """
         Checks if an index name is valid.
