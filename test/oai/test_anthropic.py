@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 try:
-    from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.anthropic import AnthropicClient, _calculate_cost
 
     skip = False
 except ImportError:
@@ -15,7 +15,7 @@ except ImportError:
 
 from typing_extensions import Literal
 
-reason = "Anthropic dependency not installed"
+reason = "Anthropic dependency not installed!"
 
 
 @pytest.fixture()
@@ -61,13 +61,18 @@ def test_intialization(anthropic_client):
     assert anthropic_client.api_key == "dummy_api_key", "`api_key` should be correctly set in the config"
 
 
+# Test cost calculation
 @pytest.mark.skipif(skip, reason=reason)
-def test_get_usage(anthropic_client, mock_completion):
-    completion = mock_completion()
-    usage = anthropic_client.cost(completion)
-
-    assert isinstance(usage, float), "Cost should be correctly calculated"
-    assert usage == 0.002025, "Cost should be $0.002025"
+def test_cost_calculation(mock_completion):
+    completion = mock_completion(
+        completion="Hi! My name is Claude.",
+        usage={"prompt_tokens": 10, "completion_tokens": 25, "total_tokens": 35},
+        model="claude-3-opus-20240229",
+    )
+    assert (
+        _calculate_cost(completion.usage["prompt_tokens"], completion.usage["completion_tokens"], completion.model)
+        == 0.002025
+    ), "Cost should be $0.002025"
 
 
 @pytest.mark.skipif(skip, reason=reason)
