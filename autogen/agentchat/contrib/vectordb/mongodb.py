@@ -24,7 +24,7 @@ class MongoDBVectorDB(VectorDB):
             self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         try:
             self.client = MongoClient(connection_string)
-            self.client.server_info()
+            self.client.admin.command('ping')
         except errors.ServerSelectionTimeoutError as err:
             raise ConnectionError("Could not connect to MongoDB server") from err
 
