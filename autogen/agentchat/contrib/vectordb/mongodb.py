@@ -26,9 +26,7 @@ class MongoDBVectorDB(VectorDB):
             self.client = MongoClient(connection_string)
             self.client.server_info()
         except errors.ServerSelectionTimeoutError as err:
-            # print error and handle exceptions
-            print ("pymongo ERROR:", err)
-            raise ConnectionError("Could not connect to MongoDB server")
+            raise ConnectionError("Could not connect to MongoDB server") from err
 
         self.db = self.client[database_name]
         self.active_collection = None
