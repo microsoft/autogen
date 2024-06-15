@@ -223,6 +223,7 @@ class MongoDBVectorDB(VectorDB):
             return list(collection.find())
         else:
             return list(collection.find({'id': {'$in': ids}}))
+
     def retrieve_docs(
         self,
         queries: List[str],
