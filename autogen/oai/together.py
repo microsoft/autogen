@@ -38,6 +38,8 @@ from PIL import Image
 # pip install together
 from together import Together, error
 
+from autogen.oai.client_utils import validate_parameter
+
 
 class TogetherClient:
     """Client for Together.AI's API."""
@@ -83,50 +85,6 @@ class TogetherClient:
 
     def parse_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Loads the parameters for Together.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
-
-        # Validate individual parameters
-        def validate_parameter(
-            param_name: str,
-            allowed_types: Tuple,
-            allow_None: bool,
-            default_value: Any,
-            numerical_bound: Tuple,
-            allowed_values: list,
-        ):
-            param_value = params.get(param_name, default_value)
-            warning = ""
-
-            if not isinstance(param_value, allowed_types):
-                if isinstance(allowed_types, tuple):
-                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
-                else:
-                    formatted_types = f"{allowed_types.__name__}"
-                warning = f"must be of type {formatted_types}{' or None' if allow_None else ''}"
-            elif param_value is None and not allow_None:
-                warning = "cannot be None"
-            elif numerical_bound:
-                lower_bound, upper_bound = numerical_bound
-                if (lower_bound is not None and param_value < lower_bound) or (
-                    upper_bound is not None and param_value > upper_bound
-                ):
-                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
-            elif allowed_values:
-                if not (allow_None and param_value is None):
-                    if param_value not in allowed_values:
-                        warning = (
-                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_None else ''}"
-                        )
-
-            # If we failed any checks, warn and set to default value
-            if warning:
-                warnings.warn(
-                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
-                    UserWarning,
-                )
-                param_value = default_value
-
-            return param_value
-
         together_params = {}
 
         # Check that we have what we need to use Together.AI's API
@@ -137,21 +95,23 @@ class TogetherClient:
 
         # Validate allowed Together.AI parameters
         # https://github.com/togethercomputer/together-python/blob/94ffb30daf0ac3e078be986af7228f85f79bde99/src/together/resources/completions.py#L44
-        together_params["max_tokens"] = validate_parameter("max_tokens", int, True, 512, (0, None), None)
-        together_params["stream"] = validate_parameter("stream", bool, False, False, None, None)
-        together_params["temperature"] = validate_parameter("temperature", (int, float), True, None, None, None)
-        together_params["top_p"] = validate_parameter("top_p", (int, float), True, None, None, None)
-        together_params["top_k"] = validate_parameter("top_k", int, True, None, None, None)
-        together_params["repetition_penalty"] = validate_parameter("repetition_penalty", float, True, None, None, None)
+        together_params["max_tokens"] = validate_parameter(params, "max_tokens", int, True, 512, (0, None), None)
+        together_params["stream"] = validate_parameter(params, "stream", bool, False, False, None, None)
+        together_params["temperature"] = validate_parameter(params, "temperature", (int, float), True, None, None, None)
+        together_params["top_p"] = validate_parameter(params, "top_p", (int, float), True, None, None, None)
+        together_params["top_k"] = validate_parameter(params, "top_k", int, True, None, None, None)
+        together_params["repetition_penalty"] = validate_parameter(
+            params, "repetition_penalty", float, True, None, None, None
+        )
         together_params["presence_penalty"] = validate_parameter(
-            "presence_penalty", (int, float), True, None, (-2, 2), None
+            params, "presence_penalty", (int, float), True, None, (-2, 2), None
         )
         together_params["frequency_penalty"] = validate_parameter(
-            "frequency_penalty", (int, float), True, None, (-2, 2), None
+            params, "frequency_penalty", (int, float), True, None, (-2, 2), None
         )
-        together_params["min_p"] = validate_parameter("min_p", (int, float), True, None, (0, 1), None)
+        together_params["min_p"] = validate_parameter(params, "min_p", (int, float), True, None, (0, 1), None)
         together_params["safety_model"] = validate_parameter(
-            "safety_model", str, True, None, None, None
+            params, "safety_model", str, True, None, None, None
         )  # We won't enforce the available models as they are likely to change
 
         # Check if they want to stream and use tools, which isn't currently supported (TODO)
