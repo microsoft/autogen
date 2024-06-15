@@ -205,8 +205,7 @@ class MongoDBVectorDB(VectorDB):
             collection_name: str | The name of the collection. Default is None.
         """
         collection = self.get_collection(collection_name)
-        for doc_id in ids:
-            collection.delete_one({'id': doc_id})
+        collection.delete_many({'id': ids})
         return ids
 
     def get_docs_by_ids(self, ids: List[ItemID] = None, collection_name: str = None):
