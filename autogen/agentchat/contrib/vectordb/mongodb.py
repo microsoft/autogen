@@ -5,7 +5,7 @@ from pymongo.operations import SearchIndexModel
 import numpy as np
 from .base import Document, ItemID, QueryResults, VectorDB
 
-class MongoDBVectorDB(VectorDB):
+class MongoDBAtlasVectorDB(VectorDB):
     """
     A Collection object for MongoDB.
     """
@@ -37,41 +37,6 @@ class MongoDBVectorDB(VectorDB):
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
 
-    def is_valid_index_name(self, name: str) -> bool:
-        """
-        Checks if an index name is valid.
-
-        Args:
-            name: The name of the index to validate.
-
-        Returns:
-            True if the name is valid, False otherwise.
-        """
-        # Allowed characters (letters, numbers, underscores, and hyphens)
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
-        # Check if the name is empty or starts/ends with non-alphanumeric characters
-        if not name or name[0] not in allowed_chars or name[-1] not in allowed_chars:
-            return False
-        # Check if the name contains any characters other than allowed ones
-        return all(char in allowed_chars for char in name)
-
-    def is_valid_collection_name(self, name: str) -> bool:
-        """
-        Checks if a collection name is valid for MongoDB.
-
-        Args:
-            name: The name of the collection to validate.
-
-        Returns:
-            True if the name is valid, False otherwise.
-        """
-        # Allowed characters (letters, numbers, underscores, dots, and dollar signs)
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.$_")
-        # Check if the name is empty or starts/ends with a special character
-        if not name or name[0] not in allowed_chars or name[-1] not in allowed_chars:
-            return False
-        # Check if the name contains any characters other than allowed ones
-        return all(char in allowed_chars for char in name)
     def create_collection(self, collection_name: str, index_name:str, similarity:str, overwrite: bool = False, get_or_create: bool = True):
         """
         Create a collection in the vector database and create a vector search index in the collection.
@@ -86,12 +51,6 @@ class MongoDBVectorDB(VectorDB):
         # Check if similarity is valid
         if similarity not in ["euclidean", "cosine", "dotProduct"]:
             raise ValueError("Invalid similarity. Allowed values: 'euclidean', 'cosine', 'dotProduct'.")
-        # Check if the index name is valid
-        if not self.is_valid_index_name(index_name):
-            raise ValueError("Invalid index name: "+ index_name +". Allowed characters: letters, numbers, underscores, and hyphens.")
-        # Check if the collection name is valid
-        if not self.is_valid_collection_name(collection_name):
-            raise ValueError("Invalid collection name. Allowed characters: letters, numbers, underscores, and dots.")
         
         # If overwrite is True and the collection already exists, drop the existing collection
         if overwrite and collection_name in self.db.list_collection_names():
@@ -181,10 +140,12 @@ class MongoDBVectorDB(VectorDB):
                 doc["embedding"] = np.array(self.embedding_function([
                     str(doc["content"])
                 ])).tolist()[0]
-            if upsert:
+        if upsert:
+            for doc in docs:
                 return collection.replace_one({'id': doc['id']}, doc, upsert=True)
-            else:
-                return collection.insert_one(doc)
+        else:
+            return collection.insert_many(docs)
+        
 
     def update_docs(self, docs: List[Document], collection_name: str = None):
         """
