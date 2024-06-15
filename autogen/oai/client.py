@@ -297,8 +297,10 @@ class OpenAIClient:
         """Calculate the cost of the response."""
         model = response.model
         if model not in OAI_PRICE1K:
-            # TODO: add logging to warn that the model is not found
-            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
+            # log warning that the model is not found
+            logger.warning(
+                f'Model {model} is not found. The cost will be 0. In your config_list, add field {{"price" : [prompt_price_per_1k, completion_token_price_per_1k]}} for customized pricing.'
+            )
             return 0
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
@@ -335,6 +337,7 @@ class OpenAIWrapper:
         "api_version",
         "api_type",
         "tags",
+        "price",
     }
 
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
@@ -356,7 +359,7 @@ class OpenAIWrapper:
                 "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
                 "api_type": "azure",
                 "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-                "api_version": "2024-02-15-preview",
+                "api_version": "2024-02-01",
             },
             {
                 "model": "gpt-3.5-turbo",
@@ -571,7 +574,7 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
-            - api_version (str | None): The api version. Default to None. E.g., "2024-02-15-preview".
+            - api_version (str | None): The api version. Default to None. E.g., "2024-02-01".
         Raises:
             - RuntimeError: If all declared custom model clients are not registered
             - APIError: If any model client create call raises an APIError
@@ -604,6 +607,14 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
             agent = extra_kwargs.get("agent")
+            price = extra_kwargs.get("price", None)
+            if isinstance(price, list):
+                price = tuple(price)
+            elif isinstance(price, float) or isinstance(price, int):
+                logger.warning(
+                    "Input price is a float/int. Using the same price for prompt and completion tokens. Use a list/tuple if prompt and completion token prices are different."
+                )
+                price = (price, price)
 
             total_usage = None
             actual_usage = None
@@ -690,7 +701,10 @@ class OpenAIWrapper:
                     raise
             else:
                 # add cost calculation before caching no matter filter is passed or not
-                response.cost = client.cost(response)
+                if price is not None:
+                    response.cost = self._cost_with_customized_price(response, price)
+                else:
+                    response.cost = client.cost(response)
                 actual_usage = client.get_usage(response)
                 total_usage = actual_usage.copy() if actual_usage is not None else total_usage
                 self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
@@ -723,6 +737,17 @@ class OpenAIWrapper:
                     return response
                 continue  # filter is not passed; try the next config
         raise RuntimeError("Should not reach here.")
+
+    @staticmethod
+    def _cost_with_customized_price(
+        response: ModelClient.ModelClientResponseProtocol, price_1k: Tuple[float, float]
+    ) -> None:
+        """If a customized cost is passed, overwrite the cost in the response."""
+        n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
+        return n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]
 
     @staticmethod
     def _update_dict_from_chunk(chunk: BaseModel, d: Dict[str, Any], field: str) -> int:
