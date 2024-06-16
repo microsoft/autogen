@@ -2,8 +2,6 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
-from tqdm.asyncio import tqdm
-
 from ...components import (
     FunctionCall,
     TypeRoutedAgent,
@@ -16,7 +14,7 @@ from ...components.models import (
     SystemMessage,
 )
 from ...components.tools import Tool
-from ...core import AgentRuntime, CancellationToken
+from ...core import Agent, AgentRuntime, CancellationToken
 from ..memory import ChatMemory
 from ..types import (
     FunctionCallMessage,
@@ -26,6 +24,8 @@ from ..types import (
     RespondNow,
     ResponseFormat,
     TextMessage,
+    ToolApprovalRequest,
+    ToolApprovalResponse,
 )
 from ..utils import convert_messages_to_llm_messages
 
@@ -49,6 +49,11 @@ class ChatCompletionAgent(TypeRoutedAgent):
             tool calls, the agent will call itselfs with the tool calls until it
             gets a response that is not a list of tool calls, and then use that
             response as the final response.
+        tool_approver (Agent | None, optional): The agent that approves tool
+            calls. Defaults to None. If no tool approver is provided, the agent
+            will execute the tools without approval. If a tool approver is
+            provided, the agent will send a request to the tool approver before
+            executing the tools.
     """
 
     def __init__(
@@ -60,6 +65,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         memory: ChatMemory,
         model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
+        tool_approver: Agent | None = None,
     ) -> None:
         super().__init__(name, description, runtime)
         self._description = description
@@ -67,6 +73,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         self._client = model_client
         self._memory = memory
         self._tools = tools
+        self._tool_approver = tool_approver
 
     @message_handler()
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
@@ -88,9 +95,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         """Handle a respond now message. This method generates a response and
         returns it to the sender."""
         # Generate a response.
-        with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}") as pbar:
-            response = await self._generate_response(message.response_format, cancellation_token)
-            pbar.close()
+        response = await self._generate_response(message.response_format, cancellation_token)
 
         # Return the response.
         return response
@@ -100,10 +105,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         """Handle a publish now message. This method generates a response and
         publishes it."""
         # Generate a response.
-        # TODO: refactor this to use message_handler decorator.
-        with tqdm(desc=f"{self.name} is thinking...", bar_format="{desc}: {elapsed_s}", leave=False) as pbar:
-            response = await self._generate_response(message.response_format, cancellation_token)
-            pbar.close()
+        response = await self._generate_response(message.response_format, cancellation_token)
 
         # Publish the response.
         await self._publish_message(response)
@@ -221,6 +223,23 @@ class ChatCompletionAgent(TypeRoutedAgent):
         tool = next((t for t in self._tools if t.name == name), None)
         if tool is None:
             return (f"Error: tool {name} not found.", call_id)
+
+        # Check if the tool needs approval
+        if self._tool_approver is not None:
+            # Send a tool approval request.
+            approval_request = ToolApprovalRequest(
+                tool_call=FunctionCall(id=call_id, arguments=json.dumps(args), name=name)
+            )
+            approval_response = await self._send_message(
+                message=approval_request,
+                recipient=self._tool_approver,
+                cancellation_token=cancellation_token,
+            )
+            if not isinstance(approval_response, ToolApprovalResponse):
+                raise ValueError(f"Expecting {ToolApprovalResponse.__name__}, received: {type(approval_response)}")
+            if not approval_response.approved:
+                return (f"Error: tool {name} approved, reason: {approval_response.reason}", call_id)
+
         try:
             result = await tool.run_json(args, cancellation_token)
             result_as_str = tool.return_value_as_string(result)

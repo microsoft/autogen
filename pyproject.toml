@@ -37,6 +37,7 @@ dev = [
     "aiofiles",
     "types-aiofiles",
     "colorama",
+    "textual",
 ]
 docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 

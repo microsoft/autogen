@@ -54,3 +54,21 @@ class PublishNow:
 
 
 class Reset: ...
+
+
+@dataclass
+class ToolApprovalRequest:
+    """A message to request approval for a tool call. The sender expects a
+    response upon sending and waits for it synchronously."""
+
+    tool_call: FunctionCall
+
+
+@dataclass
+class ToolApprovalResponse:
+    """A message to respond to a tool approval request. The response is sent
+    synchronously."""
+
+    tool_call_id: str
+    approved: bool
+    reason: str

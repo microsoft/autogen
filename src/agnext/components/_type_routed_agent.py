@@ -120,7 +120,7 @@ def message_handler(
         if target_types is None:
             raise AssertionError("Message type not found")
 
-        print(type_hints)
+        # print(type_hints)
         return_types = get_types(type_hints["return"])
 
         if return_types is None:
