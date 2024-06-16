@@ -1,19 +1,23 @@
 """Utilities for client classes"""
 
 import warnings
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 def validate_parameter(
-    params: Dict,
+    params: Dict[str, Any],
     param_name: str,
     allowed_types: Tuple,
     allow_None: bool,
     default_value: Any,
     numerical_bound: Tuple,
     allowed_values: list,
-):
+) -> Any:
     """Validates a given config parameter, checking its type, values, and setting defaults"""
+
+    if allowed_values is not None and not isinstance(allowed_values, list):
+        raise TypeError(f"allowed_values should be a list or None, got {type(allowed_values).__name__}")
+
     param_value = params.get(param_name, default_value)
     warning = ""
 

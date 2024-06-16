@@ -113,6 +113,29 @@ def test_validate_parameter():
     # Should all be set to defaults
     assert not validate_parameter(params, "stream", bool, False, False, None, [False])
 
+    # test invalid type
+    params = {
+        "temperature": None,
+    }
+
+    # should be set to defaults
+    assert validate_parameter(params, "temperature", (int, float), False, 0.7, (0.0, 1.0), None) == 0.7
+
+    # test value out of bounds
+    params = {
+        "temperature": 23,
+    }
+
+    # should be set to defaults
+    assert validate_parameter(params, "temperature", (int, float), False, 1.0, (0.0, 1.0), None) == 1.0
+
+    # type error for the parameters
+    with pytest.raises(TypeError):
+        validate_parameter({}, "param", str, True, None, None, "not_a_list")
+
+    # passing empty params, which will set to defaults
+    assert validate_parameter({}, "max_tokens", int, True, 512, (0, None), None) == 512
+
 
 if __name__ == "__main__":
     test_validate_parameter()
