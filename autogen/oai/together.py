@@ -30,7 +30,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Mapping, Tuple, Union
 
 import requests
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 from PIL import Image
@@ -191,21 +191,39 @@ class TogetherClient:
                     prompt_tokens = response.usage.prompt_tokens
                     completion_tokens = response.usage.completion_tokens
                     total_tokens = response.usage.total_tokens
-
-                    response.cost = calculate_together_cost(prompt_tokens, completion_tokens, together_params["model"])
-
-                    return response
                 break
 
-        if ans is None:
-            raise RuntimeError(f"Fail to get response from Together.AI after retrying {attempt + 1} times.")
+        if response is not None:
+            # If we have tool calls as the response, populate completed tool calls for our return OAI response
+            if response.choices[0].finish_reason == "tool_calls":
+                together_finish = "tool_calls"
+                tool_calls = []
+                for tool_call in response.choices[0].message.tool_calls:
+                    tool_calls.append(
+                        ChatCompletionMessageToolCall(
+                            id=tool_call.id,
+                            function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
+                            type="function",
+                        )
+                    )
+            else:
+                together_finish = "stop"
+                tool_calls = None
+
+        else:
+            raise RuntimeError(f"Failed to get response from Together.AI after retrying {attempt + 1} times.")
 
         # 3. convert output
-        message = ChatCompletionMessage(role="assistant", content=ans, function_call=None, tool_calls=None)
-        choices = [Choice(finish_reason="stop", index=0, message=message)]
+        message = ChatCompletionMessage(
+            role="assistant",
+            content=response.choices[0].message.content,
+            function_call=None,
+            tool_calls=tool_calls,
+        )
+        choices = [Choice(finish_reason=together_finish, index=0, message=message)]
 
         response_oai = ChatCompletion(
-            id=str(random.randint(0, 1000)),
+            id=response.id,
             model=together_params["model"],
             created=int(time.time() * 1000),
             object="chat.completion",
