@@ -24,8 +24,12 @@ else:
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
-    config_list = autogen.config_list_from_models(
-        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "tags": ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
+        },
+        file_location=KEY_LOC,
     )
     functions = [
         {
@@ -209,7 +213,7 @@ def test_update_function():
     config_list_gpt4 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-4", "gpt-4-32k", "gpt-4o"],
         },
         file_location=KEY_LOC,
     )
