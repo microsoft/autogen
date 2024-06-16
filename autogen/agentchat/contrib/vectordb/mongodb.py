@@ -53,13 +53,14 @@ class MongoDBAtlasVectorDB(VectorDB):
             raise ValueError("Invalid similarity. Allowed values: 'euclidean', 'cosine', 'dotProduct'.")
         
         # If overwrite is True and the collection already exists, drop the existing collection
-        if overwrite and collection_name in self.db.list_collection_names():
+        collection_names = self.db.list_collection_names()
+        if overwrite and collection_name in collection_names:
             self.db.drop_collection(collection_name)
         # If get_or_create is True and the collection already exists, return the existing collection
-        if get_or_create and collection_name in self.db.list_collection_names():
+        if get_or_create and collection_name in collection_names:
             return self.db[collection_name]
         # If get_or_create is False and the collection already exists, raise a ValueError
-        if not get_or_create and collection_name in self.db.list_collection_names():
+        if not get_or_create and collection_name in collection_names:
             raise ValueError(f"Collection {collection_name} already exists.")
         
         # Create a new collection
