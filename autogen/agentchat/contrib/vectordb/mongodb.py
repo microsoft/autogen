@@ -66,29 +66,27 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Create a new collection
         collection = self.db.create_collection(collection_name)
         # Create a vector search index in the collection
-        # Check for existing index with the same name
-        existing_indexes = collection.index_information()
-        if index_name in existing_indexes:
-            # Log a warning or handle the situation based on your needs
-            raise ValueError(f"Index '{index_name}' already exists.")
-        else:
-            # Create the search index if it doesn't exist
-            search_index_model = SearchIndexModel(
-                definition={
-                    "fields": [
-                        {
-                            "type": "vector",
-                            "numDimensions": self.dimensions,
-                            "path": "embedding",
-                            "similarity": similarity
-                        },
-                    ]
-                },
-                name=index_name,
-                type="vectorSearch"
-            )
-            # Create the search index
-            return collection.create_search_index(model=search_index_model)
+        search_index_model = SearchIndexModel(
+            definition={
+                "fields": [
+                    {
+                        "type": "vector",
+                        "numDimensions": self.dimensions,
+                        "path": "embedding",
+                        "similarity": similarity
+                    },
+                ]
+            },
+            name=index_name,
+            type="vectorSearch"
+        )
+        # Create the search index
+        try:
+            collection.create_search_index(model=search_index_model)
+            return collection
+        except Exception as e:
+            print(f"Error creating search index: {e}")
+            raise e
         
     def get_collection(self, collection_name: str = None):
         """
