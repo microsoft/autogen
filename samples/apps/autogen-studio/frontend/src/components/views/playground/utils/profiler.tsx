@@ -37,6 +37,13 @@ const ProfilerView = ({
       console.log(data);
       if (data && data.status) {
         setProfile(data.data);
+        setTimeout(() => {
+          // scroll parent to bottom
+          const parent = document.getElementById("chatbox");
+          if (parent) {
+            parent.scrollTop = parent.scrollHeight;
+          }
+        }, 4000);
       } else {
         message.error(data.message);
       }
@@ -59,13 +66,15 @@ const ProfilerView = ({
   const UsageViewer = ({ usage }: { usage: any }) => {
     const usageRows = usage.map((usage: any, index: number) => (
       <div key={index} className="  borpder  rounded">
-        {usage.total_cost != 0 && usage.total_tokens != 0 && (
+        {(usage.total_cost != 0 || usage.total_tokens != 0) && (
           <>
-            <div className="bg-secondary p-2">{usage.agent}</div>
-            <div className=" inline-flex gap-2 w-full">
+            <div className="bg-secondary p-2 text-xs rounded-t">
+              {usage.agent}
+            </div>
+            <div className="bg-tertiary p-3 rounded-b inline-flex gap-2 w-full">
               {usage.total_tokens != 0 && (
                 <div className="flex flex-col text-center w-full">
-                  <div className="w-full  px-2 text-2xl">
+                  <div className="w-full  px-2 text-2xl ">
                     {usage.total_tokens}
                   </div>
                   <div className="w-full text-xs">tokens</div>
@@ -73,10 +82,10 @@ const ProfilerView = ({
               )}
               {usage.total_cost != 0 && (
                 <div className="flex flex-col text-center w-full">
-                  <div className="w-full px-2  text-2xl">
+                  <div className="w-full px-2  text-2xl ">
                     {usage.total_cost.toFixed(3)}
                   </div>
-                  <div className="w-full text-xs">cost</div>
+                  <div className="w-full text-xs">USD</div>
                 </div>
               )}
             </div>
@@ -95,8 +104,8 @@ const ProfilerView = ({
         {/* {profile && <RadarMetrics profileData={profile} />} */}
         {profile && <BarChartViewer data={profile} />}
 
-        <div>
-          <div className="mt-4 mb-2 font-semibold txt">LLM Costs</div>
+        <div className="mt-4">
+          <div className="mt-4 hidden mb-2 font-semibold txt">LLM Costs</div>
           {profile && profile.usage && <UsageViewer usage={profile.usage} />}
         </div>
       </div>

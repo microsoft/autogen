@@ -1,3 +1,3 @@
-VERSION = "0.0.56rc12"
+VERSION = "0.1.0"
 __version__ = VERSION
 APP_NAME = "autogenstudio"

@@ -751,7 +751,7 @@ export const PdfViewer = ({ url }: { url: string }) => {
           data={url}
           type="application/pdf"
           width="100%"
-          height="450px"
+          style={{ height: "calc(90vh - 200px)" }}
         >
           <p>PDF cannot be displayed.</p>
         </object>
