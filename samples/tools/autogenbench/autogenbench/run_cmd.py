@@ -26,7 +26,7 @@ SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
-TASK_TIMEOUT = 60 * 30  # 30 minutes
+TASK_TIMEOUT = 60 * 120  # 120 minutes
 
 BASE_TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "template")
 RESOURCES_PATH = os.path.join(SCRIPT_DIR, "res")

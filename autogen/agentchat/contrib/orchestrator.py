@@ -91,10 +91,15 @@ class Orchestrator(ConversableAgent):
             history.insert(0, message)
 
         # Increase the temperature by a fixed amount (up to a max)
-        if "temperature" in kwargs:
-            kwargs["temperature"] = min(2.0, kwargs["temperature"] + self._temperature_bonus)
+        _kwargs = {}
+        _kwargs.update(kwargs)
 
-        return self.client.create(messages=history, **kwargs)
+        if "temperature" in _kwargs:
+            _kwargs["temperature"] = min(1.0, _kwargs["temperature"] + self._temperature_bonus)
+        else:
+            _kwargs["temperature"] = min(1.0, 0.1 + self._temperature_bonus)
+
+        return self.client.create(messages=history, **_kwargs)
 
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
         """Create a JSON response, retrying up to `max_tries` times."""
@@ -363,7 +368,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         stalled_count += 1
 
                 if stalled_count >= 4:
-                    self._temperature_bonus += 0.5  # Be more creative.
+                    self._temperature_bonus += 0.3  # Be more creative.
 
                     self._print_thought("We aren't making progress. Let's reset.")
                     new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).
