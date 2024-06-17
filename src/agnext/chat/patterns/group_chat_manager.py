@@ -2,7 +2,7 @@ from typing import Any, Callable, List, Mapping
 
 from ...components import TypeRoutedAgent, message_handler
 from ...components.models import ChatCompletionClient
-from ...core import Agent, AgentRuntime, CancellationToken
+from ...core import AgentId, AgentProxy, AgentRuntime, CancellationToken
 from ..memory import ChatMemory
 from ..types import (
     PublishNow,
@@ -40,29 +40,31 @@ class GroupChatManager(TypeRoutedAgent):
         name: str,
         description: str,
         runtime: AgentRuntime,
-        participants: List[Agent],
+        participants: List[AgentId],
         memory: ChatMemory,
         model_client: ChatCompletionClient | None = None,
         termination_word: str = "TERMINATE",
-        transitions: Mapping[Agent, List[Agent]] = {},
+        transitions: Mapping[AgentId, List[AgentId]] = {},
         on_message_received: Callable[[TextMessage], None] | None = None,
     ):
         super().__init__(name, description, runtime)
         self._memory = memory
         self._client = model_client
-        self._participants = participants
+        self._participants = [AgentProxy(x, runtime) for x in participants]
         self._termination_word = termination_word
         for key, value in transitions.items():
+            proxy = AgentProxy(key, runtime)
             if not value:
                 # Make sure no empty transitions are provided.
-                raise ValueError(f"Empty transition list provided for {key.metadata['name']}.")
-            if key not in participants:
+                raise ValueError(f"Empty transition list provided for {proxy.metadata['name']}.")
+            if proxy.id not in participants:
                 # Make sure all keys are in the list of participants.
-                raise ValueError(f"Transition key {key.metadata['name']} not found in participants.")
+                raise ValueError(f"Transition key {proxy.metadata['name']} not found in participants.")
             for v in value:
-                if v not in participants:
+                proxy = AgentProxy(v, runtime)
+                if proxy.id not in participants:
                     # Make sure all values are in the list of participants.
-                    raise ValueError(f"Transition value {v.metadata['name']} not found in participants.")
+                    raise ValueError(f"Transition value {proxy.metadata['name']} not found in participants.")
         self._tranistiions = transitions
         self._on_message_received = on_message_received
 
@@ -107,15 +109,15 @@ class GroupChatManager(TypeRoutedAgent):
             candidates = self._participants
             if last_speaker_index is not None:
                 last_speaker = self._participants[last_speaker_index]
-                if self._tranistiions.get(last_speaker) is not None:
-                    candidates = self._tranistiions[last_speaker]
+                if self._tranistiions.get(last_speaker.id) is not None:
+                    candidates = [AgentProxy(x, self._runtime) for x in self._tranistiions[last_speaker.id]]
             if len(candidates) == 1:
                 speaker = candidates[0]
             else:
                 speaker = await select_speaker(self._memory, self._client, candidates)
 
         # Send the message to the selected speaker to ask it to publish a response.
-        await self._send_message(PublishNow(), speaker)
+        await self._send_message(PublishNow(), speaker.id)
 
     def save_state(self) -> Mapping[str, Any]:
         return {

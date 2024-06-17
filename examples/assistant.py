@@ -200,7 +200,7 @@ def assistant_chat(runtime: AgentRuntime) -> UserProxyAgent:  # type: ignore
         description="A group chat manager.",
         runtime=runtime,
         memory=BufferedChatMemory(buffer_size=10),
-        participants=[assistant, user],
+        participants=[assistant.id, user.id],
     )
     return user
 

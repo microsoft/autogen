@@ -1,5 +1,6 @@
 from typing import Any, Mapping, Protocol, runtime_checkable
 
+from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._cancellation_token import CancellationToken
 
@@ -9,6 +10,11 @@ class Agent(Protocol):
     @property
     def metadata(self) -> AgentMetadata:
         """Metadata of the agent."""
+        ...
+
+    @property
+    def id(self) -> AgentId:
+        """ID of the agent."""
         ...
 
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:

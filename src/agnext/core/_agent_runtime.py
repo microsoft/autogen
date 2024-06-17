@@ -2,6 +2,7 @@ from asyncio import Future
 from typing import Any, Mapping, Protocol
 
 from ._agent import Agent
+from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._cancellation_token import CancellationToken
 
@@ -24,9 +25,9 @@ class AgentRuntime(Protocol):
     def send_message(
         self,
         message: Any,
-        recipient: Agent,
+        recipient: Agent | AgentId,
         *,
-        sender: Agent | None = None,
+        sender: Agent | AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]: ...
 
@@ -35,7 +36,7 @@ class AgentRuntime(Protocol):
         self,
         message: Any,
         *,
-        sender: Agent | None = None,
+        sender: Agent | AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[None]: ...
 
@@ -43,8 +44,8 @@ class AgentRuntime(Protocol):
 
     def load_state(self, state: Mapping[str, Any]) -> None: ...
 
-    def agent_metadata(self, agent: Agent) -> AgentMetadata: ...
+    def agent_metadata(self, agent: Agent | AgentId) -> AgentMetadata: ...
 
-    def agent_save_state(self, agent: Agent) -> Mapping[str, Any]: ...
+    def agent_save_state(self, agent: Agent | AgentId) -> Mapping[str, Any]: ...
 
-    def agent_load_state(self, agent: Agent, state: Mapping[str, Any]) -> None: ...
+    def agent_load_state(self, agent: Agent | AgentId, state: Mapping[str, Any]) -> None: ...

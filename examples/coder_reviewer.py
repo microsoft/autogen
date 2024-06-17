@@ -41,7 +41,7 @@ def coder_reviewer(runtime: AgentRuntime) -> None:
         name="Manager",
         description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
         runtime=runtime,
-        participants=[coder, reviewer],  # The order of the participants indicates the order of speaking.
+        participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
         memory=BufferedChatMemory(buffer_size=10),
         termination_word="APPROVE",
         on_message_received=lambda message: print(f"{'-'*80}\n{message.source}: {message.content}"),

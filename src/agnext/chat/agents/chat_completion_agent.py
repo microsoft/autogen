@@ -186,7 +186,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             # Send a function call message to itself.
             response = await self._send_message(
                 message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
-                recipient=self,
+                recipient=self.id,
                 cancellation_token=cancellation_token,
             )
             # Make an assistant message from the response.
@@ -232,7 +232,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             )
             approval_response = await self._send_message(
                 message=approval_request,
-                recipient=self._tool_approver,
+                recipient=self._tool_approver.id,
                 cancellation_token=cancellation_token,
             )
             if not isinstance(approval_response, ToolApprovalResponse):

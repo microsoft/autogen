@@ -1,25 +1,20 @@
 import warnings
 from abc import ABC, abstractmethod
 from asyncio import Future
-from typing import Any, Mapping, Sequence, TypeVar
+from typing import Any, Mapping, Sequence
 
 from ._agent import Agent
+from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._cancellation_token import CancellationToken
-
-ConsumesT = TypeVar("ConsumesT")
-ProducesT = TypeVar("ProducesT", covariant=True)
-
-OtherConsumesT = TypeVar("OtherConsumesT")
-OtherProducesT = TypeVar("OtherProducesT")
 
 
 class BaseAgent(ABC, Agent):
     def __init__(self, name: str, description: str, subscriptions: Sequence[type], router: AgentRuntime) -> None:
         self._name = name
         self._description = description
-        self._router = router
+        self._runtime = router
         self._subscriptions = subscriptions
         router.add_agent(self)
 
@@ -31,6 +26,10 @@ class BaseAgent(ABC, Agent):
             subscriptions=self._subscriptions,
         )
 
+    @property
+    def id(self) -> AgentId:
+        return AgentId(self._name, namespace="")
+
     @abstractmethod
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...
 
@@ -38,14 +37,14 @@ class BaseAgent(ABC, Agent):
     def _send_message(
         self,
         message: Any,
-        recipient: Agent,
+        recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
-        future = self._router.send_message(
+        future = self._runtime.send_message(
             message,
             sender=self,
             recipient=recipient,
@@ -62,7 +61,7 @@ class BaseAgent(ABC, Agent):
     ) -> Future[None]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-        future = self._router.publish_message(message, sender=self, cancellation_token=cancellation_token)
+        future = self._runtime.publish_message(message, sender=self, cancellation_token=cancellation_token)
         return future
 
     def save_state(self) -> Mapping[str, Any]:

@@ -1,7 +1,7 @@
 from typing import Any, List, Protocol, Sequence
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import Agent, AgentRuntime, CancellationToken
+from ...core import AgentId, AgentRuntime, CancellationToken
 from ..types import Reset, RespondNow, TextMessage
 
 
@@ -19,7 +19,7 @@ class GroupChat(TypeRoutedAgent):
         name: str,
         description: str,
         runtime: AgentRuntime,
-        participants: Sequence[Agent],
+        participants: Sequence[AgentId],
         num_rounds: int,
         output: GroupChatOutput,
     ) -> None:

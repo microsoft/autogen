@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Awaitable, Dict, List, Mapping, Set
 
-from ..core import Agent, AgentMetadata, AgentRuntime, CancellationToken
+from ..core import Agent, AgentId, AgentMetadata, AgentRuntime, CancellationToken
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
 
@@ -77,17 +77,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def send_message(
         self,
         message: Any,
-        recipient: Agent,
+        recipient: Agent | AgentId,
         *,
-        sender: Agent | None = None,
+        sender: Agent | AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any | None]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-
-        logger.info(
-            f"Sending message of type {type(message).__name__} to {recipient.metadata['name']}: {message.__dict__}"
-        )
 
         # event_logger.info(
         #     MessageEvent(
@@ -98,6 +94,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         #         delivery_stage=DeliveryStage.SEND,
         #     )
         # )
+
+        recipient = self._get_agent(recipient)
+        if sender is not None:
+            sender = self._get_agent(sender)
+
+        logger.info(
+            f"Sending message of type {type(message).__name__} to {recipient.metadata['name']}: {message.__dict__}"
+        )
 
         future = asyncio.get_event_loop().create_future()
         if recipient not in self._agents:
@@ -119,11 +123,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self,
         message: Any,
         *,
-        sender: Agent | None = None,
+        sender: Agent | AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[None]:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
+
+        if sender is not None:
+            sender = self._get_agent(sender)
 
         logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {message.__dict__}")
 
@@ -300,11 +307,21 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         # Yield control to the message loop to allow other tasks to run
         await asyncio.sleep(0)
 
-    def agent_metadata(self, agent: Agent) -> AgentMetadata:
-        return agent.metadata
+    def agent_metadata(self, agent: Agent | AgentId) -> AgentMetadata:
+        return self._get_agent(agent).metadata
 
-    def agent_save_state(self, agent: Agent) -> Mapping[str, Any]:
-        return agent.save_state()
+    def agent_save_state(self, agent: Agent | AgentId) -> Mapping[str, Any]:
+        return self._get_agent(agent).save_state()
 
-    def agent_load_state(self, agent: Agent, state: Mapping[str, Any]) -> None:
-        agent.load_state(state)
+    def agent_load_state(self, agent: Agent | AgentId, state: Mapping[str, Any]) -> None:
+        self._get_agent(agent).load_state(state)
+
+    def _get_agent(self, agent_or_id: Agent | AgentId) -> Agent:
+        if isinstance(agent_or_id, Agent):
+            return agent_or_id
+
+        for agent in self._agents:
+            if agent.metadata["name"] == agent_or_id.name:
+                return agent
+
+        raise ValueError(f"Agent with name {agent_or_id} not found")

@@ -1,4 +1,4 @@
-from ...core import Agent, AgentRuntime
+from ...core import AgentId, AgentRuntime
 from .group_chat import GroupChat, GroupChatOutput
 
 
@@ -10,8 +10,8 @@ class TwoAgentChat(GroupChat):
         name: str,
         description: str,
         runtime: AgentRuntime,
-        first_speaker: Agent,
-        second_speaker: Agent,
+        first_speaker: AgentId,
+        second_speaker: AgentId,
         num_rounds: int,
         output: GroupChatOutput,
     ) -> None:

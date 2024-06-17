@@ -9,7 +9,7 @@ from ._cancellation_token import CancellationToken
 
 
 class AgentProxy:
-    def __init__(self, agent: Agent, runtime: AgentRuntime):
+    def __init__(self, agent: Agent | AgentId, runtime: AgentRuntime):
         self._agent = agent
         self._runtime = runtime
 

@@ -230,7 +230,7 @@ def software_consultancy(runtime: AgentRuntime, user_agent: Agent) -> None:  # t
         runtime=runtime,
         memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
         # model_client=OpenAI(model="gpt-4-turbo"),
-        participants=[developer, product_manager, ux_designer, illustrator, user_agent],
+        participants=[developer.id, product_manager.id, ux_designer.id, illustrator.id, user_agent.id],
     )
 
 

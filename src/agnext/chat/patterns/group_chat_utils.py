@@ -4,12 +4,12 @@ import re
 from typing import Dict, List
 
 from ...components.models import ChatCompletionClient, SystemMessage
-from ...core import Agent
+from ...core import AgentProxy
 from ..memory import ChatMemory
 from ..types import TextMessage
 
 
-async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[Agent]) -> Agent:
+async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[AgentProxy]) -> AgentProxy:
     """Selects the next speaker in a group chat using a ChatCompletion client."""
     # TODO: Handle multi-modal messages.
 
@@ -47,7 +47,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     return agent
 
 
-def mentioned_agents(message_content: str, agents: List[Agent]) -> Dict[str, int]:
+def mentioned_agents(message_content: str, agents: List[AgentProxy]) -> Dict[str, int]:
     """Counts the number of times each agent is mentioned in the provided message content.
     Agent names will match under any of the following conditions (all case-sensitive):
     - Exact name match

@@ -140,9 +140,9 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         "OrchestratorChat",
         "A software development team.",
         runtime,
-        orchestrator=orchestrator,
-        planner=planner,
-        specialists=[developer, product_manager, tester],
+        orchestrator=orchestrator.id,
+        planner=planner.id,
+        specialists=[developer.id, product_manager.id, tester.id],
     )
 
 

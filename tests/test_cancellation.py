@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import Agent, AgentRuntime, CancellationToken
+from agnext.core import AgentId, AgentRuntime, CancellationToken
 
 
 @dataclass
@@ -34,7 +34,7 @@ class LongRunningAgent(TypeRoutedAgent): # type: ignore
             raise
 
 class NestingLongRunningAgent(TypeRoutedAgent): # type: ignore
-    def __init__(self, name: str, router: AgentRuntime, nested_agent: Agent) -> None: # type: ignore
+    def __init__(self, name: str, router: AgentRuntime, nested_agent: AgentId) -> None: # type: ignore
         super().__init__(name, "A nesting long running agent", router)
         self.called = False
         self.cancelled = False
@@ -79,7 +79,7 @@ async def test_nested_cancellation_only_outer_called() -> None:
     router = SingleThreadedAgentRuntime()
 
     long_running = LongRunningAgent("name", router)
-    nested = NestingLongRunningAgent("nested", router, long_running)
+    nested = NestingLongRunningAgent("nested", router, long_running.id)
 
     token = CancellationToken()
     response = router.send_message(MessageType(), nested, cancellation_token=token)
@@ -102,7 +102,7 @@ async def test_nested_cancellation_inner_called() -> None:
     router = SingleThreadedAgentRuntime()
 
     long_running = LongRunningAgent("name", router)
-    nested = NestingLongRunningAgent("nested", router, long_running)
+    nested = NestingLongRunningAgent("nested", router, long_running.id)
 
     token = CancellationToken()
     response = router.send_message(MessageType(), nested, cancellation_token=token)
