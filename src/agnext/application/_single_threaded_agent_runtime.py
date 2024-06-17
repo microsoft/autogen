@@ -302,3 +302,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     def agent_metadata(self, agent: Agent) -> AgentMetadata:
         return agent.metadata
+
+    def agent_save_state(self, agent: Agent) -> Mapping[str, Any]:
+        return agent.save_state()
+
+    def agent_load_state(self, agent: Agent, state: Mapping[str, Any]) -> None:
+        agent.load_state(state)
