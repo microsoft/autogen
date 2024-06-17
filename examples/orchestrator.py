@@ -60,20 +60,20 @@ class LoggingHandler(DefaultInterventionHandler):  # type: ignore
     @override
     async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]:  # type: ignore
         if sender is None:
-            print(f"{self.send_color}Sending message to {recipient.name}:{self.reset_color} {message}")
+            print(f"{self.send_color}Sending message to {recipient.metadata['name']}:{self.reset_color} {message}")
         else:
             print(
-                f"{self.send_color}Sending message from {sender.name} to {recipient.name}:{self.reset_color} {message}"
+                f"{self.send_color}Sending message from {sender.metadata['name']} to {recipient.metadata['name']}:{self.reset_color} {message}"
             )
         return message
 
     @override
     async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:  # type: ignore
         if recipient is None:
-            print(f"{self.response_color}Received response from {sender.name}:{self.reset_color} {message}")
+            print(f"{self.response_color}Received response from {sender.metadata['name']}:{self.reset_color} {message}")
         else:
             print(
-                f"{self.response_color}Received response from {sender.name} to {recipient.name}:{self.reset_color} {message}"
+                f"{self.response_color}Received response from {sender.metadata['name']} to {recipient.metadata['name']}:{self.reset_color} {message}"
             )
         return message
 

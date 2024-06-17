@@ -30,11 +30,6 @@ class GroupChat(TypeRoutedAgent):
         self._output = output
         super().__init__(name, description, runtime)
 
-    @property
-    def subscriptions(self) -> Sequence[type]:
-        agent_sublists = [agent.subscriptions for agent in self._participants]
-        return [Reset, RespondNow] + [item for sublist in agent_sublists for item in sublist]
-
     @message_handler()
     async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
         self._history.clear()

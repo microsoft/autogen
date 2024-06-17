@@ -55,14 +55,14 @@ class GroupChatManager(TypeRoutedAgent):
         for key, value in transitions.items():
             if not value:
                 # Make sure no empty transitions are provided.
-                raise ValueError(f"Empty transition list provided for {key.name}.")
+                raise ValueError(f"Empty transition list provided for {key.metadata['name']}.")
             if key not in participants:
                 # Make sure all keys are in the list of participants.
-                raise ValueError(f"Transition key {key.name} not found in participants.")
+                raise ValueError(f"Transition key {key.metadata['name']} not found in participants.")
             for v in value:
                 if v not in participants:
                     # Make sure all values are in the list of participants.
-                    raise ValueError(f"Transition value {v.name} not found in participants.")
+                    raise ValueError(f"Transition value {v.metadata['name']} not found in participants.")
         self._tranistiions = transitions
         self._on_message_received = on_message_received
 
@@ -89,7 +89,9 @@ class GroupChatManager(TypeRoutedAgent):
 
         # Get the last speaker.
         last_speaker_name = message.source
-        last_speaker_index = next((i for i, p in enumerate(self._participants) if p.name == last_speaker_name), None)
+        last_speaker_index = next(
+            (i for i, p in enumerate(self._participants) if p.metadata["name"] == last_speaker_name), None
+        )
 
         # Select speaker.
         if self._client is None:

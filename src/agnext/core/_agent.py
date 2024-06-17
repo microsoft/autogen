@@ -1,29 +1,14 @@
-from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
+from typing import Any, Mapping, Protocol, runtime_checkable
 
+from ._agent_metadata import AgentMetadata
 from ._cancellation_token import CancellationToken
 
 
 @runtime_checkable
 class Agent(Protocol):
     @property
-    def name(self) -> str:
-        """Name of the agent.
-
-        Note:
-            This name should be unique within the runtime.
-        """
-        ...
-
-    @property
-    def description(self) -> str:
-        """Description of the agent.
-
-        A human-readable description of the agent."""
-        ...
-
-    @property
-    def subscriptions(self) -> Sequence[type]:
-        """Types of messages that this agent can receive."""
+    def metadata(self) -> AgentMetadata:
+        """Metadata of the agent."""
         ...
 
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:

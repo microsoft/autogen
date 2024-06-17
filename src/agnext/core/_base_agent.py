@@ -4,6 +4,7 @@ from asyncio import Future
 from typing import Any, Mapping, Sequence, TypeVar
 
 from ._agent import Agent
+from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._cancellation_token import CancellationToken
 
@@ -15,24 +16,20 @@ OtherProducesT = TypeVar("OtherProducesT")
 
 
 class BaseAgent(ABC, Agent):
-    def __init__(self, name: str, description: str, router: AgentRuntime) -> None:
+    def __init__(self, name: str, description: str, subscriptions: Sequence[type], router: AgentRuntime) -> None:
         self._name = name
         self._description = description
         self._router = router
+        self._subscriptions = subscriptions
         router.add_agent(self)
 
     @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def description(self) -> str:
-        return self._description
-
-    @property
-    @abstractmethod
-    def subscriptions(self) -> Sequence[type]:
-        return []
+    def metadata(self) -> AgentMetadata:
+        return AgentMetadata(
+            name=self._name,
+            description=self._description,
+            subscriptions=self._subscriptions,
+        )
 
     @abstractmethod
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...

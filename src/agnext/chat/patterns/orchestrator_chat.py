@@ -31,7 +31,11 @@ class OrchestratorChat(TypeRoutedAgent):
 
     @property
     def children(self) -> Sequence[str]:
-        return [agent.name for agent in self._specialists] + [self._orchestrator.name] + [self._planner.name]
+        return (
+            [agent.metadata["name"] for agent in self._specialists]
+            + [self._orchestrator.metadata["name"]]
+            + [self._planner.metadata["name"]]
+        )
 
     @message_handler()
     async def on_text_message(
@@ -73,7 +77,7 @@ Some additional points to consider:
 
             # Send the task specs to the orchestrator and specialists.
             for agent in [*self._specialists, self._orchestrator]:
-                await self._send_message(TextMessage(content=task_specs, source=self.name), agent)
+                await self._send_message(TextMessage(content=task_specs, source=self.metadata["name"]), agent)
 
             # Inner loop.
             stalled_turns = 0
@@ -85,7 +89,7 @@ Some additional points to consider:
                 if data["is_request_satisfied"]["answer"]:
                     return TextMessage(
                         content=f"The task has been successfully addressed. {data['is_request_satisfied']['reason']}",
-                        source=self.name,
+                        source=self.metadata["name"],
                     )
 
                 # Update stalled turns.
@@ -111,7 +115,7 @@ Some additional points to consider:
                         if educated_guess["has_educated_guesses"]["answer"]:
                             return TextMessage(
                                 content=f"The task is addressed with an educated guess. {educated_guess['has_educated_guesses']['reason']}",
-                                source=self.name,
+                                source=self.metadata["name"],
                             )
 
                     # Come up with a new plan.
@@ -128,13 +132,15 @@ Some additional points to consider:
                 # Update agents.
                 for agent in [*self._specialists, self._orchestrator]:
                     _ = await self._send_message(
-                        TextMessage(content=subtask, source=self.name),
+                        TextMessage(content=subtask, source=self.metadata["name"]),
                         agent,
                     )
 
                 # Find the speaker.
                 try:
-                    speaker = next(agent for agent in self._specialists if agent.name == data["next_speaker"]["answer"])
+                    speaker = next(
+                        agent for agent in self._specialists if agent.metadata["name"] == data["next_speaker"]["answer"]
+                    )
                 except StopIteration as e:
                     raise ValueError(f"Invalid next speaker: {data['next_speaker']['answer']}") from e
 
@@ -157,7 +163,7 @@ Some additional points to consider:
 
         return TextMessage(
             content="The task was not addressed. The maximum number of turns was reached.",
-            source=self.name,
+            source=self.metadata["name"],
         )
 
     async def _prepare_task(self, task: str, sender: str) -> Tuple[str, str, str, str]:
@@ -165,8 +171,8 @@ Some additional points to consider:
         await self._send_message(Reset(), self._planner)
 
         # A reusable description of the team.
-        team = "\n".join([agent.name + ": " + agent.description for agent in self._specialists])
-        names = ", ".join([agent.name for agent in self._specialists])
+        team = "\n".join([agent.metadata["name"] + ": " + agent.metadata["description"] for agent in self._specialists])
+        names = ", ".join([agent.metadata["name"] for agent in self._specialists])
 
         # A place to store relevant facts.
         facts = ""

@@ -21,10 +21,10 @@ async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agent
     history = "\n".join(history_messages)
 
     # Construct agent roles.
-    roles = "\n".join([f"{agent.name}: {agent.description}".strip() for agent in agents])
+    roles = "\n".join([f"{agent.metadata['name']}: {agent.metadata['description']}".strip() for agent in agents])
 
     # Construct agent list.
-    participants = str([agent.name for agent in agents])
+    participants = str([agent.metadata["name"] for agent in agents])
 
     # Select the next speaker.
     select_speaker_prompt = f"""You are in a role play game. The following roles are available:
@@ -42,7 +42,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     if len(mentions) != 1:
         raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
     agent_name = list(mentions.keys())[0]
-    agent = next((agent for agent in agents if agent.name == agent_name), None)
+    agent = next((agent for agent in agents if agent.metadata["name"] == agent_name), None)
     assert agent is not None
     return agent
 
@@ -65,16 +65,17 @@ def mentioned_agents(message_content: str, agents: List[Agent]) -> Dict[str, int
     for agent in agents:
         # Finds agent mentions, taking word boundaries into account,
         # accommodates escaping underscores and underscores as spaces
+        name = agent.metadata["name"]
         regex = (
             r"(?<=\W)("
-            + re.escape(agent.name)
+            + re.escape(name)
             + r"|"
-            + re.escape(agent.name.replace("_", " "))
+            + re.escape(name.replace("_", " "))
             + r"|"
-            + re.escape(agent.name.replace("_", r"\_"))
+            + re.escape(name.replace("_", r"\_"))
             + r")(?=\W)"
         )
         count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
         if count > 0:
-            mentions[agent.name] = count
+            mentions[name] = count
     return mentions

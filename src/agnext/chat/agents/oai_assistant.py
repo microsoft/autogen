@@ -123,16 +123,14 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
             raise ValueError(f"Expected text content in the last message: {last_message_content}")
 
         # TODO: handle multiple text content.
-        return TextMessage(content=text_content[0].text.value, source=self.name)
+        return TextMessage(content=text_content[0].text.value, source=self.metadata["name"])
 
     def save_state(self) -> Mapping[str, Any]:
         return {
-            "description": self.description,
             "assistant_id": self._assistant_id,
             "thread_id": self._thread_id,
         }
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._description = state["description"]
         self._assistant_id = state["assistant_id"]
         self._thread_id = state["thread_id"]

@@ -170,7 +170,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         # Get a response from the model.
         hisorical_messages = await self._memory.get_messages()
         response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.name),
+            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["name"]),
             tools=self._tools,
             json_output=response_format == ResponseFormat.json_object,
         )
@@ -185,14 +185,14 @@ class ChatCompletionAgent(TypeRoutedAgent):
         ):
             # Send a function call message to itself.
             response = await self._send_message(
-                message=FunctionCallMessage(content=response.content, source=self.name),
+                message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
                 recipient=self,
                 cancellation_token=cancellation_token,
             )
             # Make an assistant message from the response.
             hisorical_messages = await self._memory.get_messages()
             response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.name),
+                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["name"]),
                 tools=self._tools,
                 json_output=response_format == ResponseFormat.json_object,
             )
@@ -200,10 +200,10 @@ class ChatCompletionAgent(TypeRoutedAgent):
         final_response: Message
         if isinstance(response.content, str):
             # If the response is a string, return a text message.
-            final_response = TextMessage(content=response.content, source=self.name)
+            final_response = TextMessage(content=response.content, source=self.metadata["name"])
         elif isinstance(response.content, list) and all(isinstance(x, FunctionCall) for x in response.content):
             # If the response is a list of function calls, return a function call message.
-            final_response = FunctionCallMessage(content=response.content, source=self.name)
+            final_response = FunctionCallMessage(content=response.content, source=self.metadata["name"])
         else:
             raise ValueError(f"Unexpected response: {response.content}")
 
@@ -249,7 +249,6 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
     def save_state(self) -> Mapping[str, Any]:
         return {
-            "description": self.description,
             "memory": self._memory.save_state(),
             "system_messages": self._system_messages,
         }
@@ -257,4 +256,3 @@ class ChatCompletionAgent(TypeRoutedAgent):
     def load_state(self, state: Mapping[str, Any]) -> None:
         self._memory.load_state(state["memory"])
         self._system_messages = state["system_messages"]
-        self._description = state["description"]

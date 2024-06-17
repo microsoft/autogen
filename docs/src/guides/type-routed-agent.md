@@ -40,7 +40,7 @@ class MyAgent(TypeRoutedAgent):
         await self._publish_message(
             TextMessage(
                 content=f"I received a message from {message.source}. Message received #{self._received_count}",
-                source=self.name,
+                source=self.metadata["name"],
             )
         )
 

@@ -71,13 +71,13 @@ Use the following JSON format to provide your thought on the latest message and 
         # Get a response from the model.
         raw_response = await self._client.create(
             self._system_messages
-            + convert_messages_to_llm_messages(await self._memory.get_messages(), self_name=self.name),
+            + convert_messages_to_llm_messages(await self._memory.get_messages(), self_name=self.metadata["name"]),
             json_output=True,
         )
         assert isinstance(raw_response.content, str)
 
         # Save the response to memory.
-        await self._memory.add_message(ChatRoomMessage(source=self.name, content=raw_response.content))
+        await self._memory.add_message(ChatRoomMessage(source=self.metadata["name"], content=raw_response.content))
 
         # Parse the response.
         data = json.loads(raw_response.content)
@@ -86,8 +86,8 @@ Use the following JSON format to provide your thought on the latest message and 
 
         # Publish the response if needed.
         if respond is True or str(respond).lower().strip() == "true":
-            await self._publish_message(ChatRoomMessage(source=self.name, content=str(response)))
-            print(f"{sep}\n{self._color}{self.name}:{Style.RESET_ALL}\n{response}")
+            await self._publish_message(ChatRoomMessage(source=self.metadata["name"], content=str(response)))
+            print(f"{sep}\n{self._color}{self.metadata['name']}:{Style.RESET_ALL}\n{response}")
 
 
 # Define a chat room with participants -- the runtime is the chat room.

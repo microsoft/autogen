@@ -108,7 +108,7 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
                 return
             else:
                 # Publish user input and exit handler.
-                await self._publish_message(TextMessage(content=user_input, source=self.name))
+                await self._publish_message(TextMessage(content=user_input, source=self.metadata["name"]))
                 return
 
 

@@ -1,8 +1,9 @@
 from asyncio import Future
 from typing import Any, Mapping, Protocol
 
-from agnext.core._agent import Agent
-from agnext.core._cancellation_token import CancellationToken
+from ._agent import Agent
+from ._agent_metadata import AgentMetadata
+from ._cancellation_token import CancellationToken
 
 # Undeliverable - error
 
@@ -41,3 +42,5 @@ class AgentRuntime(Protocol):
     def save_state(self) -> Mapping[str, Any]: ...
 
     def load_state(self, state: Mapping[str, Any]) -> None: ...
+
+    def agent_metadata(self, agent: Agent) -> AgentMetadata: ...

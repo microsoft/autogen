@@ -65,8 +65,8 @@ class MessageEvent:
     ) -> None:
         self.kwargs = kwargs
         self.kwargs["payload"] = payload
-        self.kwargs["sender"] = None if sender is None else sender.name
-        self.kwargs["receiver"] = None if receiver is None else receiver.name
+        self.kwargs["sender"] = None if sender is None else sender.metadata["name"]
+        self.kwargs["receiver"] = None if receiver is None else receiver.metadata["name"]
         self.kwargs["kind"] = kind
         self.kwargs["delivery_stage"] = delivery_stage
         self.kwargs["type"] = "Message"

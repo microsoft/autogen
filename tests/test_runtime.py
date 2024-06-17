@@ -6,8 +6,8 @@ from agnext.core import AgentRuntime, BaseAgent, CancellationToken
 
 
 class NoopAgent(BaseAgent): # type: ignore
-    def __init__(self, name: str, router: AgentRuntime) -> None: # type: ignore
-        super().__init__(name, "A no op agent", router)
+    def __init__(self, name: str, runtime: AgentRuntime) -> None: # type: ignore
+        super().__init__(name, "A no op agent", [], runtime)
 
     @property
     def subscriptions(self) -> Sequence[type]:
@@ -19,13 +19,13 @@ class NoopAgent(BaseAgent): # type: ignore
 
 @pytest.mark.asyncio
 async def test_agent_names_must_be_unique() -> None:
-    router = SingleThreadedAgentRuntime()
+    runtime = SingleThreadedAgentRuntime()
 
-    _agent1 = NoopAgent("name1", router)
+    _agent1 = NoopAgent("name1", runtime)
 
     with pytest.raises(ValueError):
-        _agent1_again = NoopAgent("name1", router)
+        _agent1_again = NoopAgent("name1", runtime)
 
-    _agent3 = NoopAgent("name3", router)
+    _agent3 = NoopAgent("name3", runtime)
 
 

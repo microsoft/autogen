@@ -7,7 +7,7 @@ from agnext.core import AgentRuntime, BaseAgent, CancellationToken
 
 class StatefulAgent(BaseAgent): # type: ignore
     def __init__(self, name: str, runtime: AgentRuntime) -> None: # type: ignore
-        super().__init__(name, "A stateful agent", runtime)
+        super().__init__(name, "A stateful agent", [], runtime)
         self.state = 0
 
     @property
