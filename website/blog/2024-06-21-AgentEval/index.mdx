@@ -35,7 +35,7 @@ Once the criteria is established, the QuantifierAgent takes over to quantify how
 
 The newly added step involves the VerifierAgent, which ensures the robustness and relevance of the criteria suggested by the CriticAgent. It checks whether the criteria can be quantified consistently across different samples and whether they effectively distinguish between varying levels of performance. If necessary, the VerifierAgent updates the criteria to enhance their robustness and discriminative power. 
 
-## A Flexible and Scalable Framework 
+## A Flexible and Scalable Framework
 
 One of AgentEval's key strengths is its flexibility. It can be applied to a wide range of tasks where success may or may not be clearly defined. For tasks with well-defined success criteria, such as household chores, the framework can evaluate whether multiple successful solutions exist and how they compare. For more open-ended tasks, such as generating an email template, AgentEval can assess the utility of the system's suggestions. 
 
@@ -68,9 +68,9 @@ def generate_criteria(
 Parameters: 
 * llm_config (dict or bool): llm inference configuration.
 * task ([Task](https://github.com/microsoft/autogen/tree/main/autogen/agentchat/contrib/agent_eval/task.py)): The task to evaluate.
-* additional_instructions (str, optional): Additional instructions for the criteria agent. Default: "" 
-* max_round (int, optional): The maximum number of rounds to run the conversation. Default: 2 
-* use_subcritic (bool, optional): Whether to use the subcritic agent to generate subcriteria. Default: False 
+* additional_instructions (str, optional): Additional instructions for the criteria agent.
+* max_round (int, optional): The maximum number of rounds to run the conversation.
+* use_subcritic (bool, optional): Whether to use the Subcritic agent to generate subcriteria. The Subcritic agent will break down a generated criteria into smaller criteria to be assessed.
 
 Example code: 
 ``` 
@@ -149,14 +149,18 @@ The output will be a json object consisting of the ground truth and a dictionary
 
 ``` 
 { 
-  "actual_success": true,  
-  "estimated_performance": { 
-      "Accuracy": "Correct", 
-      "Conciseness": "Concise", 
+  "actual_success": true,
+  "estimated_performance": {
+      "Accuracy": "Correct",
+      "Conciseness": "Concise",
       "Relevance": "Highly relevant"
     } 
 } 
-```  
+```
+
+## What is next?
+* Enbabling AgentEval in AutoGen Studio for a nocode solution.
+* Fully implementing VerifierAgent in the AgentEval framework.
 
 ## Conclusion 
 
