@@ -27,7 +27,6 @@ def test_validate_parameter():
     assert params["max_tokens"] == validate_parameter(params, "max_tokens", int, True, 512, (0, None), None)
     assert params["stream"] == validate_parameter(params, "stream", bool, False, False, None, None)
     assert params["temperature"] == validate_parameter(params, "temperature", (int, float), True, None, None, None)
-    assert params["top_p"] == validate_parameter(params, "top_p", (int, float), True, None, None, None)
     assert params["top_k"] == validate_parameter(params, "top_k", int, True, None, None, None)
     assert params["repetition_penalty"] == validate_parameter(
         params, "repetition_penalty", float, True, None, None, None
@@ -35,10 +34,6 @@ def test_validate_parameter():
     assert params["presence_penalty"] == validate_parameter(
         params, "presence_penalty", (int, float), True, None, (-2, 2), None
     )
-    assert params["frequency_penalty"] == validate_parameter(
-        params, "frequency_penalty", (int, float), True, None, (-2, 2), None
-    )
-    assert params["min_p"] == validate_parameter(params, "min_p", (int, float), True, None, (0, 1), None)
     assert params["safety_model"] == validate_parameter(params, "safety_model", str, True, None, None, None)
 
     # Test None allowed

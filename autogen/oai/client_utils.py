@@ -13,7 +13,40 @@ def validate_parameter(
     numerical_bound: Tuple,
     allowed_values: list,
 ) -> Any:
-    """Validates a given config parameter, checking its type, values, and setting defaults"""
+    """
+    Validates a given config parameter, checking its type, values, and setting defaults
+    Parameters:
+        params (Dict[str, Any]): Dictionary containing parameters to validate.
+        param_name (str): The name of the parameter to validate.
+        allowed_types (Tuple): Tuple of acceptable types for the parameter.
+        allow_None (bool): Whether the parameter can be `None`.
+        default_value (Any): The default value to use if the parameter is invalid or missing.
+        numerical_bound (Optional[Tuple[Optional[float], Optional[float]]]):
+            A tuple specifying the lower and upper bounds for numerical parameters.
+            Each bound can be `None` if not applicable.
+        allowed_values (Optional[List[Any]]): A list of acceptable values for the parameter.
+            Can be `None` if no specific values are required.
+
+    Returns:
+        Any: The validated parameter value or the default value if validation fails.
+
+    Raises:
+        TypeError: If `allowed_values` is provided but is not a list.
+
+    Example Usage:
+    ```python
+        # Validating a numerical parameter within specific bounds
+        params = {"temperature": 0.5, "safety_model": "Meta-Llama/Llama-Guard-7b"}
+        temperature = validate_parameter(params, "temperature", (int, float), True, 0.7, (0, 1), None)
+        # Result: 0.5
+
+        # Validating a parameter that can be one of a list of allowed values
+        model = validate_parameter(
+        params, "safety_model", str, True, None, None, ["Meta-Llama/Llama-Guard-7b", "Meta-Llama/Llama-Guard-13b"]
+        )
+        # If "safety_model" is missing or invalid in params, defaults to "default"
+    ```
+    """
 
     if allowed_values is not None and not isinstance(allowed_values, list):
         raise TypeError(f"allowed_values should be a list or None, got {type(allowed_values).__name__}")
@@ -23,8 +56,9 @@ def validate_parameter(
 
     if param_value is None and allow_None:
         pass
-    elif param_value is None and not allow_None:
-        warning = "cannot be None"
+    elif param_value is None:
+        if not allow_None:
+            warning = "cannot be None"
     elif not isinstance(param_value, allowed_types):
         # Check types and list possible types if invalid
         if isinstance(allowed_types, tuple):
@@ -38,7 +72,16 @@ def validate_parameter(
         if (lower_bound is not None and param_value < lower_bound) or (
             upper_bound is not None and param_value > upper_bound
         ):
-            warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
+            warning = "has numerical bounds"
+            if lower_bound is not None:
+                warning += f", >= {str(lower_bound)}"
+            if upper_bound is not None:
+                if lower_bound is not None:
+                    warning += " and"
+                warning += f" <= {str(upper_bound)}"
+            if allow_None:
+                warning += ", or can be None"
+
     elif allowed_values:
         # Check if the value matches any allowed values
         if not (allow_None and param_value is None):
