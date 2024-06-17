@@ -12,12 +12,15 @@ SEARCH_INDEX = 0
 
 
 def get_working_dir():
+    """Get the current working directory"""
     return os.getcwd()
 
 def get_current_file():
+    """Get the current open file"""
     return CURRENT_FILE if CURRENT_FILE else "None"
 
 def state():
+    """Get the current state of the environment"""
     working_dir = get_working_dir()
     current_file = get_current_file()
     return {
