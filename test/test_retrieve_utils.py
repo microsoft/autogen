@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 """
 Unit test for retrieve_utils.py
 """
@@ -5,14 +7,16 @@ import pytest
 
 try:
     import chromadb
+
     from autogen.retrieve_utils import (
-        split_text_to_chunks,
+        create_vector_db_from_dir,
         extract_text_from_pdf,
-        split_files_to_chunks,
         get_files_from_dir,
         is_url,
-        create_vector_db_from_dir,
+        parse_html_to_markdown,
         query_vector_db,
+        split_files_to_chunks,
+        split_text_to_chunks,
     )
     from autogen.token_count_utils import count_token
 except ImportError:
@@ -46,6 +50,18 @@ class TestRetrieveUtils:
         with pytest.raises(AssertionError):
             split_text_to_chunks("A" * 10000, chunk_mode="bogus_chunk_mode")
 
+    def test_split_text_to_chunks_overlapping(self):
+        long_text = "\n".join([chr(i) for i in range(ord("A"), ord("Z"))])
+        chunks = split_text_to_chunks(long_text, max_tokens=10, overlap=3)
+        assert chunks == [
+            "A\nB\nC\nD\nE\nF\nG\nH\nI",
+            "G\nH\nI\nJ\nK\nL\nM\nN\nO",
+            "M\nN\nO\nP\nQ\nR\nS\nT\nU",
+            "S\nT\nU\nV\nW\nX\nY",
+        ]
+        chunks = split_text_to_chunks(long_text, max_tokens=10, overlap=0)
+        assert chunks == ["A\nB\nC\nD\nE\nF\nG\nH\nI", "J\nK\nL\nM\nN\nO\nP\nQ\nR", "S\nT\nU\nV\nW\nX\nY"]
+
     def test_extract_text_from_pdf(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         assert "".join(expected_text.split()) == "".join(extract_text_from_pdf(pdf_file_path).strip().split())
@@ -53,7 +69,7 @@ class TestRetrieveUtils:
     def test_split_files_to_chunks(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
-        chunks = split_files_to_chunks([pdf_file_path, txt_file_path])
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path])
         assert all(
             isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
             for chunk in chunks
@@ -65,7 +81,7 @@ class TestRetrieveUtils:
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         files = get_files_from_dir([pdf_file_path, txt_file_path])
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         files = get_files_from_dir(
             [
                 pdf_file_path,
@@ -75,7 +91,7 @@ class TestRetrieveUtils:
             ],
             recursive=True,
         )
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         files = get_files_from_dir(
             [
                 pdf_file_path,
@@ -86,7 +102,7 @@ class TestRetrieveUtils:
             recursive=True,
             types=["pdf", "txt"],
         )
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         assert len(files) == 3
 
     def test_is_url(self):
@@ -227,10 +243,31 @@ class TestRetrieveUtils:
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         word_file_path = os.path.join(test_dir, "example.docx")
-        chunks = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
         assert all(
             isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
             for chunk in chunks
+        )
+
+    def test_parse_html_to_markdown(self):
+        html = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Simple HTML Example</title>
+            </head>
+            <body>
+                <h1>Hello, World!</h1>
+                <p>This is a very simple HTML example.</p>
+            </body>
+            </html>
+        """
+        markdown = parse_html_to_markdown(html)
+        assert (
+            markdown
+            == "# Simple HTML Example\n\nSimple HTML Example\n\nHello, World!\n=============\n\nThis is a very simple HTML example."
         )
 
 

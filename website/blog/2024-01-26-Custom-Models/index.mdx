@@ -122,7 +122,9 @@ class ModelClient(Protocol):
     class ModelClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
-                content: str | None
+                content: Optional[str]
+
+            message: Message
 
         choices: List[Choice]
         model: str

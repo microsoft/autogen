@@ -1,9 +1,19 @@
-from typing import Dict, Any
+from __future__ import annotations
 
-from autogen.cache.cache_factory import CacheFactory
+import sys
+from types import TracebackType
+from typing import Any, Dict, Optional, Type, TypedDict, Union
+
+from .abstract_cache_base import AbstractCache
+from .cache_factory import CacheFactory
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
-class Cache:
+class Cache(AbstractCache):
     """
     A wrapper class for managing cache configuration and instances.
 
@@ -14,27 +24,22 @@ class Cache:
     Attributes:
         config (Dict[str, Any]): A dictionary containing cache configuration.
         cache: The cache instance created based on the provided configuration.
-
-    Methods:
-        redis(cache_seed=42, redis_url="redis://localhost:6379/0"): Static method to create a Redis cache instance.
-        disk(cache_seed=42, cache_path_root=".cache"): Static method to create a Disk cache instance.
-        __init__(self, config): Initializes the Cache with the given configuration.
-        __enter__(self): Context management entry, returning the cache instance.
-        __exit__(self, exc_type, exc_value, traceback): Context management exit.
-        get(self, key, default=None): Retrieves an item from the cache.
-        set(self, key, value): Sets an item in the cache.
-        close(self): Closes the cache.
     """
 
-    ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root"]
+    ALLOWED_CONFIG_KEYS = [
+        "cache_seed",
+        "redis_url",
+        "cache_path_root",
+        "cosmos_db_config",
+    ]
 
     @staticmethod
-    def redis(cache_seed=42, redis_url="redis://localhost:6379/0"):
+    def redis(cache_seed: Union[str, int] = 42, redis_url: str = "redis://localhost:6379/0") -> "Cache":
         """
         Create a Redis cache instance.
 
         Args:
-            cache_seed (int, optional): A seed for the cache. Defaults to 42.
+            cache_seed (Union[str, int], optional): A seed for the cache. Defaults to 42.
             redis_url (str, optional): The URL for the Redis server. Defaults to "redis://localhost:6379/0".
 
         Returns:
@@ -43,18 +48,44 @@ class Cache:
         return Cache({"cache_seed": cache_seed, "redis_url": redis_url})
 
     @staticmethod
-    def disk(cache_seed=42, cache_path_root=".cache"):
+    def disk(cache_seed: Union[str, int] = 42, cache_path_root: str = ".cache") -> "Cache":
         """
         Create a Disk cache instance.
 
         Args:
-            cache_seed (int, optional): A seed for the cache. Defaults to 42.
+            cache_seed (Union[str, int], optional): A seed for the cache. Defaults to 42.
             cache_path_root (str, optional): The root path for the disk cache. Defaults to ".cache".
 
         Returns:
             Cache: A Cache instance configured for Disk caching.
         """
         return Cache({"cache_seed": cache_seed, "cache_path_root": cache_path_root})
+
+    @staticmethod
+    def cosmos_db(
+        connection_string: Optional[str] = None,
+        container_id: Optional[str] = None,
+        cache_seed: Union[str, int] = 42,
+        client: Optional[any] = None,
+    ) -> "Cache":
+        """
+        Create a Cosmos DB cache instance with 'autogen_cache' as database ID.
+
+        Args:
+            connection_string (str, optional): Connection string to the Cosmos DB account.
+            container_id (str, optional): The container ID for the Cosmos DB account.
+            cache_seed (Union[str, int], optional): A seed for the cache.
+            client: Optional[CosmosClient]: Pass an existing Cosmos DB client.
+        Returns:
+            Cache: A Cache instance configured for Cosmos DB.
+        """
+        cosmos_db_config = {
+            "connection_string": connection_string,
+            "database_id": "autogen_cache",
+            "container_id": container_id,
+            "client": client,
+        }
+        return Cache({"cache_seed": str(cache_seed), "cosmos_db_config": cosmos_db_config})
 
     def __init__(self, config: Dict[str, Any]):
         """
@@ -69,18 +100,22 @@ class Cache:
             ValueError: If an invalid configuration key is provided.
         """
         self.config = config
+        # Ensure that the seed is always treated as a string before being passed to any cache factory or stored.
+        self.config["cache_seed"] = str(self.config.get("cache_seed", 42))
+
         # validate config
         for key in self.config.keys():
             if key not in self.ALLOWED_CONFIG_KEYS:
                 raise ValueError(f"Invalid config key: {key}")
         # create cache instance
         self.cache = CacheFactory.cache_factory(
-            self.config.get("cache_seed", "42"),
-            self.config.get("redis_url", None),
-            self.config.get("cache_path_root", None),
+            seed=self.config["cache_seed"],
+            redis_url=self.config.get("redis_url"),
+            cache_path_root=self.config.get("cache_path_root"),
+            cosmosdb_config=self.config.get("cosmos_db_config"),
         )
 
-    def __enter__(self):
+    def __enter__(self) -> "Cache":
         """
         Enter the runtime context related to the cache object.
 
@@ -89,7 +124,12 @@ class Cache:
         """
         return self.cache.__enter__()
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         """
         Exit the runtime context related to the cache object.
 
@@ -103,7 +143,7 @@ class Cache:
         """
         return self.cache.__exit__(exc_type, exc_value, traceback)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the cache.
 
@@ -117,7 +157,7 @@ class Cache:
         """
         return self.cache.get(key, default)
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         """
         Set an item in the cache.
 
@@ -127,7 +167,7 @@ class Cache:
         """
         self.cache.set(key, value)
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the cache.
 

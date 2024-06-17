@@ -1,19 +1,18 @@
+#!/usr/bin/env python3 -m pytest
+
 import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen
 
 try:
-    from autogen.agentchat.contrib.llava_agent import (
-        LLaVAAgent,
-        _llava_call_binary_with_config,
-        llava_call,
-        llava_call_binary,
-    )
+    from autogen.agentchat.contrib.llava_agent import LLaVAAgent, _llava_call_binary_with_config, llava_call
 except ImportError:
     skip = True
+
 else:
     skip = False
 
@@ -26,7 +25,7 @@ class TestLLaVAAgent(unittest.TestCase):
             llm_config={
                 "timeout": 600,
                 "seed": 42,
-                "config_list": [{"model": "llava-fake", "base_url": "localhost:8000", "api_key": "Fake"}],
+                "config_list": [{"model": "llava-fake", "base_url": "localhost:8000", "api_key": MOCK_OPEN_AI_API_KEY}],
             },
         )
 
@@ -103,7 +102,7 @@ class TestLLavaCall(unittest.TestCase):
 
         # Set up the llm_config dictionary
         llm_config = {
-            "config_list": [{"api_key": "value", "base_url": "localhost:8000"}],
+            "config_list": [{"api_key": MOCK_OPEN_AI_API_KEY, "base_url": "localhost:8000"}],
             "max_new_tokens": 2000,
             "temperature": 0.5,
             "seed": 1,

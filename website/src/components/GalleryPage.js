@@ -62,7 +62,6 @@ const GalleryPage = (props) => {
       : props.items;
 
   const defaultImageIfNoImage = props.allowDefaultImage ?? true;
-  console.log(defaultImageIfNoImage)
   const imageFunc = (item) => {
     const image =
       <img
@@ -124,9 +123,9 @@ const GalleryPage = (props) => {
           xs: 1,
           sm: 2,
           md: 2,
-          lg: 2,
-          xl: 3,
-          xxl: 3,
+          lg: 3,
+          xl: 4,
+          xxl: 4,
         }}
         dataSource={filteredData}
         renderItem={(item) => (

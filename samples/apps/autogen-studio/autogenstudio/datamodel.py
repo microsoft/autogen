@@ -1,298 +1,262 @@
-import uuid
 from datetime import datetime
+from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
-from pydantic.dataclasses import dataclass
-from dataclasses import asdict, field
+
+from sqlalchemy import ForeignKey, Integer, orm
+from sqlmodel import (
+    JSON,
+    Column,
+    DateTime,
+    Field,
+    Relationship,
+    SQLModel,
+    func,
+)
+from sqlmodel import (
+    Enum as SqlEnum,
+)
+
+SQLModel.model_config["protected_namespaces"] = ()
+# pylint: disable=protected-access
 
 
-@dataclass
-class Message(object):
-    user_id: str
+class Message(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
+    user_id: Optional[str] = None
     role: str
     content: str
-    root_msg_id: Optional[str] = None
-    msg_id: Optional[str] = None
-    timestamp: Optional[str] = None
-    personalize: Optional[bool] = False
-    ra: Optional[str] = None
-    code: Optional[str] = None
-    metadata: Optional[Any] = None
-    session_id: Optional[str] = None
-
-    def __post_init__(self):
-        if self.msg_id is None:
-            self.msg_id = str(uuid.uuid4())
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-
-    def dict(self):
-        result = asdict(self)
-        return result
+    session_id: Optional[int] = Field(
+        default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
+    )
+    connection_id: Optional[str] = None
+    meta: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
 
 
-@dataclass
-class Skill(object):
-    title: str
-    file_name: str
+class Session(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
+    user_id: Optional[str] = None
+    workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class AgentSkillLink(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
+    skill_id: int = Field(default=None, primary_key=True, foreign_key="skill.id")
+
+
+class AgentModelLink(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
+    model_id: int = Field(default=None, primary_key=True, foreign_key="model.id")
+
+
+class Skill(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
+    user_id: Optional[str] = None
+    name: str
     content: str
-    id: Optional[str] = None
     description: Optional[str] = None
-    timestamp: Optional[str] = None
-    user_id: Optional[str] = None
-
-    def __post_init__(self):
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.user_id is None:
-            self.user_id = "default"
-
-    def dict(self):
-        result = asdict(self)
-        return result
+    secrets: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    libraries: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    agents: List["Agent"] = Relationship(back_populates="skills", link_model=AgentSkillLink)
 
 
-# web api data models
-
-
-# autogenflow data models
-@dataclass
-class Model:
-    """Data model for Model Config item in LLMConfig for AutoGen"""
-
-    model: str
-    api_key: Optional[str] = None
-    base_url: Optional[str] = None
-    api_type: Optional[str] = None
-    api_version: Optional[str] = None
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
-    user_id: Optional[str] = None
-    description: Optional[str] = None
-
-    def dict(self):
-        result = asdict(self)
-        return result
-
-    def __post_init__(self):
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.user_id is None:
-            self.user_id = "default"
-
-
-@dataclass
-class LLMConfig:
+class LLMConfig(SQLModel, table=False):
     """Data model for LLM Config for AutoGen"""
 
-    config_list: List[Any] = field(default_factory=list)
+    config_list: List[Any] = Field(default_factory=list)
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
-
-    def dict(self):
-        result = asdict(self)
-        result["config_list"] = [c.dict() for c in self.config_list]
-        return result
+    max_tokens: Optional[int] = 1000
+    extra_body: Optional[dict] = None
 
 
-@dataclass
-class AgentConfig:
-    """Data model for Agent Config for AutoGen"""
+class ModelTypes(str, Enum):
+    openai = "open_ai"
+    google = "google"
+    azure = "azure"
 
-    name: str
-    llm_config: Optional[Union[LLMConfig, bool]] = False
+
+class Model(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
+    user_id: Optional[str] = None
+    model: str
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    api_type: ModelTypes = Field(default=ModelTypes.openai, sa_column=Column(SqlEnum(ModelTypes)))
+    api_version: Optional[str] = None
+    description: Optional[str] = None
+    agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)
+
+
+class CodeExecutionConfigTypes(str, Enum):
+    local = "local"
+    docker = "docker"
+    none = "none"
+
+
+class AgentConfig(SQLModel, table=False):
+    name: Optional[str] = None
     human_input_mode: str = "NEVER"
     max_consecutive_auto_reply: int = 10
     system_message: Optional[str] = None
     is_termination_msg: Optional[Union[bool, str, Callable]] = None
-    code_execution_config: Optional[Union[bool, str, Dict[str, Any]]] = None
-
-    def dict(self):
-        result = asdict(self)
-        if isinstance(result["llm_config"], LLMConfig):
-            result["llm_config"] = result["llm_config"].dict()
-        return result
-
-
-@dataclass
-class AgentFlowSpec:
-    """Data model to help flow load agents from config"""
-
-    type: Literal["assistant", "userproxy"]
-    config: AgentConfig
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
-    user_id: Optional[str] = None
-    skills: Optional[Union[None, List[Skill]]] = None
+    code_execution_config: CodeExecutionConfigTypes = Field(
+        default=CodeExecutionConfigTypes.local, sa_column=Column(SqlEnum(CodeExecutionConfigTypes))
+    )
+    default_auto_reply: Optional[str] = ""
     description: Optional[str] = None
+    llm_config: Optional[Union[LLMConfig, bool]] = Field(default=False, sa_column=Column(JSON))
 
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        if self.user_id is None:
-            self.user_id = "default"
-
-    def dict(self):
-        result = asdict(self)
-        return result
-
-
-@dataclass
-class GroupChatConfig:
-    """Data model for GroupChat Config for AutoGen"""
-
-    agents: List[AgentFlowSpec] = field(default_factory=list)
-    admin_name: str = "Admin"
-    messages: List[Dict] = field(default_factory=list)
-    max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
+    messages: Optional[List[Dict]] = Field(default_factory=list)
+    max_round: Optional[int] = 100
     speaker_selection_method: Optional[str] = "auto"
-    allow_repeat_speaker: Optional[Union[bool, List[AgentConfig]]] = True
-
-    def dict(self):
-        result = asdict(self)
-        result["agents"] = [a.dict() for a in self.agents]
-        return result
+    allow_repeat_speaker: Optional[Union[bool, List["AgentConfig"]]] = True
 
 
-@dataclass
-class GroupChatFlowSpec:
-    """Data model to help flow load agents from config"""
+class AgentType(str, Enum):
+    assistant = "assistant"
+    userproxy = "userproxy"
+    groupchat = "groupchat"
 
-    type: Literal["groupchat"]
-    config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
+
+class WorkflowAgentType(str, Enum):
+    sender = "sender"
+    receiver = "receiver"
+    planner = "planner"
+
+
+class WorkflowAgentLink(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    workflow_id: int = Field(default=None, primary_key=True, foreign_key="workflow.id")
+    agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
+    agent_type: WorkflowAgentType = Field(
+        default=WorkflowAgentType.sender,
+        sa_column=Column(SqlEnum(WorkflowAgentType), primary_key=True),
+    )
+
+
+class AgentLink(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    parent_id: Optional[int] = Field(default=None, foreign_key="agent.id", primary_key=True)
+    agent_id: Optional[int] = Field(default=None, foreign_key="agent.id", primary_key=True)
+
+
+class Agent(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
     user_id: Optional[str] = None
-    description: Optional[str] = None
+    type: AgentType = Field(default=AgentType.assistant, sa_column=Column(SqlEnum(AgentType)))
+    config: AgentConfig = Field(default_factory=AgentConfig, sa_column=Column(JSON))
+    skills: List[Skill] = Relationship(back_populates="agents", link_model=AgentSkillLink)
+    models: List[Model] = Relationship(back_populates="agents", link_model=AgentModelLink)
+    workflows: List["Workflow"] = Relationship(link_model=WorkflowAgentLink, back_populates="agents")
+    parents: List["Agent"] = Relationship(
+        back_populates="agents",
+        link_model=AgentLink,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Agent.id==AgentLink.agent_id",
+            secondaryjoin="Agent.id==AgentLink.parent_id",
+        ),
+    )
+    agents: List["Agent"] = Relationship(
+        back_populates="parents",
+        link_model=AgentLink,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Agent.id==AgentLink.parent_id",
+            secondaryjoin="Agent.id==AgentLink.agent_id",
+        ),
+    )
 
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        if self.user_id is None:
-            self.user_id = "default"
 
-    def dict(self):
-        result = asdict(self)
-        # result["config"] = self.config.dict()
-        # result["groupchat_config"] = self.groupchat_config.dict()
-        return result
+class WorkFlowType(str, Enum):
+    twoagents = "twoagents"
+    groupchat = "groupchat"
 
 
-@dataclass
-class AgentWorkFlowConfig:
-    """Data model for Flow Config for AutoGen"""
+class WorkFlowSummaryMethod(str, Enum):
+    last = "last"
+    none = "none"
+    llm = "llm"
 
+
+class Workflow(SQLModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )  # pylint: disable=not-callable
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
+    )  # pylint: disable=not-callable
+    user_id: Optional[str] = None
     name: str
     description: str
-    sender: AgentFlowSpec
-    receiver: Union[AgentFlowSpec, GroupChatFlowSpec]
-    type: Literal["twoagents", "groupchat"] = "twoagents"
-    id: Optional[str] = None
-    user_id: Optional[str] = None
-    timestamp: Optional[str] = None
-    # how the agent message summary is generated. last: only last message is used, none: no summary,  llm: use llm to generate summary
-    summary_method: Optional[Literal["last", "none", "llm"]] = "last"
-
-    def init_spec(self, spec: Dict):
-        """initialize the agent spec"""
-        if not isinstance(spec, dict):
-            spec = spec.dict()
-        if spec["type"] == "groupchat":
-            return GroupChatFlowSpec(**spec)
-        else:
-            return AgentFlowSpec(**spec)
-
-    def __post_init__(self):
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        self.sender = self.init_spec(self.sender)
-        self.receiver = self.init_spec(self.receiver)
-        if self.user_id is None:
-            self.user_id = "default"
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-
-    def dict(self):
-        result = asdict(self)
-        result["sender"] = self.sender.dict()
-        result["receiver"] = self.receiver.dict()
-        return result
+    agents: List[Agent] = Relationship(back_populates="workflows", link_model=WorkflowAgentLink)
+    type: WorkFlowType = Field(default=WorkFlowType.twoagents, sa_column=Column(SqlEnum(WorkFlowType)))
+    summary_method: Optional[WorkFlowSummaryMethod] = Field(
+        default=WorkFlowSummaryMethod.last,
+        sa_column=Column(SqlEnum(WorkFlowSummaryMethod)),
+    )
 
 
-@dataclass
-class Session(object):
-    """Data model for AutoGen Chat Session"""
-
-    user_id: str
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
-    flow_config: AgentWorkFlowConfig = None
-
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-
-    def dict(self):
-        result = asdict(self)
-        result["flow_config"] = self.flow_config.dict()
-        return result
+class Response(SQLModel):
+    message: str
+    status: bool
+    data: Optional[Any] = None
 
 
-@dataclass
-class Gallery(object):
-    """Data model for Gallery Item"""
-
-    session: Session
-    messages: List[Message]
-    tags: List[str]
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
-
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-
-    def dict(self):
-        result = asdict(self)
-        return result
-
-
-@dataclass
-class ChatWebRequestModel(object):
-    """Data model for Chat Web Request for Web End"""
-
-    message: Message
-    flow_config: AgentWorkFlowConfig
-
-
-@dataclass
-class DeleteMessageWebRequestModel(object):
-    user_id: str
-    msg_id: str
-    session_id: Optional[str] = None
-
-
-@dataclass
-class DBWebRequestModel(object):
-    user_id: str
-    msg_id: Optional[str] = None
-    session: Optional[Session] = None
-    skill: Optional[Skill] = None
-    tags: Optional[List[str]] = None
-    agent: Optional[AgentFlowSpec] = None
-    workflow: Optional[AgentWorkFlowConfig] = None
-    model: Optional[Model] = None
+class SocketMessage(SQLModel, table=False):
+    connection_id: str
+    data: Dict[str, Any]
+    type: str

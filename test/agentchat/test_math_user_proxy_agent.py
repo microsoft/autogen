@@ -1,13 +1,17 @@
-import pytest
-import sys
+#!/usr/bin/env python3 -m pytest
+
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
-    _remove_print,
     _add_print_to_last_line,
+    _remove_print,
 )
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -34,14 +38,13 @@ def test_math_user_proxy_agent():
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-3.5-turbo"],
         },
     )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "timeout": 600,
             "cache_seed": 42,
             "config_list": config_list,
         },
@@ -51,12 +54,10 @@ def test_math_user_proxy_agent():
     assistant.reset()
 
     math_problem = "$x^3=125$. What is x?"
-    # assistant.receive(
-    #     message=mathproxyagent.generate_init_message(math_problem),
-    #     sender=mathproxyagent,
-    # )
-    mathproxyagent.initiate_chat(assistant, problem=math_problem)
+    res = mathproxyagent.initiate_chat(assistant, message=mathproxyagent.message_generator, problem=math_problem)
     print(conversations)
+    print("Chat summary:", res.summary)
+    print("Chat history:", res.chat_history)
 
 
 def test_add_remove_print():
@@ -117,8 +118,8 @@ def test_execute_one_wolfram_query():
 def test_generate_prompt():
     mathproxyagent = MathUserProxyAgent(name="MathChatAgent", human_input_mode="NEVER")
 
-    assert "customized" in mathproxyagent.generate_init_message(
-        problem="2x=4", prompt_type="python", customized_prompt="customized"
+    assert "customized" in mathproxyagent.message_generator(
+        mathproxyagent, None, {"problem": "2x=4", "prompt_type": "python", "customized_prompt": "customized"}
     )
 
 

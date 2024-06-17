@@ -1,7 +1,7 @@
-from autogen import oai
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 
 system_message = """You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -16,7 +16,7 @@ class TextAnalyzerAgent(ConversableAgent):
         self,
         name="analyzer",
         system_message: Optional[str] = system_message,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         llm_config: Optional[Union[Dict, bool]] = None,
         **kwargs,
     ):

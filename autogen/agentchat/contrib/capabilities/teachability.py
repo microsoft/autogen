@@ -1,18 +1,15 @@
 import os
+import pickle
+from typing import Dict, Optional, Union
+
+import chromadb
+from chromadb.config import Settings
+
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
-import chromadb
-from chromadb.config import Settings
-import pickle
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from ....formatting_utils import colored
 
 
 class Teachability(AgentCapability):
@@ -23,6 +20,13 @@ class Teachability(AgentCapability):
     To make any conversable agent teachable, instantiate both the agent and the Teachability class,
     then pass the agent to teachability.add_to_agent(agent).
     Note that teachable agents in a group chat must be given unique path_to_db_dir values.
+
+    When adding Teachability to an agent, the following are modified:
+    - The agent's system message is appended with a note about the agent's new ability.
+    - A hook is added to the agent's `process_last_received_message` hookable method,
+    and the hook potentially modifies the last of the received messages to include earlier teachings related to the message.
+    Added teachings do not propagate into the stored message history.
+    If new user teachings are detected, they are added to new memos in the vector database.
     """
 
     def __init__(
@@ -61,7 +65,7 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
+        agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -82,7 +86,7 @@ class Teachability(AgentCapability):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def process_last_message(self, text):
+    def process_last_received_message(self, text: Union[Dict, str]):
         """
         Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
@@ -99,7 +103,7 @@ class Teachability(AgentCapability):
         # Return the (possibly) expanded message text.
         return expanded_text
 
-    def _consider_memo_storage(self, comment):
+    def _consider_memo_storage(self, comment: Union[Dict, str]):
         """Decides whether to store something from one user comment in the DB."""
         memo_added = False
 
@@ -157,7 +161,7 @@ class Teachability(AgentCapability):
             # Yes. Save them to disk.
             self.memo_store._save_memos()
 
-    def _consider_memo_retrieval(self, comment):
+    def _consider_memo_retrieval(self, comment: Union[Dict, str]):
         """Decides whether to retrieve memos from the DB, and add them to the chat context."""
 
         # First, use the comment directly as the lookup key.
@@ -191,7 +195,7 @@ class Teachability(AgentCapability):
         # Append the memos to the text of the last message.
         return comment + self._concatenate_memo_texts(memo_list)
 
-    def _retrieve_relevant_memos(self, input_text):
+    def _retrieve_relevant_memos(self, input_text: str) -> list:
         """Returns semantically related memos from the DB."""
         memo_list = self.memo_store.get_related_memos(
             input_text, n_results=self.max_num_retrievals, threshold=self.recall_threshold
@@ -209,7 +213,7 @@ class Teachability(AgentCapability):
         memo_list = [memo[1] for memo in memo_list]
         return memo_list
 
-    def _concatenate_memo_texts(self, memo_list):
+    def _concatenate_memo_texts(self, memo_list: list) -> str:
         """Concatenates the memo texts into a single string for inclusion in the chat context."""
         memo_texts = ""
         if len(memo_list) > 0:
@@ -221,7 +225,7 @@ class Teachability(AgentCapability):
             memo_texts = memo_texts + "\n" + info
         return memo_texts
 
-    def _analyze(self, text_to_analyze, analysis_instructions):
+    def _analyze(self, text_to_analyze: Union[Dict, str], analysis_instructions: Union[Dict, str]):
         """Asks TextAnalyzerAgent to analyze the given text according to specific instructions."""
         self.analyzer.reset()  # Clear the analyzer's list of messages.
         self.teachable_agent.send(
@@ -242,10 +246,16 @@ class MemoStore:
     Vector embeddings are currently supplied by Chroma's default Sentence Transformers.
     """
 
-    def __init__(self, verbosity, reset, path_to_db_dir):
+    def __init__(
+        self,
+        verbosity: Optional[int] = 0,
+        reset: Optional[bool] = False,
+        path_to_db_dir: Optional[str] = "./tmp/teachable_agent_db",
+    ):
         """
         Args:
             - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print memo lists.
+            - reset (Optional, bool): True to clear the DB before starting. Default False.
             - path_to_db_dir (Optional, str): path to the directory where the DB is stored.
         """
         self.verbosity = verbosity
@@ -300,7 +310,7 @@ class MemoStore:
         self.uid_text_dict = {}
         self._save_memos()
 
-    def add_input_output_pair(self, input_text, output_text):
+    def add_input_output_pair(self, input_text: str, output_text: str):
         """Adds an input-output pair to the vector DB."""
         self.last_memo_id += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.last_memo_id)])
@@ -317,7 +327,7 @@ class MemoStore:
         if self.verbosity >= 3:
             self.list_memos()
 
-    def get_nearest_memo(self, query_text):
+    def get_nearest_memo(self, query_text: str):
         """Retrieves the nearest memo to the given query text."""
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
         uid, input_text, distance = results["ids"][0][0], results["documents"][0][0], results["distances"][0][0]
@@ -334,7 +344,7 @@ class MemoStore:
             )
         return input_text, output_text, distance
 
-    def get_related_memos(self, query_text, n_results, threshold):
+    def get_related_memos(self, query_text: str, n_results: int, threshold: Union[int, float]):
         """Retrieves memos that are related to the given query text within the specified distance threshold."""
         if n_results > len(self.uid_text_dict):
             n_results = len(self.uid_text_dict)

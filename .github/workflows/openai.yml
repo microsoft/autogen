@@ -4,16 +4,18 @@
 name: OpenAI
 
 on:
-  pull_request_target:
+  pull_request:
     branches: ["main"]
     paths:
       - "autogen/**"
       - "test/**"
       - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
       - "notebook/agentchat_function_call.ipynb"
+      - "notebook/agentchat_groupchat_finite_state_machine.ipynb"
       - ".github/workflows/openai.yml"
-permissions: {}
-    # actions: read
+permissions:
+  {}
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read
@@ -35,11 +37,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -48,7 +50,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e.
           python -c "import autogen"
-          pip install coverage pytest-asyncio
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
         run: |
@@ -62,8 +64,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib
-          coverage xml
+          pytest test --ignore=test/agentchat/contrib --durations=10 --durations-min=1.0
       - name: Coverage and check notebook outputs
         if: matrix.python-version != '3.9'
         env:
@@ -74,8 +75,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/test_notebook.py
-          coverage xml
+          pytest test/test_notebook.py --durations=10 --durations-min=1.0
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

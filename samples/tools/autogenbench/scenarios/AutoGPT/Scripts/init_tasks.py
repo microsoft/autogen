@@ -3,11 +3,13 @@
 # (default: ../scenarios/human_eval_two_agents_gpt4.jsonl and ./scenarios/human_eval_two_agents_gpt35.jsonl)
 #
 
+import base64
+import glob
 import json
 import os
+import re
 import sys
-import glob
-import base64
+
 from huggingface_hub import snapshot_download
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -88,7 +90,12 @@ def create_jsonl(name, template):
 
 ###############################################################################
 def main():
-    templates = {"two_agents": os.path.join(TEMPLATES_DIR, "TwoAgents")}
+    # list all directories in the Templates directory
+    # and populate a dictionary with the name and path
+    templates = {}
+    for entry in os.scandir(TEMPLATES_DIR):
+        if entry.is_dir():
+            templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
     for template in templates.values():

@@ -1,3 +1,4 @@
 from .chatmanager import *
-from .workflowmanager import *
 from .datamodel import *
+from .version import __version__
+from .workflowmanager import *

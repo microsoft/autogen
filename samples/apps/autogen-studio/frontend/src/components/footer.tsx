@@ -10,7 +10,9 @@ const Footer = () => {
   React.useEffect(() => {
     if (version === null) {
       fetchVersion().then((data) => {
-        setVersion(data.data.version);
+        if (data && data.data) {
+          setVersion(data.data.version);
+        }
       });
     }
   }, []);

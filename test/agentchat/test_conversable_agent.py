@@ -1,28 +1,31 @@
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
 import copy
+import inspect
+import os
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
 import unittest
-import inspect
+from typing import Any, Callable, Dict, Literal
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import patch
 from pydantic import BaseModel, Field
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
-import autogen
 
+import autogen
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import skip_openai
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+gpt4_config_list = [{"model": "gpt-4"}, {"model": "gpt-4-turbo"}, {"model": "gpt-4-32k"}, {"model": "gpt-4o"}]
 
 
 @pytest.fixture
@@ -459,6 +462,10 @@ def test_generate_reply():
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
     ), "generate_reply not working when messages is None"
 
+    dummy_agent_2.register_reply(["str", None], ConversableAgent.generate_oai_reply)
+    with pytest.raises(SenderRequired):
+        dummy_agent_2.generate_reply(messages=messages, sender=None)
+
 
 def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
     with pytest.raises(AssertionError):
@@ -471,10 +478,33 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
         await conversable_agent.a_generate_reply(messages=None, sender=None)
 
 
+def test_generate_reply_with_messages_and_sender_none(conversable_agent):
+    messages = [{"role": "user", "content": "hello"}]
+    try:
+        response = conversable_agent.generate_reply(messages=messages, sender=None)
+        assert response is not None, "Response should not be None"
+    except AssertionError as e:
+        pytest.fail(f"Unexpected AssertionError: {e}")
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+
+
+@pytest.mark.asyncio
+async def test_a_generate_reply_with_messages_and_sender_none(conversable_agent):
+    messages = [{"role": "user", "content": "hello"}]
+    try:
+        response = await conversable_agent.a_generate_reply(messages=messages, sender=None)
+        assert response is not None, "Response should not be None"
+    except AssertionError as e:
+        pytest.fail(f"Unexpected AssertionError: {e}")
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+
+
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         def exec_python(cell: str) -> None:
             pass
@@ -533,6 +563,16 @@ def test_update_function_signature_and_register_functions() -> None:
         )
         assert set(agent.function_map.keys()) == {"python", "sh"}
         assert agent.function_map["python"] == exec_python
+        assert agent.function_map["sh"] == exec_sh
+
+        # remove the functions
+        agent.register_function(
+            function_map={
+                "python": None,
+            }
+        )
+
+        assert set(agent.function_map.keys()) == {"sh"}
         assert agent.function_map["sh"] == exec_sh
 
 
@@ -617,10 +657,10 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -690,10 +730,10 @@ def test_register_for_llm():
 
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -761,8 +801,8 @@ def test_register_for_llm_api_style_function():
 
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         with pytest.raises(ValueError) as e:
 
@@ -774,25 +814,37 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+    agent = ConversableAgent(name="agent", llm_config=None)
+    with pytest.raises(
+        AssertionError,
+        match="To update a tool signature, agent must have an llm_config",
+    ):
 
-        with pytest.raises(RuntimeError) as e:
+        @agent.register_for_llm(description="do things.")
+        def do_stuff(s: str) -> str:
+            return f"{s} done"
 
-            @agent.register_for_llm(description="run cell in ipython and return the execution result.")
-            def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
 
-        assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
+def test_register_for_llm_without_configuration():
+    with pytest.raises(
+        ValueError,
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": []})
+
+
+def test_register_for_llm_without_model_name():
+    with pytest.raises(
+        ValueError,
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -826,8 +878,8 @@ def test_register_for_execution():
 
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
         user_proxy = UserProxyAgent(name="user_proxy")
 
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
@@ -866,14 +918,14 @@ def test_register_functions():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=reason,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["tool"],
         },
         file_location=KEY_LOC,
     )
@@ -935,23 +987,23 @@ def test_function_registration_e2e_sync() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     user_proxy.initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="2")
-    stopwatch_mock.assert_called_once_with(num_seconds="3")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=reason,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
         file_location=KEY_LOC,
     )
@@ -1013,31 +1065,414 @@ async def test_function_registration_e2e_async() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     await user_proxy.a_initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="4")
-    stopwatch_mock.assert_called_once_with(num_seconds="5")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
-@pytest.mark.skipif(
-    skip,
-    reason="do not run if skipping openai",
-)
-def test_no_llm_config():
-    # We expect a TypeError when the model isn't specified
-    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
-        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
-        agent2 = ConversableAgent(
-            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
+@pytest.mark.skipif(skip_openai, reason=reason)
+def test_max_turn():
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
+
+    # create an AssistantAgent instance named "assistant"
+    assistant = autogen.AssistantAgent(
+        name="assistant",
+        max_consecutive_auto_reply=10,
+        llm_config={"config_list": config_list},
+    )
+
+    user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
+
+    # Use MagicMock to create a mock get_human_input function
+    user_proxy.get_human_input = MagicMock(return_value="Not funny. Try again.")
+    res = user_proxy.initiate_chat(assistant, clear_history=True, max_turns=3, message="Hello, make a joke about AI.")
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
+    print("history", res.chat_history)
+    assert len(res.chat_history) <= 6
+
+
+@pytest.mark.skipif(skip_openai, reason=reason)
+def test_message_func():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    def my_message_play(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Let's play a game."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
+    func = Function()
+    # autogen.ChatCompletion.start_logging()
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={
+            "work_dir": here,
+            "use_docker": False,
+        },
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+    )
+    player = autogen.AssistantAgent(
+        name="Player",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that makes function_calls.",
+        llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
+    )
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message=my_message_play,
+        max_turns=1,
+    )
+    print(chat_res_play.summary)
+
+
+@pytest.mark.skipif(skip_openai, reason=reason)
+def test_summary():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]}
+    )
+
+    def my_message_play(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Let's play a game."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
+    def my_summary(sender, recipient, summary_args):
+        prefix = summary_args.get("prefix", "Summary:")
+        return prefix + recipient.chat_messages[sender][-1].get("content", "")
+
+    func = Function()
+    # autogen.ChatCompletion.start_logging()
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={
+            "work_dir": here,
+            "use_docker": False,
+        },
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+    )
+    player = autogen.AssistantAgent(
+        name="Player",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that makes function_calls.",
+        llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
+    )
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message=my_message_play,
+        # message="Make a joke about AI",
+        max_turns=1,
+        summary_method="reflection_with_llm",
+        summary_args={"summary_prompt": "Summarize the conversation into less than five words."},
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        # message=my_message_play,
+        message="Make a joke about AI",
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play.summary)
+
+
+def test_process_before_send():
+    print_mock = unittest.mock.MagicMock()
+
+    # Updated to include sender parameter
+    def send_to_frontend(sender, message, recipient, silent):
+        assert sender.name == "dummy_agent_1", "Sender is not the expected agent"
+        if not silent:
+            print(f"Message sent from {sender.name} to {recipient.name}: {message}")
+            print_mock(message=message)
+        return message
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("process_message_before_send", send_to_frontend)
+    dummy_agent_1.send("hello", dummy_agent_2)
+    print_mock.assert_called_once_with(message="hello")
+    dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
+    print_mock.assert_called_once_with(message="hello")
+
+
+def test_messages_with_carryover():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    context = dict(message="hello", carryover="Testing carryover.")
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test multimodal messages
+    mm_content = [
+        {"type": "text", "text": "hello"},
+        {"type": "text", "text": "goodbye"},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.png"},
+        },
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(
+        message=mm_message,
+        carryover="Testing carryover.",
+    )
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test without carryover
+    print(mm_message)
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 3
+
+    # Test without text in multimodal message
+    mm_content = [
+        {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 1
+
+    generated_message = agent1.generate_init_message(**context, carryover="Testing carryover.")
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 2
+
+
+def test_chat_history():
+    alice = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+
+    charlie = autogen.ConversableAgent(
+        "charlie",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is charlie speaking.",
+    )
+
+    max_turns = 2
+
+    def bob_initiate_chat(agent: ConversableAgent, text: Literal["past", "future"]):
+        _ = agent.initiate_chat(
+            alice,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
         )
-        agent1.initiate_chat(agent2, message="hi")
+        _ = agent.initiate_chat(
+            charlie,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
+        )
+
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the past speaking.",
+    )
+    bob_initiate_chat(bob, "past")
+    context = bob.chat_messages
+
+    del bob
+
+    # Test agent with chat history
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the future speaking.",
+        chat_messages=context,
+    )
+
+    assert bool(bob.chat_messages)
+    assert bob.chat_messages == context
+
+    # two times the max turns due to bob replies
+    assert len(bob.chat_messages[alice]) == 2 * max_turns
+    assert len(bob.chat_messages[charlie]) == 2 * max_turns
+
+    bob_initiate_chat(bob, "future")
+    assert len(bob.chat_messages[alice]) == 4 * max_turns
+    assert len(bob.chat_messages[charlie]) == 4 * max_turns
+
+    assert bob.chat_messages[alice][0]["content"] == "This is bob from the past speaking."
+    assert bob.chat_messages[charlie][0]["content"] == "This is bob from the past speaking."
+
+    assert bob.chat_messages[alice][-2]["content"] == "This is bob from the future speaking."
+    assert bob.chat_messages[charlie][-2]["content"] == "This is bob from the future speaking."
+
+
+def test_http_client():
+
+    import httpx
+
+    with pytest.raises(TypeError):
+        config_list = [
+            {
+                "model": "my-gpt-4-deployment",
+                "api_key": "",
+                "http_client": httpx.Client(),
+            }
+        ]
+
+        autogen.ConversableAgent(
+            "test_agent",
+            human_input_mode="NEVER",
+            llm_config={"config_list": config_list},
+            default_auto_reply="This is alice speaking.",
+        )
+
+
+def test_adding_duplicate_function_warning():
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+
+    agent = autogen.ConversableAgent(
+        "jtoy",
+        llm_config={"config_list": config_base},
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
 
 
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    test_generate_code_execution_reply()
+    # test_generate_code_execution_reply()
     # test_conversable_agent()
     # test_no_llm_config()
+    # test_max_turn()
+    # test_process_before_send()
+    # test_message_func()
+    test_summary()
+    test_adding_duplicate_function_warning()
+    # test_function_registration_e2e_sync()

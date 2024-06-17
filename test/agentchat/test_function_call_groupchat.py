@@ -1,17 +1,16 @@
-import autogen
-import pytest
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-try:
-    from openai import OpenAI
-except ImportError:
-    skip = True
-else:
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    from conftest import skip_openai as skip
+import autogen
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import reason, skip_openai
 
 func_def = {
     "name": "get_random_number",
@@ -24,8 +23,8 @@ func_def = {
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run if openai is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 @pytest.mark.parametrize(
     "key, value, sync",
@@ -46,21 +45,18 @@ async def test_function_call_groupchat(key, value, sync):
             self.call_count += 1
             return random.randint(0, 100)
 
-    config_list_gpt4 = autogen.config_list_from_json(
+    # llm_config without functions
+    config_list_35 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
-        filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
-        },
         file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"]},
     )
+    llm_config_no_function = {"config_list": config_list_35}
+    config_list_tool = autogen.filter_config(config_list_35, {"tags": ["tool"]})
     llm_config = {
-        "config_list": config_list_gpt4,
-        "cache_seed": 42,
+        "config_list": config_list_tool,
         key: value,
     }
-    # llm_config without functions
-    llm_config_no_function = llm_config.copy()
-    del llm_config_no_function[key]
 
     func = Function()
     user_proxy = autogen.UserProxyAgent(
@@ -95,10 +91,14 @@ async def test_function_call_groupchat(key, value, sync):
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_no_function)
 
     if sync:
-        observer.initiate_chat(manager, message="Let's start the game!")
+        res = observer.initiate_chat(manager, message="Let's start the game!", summary_method="reflection_with_llm")
     else:
-        await observer.a_initiate_chat(manager, message="Let's start the game!")
+        res = await observer.a_initiate_chat(
+            manager, message="Let's start the game!", summary_method="reflection_with_llm"
+        )
     assert func.call_count >= 1, "The function get_random_number should be called at least once."
+    print("Chat summary:", res.summary)
+    print("Chat cost:", res.cost)
 
 
 def test_no_function_map():

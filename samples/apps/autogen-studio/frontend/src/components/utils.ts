@@ -1,11 +1,11 @@
 import {
+  IAgent,
   IAgentConfig,
-  IAgentFlowSpec,
-  IFlowConfig,
-  IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
+  ISkill,
   IStatus,
+  IWorkflow,
 } from "./types";
 
 export const getServerUrl = () => {
@@ -65,7 +65,8 @@ export function fetchJSON(
   url: string | URL,
   payload: any = {},
   onSuccess: (data: any) => void,
-  onError: (error: IStatus) => void
+  onError: (error: IStatus) => void,
+  onFinal: () => void = () => {}
 ) {
   return fetch(url, payload)
     .then(function (response) {
@@ -94,6 +95,9 @@ export function fetchJSON(
         status: false,
         message: `There was an error connecting to server. (${err}) `,
       });
+    })
+    .finally(() => {
+      onFinal();
     });
 }
 export const capitalize = (s: string) => {
@@ -197,6 +201,25 @@ export const guid = () => {
 };
 
 /**
+ * Takes a string and returns the first n characters followed by asterisks.
+ * @param {string} str - The string to obscure
+ * @param {number} n - Number of characters to show before obscuring
+ * @returns {string} The obscured string with first n characters in clear text
+ */
+export const obscureString = (str: string, n: number = 3) => {
+  if (n < 0 || n > str.length) {
+    console.log("n cannot be less than 0 or greater than the string length.");
+    return str;
+  }
+  // First n characters in clear text
+  var clearText = str.substring(0, n);
+  // Remaining characters replaced with asterisks
+  var obscured = clearText + "*".repeat(str.length - n);
+
+  return obscured;
+};
+
+/**
  * Converts a number of seconds into a human-readable string representing the duration in days, hours, minutes, and seconds.
  * @param {number} seconds - The number of seconds to convert.
  * @returns {string} A well-formatted duration string.
@@ -223,32 +246,138 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
-export const sampleWorkflowConfig = (type = "twoagents") => {
-  const llm_model_config: IModelConfig[] = [
+export const sampleModelConfig = (modelType: string = "open_ai") => {
+  const openaiConfig: IModelConfig = {
+    model: "gpt-4-1106-preview",
+    api_type: "open_ai",
+    description: "OpenAI GPT-4 model",
+  };
+  const azureConfig: IModelConfig = {
+    model: "gpt-4",
+    api_type: "azure",
+    api_version: "v1",
+    base_url: "https://youazureendpoint.azure.com/",
+    description: "Azure model",
+  };
+
+  const googleConfig: IModelConfig = {
+    model: "gemini-1.0-pro",
+    api_type: "google",
+    description: "Google Gemini Model model",
+  };
+
+  switch (modelType) {
+    case "open_ai":
+      return openaiConfig;
+    case "azure":
+      return azureConfig;
+    case "google":
+      return googleConfig;
+    default:
+      return openaiConfig;
+  }
+};
+
+export const getRandomIntFromDateAndSalt = (salt: number = 43444) => {
+  const currentDate = new Date();
+  const seed = currentDate.getTime() + salt;
+  const randomValue = Math.sin(seed) * 10000;
+  const randomInt = Math.floor(randomValue) % 100;
+  return randomInt;
+};
+
+export const sampleAgentConfig = (agent_type: string = "assistant") => {
+  const llm_config: ILLMConfig = {
+    config_list: [],
+    temperature: 0.1,
+    timeout: 600,
+    cache_seed: null,
+    max_tokens: 1000,
+  };
+
+  const userProxyConfig: IAgentConfig = {
+    name: "userproxy",
+    human_input_mode: "NEVER",
+    description: "User Proxy",
+    max_consecutive_auto_reply: 25,
+    system_message: "You are a helpful assistant.",
+    default_auto_reply: "TERMINATE",
+    llm_config: false,
+    code_execution_config: "local",
+  };
+  const userProxyFlowSpec: IAgent = {
+    type: "userproxy",
+    config: userProxyConfig,
+  };
+
+  const assistantConfig: IAgentConfig = {
+    name: "primary_assistant",
+    description: "Primary Assistant",
+    llm_config: llm_config,
+    human_input_mode: "NEVER",
+    max_consecutive_auto_reply: 25,
+    code_execution_config: "none",
+    system_message:
+      "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
+  };
+
+  const assistantFlowSpec: IAgent = {
+    type: "assistant",
+    config: assistantConfig,
+  };
+
+  const groupChatAssistantConfig = Object.assign(
     {
-      model: "gpt-4-1106-preview",
+      admin_name: "groupchat_assistant",
+      messages: [],
+      max_round: 10,
+      speaker_selection_method: "auto",
+      allow_repeat_speaker: false,
     },
-  ];
+    assistantConfig
+  );
+  groupChatAssistantConfig.name = "groupchat_assistant";
+  groupChatAssistantConfig.system_message =
+    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
+  groupChatAssistantConfig.description = "Group Chat Assistant";
+
+  const groupChatFlowSpec: IAgent = {
+    type: "groupchat",
+    config: groupChatAssistantConfig,
+  };
+
+  if (agent_type === "userproxy") {
+    return userProxyFlowSpec;
+  } else if (agent_type === "assistant") {
+    return assistantFlowSpec;
+  } else if (agent_type === "groupchat") {
+    return groupChatFlowSpec;
+  } else {
+    return assistantFlowSpec;
+  }
+};
+
+export const sampleWorkflowConfig = (type = "twoagents") => {
+  const llm_model_config: IModelConfig[] = [];
 
   const llm_config: ILLMConfig = {
     config_list: llm_model_config,
     temperature: 0.1,
     timeout: 600,
     cache_seed: null,
+    max_tokens: 1000,
   };
 
   const userProxyConfig: IAgentConfig = {
     name: "userproxy",
     human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 5,
-    system_message: "",
+    max_consecutive_auto_reply: 15,
+    system_message: "You are a helpful assistant.",
+    default_auto_reply: "TERMINATE",
     llm_config: false,
-    code_execution_config: {
-      work_dir: null,
-      use_docker: false,
-    },
+    code_execution_config: "local",
   };
-  const userProxyFlowSpec: IAgentFlowSpec = {
+  const userProxyFlowSpec: IAgent = {
     type: "userproxy",
     config: userProxyConfig,
   };
@@ -258,16 +387,17 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
+    code_execution_config: "none",
     system_message:
-      "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
+      "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
   };
 
-  const assistantFlowSpec: IAgentFlowSpec = {
+  const assistantFlowSpec: IAgent = {
     type: "assistant",
     config: assistantConfig,
   };
 
-  const workFlowConfig: IFlowConfig = {
+  const workFlowConfig: IWorkflow = {
     name: "Default Agent Workflow",
     description: "Default Agent Workflow",
     sender: userProxyFlowSpec,
@@ -275,26 +405,27 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     type: "twoagents",
   };
 
-  const groupChatAssistantConfig = Object.assign({}, assistantConfig);
-  groupChatAssistantConfig.name = "groupchat_assistant";
-  groupChatAssistantConfig.system_message =
-    "You are a helpful assistant skilled at coordinating a group of other assistants to solve a task. ";
-
-  const groupChatFlowSpec: IGroupChatFlowSpec = {
-    type: "groupchat",
-    config: groupChatAssistantConfig,
-    groupchat_config: {
-      agents: [assistantFlowSpec, assistantFlowSpec],
+  const groupChatAssistantConfig = Object.assign(
+    {
       admin_name: "groupchat_assistant",
       messages: [],
       max_round: 10,
       speaker_selection_method: "auto",
       allow_repeat_speaker: false,
+      description: "Group Chat Assistant",
     },
-    description: "Default Group  Workflow",
+    assistantConfig
+  );
+  groupChatAssistantConfig.name = "groupchat_assistant";
+  groupChatAssistantConfig.system_message =
+    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
+
+  const groupChatFlowSpec: IAgent = {
+    type: "groupchat",
+    config: groupChatAssistantConfig,
   };
 
-  const groupChatWorkFlowConfig: IFlowConfig = {
+  const groupChatWorkFlowConfig: IWorkflow = {
     name: "Default Group Workflow",
     description: "Default Group  Workflow",
     sender: userProxyFlowSpec,
@@ -310,67 +441,76 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
   return workFlowConfig;
 };
 
-export const getModels = () => {
-  const models = [
-    {
-      model: "gpt-4-1106-preview",
-    },
-    {
-      model: "gpt-3.5-turbo-16k",
-    },
-    {
-      model: "TheBloke/zephyr-7B-alpha-AWQ",
-      base_url: "http://localhost:8000/v1",
-    },
-  ];
-  return models;
-};
-
 export const getSampleSkill = () => {
-  const catSkill = `
-  # this is a sample skill. Replace with your own skill function
-  import numpy as np
-  import matplotlib.pyplot as plt
-  from matplotlib import font_manager as fm
+  const content = `
+from typing import List
+import uuid
+import requests  # to perform HTTP requests
+from pathlib import Path
 
-  def save_cat_ascii_art_to_png(filename='ascii_cat.png'):
-      """
-      Creates ASCII art of a cat and saves it to a PNG file.
+from openai import OpenAI
 
-      :param filename: str, the name of the PNG file to save the ASCII art.
-      """
-      # ASCII art string
-      cat_art = [
-          "  /\_/\  ",
-          " ( o.o ) ",
-          " > ^ <  "
-      ]
 
-      # Determine shape of output array
-      height = len(cat_art)
-      width = max(len(line) for line in cat_art)
+def generate_and_save_images(query: str, image_size: str = "1024x1024") -> List[str]:
+    """
+    Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image.
 
-      # Create a figure and axis to display ASCII art
-      fig, ax = plt.subplots(figsize=(width, height))
-      ax.axis('off')  # Hide axes
+    :param query: A natural language description of the image to be generated.
+    :param image_size: The size of the image to be generated. (default is "1024x1024")
+    :return: A list of filenames for the saved images.
+    """
 
-      # Get a monospace font
-      prop = fm.FontProperties(family='monospace')
+    client = OpenAI()  # Initialize the OpenAI client
+    response = client.images.generate(model="dall-e-3", prompt=query, n=1, size=image_size)  # Generate images
 
-      # Display ASCII art using text
-      for y, line in enumerate(cat_art):
-          ax.text(0, height-y-1, line, fontproperties=prop, fontsize=12)
+    # List to store the file names of saved images
+    saved_files = []
 
-      # Adjust layout
-      plt.tight_layout()
+    # Check if the response is successful
+    if response.data:
+        for image_data in response.data:
+            # Generate a random UUID as the file name
+            file_name = str(uuid.uuid4()) + ".png"  # Assuming the image is a PNG
+            file_path = Path(file_name)
 
-      # Save figure to file
-      plt.savefig(filename, dpi=120, bbox_inches='tight', pad_inches=0.1)
-      plt.close(fig)`;
-  return catSkill;
+            img_url = image_data.url
+            img_response = requests.get(img_url)
+            if img_response.status_code == 200:
+                # Write the binary content to a file
+                with open(file_path, "wb") as img_file:
+                    img_file.write(img_response.content)
+                    print(f"Image saved to {file_path}")
+                    saved_files.append(str(file_path))
+            else:
+                print(f"Failed to download the image from {img_url}")
+    else:
+        print("No image data found in the response!")
+
+    # Return the list of saved files
+    return saved_files
+
+
+# Example usage of the function:
+# generate_and_save_images("A cute baby sea otter")
+  `;
+
+  const skill: ISkill = {
+    name: "generate_images",
+    description: "Generate and save images based on a user's query.",
+    content: content,
+  };
+
+  return skill;
 };
 
-export const timeAgo = (dateString: string): string => {
+export const timeAgo = (
+  dateString: string,
+  returnFormatted: boolean = false
+): string => {
+  // if dateStr is empty, return empty string
+  if (!dateString) {
+    return "";
+  }
   // Parse the date string into a Date object
   const timestamp = new Date(dateString);
 
@@ -389,9 +529,19 @@ export const timeAgo = (dateString: string): string => {
   const minutesAgo = Math.floor(timeDifference / (1000 * 60));
   const hoursAgo = Math.floor(minutesAgo / 60);
 
-  // Format the date into a readable format e.g. "November 27"
-  const options: Intl.DateTimeFormatOptions = { month: "long", day: "numeric" };
+  // Format the date into a readable format e.g. "November 27, 2021, 3:45 PM"
+  const options: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  };
   const formattedDate = timestamp.toLocaleDateString(undefined, options);
+
+  if (returnFormatted) {
+    return formattedDate;
+  }
 
   // Determine the time difference string
   let timeAgoStr: string;
@@ -433,6 +583,11 @@ export const examplePrompts = [
     prompt:
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
+  {
+    title: "Travel",
+    prompt:
+      "Plan a 2 day trip to hawaii. Limit to 3 activities per day, be as brief as possible!",
+  },
 ];
 
 export const fetchVersion = () => {
@@ -446,4 +601,129 @@ export const fetchVersion = () => {
       console.error("Error:", error);
       return null;
     });
+};
+
+/**
+ * Recursively sanitizes JSON objects by replacing specific keys with a given value.
+ * @param {JsonValue} data - The JSON data to be sanitized.
+ * @param {string[]} keys - An array of keys to be replaced in the JSON object.
+ * @param {string} replacement - The value to use as replacement for the specified keys.
+ * @returns {JsonValue} - The sanitized JSON data.
+ */
+export const sanitizeConfig = (
+  data: any,
+  keys: string[] = ["api_key", "id", "created_at", "updated_at"]
+): any => {
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeConfig(item, keys));
+  } else if (typeof data === "object" && data !== null) {
+    Object.keys(data).forEach((key) => {
+      if (keys.includes(key)) {
+        delete data[key];
+      } else {
+        data[key] = sanitizeConfig(data[key], keys);
+      }
+    });
+  }
+  return data;
+};
+
+/**
+ * Checks the input text against the regex '^[a-zA-Z0-9_-]{1,64}$' and returns an object with
+ * status, message, and sanitizedText. Status is boolean indicating whether input text is valid,
+ * message provides information about the outcome, and sanitizedText contains a valid version
+ * of the input text or the original text if it was already valid.
+ *
+ * @param text - The input string to be checked and sanitized.
+ * @returns An object containing a status, a message, and sanitizedText.
+ */
+export const checkAndSanitizeInput = (
+  text: string
+): { status: boolean; message: string; sanitizedText: string } => {
+  // Create a regular expression pattern to match valid characters
+  const regexPattern: RegExp = /^[a-zA-Z0-9_-]{1,64}$/;
+  let status: boolean = true;
+  let message: string;
+  let sanitizedText: string;
+
+  // Check if the input text matches the pattern
+  if (regexPattern.test(text)) {
+    // Text already adheres to the pattern
+    message = `The text '${text}' is valid.`;
+    sanitizedText = text;
+  } else {
+    // The text does not match; sanitize the input
+    status = false;
+    sanitizedText = text.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+    message = `'${text}' is invalid. Consider using '${sanitizedText}' instead.`;
+  }
+
+  return { status, message, sanitizedText };
+};
+
+export const isValidConfig = (
+  jsonObj: any,
+  templateObj: any,
+  diffThreshold: number = 4
+): {
+  status: boolean;
+  message: string;
+} => {
+  // Check if both parameters are indeed objects and not null
+  if (
+    typeof jsonObj !== "object" ||
+    jsonObj === null ||
+    Array.isArray(jsonObj) ||
+    typeof templateObj !== "object" ||
+    templateObj === null ||
+    Array.isArray(templateObj)
+  ) {
+    return {
+      status: false,
+      message:
+        "Invalid input: One or both parameters are not objects, or are null or arrays.",
+    };
+  }
+
+  const jsonKeys = new Set(Object.keys(jsonObj));
+  const templateKeys = new Set(Object.keys(templateObj));
+
+  if (jsonKeys.size !== templateKeys.size) {
+    if (Math.abs(jsonKeys.size - templateKeys.size) > diffThreshold) {
+      return {
+        status: false,
+        message:
+          "Configuration does not match template: Number of keys differ.",
+      };
+    }
+  }
+
+  for (const key of templateKeys) {
+    if (!jsonKeys.has(key)) {
+      return {
+        status: false,
+        message: `Configuration does not match template: Missing key '${key}' in configuration.`,
+      };
+    }
+
+    // If the value is an object, recursively validate
+    if (
+      typeof templateObj[key] === "object" &&
+      templateObj[key] !== null &&
+      !Array.isArray(templateObj[key])
+    ) {
+      const result = isValidConfig(jsonObj[key], templateObj[key]);
+      if (!result.status) {
+        return {
+          status: false,
+          message: `Configuration error in nested key '${key}': ${result.message}`,
+        };
+      }
+    }
+  }
+
+  return {
+    status: true,
+    message: "Configuration is valid.",
+  };
 };

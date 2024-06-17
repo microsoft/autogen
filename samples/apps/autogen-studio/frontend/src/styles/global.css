@@ -2,6 +2,7 @@
   --color-bg-primary: #111827;
   --color-bg-secondary: #1e293b;
   --color-bg-light: #27354c;
+  --color-bg-tertiary: #374151;
   --color-bg-accent: #22c55e;
   --color-text-primary: #f7fafc;
   --color-text-secondary: #e2e8f0;
@@ -15,6 +16,7 @@
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #edf2f7;
   --color-bg-light: #f9fafb;
+  --color-bg-tertiary: #ffffff;
   --color-bg-accent: #16a34a;
   --color-text-primary: #334155;
   --color-text-secondary: #64748b;
@@ -290,6 +292,10 @@ iiz__zoom-img {
 .ant-btn {
   @apply text-primary !important;
 }
+:where(.ant-btn).ant-btn-compact-item.ant-btn-primary:not([disabled])
+  + .ant-btn-compact-item.ant-btn-primary:not([disabled]):before {
+  @apply bg-secondary !important;
+}
 .ant-btn-primary {
   @apply bg-accent text-white !important;
 }
@@ -319,6 +325,14 @@ iiz__zoom-img {
   @apply bg-secondary !important;
 }
 
+.ant-drawer-content,
+.ant-drawer-header,
+.ant-drawer-header-title,
+.ant-drawer-close,
+.ant-drawer-title {
+  @apply bg-primary text-primary !important;
+}
+
 /* .ant-radio-input::before {
   @apply bg-primary !important;
 } */
@@ -326,6 +340,12 @@ iiz__zoom-img {
 .prose > pre {
   padding: 0px !important;
   margin: 0px !important;
+}
+
+.monaco-editor,
+.monaco-scrollable-element,
+.overflow-guard {
+  @apply rounded !important;
 }
 
 /* div.chatbox > ul {

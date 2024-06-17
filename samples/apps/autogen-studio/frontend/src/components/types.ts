@@ -2,14 +2,13 @@ export type NotificationType = "success" | "info" | "warning" | "error";
 
 export interface IMessage {
   user_id: string;
-  root_msg_id: string;
-  msg_id?: string;
   role: string;
   content: string;
-  timestamp?: string;
-  personalize?: boolean;
-  ra?: string;
-  session_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  session_id?: number;
+  connection_id?: string;
+  workflow_id?: number;
 }
 
 export interface IStatus {
@@ -21,7 +20,7 @@ export interface IStatus {
 export interface IChatMessage {
   text: string;
   sender: "user" | "bot";
-  metadata?: any;
+  meta?: any;
   msg_id: string;
 }
 
@@ -30,6 +29,7 @@ export interface ILLMConfig {
   timeout?: number;
   cache_seed?: number | null;
   temperature: number;
+  max_tokens: number;
 }
 
 export interface IAgentConfig {
@@ -39,47 +39,37 @@ export interface IAgentConfig {
   max_consecutive_auto_reply: number;
   system_message: string | "";
   is_termination_msg?: boolean | string;
-  code_execution_config?: boolean | string | { [key: string]: any } | null;
+  default_auto_reply?: string | null;
+  code_execution_config?: "none" | "local" | "docker";
+  description?: string;
+
+  admin_name?: string;
+  messages?: Array<IMessage>;
+  max_round?: number;
+  speaker_selection_method?: string;
+  allow_repeat_speaker?: boolean;
 }
 
-export interface IAgentFlowSpec {
-  type: "assistant" | "userproxy" | "groupchat";
+export interface IAgent {
+  type?: "assistant" | "userproxy" | "groupchat";
   config: IAgentConfig;
-  timestamp?: string;
-  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  id?: number;
   skills?: Array<ISkill>;
-  description?: string;
   user_id?: string;
 }
 
-export interface IGroupChatConfig {
-  agents: Array<IAgentFlowSpec>;
-  admin_name: string;
-  messages: Array<any>;
-  max_round: number;
-  speaker_selection_method: string;
-  allow_repeat_speaker: boolean | Array<IAgentConfig>;
-}
-
-export interface IGroupChatFlowSpec {
-  type: "groupchat";
-  config: IAgentConfig;
-  groupchat_config: IGroupChatConfig;
-  id?: string;
-  timestamp?: string;
-  user_id?: string;
-  description?: string;
-}
-
-export interface IFlowConfig {
+export interface IWorkflow {
   name: string;
   description: string;
-  sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec | IGroupChatFlowSpec;
+  sender: IAgent;
+  receiver: IAgent;
   type: "twoagents" | "groupchat";
-  timestamp?: string;
+  created_at?: string;
+  updated_at?: string;
   summary_method?: "none" | "last" | "llm";
-  id?: string;
+  id?: number;
   user_id?: string;
 }
 
@@ -88,10 +78,12 @@ export interface IModelConfig {
   api_key?: string;
   api_version?: string;
   base_url?: string;
-  api_type?: string;
+  api_type?: "open_ai" | "azure" | "google";
   user_id?: string;
-  timestamp?: string;
+  created_at?: string;
+  updated_at?: string;
   description?: string;
+  id?: number;
 }
 
 export interface IMetadataFile {
@@ -103,26 +95,29 @@ export interface IMetadataFile {
 }
 
 export interface IChatSession {
-  id: string;
+  id?: number;
   user_id: string;
-  timestamp: string;
-  flow_config: IFlowConfig;
+  workflow_id?: number;
+  created_at?: string;
+  updated_at?: string;
+  name: string;
 }
 
 export interface IGalleryItem {
-  id: string;
+  id: number;
   messages: Array<IMessage>;
   session: IChatSession;
   tags: Array<string>;
-  timestamp: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ISkill {
-  title: string;
-  file_name: string;
+  name: string;
   content: string;
-  id?: string;
-  timestamp?: string;
+  id?: number;
   description?: string;
   user_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }

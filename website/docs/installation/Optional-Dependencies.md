@@ -11,28 +11,21 @@ pip install "pyautogen[redis]"
 
 See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
 
-## Docker
+## IPython Code Executor
 
-Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
-
-To use docker for code execution, you also need to install the python package `docker`:
+To use the IPython code executor, you need to install the `jupyter-client`
+and `ipykernel` packages:
 
 ```bash
-pip install docker
+pip install "pyautogen[ipython]"
 ```
 
-You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+To use the IPython code executor:
 
 ```python
-user_proxy = autogen.UserProxyAgent(
-    name="agent",
-    human_input_mode="TERMINATE",
-    max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
-    llm_config=llm_config,
-    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
-Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
-)
+from autogen import UserProxyAgent
+
+proxy = UserProxyAgent(name="proxy", code_execution_config={"executor": "ipython-embedded"})
 ```
 
 ## blendsearch
@@ -51,10 +44,20 @@ Example notebooks:
 
 ## retrievechat
 
-`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it with ChromaDB.
 
 ```bash
 pip install "pyautogen[retrievechat]"
+```
+
+Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
+
+```bash
+pip install "pyautogen[retrievechat-pgvector]"
+```
+
+```bash
+pip install "pyautogen[retrievechat-qdrant]"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process
@@ -82,7 +85,7 @@ To use Teachability, please install AutoGen with the [teachable] option.
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook: [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## Large Multimodal Model (LMM) Agents
 
@@ -107,3 +110,21 @@ pip install "pyautogen[mathchat]<0.2"
 Example notebooks:
 
 [Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
+
+## Graph
+
+To use a graph in `GroupChat`, particularly for graph visualization, please install AutoGen with the [graph] option.
+
+```bash
+pip install "pyautogen[graph]"
+```
+
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
+
+## Long Context Handling
+
+AutoGen includes support for handling long textual contexts by leveraging the LLMLingua library for text compression. To enable this functionality, please install AutoGen with the `[long-context]` option:
+
+```bash
+pip install "pyautogen[long-context]"
+```

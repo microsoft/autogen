@@ -1,5 +1,33 @@
 [
   {
+    "title": "AutoTx - Crypto Transactions Agent",
+    "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
+    "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
+    "image": "autotx.png",
+    "tags": ["tools", "groupchat", "app", "blockchain"]
+  },
+  {
+    "title": "AutoGen Virtual Focus Group",
+    "link": "https://github.com/msamylea/autogen_focus_group",
+    "description": "A virtual consumer focus group with multiple custom personas, product details, and final analysis created with AutoGen, Ollama/Llama3, and Streamlit.",
+    "image": "default.png",
+    "tags": ["ui", "groupchat"]
+  },
+  {
+    "title": "Function Generator & Validator",
+    "link": "https://github.com/abhaymathur21/TensionCode",
+    "description": "A platform where user-required code is generated and simultaneously validated against sample data by AutoGen.",
+    "image": "TensionCode.png",
+    "tags": ["app", "ui"]
+  },
+  {
+    "title": "Autogen Robot",
+    "link": "https://github.com/AaronWard/generative-ai-workbook/tree/main/personal_projects/19.autogen-robot",
+    "description": "This project showcases how agent's can act as a brain to control a physical robot.",
+    "image": "robot.jpg",
+    "tags": ["robotics"]
+  },
+  {
     "title": "AutoGen Group Chat Playground",
     "link": "https://huggingface.co/spaces/thinkall/AutoGen_Playground",
     "description": "A huggingface space to explore AutoGen group chat, build agents with zero-code, and access source code for reuse.",
@@ -177,5 +205,19 @@
     "description": "X-Force IDE is a low-code, agent-as-a-service UI framework that lets you create AutoGen-based workforces from a drag-and-drop-like user interface.",
     "image": "x-force-ide-ui.png",
     "tags": ["ui"]
+  },
+  {
+    "title": "Multimodal Webagent created with AutoGen and OpenAI's Assistants API",
+    "link": "https://github.com/schauppi/MultimodalWebAgent",
+    "description": "A multimodal webbrowsing agent that autonomously browses the web.",
+    "image": "webagent.jpg",
+    "tags": ["tools", "app"]
+  },
+  {
+    "title": "Create Issues from Code Commits - using Autogen",
+    "link": "https://blog.composio.dev/automating-task-creation-with-openai-assistant-from-code-comments-to-linear-issues/",
+    "description": "Automatically creating linear tasks and assigning them to the right person, project, and team from GitHub commits using AutoGen Agents.",
+    "image": "composio-autogen.png",
+    "tags": ["tools"]
   }
 ]

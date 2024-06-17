@@ -3,12 +3,14 @@
 # (default: ../scenarios/human_eval_two_agents_gpt4.jsonl and ./scenarios/human_eval_two_agents_gpt35.jsonl)
 #
 
-import requests
+import base64
 import gzip
 import io
 import json
 import os
-import base64
+import re
+
+import requests
 
 URL = "https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz"
 
@@ -16,7 +18,13 @@ SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
+SCENARIO_DIR = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
+TEMPLATES_DIR = os.path.join(SCENARIO_DIR, "Templates")
+TASKS_DIR = os.path.join(SCENARIO_DIR, "Tasks")
+
 # A selected subset of HumanEval problems to work with during development
+
+# Deprecated 2/5/2024 -- Use subsample instead
 REDUCED_SET = [
     "HumanEval/2",
     "HumanEval/26",
@@ -73,19 +81,17 @@ def create_jsonl(name, tasks, template):
     """Creates a JSONL scenario file with a given name, list of HumanEval tasks, and template path."""
 
     # Create a task directory if it doesn't exist
-    scenario_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
-    task_dir = os.path.join(scenario_dir, "Tasks")
-    if not os.path.isdir(task_dir):
-        os.mkdir(task_dir)
+    if not os.path.isdir(TASKS_DIR):
+        os.mkdir(TASKS_DIR)
 
     # Create the jsonl file
-    with open(os.path.join(task_dir, name + ".jsonl"), "wt") as fh:
+    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt") as fh:
         for task in tasks:
             print(f"Converting: [{name}] {task['task_id']}")
 
             record = {
                 "id": task["task_id"].replace("/", "_"),
-                "template": os.path.join(os.path.pardir, template),
+                "template": template,
                 "substitutions": {
                     "scenario.py": {
                         "__ENTRY_POINT__": task["entry_point"],
@@ -102,19 +108,19 @@ def create_jsonl(name, tasks, template):
 ###############################################################################
 def main():
     human_eval = download_human_eval()
-    reduced_human_eval = [t for t in human_eval if t["task_id"] in REDUCED_SET]
+    # Deprecated: reduced_human_eval = [t for t in human_eval if t["task_id"] in REDUCED_SET]
 
-    templates = {
-        "two_agents": "Templates/TwoAgents",
-        # "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
-        # "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
-        # "gc4": "Templates/GroupChatFourAgents",
-    }
+    # list all directories in the Templates directory
+    # and populate a dictionary with the name and path
+    templates = {}
+    for entry in os.scandir(TEMPLATES_DIR):
+        if entry.is_dir():
+            templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     # Create the various combinations of [models] x [templates]
     for t in templates.items():
         create_jsonl(f"human_eval_{t[0]}", human_eval, t[1])
-        create_jsonl(f"r_human_eval_{t[0]}", reduced_human_eval, t[1])
+        # Deprecated: create_jsonl(f"r_human_eval_{t[0]}", reduced_human_eval, t[1])
 
 
 if __name__ == "__main__" and __package__ is None:

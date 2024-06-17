@@ -1,12 +1,18 @@
-import os
 import json
-import autogen
+import os
 from datetime import datetime
+
 import testbed_utils
+
+import autogen
 
 testbed_utils.init()
 ##############################
 
+# Read the prompt
+PROMPT = ""
+with open("prompt.txt", "rt") as fh:
+    PROMPT = fh.read().strip()
 
 GAIA_SYSTEM_MESSAGE = (
     "You are a helpful AI assistant, and today's date is "
@@ -48,9 +54,7 @@ user_proxy = autogen.UserProxyAgent(
 )
 
 filename = "__FILE_NAME__".strip()
-question = """
-__PROMPT__
-""".strip()
+question = PROMPT
 
 if len(filename) > 0:
     question = f"Consider the file '{filename}', which can be read from the current working directory. If you need to read or write it, output python code in a code block (```python) to do so. {question}"

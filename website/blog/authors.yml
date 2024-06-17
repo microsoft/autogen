@@ -90,8 +90,8 @@ narabzad:
 
 LinxinS97:
   name: Linxin Song
-  title: MS student at Waseda University
-  url: https://linxins97.github.io/
+  title: PhD student at the University of Southern California
+  url: https://linxins.net
   image_url: https://github.com/LinxinS97.png
 
 skzhang1:
@@ -105,3 +105,21 @@ olgavrou:
   title: Senior Software Engineer at Microsoft Research
   url: https://github.com/olgavrou/
   image_url: https://github.com/olgavrou.png
+
+joshkyh:
+  name: Joshua Kim
+  title: AI Freelancer at SpectData
+  url: https://github.com/joshkyh/
+  image_url: https://github.com/joshkyh.png
+
+freedeaths:
+  name: Yishen Sun
+  title: Data Scientist at PingCAP LAB
+  url: https://github.com/freedeaths/
+  image_url: https://github.com/freedeaths.png
+
+yifanzeng:
+  name: Yifan Zeng
+  title: PhD student at Oregon State University
+  url: https://xhmy.github.io/
+  image_url: https://xhmy.github.io/assets/img/photo.JPG

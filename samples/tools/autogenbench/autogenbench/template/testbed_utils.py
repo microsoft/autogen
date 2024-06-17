@@ -1,10 +1,21 @@
-from pkg_resources import packaging
-from datetime import datetime
-import os
-import autogen
 import json
+import os
+from datetime import datetime
+
+from pkg_resources import packaging
+
+import autogen
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
+
+# Try importing the runtime_logging module (only available in some branches)
+LOGGING_ENABLED = False
+try:
+    import autogen.runtime_logging
+
+    LOGGING_ENABLED = True
+except ImportError:
+    pass
 
 
 def default_llm_config(config_list, timeout=180):
@@ -57,6 +68,10 @@ def init():
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
         autogen.Completion.start_logging(compact=False)
 
+    # Start logging
+    if LOGGING_ENABLED:
+        autogen.runtime_logging.start(config={"dbname": "telemetry.sqlite"})
+
 
 def finalize(agents):
     """Helper function to finalize logging in a testbed scenario.
@@ -89,3 +104,7 @@ def finalize(agents):
         with open(os.path.join(script_dir, "completion_log.json"), "wt") as fh:
             fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
         autogen.Completion.stop_logging()
+
+    # Stop logging
+    if LOGGING_ENABLED:
+        autogen.runtime_logging.stop()
