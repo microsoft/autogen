@@ -505,3 +505,17 @@ def get_autogen_log(db_path="logs.db"):
         row["total_tokens"] = total_tokens
     con.close()
     return data
+
+
+def find_key_value(d, target_key):
+    """
+    Recursively search for a key in a nested dictionary and return its value.
+    """
+    for key, value in d.items():
+        if key == target_key:
+            return value
+        elif isinstance(value, dict):
+            result = find_key_value(value, target_key)
+            if result is not None:
+                return result
+    return None

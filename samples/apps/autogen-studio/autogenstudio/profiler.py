@@ -67,6 +67,7 @@ class Profiler:
         """
         meta = MessageMeta(**agent_message.meta)
         print(meta.log)
+        usage = meta.usage
         messages = meta.messages
         profile = []
         bar = []
@@ -104,4 +105,4 @@ class Profiler:
         code_success_rate = (success_code_executed / total_code_executed if total_code_executed > 0 else 0) * 100
         stats["code_success_rate"] = code_success_rate
         stats["total_code_executed"] = total_code_executed
-        return {"profile": profile, "bar": bar, "stats": stats, "agents": set(agents)}
+        return {"profile": profile, "bar": bar, "stats": stats, "agents": set(agents), "usage": usage}

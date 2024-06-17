@@ -27,6 +27,7 @@ class MessageMeta(SQLModel, table=False):
     files: Optional[List[dict]] = None
     time: Optional[datetime] = None
     log: Optional[List[dict]] = None
+    usage: Optional[List[dict]] = None
 
 
 class Message(SQLModel, table=True):

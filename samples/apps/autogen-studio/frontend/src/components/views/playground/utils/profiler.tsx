@@ -56,11 +56,49 @@ const ProfilerView = ({
     }
   }, []);
 
+  const UsageViewer = ({ usage }: { usage: any }) => {
+    const usageRows = usage.map((usage: any, index: number) => (
+      <div key={index} className="  borpder  rounded">
+        {usage.total_cost != 0 && usage.total_tokens != 0 && (
+          <>
+            <div className="bg-secondary p-2">{usage.agent}</div>
+            <div className=" inline-flex gap-2 w-full">
+              {usage.total_tokens != 0 && (
+                <div className="flex flex-col text-center w-full">
+                  <div className="w-full  px-2 text-2xl">
+                    {usage.total_tokens}
+                  </div>
+                  <div className="w-full text-xs">tokens</div>
+                </div>
+              )}
+              {usage.total_cost != 0 && (
+                <div className="flex flex-col text-center w-full">
+                  <div className="w-full px-2  text-2xl">
+                    {usage.total_cost.toFixed(3)}
+                  </div>
+                  <div className="w-full text-xs">cost</div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    ));
+    return (
+      <div className="inline-flex gap-3 flex-wrap">{usage && usageRows}</div>
+    );
+  };
+
   return (
     <div className="   relative">
       <div className="text-sm   ">
         {/* {profile && <RadarMetrics profileData={profile} />} */}
         {profile && <BarChartViewer data={profile} />}
+
+        <div>
+          <div className="mt-4 mb-2 font-semibold txt">LLM Costs</div>
+          {profile && profile.usage && <UsageViewer usage={profile.usage} />}
+        </div>
       </div>
     </div>
   );

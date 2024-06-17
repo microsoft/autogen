@@ -18,6 +18,7 @@ from .datamodel import (
 )
 from .utils import (
     clear_folder,
+    find_key_value,
     get_modified_files,
     get_skills_from_prompt,
     load_code_execution_config,
@@ -343,6 +344,40 @@ class AutoWorkflowManager:
             output = ""
         return output
 
+    def _get_agent_usage(self, agent: autogen.Agent):
+        final_usage = []
+        default_usage = {"total_cost": 0, "total_tokens": 0}
+        agent_usage = agent.client.total_usage_summary if agent.client else default_usage
+        agent_usage = {
+            "agent": agent.name,
+            "total_cost": find_key_value(agent_usage, "total_cost"),
+            "total_tokens": find_key_value(agent_usage, "total_tokens"),
+        }
+        final_usage.append(agent_usage)
+
+        print("agent type", type(agent))
+        if type(agent) == ExtendedGroupChatManager:
+            print("groupchat found, processing", len(agent.groupchat.agents))
+            for agent in agent.groupchat.agents:
+                agent_usage = agent.client.total_usage_summary if agent.client else default_usage or default_usage
+                agent_usage = {
+                    "agent": agent.name,
+                    "total_cost": find_key_value(agent_usage, "total_cost"),
+                    "total_tokens": find_key_value(agent_usage, "total_tokens"),
+                }
+                final_usage.append(agent_usage)
+        return final_usage
+
+    def _get_usage_summary(self):
+        sender_usage = self._get_agent_usage(self.sender)
+        receiver_usage = self._get_agent_usage(self.receiver)
+
+        all_usage = []
+        all_usage.extend(sender_usage)
+        all_usage.extend(receiver_usage)
+        # all_usage = [sender_usage, receiver_usage]
+        return all_usage
+
     def run(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> Message:
         """
         Initiates a chat between the sender and receiver agents with an initial message
@@ -359,6 +394,9 @@ class AutoWorkflowManager:
 
         output = self._generate_output(message, self.workflow.get("summary_method", "last"))
 
+        usage = self._get_usage_summary()
+        print("usage", usage)
+
         result_message = Message(
             content=output,
             role="assistant",
@@ -367,6 +405,7 @@ class AutoWorkflowManager:
                 "summary_method": self.workflow.get("summary_method", "last"),
                 "time": end_time - start_time,
                 "files": get_modified_files(start_time, end_time, source_dir=self.work_dir),
+                "usage": usage,
             },
         )
         return result_message
@@ -374,7 +413,7 @@ class AutoWorkflowManager:
 
 class SequentialWorkflowManager:
     """
-    WorkflowManager class to load agents from a provided configuration and run a chat between them.
+    WorkflowManager class to load agents from a provided configuration and run a chat between them sequentially.
     """
 
     def __init__(
