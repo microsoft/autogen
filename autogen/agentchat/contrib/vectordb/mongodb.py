@@ -30,6 +30,7 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         self.db = self.client[database_name]
         self.active_collection = None
+        self.active_index = None
         # This will get the model dimension size by computing the embeddings dimensions
         sentences = [
             "The weather is lovely today in paradise.",
@@ -102,6 +103,8 @@ class MongoDBAtlasVectorDB(VectorDB):
             else:
                 return self.active_collection
         else:
+            if collection_name not in self.db.list_collection_names():
+                raise ValueError(f"Collection {collection_name} does not exist.")
             return self.db[collection_name]
 
     def delete_collection(self, collection_name: str):
@@ -111,7 +114,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         Args:
             collection_name: str | The name of the collection.
         """
-        return self.db.drop_collection(collection_name)
+        return self.db[collection_name].drop()
 
     def insert_docs(self, docs: List[Document], collection_name: str = None, upsert: bool = False):
         """
@@ -160,8 +163,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             collection_name: str | The name of the collection. Default is None.
         """
         collection = self.get_collection(collection_name)
-        collection.delete_many({'id': ids})
-        return ids
+        return collection.delete_many({'id':{'$in': ids}})
 
     def get_docs_by_ids(self, ids: List[ItemID] = None, collection_name: str = None):
         """
@@ -203,6 +205,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             QueryResults | The query results. Each query result is a list of list of tuples containing the document and
                 the distance.
         """
+        results = []
         for query_text in queries:
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
@@ -228,8 +231,10 @@ class MongoDBAtlasVectorDB(VectorDB):
                 }]
             if distance_threshold >= 0:
                 pipeline.append({"$match": {"score": {"$lte": distance_threshold}}})
-            
-            results = list(search_collection.aggregate(pipeline))
-            return results
+            print("pipeline: ", pipeline)
+            for doc in list(search_collection.aggregate(pipeline)):
+                #  Each query result is a list of list of tuples containing the document and the distance.
+                results.append([(doc, doc["score"])])
+        return results
     
     

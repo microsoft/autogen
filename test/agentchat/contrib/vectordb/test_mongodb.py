@@ -34,7 +34,7 @@ def test_mongodb():
         connection_string=db_config["connection_string"],
     )
     collection_name = "test_collection"
-    collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
+    collection = db.create_collection(collection_name=collection_name, index_name='test_index', similarity='cosine', overwrite=True, get_or_create=True)
     assert collection.name == collection_name
 
     # test_delete_collection
@@ -44,12 +44,12 @@ def test_mongodb():
 
 
     # test more create collection
-    collection = db.create_collection(collection_name, overwrite=False, get_or_create=False)
+    collection = db.create_collection(collection_name=collection_name, index_name='test_index', similarity='cosine', overwrite=False, get_or_create=False)
     assert collection.name == collection_name
-    pytest.raises(ValueError, db.create_collection, collection_name, overwrite=False, get_or_create=False)
-    collection = db.create_collection(collection_name, overwrite=True, get_or_create=False)
+    pytest.raises(ValueError, db.create_collection, collection_name=collection_name, index_name='test_index', similarity='cosine', overwrite=False, get_or_create=False)
+    collection = db.create_collection(collection_name=collection_name, index_name='test_index', similarity='cosine', overwrite=True, get_or_create=False)
     assert collection.name == collection_name
-    collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
+    collection = db.create_collection(collection_name=collection_name, index_name='test_index', similarity='cosine', overwrite=False, get_or_create=True)
     assert collection.name == collection_name
 
     # test_get_collection
