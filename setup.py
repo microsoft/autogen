@@ -88,7 +88,7 @@ extra_require = {
     "jupyter-executor": jupyter_executor,
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
-    "swe-bench": ["sweagent", "swe-bench"],
+    "swe-bench": ["swebench"],
 }
 
 setuptools.setup(
