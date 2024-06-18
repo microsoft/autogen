@@ -273,6 +273,13 @@ class GeminiClient:
 
         return response_oai
     
+    # If str is not a json string return str as is
+    def _to_json(self, str) -> dict:
+        try:
+            return json.loads(str)
+        except ValueError:
+            return str
+    
     def _oai_content_to_gemini_content(self, message: Dict[str, Any]) -> List:
         """Convert content from OAI format to Gemini format"""
         rst = []
@@ -306,11 +313,11 @@ class GeminiClient:
             if self.use_vertexai:
                 rst.append(VertexAIPart.from_function_response(
                     name=message["name"],
-                    response={"result": json.loads(message["content"])}
+                    response={"result": self._to_json(message["content"])}
                 ))
             else:
                 rst.append(
-                    Part(function_response=FunctionResponse(name=message["name"], response={"result": json.loads(message["content"])}))
+                    Part(function_response=FunctionResponse(name=message["name"], response={"result": self._to_json(message["content"])}))
                 )
             return rst
 
@@ -413,10 +420,6 @@ class GeminiClient:
         rst = []
         curr_parts = []
         for i, message in enumerate(messages):
-            
-            print("MESSAGE 1")
-            print(message)
-
             # Since the tool call message does not have the "name" field, we need to find the corresponding tool message.
             if message["role"] == "tool":
                 message["name"] = [
@@ -434,8 +437,7 @@ class GeminiClient:
                             rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
                         elif len(curr_parts) == 1:
                             rst.append(VertexAIContent(parts=curr_parts, role=None if curr_parts[0].function_response else role))
-                        rst.append(VertexAIContent(parts=parts, role="user" if parts[0].function_response else role))
-                        rst.append(VertexAIContent(parts=self._oai_content_to_gemini_content("continue"), role="model"))
+                        rst.append(VertexAIContent(parts=parts, role="function" if parts[0].function_response else role))
                         curr_parts = []
                     else:
                         curr_parts += parts
@@ -445,8 +447,7 @@ class GeminiClient:
                             rst.append(Content(parts=self._concat_parts(curr_parts), role=prev_role))
                         elif len(curr_parts) == 1:
                             rst.append(Content(parts=curr_parts, role=None if curr_parts[0].function_response else role))
-                        rst.append(Content(parts=parts, role="user" if parts[0].function_response else role))
-                        rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="model"))
+                        rst.append(Content(parts=parts, role="function" if parts[0].function_response else role))
                         curr_parts = []
                     else:
                         curr_parts += parts
@@ -457,6 +458,13 @@ class GeminiClient:
                     else:
                         rst.append(Content(parts=self._concat_parts(curr_parts), role=prev_role))
                 curr_parts = parts
+            # If the last message is a function response, it should be proceeded by a message from model instead of user.
+            # So we will append a dummy message "continue" if the last message is a function response and the next message is from the user.
+            if(len(rst) > 1 and rst[-1].role == "function" and len(messages) > (i + 1) and messages[i + 1]["role"] in ["user", "system"]):
+                if self.use_vertexai:
+                    rst.append(VertexAIContent(parts=self._oai_content_to_gemini_content("continue"), role="model"))
+                else:
+                    rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="model"))
             prev_role = role
 
         # handle the last message
@@ -470,12 +478,11 @@ class GeminiClient:
         # 1. The messages should be interleaved between user and model.
         # 2. The last message must be from the user role.
         # We add a dummy message "continue" if the last role is not the user.
-        if rst[-1].role != "user":
+        if rst[-1].role != "user" and rst[-1].role != "function":
             if self.use_vertexai:
                 rst.append(VertexAIContent(parts=self._oai_content_to_gemini_content("continue"), role="user"))
             else:
                 rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="user"))
-
         return rst
     
     def _oai_tools_to_gemini_tools(self, tools: List[Dict[str, Any]]) -> List[Tool]:
