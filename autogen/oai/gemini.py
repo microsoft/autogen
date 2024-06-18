@@ -306,11 +306,11 @@ class GeminiClient:
             if self.use_vertexai:
                 rst.append(VertexAIPart.from_function_response(
                     name=message["name"],
-                    response=json.loads(message["content"])
+                    response={"result": json.loads(message["content"])}
                 ))
             else:
                 rst.append(
-                    Part(function_response=FunctionResponse(name=message["name"], response=json.loads(message["content"])))
+                    Part(function_response=FunctionResponse(name=message["name"], response={"result": json.loads(message["content"])}))
                 )
             return rst
 
@@ -413,6 +413,9 @@ class GeminiClient:
         rst = []
         curr_parts = []
         for i, message in enumerate(messages):
+            
+            print("MESSAGE 1")
+            print(message)
 
             # Since the tool call message does not have the "name" field, we need to find the corresponding tool message.
             if message["role"] == "tool":
