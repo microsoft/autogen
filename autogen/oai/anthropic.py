@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Tuple, Union
 from anthropic import Anthropic
 from anthropic import __version__ as anthropic_version
 from anthropic.types import Completion, Message
+from client_utils import validate_parameter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from typing_extensions import Annotated
@@ -73,59 +74,17 @@ class AnthropicClient:
         """Load the configuration for the Anthropic API client."""
         anthropic_params = {}
 
-        def validate_parameter(
-            param_name: str,
-            allowed_types: Tuple,
-            allow_None: bool,
-            default_value: Any,
-            numerical_bound: Tuple,
-            allowed_values: list,
-        ):
-            param_value = params.get(param_name, default_value)
-            warning = ""
-
-            if param_value is None and allow_None:
-                pass
-            elif not isinstance(param_value, allowed_types):
-                if isinstance(allowed_types, tuple):
-                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
-                else:
-                    formatted_types = f"{allowed_types.__name__}"
-                warning = f"must be of type {formatted_types}{' or None' if allow_None else ''}"
-            elif param_value is None and not allow_None:
-                warning = "cannot be None"
-            elif numerical_bound:
-                lower_bound, upper_bound = numerical_bound
-                if (lower_bound is not None and param_value < lower_bound) or (
-                    upper_bound is not None and param_value > upper_bound
-                ):
-                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
-            elif allowed_values:
-                if not (allow_None and param_value is None):
-                    if param_value not in allowed_values:
-                        warning = (
-                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_None else ''}"
-                        )
-
-            # If we failed any checks, warn and set to default value
-            if warning:
-                warnings.warn(
-                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
-                    UserWarning,
-                )
-                param_value = default_value
-
-            return param_value
-
         anthropic_params["model"] = params.get("model", None)
         assert anthropic_params["model"], "Please provide a `model` in the config_list to use the Anthropic API."
 
-        anthropic_params["temperature"] = validate_parameter("temperature", (float, int), False, 1.0, (0.0, 1.0), None)
-        anthropic_params["max_tokens"] = validate_parameter("max_tokens", int, False, 4096, (1, None), None)
-        anthropic_params["top_k"] = validate_parameter("top_k", int, True, None, (1, None), None)
-        anthropic_params["top_p"] = validate_parameter("top_p", (float, int), True, None, (0.0, 1.0), None)
-        anthropic_params["stop_sequences"] = validate_parameter("stop_sequences", list, True, None, None, None)
-        anthropic_params["stream"] = validate_parameter("stream", bool, False, False, None, None)
+        anthropic_params["temperature"] = validate_parameter(
+            params, "temperature", (float, int), False, 1.0, (0.0, 1.0), None
+        )
+        anthropic_params["max_tokens"] = validate_parameter(params, "max_tokens", int, False, 4096, (1, None), None)
+        anthropic_params["top_k"] = validate_parameter(params, "top_k", int, True, None, (1, None), None)
+        anthropic_params["top_p"] = validate_parameter(params, "top_p", (float, int), True, None, (0.0, 1.0), None)
+        anthropic_params["stop_sequences"] = validate_parameter(params, "stop_sequences", list, True, None, None, None)
+        anthropic_params["stream"] = validate_parameter(params, "stream", bool, False, False, None, None)
 
         if anthropic_params["stream"]:
             warnings.warn(
@@ -243,6 +202,7 @@ class AnthropicClient:
             ]
 
     def response_to_openai_message(self, response) -> ChatCompletionMessage:
+        """Convert the client response to OpenAI ChatCompletion Message"""
         dict_response = response.model_dump()
         return ChatCompletionMessage(
             content=None,
@@ -278,6 +238,7 @@ class AnthropicClient:
 
     @staticmethod
     def get_usage(response: Message) -> Dict:
+        """Get the usage of tokens and their cost information."""
         return {
             "prompt_tokens": response.usage.input_tokens if response.usage is not None else 0,
             "completion_tokens": response.usage.output_tokens if response.usage is not None else 0,
