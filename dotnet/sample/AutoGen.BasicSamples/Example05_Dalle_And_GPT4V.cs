@@ -93,7 +93,7 @@ The image is generated from prompt {prompt}
                 if (reply.GetContent() is string content && content.Contains("IMAGE_GENERATION"))
                 {
                     var imageUrl = content.Split("\n").Last();
-                    var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: reply.From);
+                    var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: reply.From, mimeType: "image/png");
 
                     Console.WriteLine($"download image from {imageUrl} to {imagePath}");
                     var httpClient = new HttpClient();

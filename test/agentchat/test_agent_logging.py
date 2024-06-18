@@ -44,7 +44,7 @@ if not skip_openai:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-3.5-turbo"],
+            "tags": ["gpt-3.5-turbo"],
         },
         file_location=KEY_LOC,
     )
