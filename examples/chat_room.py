@@ -72,7 +72,7 @@ Use the following JSON format to provide your thought on the latest message and 
 
         # Publish the response if needed.
         if respond is True or str(respond).lower().strip() == "true":
-            await self._publish_message(TextMessage(source=self.metadata["name"], content=str(response)))
+            await self.publish_message(TextMessage(source=self.metadata["name"], content=str(response)))
 
 
 class ChatRoomUserAgent(TextualUserAgent):  # type: ignore

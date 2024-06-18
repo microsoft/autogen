@@ -141,7 +141,7 @@ class GroupChatManager(TypeRoutedAgent):
 
         if speaker is not None:
             # Send the message to the selected speaker to ask it to publish a response.
-            await self._send_message(PublishNow(), speaker)
+            await self.send_message(PublishNow(), speaker)
 
     def save_state(self) -> Mapping[str, Any]:
         return {

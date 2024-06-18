@@ -30,7 +30,7 @@ class Outer(TypeRoutedAgent):  # type: ignore
 
     @message_handler()  # type: ignore
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:  # type: ignore
-        inner_response = self._send_message(message, self._inner)
+        inner_response = self.send_message(message, self._inner)
         inner_message = await inner_response
         assert isinstance(inner_message, MessageType)
         return MessageType(body=f"Outer: {inner_message.body}", sender=self.metadata["name"])

@@ -43,7 +43,7 @@ class NestingLongRunningAgent(TypeRoutedAgent):
     @message_handler
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
-        response = self._send_message(message, self._nested_agent, cancellation_token=cancellation_token)
+        response = self.send_message(message, self._nested_agent, cancellation_token=cancellation_token)
         try:
             val = await response
             assert isinstance(val, MessageType)

@@ -49,7 +49,7 @@ When an agent receives a message the runtime will invoke the agent's message han
 
 ### Direct Communication
 
-Direct communication is effectively an RPC call directly to another agent. When sending a direct message to another agent, the receiving agent can respond to the message with another message, or simply return `None`. To send a message to another agent, within a message handler use the {py:meth}`agnext.core.BaseAgent._send_message` method. Awaiting this call will return the response of the invoked agent. If the receiving agent raises an exception, this will be propagated back to the sending agent.
+Direct communication is effectively an RPC call directly to another agent. When sending a direct message to another agent, the receiving agent can respond to the message with another message, or simply return `None`. To send a message to another agent, within a message handler use the {py:meth}`agnext.core.BaseAgent.send_message` method. Awaiting this call will return the response of the invoked agent. If the receiving agent raises an exception, this will be propagated back to the sending agent.
 
 To send a message to an agent outside of agent handling a message the message should be sent via the runtime with the {py:meth}`agnext.core.AgentRuntime.send_message` method. This is often how an application might "start" a workflow or conversation.
 
@@ -57,7 +57,7 @@ To send a message to an agent outside of agent handling a message the message sh
 
 As part of the agent's implementation it must advertise the message types that it would like to receive when published ({py:attr}`agnext.core.Agent.subscriptions`). If one of these messages is published, the agent's message handler will be invoked. The key difference between direct and broadcast communication is that broadcast communication is not a request/response pattern. When an agent publishes a message it is one way, it is not expecting a response from any other agent. In fact, they cannot respond to the message.
 
-To publish a message to all agents, use the {py:meth}`agnext.core.BaseAgent._publish_message` method. This call must still be awaited to allow the runtime to deliver the message to all agents, but it will always return `None`. If an agent raises an exception while handling a published message, this will be logged but will not be propagated back to the publishing agent.
+To publish a message to all agents, use the {py:meth}`agnext.core.BaseAgent.publish_message` method. This call must still be awaited to allow the runtime to deliver the message to all agents, but it will always return `None`. If an agent raises an exception while handling a published message, this will be logged but will not be propagated back to the publishing agent.
 
 To publish a message to all agents outside of an agent handling a message, the message should be published via the runtime with the {py:meth}`agnext.core.AgentRuntime.publish_message` method.
 

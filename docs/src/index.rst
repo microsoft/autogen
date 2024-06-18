@@ -29,6 +29,7 @@ common uses, such as chat completion agents, but also allows for fully custom ag
     core-concepts/tools
     core-concepts/cancellation
     core-concepts/logging
+    core-concepts/namespace
 
 .. toctree::
     :caption: Guides

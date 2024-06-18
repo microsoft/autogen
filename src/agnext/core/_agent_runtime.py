@@ -60,7 +60,31 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
         *,
         valid_namespaces: Sequence[str] | Type[AllNamespaces] = AllNamespaces,
-    ) -> None: ...
+    ) -> None:
+        """Register an agent factory with the runtime associated with a specific name. The name must be unique.
+
+        Args:
+            name (str): The name of the type agent this factory creates.
+            agent_factory (Callable[[], T] | Callable[[AgentRuntime, AgentId], T]): The factory that creates the agent.
+            valid_namespaces (Sequence[str] | Type[AllNamespaces], optional): Valid namespaces for this type. Defaults to AllNamespaces.
+
+
+        Example:
+            .. code-block:: python
+
+                runtime.register(
+                    "chat_agent",
+                    lambda: ChatCompletionAgent(
+                        description="A generic chat agent.",
+                        system_messages=[SystemMessage("You are a helpful assistant")],
+                        model_client=OpenAI(model="gpt-4o"),
+                        memory=BufferedChatMemory(buffer_size=10),
+                    ),
+                )
+
+        """
+
+        ...
 
     def get(self, name: str, *, namespace: str = "default") -> AgentId: ...
     def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy: ...

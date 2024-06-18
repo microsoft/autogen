@@ -54,5 +54,4 @@ html_theme_options = {
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
-    "private-members": True
 }

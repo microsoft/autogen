@@ -38,7 +38,7 @@ class MyAgent(TypeRoutedAgent):
         self, message: TextMessage | MultiModalMessage, cancellation_token: CancellationToken
     ) -> None:
         self._received_count += 1
-        await self._publish_message(
+        await self.publish_message(
             TextMessage(
                 content=f"I received a message from {message.source}. Message received #{self._received_count}",
                 source=self.metadata["name"],

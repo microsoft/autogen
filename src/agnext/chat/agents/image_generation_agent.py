@@ -41,7 +41,7 @@ class ImageGenerationAgent(TypeRoutedAgent):
     @message_handler
     async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
         response = await self._generate_response(cancellation_token)
-        self._publish_message(response)
+        self.publish_message(response)
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:
         messages = await self._memory.get_messages()

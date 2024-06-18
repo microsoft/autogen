@@ -60,7 +60,7 @@ class BaseAgent(ABC, Agent):
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...
 
     # Returns the response of the message
-    def _send_message(
+    def send_message(
         self,
         message: Any,
         recipient: AgentId,
@@ -82,7 +82,7 @@ class BaseAgent(ABC, Agent):
         cancellation_token.link_future(future)
         return future
 
-    def _publish_message(
+    def publish_message(
         self,
         message: Any,
         *,

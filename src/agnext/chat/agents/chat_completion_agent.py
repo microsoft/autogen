@@ -114,7 +114,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         response = await self._generate_response(message.response_format, cancellation_token)
 
         # Publish the response.
-        await self._publish_message(response)
+        await self.publish_message(response)
 
     @message_handler()
     async def on_tool_call_message(
@@ -190,7 +190,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             and all(isinstance(x, FunctionCall) for x in response.content)
         ):
             # Send a function call message to itself.
-            response = await self._send_message(
+            response = await self.send_message(
                 message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
                 recipient=self.id,
                 cancellation_token=cancellation_token,
@@ -236,7 +236,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             approval_request = ToolApprovalRequest(
                 tool_call=FunctionCall(id=call_id, arguments=json.dumps(args), name=name)
             )
-            approval_response = await self._send_message(
+            approval_response = await self.send_message(
                 message=approval_request,
                 recipient=self._tool_approver,
                 cancellation_token=cancellation_token,
