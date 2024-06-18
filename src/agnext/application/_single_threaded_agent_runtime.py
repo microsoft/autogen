@@ -272,7 +272,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
                 if self._before_send is not None:
-                    temp_message = await self._before_send.on_send(message, sender=sender, recipient=recipient)
+                    try:
+                        temp_message = await self._before_send.on_send(message, sender=sender, recipient=recipient)
+                    except BaseException as e:
+                        future.set_exception(e)
+                        return
                     if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                         future.set_exception(MessageDroppedException())
                         return
@@ -285,7 +289,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 sender=sender,
             ):
                 if self._before_send is not None:
-                    temp_message = await self._before_send.on_publish(message, sender=sender)
+                    try:
+                        temp_message = await self._before_send.on_publish(message, sender=sender)
+                    except BaseException as e:
+                        # TODO: we should raise the intervention exception to the publisher.
+                        logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
+                        return
                     if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                         # TODO log message dropped
                         return
@@ -295,7 +304,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 asyncio.create_task(self._process_publish(message_envelope))
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
                 if self._before_send is not None:
-                    temp_message = await self._before_send.on_response(message, sender=sender, recipient=recipient)
+                    try:
+                        temp_message = await self._before_send.on_response(message, sender=sender, recipient=recipient)
+                    except BaseException as e:
+                        # TODO: should we raise the exception to sender of the response instead?
+                        future.set_exception(e)
+                        return
                     if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                         future.set_exception(MessageDroppedException())
                         return

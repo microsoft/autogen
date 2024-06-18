@@ -35,13 +35,13 @@ async def test_intervention_count_messages() -> None:
             return message
 
     handler = DebugInterventionHandler()
-    router = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(before_send=handler)
 
-    long_running = LoopbackAgent("name", router)
-    response = router.send_message(MessageType(), recipient=long_running)
+    long_running = LoopbackAgent("name", runtime)
+    response = runtime.send_message(MessageType(), recipient=long_running)
 
     while not response.done():
-        await router.process_next()
+        await runtime.process_next()
 
     assert handler.num_messages == 1
     assert long_running.num_calls == 1
@@ -54,13 +54,13 @@ async def test_intervention_drop_send() -> None:
             return DropMessage # type: ignore
 
     handler = DropSendInterventionHandler()
-    router = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(before_send=handler)
 
-    long_running = LoopbackAgent("name", router)
-    response = router.send_message(MessageType(), recipient=long_running)
+    long_running = LoopbackAgent("name", runtime)
+    response = runtime.send_message(MessageType(), recipient=long_running)
 
     while not response.done():
-        await router.process_next()
+        await runtime.process_next()
 
     with pytest.raises(MessageDroppedException):
         await response
@@ -76,15 +76,63 @@ async def test_intervention_drop_response() -> None:
             return DropMessage # type: ignore
 
     handler = DropResponseInterventionHandler()
-    router = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(before_send=handler)
 
-    long_running = LoopbackAgent("name", router)
-    response = router.send_message(MessageType(), recipient=long_running)
+    long_running = LoopbackAgent("name", runtime)
+    response = runtime.send_message(MessageType(), recipient=long_running)
 
     while not response.done():
-        await router.process_next()
+        await runtime.process_next()
 
     with pytest.raises(MessageDroppedException):
+        await response
+
+    assert long_running.num_calls == 1
+
+@pytest.mark.asyncio
+async def test_intervention_raise_exception_on_send() -> None:
+
+    class InterventionException(Exception):
+        pass
+
+    class ExceptionInterventionHandler(DefaultInterventionHandler): # type: ignore
+        async def on_send(self, message: MessageType, *, sender: Agent | None, recipient: Agent) -> MessageType | type[DropMessage]: # type: ignore
+            raise InterventionException
+
+    handler = ExceptionInterventionHandler()
+    runtime = SingleThreadedAgentRuntime(before_send=handler)
+
+    long_running = LoopbackAgent("name", runtime)
+    response = runtime.send_message(MessageType(), recipient=long_running)
+
+    while not response.done():
+        await runtime.process_next()
+
+    with pytest.raises(InterventionException):
+        await response
+
+    assert long_running.num_calls == 0
+
+@pytest.mark.asyncio
+async def test_intervention_raise_exception_on_respond() -> None:
+
+    class InterventionException(Exception):
+        pass
+
+    class ExceptionInterventionHandler(DefaultInterventionHandler): # type: ignore
+        async def on_response(self, message: MessageType, *, sender: Agent, recipient: Agent | None) -> MessageType | type[DropMessage]: # type: ignore
+            raise InterventionException
+
+    handler = ExceptionInterventionHandler()
+    runtime = SingleThreadedAgentRuntime(before_send=handler)
+
+    long_running = LoopbackAgent("name", runtime)
+    response = runtime.send_message(MessageType(), recipient=long_running)
+
+    while not response.done():
+        await runtime.process_next()
+
+    with pytest.raises(InterventionException):
         await response
 
     assert long_running.num_calls == 1
