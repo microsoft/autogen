@@ -150,46 +150,50 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    black = ChatCompletionAgent(
-        name="PlayerBlack",
-        description="Player playing black.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                content="You are a chess player and you play as black. "
-                "Use get_legal_moves() to get list of legal moves. "
-                "Use get_board() to get the current board state. "
-                "Think about your strategy and call make_move(thinking, move) to make a move."
-            ),
-        ],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
-        tools=black_tools,
+    black = runtime.register_and_get(
+        "PlayerBlack",
+        lambda: ChatCompletionAgent(
+            description="Player playing black.",
+            system_messages=[
+                SystemMessage(
+                    content="You are a chess player and you play as black. "
+                    "Use get_legal_moves() to get list of legal moves. "
+                    "Use get_board() to get the current board state. "
+                    "Think about your strategy and call make_move(thinking, move) to make a move."
+                ),
+            ],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+            tools=black_tools,
+        ),
     )
-    white = ChatCompletionAgent(
-        name="PlayerWhite",
-        description="Player playing white.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                content="You are a chess player and you play as white. "
-                "Use get_legal_moves() to get list of legal moves. "
-                "Use get_board() to get the current board state. "
-                "Think about your strategy and call make_move(thinking, move) to make a move."
-            ),
-        ],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
-        tools=white_tools,
+    white = runtime.register_and_get(
+        "PlayerWhite",
+        lambda: ChatCompletionAgent(
+            description="Player playing white.",
+            system_messages=[
+                SystemMessage(
+                    content="You are a chess player and you play as white. "
+                    "Use get_legal_moves() to get list of legal moves. "
+                    "Use get_board() to get the current board state. "
+                    "Think about your strategy and call make_move(thinking, move) to make a move."
+                ),
+            ],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+            tools=white_tools,
+        ),
     )
     # Create a group chat manager for the chess game to orchestrate a turn-based
     # conversation between the two agents.
-    _ = GroupChatManager(
-        name="ChessGame",
-        description="A chess game between two agents.",
-        runtime=runtime,
-        memory=BufferedChatMemory(buffer_size=10),
-        participants=[white.id, black.id],  # white goes first
+    runtime.register(
+        "ChessGame",
+        lambda: GroupChatManager(
+            description="A chess game between two agents.",
+            runtime=runtime,
+            memory=BufferedChatMemory(buffer_size=10),
+            participants=[white, black],  # white goes first
+        ),
     )
 
 
@@ -197,7 +201,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     chess_game(runtime)
     # Publish an initial message to trigger the group chat manager to start orchestration.
-    runtime.publish_message(TextMessage(content="Game started.", source="System"))
+    runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
     while True:
         await runtime.process_next()
         await asyncio.sleep(1)

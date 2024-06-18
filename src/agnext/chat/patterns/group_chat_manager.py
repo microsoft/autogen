@@ -41,7 +41,6 @@ class GroupChatManager(TypeRoutedAgent):
 
     def __init__(
         self,
-        name: str,
         description: str,
         runtime: AgentRuntime,
         participants: List[AgentId],
@@ -51,7 +50,7 @@ class GroupChatManager(TypeRoutedAgent):
         transitions: Mapping[AgentId, List[AgentId]] = {},
         on_message_received: Callable[[TextMessage | MultiModalMessage], None] | None = None,
     ):
-        super().__init__(name, description, runtime)
+        super().__init__(description)
         self._memory = memory
         self._client = model_client
         self._participants = participants

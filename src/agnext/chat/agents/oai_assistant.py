@@ -5,7 +5,7 @@ from openai import AsyncAssistantEventHandler
 from openai.types.beta import AssistantResponseFormatParam
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentRuntime, CancellationToken
+from ...core import CancellationToken
 from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
 
@@ -28,15 +28,13 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     def __init__(
         self,
-        name: str,
         description: str,
-        runtime: AgentRuntime,
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
         assistant_event_handler_factory: Callable[[], AsyncAssistantEventHandler] | None = None,
     ) -> None:
-        super().__init__(name, description, runtime)
+        super().__init__(description)
         self._client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id

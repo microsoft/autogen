@@ -1,22 +1,25 @@
-from asyncio import Future
-from typing import Any, Mapping
+from __future__ import annotations
 
-from ._agent import Agent
+from asyncio import Future
+from typing import TYPE_CHECKING, Any, Mapping
+
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
-from ._agent_runtime import AgentRuntime
 from ._cancellation_token import CancellationToken
+
+if TYPE_CHECKING:
+    from ._agent_runtime import AgentRuntime
 
 
 class AgentProxy:
-    def __init__(self, agent: Agent | AgentId, runtime: AgentRuntime):
+    def __init__(self, agent: AgentId, runtime: AgentRuntime):
         self._agent = agent
         self._runtime = runtime
 
     @property
     def id(self) -> AgentId:
         """Target agent for this proxy"""
-        raise NotImplementedError
+        return self._agent
 
     @property
     def metadata(self) -> AgentMetadata:
@@ -27,7 +30,7 @@ class AgentProxy:
         self,
         message: Any,
         *,
-        sender: Agent,
+        sender: AgentId,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]:
         return self._runtime.send_message(

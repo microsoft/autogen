@@ -2,7 +2,7 @@ import json
 from typing import Any, Sequence, Tuple
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentId, AgentProxy, AgentRuntime, CancellationToken
+from ...core import AgentId, AgentRuntime, CancellationToken
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
 __all__ = ["OrchestratorChat"]
@@ -11,7 +11,6 @@ __all__ = ["OrchestratorChat"]
 class OrchestratorChat(TypeRoutedAgent):
     def __init__(
         self,
-        name: str,
         description: str,
         runtime: AgentRuntime,
         orchestrator: AgentId,
@@ -21,21 +20,17 @@ class OrchestratorChat(TypeRoutedAgent):
         max_stalled_turns_before_retry: int = 2,
         max_retry_attempts: int = 1,
     ) -> None:
-        super().__init__(name, description, runtime)
-        self._orchestrator = AgentProxy(orchestrator, runtime)
-        self._planner = AgentProxy(planner, runtime)
-        self._specialists = [AgentProxy(x, runtime) for x in specialists]
+        super().__init__(description)
+        self._orchestrator = orchestrator
+        self._planner = planner
+        self._specialists = specialists
         self._max_turns = max_turns
         self._max_stalled_turns_before_retry = max_stalled_turns_before_retry
         self._max_retry_attempts_before_educated_guess = max_retry_attempts
 
     @property
-    def children(self) -> Sequence[str]:
-        return (
-            [agent.metadata["name"] for agent in self._specialists]
-            + [self._orchestrator.metadata["name"]]
-            + [self._planner.metadata["name"]]
-        )
+    def children(self) -> Sequence[AgentId]:
+        return list(self._specialists) + [self._orchestrator, self._planner]
 
     @message_handler()
     async def on_text_message(
@@ -55,7 +50,7 @@ class OrchestratorChat(TypeRoutedAgent):
         while total_turns < self._max_turns:
             # Reset all agents.
             for agent in [*self._specialists, self._orchestrator]:
-                await self._send_message(Reset(), agent.id)
+                await self._send_message(Reset(), agent)
 
             # Create the task specs.
             task_specs = f"""
@@ -77,7 +72,7 @@ Some additional points to consider:
 
             # Send the task specs to the orchestrator and specialists.
             for agent in [*self._specialists, self._orchestrator]:
-                await self._send_message(TextMessage(content=task_specs, source=self.metadata["name"]), agent.id)
+                await self._send_message(TextMessage(content=task_specs, source=self.metadata["name"]), agent)
 
             # Inner loop.
             stalled_turns = 0
@@ -133,19 +128,17 @@ Some additional points to consider:
                 for agent in [*self._specialists, self._orchestrator]:
                     _ = await self._send_message(
                         TextMessage(content=subtask, source=self.metadata["name"]),
-                        agent.id,
+                        agent,
                     )
 
                 # Find the speaker.
                 try:
-                    speaker = next(
-                        agent for agent in self._specialists if agent.metadata["name"] == data["next_speaker"]["answer"]
-                    )
+                    speaker = next(agent for agent in self._specialists if agent.name == data["next_speaker"]["answer"])
                 except StopIteration as e:
                     raise ValueError(f"Invalid next speaker: {data['next_speaker']['answer']}") from e
 
                 # Ask speaker to speak.
-                speaker_response = await self._send_message(RespondNow(), speaker.id)
+                speaker_response = await self._send_message(RespondNow(), speaker)
                 assert speaker_response is not None
 
                 # Update all other agents with the speaker's response.
@@ -155,7 +148,7 @@ Some additional points to consider:
                             content=speaker_response.content,
                             source=speaker_response.source,
                         ),
-                        agent.id,
+                        agent,
                     )
 
                 # Increment the total turns.
@@ -168,11 +161,13 @@ Some additional points to consider:
 
     async def _prepare_task(self, task: str, sender: str) -> Tuple[str, str, str, str]:
         # Reset planner.
-        await self._send_message(Reset(), self._planner.id)
+        await self._send_message(Reset(), self._planner)
 
         # A reusable description of the team.
-        team = "\n".join([agent.metadata["name"] + ": " + agent.metadata["description"] for agent in self._specialists])
-        names = ", ".join([agent.metadata["name"] for agent in self._specialists])
+        team = "\n".join(
+            [agent.name + ": " + self.runtime.agent_metadata(agent)["description"] for agent in self._specialists]
+        )
+        names = ", ".join([agent.name for agent in self._specialists])
 
         # A place to store relevant facts.
         facts = ""
@@ -203,8 +198,8 @@ When answering this survey, keep in mind that "facts" will typically be specific
 """.strip()
 
         # Ask the planner to obtain prior knowledge about facts.
-        await self._send_message(TextMessage(content=closed_book_prompt, source=sender), self._planner.id)
-        facts_response = await self._send_message(RespondNow(), self._planner.id)
+        await self._send_message(TextMessage(content=closed_book_prompt, source=sender), self._planner)
+        facts_response = await self._send_message(RespondNow(), self._planner)
 
         facts = str(facts_response.content)
 
@@ -216,8 +211,8 @@ When answering this survey, keep in mind that "facts" will typically be specific
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
 
         # Send second messag eto the planner.
-        await self._send_message(TextMessage(content=plan_prompt, source=sender), self._planner.id)
-        plan_response = await self._send_message(RespondNow(), self._planner.id)
+        await self._send_message(TextMessage(content=plan_prompt, source=sender), self._planner)
+        plan_response = await self._send_message(RespondNow(), self._planner)
         plan = str(plan_response.content)
 
         return team, names, facts, plan
@@ -269,11 +264,11 @@ Please output an answer in pure JSON format according to the following schema. T
         request = step_prompt
         while True:
             # Send a message to the orchestrator.
-            await self._send_message(TextMessage(content=request, source=sender), self._orchestrator.id)
+            await self._send_message(TextMessage(content=request, source=sender), self._orchestrator)
             # Request a response.
             step_response = await self._send_message(
                 RespondNow(response_format=ResponseFormat.json_object),
-                self._orchestrator.id,
+                self._orchestrator,
             )
             # TODO: use typed dictionary.
             try:
@@ -332,9 +327,9 @@ Please output an answer in pure JSON format according to the following schema. T
 {facts}
 """.strip()
         # Send a message to the orchestrator.
-        await self._send_message(TextMessage(content=new_facts_prompt, source=sender), self._orchestrator.id)
+        await self._send_message(TextMessage(content=new_facts_prompt, source=sender), self._orchestrator)
         # Request a response.
-        new_facts_response = await self._send_message(RespondNow(), self._orchestrator.id)
+        new_facts_response = await self._send_message(RespondNow(), self._orchestrator)
         return str(new_facts_response.content)
 
     async def _educated_guess(self, facts: str, sender: str) -> Any:
@@ -359,12 +354,12 @@ Please output an answer in pure JSON format according to the following schema. T
             # Send a message to the orchestrator.
             await self._send_message(
                 TextMessage(content=request, source=sender),
-                self._orchestrator.id,
+                self._orchestrator,
             )
             # Request a response.
             response = await self._send_message(
                 RespondNow(response_format=ResponseFormat.json_object),
-                self._orchestrator.id,
+                self._orchestrator,
             )
             try:
                 result = json.loads(str(response.content))
@@ -391,7 +386,7 @@ Team membership:
 {team}
 """.strip()
         # Send a message to the orchestrator.
-        await self._send_message(TextMessage(content=new_plan_prompt, source=sender), self._orchestrator.id)
+        await self._send_message(TextMessage(content=new_plan_prompt, source=sender), self._orchestrator)
         # Request a response.
-        new_plan_response = await self._send_message(RespondNow(), self._orchestrator.id)
+        new_plan_response = await self._send_message(RespondNow(), self._orchestrator)
         return str(new_plan_response.content)

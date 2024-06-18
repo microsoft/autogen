@@ -130,7 +130,9 @@ class TextualChatApp(App):  # type: ignore
         # Remove all typing messages.
         chat_messages.query("#typing").remove()
         # Publish the user message to the runtime.
-        await self._runtime.publish_message(TextMessage(source=self._user_name, content=user_input))
+        await self._runtime.publish_message(
+            TextMessage(source=self._user_name, content=user_input), namespace="default"
+        )
 
     async def post_runtime_message(self, message: TextMessage | MultiModalMessage) -> None:  # type: ignore
         """Post a message from the agent runtime to the message list."""
@@ -151,8 +153,8 @@ class TextualChatApp(App):  # type: ignore
 class TextualUserAgent(TypeRoutedAgent):  # type: ignore
     """An agent that is used to receive messages from the runtime."""
 
-    def __init__(self, name: str, description: str, runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
-        super().__init__(name, description, runtime)
+    def __init__(self, description: str, app: TextualChatApp) -> None:  # type: ignore
+        super().__init__(description)
         self._app = app
 
     @message_handler  # type: ignore

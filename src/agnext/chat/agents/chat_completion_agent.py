@@ -14,7 +14,7 @@ from ...components.models import (
     SystemMessage,
 )
 from ...components.tools import Tool
-from ...core import Agent, AgentRuntime, CancellationToken
+from ...core import AgentId, CancellationToken
 from ..memory import ChatMemory
 from ..types import (
     FunctionCallMessage,
@@ -59,16 +59,14 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
     def __init__(
         self,
-        name: str,
         description: str,
-        runtime: AgentRuntime,
         system_messages: List[SystemMessage],
         memory: ChatMemory,
         model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
-        tool_approver: Agent | None = None,
+        tool_approver: AgentId | None = None,
     ) -> None:
-        super().__init__(name, description, runtime)
+        super().__init__(description)
         self._description = description
         self._system_messages = system_messages
         self._client = model_client
@@ -240,7 +238,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
             )
             approval_response = await self._send_message(
                 message=approval_request,
-                recipient=self._tool_approver.id,
+                recipient=self._tool_approver,
                 cancellation_token=cancellation_token,
             )
             if not isinstance(approval_response, ToolApprovalResponse):

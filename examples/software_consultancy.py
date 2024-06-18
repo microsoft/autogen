@@ -103,140 +103,149 @@ async def create_image(
 
 
 def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
-    user_agent = TextualUserAgent(
-        name="Customer",
-        description="A customer looking for help.",
-        runtime=runtime,
-        app=app,
+    user_agent = runtime.register_and_get(
+        "Customer",
+        lambda: TextualUserAgent(
+            description="A customer looking for help.",
+            app=app,
+        ),
     )
-    developer = ChatCompletionAgent(
-        name="Developer",
-        description="A Python software developer.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "Your are a Python developer. \n"
-                "You can read, write, and execute code. \n"
-                "You can browse files and directories. \n"
-                "You can also browse the web for documentation. \n"
-                "You are entering a work session with the customer, product manager, UX designer, and illustrator. \n"
-                "When you are given a task, you should immediately start working on it. \n"
-                "Be concise and deliver now."
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        tools=[
-            FunctionTool(
-                write_file,
-                name="write_file",
-                description="Write code to a file.",
-            ),
-            FunctionTool(
-                read_file,
-                name="read_file",
-                description="Read code from a file.",
-            ),
-            FunctionTool(
-                execute_command,
-                name="execute_command",
-                description="Execute a unix shell command.",
-            ),
-            FunctionTool(list_files, name="list_files", description="List files in a directory."),
-            FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
-        ],
-        tool_approver=user_agent,
+    developer = runtime.register_and_get(
+        "Developer",
+        lambda: ChatCompletionAgent(
+            description="A Python software developer.",
+            system_messages=[
+                SystemMessage(
+                    "Your are a Python developer. \n"
+                    "You can read, write, and execute code. \n"
+                    "You can browse files and directories. \n"
+                    "You can also browse the web for documentation. \n"
+                    "You are entering a work session with the customer, product manager, UX designer, and illustrator. \n"
+                    "When you are given a task, you should immediately start working on it. \n"
+                    "Be concise and deliver now."
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
+            tools=[
+                FunctionTool(
+                    write_file,
+                    name="write_file",
+                    description="Write code to a file.",
+                ),
+                FunctionTool(
+                    read_file,
+                    name="read_file",
+                    description="Read code from a file.",
+                ),
+                FunctionTool(
+                    execute_command,
+                    name="execute_command",
+                    description="Execute a unix shell command.",
+                ),
+                FunctionTool(list_files, name="list_files", description="List files in a directory."),
+                FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
+            ],
+            tool_approver=user_agent,
+        ),
     )
-    product_manager = ChatCompletionAgent(
-        name="ProductManager",
-        description="A product manager. "
-        "Responsible for interfacing with the customer, planning and managing the project. ",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are a product manager. \n"
-                "You can browse files and directories. \n"
-                "You are entering a work session with the customer, developer, UX designer, and illustrator. \n"
-                "Keep the project on track. Don't hire any more people. \n"
-                "When a milestone is reached, stop and ask for customer feedback. Make sure the customer is satisfied. \n"
-                "Be VERY concise."
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        tools=[
-            FunctionTool(
-                read_file,
-                name="read_file",
-                description="Read from a file.",
-            ),
-            FunctionTool(list_files, name="list_files", description="List files in a directory."),
-            FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
-        ],
-        tool_approver=user_agent,
+
+    product_manager = runtime.register_and_get(
+        "ProductManager",
+        lambda: ChatCompletionAgent(
+            description="A product manager. "
+            "Responsible for interfacing with the customer, planning and managing the project. ",
+            system_messages=[
+                SystemMessage(
+                    "You are a product manager. \n"
+                    "You can browse files and directories. \n"
+                    "You are entering a work session with the customer, developer, UX designer, and illustrator. \n"
+                    "Keep the project on track. Don't hire any more people. \n"
+                    "When a milestone is reached, stop and ask for customer feedback. Make sure the customer is satisfied. \n"
+                    "Be VERY concise."
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
+            tools=[
+                FunctionTool(
+                    read_file,
+                    name="read_file",
+                    description="Read from a file.",
+                ),
+                FunctionTool(list_files, name="list_files", description="List files in a directory."),
+                FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
+            ],
+            tool_approver=user_agent,
+        ),
     )
-    ux_designer = ChatCompletionAgent(
-        name="UserExperienceDesigner",
-        description="A user experience designer for creating user interfaces.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are a user experience designer. \n"
-                "You can create user interfaces from descriptions. \n"
-                "You can browse files and directories. \n"
-                "You are entering a work session with the customer, developer, product manager, and illustrator. \n"
-                "When you are given a task, you should immediately start working on it. \n"
-                "Be concise and deliver now."
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        tools=[
-            FunctionTool(
-                write_file,
-                name="write_file",
-                description="Write code to a file.",
-            ),
-            FunctionTool(
-                read_file,
-                name="read_file",
-                description="Read code from a file.",
-            ),
-            FunctionTool(list_files, name="list_files", description="List files in a directory."),
-        ],
-        tool_approver=user_agent,
+    ux_designer = runtime.register_and_get(
+        "UserExperienceDesigner",
+        lambda: ChatCompletionAgent(
+            description="A user experience designer for creating user interfaces.",
+            system_messages=[
+                SystemMessage(
+                    "You are a user experience designer. \n"
+                    "You can create user interfaces from descriptions. \n"
+                    "You can browse files and directories. \n"
+                    "You are entering a work session with the customer, developer, product manager, and illustrator. \n"
+                    "When you are given a task, you should immediately start working on it. \n"
+                    "Be concise and deliver now."
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
+            tools=[
+                FunctionTool(
+                    write_file,
+                    name="write_file",
+                    description="Write code to a file.",
+                ),
+                FunctionTool(
+                    read_file,
+                    name="read_file",
+                    description="Read code from a file.",
+                ),
+                FunctionTool(list_files, name="list_files", description="List files in a directory."),
+            ],
+            tool_approver=user_agent,
+        ),
     )
-    illustrator = ChatCompletionAgent(
-        name="Illustrator",
-        description="An illustrator for creating images.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are an illustrator. "
-                "You can create images from descriptions. "
-                "You are entering a work session with the customer, developer, product manager, and UX designer. \n"
-                "When you are given a task, you should immediately start working on it. \n"
-                "Be concise and deliver now."
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        tools=[
-            FunctionTool(
-                create_image,
-                name="create_image",
-                description="Create an image from a description.",
-            ),
-        ],
-        tool_approver=user_agent,
+
+    illustrator = runtime.register_and_get(
+        "Illustrator",
+        lambda: ChatCompletionAgent(
+            description="An illustrator for creating images.",
+            system_messages=[
+                SystemMessage(
+                    "You are an illustrator. "
+                    "You can create images from descriptions. "
+                    "You are entering a work session with the customer, developer, product manager, and UX designer. \n"
+                    "When you are given a task, you should immediately start working on it. \n"
+                    "Be concise and deliver now."
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
+            tools=[
+                FunctionTool(
+                    create_image,
+                    name="create_image",
+                    description="Create an image from a description.",
+                ),
+            ],
+            tool_approver=user_agent,
+        ),
     )
-    _ = GroupChatManager(
-        name="GroupChatManager",
-        description="A group chat manager.",
-        runtime=runtime,
-        memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
-        participants=[developer.id, product_manager.id, ux_designer.id, illustrator.id, user_agent.id],
+    runtime.register(
+        "GroupChatManager",
+        lambda: GroupChatManager(
+            description="A group chat manager.",
+            runtime=runtime,
+            memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+            participants=[developer, product_manager, ux_designer, illustrator, user_agent],
+        ),
     )
     art = r"""
 +----------------------------------------------------------+

@@ -29,14 +29,15 @@ from agnext.core import AgentRuntime, CancellationToken
 
 
 class MyAgent(TypeRoutedAgent):
-    def __init__(self, name: str, runtime: AgentRuntime):
-        super().__init__(name, "I am a demo agent", runtime)
+    def __init__(self):
+        super().__init__(description="I am a demo agent")
         self._received_count = 0
 
     @message_handler()
     async def on_text_message(
         self, message: TextMessage | MultiModalMessage, cancellation_token: CancellationToken
     ) -> None:
+        self._received_count += 1
         await self._publish_message(
             TextMessage(
                 content=f"I received a message from {message.source}. Message received #{self._received_count}",

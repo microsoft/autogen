@@ -17,51 +17,56 @@ from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
 def coder_reviewer(runtime: AgentRuntime, app: TextualChatApp) -> None:
-    _ = TextualUserAgent(
-        name="Human",
-        description="A human user that provides a problem statement.",
-        runtime=runtime,
-        app=app,
+    runtime.register(
+        "Human",
+        lambda: TextualUserAgent(
+            description="A human user that provides a problem statement.",
+            app=app,
+        ),
     )
-    coder = ChatCompletionAgent(
-        name="Coder",
-        description="An agent that writes code",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are a coder. You can write code to solve problems.\n"
-                "Work with the reviewer to improve your code."
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=BufferedChatMemory(buffer_size=10),
+    coder = runtime.register_and_get_proxy(
+        "Coder",
+        lambda: ChatCompletionAgent(
+            description="An agent that writes code",
+            system_messages=[
+                SystemMessage(
+                    "You are a coder. You can write code to solve problems.\n"
+                    "Work with the reviewer to improve your code."
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=BufferedChatMemory(buffer_size=10),
+        ),
     )
-    reviewer = ChatCompletionAgent(
-        name="Reviewer",
-        description="An agent that reviews code",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are a code reviewer. You focus on correctness, efficiency and safety of the code.\n"
-                "Respond using the following format:\n"
-                "Code Review:\n"
-                "Correctness: <Your comments>\n"
-                "Efficiency: <Your comments>\n"
-                "Safety: <Your comments>\n"
-                "Approval: <APPROVE or REVISE>\n"
-                "Suggested Changes: <Your comments>"
-            )
-        ],
-        model_client=OpenAI(model="gpt-4-turbo"),
-        memory=BufferedChatMemory(buffer_size=10),
+    reviewer = runtime.register_and_get_proxy(
+        "Reviewer",
+        lambda: ChatCompletionAgent(
+            description="An agent that reviews code",
+            system_messages=[
+                SystemMessage(
+                    "You are a code reviewer. You focus on correctness, efficiency and safety of the code.\n"
+                    "Respond using the following format:\n"
+                    "Code Review:\n"
+                    "Correctness: <Your comments>\n"
+                    "Efficiency: <Your comments>\n"
+                    "Safety: <Your comments>\n"
+                    "Approval: <APPROVE or REVISE>\n"
+                    "Suggested Changes: <Your comments>"
+                )
+            ],
+            model_client=OpenAI(model="gpt-4-turbo"),
+            memory=BufferedChatMemory(buffer_size=10),
+        ),
     )
-    _ = GroupChatManager(
-        name="Manager",
-        description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
-        runtime=runtime,
-        participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
-        memory=BufferedChatMemory(buffer_size=10),
-        termination_word="APPROVE",
+    runtime.register(
+        "Manager",
+        lambda: GroupChatManager(
+            description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
+            runtime=runtime,
+            participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
+            memory=BufferedChatMemory(buffer_size=10),
+            termination_word="APPROVE",
+        ),
     )
     app.welcoming_notice = f"""Welcome to the coder-reviewer demo with the following roles:
 1. 🤖 {coder.metadata['name']}: {coder.metadata['description']}

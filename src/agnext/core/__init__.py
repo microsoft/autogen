@@ -7,7 +7,7 @@ from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._agent_props import AgentChildren
 from ._agent_proxy import AgentProxy
-from ._agent_runtime import AgentRuntime
+from ._agent_runtime import AgentRuntime, AllNamespaces
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 
@@ -17,6 +17,7 @@ __all__ = [
     "AgentProxy",
     "AgentMetadata",
     "AgentRuntime",
+    "AllNamespaces",
     "BaseAgent",
     "CancellationToken",
     "AgentChildren",

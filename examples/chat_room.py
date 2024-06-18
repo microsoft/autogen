@@ -23,12 +23,11 @@ class ChatRoomAgent(TypeRoutedAgent):  # type: ignore
         self,
         name: str,
         description: str,
-        runtime: AgentRuntime,  # type: ignore
         background_story: str,
         memory: ChatMemory,  # type: ignore
         model_client: ChatCompletionClient,  # type: ignore
     ) -> None:  # type: ignore
-        super().__init__(name, description, runtime)
+        super().__init__(description)
         system_prompt = f"""Your name is {name}.
 Your background story is:
 {background_story}
@@ -86,40 +85,47 @@ class ChatRoomUserAgent(TextualUserAgent):  # type: ignore
 
 # Define a chat room with participants -- the runtime is the chat room.
 def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
-    _ = ChatRoomUserAgent(
-        name="User",
-        description="The user in the chat room.",
-        runtime=runtime,
-        app=app,
+    runtime.register(
+        "User",
+        lambda: ChatRoomUserAgent(
+            description="The user in the chat room.",
+            app=app,
+        ),
     )
-    alice = ChatRoomAgent(
-        name="Alice",
-        description="Alice in the chat room.",
-        runtime=runtime,
-        background_story="Alice is a software engineer who loves to code.",
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+    alice = runtime.register_and_get_proxy(
+        "Alice",
+        lambda rt, id: ChatRoomAgent(
+            name=id.name,
+            description="Alice in the chat room.",
+            background_story="Alice is a software engineer who loves to code.",
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+        ),
     )
-    bob = ChatRoomAgent(
-        name="Bob",
-        description="Bob in the chat room.",
-        runtime=runtime,
-        background_story="Bob is a data scientist who loves to analyze data.",
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+    bob = runtime.register_and_get_proxy(
+        "Bob",
+        lambda rt, id: ChatRoomAgent(
+            name=id.name,
+            description="Bob in the chat room.",
+            background_story="Bob is a data scientist who loves to analyze data.",
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+        ),
     )
-    charlie = ChatRoomAgent(
-        name="Charlie",
-        description="Charlie in the chat room.",
-        runtime=runtime,
-        background_story="Charlie is a designer who loves to create art.",
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+    charlie = runtime.register_and_get_proxy(
+        "Charlie",
+        lambda rt, id: ChatRoomAgent(
+            name=id.name,
+            description="Charlie in the chat room.",
+            background_story="Charlie is a designer who loves to create art.",
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+        ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:
-1. 👧 {alice.metadata['name']}: {alice.metadata['description']}
-2. 👱🏼‍♂️ {bob.metadata['name']}: {bob.metadata['description']}
-3. 👨🏾‍🦳 {charlie.metadata['name']}: {charlie.metadata['description']}
+1. 👧 {alice.id.name}: {alice.metadata['description']}
+2. 👱🏼‍♂️ {bob.id.name}: {bob.metadata['description']}
+3. 👨🏾‍🦳 {charlie.id.name}: {charlie.metadata['description']}
 
 Each participant decides on its own whether to respond to the latest message.
 

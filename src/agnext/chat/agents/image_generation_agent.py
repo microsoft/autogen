@@ -7,7 +7,7 @@ from ...components import (
     TypeRoutedAgent,
     message_handler,
 )
-from ...core import AgentRuntime, CancellationToken
+from ...core import CancellationToken
 from ..memory import ChatMemory
 from ..types import (
     MultiModalMessage,
@@ -20,14 +20,12 @@ from ..types import (
 class ImageGenerationAgent(TypeRoutedAgent):
     def __init__(
         self,
-        name: str,
         description: str,
-        runtime: AgentRuntime,
         memory: ChatMemory,
         client: openai.AsyncClient,
         model: Literal["dall-e-2", "dall-e-3"] = "dall-e-2",
     ):
-        super().__init__(name, description, runtime)
+        super().__init__(description)
         self._client = client
         self._model = model
         self._memory = memory

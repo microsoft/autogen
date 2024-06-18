@@ -16,7 +16,7 @@ from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns.group_chat_manager import GroupChatManager
 from agnext.chat.types import PublishNow, TextMessage
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentRuntime, CancellationToken
+from agnext.core import AgentId, AgentRuntime, CancellationToken
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -29,17 +29,13 @@ sep = "-" * 50
 class UserProxyAgent(TypeRoutedAgent):  # type: ignore
     def __init__(  # type: ignore
         self,
-        name: str,
-        runtime: AgentRuntime,  # type: ignore
         client: openai.AsyncClient,  # type: ignore
         assistant_id: str,
         thread_id: str,
         vector_store_id: str,
     ) -> None:  # type: ignore
         super().__init__(
-            name=name,
             description="A human user",
-            runtime=runtime,
         )  # type: ignore
         self._client = client
         self._assistant_id = assistant_id
@@ -166,7 +162,7 @@ class EventHandler(AsyncAssistantEventHandler):
             print("\n".join(citations))
 
 
-def assistant_chat(runtime: AgentRuntime) -> UserProxyAgent:  # type: ignore
+def assistant_chat(runtime: AgentRuntime) -> AgentId:
     oai_assistant = openai.beta.assistants.create(
         model="gpt-4-turbo",
         description="An AI assistant that helps with everyday tasks.",
@@ -177,30 +173,35 @@ def assistant_chat(runtime: AgentRuntime) -> UserProxyAgent:  # type: ignore
     thread = openai.beta.threads.create(
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
     )
-    assistant = OpenAIAssistantAgent(
-        name="Assistant",
-        description="An AI assistant that helps with everyday tasks.",
-        runtime=runtime,
-        client=openai.AsyncClient(),
-        assistant_id=oai_assistant.id,
-        thread_id=thread.id,
-        assistant_event_handler_factory=lambda: EventHandler(),
+    assistant = runtime.register_and_get(
+        "Assistant",
+        lambda: OpenAIAssistantAgent(
+            description="An AI assistant that helps with everyday tasks.",
+            client=openai.AsyncClient(),
+            assistant_id=oai_assistant.id,
+            thread_id=thread.id,
+            assistant_event_handler_factory=lambda: EventHandler(),
+        ),
     )
-    user = UserProxyAgent(
-        name="User",
-        runtime=runtime,
-        client=openai.AsyncClient(),
-        assistant_id=oai_assistant.id,
-        thread_id=thread.id,
-        vector_store_id=vector_store.id,
+
+    user = runtime.register_and_get(
+        "User",
+        lambda: UserProxyAgent(
+            client=openai.AsyncClient(),
+            assistant_id=oai_assistant.id,
+            thread_id=thread.id,
+            vector_store_id=vector_store.id,
+        ),
     )
     # Create a group chat manager to facilitate a turn-based conversation.
-    _ = GroupChatManager(
-        name="GroupChatManager",
-        description="A group chat manager.",
-        runtime=runtime,
-        memory=BufferedChatMemory(buffer_size=10),
-        participants=[assistant.id, user.id],
+    runtime.register(
+        "GroupChatManager",
+        lambda: GroupChatManager(
+            description="A group chat manager.",
+            runtime=runtime,
+            memory=BufferedChatMemory(buffer_size=10),
+            participants=[assistant, user],
+        ),
     )
     return user
 

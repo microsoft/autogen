@@ -22,7 +22,7 @@ from typing import (
     runtime_checkable,
 )
 
-from ..core import AgentRuntime, BaseAgent, CancellationToken
+from ..core import BaseAgent, CancellationToken
 from ..core.exceptions import CantHandleException
 
 logger = logging.getLogger("agnext")
@@ -162,7 +162,7 @@ def message_handler(
 
 
 class TypeRoutedAgent(BaseAgent):
-    def __init__(self, name: str, description: str, runtime: AgentRuntime) -> None:
+    def __init__(self, description: str) -> None:
         # Self is already bound to the handlers
         self._handlers: Dict[
             Type[Any],
@@ -177,7 +177,7 @@ class TypeRoutedAgent(BaseAgent):
                     for target_type in message_handler.target_types:
                         self._handlers[target_type] = message_handler
         subscriptions = list(self._handlers.keys())
-        super().__init__(name, description, subscriptions, runtime)
+        super().__init__(description, subscriptions)
 
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore

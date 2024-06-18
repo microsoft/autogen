@@ -79,13 +79,14 @@ class LoggingHandler(DefaultInterventionHandler):  # type: ignore
 
 
 def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ignore
-    developer = ChatCompletionAgent(
-        name="Developer",
-        description="A developer that writes code.",
-        runtime=runtime,
-        system_messages=[SystemMessage("You are a Python developer.")],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
+    developer = runtime.register_and_get_proxy(
+        "Developer",
+        lambda: ChatCompletionAgent(
+            description="A developer that writes code.",
+            system_messages=[SystemMessage("You are a Python developer.")],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+        ),
     )
 
     tester_oai_assistant = openai.beta.assistants.create(
@@ -94,50 +95,55 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
         instructions="You are a software tester that runs test cases and reports results.",
     )
     tester_oai_thread = openai.beta.threads.create()
-    tester = OpenAIAssistantAgent(
-        name="Tester",
-        description="A software tester that runs test cases and reports results.",
-        runtime=runtime,
-        client=openai.AsyncClient(),
-        assistant_id=tester_oai_assistant.id,
-        thread_id=tester_oai_thread.id,
+    tester = runtime.register_and_get_proxy(
+        "Tester",
+        lambda: OpenAIAssistantAgent(
+            description="A software tester that runs test cases and reports results.",
+            client=openai.AsyncClient(),
+            assistant_id=tester_oai_assistant.id,
+            thread_id=tester_oai_thread.id,
+        ),
     )
 
-    product_manager = ChatCompletionAgent(
-        name="ProductManager",
-        description="A product manager that performs research and comes up with specs.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage("You are a product manager good at translating customer needs into software specifications."),
-            SystemMessage("You can use the search tool to find information on the web."),
-        ],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
-        tools=[SearchTool()],
+    product_manager = runtime.register_and_get_proxy(
+        "ProductManager",
+        lambda: ChatCompletionAgent(
+            description="A product manager that performs research and comes up with specs.",
+            system_messages=[
+                SystemMessage(
+                    "You are a product manager good at translating customer needs into software specifications."
+                ),
+                SystemMessage("You can use the search tool to find information on the web."),
+            ],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+            tools=[SearchTool()],
+        ),
     )
 
-    planner = ChatCompletionAgent(
-        name="Planner",
-        description="A planner that organizes and schedules tasks.",
-        runtime=runtime,
-        system_messages=[SystemMessage("You are a planner of complex tasks.")],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
+    planner = runtime.register_and_get_proxy(
+        "Planner",
+        lambda: ChatCompletionAgent(
+            description="A planner that organizes and schedules tasks.",
+            system_messages=[SystemMessage("You are a planner of complex tasks.")],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+        ),
     )
 
-    orchestrator = ChatCompletionAgent(
-        name="Orchestrator",
-        description="An orchestrator that coordinates the team.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage("You are an orchestrator that coordinates the team to complete a complex task.")
-        ],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo"),
+    orchestrator = runtime.register_and_get_proxy(
+        "Orchestrator",
+        lambda: ChatCompletionAgent(
+            description="An orchestrator that coordinates the team.",
+            system_messages=[
+                SystemMessage("You are an orchestrator that coordinates the team to complete a complex task.")
+            ],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo"),
+        ),
     )
 
     return OrchestratorChat(
-        "OrchestratorChat",
         "A software development team.",
         runtime,
         orchestrator=orchestrator.id,
@@ -149,7 +155,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
 async def run(message: str, user: str, scenario: Callable[[AgentRuntime], OrchestratorChat]) -> None:  # type: ignore
     runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
     chat = scenario(runtime)
-    response = runtime.send_message(TextMessage(content=message, source=user), chat)
+    response = runtime.send_message(TextMessage(content=message, source=user), chat.id)
     while not response.done():
         await runtime.process_next()
     print((await response).content)  # type: ignore

@@ -17,63 +17,69 @@ from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
 def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> str:  # type: ignore
-    _ = TextualUserAgent(
-        name="User",
-        description="A user looking for illustration.",
-        runtime=runtime,
-        app=app,
+    runtime.register(
+        "User",
+        lambda: TextualUserAgent(
+            description="A user looking for illustration.",
+            app=app,
+        ),
     )
-    descriptor = ChatCompletionAgent(
-        name="Descriptor",
-        description="An AI agent that provides a description of the image.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You create short description for image. \n"
-                "In this conversation, you will be given either: \n"
-                "1. Request for new image. \n"
-                "2. Feedback on some image created. \n"
-                "In both cases, you will provide a description of a new image to be created. \n"
-                "Only provide the description of the new image and nothing else. \n"
-                "Be succinct and precise."
-            ),
-        ],
-        memory=BufferedChatMemory(buffer_size=10),
-        model_client=OpenAI(model="gpt-4-turbo", max_tokens=500),
+    descriptor = runtime.register_and_get_proxy(
+        "Descriptor",
+        lambda: ChatCompletionAgent(
+            description="An AI agent that provides a description of the image.",
+            system_messages=[
+                SystemMessage(
+                    "You create short description for image. \n"
+                    "In this conversation, you will be given either: \n"
+                    "1. Request for new image. \n"
+                    "2. Feedback on some image created. \n"
+                    "In both cases, you will provide a description of a new image to be created. \n"
+                    "Only provide the description of the new image and nothing else. \n"
+                    "Be succinct and precise."
+                ),
+            ],
+            memory=BufferedChatMemory(buffer_size=10),
+            model_client=OpenAI(model="gpt-4-turbo", max_tokens=500),
+        ),
     )
-    illustrator = ImageGenerationAgent(
-        name="Illustrator",
-        description="An AI agent that generates images.",
-        runtime=runtime,
-        client=openai.AsyncOpenAI(),
-        model="dall-e-3",
-        memory=BufferedChatMemory(buffer_size=1),
+    illustrator = runtime.register_and_get_proxy(
+        "Illustrator",
+        lambda: ImageGenerationAgent(
+            description="An AI agent that generates images.",
+            client=openai.AsyncOpenAI(),
+            model="dall-e-3",
+            memory=BufferedChatMemory(buffer_size=1),
+        ),
     )
-    critic = ChatCompletionAgent(
-        name="Critic",
-        description="An AI agent that provides feedback on images given user's requirements.",
-        runtime=runtime,
-        system_messages=[
-            SystemMessage(
-                "You are an expert in image understanding. \n"
-                "In this conversation, you will judge an image given the description and provide feedback. \n"
-                "Pay attention to the details like the spelling of words and number of objects. \n"
-                "Use the following format in your response: \n"
-                "Number of each object type in the image: <Type 1 (e.g., Husky Dog)>: 1, <Type 2>: 2, ...\n"
-                "Feedback: <Your feedback here> \n"
-                "Approval: <APPROVE or REVISE> \n"
-            ),
-        ],
-        memory=BufferedChatMemory(buffer_size=2),
-        model_client=OpenAI(model="gpt-4-turbo"),
+    critic = runtime.register_and_get_proxy(
+        "Critic",
+        lambda: ChatCompletionAgent(
+            description="An AI agent that provides feedback on images given user's requirements.",
+            system_messages=[
+                SystemMessage(
+                    "You are an expert in image understanding. \n"
+                    "In this conversation, you will judge an image given the description and provide feedback. \n"
+                    "Pay attention to the details like the spelling of words and number of objects. \n"
+                    "Use the following format in your response: \n"
+                    "Number of each object type in the image: <Type 1 (e.g., Husky Dog)>: 1, <Type 2>: 2, ...\n"
+                    "Feedback: <Your feedback here> \n"
+                    "Approval: <APPROVE or REVISE> \n"
+                ),
+            ],
+            memory=BufferedChatMemory(buffer_size=2),
+            model_client=OpenAI(model="gpt-4-turbo"),
+        ),
     )
-    _ = GroupChatManager(
-        name="GroupChatManager",
-        description="A chat manager that handles group chat.",
-        runtime=runtime,
-        memory=BufferedChatMemory(buffer_size=5),
-        participants=[illustrator.id, critic.id, descriptor.id],
-        termination_word="APPROVE",
+    runtime.register(
+        "GroupChatManager",
+        lambda: GroupChatManager(
+            description="A chat manager that handles group chat.",
+            runtime=runtime,
+            memory=BufferedChatMemory(buffer_size=5),
+            participants=[illustrator.id, critic.id, descriptor.id],
+            termination_word="APPROVE",
+        ),
     )
 
     app.welcoming_notice = f"""You are now in a group chat with the following agents:

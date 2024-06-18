@@ -1,7 +1,7 @@
 import asyncio
 
 from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentRuntime, CancellationToken
+from ...core import CancellationToken
 from ..types import PublishNow, TextMessage
 
 
@@ -16,8 +16,8 @@ class UserProxyAgent(TypeRoutedAgent):
         user_input_prompt (str): The console prompt to show to the user when asking for input.
     """
 
-    def __init__(self, name: str, description: str, runtime: AgentRuntime, user_input_prompt: str) -> None:
-        super().__init__(name, description, runtime)
+    def __init__(self, description: str, user_input_prompt: str) -> None:
+        super().__init__(description)
         self._user_input_prompt = user_input_prompt
 
     @message_handler()
