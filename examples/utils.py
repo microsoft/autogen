@@ -1,27 +1,48 @@
 import asyncio
+import random
 from asyncio import Future
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.types import PublishNow, RespondNow, TextMessage, ToolApprovalRequest, ToolApprovalResponse
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.chat.types import (
+    MultiModalMessage,
+    PublishNow,
+    RespondNow,
+    TextMessage,
+    ToolApprovalRequest,
+    ToolApprovalResponse,
+)
+from agnext.components import Image, TypeRoutedAgent, message_handler
 from agnext.core import AgentRuntime, CancellationToken
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
 from textual.widgets import Button, Footer, Header, Input, Markdown, Static
+from textual_imageview.viewer import ImageViewer
 
 
-class UserMessage(Markdown):
-    def on_mount(self) -> None:
-        self.styles.margin = 1
-        self.styles.padding = 1
-        self.styles.border = ("solid", "green")
+class ChatAppMessage(Static):
+    def __init__(self, message: TextMessage | MultiModalMessage) -> None:  # type: ignore
+        self._message = message
+        super().__init__()
 
-
-class AssistantMessage(Markdown):
     def on_mount(self) -> None:
         self.styles.margin = 1
         self.styles.padding = 1
         self.styles.border = ("solid", "blue")
+
+    def compose(self) -> ComposeResult:
+        if isinstance(self._message, TextMessage):
+            yield Markdown(f"{self._message.source}:")
+            yield Markdown(self._message.content)
+        else:
+            yield Markdown(f"{self._message.source}:")
+            for content in self._message.content:
+                if isinstance(content, str):
+                    yield Markdown(content)
+                elif isinstance(content, Image):
+                    viewer = ImageViewer(content.image)
+                    viewer.styles.min_width = 50
+                    viewer.styles.min_height = 50
+                    yield viewer
 
 
 class WelcomeMessage(Static):
@@ -68,7 +89,7 @@ class ToolApprovalRequestNotice(Static):
 class TextualChatApp(App):  # type: ignore
     """A Textual app for a chat interface."""
 
-    def __init__(self, runtime: AgentRuntime, welcoming_notice: str, user_name: str) -> None:  # type: ignore
+    def __init__(self, runtime: AgentRuntime, welcoming_notice: str | None = None, user_name: str = "User") -> None:  # type: ignore
         self._runtime = runtime
         self._welcoming_notice = welcoming_notice
         self._user_name = user_name
@@ -81,9 +102,18 @@ class TextualChatApp(App):  # type: ignore
         yield ChatInput()
 
     def on_mount(self) -> None:
-        chat_messages = self.query_one("#chat-messages")
-        notice = WelcomeMessage(self._welcoming_notice, id="welcome")
-        chat_messages.mount(notice)
+        if self._welcoming_notice is not None:
+            chat_messages = self.query_one("#chat-messages")
+            notice = WelcomeMessage(self._welcoming_notice, id="welcome")
+            chat_messages.mount(notice)
+
+    @property
+    def welcoming_notice(self) -> str | None:
+        return self._welcoming_notice
+
+    @welcoming_notice.setter
+    def welcoming_notice(self, value: str) -> None:
+        self._welcoming_notice = value
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         user_input = event.value
@@ -102,16 +132,16 @@ class TextualChatApp(App):  # type: ignore
         # Publish the user message to the runtime.
         await self._runtime.publish_message(TextMessage(source=self._user_name, content=user_input))
 
-    async def post_runtime_message(self, message: TextMessage) -> None:  # type: ignore
+    async def post_runtime_message(self, message: TextMessage | MultiModalMessage) -> None:  # type: ignore
         """Post a message from the agent runtime to the message list."""
         chat_messages = self.query_one("#chat-messages")
-        msg = AssistantMessage(f"{message.source}: {message.content}")
+        msg = ChatAppMessage(message)
         chat_messages.mount(msg)
         msg.scroll_visible()
 
     async def handle_tool_approval_request(self, message: ToolApprovalRequest) -> ToolApprovalResponse:  # type: ignore
         chat_messages = self.query_one("#chat-messages")
-        future: Future[ToolApprovalResponse] = asyncio.get_event_loop().create_future()
+        future: Future[ToolApprovalResponse] = asyncio.get_event_loop().create_future()  # type: ignore
         tool_call_approval_notice = ToolApprovalRequestNotice(message, future)
         chat_messages.mount(tool_call_approval_notice)
         tool_call_approval_notice.scroll_visible()
@@ -127,6 +157,16 @@ class TextualUserAgent(TypeRoutedAgent):  # type: ignore
 
     @message_handler  # type: ignore
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:  # type: ignore
+        await self._app.post_runtime_message(message)
+
+    @message_handler  # type: ignore
+    async def on_multi_modal_message(self, message: MultiModalMessage, cancellation_token: CancellationToken) -> None:  # type: ignore
+        # Save the message to file.
+        # Generate a ramdom file name.
+        for content in message.content:
+            if isinstance(content, Image):
+                filename = f"{self.metadata['name']}_{message.source}_{random.randbytes(16).hex()}.png"
+                content.image.save(filename)
         await self._app.post_runtime_message(message)
 
     @message_handler  # type: ignore

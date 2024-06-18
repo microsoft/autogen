@@ -12,6 +12,11 @@ class AgentId:
     def __hash__(self) -> int:
         return hash((self._namespace, self._name))
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, AgentId):
+            return False
+        return self._name == value.name and self._namespace == value.namespace
+
     @classmethod
     def from_str(cls, agent_id: str) -> Self:
         namespace, name = agent_id.split("/")

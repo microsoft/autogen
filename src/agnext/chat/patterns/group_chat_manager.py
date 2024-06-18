@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, List, Mapping
 
 from ...components import TypeRoutedAgent, message_handler
@@ -5,11 +6,14 @@ from ...components.models import ChatCompletionClient
 from ...core import AgentId, AgentProxy, AgentRuntime, CancellationToken
 from ..memory import ChatMemory
 from ..types import (
+    MultiModalMessage,
     PublishNow,
     Reset,
     TextMessage,
 )
 from .group_chat_utils import select_speaker
+
+logger = logging.getLogger("agnext.events")
 
 
 class GroupChatManager(TypeRoutedAgent):
@@ -19,18 +23,18 @@ class GroupChatManager(TypeRoutedAgent):
         name (str): The name of the agent.
         description (str): The description of the agent.
         runtime (AgentRuntime): The runtime to register the agent.
-        participants (List[Agent]): The list of participants in the group chat.
+        participants (List[AgentId]): The list of participants in the group chat.
         memory (ChatMemory): The memory to store and retrieve messages.
         model_client (ChatCompletionClient, optional): The client to use for the model.
             If provided, the agent will use the model to select the next speaker.
             If not provided, the agent will select the next speaker from the list of participants
             according to the order given.
         termination_word (str, optional): The word that terminates the group chat. Defaults to "TERMINATE".
-        transitions (Mapping[Agent, List[Agent]], optional): The transitions between agents.
-            Keys are the agents, and values are the list of agents that can follow the key agent. Defaults to {}.A
+        transitions (Mapping[AgentId, List[AgentId]], optional): The transitions between agents.
+            Keys are the agents, and values are the list of agents that can follow the key agent. Defaults to {}.
             If provided, the group chat manager will use the transitions to select the next speaker.
             If a transition is not provided for an agent, the choices fallback to all participants.
-            This setting is only used when a model client is provided.
+            If no model client is provided, a transition must have a single value.
         on_message_received (Callable[[TextMessage], None], optional): A custom handler to call when a message is received.
             Defaults to None.
     """
@@ -45,27 +49,30 @@ class GroupChatManager(TypeRoutedAgent):
         model_client: ChatCompletionClient | None = None,
         termination_word: str = "TERMINATE",
         transitions: Mapping[AgentId, List[AgentId]] = {},
-        on_message_received: Callable[[TextMessage], None] | None = None,
+        on_message_received: Callable[[TextMessage | MultiModalMessage], None] | None = None,
     ):
         super().__init__(name, description, runtime)
         self._memory = memory
         self._client = model_client
-        self._participants = [AgentProxy(x, runtime) for x in participants]
+        self._participants = participants
+        self._participant_proxies = dict((p, AgentProxy(p, runtime)) for p in participants)
         self._termination_word = termination_word
         for key, value in transitions.items():
-            proxy = AgentProxy(key, runtime)
             if not value:
                 # Make sure no empty transitions are provided.
-                raise ValueError(f"Empty transition list provided for {proxy.metadata['name']}.")
-            if proxy.id not in participants:
+                raise ValueError(f"Empty transition list provided for {key.name}.")
+            if key not in participants:
                 # Make sure all keys are in the list of participants.
-                raise ValueError(f"Transition key {proxy.metadata['name']} not found in participants.")
+                raise ValueError(f"Transition key {key.name} not found in participants.")
             for v in value:
-                proxy = AgentProxy(v, runtime)
-                if proxy.id not in participants:
+                if v not in participants:
                     # Make sure all values are in the list of participants.
-                    raise ValueError(f"Transition value {proxy.metadata['name']} not found in participants.")
-        self._tranistiions = transitions
+                    raise ValueError(f"Transition value {v.name} not found in participants.")
+            if self._client is None:
+                # Make sure there is only one transition for each key if no model client is provided.
+                if len(value) > 1:
+                    raise ValueError(f"Multiple transitions provided for {key.name} but no model client is provided.")
+        self._tranistions = transitions
         self._on_message_received = on_message_received
 
     @message_handler()
@@ -74,15 +81,17 @@ class GroupChatManager(TypeRoutedAgent):
         await self._memory.clear()
 
     @message_handler()
-    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
-        """Handle a text message. This method adds the message to the memory, selects the next speaker,
+    async def on_new_message(
+        self, message: TextMessage | MultiModalMessage, cancellation_token: CancellationToken
+    ) -> None:
+        """Handle a message. This method adds the message to the memory, selects the next speaker,
         and sends a message to the selected speaker to publish a response."""
         # Call the custom on_message_received handler if provided.
         if self._on_message_received is not None:
             self._on_message_received(message)
 
-        # Check if the message is the termination word.
-        if message.content.strip() == self._termination_word:
+        # Check if the message contains the termination word.
+        if isinstance(message, TextMessage) and self._termination_word in message.content:
             # Terminate the group chat by not selecting the next speaker.
             return
 
@@ -91,33 +100,49 @@ class GroupChatManager(TypeRoutedAgent):
 
         # Get the last speaker.
         last_speaker_name = message.source
-        last_speaker_index = next(
-            (i for i, p in enumerate(self._participants) if p.metadata["name"] == last_speaker_name), None
-        )
+        last_speaker_index = next((i for i, p in enumerate(self._participants) if p.name == last_speaker_name), None)
+
+        # Get the candidates for the next speaker.
+        if last_speaker_index is not None:
+            logger.debug(f"Last speaker: {last_speaker_name}")
+            last_speaker = self._participants[last_speaker_index]
+            if self._tranistions.get(last_speaker) is not None:
+                candidates = [c for c in self._participants if c in self._tranistions[last_speaker]]
+            else:
+                candidates = self._participants
+        else:
+            candidates = self._participants
+        logger.debug(f"Group chat manager next speaker candidates: {[c.name for c in candidates]}")
 
         # Select speaker.
-        if self._client is None:
-            # If no model client is provided, select the next speaker from the list of participants.
-            if last_speaker_index is None:
-                # If the last speaker is not found, select the first speaker in the list.
-                next_speaker_index = 0
-            else:
-                next_speaker_index = (last_speaker_index + 1) % len(self._participants)
-            speaker = self._participants[next_speaker_index]
+        if len(candidates) == 0:
+            speaker = None
+        elif len(candidates) == 1:
+            speaker = candidates[0]
         else:
-            # If a model client is provided, select the speaker based on the transitions and the model.
-            candidates = self._participants
-            if last_speaker_index is not None:
-                last_speaker = self._participants[last_speaker_index]
-                if self._tranistiions.get(last_speaker.id) is not None:
-                    candidates = [AgentProxy(x, self._runtime) for x in self._tranistiions[last_speaker.id]]
-            if len(candidates) == 1:
-                speaker = candidates[0]
+            # More than one candidate, select the next speaker.
+            if self._client is None:
+                # If no model client is provided, candidates must be the list of participants.
+                assert candidates == self._participants
+                # If no model client is provided, select the next speaker from the list of participants.
+                if last_speaker_index is not None:
+                    next_speaker_index = (last_speaker_index + 1) % len(self._participants)
+                    speaker = self._participants[next_speaker_index]
+                else:
+                    # If no last speaker, select the first speaker.
+                    speaker = candidates[0]
             else:
-                speaker = await select_speaker(self._memory, self._client, candidates)
+                # If a model client is provided, select the speaker based on the transitions and the model.
+                speaker_index = await select_speaker(
+                    self._memory, self._client, [self._participant_proxies[c] for c in candidates]
+                )
+                speaker = candidates[speaker_index]
 
-        # Send the message to the selected speaker to ask it to publish a response.
-        await self._send_message(PublishNow(), speaker.id)
+        logger.debug(f"Group chat manager selected speaker: {speaker.name if speaker is not None else None}")
+
+        if speaker is not None:
+            # Send the message to the selected speaker to ask it to publish a response.
+            await self._send_message(PublishNow(), speaker)
 
     def save_state(self) -> Mapping[str, Any]:
         return {

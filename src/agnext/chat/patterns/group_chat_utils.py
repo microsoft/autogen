@@ -9,7 +9,7 @@ from ..memory import ChatMemory
 from ..types import TextMessage
 
 
-async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[AgentProxy]) -> AgentProxy:
+async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
     """Selects the next speaker in a group chat using a ChatCompletion client."""
     # TODO: Handle multi-modal messages.
 
@@ -42,9 +42,9 @@ Read the above conversation. Then select the next role from {participants} to pl
     if len(mentions) != 1:
         raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
     agent_name = list(mentions.keys())[0]
-    agent = next((agent for agent in agents if agent.metadata["name"] == agent_name), None)
-    assert agent is not None
-    return agent
+    agent_index = next((i for i, agent in enumerate(agents) if agent.metadata["name"] == agent_name), None)
+    assert agent_index is not None
+    return agent_index
 
 
 def mentioned_agents(message_content: str, agents: List[AgentProxy]) -> Dict[str, int]:

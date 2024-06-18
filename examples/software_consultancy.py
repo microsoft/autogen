@@ -24,7 +24,7 @@ from agnext.chat.memory import HeadAndTailChatMemory
 from agnext.chat.patterns.group_chat_manager import GroupChatManager
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import Agent, AgentRuntime
+from agnext.core import AgentRuntime
 from markdownify import markdownify  # type: ignore
 from tqdm import tqdm
 from typing_extensions import Annotated
@@ -102,7 +102,13 @@ async def create_image(
     return f"Image created and saved to {filename}."
 
 
-def software_consultancy(runtime: AgentRuntime, user_agent: Agent) -> None:  # type: ignore
+def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
+    user_agent = TextualUserAgent(
+        name="Customer",
+        description="A customer looking for help.",
+        runtime=runtime,
+        app=app,
+    )
     developer = ChatCompletionAgent(
         name="Developer",
         description="A Python software developer.",
@@ -229,12 +235,9 @@ def software_consultancy(runtime: AgentRuntime, user_agent: Agent) -> None:  # t
         description="A group chat manager.",
         runtime=runtime,
         memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-        # model_client=OpenAI(model="gpt-4-turbo"),
+        model_client=OpenAI(model="gpt-4-turbo"),
         participants=[developer.id, product_manager.id, ux_designer.id, illustrator.id, user_agent.id],
     )
-
-
-async def main() -> None:
     art = r"""
 +----------------------------------------------------------+
 |  ____         __ _                                       |
@@ -250,21 +253,22 @@ async def main() -> None:
 |  \____\___/|_| |_|___/\__,_|_|\__\__,_|_| |_|\___|\__, | |
 |                                                   |___/  |
 |                                                          |
-+----------------------------------------------------------+
 | Work with a software development consultancy to create   |
-| your own Python application. You can start by greeting   |
-| the team!                                                |
+| your own Python application. You are working with a team |
+| of the following agents:                                 |
+| 1. 🤖 Developer: A Python software developer.             |
+| 2. 🤖 ProductManager: A product manager.                  |
+| 3. 🤖 UserExperienceDesigner: A user experience designer. |
+| 4. 🤖 Illustrator: An illustrator.                        |
 +----------------------------------------------------------+
 """
+    app.welcoming_notice = art
+
+
+async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    app = TextualChatApp(runtime, welcoming_notice=art, user_name="You")
-    user_agent = TextualUserAgent(
-        name="Customer",
-        description="A customer looking for help.",
-        runtime=runtime,
-        app=app,
-    )
-    software_consultancy(runtime, user_agent)
+    app = TextualChatApp(runtime, user_name="You")
+    software_consultancy(runtime, app)
     # Start the runtime.
     asyncio.create_task(start_runtime(runtime))
     # Start the app.
@@ -272,11 +276,12 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    description = "Work with a software development consultancy to create your own Python application."
     parser = argparse.ArgumentParser(description="Software consultancy demo.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
         logging.getLogger("agnext").setLevel(logging.DEBUG)
+        handler = logging.FileHandler("software_consultancy.log")
+        logging.getLogger("agnext").addHandler(handler)
     asyncio.run(main())

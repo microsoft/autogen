@@ -19,6 +19,7 @@ from ..memory import ChatMemory
 from ..types import (
     FunctionCallMessage,
     Message,
+    MultiModalMessage,
     PublishNow,
     Reset,
     RespondNow,
@@ -79,6 +80,13 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         """Handle a text message. This method adds the message to the memory and
         does not generate any message."""
+        # Add a user message.
+        await self._memory.add_message(message)
+
+    @message_handler()
+    async def on_multi_modal_message(self, message: MultiModalMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a multimodal message. This method adds the message to the memory
+        and does not generate any message."""
         # Add a user message.
         await self._memory.add_message(message)
 

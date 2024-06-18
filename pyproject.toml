@@ -38,6 +38,7 @@ dev = [
     "types-aiofiles",
     "colorama",
     "textual",
+    "textual-imageview",
 ]
 docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 
