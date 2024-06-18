@@ -96,16 +96,15 @@ teacher, please create the next math question";
         }
 
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task OpenAIAgentMathChatTestAsync()
         {
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-
+            var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
             var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(key));
-            var model = "gpt-35-turbo-16k";
-            var teacher = await CreateTeacherAgentAsync(openaiClient, model);
-            var student = await CreateStudentAssistantAgentAsync(openaiClient, model);
+            var teacher = await CreateTeacherAgentAsync(openaiClient, deployName);
+            var student = await CreateStudentAssistantAgentAsync(openaiClient, deployName);
 
             var adminFunctionMiddleware = new FunctionCallMiddleware(
                 functions: [this.UpdateProgressFunctionContract],
@@ -115,7 +114,7 @@ teacher, please create the next math question";
                 });
             var admin = new OpenAIChatAgent(
                 openAIClient: openaiClient,
-                modelName: model,
+                modelName: deployName,
                 name: "Admin",
                 systemMessage: $@"You are admin. You update progress after each question is answered.")
                 .RegisterMessageConnector()
@@ -124,7 +123,7 @@ teacher, please create the next math question";
 
             var groupAdmin = new OpenAIChatAgent(
                 openAIClient: openaiClient,
-                modelName: model,
+                modelName: deployName,
                 name: "GroupAdmin",
                 systemMessage: "You are group admin. You manage the group chat.")
                 .RegisterMessageConnector()
