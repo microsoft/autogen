@@ -1,8 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 import pytest
-import sys
-sys.path.append('../..')
+
 import autogen
 from autogen.oai.client_utils import validate_parameter
 
