@@ -13,13 +13,13 @@
         "api_key": "<your Azure OpenAI API key here>",
         "base_url": "<your Azure OpenAI API base here>",
         "api_type": "azure",
-        "api_version": "2024-02-01"
+        "api_version": "<your Azure OpenAI API version here>"
     },
     {
         "model": "<your Azure OpenAI deployment name>",
         "api_key": "<your Azure OpenAI API key here>",
         "base_url": "<your Azure OpenAI API base here>",
         "api_type": "azure",
-        "api_version": "2024-02-01"
+        "api_version": "<your Azure OpenAI API version here>"
     }
 ]
