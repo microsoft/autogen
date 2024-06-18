@@ -1,4 +1,6 @@
+import argparse
 import asyncio
+import logging
 from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
@@ -47,4 +49,12 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Inner-Outter agent example.")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.WARNING)
+        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        handler = logging.FileHandler("inner_outter.log")
+        logging.getLogger("agnext").addHandler(handler)
     asyncio.run(main())

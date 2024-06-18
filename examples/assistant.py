@@ -238,4 +238,6 @@ if __name__ == "__main__":
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
         logging.getLogger("agnext").setLevel(logging.DEBUG)
+        handler = logging.FileHandler("assistant.log")
+        logging.getLogger("agnext").addHandler(handler)
     asyncio.run(main())

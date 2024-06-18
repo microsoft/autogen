@@ -158,6 +158,7 @@ async def run(message: str, user: str, scenario: Callable[[AgentRuntime], Orches
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a orchestrator demo.")
     choices = {"software_development": software_development}
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     parser.add_argument(
         "--scenario",
         choices=list(choices.keys()),
@@ -171,4 +172,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--message", help="The message to send.", required=True)
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.WARNING)
+        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        handler = logging.FileHandler("inner_outter.log")
+        logging.getLogger("agnext").addHandler(handler)
     asyncio.run(run(args.message, args.user, choices[args.scenario]))

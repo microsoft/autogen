@@ -50,7 +50,7 @@ line-length = 120
 fix = true
 exclude = ["build", "dist", "my_project/__init__.py", "my_project/main.py"]
 target-version = "py310"
-include = ["src/**", "examples/**"]
+include = ["src/**", "examples/*.py"]
 
 [tool.ruff.format]
 docstring-code-format = true
