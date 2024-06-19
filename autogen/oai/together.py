@@ -34,8 +34,6 @@ from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 from PIL import Image
-
-# pip install together
 from together import Together, error
 
 from autogen.oai.client_utils import should_hide_tools, validate_parameter
@@ -123,11 +121,6 @@ class TogetherClient:
 
             together_params["stream"] = False
 
-        # To support avoidance of tool calling we allow the user to exclude tool calls on certain conditions
-        together_params["hide_tools"] = validate_parameter(
-            params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
-        )
-
         return together_params
 
     def create(self, params: Dict) -> ChatCompletion:
@@ -140,9 +133,15 @@ class TogetherClient:
         # Parse parameters to Together.AI API's parameters
         together_params = self.parse_params(params)
 
-        # Handle tool use
-        tools = params.get("tools", None)
-        hide_tools = should_hide_tools(together_messages, tools, together_params["hide_tools"])
+        # Add tools to the call if we have them and aren't hiding them
+        if "tools" in params:
+            hide_tools = validate_parameter(
+                params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
+            )
+            if not should_hide_tools(params, params["tools"], hide_tools):
+                together_params["tools"] = params["tools"]
+
+        together_params["messages"] = together_messages
 
         # We use chat model by default
         client = Together(api_key=self.api_key)
@@ -156,33 +155,9 @@ class TogetherClient:
         for attempt in range(max_retries):
             ans = None
             try:
-                response = client.chat.completions.create(
-                    model=together_params["model"],
-                    max_tokens=together_params["max_tokens"],
-                    temperature=together_params["temperature"],
-                    top_p=together_params["top_p"],
-                    top_k=together_params["top_k"],
-                    repetition_penalty=together_params["repetition_penalty"],
-                    presence_penalty=together_params["presence_penalty"],
-                    frequency_penalty=together_params["frequency_penalty"],
-                    min_p=together_params["min_p"],
-                    stream=together_params["stream"],
-                    messages=together_messages,  # Main messages
-                    tool_choice=("auto" if not hide_tools else None),
-                    tools=tools if not hide_tools else None,  # Include any tools/functions
-                    n=1,  # API supports more than one response, however we will limit it to one
-                    safety_model=together_params["safety_model"],
-                )
-            except error.AuthenticationError as e:
-                raise RuntimeError(
-                    f"Together.AI AuthenticationError, ensure you have your Together.AI API key set: {e}"
-                )
-            except error.RateLimitError as e:
-                raise RuntimeError(f"Together.AI RateLimitError, too many requests sent in a short period of time: {e}")
-            except error.InvalidRequestError as e:
-                raise RuntimeError(f"Together.AI InvalidRequestError: {e}")
+                response = client.chat.completions.create(**together_params)
             except Exception as e:
-                raise RuntimeError(f"Together.AI exception occurred while calling Together.API: {e}")
+                raise RuntimeError(f"Together.AI exception occurred: {e}")
             else:
 
                 if together_params["stream"]:
@@ -319,6 +294,7 @@ chat_lang_code_model_sizes = {
     "upstage/SOLAR-10.7B-Instruct-v1.0": 11,
 }
 
+# Cost per million tokens based on up to X Billion parameters, e.g. up 4B is $0.1/million
 chat_lang_code_model_costs = {4: 0.1, 8: 0.2, 21: 0.3, 41: 0.8, 80: 0.9, 110: 1.8}
 
 mixture_model_sizes = {
@@ -332,6 +308,7 @@ mixture_model_sizes = {
     "Snowflake/snowflake-arctic-instruct": 480,
 }
 
+# Cost per million tokens based on up to X Billion parameters, e.g. up 56B is $0.6/million
 mixture_costs = {56: 0.6, 176: 1.2, 480: 2.4}
 
 
@@ -366,4 +343,9 @@ def calculate_together_cost(input_tokens: int, output_tokens: int, model_name: s
 
     else:
         # Model is not in our list of models, can't determine the cost
+        warnings.warn(
+            "The model isn't catered for costing, to apply costs you can use the 'price' key on your config_list.",
+            UserWarning,
+        )
+
         return 0

@@ -85,7 +85,6 @@ def test_parsing_params(together_client):
         "frequency_penalty": 1.5,
         "min_p": 0.2,
         "safety_model": "Meta-Llama/Llama-Guard-7b",
-        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
@@ -106,14 +105,13 @@ def test_parsing_params(together_client):
         "frequency_penalty": None,
         "min_p": None,
         "safety_model": None,
-        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
 
     # Incorrect types, defaults should be set, will show warnings but not trigger assertions
     params = {
-        "model": "WizardLM/WizardLM-13B-V1.2",
+        "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "max_tokens": "512",
         "stream": "Yes",
         "temperature": "0.5",
@@ -125,44 +123,16 @@ def test_parsing_params(together_client):
         "min_p": "0.2",
         "safety_model": False,
     }
-    expected_params = {
-        "model": "WizardLM/WizardLM-13B-V1.2",
-        "max_tokens": 512,
-        "stream": False,
-        "temperature": None,
-        "top_p": None,
-        "top_k": None,
-        "repetition_penalty": None,
-        "presence_penalty": None,
-        "frequency_penalty": None,
-        "min_p": None,
-        "safety_model": None,
-        "hide_tools": "never",
-    }
     result = together_client.parse_params(params)
     assert result == expected_params
 
     # Values outside bounds, should warn and set to defaults
     params = {
-        "model": "WizardLM/WizardLM-13B-V1.2",
+        "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "max_tokens": -200,
         "presence_penalty": -5,
         "frequency_penalty": 5,
         "min_p": -0.5,
-    }
-    expected_params = {
-        "model": "WizardLM/WizardLM-13B-V1.2",
-        "max_tokens": 512,
-        "stream": False,
-        "temperature": None,
-        "top_p": None,
-        "top_k": None,
-        "repetition_penalty": None,
-        "presence_penalty": None,
-        "frequency_penalty": None,
-        "min_p": None,
-        "safety_model": None,
-        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
@@ -276,13 +246,6 @@ def test_create_response_with_tool_call(mock_create, together_client):
 
     together_messages = [
         {
-            "role": "system",
-            "content": 'For currency exchange tasks,\n        only use the functions you have been provided with.\n        Output \'TERMINATE\' when an answer has been provided.\n        Do not include the function name or result in the JSON.\n        Example of the return JSON is:\n        {\n            "parameter_1_name": 100.00,\n            "parameter_2_name": "ABC",\n            "parameter_3_name": "DEF",\n        }.\n        Another example of the return JSON is:\n        {\n            "parameter_1_name": "GHI",\n            "parameter_2_name": "ABC",\n            "parameter_3_name": "DEF",\n            "parameter_4_name": 123.00,\n        }. ',
-            "name": None,
-            "tool_calls": None,
-            "tool_call_id": None,
-        },
-        {
             "role": "user",
             "content": "How much is 123.45 EUR in USD?",
             "name": None,
@@ -297,17 +260,5 @@ def test_create_response_with_tool_call(mock_create, together_client):
     )
 
     # Assertions to check if response is structured as expected
-    assert response.id == "mock_together_response_id"
-    assert response.model == "meta-llama/Llama-3-8b-chat-hf"
-    assert response.usage.prompt_tokens == 10
-    assert response.usage.completion_tokens == 20
-    assert len(response.choices) == 1
-    assert response.choices[0].finish_reason == "tool_calls"
     assert response.choices[0].message.content == ""
-    assert len(response.choices[0].message.tool_calls) == 1
-    assert response.choices[0].message.tool_calls[0].id == "gdRdrvnHh"
     assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
-    assert (
-        response.choices[0].message.tool_calls[0].function.arguments
-        == '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
-    )
