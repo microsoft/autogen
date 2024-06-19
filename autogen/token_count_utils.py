@@ -119,6 +119,9 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
     elif "gemini" in model:
         logger.info("Gemini is not supported in tiktoken. Returning num tokens assuming gpt-4-0613.")
         return _num_token_from_messages(messages, model="gpt-4-0613")
+    elif "claude" in model:
+        logger.info("Claude is not supported in tiktoken. Returning num tokens assuming gpt-4-0613.")
+        return _num_token_from_messages(messages, model="gpt-4-0613")
     elif "mistral-" in model or "mixtral-" in model:
         logger.info("Mistral.AI models are not supported in tiktoken. Returning num tokens assuming gpt-4-0613.")
         return _num_token_from_messages(messages, model="gpt-4-0613")
