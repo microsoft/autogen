@@ -9,6 +9,7 @@ from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 from autogen.cache import AbstractCache
+from autogen.oai.client import OpenAIWrapper
 
 SYSTEM_MESSAGE = "You've been given the special ability to generate images."
 DESCRIPTION_MESSAGE = "This agent has the ability to generate images."
@@ -106,6 +107,86 @@ class DalleImageGenerator:
 
     def cache_key(self, prompt: str) -> str:
         keys = (prompt, self._model, self._resolution, self._quality, self._num_images)
+        return ",".join([str(k) for k in keys])
+
+
+class HuggingFaceImageGenerator:
+    """Generates images using HuggingFace's text-to-image models.
+
+    This class provides a convenient interface for generating images based on textual prompts using HuggingFace's
+    text-to-image models. It allows you to specify the model id, the inference mode, and additional parameters for
+    the image generation process.
+
+    Note: Current implementation does not allow you to edit a previously existing image.
+    """
+
+    def __init__(
+        self,
+        llm_config: Optional[Union[Dict, None]] = None,
+        height: Optional[float] = None,
+        width: Optional[float] = None,
+        num_inference_steps: Optional[int] = None,
+        guidance_scale: Optional[float] = None,
+    ):
+        """
+        Args:
+            llm_config (dict or None): The LLM config for the HuggingFace client. An example config is:
+                ```python
+                {
+                    "config_list": [
+                        {
+                            "model": "<HF_MODEL_ID_OR_URL>",
+                            "api_key": "<HF_API_KEY>",
+                            "inference_mode": "auto",
+                            "api_type": "huggingface",
+                        }
+                    ]
+                }
+                ```
+            height (float or None): The height of the generated image.
+            width (float or None): The width of the generated image.
+            num_inference_steps (int or None): The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
+            guidance_scale (float or None): Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
+        """
+        if llm_config is None:
+            # Use default config
+            llm_config = {
+                "config_list": [
+                    {
+                        "api_type": "huggingface",
+                    }
+                ]
+            }
+
+        assert (
+            "config_list" in llm_config
+            and len(llm_config["config_list"]) > 0
+            and all(config.get("api_type") == "huggingface" for config in llm_config["config_list"])
+        ), "Invalid LLM config. Must set 'api_type' to 'huggingface' in the config_list."
+        self._client = OpenAIWrapper(**llm_config)
+
+        self._model = llm_config["config_list"][0].get("model")
+        self._height = height
+        self._width = width
+        self._num_inference_steps = num_inference_steps
+        self._guidance_scale = guidance_scale
+
+    def generate_image(self, prompt: str) -> Image:
+        response = self._client.create(
+            task="text-to-image",
+            prompt=prompt,
+            height=self._height,
+            width=self._width,
+            num_inference_steps=self._num_inference_steps,
+            guidance_scale=self._guidance_scale,
+        )
+        extracted_response = self._client.extract_text_or_completion_object(response)[0]
+        image = img_utils.get_pil_image(extracted_response)
+
+        return image
+
+    def cache_key(self, prompt: str) -> str:
+        keys = (prompt, self._model, self._height, self._width, self._num_inference_steps, self._guidance_scale)
         return ",".join([str(k) for k in keys])
 
 
