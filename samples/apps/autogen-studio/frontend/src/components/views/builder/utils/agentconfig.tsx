@@ -44,18 +44,39 @@ export const AgentConfigView = ({
   const serverUrl = getServerUrl();
   const createAgentUrl = `${serverUrl}/agents`;
   const [controlChanged, setControlChanged] = React.useState<boolean>(false);
+  const [selectedDbType, setSelectedDbType] = React.useState(agent.config?.retrieve_config?.vector_db);
+  const [dbConfig, setDbConfig] = React.useState(agent.config?.retrieve_config?.db_config || {});
+  const [selectedAuthType, setSelectedAuthType] = React.useState("String");
 
   const onControlChange = (value: any, key: string) => {
-    // if (key === "llm_config") {
-    //   if (value.config_list.length === 0) {
-    //     value = false;
-    //   }
-    // }
     const updatedAgent = {
       ...agent,
-      config: { ...agent.config, [key]: value },
+      config: {
+        ...agent.config,
+        retrieve_config: {
+          ...agent.config.retrieve_config,
+          [key]: value,
+          db_config: {
+            ...agent.config.retrieve_config?.db_config,
+            ...dbConfig,
+            [key]: value,
+          },
+        },
+      [key]: value,
+      },
     };
-
+    if (key === "vector_db") {
+      setSelectedDbType(value);
+    }
+    if (value === "String" || value === "Basic") {
+      setSelectedAuthType(value);
+    }
+    if (["connection_string", "username", "password", "host", "port", "database"].includes(key)) {
+      setDbConfig({
+        ...dbConfig,
+        [key]: value,
+      });
+    }
     setAgent(updatedAgent);
     setControlChanged(true);
   };
@@ -108,14 +129,24 @@ export const AgentConfigView = ({
   };
 
   const hasChanged =
-    (!controlChanged || !nameValidation.status) && agent?.id !== undefined;
+      (!controlChanged || !nameValidation.status) && agent?.id !== undefined;
+
+  const validatePort = (value: any) => {
+    const port = parseInt(value, 10);
+    if (port >= 1 && port <= 65535) {
+      onControlChange(port, "port");
+    } else {
+      // Optionally, you can show a message or handle invalid input differently
+      console.warn("Port number must be between 1 and 65535");
+    }
+  };
 
   return (
     <div className="text-primary">
       <Form>
         <div
           className={`grid  gap-3 ${
-            agent.type === "groupchat" ? "grid-cols-2" : "grid-cols-1"
+            agent.type === "groupchat" || agent.type === "retrieve_userproxy" ? "grid-cols-2" : "grid-cols-1"
           }`}
         >
           <div className="">
@@ -146,8 +177,7 @@ export const AgentConfigView = ({
             <ControlRowView
               title="Agent Description"
               className="mt-4"
-              description="Description of the agent, used by other agents
-        (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)"
+              description="Description of the agent, used by other agents (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)"
               value={agent.config.description || ""}
               control={
                 <Input
@@ -193,8 +223,8 @@ export const AgentConfigView = ({
                   options={
                     [
                       { label: "NEVER", value: "NEVER" },
-                      // { label: "TERMINATE", value: "TERMINATE" },
-                      // { label: "ALWAYS", value: "ALWAYS" },
+                      { label: "TERMINATE", value: "TERMINATE" },
+                      { label: "ALWAYS", value: "ALWAYS" },
                     ] as any
                   }
                 />
@@ -292,9 +322,7 @@ export const AgentConfigView = ({
                   control={
                     <Select
                       className="mt-2 w-full"
-                      defaultValue={
-                        agent.config.code_execution_config || "none"
-                      }
+                      defaultValue={agent.config.code_execution_config || "none"}
                       onChange={(value: any) => {
                         onControlChange(value, "code_execution_config");
                       }}
@@ -399,6 +427,168 @@ export const AgentConfigView = ({
               />
             </div>
           )}
+          {/* ====================== Retrieve Chat Config ======================= */}
+          {agent.type === "retrieve_userproxy" && (
+            <div>
+              <ControlRowView
+                title="Vector Database"
+                className=""
+                description="The vector database type. Options include ChromaDB and PGVector. ChromaDB is built into AutoGen Studio. PGVector requires a connection to an external vector database."
+                value={agent.config?.retrieve_config?.vector_db || false}
+                control={
+                  <Select
+                    className="mt-2 w-full"
+                    defaultValue={agent.config?.retrieve_config?.vector_db}
+                    onChange={(value: any) => {
+                      onControlChange(value, "vector_db");
+                    }}
+                    options={
+                      [
+                        { label: "ChromaDB", value: "ChromaDB" },
+                        { label: "PGVector", value: "PGVector" },
+                      ] as any
+                    }
+                  />
+                }
+              />
+              {selectedDbType === "PGVector" && (
+                <div>
+                  <ControlRowView
+                    title="Authentication Type"
+                    className=""
+                    description="Authentication types include basic auth or connection URI."
+                    value={selectedAuthType || ""}
+                    control={
+                      <Select
+                        className="mt-2 w-full"
+                        defaultValue="String"
+                        onChange={(value: any) => {
+                          onControlChange(value, "auth_type");
+                        }}
+                        options={
+                          [
+                            { label: "Basic Auth", value: "Basic" },
+                            { label: "Connection String", value: "String" },
+                          ] as any
+                        }
+                      />
+                    }
+                  />
+                  {selectedAuthType === "String" && (
+                    <div>
+                      <ControlRowView
+                        title="Connection String"
+                        className="mt-4"
+                        description="Connection URI postgresql://username:userpass@localhost:5432/database"
+                        value={dbConfig.connection_string || ""}
+                        control={
+                          <Input
+                            className="mt-2"
+                            placeholder="postgresql://username:userpass@localhost:5432/database"
+                            value={dbConfig.connection_string || ""}
+                            onChange={(e) => {
+                              onControlChange(e.target.value, "connection_string");
+                            }}
+                          />
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {selectedAuthType === "Basic" && (
+                    <div>
+                      <ControlRowView
+                        title="Hostname"
+                        className="mt-4"
+                        description="PGVector host. This can be an IP address '192.168.1.3' or an FQDN 'dbserver.example'."
+                        value={dbConfig.host || ""}
+                        control={
+                          <Input
+                            className="mt-2"
+                            placeholder="Hostname"
+                            value={dbConfig.host || ""}
+                            onChange={(e) => {
+                              onControlChange(e.target.value, "host");
+                            }}
+                          />
+                        }
+                      />
+
+                      <ControlRowView
+                        title="Port"
+                        className="mt-4"
+                        description="PGVector connection port. This is usually 5432."
+                        value={dbConfig.port || ""}
+                        control={
+                          <Input
+                            className="mt-2"
+                            placeholder="5432"
+                            type="number"
+                            min={1}
+                            max={65535}
+                            value={dbConfig.port || ""}
+                            onChange={(e) => {
+                              validatePort(e.target.value);
+                            }}
+                          />
+                        }
+                      />
+                      <ControlRowView
+                        title="Database"
+                        className="mt-4"
+                        description="PGVector database name."
+                        value={agent.config?.retrieve_config?.db_config?.database || ""}
+                        control={
+                          <Input
+                            className="mt-2"
+                            placeholder="Database"
+                            value={agent.config.retrieve_config.db_config.database || ""}
+                            onChange={(e) => {
+                              onControlChange(e.target.value, "database");
+                            }}
+                          />
+                        }
+                      />
+                      <ControlRowView
+                        title="Username"
+                        className="mt-4"
+                        description="PGVector database username."
+                        value={dbConfig.username || ""}
+                        control={
+                          <Input
+                            className="mt-2"
+                            placeholder="Username"
+                            value={dbConfig.username || ""}
+                            onChange={(e) => {
+                              onControlChange(e.target.value, "username");
+                            }}
+                          />
+                        }
+                      />
+
+                      <ControlRowView
+                        title="Password"
+                        className="mt-4"
+                        description="PGVector database user password."
+                        value="Password"
+                        control={
+                          <Input
+                            type="password"
+                            className="mt-2"
+                            placeholder=""
+                            value={dbConfig.password || ""}
+                            onChange={(e) => {
+                              onControlChange(e.target.value, "password");
+                            }}
+                          />
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Form>
 
@@ -443,7 +633,7 @@ export const AgentViewer = ({
   let items = [
     {
       label: (
-        <div className="w-full  ">
+        <div className="w-full ">
           {" "}
           <BugAntIcon className="h-4 w-4 inline-block mr-1" />
           Agent Configuration
@@ -468,7 +658,7 @@ export const AgentViewer = ({
       if (agent.type && agent.type === "groupchat") {
         items.push({
           label: (
-            <div className="w-full  ">
+            <div className="w-full ">
               {" "}
               <UserGroupIcon className="h-4 w-4 inline-block mr-1" />
               Agents
@@ -481,7 +671,7 @@ export const AgentViewer = ({
 
       items.push({
         label: (
-          <div className="w-full  ">
+          <div className="w-full ">
             {" "}
             <CpuChipIcon className="h-4 w-4 inline-block mr-1" />
             Models
@@ -494,6 +684,7 @@ export const AgentViewer = ({
       items.push({
         label: (
           <>
+            {" "}
             <BugAntIcon className="h-4 w-4 inline-block mr-1" />
             Skills
           </>
