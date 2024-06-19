@@ -1,14 +1,98 @@
 ---
 title: Enhanced Support for Non-OpenAI Models in AutoGen
-authors: marklysze, Hk669
+authors:
+  - marklysze
+  - Hk669
 tags: [mistral,anthropic,together.ai]
 ---
 
-TBC
+## TL;DR
 
-**TL;DR**
+AutoGen now integrates with a variety of model clients beyond those provided by OpenAI. Users can now leverage models from Anthropic, Mistral, and Together AI seamlessly with AutoGen agents.
 
-- **Non-OpenAI models**
+## Quickstart
+
+### Installation
+
+Install the appropriate client based on the model you wish to use.
+
+```sh
+pip install pyautogen["mistral"] # for Mistral client
+pip install pyautogen["anthropic"] # for Anthropic client
+pip install pyautogen["together"] # for Together AI client
+```
+
+### Configuration SetUp
+
+Add your model configurations to the `OAI_CONFIG_LIST`. Ensure you specify the `api_type` to initialize the respective client (Anthropic, Mistral, or Together).
+
+```json
+[
+    {
+        "model": "your anthropic model name",
+        "api_key": "your Anthropic api_key",
+        "api_type": "anthropic"
+    },
+    {
+        "model": "your mistral model name",
+        "api_key": "your Mistral api_key",
+        "api_type": "mistral"
+    },
+    {
+        "model": "your together.ai model name",
+        "api_key": "your Together.AI api_key",
+        "api_type": "together"
+    }
+]
+```
+
+### Usage
+
+The `[config_list_from_json](https://microsoft.github.io/autogen/docs/reference/oai/openai_utils/#config_list_from_json)` function loads a list of configurations from an environment variable or a json file.
+
+```py
+import autogen
+from autogen import AssistantAgent, UserProxyAgent
+
+config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST"
+)
+```
+
+### Construct Agents
+
+Construct a simple conversation between a User proxy and an Assistant agent
+
+```py
+user_proxy =  UserProxyAgent(
+    name="User_proxy",
+    code_execution_config={
+        "last_n_messages": 2,
+        "work_dir": "groupchat",
+        "use_docker": False, # Please set use_docker = True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    },
+    human_input_mode="ALWAYS",
+    is_termination_msg=lambda msg: not msg["content"]
+)
+
+assistant = AssistantAgent(
+    name="assistant",
+    llm_config = {"config_list": config_list}
+)
+```
+
+### Start chat
+
+```py
+
+user_proxy.intiate_chat(assistant, message="Write python code to print Hello World!")
+
+```
+
+**NOTE: To integrate this setup into GroupChat, follow the [tutorial](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat) with the same config as above.**
+
+
+## Function Calls
 
 
 ## TBC
