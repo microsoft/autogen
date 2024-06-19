@@ -121,7 +121,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         #     )
         # )
 
-
         future = asyncio.get_event_loop().create_future()
         if recipient.name not in self._known_agent_names:
             future.set_exception(Exception("Recipient not found"))
@@ -181,7 +180,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         assert explicit_namespace is not None or sender_namespace is not None
         namespace = cast(str, explicit_namespace or sender_namespace)
         self._process_seen_namespace(namespace)
-
 
         self._message_queue.append(
             PublishMessageEnvelope(

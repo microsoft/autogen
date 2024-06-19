@@ -14,50 +14,32 @@
 
 ## Development
 
+**TL;DR**, run all checks with:
+
+```sh
+hatch run check
+```
+
 ### Setup
 
-```sh
-python -m venv .venv
-source .venv/bin/activate
+- [Install `hatch`](https://hatch.pypa.io/1.12/install/).
 
-pip install -e ".[dev]"
+### Virtual environment
+
+To get a shell with the package available (virtual environment) run:
+```sh
+hatch shell
 ```
 
-### Running tests
+### Common tasks
 
-```sh
-pytest
-```
+- Format: `hatch run check`
+- Lint: `hatch run lint`
+- Test: `hatch run pytest -n auto`
+- Mypy: `hatch run mypy`
+- Pyright: `hatch run pyright`
+- Build docs: `hatch run docs:build`
+- Auto rebuild+serve docs: `hatch run docs:serve`
 
-### Type checking
-
-```sh
-mypy
-```
-
-```sh
-pyright
-```
-
-### Linting
-
-```sh
-ruff check
-```
-
-### Formatting
-
-```sh
-ruff format
-```
-
-### Build docs
-
-```sh
-pip install -e ".[docs]"
-
-sphinx-build docs/src docs/build
-
-# To view the docs:
-python -m http.server -d docs/build
-```
+> [!NOTE]
+> These don't need to be run in a virtual environment, `hatch` will automatically manage it for you.

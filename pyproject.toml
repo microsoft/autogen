@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "agnext"
@@ -21,29 +21,54 @@ dependencies = [
     "pydantic>=1.10,<3",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "ruff==0.4.6",
-    "pyright",
-    "mypy",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-xdist",
+[tool.hatch.envs.default]
+dependencies = [
+    "pyright==1.1.368",
+    "mypy==1.10.0",
+    "ruff==0.4.8",
     "types-Pillow",
     "polars",
-    # Dependencies for the examples.
     "chess",
     "tavily-python",
     "aiofiles",
     "types-aiofiles",
     "colorama",
     "textual",
+    "textual-dev",
     "textual-imageview",
+    "pytest-asyncio",
+    "pip",
+    "pytest",
+    "pytest-xdist",
 ]
-docs = ["sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser"]
 
-[tool.setuptools.package-data]
-agnext = ["py.typed"]
+[tool.hatch.envs.default.scripts]
+fmt = "ruff format"
+lint = "ruff check"
+test = "pytest -n auto"
+check = [
+    "ruff format",
+    "ruff check --fix",
+    "pyright",
+    "mypy",
+    "pytest -n auto",
+]
+
+[tool.hatch.envs.test-matrix]
+template = "default"
+
+[[tool.hatch.envs.test-matrix.matrix]]
+python = ["3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.docs]
+dependencies = [
+  "sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser", "sphinx-autobuild"
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build docs/src docs/build"
+serve = "sphinx-autobuild --watch src docs/src docs/build"
+check = "sphinx-build --fail-on-warning docs/src docs/build"
 
 [tool.ruff]
 line-length = 120

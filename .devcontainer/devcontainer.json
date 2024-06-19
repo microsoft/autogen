@@ -21,7 +21,8 @@
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
 			"version": "latest"
-		}
+		},
+		"ghcr.io/devcontainers-contrib/features/hatch:2": {}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
