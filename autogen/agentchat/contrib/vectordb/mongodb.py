@@ -86,8 +86,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             collection.create_search_index(model=search_index_model)
             return collection
         except Exception as e:
-            print(f"Error creating search index: {e}")
-            raise e
+            raise Exception(f"Error creating search index: {str(e)}") from e
         
     def get_collection(self, collection_name: str = None):
         """
