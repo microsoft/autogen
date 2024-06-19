@@ -9,7 +9,7 @@ using AutoGen.SemanticKernel.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 
-namespace AutoGen.GettingStartSample;
+namespace AutoGen.BasicSample;
 
 public class Dynamic_Group_Chat
 {

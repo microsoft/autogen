@@ -10,7 +10,7 @@ using Azure.AI.OpenAI;
 
 using FluentAssertions;
 
-namespace AutoGen.GettingStartSample;
+namespace AutoGen.BasicSample;
 
 public class Chat_With_Agent
 {

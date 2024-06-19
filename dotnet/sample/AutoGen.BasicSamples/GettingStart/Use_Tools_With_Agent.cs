@@ -9,7 +9,7 @@ using Azure.AI.OpenAI;
 #endregion Using
 using FluentAssertions;
 
-namespace AutoGen.GettingStartSample;
+namespace AutoGen.BasicSample;
 
 public partial class Tools
 {

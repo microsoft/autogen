@@ -7,7 +7,7 @@ using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 
-namespace AutoGen.GettingStartSample;
+namespace AutoGen.BasicSample;
 
 public class Image_Chat_With_Agent
 {
