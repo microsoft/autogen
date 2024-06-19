@@ -350,8 +350,8 @@ class AutoWorkflowManager:
         agent_usage = agent.client.total_usage_summary if agent.client else default_usage
         agent_usage = {
             "agent": agent.name,
-            "total_cost": find_key_value(agent_usage, "total_cost"),
-            "total_tokens": find_key_value(agent_usage, "total_tokens"),
+            "total_cost": find_key_value(agent_usage, "total_cost") or 0,
+            "total_tokens": find_key_value(agent_usage, "total_tokens") or 0,
         }
         final_usage.append(agent_usage)
 
@@ -362,8 +362,8 @@ class AutoWorkflowManager:
                 agent_usage = agent.client.total_usage_summary if agent.client else default_usage or default_usage
                 agent_usage = {
                     "agent": agent.name,
-                    "total_cost": find_key_value(agent_usage, "total_cost"),
-                    "total_tokens": find_key_value(agent_usage, "total_tokens"),
+                    "total_cost": find_key_value(agent_usage, "total_cost") or 0,
+                    "total_tokens": find_key_value(agent_usage, "total_tokens") or 0,
                 }
                 final_usage.append(agent_usage)
         return final_usage
