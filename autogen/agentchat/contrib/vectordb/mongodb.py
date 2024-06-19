@@ -1,18 +1,27 @@
-from pymongo import MongoClient, errors
 from typing import Callable, List
-from sentence_transformers import SentenceTransformer
-from pymongo.operations import SearchIndexModel
+
 import numpy as np
+from pymongo import MongoClient, errors
+from pymongo.operations import SearchIndexModel
+from sentence_transformers import SentenceTransformer
+
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import get_logger
 
 logger = get_logger(__name__)
 
+
 class MongoDBAtlasVectorDB(VectorDB):
     """
     A Collection object for MongoDB.
     """
-    def __init__(self, connection_string: str = '', database_name: str = 'vector_db', embedding_function: Callable = None,):
+
+    def __init__(
+        self,
+        connection_string: str = "",
+        database_name: str = "vector_db",
+        embedding_function: Callable = None,
+    ):
         """
         Initialize the vector database.
 
@@ -27,7 +36,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         try:
             self.client = MongoClient(connection_string)
-            self.client.admin.command('ping')
+            self.client.admin.command("ping")
         except errors.ServerSelectionTimeoutError as err:
             raise ConnectionError("Could not connect to MongoDB server") from err
 
@@ -39,6 +48,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         ]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+
     def list_collections(self):
         """
         List the collections in the vector database.
@@ -50,7 +60,15 @@ class MongoDBAtlasVectorDB(VectorDB):
             return self.db.list_collection_names()
         except Exception as err:
             raise err
-    def create_collection(self, collection_name: str, index_name:str, similarity:str, overwrite: bool = False, get_or_create: bool = True):
+
+    def create_collection(
+        self,
+        collection_name: str,
+        index_name: str,
+        similarity: str,
+        overwrite: bool = False,
+        get_or_create: bool = True,
+    ):
         """
         Create a collection in the vector database and create a vector search index in the collection.
 
@@ -77,23 +95,18 @@ class MongoDBAtlasVectorDB(VectorDB):
         # If get_or_create is False and the collection already exists, raise a ValueError
         if not get_or_create and collection_name in collection_names:
             raise ValueError(f"Collection {collection_name} already exists.")
-        
+
         # Create a new collection
         collection = self.db.create_collection(collection_name)
         # Create a vector search index in the collection
         search_index_model = SearchIndexModel(
             definition={
                 "fields": [
-                    {
-                        "type": "vector",
-                        "numDimensions": self.dimensions,
-                        "path": "embedding",
-                        "similarity": similarity
-                    },
+                    {"type": "vector", "numDimensions": self.dimensions, "path": "embedding", "similarity": similarity},
                 ]
             },
             name=index_name,
-            type="vectorSearch"
+            type="vectorSearch",
         )
         # Create the search index
         try:
@@ -102,7 +115,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         except Exception as e:
             logger.error(f"Error creating search index: {e}")
             raise e
-        
+
     def get_collection(self, collection_name: str = None):
         """
         Get the collection from the vector database.
@@ -155,15 +168,12 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection = self.get_collection(collection_name)
         for doc in docs:
             if "embedding" not in doc:
-                doc["embedding"] = np.array(self.embedding_function([
-                    str(doc["content"])
-                ])).tolist()[0]
+                doc["embedding"] = np.array(self.embedding_function([str(doc["content"])])).tolist()[0]
         if upsert:
             for doc in docs:
-                return collection.replace_one({'id': doc['id']}, doc, upsert=True)
+                return collection.replace_one({"id": doc["id"]}, doc, upsert=True)
         else:
             return collection.insert_many(docs)
-        
 
     def update_docs(self, docs: List[Document], collection_name: str = None):
         """
@@ -184,7 +194,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             collection_name: str | The name of the collection. Default is None.
         """
         collection = self.get_collection(collection_name)
-        return collection.delete_many({'id':{'$in': ids}})
+        return collection.delete_many({"id": {"$in": ids}})
 
     def get_docs_by_ids(self, ids: List[ItemID] = None, collection_name: str = None):
         """
@@ -197,12 +207,12 @@ class MongoDBAtlasVectorDB(VectorDB):
         results = []
         if ids is None:
             collection = self.get_collection(collection_name)
-            results = list(collection.find({},{"embedding": 0}))
+            results = list(collection.find({}, {"embedding": 0}))
         else:
             for id in ids:
                 id = str(id)
             collection = self.get_collection(collection_name)
-            results = list(collection.find({'id': {'$in': ids}},{"embedding": 0}))
+            results = list(collection.find({"id": {"$in": ids}}, {"embedding": 0}))
         return results
 
     def retrieve_docs(
@@ -210,7 +220,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         queries: List[str],
         collection_name: str = None,
         index_name: str = "default",
-        n_results: int = 10, n_candidates: int = 10,
+        n_results: int = 10,
+        n_candidates: int = 10,
         distance_threshold: float = -1,
         **kwargs,
     ) -> QueryResults:
@@ -239,62 +250,50 @@ class MongoDBAtlasVectorDB(VectorDB):
             if n_candidates < 1:
                 raise ValueError("n_candidates must be greater than or equal to 1.")
             pipeline = [
-                {"$vectorSearch": {
-                    "index": index_name, 
-                    "limit": n_results, 
-                    "numCandidates": n_candidates, 
-                    "queryVector": query_vector, 
-                    "path":"embedding"
-                }},
                 {
-               '$project': {
-                        'score': {
-                            '$meta': 'vectorSearchScore'
-                        }
+                    "$vectorSearch": {
+                        "index": index_name,
+                        "limit": n_results,
+                        "numCandidates": n_candidates,
+                        "queryVector": query_vector,
+                        "path": "embedding",
                     }
-                }]
+                },
+                {"$project": {"score": {"$meta": "vectorSearchScore"}}},
+            ]
             if distance_threshold >= 0.00:
                 pipeline.append({"$match": {"score": {"$gte": distance_threshold}}})
 
             # do a lookup on the same collection
             pipeline.append(
                 {
-                    '$lookup': {
-                        'from': collection_name, 
-                        'localField': '_id', 
-                        'foreignField': '_id', 
-                        'as': 'full_document_array'
+                    "$lookup": {
+                        "from": collection_name,
+                        "localField": "_id",
+                        "foreignField": "_id",
+                        "as": "full_document_array",
                     }
                 }
             )
             pipeline.append(
                 {
-                    '$addFields': {
-                        'full_document': {
-                            '$arrayElemAt': [
+                    "$addFields": {
+                        "full_document": {
+                            "$arrayElemAt": [
                                 {
-                                    '$map': {
-                                        'input': '$full_document_array', 
-                                        'as': 'doc', 
-                                        'in': {
-                                            'id': '$$doc.id', 
-                                            'content': '$$doc.content'
-                                        }
+                                    "$map": {
+                                        "input": "$full_document_array",
+                                        "as": "doc",
+                                        "in": {"id": "$$doc.id", "content": "$$doc.content"},
                                     }
-                                }, 0
+                                },
+                                0,
                             ]
                         }
                     }
                 }
             )
-            pipeline.append(
-                {
-                    '$project': {
-                        'full_document_array': 0, 
-                        'embedding': 0
-                    }
-                }
-            )
+            pipeline.append({"$project": {"full_document_array": 0, "embedding": 0}})
             tmp_results = []
             for doc in search_collection.aggregate(pipeline):
                 tmp_results.append((doc["full_document"], doc["score"]))

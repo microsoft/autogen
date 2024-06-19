@@ -39,27 +39,43 @@ def test_mongodb():
     def create_collection(collection_name: str,
                         overwrite: bool = False,
                         get_or_create: bool = True) -> Any
-    Create a collection in the vector database. 
-    - Case 1. if the collection does not exist, create the collection. 
-    - Case 2. the collection exists, if overwrite is True, it will overwrite the collection. 
+    Create a collection in the vector database.
+    - Case 1. if the collection does not exist, create the collection.
+    - Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
     - Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection, otherwise it raise a ValueError.
     """
     # test_create_collection: case 1
     if collection_name not in db.list_collections():
-        collection = db.create_collection(collection_name=collection_name, index_name='my_index', similarity='cosine', overwrite=False, get_or_create=True)
+        collection = db.create_collection(
+            collection_name=collection_name,
+            index_name="my_index",
+            similarity="cosine",
+            overwrite=False,
+            get_or_create=True,
+        )
         assert collection.name == collection_name
     # test_create_collection: case 2
     # test overwrite=True
-    collection = db.create_collection(collection_name=collection_name, index_name='my_index_1', similarity='cosine', overwrite=True, get_or_create=True)
+    collection = db.create_collection(
+        collection_name=collection_name,
+        index_name="my_index_1",
+        similarity="cosine",
+        overwrite=True,
+        get_or_create=True,
+    )
     assert collection.name == collection_name
 
     # test_create_collection: case 3
     # test overwrite=False
     # test get_or_create=False
     with pytest.raises(ValueError):
-        collection = db.create_collection(collection_name, index_name='my_index_1', similarity='cosine', overwrite=False, get_or_create=False)
-    #test get_or_create=True
-    collection = db.create_collection(collection_name, index_name='my_index_1', similarity='cosine',  overwrite=False, get_or_create=True)
+        collection = db.create_collection(
+            collection_name, index_name="my_index_1", similarity="cosine", overwrite=False, get_or_create=False
+        )
+    # test get_or_create=True
+    collection = db.create_collection(
+        collection_name, index_name="my_index_1", similarity="cosine", overwrite=False, get_or_create=True
+    )
     assert collection.name == collection_name
 
     # test_get_collection
@@ -99,7 +115,9 @@ def test_mongodb():
     queries = ["doc2", "doc3"]
     res = db.retrieve_docs(queries=queries, collection_name=collection_name, index_name="my_index_1")
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]
-    res = db.retrieve_docs(queries=queries, collection_name=collection_name, distance_threshold=0.95, index_name="my_index_1")
+    res = db.retrieve_docs(
+        queries=queries, collection_name=collection_name, distance_threshold=0.95, index_name="my_index_1"
+    )
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2"], ["3"]]
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
