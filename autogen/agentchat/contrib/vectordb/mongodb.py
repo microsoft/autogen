@@ -4,6 +4,9 @@ from sentence_transformers import SentenceTransformer
 from pymongo.operations import SearchIndexModel
 import numpy as np
 from .base import Document, ItemID, QueryResults, VectorDB
+from .utils import get_logger
+
+logger = get_logger(__name__)
 
 class MongoDBAtlasVectorDB(VectorDB):
     """
@@ -30,14 +33,23 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         self.db = self.client[database_name]
         self.active_collection = None
-        self.active_index = None
         # This will get the model dimension size by computing the embeddings dimensions
         sentences = [
             "The weather is lovely today in paradise.",
         ]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+    def list_collections(self):
+        """
+        List the collections in the vector database.
 
+        Returns:
+            List[str] | The list of collections.
+        """
+        try:
+            return self.db.list_collection_names()
+        except Exception as err:
+            raise err
     def create_collection(self, collection_name: str, index_name:str, similarity:str, overwrite: bool = False, get_or_create: bool = True):
         """
         Create a collection in the vector database and create a vector search index in the collection.
@@ -52,7 +64,9 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Check if similarity is valid
         if similarity not in ["euclidean", "cosine", "dotProduct"]:
             raise ValueError("Invalid similarity. Allowed values: 'euclidean', 'cosine', 'dotProduct'.")
-        
+        # if overwrite is False and get_or_create is False, raise a ValueError
+        if not overwrite and not get_or_create:
+            raise ValueError("If overwrite is False, get_or_create must be True.")
         # If overwrite is True and the collection already exists, drop the existing collection
         collection_names = self.db.list_collection_names()
         if overwrite and collection_name in collection_names:
@@ -86,7 +100,8 @@ class MongoDBAtlasVectorDB(VectorDB):
             collection.create_search_index(model=search_index_model)
             return collection
         except Exception as e:
-            raise Exception(f"Error creating search index: {str(e)}") from e
+            logger.error(f"Error creating search index: {e}")
+            raise e
         
     def get_collection(self, collection_name: str = None):
         """
@@ -95,16 +110,23 @@ class MongoDBAtlasVectorDB(VectorDB):
         Args:
             collection_name: str | The name of the collection. Default is None. If None, return the
                 current active collection.
+
+        Returns:
+            Collection | The collection object.
         """
         if collection_name is None:
             if self.active_collection is None:
                 raise ValueError("No collection is specified.")
             else:
-                return self.active_collection
+                logger.debug(
+                    f"No collection is specified. Using current active collection {self.active_collection.name}."
+                )
         else:
-            if collection_name not in self.db.list_collection_names():
+            if collection_name not in self.list_collections():
                 raise ValueError(f"Collection {collection_name} does not exist.")
-            return self.db[collection_name]
+            if self.active_collection is None:
+                self.active_collection = self.db[collection_name]
+        return self.active_collection
 
     def delete_collection(self, collection_name: str):
         """
@@ -172,13 +194,16 @@ class MongoDBAtlasVectorDB(VectorDB):
             ids: List[ItemID] | A list of document ids. If None, will return all the documents. Default is None.
             collection_name: str | The name of the collection. Default is None.
         """
-        for id in ids:
-            id = str(id)
-        collection = self.get_collection(collection_name)
+        results = []
         if ids is None:
-            return list(collection.find())
+            collection = self.get_collection(collection_name)
+            results = list(collection.find({},{"embedding": 0}))
         else:
-            return list(collection.find({'id': {'$in': ids}}))
+            for id in ids:
+                id = str(id)
+            collection = self.get_collection(collection_name)
+            results = list(collection.find({'id': {'$in': ids}},{"embedding": 0}))
+        return results
 
     def retrieve_docs(
         self,
@@ -228,12 +253,50 @@ class MongoDBAtlasVectorDB(VectorDB):
                         }
                     }
                 }]
-            if distance_threshold >= 0:
-                pipeline.append({"$match": {"score": {"$lte": distance_threshold}}})
-            print("pipeline: ", pipeline)
-            for doc in list(search_collection.aggregate(pipeline)):
-                #  Each query result is a list of list of tuples containing the document and the distance.
-                results.append([(doc, doc["score"])])
+            if distance_threshold >= 0.00:
+                pipeline.append({"$match": {"score": {"$gte": distance_threshold}}})
+
+            # do a lookup on the same collection
+            pipeline.append(
+                {
+                    '$lookup': {
+                        'from': collection_name, 
+                        'localField': '_id', 
+                        'foreignField': '_id', 
+                        'as': 'full_document_array'
+                    }
+                }
+            )
+            pipeline.append(
+                {
+                    '$addFields': {
+                        'full_document': {
+                            '$arrayElemAt': [
+                                {
+                                    '$map': {
+                                        'input': '$full_document_array', 
+                                        'as': 'doc', 
+                                        'in': {
+                                            'id': '$$doc.id', 
+                                            'content': '$$doc.content'
+                                        }
+                                    }
+                                }, 0
+                            ]
+                        }
+                    }
+                }
+            )
+            pipeline.append(
+                {
+                    '$project': {
+                        'full_document_array': 0, 
+                        'embedding': 0
+                    }
+                }
+            )
+            tmp_results = []
+            for doc in search_collection.aggregate(pipeline):
+                tmp_results.append((doc["full_document"], doc["score"]))
+            results.append(tmp_results)
         return results
-    
-    
