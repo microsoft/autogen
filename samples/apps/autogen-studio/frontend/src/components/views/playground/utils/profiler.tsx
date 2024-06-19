@@ -23,7 +23,7 @@ const ProfilerView = ({
   const serverUrl = getServerUrl();
 
   const fetchProfile = (messageId: number) => {
-    const profilerUrl = `${serverUrl}/profiler/${messageId}/?user_id=${user?.email}`;
+    const profilerUrl = `${serverUrl}/profiler/${messageId}?user_id=${user?.email}`;
     setError(null);
     setLoading(true);
     const payLoad = {
