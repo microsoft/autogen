@@ -396,11 +396,11 @@ class GeminiClient:
             else:
                 rst.append(Content(parts=parts, role=role))
                 
-        def update_last_text(text):
+        def append_text_to_last(text):
             if self.use_vertexai:
-                rst[-1] = VertexAIContent(parts=[VertexAIPart.from_text(rst[-1].parts[0].text + text)], role=rst[-1].role)
+                rst[-1] = VertexAIContent(parts=[*rst[-1].parts, VertexAIPart.from_text(text)], role=rst[-1].role)
             else:
-                rst[-1] = Content(parts=[Part(text=rst[-1].parts[0].text + text)], role=rst[-1].role)
+                rst[-1] = Content(parts=[*rst[-1].parts, Part(text=text)], role=rst[-1].role)
                 
         def is_function_call(parts):
             return self.use_vertexai and parts[0].function_call or not self.use_vertexai and "function_call" in parts[0]
@@ -430,12 +430,12 @@ class GeminiClient:
                     append_parts(self._oai_content_to_gemini_content("continue"), "model")
             # If the role is the same as the previous role and both are text messages then concatenate the text
             elif role == prev_role:
-                update_last_text(parts[0].text)
+                append_text_to_last(parts[0].text)
             # If this is first message or the role is different from the previous role then append the parts
             else:
                 # If the previous text message is empty then update the text to "empty" as Gemini does not support empty messages
                 if len(rst) > 0 and rst[-1].parts[0].text == "":
-                    update_last_text("empty")
+                    append_text_to_last("empty")
                 append_parts(parts, role)
 
             prev_role = role
