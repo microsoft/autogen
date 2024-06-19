@@ -226,6 +226,9 @@ async def _dependent_chat_future(
     """
     logger.debug(f"Create Task for chat {chat_id}." + __system_now_str())
     _chat_carryover = chat_info.get("carryover", [])
+    finished_chat_indexes_to_exclude_from_carryover = chat_info.get(
+        "finished_chat_indexes_to_exclude_from_carryover", []
+    )
     finished_chats = dict()
     for chat in prerequisite_chat_futures:
         chat_future = prerequisite_chat_futures[chat]
@@ -237,8 +240,12 @@ async def _dependent_chat_future(
 
     if isinstance(_chat_carryover, str):
         _chat_carryover = [_chat_carryover]
-    chat_info["carryover"] = _chat_carryover + [finished_chats[pre_id].summary for pre_id in finished_chats]
-
+    data = [
+        chat_result.summary
+        for chat_id, chat_result in finished_chats.items()
+        if chat_id not in finished_chat_indexes_to_exclude_from_carryover
+    ]
+    chat_info["carryover"] = _chat_carryover + data
     if not chat_info.get("silent", False):
         __post_carryover_processing(chat_info)
 
