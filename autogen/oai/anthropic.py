@@ -1,5 +1,5 @@
 """
-Create an OpenAI API client for the Anthropic API.
+Create an OpenAI-compatible client for the Anthropic API.
 
 Example usage:
 Install the `anthropic` package by running `pip install --upgrade anthropic`.
