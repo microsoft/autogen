@@ -511,11 +511,19 @@ def find_key_value(d, target_key):
     """
     Recursively search for a key in a nested dictionary and return its value.
     """
-    for key, value in d.items():
-        if key == target_key:
-            return value
-        elif isinstance(value, dict):
-            result = find_key_value(value, target_key)
-            if result is not None:
-                return result
+    if d is None:
+        return None
+
+    if isinstance(d, dict):
+        if target_key in d:
+            return d[target_key]
+        for k in d:
+            item = find_key_value(d[k], target_key)
+            if item is not None:
+                return item
+    elif isinstance(d, list):
+        for i in d:
+            item = find_key_value(i, target_key)
+            if item is not None:
+                return item
     return None
