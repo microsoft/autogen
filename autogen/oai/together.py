@@ -138,7 +138,7 @@ class TogetherClient:
             hide_tools = validate_parameter(
                 params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
             )
-            if not should_hide_tools(params, params["tools"], hide_tools):
+            if not should_hide_tools(together_messages, params["tools"], hide_tools):
                 together_params["tools"] = params["tools"]
 
         together_params["messages"] = together_messages
