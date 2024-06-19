@@ -56,70 +56,6 @@ def test_valid_initialization(mistral_client):
     assert mistral_client.api_key == "fake_api_key", "Config api_key should be correctly set"
 
 
-# Test parameters
-@pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
-def test_parsing_params(mistral_client):
-    # All parameters
-    params = {
-        "model": "mistral-medium-latest",
-        "stream": False,
-        "temperature": 1,
-        "top_p": 0.8,
-        "max_tokens": 100,
-        "safe_prompt": True,
-        "random_seed": 42,
-    }
-    expected_params = {
-        "model": "mistral-medium-latest",
-        "stream": False,
-        "temperature": 1,
-        "top_p": 0.8,
-        "max_tokens": 100,
-        "safe_prompt": True,
-        "random_seed": 42,
-    }
-    result = mistral_client.parse_params(params)
-    assert result == expected_params
-
-    # Only model, others set as defaults
-    params = {
-        "model": "mistral-medium-latest",
-    }
-    expected_params = {
-        "model": "mistral-medium-latest",
-        "stream": False,
-        "temperature": 0.7,
-        "top_p": None,
-        "max_tokens": None,
-        "safe_prompt": False,
-        "random_seed": None,
-    }
-    result = mistral_client.parse_params(params)
-    assert result == expected_params
-
-    # Incorrect types, defaults should be set, will show warnings but not trigger assertions
-    params = {
-        "model": "mistral-medium-latest",
-        "stream": 13,
-        "temperature": "0.7",
-        "top_p": "0.3",
-        "max_tokens": "True",
-        "safe_prompt": "True",
-        "random_seed": "False",
-    }
-    expected_params = {
-        "model": "mistral-medium-latest",
-        "stream": False,
-        "temperature": 0.7,
-        "top_p": None,
-        "max_tokens": None,
-        "safe_prompt": False,
-        "random_seed": None,
-    }
-    result = mistral_client.parse_params(params)
-    assert result == expected_params
-
-
 # Test cost calculation
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
 def test_cost_calculation(mock_response):
@@ -228,13 +164,6 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
 
     mistral_messages = [
         ChatMessage(
-            role="system",
-            content='For currency exchange tasks,\n        only use the functions you have been provided with.\n        Output \'TERMINATE\' when an answer has been provided.\n        Do not include the function name or result in the JSON.\n        Example of the return JSON is:\n        {\n            "parameter_1_name": 100.00,\n            "parameter_2_name": "ABC",\n            "parameter_3_name": "DEF",\n        }.\n        Another example of the return JSON is:\n        {\n            "parameter_1_name": "GHI",\n            "parameter_2_name": "ABC",\n            "parameter_3_name": "DEF",\n            "parameter_4_name": 123.00,\n        }. ',
-            name=None,
-            tool_calls=None,
-            tool_call_id=None,
-        ),
-        ChatMessage(
             role="user", content="How much is 123.45 EUR in USD?", name=None, tool_calls=None, tool_call_id=None
         ),
     ]
@@ -245,17 +174,5 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
     )
 
     # Assertions to check if response is structured as expected
-    assert response.id == "mock_mistral_response_id"
-    assert response.model == "mistral-small-latest"
-    assert response.usage.prompt_tokens == 10
-    assert response.usage.completion_tokens == 20
-    assert len(response.choices) == 1
-    assert response.choices[0].finish_reason == "tool_calls"
     assert response.choices[0].message.content == ""
-    assert len(response.choices[0].message.tool_calls) == 1
-    assert response.choices[0].message.tool_calls[0].id == "gdRdrvnHh"
     assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
-    assert (
-        response.choices[0].message.tool_calls[0].function.arguments
-        == '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
-    )

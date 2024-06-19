@@ -38,6 +38,8 @@ from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 from typing_extensions import Annotated
 
+from autogen.oai.client_utils import should_hide_tools, validate_parameter
+
 
 class MistralAIClient:
     """Client for Mistral.AI's API."""
@@ -67,50 +69,6 @@ class MistralAIClient:
 
     def parse_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Loads the parameters for Mistral.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
-
-        # Validate individual parameters
-        def validate_parameter(
-            param_name: str,
-            allowed_types: Tuple,
-            allow_None: bool,
-            default_value: Any,
-            numerical_bound: Tuple,
-            allowed_values: list,
-        ):
-            param_value = params.get(param_name, default_value)
-            warning = ""
-
-            if not isinstance(param_value, allowed_types):
-                if isinstance(allowed_types, tuple):
-                    formatted_types = "(" + ", ".join(f"{t.__name__}" for t in allowed_types) + ")"
-                else:
-                    formatted_types = f"{allowed_types.__name__}"
-                warning = f"must be of type {formatted_types}{' or None' if allow_None else ''}"
-            elif param_value is None and not allow_None:
-                warning = "cannot be None"
-            elif numerical_bound:
-                lower_bound, upper_bound = numerical_bound
-                if (lower_bound is not None and param_value < lower_bound) or (
-                    upper_bound is not None and param_value > upper_bound
-                ):
-                    warning = f"has numerical bounds, {'>= ' + str(lower_bound) if lower_bound is not None else ''}{' and ' if lower_bound is not None and upper_bound is not None else ''}{'<= ' + str(upper_bound) if upper_bound is not None else ''}{', or can be None' if allow_None else ''}"
-            elif allowed_values:
-                if not (allow_None and param_value is None):
-                    if param_value not in allowed_values:
-                        warning = (
-                            f"must be one of these values [{allowed_values}]{', or can be None' if allow_None else ''}"
-                        )
-
-            # If we failed any checks, warn and set to default value
-            if warning:
-                warnings.warn(
-                    f"Config error - {param_name} {warning}, defaulting to {default_value}.",
-                    UserWarning,
-                )
-                param_value = default_value
-
-            return param_value
-
         mistral_params = {}
 
         # Check that we have what we need to use Mistral.AI's API
@@ -120,36 +78,22 @@ class MistralAIClient:
         ], "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use."
 
         # Validate allowed Mistral.AI parameters
-        mistral_params["stream"] = validate_parameter("stream", bool, False, False, None, [False])
-        mistral_params["temperature"] = validate_parameter("temperature", (int, float), True, 0.7, None, None)
-        mistral_params["top_p"] = validate_parameter("top_p", (int, float), True, None, None, None)
-        mistral_params["max_tokens"] = validate_parameter("max_tokens", int, True, None, (0, None), None)
-        mistral_params["safe_prompt"] = validate_parameter("safe_prompt", bool, False, False, None, [True, False])
-        mistral_params["random_seed"] = validate_parameter("random_seed", int, True, None, False, False)
+        mistral_params["temperature"] = validate_parameter(params, "temperature", (int, float), True, 0.7, None, None)
+        mistral_params["top_p"] = validate_parameter(params, "top_p", (int, float), True, None, None, None)
+        mistral_params["max_tokens"] = validate_parameter(params, "max_tokens", int, True, None, (0, None), None)
+        mistral_params["safe_prompt"] = validate_parameter(
+            params, "safe_prompt", bool, False, False, None, [True, False]
+        )
+        mistral_params["random_seed"] = validate_parameter(params, "random_seed", int, True, None, False, None)
 
         return mistral_params
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
-        """Create a completion for a given config.
-
-        Args:
-            params: The params for the completion.
-
-        Returns:
-            The completion.
-        """
-        if "tools" in params:
-            converted_functions = params["tools"]
-        else:
-            converted_functions = None
-
-        raw_contents = params["messages"]
-
-        # Parse parameters to Mistral.AI API's parameters
-        mistral_params = self.parse_params(params)
+        mistral_params = self.parse_params(params)  # Parse parameters to Mistral.AI API's parameters
 
         mistral_messages = []
-        for message in raw_contents:
+        tool_call_ids = {}  # tool call ids to function name mapping
+        for message in params["messages"]:
 
             # Mistral
             if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"] is not None:
@@ -164,10 +108,22 @@ class MistralAIClient:
                     ChatMessage(role=message["role"], content=message["content"], tool_calls=mistral_toolcalls)
                 )
 
-            elif message["role"] in ("system", "user", "assistant", "tool"):
-                # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API, so, no, the 'name' field is not used.
-                mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+                # Map tool call id to the function name
+                tool_call_ids[message["tool_calls"][0]["id"]] = message["tool_calls"][0]["function"]["name"]
 
+            elif message["role"] in ("system", "user", "assistant"):
+                # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API if not role=tool, so, no, the 'name' field is not used.
+                mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+            elif message["role"] == "tool":
+                # Indicates the result of a tool call, the name is the function name called
+                mistral_messages.append(
+                    ChatMessage(
+                        role="tool",
+                        name=tool_call_ids[message["tool_call_id"]],
+                        content=message["content"],
+                        tool_call_id=message["tool_call_id"],
+                    )
+                )
             else:
                 warnings.warn(f"Unknown message role {message['role']}", UserWarning)
 
@@ -181,18 +137,18 @@ class MistralAIClient:
 
         # TODO: Handle streaming
 
-        try:
-            mistral_response = client.chat(
-                model=mistral_params["model"],
-                messages=mistral_messages,
-                tools=converted_functions,
-                tool_choice="auto",
-                temperature=mistral_params["temperature"],
-                top_p=mistral_params["top_p"],
-                max_tokens=mistral_params["max_tokens"],
-                safe_prompt=mistral_params["safe_prompt"],
-                random_seed=mistral_params["random_seed"],
+        # Add tools to the call if we have them and aren't hiding them
+        if "tools" in params:
+            hide_tools = validate_parameter(
+                params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
             )
+            if not should_hide_tools(params, params["tools"], hide_tools):
+                mistral_params["tools"] = params["tools"]
+
+        mistral_params["messages"] = mistral_messages
+
+        try:
+            mistral_response = client.chat(**mistral_params)
         except MistralAPIException as e:
             raise RuntimeError(f"Mistral.AI exception occurred while calling Mistral.AI API: {e}")
 
