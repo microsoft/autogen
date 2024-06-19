@@ -109,7 +109,8 @@ class MistralAIClient:
                 )
 
                 # Map tool call id to the function name
-                tool_call_ids[message["tool_calls"][0]["id"]] = message["tool_calls"][0]["function"]["name"]
+                for tool_call in message["tool_calls"]:
+                    tool_call_ids[tool_call["id"]] = tool_call["function"]["name"]
 
             elif message["role"] in ("system", "user", "assistant"):
                 # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API if not role=tool, so, no, the 'name' field is not used.
@@ -142,7 +143,7 @@ class MistralAIClient:
             hide_tools = validate_parameter(
                 params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
             )
-            if not should_hide_tools(params, params["tools"], hide_tools):
+            if not should_hide_tools(params["messages"], params["tools"], hide_tools):
                 mistral_params["tools"] = params["tools"]
 
         mistral_params["messages"] = mistral_messages
