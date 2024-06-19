@@ -38,7 +38,7 @@ from PIL import Image
 # pip install together
 from together import Together, error
 
-from autogen.oai.client_utils import validate_parameter
+from autogen.oai.client_utils import should_hide_tools, validate_parameter
 
 
 class TogetherClient:
@@ -123,6 +123,11 @@ class TogetherClient:
 
             together_params["stream"] = False
 
+        # To support avoidance of tool calling we allow the user to exclude tool calls on certain conditions
+        together_params["hide_tools"] = validate_parameter(
+            params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
+        )
+
         return together_params
 
     def create(self, params: Dict) -> ChatCompletion:
@@ -134,6 +139,10 @@ class TogetherClient:
 
         # Parse parameters to Together.AI API's parameters
         together_params = self.parse_params(params)
+
+        # Handle tool use
+        tools = params.get("tools", None)
+        hide_tools = should_hide_tools(together_messages, tools, together_params["hide_tools"])
 
         # We use chat model by default
         client = Together(api_key=self.api_key)
@@ -159,8 +168,8 @@ class TogetherClient:
                     min_p=together_params["min_p"],
                     stream=together_params["stream"],
                     messages=together_messages,  # Main messages
-                    tool_choice=("auto" if "tools" in params else None),
-                    tools=params.get("tools", None),  # Include any tools/functions
+                    tool_choice=("auto" if not hide_tools else None),
+                    tools=tools if not hide_tools else None,  # Include any tools/functions
                     n=1,  # API supports more than one response, however we will limit it to one
                     safety_model=together_params["safety_model"],
                 )

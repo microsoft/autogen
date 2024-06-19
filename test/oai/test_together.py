@@ -85,6 +85,7 @@ def test_parsing_params(together_client):
         "frequency_penalty": 1.5,
         "min_p": 0.2,
         "safety_model": "Meta-Llama/Llama-Guard-7b",
+        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
@@ -105,6 +106,7 @@ def test_parsing_params(together_client):
         "frequency_penalty": None,
         "min_p": None,
         "safety_model": None,
+        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
@@ -135,6 +137,7 @@ def test_parsing_params(together_client):
         "frequency_penalty": None,
         "min_p": None,
         "safety_model": None,
+        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
@@ -159,6 +162,7 @@ def test_parsing_params(together_client):
         "frequency_penalty": None,
         "min_p": None,
         "safety_model": None,
+        "hide_tools": "never",
     }
     result = together_client.parse_params(params)
     assert result == expected_params
