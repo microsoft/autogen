@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 Console.ReadLine();
-await Example15_GPT4V_BinaryDataImageMessage.RunAsync();
+await Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.RunAsync();
