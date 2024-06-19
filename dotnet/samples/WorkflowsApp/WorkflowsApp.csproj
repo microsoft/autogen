@@ -7,23 +7,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.0.6" />
-    <PackageReference Include="Elsa.EntityFrameworkCore.Sqlite" Version="3.0.6" />
-    <PackageReference Include="Elsa.Identity" Version="3.0.6" />
-    <PackageReference Include="Elsa" Version="3.0.6" />
-    <PackageReference Include="Elsa.Http" Version="3.0.6" />
-    <PackageReference Include="Elsa.Workflows.Api" Version="3.0.6" />
-    <PackageReference Include="Elsa.Workflows.Core" Version="3.0.6" />
-    <PackageReference Include="Elsa.Workflows.Management" Version="3.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
-    <PackageReference Include="AspNetCore.Authentication.ApiKey" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.0.0" />
-    <PackageReference Include="Elsa.Workflows.Designer" Version="3.0.0-preview.727" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
+    <PackageReference Include="Elsa.EntityFrameworkCore" />
+    <PackageReference Include="Elsa.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Elsa.Identity" />
+    <PackageReference Include="Elsa" />
+    <PackageReference Include="Elsa.Http" />
+    <PackageReference Include="Elsa.Workflows.Api" />
+    <PackageReference Include="Elsa.Workflows.Core" />
+    <PackageReference Include="Elsa.Workflows.Management" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
+    <PackageReference Include="AspNetCore.Authentication.ApiKey" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Elsa.Workflows.Designer" />
+    <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
 
 </Project>

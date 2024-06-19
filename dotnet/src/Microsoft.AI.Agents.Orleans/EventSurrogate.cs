@@ -3,7 +3,7 @@ using Microsoft.AI.Agents.Abstractions;
 namespace Microsoft.AI.Agents.Orleans;
 
 [GenerateSerializer]
-public struct EventSurrogate
+internal struct EventSurrogate
 {
     [Id(0)]
     public Dictionary<string, string> Data { get; set; }
@@ -14,7 +14,7 @@ public struct EventSurrogate
 }
 
 [RegisterConverter]
-public sealed class EventSurrogateConverter :
+internal sealed class EventSurrogateConverter :
     IConverter<Event, EventSurrogate>
 {
     public Event ConvertFromSurrogate(

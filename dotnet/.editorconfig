@@ -51,15 +51,15 @@ csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_members_in_anonymous_types = true
 
 # Namespace settings
-csharp_style_namespace_declarations = file_scoped
+csharp_style_namespace_declarations = file_scoped:silent
 
 # Brace settings
-csharp_prefer_braces = true # Prefer curly braces even for one line of code
+csharp_prefer_braces = true:silent# Prefer curly braces even for one line of code
 
 # name all constant fields using PascalCase
 dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = warning
 dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
-dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_rule.constant_fields_should_be_pascal_case.style = pascal_case_style
 dotnet_naming_symbols.constant_fields.applicable_kinds   = field
 dotnet_naming_symbols.constant_fields.required_modifiers = const
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
@@ -67,7 +67,7 @@ dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 # static fields should have s_ prefix
 dotnet_naming_rule.static_fields_should_have_prefix.severity = warning
 dotnet_naming_rule.static_fields_should_have_prefix.symbols  = static_fields
-dotnet_naming_rule.static_fields_should_have_prefix.style    = static_prefix_style
+dotnet_naming_rule.static_fields_should_have_prefix.style = static_prefix_style
 dotnet_naming_symbols.static_fields.applicable_kinds   = field
 dotnet_naming_symbols.static_fields.required_modifiers = static
 dotnet_naming_symbols.static_fields.applicable_accessibilities = private, internal, private_protected
@@ -77,11 +77,25 @@ dotnet_naming_style.static_prefix_style.capitalization = camel_case
 # internal and private fields should be _camelCase
 dotnet_naming_rule.camel_case_for_private_internal_fields.severity = warning
 dotnet_naming_rule.camel_case_for_private_internal_fields.symbols  = private_internal_fields
-dotnet_naming_rule.camel_case_for_private_internal_fields.style    = camel_case_underscore_style
+dotnet_naming_rule.camel_case_for_private_internal_fields.style = camel_case_underscore_style
 dotnet_naming_symbols.private_internal_fields.applicable_kinds = field
 dotnet_naming_symbols.private_internal_fields.applicable_accessibilities = private, internal
 dotnet_naming_style.camel_case_underscore_style.required_prefix = _
 dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
+csharp_indent_labels = one_less_than_current
+csharp_using_directive_placement = outside_namespace:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = false:silent
 
 [*.{xml,config,*proj,nuspec,props,resx,targets,yml,tasks}]
 indent_size = 2
@@ -334,8 +348,8 @@ dotnet_diagnostic.IDE0060.severity = warning
 dotnet_diagnostic.IDE0062.severity = warning
 
 # IDE0073: File header
-dotnet_diagnostic.IDE0073.severity = warning
-file_header_template = Licensed to the .NET Foundation under one or more agreements.\nThe .NET Foundation licenses this file to you under the MIT license.
+dotnet_diagnostic.IDE0073.severity = suggestion
+file_header_template = Copyright (c) Microsoft. All rights reserved.
 
 # IDE1006: Required naming style
 dotnet_diagnostic.IDE1006.severity = warning
@@ -350,7 +364,7 @@ dotnet_diagnostic.IDE0200.severity = warning
 dotnet_style_allow_multiple_blank_lines_experimental = false
 dotnet_diagnostic.IDE2000.severity = warning
 
-[{eng/tools/**.cs,**/{test,testassets,samples,Samples,perf,benchmarkapps,scripts,stress}/**.cs,src/Hosting/Server.IntegrationTesting/**.cs,src/Servers/IIS/IntegrationTesting.IIS/**.cs,src/Shared/Http2cat/**.cs,src/Testing/**.cs}]
+[{**/{test,testassets,samples,Samples,perf,benchmarkapps,scripts,stress}/**.cs}]
 # CA1018: Mark attributes with AttributeUsageAttribute
 dotnet_diagnostic.CA1018.severity = suggestion
 # CA1507: Use nameof to express symbol names
@@ -453,26 +467,25 @@ dotnet_diagnostic.IDE0200.severity = suggestion
 # CA2016: Forward the 'CancellationToken' parameter to methods that take one
 dotnet_diagnostic.CA2016.severity = suggestion
 
-# Defaults for content in the shared src/ and shared runtime dir
-
-[{**/Shared/runtime/**.{cs,vb},src/Shared/test/Shared.Tests/runtime/**.{cs,vb},**/microsoft.extensions.hostfactoryresolver.sources/**.{cs,vb}}]
-# CA1822: Make member static
-dotnet_diagnostic.CA1822.severity = silent
-# IDE0011: Use braces
-dotnet_diagnostic.IDE0011.severity = silent
-# IDE0055: Fix formatting
-dotnet_diagnostic.IDE0055.severity = silent
-# IDE0060: Remove unused parameters
-dotnet_diagnostic.IDE0060.severity = silent
-# IDE0062: Make local function static
-dotnet_diagnostic.IDE0062.severity = silent
-# IDE0161: Convert to file-scoped namespace
-dotnet_diagnostic.IDE0161.severity = silent
-
-[{**/Shared/**.cs,**/microsoft.extensions.hostfactoryresolver.sources/**.{cs,vb}}]
-# IDE0005: Remove unused usings. Ignore for shared src files since imports for those depend on the projects in which they are included.
-dotnet_diagnostic.IDE0005.severity = silent
-
-[{*.razor.cs,src/Aspire.Dashboard/Components/**.cs}]
-# CA2007: Consider calling ConfigureAwait on the awaited task
-dotnet_diagnostic.CA2007.severity = silent
+# CA2016: Forward the 'CancellationToken' parameter to methods that take one
+dotnet_diagnostic.SKEXP00001.severity = silent
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+tab_width = 4
+indent_size = 4
+end_of_line = crlf
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = false:silent
+dotnet_style_prefer_conditional_expression_over_return = false:silent
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_compound_assignment = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_namespace_match_folder = true:suggestion

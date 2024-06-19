@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.SemanticKernel;
@@ -48,9 +49,9 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T : class, new()
         // TODO: extract this to be configurable
         var propmptSettings = settings ?? new OpenAIPromptExecutionSettings { MaxTokens = 4096, Temperature = 0.8, TopP = 1 };
         var function = _kernel.CreateFunctionFromPrompt(template, propmptSettings);
-        var result = (await _kernel.InvokeAsync(function, arguments)).ToString();
+        var result = (await _kernel.InvokeAsync(function, arguments).ConfigureAwait(true)).ToString();
         AddToHistory(result, ChatUserType.Agent);
-        await _state.WriteStateAsync();
+        await _state.WriteStateAsync().ConfigureAwait(true);
         return result;
     }
 
@@ -63,11 +64,11 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T : class, new()
     /// <returns></returns>
     public async Task<KernelArguments> AddKnowledge(string instruction, string index, KernelArguments arguments)
     {
-        var documents = _memory.SearchAsync(index, arguments["input"].ToString(), 5);
+        var documents = _memory.SearchAsync(index, arguments["input"]?.ToString()!, 5);
         var kbStringBuilder = new StringBuilder();
         await foreach (var doc in documents)
         {
-            kbStringBuilder.AppendLine($"{doc.Metadata.Text}");
+            kbStringBuilder.AppendLine(CultureInfo.InvariantCulture, $"{doc.Metadata.Text}");
         }
         arguments[index] = instruction.Replace($"!{index}!", $"{kbStringBuilder}");
         return arguments;
