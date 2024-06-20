@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS8981;CS8600;CS8602;CS8604;CS8618;CS0219;SKEXP0054;SKEXP0050;SKEXP0110</NoWarn>
+    <IncludeResourceFolder>true</IncludeResourceFolder>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +15,5 @@
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(SemanticKernelExperimentalVersion)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="ImageResources\square.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

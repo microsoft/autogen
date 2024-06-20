@@ -57,8 +57,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini", "src\AutoG
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Tests", "test\AutoGen.Gemini.Tests\AutoGen.Gemini.Tests.csproj", "{8EA16BAB-465A-4C07-ABC4-1070D40067E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.Gemini.Sample", "sample\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{19679B75-CE3A-4DF0-A3F0-CA369D2760A4}"
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.AotCompatibility.Tests", "test\AutoGen.AotCompatibility.Tests\AutoGen.AotCompatibility.Tests.csproj", "{6B82F26D-5040-4453-B21B-C8D1F913CE4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "sample\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{19679B75-CE3A-4DF0-A3F0-CA369D2760A4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AotCompatibility.Tests", "test\AutoGen.AotCompatibility.Tests\AutoGen.AotCompatibility.Tests.csproj", "{6B82F26D-5040-4453-B21B-C8D1F913CE4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
