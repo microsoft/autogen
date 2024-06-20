@@ -21,7 +21,7 @@ class ChatResult:
 
     chat_id: int = None
     """chat id"""
-    chat_history: List[Dict[str, any]] = None
+    chat_history: List[Dict[str, Any]] = None
     """The chat history."""
     summary: str = None
     """A summary obtained from the chat."""
