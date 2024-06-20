@@ -3,7 +3,7 @@
 import pytest
 
 import autogen
-from autogen.oai.client_utils import validate_parameter
+from autogen.oai.client_utils import should_hide_tools, validate_parameter
 
 
 def test_validate_parameter():
@@ -132,5 +132,179 @@ def test_validate_parameter():
     assert validate_parameter({}, "max_tokens", int, True, 512, (0, None), None) == 512
 
 
+def test_should_hide_tools():
+    # Test messages
+    no_tools_called_messages = [
+        {"content": "You are a chess program and are playing for player white.", "role": "system"},
+        {"content": "Let's play chess! Make a move.", "role": "user"},
+        {
+            "tool_calls": [
+                {
+                    "id": "call_abcde56o5jlugh9uekgo84c6",
+                    "function": {"arguments": "{}", "name": "get_legal_moves"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "tool_calls": [
+                {
+                    "id": "call_p1fla56o5jlugh9uekgo84c6",
+                    "function": {"arguments": "{}", "name": "get_legal_moves"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "tool_calls": [
+                {
+                    "id": "call_lcow1j0ehuhrcr3aakdmd9ju",
+                    "function": {"arguments": '{"move":"g1f3"}', "name": "make_move"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+    ]
+    one_tool_called_messages = [
+        {"content": "You are a chess program and are playing for player white.", "role": "system"},
+        {"content": "Let's play chess! Make a move.", "role": "user"},
+        {
+            "tool_calls": [
+                {
+                    "id": "call_abcde56o5jlugh9uekgo84c6",
+                    "function": {"arguments": "{}", "name": "get_legal_moves"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "tool_call_id": "call_abcde56o5jlugh9uekgo84c6",
+            "role": "user",
+            "content": "Possible moves are: g1h3,g1f3,b1c3,b1a3,h2h3,g2g3,f2f3,e2e3,d2d3,c2c3,b2b3,a2a3,h2h4,g2g4,f2f4,e2e4,d2d4,c2c4,b2b4,a2a4",
+        },
+        {
+            "tool_calls": [
+                {
+                    "id": "call_lcow1j0ehuhrcr3aakdmd9ju",
+                    "function": {"arguments": '{"move":"g1f3"}', "name": "make_move"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+    ]
+    messages = [
+        {"content": "You are a chess program and are playing for player white.", "role": "system"},
+        {"content": "Let's play chess! Make a move.", "role": "user"},
+        {
+            "tool_calls": [
+                {
+                    "id": "call_abcde56o5jlugh9uekgo84c6",
+                    "function": {"arguments": "{}", "name": "get_legal_moves"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "tool_call_id": "call_abcde56o5jlugh9uekgo84c6",
+            "role": "user",
+            "content": "Possible moves are: g1h3,g1f3,b1c3,b1a3,h2h3,g2g3,f2f3,e2e3,d2d3,c2c3,b2b3,a2a3,h2h4,g2g4,f2f4,e2e4,d2d4,c2c4,b2b4,a2a4",
+        },
+        {
+            "tool_calls": [
+                {
+                    "id": "call_p1fla56o5jlugh9uekgo84c6",
+                    "function": {"arguments": "{}", "name": "get_legal_moves"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "tool_call_id": "call_p1fla56o5jlugh9uekgo84c6",
+            "role": "user",
+            "content": "Possible moves are: g1h3,g1f3,b1c3,b1a3,h2h3,g2g3,f2f3,e2e3,d2d3,c2c3,b2b3,a2a3,h2h4,g2g4,f2f4,e2e4,d2d4,c2c4,b2b4,a2a4",
+        },
+        {
+            "tool_calls": [
+                {
+                    "id": "call_lcow1j0ehuhrcr3aakdmd9ju",
+                    "function": {"arguments": '{"move":"g1f3"}', "name": "make_move"},
+                    "type": "function",
+                }
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {"tool_call_id": "call_lcow1j0ehuhrcr3aakdmd9ju", "role": "user", "content": "Moved knight (♘) from g1 to f3."},
+    ]
+
+    # Test if no tools
+    no_tools = []
+    all_tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Call this tool to make a move after you have the list of legal moves.",
+                "name": "make_move",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "move": {"type": "string", "description": "A move in UCI format. (e.g. e2e4 or e7e5 or e7e8q)"}
+                    },
+                    "required": ["move"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "description": "Call this tool to make a move after you have the list of legal moves.",
+                "name": "get_legal_moves",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    ]
+
+    # Should not hide for any hide_tools value
+    assert not should_hide_tools(messages, no_tools, "if_all_run")
+    assert not should_hide_tools(messages, no_tools, "if_any_run")
+    assert not should_hide_tools(messages, no_tools, "never")
+
+    # Has run tools but never hide, should be false
+    assert not should_hide_tools(messages, all_tools, "never")
+
+    # Has run tools, should be true if all or any
+    assert should_hide_tools(messages, all_tools, "if_all_run")
+    assert should_hide_tools(messages, all_tools, "if_any_run")
+
+    # Hasn't run any tools, should be false for all
+    assert not should_hide_tools(no_tools_called_messages, all_tools, "if_all_run")
+    assert not should_hide_tools(no_tools_called_messages, all_tools, "if_any_run")
+    assert not should_hide_tools(no_tools_called_messages, all_tools, "never")
+
+    # Has run one of the two tools, should be true only for 'if_any_run'
+    assert not should_hide_tools(one_tool_called_messages, all_tools, "if_all_run")
+    assert should_hide_tools(one_tool_called_messages, all_tools, "if_any_run")
+    assert not should_hide_tools(one_tool_called_messages, all_tools, "never")
+
+    # Parameter validation
+    with pytest.raises(TypeError):
+        assert not should_hide_tools(one_tool_called_messages, all_tools, "not_a_valid_value")
+
+
 if __name__ == "__main__":
-    test_validate_parameter()
+    # test_validate_parameter()
+    test_should_hide_tools()
