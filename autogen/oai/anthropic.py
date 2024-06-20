@@ -123,7 +123,6 @@ class AnthropicClient:
 
         processed_messages = []
         for message in raw_contents:
-
             if message["role"] == "system":
                 params["system"] = message["content"]
             elif message["role"] == "function":
@@ -140,6 +139,8 @@ class AnthropicClient:
         for i, message in enumerate(processed_messages):
             if message["role"] is not ("user" if i % 2 == 0 else "assistant"):
                 message["role"] = "user" if i % 2 == 0 else "assistant"
+            # Also remove name key from message as it is not supported
+            message.pop("name", None)
 
         # Note: When using reflection_with_llm we may end up with an "assistant" message as the last message
         if processed_messages[-1]["role"] != "user":
