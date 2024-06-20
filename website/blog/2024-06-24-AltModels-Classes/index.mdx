@@ -1,14 +1,68 @@
 ---
-title: Enhanced Support for Non-OpenAI Models in AutoGen
+title: Enhanced Support for Non-OpenAI Models
 authors:
   - marklysze
   - Hk669
-tags: [mistral,anthropic,together.ai]
+tags: [mistral ai,anthropic,together.ai,gemini]
 ---
+
+![agents](img/agentstogether.jpeg)
 
 ## TL;DR
 
-AutoGen now integrates with a variety of model clients beyond those provided by OpenAI. Users can now leverage models from Anthropic, Mistral, and Together AI seamlessly with AutoGen agents.
+- **AutoGen has expanded integrations with a variety of cloud-based model providers beyond OpenAI.**
+- **Leverage models and platforms from Gemini, Anthropic, Mistral, and Together.AI for your AutoGen agents.**
+- **Utilise models specifically for chat, language, image, and coding.**
+- **LLM provider diversification can provide cost and resilience benefits.**
+
+In addition to the recently released Autogen [Google Gemini](https://ai.google.dev/) client, new client classes for [Mistral AI](https://mistral.ai/), [Anthropic](https://www.anthropic.com/), and [Together.AI](https://www.together.ai/) enable you to utilize over 75 different large language models in your AutoGen agent workflow.
+
+These new client classes tailor AutoGen's underlying messages to each provider's unique requirements and remove that complexity from the developer, who can then focus on building their AutoGen workflow.
+
+Using them is as simple as installing the client-specific library and updating your LLM config with the relevant `api_type` and `model`.
+
+Finally, the community is continuing to enhance and build new client classes as cloud-based inference providers arrive. So, watch this space and feel free to [discuss](https://discord.gg/pAbnFJrkgZ) or [develop one](https://github.com/microsoft/autogen/issues).
+
+## Benefits of choice
+
+The need to use only the best models to overcome workflow-breaking LLM inconsistency has diminished considerably over the last 12 months.
+
+These new classes provide access to the very largest trillion-parameter models from OpenAI, Google, and Anthropic, continuing to provide the most consistent
+and competent agent experiences. However, it's worth trying smaller models from the likes of Meta, Mistral, Microsoft, Qwen, and many others. Perhaps they
+are capable enough for a task, or sub-task, or even better suited (such as a coding model)!
+
+Using smaller models will have cost benefits, but they also allow you to test models that you could run locally, allowing you to determine if you can remove cloud inference costs
+altogether or even run an AutoGen workflow offline.
+
+On the topic of cost, these client classes also include provider-specific token cost calculations so you can monitor the cost impact of your workflows. With costs per million
+tokens as low as 10 cents (and some are even free!), cost savings can be noticeable.
+
+## Mix and match
+
+How does Google's Gemini 1.5 Pro model stack up against Anthropic's Opus or Meta's Llama 3?
+
+Now you have the ability to quickly change your agent configs and find out. If you want to run all three in the one workflow,
+AutoGen's ability to associate specific configurations to each agent means you can select the best LLM for each agent.
+
+## Capabilities
+
+The common requirements of text generation and function/tool calling are supported by these client classes.
+
+Multi-modal support, such as for image/audio/video, is an area of active development. The [Google Gemini](https://microsoft.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) client class can be
+used to create a multimodal agent.
+
+## Tips
+
+Here are some tips when working with these client classes:
+
+- Most to least capable - start with larger models and get your workflow working, then iteratively try smaller models.
+- Right model - choose one that's suited to your task, whether it's coding, function calling, knowledge, or creative writing.
+- Agent names - these cloud providers do not use the `name` field on a message, so be sure to use your agent's name in their`system_message` and `description` fields. This is particularly important for "auto" speaker selection in group chats where you can tweak `select_speaker_message_template`, `select_speaker_prompt_template`, and `select_speaker_auto_multiple_template`.
+- Context length - as your conversation gets longer, models need to support larger context lengths, be mindful of what the model supports and consider using [Transform Messages](https://microsoft.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages) to manage context size.
+- Provider parameters - providers have parameters you can set such as temperature, maximum tokens, top-k, top-p, and safety. See each client class in AutoGen's [API Reference](https://microsoft.github.io/autogen/docs/reference/oai/gemini) or [documentation](https://microsoft.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) for details.
+- Prompts - prompt engineering is critical in guiding smaller LLMs to do what you need. [ConversableAgent](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent), [GroupChat](https://microsoft.github.io/autogen/docs/reference/agentchat/groupchat), [UserProxyAgent](https://microsoft.github.io/autogen/docs/reference/agentchat/user_proxy_agent), and [AssistantAgent](https://microsoft.github.io/autogen/docs/reference/agentchat/assistant_agent) all have customizable prompt attributes that you can use. Here are some prompting tips from [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview), [Mistral](https://docs.mistral.ai/guides/prompting_capabilities/), [Together.AI](https://docs.together.ai/docs/examples), and [Meta](https://llama.meta.com/docs/how-to-guides/prompting/).
+
+Now it's time to try them out.
 
 ## Quickstart
 
@@ -17,9 +71,9 @@ AutoGen now integrates with a variety of model clients beyond those provided by 
 Install the appropriate client based on the model you wish to use.
 
 ```sh
-pip install pyautogen["mistral"] # for Mistral client
+pip install pyautogen["mistral"] # for Mistral AI client
 pip install pyautogen["anthropic"] # for Anthropic client
-pip install pyautogen["together"] # for Together AI client
+pip install pyautogen["together"] # for Together.AI client
 ```
 
 ### Configuration SetUp
@@ -35,7 +89,7 @@ Add your model configurations to the `OAI_CONFIG_LIST`. Ensure you specify the `
     },
     {
         "model": "your mistral model name",
-        "api_key": "your Mistral api_key",
+        "api_key": "your Mistral AI api_key",
         "api_type": "mistral"
     },
     {
