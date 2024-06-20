@@ -20,7 +20,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         connection_string: str = "",
         database_name: str = "vector_db",
-        embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode
+        embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
     ):
         """
         Initialize the vector database.
@@ -63,7 +63,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         collection_name: str,
         index_name: str,
-        similarity: Literal['euclidean', 'cosine', 'dotProduct'],
+        similarity: Literal["euclidean", "cosine", "dotProduct"],
         overwrite: bool = False,
         get_or_create: bool = True,
     ):
