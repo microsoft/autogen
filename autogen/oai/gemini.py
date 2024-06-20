@@ -484,6 +484,10 @@ class GeminiClient:
         The type key is renamed to type_ and the value is capitalized.
         """
         assert "anyOf" not in function_definition, "Union types are not supported for function parameter in Gemini."
+        # Delete the default key as it is not supported in Gemini
+        if "default" in function_definition:
+            del function_definition["default"]
+        
         function_definition["type_"] = function_definition["type"].upper()
         del function_definition["type"]
         if "properties" in function_definition:
