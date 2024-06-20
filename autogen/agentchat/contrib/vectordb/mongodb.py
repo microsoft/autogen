@@ -63,7 +63,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         collection_name: str,
         index_name: str,
-        similarity: str,
+        similarity: Literal['euclidean', 'cosine', 'dotProduct'],
         overwrite: bool = False,
         get_or_create: bool = True,
     ):
