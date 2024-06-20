@@ -30,10 +30,11 @@ from typing import Any, Dict, List, Tuple, Union
 from anthropic import Anthropic
 from anthropic import __version__ as anthropic_version
 from anthropic.types import Completion, Message
-from autogen.oai.client_utils import validate_parameter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from typing_extensions import Annotated
+
+from autogen.oai.client_utils import validate_parameter
 
 TOOL_ENABLED = anthropic_version >= "0.23.1"
 if TOOL_ENABLED:
