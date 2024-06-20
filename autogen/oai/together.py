@@ -1,4 +1,4 @@
-"""Create a OpenAI-compatible client using Together. AI's API.
+"""Create an OpenAI-compatible client using Together. AI's API.
 
 Example:
     llm_config={
