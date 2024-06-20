@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Literal
 
 import numpy as np
 from pymongo import MongoClient, errors
