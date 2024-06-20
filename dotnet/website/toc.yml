@@ -1,5 +1,8 @@
 - name: Docs
   href: articles/
+
+- name: Tutorial
+  href: tutorial/
   
 - name: API Reference
   href: api/
