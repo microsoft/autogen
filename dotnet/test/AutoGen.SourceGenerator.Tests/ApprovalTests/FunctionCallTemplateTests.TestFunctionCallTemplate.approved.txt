@@ -42,7 +42,7 @@ namespace AutoGen.SourceGenerator.Tests
                 Name = @"AddAsync",
                 Description = @"Add two numbers.",
                 ReturnType = typeof(System.Threading.Tasks.Task`1[System.String]),
-                Parameters = new []
+                Parameters = new global::AutoGen.Core.FunctionParameterContract[]
                 {
                     new FunctionParameterContract
                     {
