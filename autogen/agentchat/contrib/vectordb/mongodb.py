@@ -32,8 +32,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         """
         if embedding_function:
             self.embedding_function = embedding_function
-        else:
-            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         try:
             self.client = MongoClient(connection_string)
             self.client.admin.command("ping")
