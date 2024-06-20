@@ -16,6 +16,7 @@ jobs:
     - name: Install Hatch
       uses: pypa/hatch@install
     - run: hatch run ruff format --check
+      working-directory: ./python
 
   lint:
     runs-on: ubuntu-latest
@@ -24,6 +25,7 @@ jobs:
     - name: Install Hatch
       uses: pypa/hatch@install
     - run: hatch run ruff check
+      working-directory: ./python
 
   mypy:
     runs-on: ubuntu-latest
@@ -32,6 +34,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run mypy
+        working-directory: ./python
 
   pyright:
     runs-on: ubuntu-latest
@@ -40,6 +43,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run pyright
+        working-directory: ./python
 
   test:
     runs-on: ubuntu-latest
@@ -51,6 +55,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run +python=${{ matrix.python-version }} test-matrix:pytest -n auto
+        working-directory: ./python
 
   docs:
     runs-on: ubuntu-latest
@@ -59,3 +64,4 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run docs:check
+        working-directory: ./python

@@ -33,10 +33,11 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run docs:build
+        working-directory: ./python
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs/build'
+          path: 'python/docs/build'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
