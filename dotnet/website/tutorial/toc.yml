@@ -3,3 +3,6 @@
 
 - name: Image chat with agent
   href: Image-chat-with-agent.md
+
+- name: Create agent with tools
+  href: Create-agent-with-tools.md
