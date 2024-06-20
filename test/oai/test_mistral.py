@@ -116,6 +116,10 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
     mock_function.name = "currency_calculator"
     mock_function.arguments = '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
 
+    mock_function_2 = MagicMock(name="get_weather")
+    mock_function_2.name = "get_weather"
+    mock_function_2.arguments = '{"location": "Chicago"}'
+
     # Define the mock response directly within the patch
     mock_create.return_value = MagicMock(
         choices=[
@@ -173,6 +177,33 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
         {"messages": mistral_messages, "tools": converted_functions, "model": "mistral-small-latest"}
     )
 
-    # Assertions to check if response is structured as expected
-    assert response.choices[0].message.content == ""
+    # Assertions to check if the function is included in the response
     assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
+
+    # Define the mock response directly within the patch for multiple functions
+    mock_create.return_value = MagicMock(
+        choices=[
+            MagicMock(
+                finish_reason="tool_calls",
+                message=MagicMock(
+                    content="Sample text about the functions",  # Message is empty for tool responses
+                    tool_calls=[
+                        MagicMock(id="gdRdrvnHh", function=mock_function),
+                        MagicMock(id="abRdrvnHh", function=mock_function_2),
+                    ],
+                ),
+            )
+        ],
+        id="mock_mistral_response_id",
+        model="mistral-small-latest",
+        usage=MagicMock(prompt_tokens=10, completion_tokens=20),
+    )
+
+    response = mistral_client.create(
+        {"messages": mistral_messages, "tools": converted_functions, "model": "mistral-medium-latest"}
+    )
+
+    # Assertions to check if the functions and content are included in the response
+    assert response.choices[0].message.content == "Sample text about the functions"
+    assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
+    assert response.choices[0].message.tool_calls[1].function.name == "get_weather"
