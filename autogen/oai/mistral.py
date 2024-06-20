@@ -1,4 +1,4 @@
-"""Create a OpenAI-compatible client using Mistral.AI's API.
+"""Create an OpenAI-compatible client using Mistral.AI's API.
 
 Example:
     llm_config={
