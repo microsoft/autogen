@@ -1,5 +1,6 @@
 namespace Microsoft.SKDevTeam;
-public static class Developer {
+public static class Developer
+{
     public static SemanticFunctionConfig Implement = new SemanticFunctionConfig
     {
         PromptTemplate = """

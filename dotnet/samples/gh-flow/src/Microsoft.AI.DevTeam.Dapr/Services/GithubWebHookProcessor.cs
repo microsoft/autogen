@@ -1,3 +1,4 @@
+using System.Globalization;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.DevTeam.Dapr.Events;
@@ -20,10 +21,13 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
     }
     protected override async Task ProcessIssuesWebhookAsync(WebhookHeaders headers, IssuesEvent issuesEvent, IssuesAction action)
     {
+        ArgumentNullException.ThrowIfNull(headers);
+        ArgumentNullException.ThrowIfNull(issuesEvent);
+        ArgumentNullException.ThrowIfNull(action);
         try
         {
             _logger.LogInformation("Processing issue event");
-            var org = issuesEvent.Repository.Owner.Login;
+            var org = issuesEvent.Repository!.Owner.Login;
             var repo = issuesEvent.Repository.Name;
             var issueNumber = issuesEvent.Issue.Number;
             var input = issuesEvent.Issue.Body;
@@ -33,14 +37,14 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
-            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+            var skillName = labels.Keys.First(k => k != "Parent");
+            long? parentNumber = labels.TryGetValue("Parent", out var value) ? long.Parse(value, CultureInfo.InvariantCulture) : null;
 
             var suffix = $"{org}-{repo}";
             if (issuesEvent.Action == IssuesAction.Opened)
             {
                 _logger.LogInformation("Processing HandleNewAsk");
-                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], input, org, repo);
+                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], input!, org, repo);
             }
             else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
             {
@@ -60,10 +64,13 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
        IssueCommentEvent issueCommentEvent,
        IssueCommentAction action)
     {
+        ArgumentNullException.ThrowIfNull(headers);
+        ArgumentNullException.ThrowIfNull(issueCommentEvent);
+        ArgumentNullException.ThrowIfNull(action);
         try
         {
             _logger.LogInformation("Processing issue comment event");
-            var org = issueCommentEvent.Repository.Owner.Login;
+            var org = issueCommentEvent.Repository!.Owner.Login;
             var repo = issueCommentEvent.Repository.Name;
             var issueNumber = issueCommentEvent.Issue.Number;
             var input = issueCommentEvent.Comment.Body;
@@ -72,11 +79,12 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
-            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+            var skillName = labels.Keys.First(k => k != "Parent");
+            long? parentNumber = labels.TryGetValue("Parent", out var value) ? long.Parse(value, CultureInfo.InvariantCulture) : null;
             var suffix = $"{org}-{repo}";
+
             // we only respond to non-bot comments
-            if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
+            if (issueCommentEvent.Sender!.Type.Value != UserType.Bot)
             {
                 await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], input, org, repo);
             }
@@ -104,7 +112,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             { "org", org },
             { "repo", repo },
             { "issueNumber", issueNumber.ToString() },
-            { "parentNumber", parentNumber?.ToString()}
+            { "parentNumber", parentNumber?.ToString(CultureInfo.InvariantCulture) ?? "" }
         };
 
         var evt = new Event
@@ -135,7 +143,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 { "org", org },
                 { "repo", repo },
                 { "issueNumber", issueNumber.ToString() },
-                { "parentNumber", parentNumber?.ToString()},
+                { "parentNumber", parentNumber ?.ToString(CultureInfo.InvariantCulture) ?? ""},
                 { "input" , input}
             };
             var evt = new Event
@@ -157,13 +165,11 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
     {
         var metadata = new Dictionary<string, string>() {
                  { "cloudevent.Type", evt.Type },
-                 { "cloudevent.Subject",  evt.Subject },
+                 { "cloudevent.Subject",  evt.Subject ?? "" },
                  { "cloudevent.id", Guid.NewGuid().ToString()}
             };
 
         await _daprClient.PublishEventAsync(Consts.PubSub, Consts.MainTopic, evt, metadata);
     }
 }
-
-
 

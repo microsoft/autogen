@@ -9,7 +9,6 @@ using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Marketing.SignalRHub;
 using Marketing.Options;
-using Marketing;
 using Orleans.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,20 +21,20 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
-
 // Allow any CORS origin if in DEV
 const string AllowDebugOriginPolicy = "AllowDebugOrigin";
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy(AllowDebugOriginPolicy, builder => {
-                builder
-                .WithOrigins("http://localhost:3000") // client url
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
-            });
+        options.AddPolicy(AllowDebugOriginPolicy, builder =>
+        {
+            builder
+            .WithOrigins("http://localhost:3000") // client url
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+        });
     });
 }
 
@@ -88,8 +87,8 @@ app.Run();
 
 static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 {
-    OpenAIOptions openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
-    QdrantOptions qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
+    OpenAIOptions openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+    QdrantOptions qdrantConfig = provider.GetRequiredService<IOptions<QdrantOptions>>().Value;
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
@@ -108,7 +107,7 @@ static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 
 static Kernel CreateKernel(IServiceProvider provider)
 {
-    OpenAIOptions openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+    OpenAIOptions openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
     var clientOptions = new OpenAIClientOptions();
     clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
     var builder = Kernel.CreateBuilder();
@@ -130,7 +129,7 @@ static Kernel CreateKernel(IServiceProvider provider)
     openAIClient = new OpenAIClient(new Uri(openAiConfig.ImageEndpoint), new AzureKeyCredential(openAiConfig.ImageApiKey), clientOptions);
     if (openAiConfig.ImageEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
     {
-        Throw.IfNullOrEmpty(nameof(openAiConfig.ImageDeploymentOrModelId), openAiConfig.ImageDeploymentOrModelId);
+        ArgumentException.ThrowIfNullOrEmpty(nameof(openAiConfig.ImageDeploymentOrModelId), openAiConfig.ImageDeploymentOrModelId);
         builder.Services.AddAzureOpenAITextToImage(openAiConfig.ImageDeploymentOrModelId, openAIClient);
     }
     else
@@ -141,11 +140,11 @@ static Kernel CreateKernel(IServiceProvider provider)
     // Embeddings
     openAIClient = new OpenAIClient(new Uri(openAiConfig.EmbeddingsEndpoint), new AzureKeyCredential(openAiConfig.EmbeddingsApiKey), clientOptions);
     if (openAiConfig.EmbeddingsEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
-    {  
+    {
         builder.Services.AddAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAIClient);
     }
     else
-    {       
+    {
         builder.Services.AddOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAIClient);
     }
 

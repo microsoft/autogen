@@ -1,5 +1,5 @@
+using System.Globalization;
 using System.Text;
-using Dapr.Actors;
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
@@ -9,29 +9,33 @@ using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AI.Agents.Dapr;
 
-public abstract class AiAgent<T> : Agent, IAiAgent where T: class, new()
+public abstract class AiAgent<T> : Agent, IAiAgent where T : class, new()
 {
     public string StateStore = "agents-statestore";
-    public AiAgent(ActorHost host, DaprClient client,ISemanticTextMemory memory, Kernel kernel)
+    public AiAgent(ActorHost host, DaprClient client, ISemanticTextMemory memory, Kernel kernel)
     : base(host, client)
     {
         _memory = memory;
         _kernel = kernel;
     }
+
     private readonly ISemanticTextMemory _memory;
     private readonly Kernel _kernel;
 
-    protected AgentState<T> state;
+    protected AgentState<T> state = default!;
 
-   
     protected override async Task OnActivateAsync()
     {
         state = await StateManager.GetOrAddStateAsync(StateStore, new AgentState<T>());
-    } 
+    }
 
     public void AddToHistory(string message, ChatUserType userType)
     {
-        if (state.History == null) state.History = new List<ChatHistoryItem>();
+        if (state.History == null)
+        {
+            state.History = new List<ChatHistoryItem>();
+        }
+
         state.History.Add(new ChatHistoryItem
         {
             Message = message,
@@ -48,8 +52,7 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T: class, new()
 
     public virtual async Task<string> CallFunction(string template, KernelArguments arguments, OpenAIPromptExecutionSettings? settings = null)
     {
-        var propmptSettings = (settings == null) ? new OpenAIPromptExecutionSettings { MaxTokens = 18000, Temperature = 0.8, TopP = 1 }
-                                                : settings;
+        var propmptSettings = settings ?? new OpenAIPromptExecutionSettings { MaxTokens = 18000, Temperature = 0.8, TopP = 1 };
         var function = _kernel.CreateFunctionFromPrompt(template, propmptSettings);
         var result = (await _kernel.InvokeAsync(function, arguments)).ToString();
         AddToHistory(result, ChatUserType.Agent);
@@ -68,11 +71,11 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T: class, new()
     /// <returns></returns>
     public async Task<KernelArguments> AddKnowledge(string instruction, string index, KernelArguments arguments)
     {
-        var documents = _memory.SearchAsync(index, arguments["input"].ToString(), 5);
+        var documents = _memory.SearchAsync(index, arguments["input"]?.ToString()!, 5);
         var kbStringBuilder = new StringBuilder();
         await foreach (var doc in documents)
         {
-            kbStringBuilder.AppendLine($"{doc.Metadata.Text}");
+            kbStringBuilder.AppendLine(CultureInfo.InvariantCulture, $"{doc.Metadata.Text}");
         }
         arguments[index] = instruction.Replace($"!{index}!", $"{kbStringBuilder}");
         return arguments;

@@ -15,19 +15,24 @@ public class CommunityManager : AiAgent<CommunityManagerState>
 
     private readonly ILogger<GraphicDesigner> _logger;
 
-    public CommunityManager([PersistentState("state", "messages")] IPersistentState<AgentState<CommunityManagerState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<GraphicDesigner> logger) 
+    public CommunityManager([PersistentState("state", "messages")] IPersistentState<AgentState<CommunityManagerState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<GraphicDesigner> logger)
     : base(state, memory, kernel)
     {
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        if (item?.Type is null)
+        {
+            throw new ArgumentNullException(nameof(item));
+        }
+
         switch (item.Type)
         {
             case nameof(EventTypes.UserConnected):
                 // The user reconnected, let's send the last message if we have one
-                string lastMessage = _state.State.History.LastOrDefault()?.Message;
+                var lastMessage = _state.State.History.LastOrDefault()?.Message;
                 if (lastMessage == null)
                 {
                     return;
@@ -36,18 +41,18 @@ public class CommunityManager : AiAgent<CommunityManagerState>
                 await SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
                 break;
 
-            case nameof(EventTypes.ArticleCreated):   
-            {
-                var article = item.Data["article"]; 
+            case nameof(EventTypes.ArticleCreated):
+                {
+                    var article = item.Data["article"];
 
-                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}. Article: {article}");
-                    
-                var context = new KernelArguments { ["input"] = AppendChatHistory(article) };
-                string socialMediaPost = await CallFunction(CommunityManagerPrompts.WritePost, context);
-                _state.State.Data.WrittenSocialMediaPost = socialMediaPost;
-                await SendDesignedCreatedEvent(socialMediaPost, item.Data["UserId"]);
-                break;
-            }     
+                    _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}. Article: {{Article}}", article);
+
+                    var context = new KernelArguments { ["input"] = AppendChatHistory(article) };
+                    string socialMediaPost = await CallFunction(CommunityManagerPrompts.WritePost, context);
+                    _state.State.Data.WrittenSocialMediaPost = socialMediaPost;
+                    await SendDesignedCreatedEvent(socialMediaPost, item.Data["UserId"]);
+                    break;
+                }
             default:
                 break;
         }
@@ -65,7 +70,7 @@ public class CommunityManager : AiAgent<CommunityManagerState>
         });
     }
 
-    public Task<String> GetArticle()
+    public Task<string> GetArticle()
     {
         return Task.FromResult(_state.State.Data.WrittenSocialMediaPost);
     }

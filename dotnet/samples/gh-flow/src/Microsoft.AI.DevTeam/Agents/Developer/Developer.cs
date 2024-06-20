@@ -20,8 +20,9 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.CodeGenerationRequested):
@@ -72,7 +73,7 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating code");
-            return default;
+            return "";
         }
     }
 }
@@ -81,7 +82,7 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
 public class DeveloperState
 {
     [Id(0)]
-    public string Understanding { get; set; }
+    public string? Understanding { get; set; }
 }
 
 public interface IDevelopApps
@@ -93,7 +94,7 @@ public interface IDevelopApps
 public class UnderstandingResult
 {
     [Id(0)]
-    public string NewUnderstanding { get; set; }
+    public required string NewUnderstanding { get; set; }
     [Id(1)]
-    public string Explanation { get; set; }
+    public required string Explanation { get; set; }
 }

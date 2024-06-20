@@ -1,10 +1,6 @@
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System.IO;
-using System;
 
-internal class KernelSettings
+internal sealed class KernelSettings
 {
     public const string DefaultConfigFile = "config/appsettings.json";
     public const string OpenAI = "OPENAI";
@@ -19,7 +15,7 @@ internal class KernelSettings
 
     [JsonPropertyName("deploymentOrModelId")]
     public string DeploymentOrModelId { get; set; } = string.Empty;
-     [JsonPropertyName("embeddingDeploymentOrModelId")]
+    [JsonPropertyName("embeddingDeploymentOrModelId")]
     public string EmbeddingDeploymentOrModelId { get; set; } = string.Empty;
 
     [JsonPropertyName("endpoint")]

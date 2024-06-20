@@ -1,4 +1,4 @@
-﻿using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Orleans.Runtime;
@@ -6,15 +6,14 @@ using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class Sandbox : Agent, IRemindable
+public sealed class Sandbox : Agent, IRemindable
 {
     protected override string Namespace => Consts.MainNamespace;
     private const string ReminderName = "SandboxRunReminder";
     private readonly IManageAzure _azService;
     private readonly IReminderRegistry _reminderRegistry;
+    private readonly IPersistentState<SandboxMetadata> _state;
     private IGrainReminder? _reminder;
-
-    protected readonly IPersistentState<SandboxMetadata> _state;
 
     public Sandbox([PersistentState("state", "messages")] IPersistentState<SandboxMetadata> state,
                     IReminderRegistry reminderRegistry, IManageAzure azService)
@@ -25,12 +24,14 @@ public class Sandbox : Agent, IRemindable
     }
     public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
+
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.SandboxRunCreated):
                 {
                     var context = item.ToGithubContext();
-                    await ScheduleCommitSandboxRun(context.Org, context.Repo, context.ParentNumber.Value, context.IssueNumber);
+                    await ScheduleCommitSandboxRun(context.Org, context.Repo, context.ParentNumber!.Value, context.IssueNumber);
                     break;
                 }
 
@@ -52,7 +53,7 @@ public class Sandbox : Agent, IRemindable
     {
         if (!_state.State.IsCompleted)
         {
-            var sandboxId =  $"sk-sandbox-{_state.State.Org}-{_state.State.Repo}-{_state.State.ParentIssueNumber}-{_state.State.IssueNumber}".ToLower();
+            var sandboxId = $"sk-sandbox-{_state.State.Org}-{_state.State.Repo}-{_state.State.ParentIssueNumber}-{_state.State.IssueNumber}".ToUpperInvariant();
 
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
@@ -94,14 +95,12 @@ public class Sandbox : Agent, IRemindable
         await _state.WriteStateAsync();
     }
 
-
 }
-
 
 public class SandboxMetadata
 {
-    public string Org { get; set; }
-    public string Repo { get; set; }
+    public string Org { get; set; } = default!;
+    public string Repo { get; set; } = default!;
     public long ParentIssueNumber { get; set; }
     public long IssueNumber { get; set; }
     public bool IsCompleted { get; set; }

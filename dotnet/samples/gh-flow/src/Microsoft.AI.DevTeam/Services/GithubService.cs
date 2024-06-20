@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using Octokit;
 using Octokit.Helpers;
 
-
 namespace Microsoft.AI.DevTeam;
 
 public class GithubService : IManageGithub
@@ -16,6 +15,11 @@ public class GithubService : IManageGithub
 
     public GithubService(IOptions<AzureOptions> azOptions, GitHubClient ghClient, ILogger<GithubService> logger, HttpClient httpClient)
     {
+        ArgumentNullException.ThrowIfNull(azOptions);
+        ArgumentNullException.ThrowIfNull(ghClient);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(httpClient);
+
         _ghClient = ghClient;
         _azSettings = azOptions.Value;
         _logger = logger;
@@ -44,18 +48,18 @@ public class GithubService : IManageGithub
                         try
                         {
                             var file = dir.GetFileClient(item.Name);
-                            var filePath = file.Path.Replace($"{_azSettings.FilesShareName}/", "")
-                                                    .Replace($"{dirName}/", "");
+                            var filePath = file.Path.Replace($"{_azSettings.FilesShareName}/", "", StringComparison.OrdinalIgnoreCase)
+                                                    .Replace($"{dirName}/", "", StringComparison.OrdinalIgnoreCase);
                             var fileStream = await file.OpenReadAsync();
                             using (var reader = new StreamReader(fileStream, Encoding.UTF8))
                             {
-                                var value = reader.ReadToEnd();
+                                var value = await reader.ReadToEndAsync();
 
                                 try
                                 {
                                     // Check if the file exists
                                     var existingFiles = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, filePath, branch);
-                                    var existingFile = existingFiles.First();
+                                    var existingFile = existingFiles[0];
                                     // If the file exists, update it
                                     var updateChangeSet = await _ghClient.Repository.Content.UpdateFile(
                                         org, repo, filePath,
@@ -70,13 +74,13 @@ public class GithubService : IManageGithub
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogError(ex, $"Error while uploading file {item.Name}");
+                                    _logger.LogError(ex, "Error while uploading file '{FileName}'.", item.Name);
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error while uploading file {item.Name}");
+                            _logger.LogError(ex, "Error while uploading file '{FileName}'.", item.Name);
                         }
                     }
                     else if (item.IsDirectory)
@@ -182,6 +186,8 @@ public class GithubService : IManageGithub
 
     public async Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent, bool> filter)
     {
+        ArgumentNullException.ThrowIfNull(filter);
+
         try
         {
             var items = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, branch);
@@ -203,7 +209,7 @@ public class GithubService : IManageGithub
             {
                 if (item.Type == ContentType.File && filter(item))
                 {
-                    var content = await _httpClient.GetStringAsync(item.DownloadUrl);
+                    var content = await _httpClient.GetStringAsync(new Uri(item.DownloadUrl));
                     result.Add(new FileResponse
                     {
                         Name = item.Name,
@@ -228,13 +234,13 @@ public class GithubService : IManageGithub
 
 public class FileResponse
 {
-    public string Name { get; set; }
-    public string Content { get; set; }
+    public required string Name { get; set; }
+    public required string Content { get; set; }
 }
 
 public interface IManageGithub
 {
-    Task<int> CreateIssue(string org, string repo, string input, string function, long parentNumber);
+    Task<int> CreateIssue(string org, string repo, string input, string functionName, long parentNumber);
     Task CreatePR(string org, string repo, long number, string branch);
     Task CreateBranch(string org, string repo, string branch);
     Task CommitToBranch(string org, string repo, long parentNumber, long issueNumber, string rootDir, string branch);

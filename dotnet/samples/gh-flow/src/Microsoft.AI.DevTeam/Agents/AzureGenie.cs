@@ -1,7 +1,6 @@
-﻿using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
-using Microsoft.AI.DevTeam.Extensions;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -26,32 +25,31 @@ public class AzureGenie : Agent
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.ReadmeCreated):
-            {
-                 var context = item.ToGithubContext();
-                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.ReadmeStored),
-                    Subject = context.Subject,
-                    Data = context.ToData()
-                });
-                 break;
-            }
-               
-               
+                    var context = item.ToGithubContext();
+                    await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.ReadmeStored),
+                        Subject = context.Subject,
+                        Data = context.ToData()
+                    });
+                    break;
+                }
+
             case nameof(GithubFlowEventType.CodeCreated):
-            {
-                var context = item.ToGithubContext();
-                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
-                await RunInSandbox(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber);
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.SandboxRunCreated),
-                    Subject = context.Subject,
-                    Data = context.ToData()
-                });
-                  break;
-            }
+                    var context = item.ToGithubContext();
+                    await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
+                    await RunInSandbox(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber);
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.SandboxRunCreated),
+                        Subject = context.Subject,
+                        Data = context.ToData()
+                    });
+                    break;
+                }
 
             default:
                 break;

@@ -25,13 +25,12 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton(s =>
 {
-    var ghOptions = s.GetService<IOptions<GithubOptions>>();
-    var logger = s.GetService<ILogger<GithubAuthService>>();
+    var ghOptions = s.GetRequiredService<IOptions<GithubOptions>>();
+    var logger = s.GetRequiredService<ILogger<GithubAuthService>>();
     var ghService = new GithubAuthService(ghOptions, logger);
     var client = ghService.GetGitHubClient();
     return client;
 });
-
 
 builder.Services.AddAzureClients(clientBuilder =>
 {
@@ -46,7 +45,8 @@ builder.Services.AddActors(
     {
         options.UseJsonSerialization = true;
         options.JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.ReentrancyConfig = new ActorReentrancyConfig {
+        options.ReentrancyConfig = new ActorReentrancyConfig
+        {
             Enabled = true
         };
         options.Actors.RegisterActor<Dev>();
@@ -104,7 +104,6 @@ builder.Services.AddSingleton<IManageAzure, AzureService>();
 builder.Services.AddSingleton<IManageGithub, GithubService>();
 builder.Services.AddSingleton<IAnalyzeCode, CodeAnalyzer>();
 
-
 builder.Services.Configure<JsonSerializerOptions>(options =>
 {
     options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -114,7 +113,7 @@ var app = builder.Build();
 app.UseRouting()
    .UseEndpoints(endpoints =>
 {
-    var ghOptions = app.Services.GetService<IOptions<GithubOptions>>().Value;
+    var ghOptions = app.Services.GetRequiredService<IOptions<GithubOptions>>().Value;
     endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret);
     endpoints.MapActorsHandlers();
     endpoints.MapSubscribeHandler();
@@ -122,52 +121,45 @@ app.UseRouting()
 
 app.UseCloudEvents();
 
-app.MapPost("/developers", [Topic(Consts.PubSub, Consts.MainTopic, 
-    $"(event.type ==\"{nameof(GithubFlowEventType.CodeGenerationRequested)}\") || (event.type ==\"{nameof(GithubFlowEventType.CodeGenerationRequested)}\")", 1)] 
-    async (IActorProxyFactory proxyFactory, EventEnvelope evt) =>  await HandleEvent(proxyFactory,nameof(Dev), nameof(Dev.HandleEvent), evt));
+app.MapPost("/developers", [Topic(Consts.PubSub, Consts.MainTopic,
+    $"(event.type ==\"{nameof(GithubFlowEventType.CodeGenerationRequested)}\") || (event.type ==\"{nameof(GithubFlowEventType.CodeGenerationRequested)}\")", 1)]
+async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(Dev), nameof(Dev.HandleEvent), evt));
 
 app.MapPost("/devleads", [Topic(Consts.PubSub, Consts.MainTopic,
-$"(event.type ==\"{nameof(GithubFlowEventType.DevPlanRequested)}\") || (event.type ==\"{nameof(GithubFlowEventType.DevPlanChainClosed)}\")", 2)] 
+$"(event.type ==\"{nameof(GithubFlowEventType.DevPlanRequested)}\") || (event.type ==\"{nameof(GithubFlowEventType.DevPlanChainClosed)}\")", 2)]
 async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(DeveloperLead), nameof(DeveloperLead.HandleEvent), evt));
 
-app.MapPost("/productmanagers", [Topic(Consts.PubSub, Consts.MainTopic, 
+app.MapPost("/productmanagers", [Topic(Consts.PubSub, Consts.MainTopic,
 $"(event.type ==\"{nameof(GithubFlowEventType.ReadmeRequested)}\") || (event.type ==\"{nameof(GithubFlowEventType.ReadmeChainClosed)}\")", 3)]
-async (IActorProxyFactory proxyFactory, EventEnvelope evt) =>  await HandleEvent(proxyFactory, nameof(ProductManager), nameof(ProductManager.HandleEvent), evt));
+async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(ProductManager), nameof(ProductManager.HandleEvent), evt));
 
 app.MapPost("/hubbers", [Topic(Consts.PubSub, Consts.MainTopic,
  $"(event.type ==\"{nameof(GithubFlowEventType.NewAsk)}\") || (event.type ==\"{nameof(GithubFlowEventType.ReadmeGenerated)}\") || (event.type ==\"{nameof(GithubFlowEventType.DevPlanGenerated)}\") || (event.type ==\"{nameof(GithubFlowEventType.CodeGenerated)}\") || (event.type ==\"{nameof(GithubFlowEventType.DevPlanCreated)}\") || (event.type ==\"{nameof(GithubFlowEventType.ReadmeStored)}\") || (event.type ==\"{nameof(GithubFlowEventType.SandboxRunFinished)}\")", 4)]
- async (IActorProxyFactory proxyFactory, EventEnvelope evt) =>  await HandleEvent(proxyFactory, nameof(Hubber), nameof(Hubber.HandleEvent), evt));
+async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(Hubber), nameof(Hubber.HandleEvent), evt));
 
-app.MapPost("/azuregenies", [Topic(Consts.PubSub, Consts.MainTopic,  
+app.MapPost("/azuregenies", [Topic(Consts.PubSub, Consts.MainTopic,
 $"(event.type ==\"{nameof(GithubFlowEventType.ReadmeCreated)}\") || (event.type ==\"{nameof(GithubFlowEventType.CodeCreated)}\")", 5)]
 async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(AzureGenie), nameof(AzureGenie.HandleEvent), evt));
 
-app.MapPost("/sandboxes", [Topic(Consts.PubSub, Consts.MainTopic,$"(event.type ==\"{nameof(GithubFlowEventType.SandboxRunCreated)}\")", 6)] 
+app.MapPost("/sandboxes", [Topic(Consts.PubSub, Consts.MainTopic, $"(event.type ==\"{nameof(GithubFlowEventType.SandboxRunCreated)}\")", 6)]
 async (IActorProxyFactory proxyFactory, EventEnvelope evt) => await HandleEvent(proxyFactory, nameof(Sandbox), nameof(Sandbox.HandleEvent), evt));
 
 app.Run();
 
 static async Task HandleEvent(IActorProxyFactory proxyFactory, string type, string method, EventEnvelope evt)
 {
-    try
+    var proxyOptions = new ActorProxyOptions
     {
-        var proxyOptions = new ActorProxyOptions
-        {
-            RequestTimeout = Timeout.InfiniteTimeSpan
-        };
-        var proxy = proxyFactory.Create(new ActorId(evt.Data.Subject), type, proxyOptions);
-        await proxy.InvokeMethodAsync(method, evt.Data);
-    }
-    catch (Exception ex)
-    {
-        throw;
-    }
+        RequestTimeout = Timeout.InfiniteTimeSpan
+    };
+    var proxy = proxyFactory.Create(new ActorId(evt.Data.Subject), type, proxyOptions);
+    await proxy.InvokeMethodAsync(method, evt.Data);
 }
 
 static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
-    var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
+    var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+    var qdrantConfig = provider.GetRequiredService<IOptions<QdrantOptions>>().Value;
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
@@ -186,7 +178,7 @@ static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 
 static Kernel CreateKernel(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+    var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
     var clientOptions = new OpenAIClientOptions();
     clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
     var openAIClient = new OpenAIClient(new Uri(openAiConfig.Endpoint), new AzureKeyCredential(openAiConfig.ApiKey), clientOptions);

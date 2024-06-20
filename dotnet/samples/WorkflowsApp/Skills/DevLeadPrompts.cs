@@ -1,5 +1,6 @@
 namespace Microsoft.SKDevTeam;
-public static class DevLead {
+public static class DevLead
+{
     public static SemanticFunctionConfig Plan = new SemanticFunctionConfig
     {
         PromptTemplate = """

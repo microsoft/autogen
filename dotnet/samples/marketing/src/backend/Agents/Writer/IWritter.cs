@@ -1,5 +1,5 @@
 ﻿namespace Marketing.Agents;
 public interface IWriter : IGrainWithStringKey
 {
-    Task<String> GetArticle();
+    Task<string> GetArticle();
 }

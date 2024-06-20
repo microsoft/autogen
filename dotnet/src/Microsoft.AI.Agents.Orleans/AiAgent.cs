@@ -13,11 +13,10 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T : class, new()
     protected IPersistentState<AgentState<T>> _state;
     protected Kernel _kernel;
     private readonly ISemanticTextMemory _memory;
-    
 
-    public AiAgent([PersistentState("state", "messages")] IPersistentState<AgentState<T>> state, ISemanticTextMemory memory, Kernel kernel) 
+    public AiAgent([PersistentState("state", "messages")] IPersistentState<AgentState<T>> state, ISemanticTextMemory memory, Kernel kernel)
     {
-         _state = state;
+        _state = state;
         _memory = memory;
         _kernel = kernel;
     }
@@ -25,8 +24,15 @@ public abstract class AiAgent<T> : Agent, IAiAgent where T : class, new()
     public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         // Initialize the Agent state
-        if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
-        if (_state.State.Data == null) _state.State.Data = new T();
+        if (_state.State.History == null)
+        {
+            _state.State.History = new List<ChatHistoryItem>();
+        }
+
+        if (_state.State.Data == null)
+        {
+            _state.State.Data = new T();
+        }
 
         return base.OnActivateAsync(cancellationToken);
     }

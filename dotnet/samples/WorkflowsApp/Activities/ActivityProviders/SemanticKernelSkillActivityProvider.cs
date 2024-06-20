@@ -26,33 +26,33 @@ public class SemanticKernelActivityProvider : IActivityProvider
         _activityFactory = activityFactory;
         _activityDescriber = activityDescriber;
     }
-    public async ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+
+    public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
     {
         // get the kernel
         var kernel = KernelBuilder();
 
         // get a list of skills in the assembly
-        var skills = LoadSkillsFromAssemblyAsync("skills", kernel);
+        _ = LoadSkillsFromAssemblyAsync("skills", kernel);
         var functionsAvailable = kernel.Plugins.GetFunctionsMetadata();
-        
-        // create activity descriptors for each skilland function
+
+        // create activity descriptors for each skill and function
         var activities = new List<ActivityDescriptor>();
         foreach (var function in functionsAvailable)
         {
             Console.WriteLine($"Creating Activities for Plugin: {function.PluginName}");
-            activities.Add(CreateActivityDescriptorFromSkillAndFunction(function, cancellationToken));
+            activities.Add(CreateActivityDescriptorFromSkillAndFunction(function));
         }
 
-        return activities;
+        return new(activities);
     }
 
     /// <summary>
     /// Creates an activity descriptor from a skill and function.
     /// </summary>
     /// <param name="function">The semantic kernel function</param>
-    /// <param name="cancellationToken">An optional cancellation token.</param>
     /// <returns>An activity descriptor.</returns>
-    private ActivityDescriptor CreateActivityDescriptorFromSkillAndFunction(KernelFunctionMetadata function, CancellationToken cancellationToken = default)
+    private ActivityDescriptor CreateActivityDescriptorFromSkillAndFunction(KernelFunctionMetadata function)
     {
         // Create a fully qualified type name for the activity 
         var thisNamespace = GetType().Namespace;
@@ -62,7 +62,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
         // create inputs from the function parameters - the SemanticKernelSkill activity will be the base for each activity
         var inputs = new List<InputDescriptor>();
         foreach (var p in function.Parameters) { inputs.Add(CreateInputDescriptorFromSKParameter(p)); }
-        inputs.Add(CreateInputDescriptor(typeof(string), "SkillName", function.PluginName, "The name of the skill to use (generated, do not change)"));
+        inputs.Add(CreateInputDescriptor(typeof(string), "SkillName", function.PluginName!, "The name of the skill to use (generated, do not change)"));
         inputs.Add(CreateInputDescriptor(typeof(string), "FunctionName", function.Name, "The name of the function to use (generated, do not change)"));
         inputs.Add(CreateInputDescriptor(typeof(int), "MaxRetries", KernelSettings.DefaultMaxRetries, "Max Retries to contact AI Service"));
 
@@ -76,7 +76,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
             Namespace = $"{thisNamespace}.{function.PluginName}",
             DisplayName = $"{function.PluginName}.{function.Name}",
             Inputs = inputs,
-            Outputs = new[] {new OutputDescriptor()},
+            Outputs = new[] { new OutputDescriptor() },
             Constructor = context =>
             {
                 // The constructor is called when an activity instance of this type is requested.
@@ -88,8 +88,8 @@ public class SemanticKernelActivityProvider : IActivityProvider
                 activityInstance.Type = fullTypeName;
 
                 // Configure the activity's URL and method properties.
-                activityInstance.SkillName = new Input<string?>(function.PluginName);
-                activityInstance.FunctionName = new Input<string?>(function.Name);
+                activityInstance.SkillName = new Input<string>(function.PluginName!);
+                activityInstance.FunctionName = new Input<string>(function.Name);
 
                 return activityInstance;
             }
@@ -99,9 +99,11 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// <summary>
     /// Creates an input descriptor for a single line string
     /// </summary>
+    /// <param name="inputType">The input type.</param>
     /// <param name="name">The name of the input field</param>
+    /// <param name="defaultValue">The default value.</param>
     /// <param name="description">The description of the input field</param>
-    private InputDescriptor CreateInputDescriptor(Type inputType, string name, Object defaultValue, string description)
+    private static InputDescriptor CreateInputDescriptor(Type inputType, string name, object defaultValue, string description)
     {
         var inputDescriptor = new InputDescriptor
         {
@@ -124,12 +126,12 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// </summary>
     /// <param name="parameter">The function parameter.</param>
     /// <returns>An input descriptor.</returns>
-    private InputDescriptor CreateInputDescriptorFromSKParameter(KernelParameterMetadata parameter)
+    private static InputDescriptor CreateInputDescriptorFromSKParameter(KernelParameterMetadata parameter)
     {
         var inputDescriptor = new InputDescriptor
         {
             Description = string.IsNullOrEmpty(parameter.Description) ? parameter.Name : parameter.Description,
-            DefaultValue = parameter.DefaultValue == null ? string.Empty : parameter.DefaultValue,
+            DefaultValue = parameter.DefaultValue ?? string.Empty,
             Type = typeof(string),
             Name = parameter.Name,
             DisplayName = parameter.Name,
@@ -146,14 +148,14 @@ public class SemanticKernelActivityProvider : IActivityProvider
     ///<summary>
     /// Gets a list of the skills in the assembly
     ///</summary>
-    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, Kernel kernel)
+    private static IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, Kernel kernel)
     {
         var skills = new List<string>();
         var assembly = Assembly.Load(assemblyName);
         Type[] skillTypes = assembly.GetTypes().ToArray();
         foreach (Type skillType in skillTypes)
         {
-            if (skillType.Namespace.Equals("Microsoft.AI.DevTeam"))
+            if (string.Equals("Microsoft.AI.DevTeam", skillType.Namespace))
             {
                 skills.Add(skillType.Name);
                 var functions = skillType.GetFields();
@@ -178,7 +180,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// Gets a semantic kernel instance
     /// </summary>
     /// <returns>Microsoft.SemanticKernel.IKernel</returns>
-    private Kernel KernelBuilder()
+    private static Kernel KernelBuilder()
     {
         var kernelSettings = KernelSettings.LoadSettings();
 
@@ -186,11 +188,12 @@ public class SemanticKernelActivityProvider : IActivityProvider
         clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
         var openAIClient = new OpenAIClient(new Uri(kernelSettings.Endpoint), new AzureKeyCredential(kernelSettings.ApiKey), clientOptions);
         var builder = Kernel.CreateBuilder();
-        builder.Services.AddLogging( c=> c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
+        builder.Services.AddLogging(c => c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
         builder.Services.AddAzureOpenAIChatCompletion(kernelSettings.DeploymentOrModelId, openAIClient);
-        builder.Services.ConfigureHttpClientDefaults(c=>
+        builder.Services.ConfigureHttpClientDefaults(c =>
         {
-            c.AddStandardResilienceHandler().Configure( o=> {
+            c.AddStandardResilienceHandler().Configure(o =>
+            {
                 o.Retry.MaxRetryAttempts = 5;
                 o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
             });

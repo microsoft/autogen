@@ -1,4 +1,3 @@
-﻿using Dapr.Actors;
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
@@ -11,41 +10,42 @@ public class AzureGenie : Agent, IDaprAgent
 {
     private readonly IManageAzure _azureService;
 
-    public AzureGenie(ActorHost host,DaprClient client, IManageAzure azureService) : base(host, client)
+    public AzureGenie(ActorHost host, DaprClient client, IManageAzure azureService) : base(host, client)
     {
         _azureService = azureService;
     }
 
     public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.ReadmeCreated):
-            {
-                var context = item.ToGithubContext();
-                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
-                await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
                 {
-                    Type = nameof(GithubFlowEventType.ReadmeStored),
-                    Subject = context.Subject,
-                    Data = context.ToData()
-                });
-            }
-                
+                    var context = item.ToGithubContext();
+                    await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    {
+                        Type = nameof(GithubFlowEventType.ReadmeStored),
+                        Subject = context.Subject,
+                        Data = context.ToData()
+                    });
+                }
+
                 break;
             case nameof(GithubFlowEventType.CodeCreated):
-            {
-                var context = item.ToGithubContext();
-                await Store(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
-                await RunInSandbox(context.Org,context.Repo, context.ParentNumber.Value, context.IssueNumber);
-                await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
                 {
-                    Type = nameof(GithubFlowEventType.SandboxRunCreated),
-                    Subject = context.Subject,
-                    Data = context.ToData()
-                });
-            }
-                
+                    var context = item.ToGithubContext();
+                    await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
+                    await RunInSandbox(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber);
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    {
+                        Type = nameof(GithubFlowEventType.SandboxRunCreated),
+                        Subject = context.Subject,
+                        Data = context.ToData()
+                    });
+                }
+
                 break;
             default:
                 break;

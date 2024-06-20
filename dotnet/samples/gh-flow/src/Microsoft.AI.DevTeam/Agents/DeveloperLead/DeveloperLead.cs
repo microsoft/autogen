@@ -19,8 +19,10 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
+
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.DevPlanRequested):
@@ -37,7 +39,7 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
                     });
                 }
 
-               break;
+                break;
             case nameof(GithubFlowEventType.DevPlanChainClosed):
                 {
                     var context = item.ToGithubContext();
@@ -66,18 +68,19 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
             var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
             var instruction = "Consider the following architectural guidelines:!waf!";
             var enhancedContext = await AddKnowledge(instruction, "waf", context);
-            var settings = new OpenAIPromptExecutionSettings{
-                 ResponseFormat = "json_object",
-                 MaxTokens = 4096, 
-                 Temperature = 0.8,
-                 TopP = 1 
+            var settings = new OpenAIPromptExecutionSettings
+            {
+                ResponseFormat = "json_object",
+                MaxTokens = 4096,
+                Temperature = 0.8,
+                TopP = 1
             };
             return await CallFunction(DevLeadSkills.Plan, enhancedContext, settings);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating development plan");
-            return default;
+            return "";
         }
     }
 }
@@ -91,30 +94,31 @@ public interface ILeadDevelopers
 public class DevLeadPlanResponse
 {
     [Id(0)]
-    public List<Step> steps { get; set; }
+    public required List<StepDescription> Steps { get; set; }
 }
 
 [GenerateSerializer]
-public class Step
+public class StepDescription
 {
     [Id(0)]
-    public string description { get; set; }
+    public string? Description { get; set; }
     [Id(1)]
-    public string step { get; set; }
+    public string? Step { get; set; }
     [Id(2)]
-    public List<Subtask> subtasks { get; set; }
+    public List<SubtaskDescription>? Subtasks { get; set; }
 }
 
 [GenerateSerializer]
-public class Subtask
+public class SubtaskDescription
 {
     [Id(0)]
-    public string subtask { get; set; }
+    public string? Subtask { get; set; }
+
     [Id(1)]
-    public string prompt { get; set; }
+    public string? Prompt { get; set; }
 }
 
 public class DeveloperLeadState
 {
-    public string Plan { get; set; }
+    public string? Plan { get; set; }
 }

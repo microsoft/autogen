@@ -4,7 +4,7 @@ namespace Marketing.Options;
 public class QdrantOptions
 {
     [Required]
-    public string Endpoint { get; set; }
+    public required string Endpoint { get; set; }
     [Required]
-    public int VectorSize { get; set; }
+    public required int VectorSize { get; set; }
 }

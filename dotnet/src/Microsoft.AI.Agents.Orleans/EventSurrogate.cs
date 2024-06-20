@@ -19,7 +19,7 @@ internal sealed class EventSurrogateConverter :
 {
     public Event ConvertFromSurrogate(
         in EventSurrogate surrogate) =>
-        new Event { Data = surrogate.Data, Subject = surrogate.Subject, Type = surrogate.Type};
+        new Event { Data = surrogate.Data, Subject = surrogate.Subject, Type = surrogate.Type };
 
     public EventSurrogate ConvertToSurrogate(
         in Event value) =>

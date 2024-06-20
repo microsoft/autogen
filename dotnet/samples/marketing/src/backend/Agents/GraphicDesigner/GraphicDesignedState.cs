@@ -4,5 +4,5 @@
 public class GraphicDesignerState
 {
     [Id(0)]
-    public string imageUrl { get; set; }
+    public string ImageUrl { get; set; } = "";
 }

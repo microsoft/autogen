@@ -6,11 +6,11 @@ namespace Microsoft.AI.Agents.Dapr;
 
 public abstract class Agent : Actor, IAgent
 {
-    private readonly DaprClient daprClient;
+    private readonly DaprClient _daprClient;
 
     protected Agent(ActorHost host, DaprClient daprClient) : base(host)
     {
-        this.daprClient = daprClient;
+        this._daprClient = daprClient;
     }
     public abstract Task HandleEvent(Event item);
 
@@ -21,7 +21,7 @@ public abstract class Agent : Actor, IAgent
                  { "cloudevent.Subject",  item.Subject },
                  { "cloudevent.id", Guid.NewGuid().ToString()}
             };
-      
-       await daprClient.PublishEventAsync(ns, id, item, metadata);
+
+        await _daprClient.PublishEventAsync(ns, id, item, metadata).ConfigureAwait(false);
     }
 }

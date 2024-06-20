@@ -7,57 +7,56 @@ using Orleans.Runtime;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace Marketing.Controller
-{
+namespace Marketing.Controller;
 
-    [GenerateSerializer]
-    public class Asd
+[GenerateSerializer]
+public class Asd
+{
+    [Id(0)]
+    public required string Name { get; set; }
+}
+
+[Route("api/[controller]")]
+[ApiController]
+public class Articles : ControllerBase
+{
+    private readonly IClusterClient _client;
+
+    public Articles(IClusterClient client)
     {
-        [Id(0)]
-        public string Name { get; set; }
+        _client = client;
     }
 
-    [Route("api/[controller]")]
-    [ApiController]
-    public class Articles : ControllerBase
+    // GET api/<Post>/5
+    [HttpGet("{id}")]
+    public async Task<string> Get(string id)
     {
-        private readonly IClusterClient _client;
+        var grain = _client.GetGrain<IWriter>(id);
+        string article = await grain.GetArticle();
+        return article;
+    }
 
-        public Articles(IClusterClient client)
+    // PUT api/<Post>/5
+    [HttpPut("{UserId}")]
+    public async Task<string> Put(string UserId, [FromBody] string userMessage)
+    {
+        ArgumentNullException.ThrowIfNull(UserId);
+        var streamProvider = _client.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create(Consts.OrleansNamespace, UserId);
+        var stream = streamProvider.GetStream<Event>(streamId);
+
+        var data = new Dictionary<string, string>
         {
-            _client = client;
-        }
+            { nameof(UserId), UserId.ToString() },
+            { nameof(userMessage), userMessage },
+        };
 
-        // GET api/<Post>/5
-        [HttpGet("{id}")]
-        public async Task<string> Get(string id)
+        await stream.OnNextAsync(new Event
         {
-            var grain = _client.GetGrain<IWriter>(id);
-            string article = await grain.GetArticle();
-            return article;
-        }
+            Type = nameof(EventTypes.UserChatInput),
+            Data = data
+        });
 
-        // PUT api/<Post>/5
-        [HttpPut("{UserId}")]
-        public async Task<string> Put(string UserId, [FromBody] string userMessage)
-        {
-            var streamProvider = _client.GetStreamProvider("StreamProvider");
-            var streamId = StreamId.Create(Consts.OrleansNamespace, UserId);
-            var stream = streamProvider.GetStream<Event>(streamId);
-
-            var data = new Dictionary<string, string>
-            {
-                { nameof(UserId), UserId.ToString() },
-                { nameof(userMessage), userMessage },
-            };
-
-            await stream.OnNextAsync(new Event
-            {
-                Type = nameof(EventTypes.UserChatInput),
-                Data = data
-            });
-
-            return $"Task {UserId} accepted";
-        }
+        return $"Task {UserId} accepted";
     }
 }

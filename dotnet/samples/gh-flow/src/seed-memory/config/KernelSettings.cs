@@ -1,8 +1,8 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-internal class KernelSettings
+internal sealed class KernelSettings
 {
     public const string DefaultConfigFile = "config/appsettings.json";
     public const string OpenAI = "OPENAI";

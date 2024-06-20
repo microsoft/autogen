@@ -24,4 +24,8 @@
     <TestResultsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsLogDir)', 'TestLogs'))</TestResultsLogDir>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;SKEXP0001;SKEXP0010;SKEXP0020</NoWarn>
+  </PropertyGroup>
+
 </Project>

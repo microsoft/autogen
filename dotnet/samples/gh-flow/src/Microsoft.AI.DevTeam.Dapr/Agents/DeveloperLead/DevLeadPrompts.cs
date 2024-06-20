@@ -1,6 +1,7 @@
 namespace Microsoft.AI.DevTeam.Dapr;
-public static class DevLeadSkills {
-    public static string Plan =  """
+public static class DevLeadSkills
+{
+    public const string Plan = """
         You are a Dev Lead for an application team, building the application described below. 
         Please break down the steps and modules required to develop the complete application, describe each step in detail.
         Make prescriptive architecture, language, and frameowrk choices, do not provide a range of choices. 
@@ -35,7 +36,7 @@ public static class DevLeadSkills {
         {{$waf}}
         """;
 
-    public static string Explain = """
+    public const string Explain = """
         You are a Dev Lead. 
         Please explain the code that is in the input below. You can include references or documentation links in your explanation. 
         Also where appropriate please output a list of keywords to describe the code or its capabilities.

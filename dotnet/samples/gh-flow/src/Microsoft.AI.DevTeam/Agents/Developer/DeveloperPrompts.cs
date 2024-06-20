@@ -1,7 +1,8 @@
 
 namespace Microsoft.AI.DevTeam;
-public static class DeveloperSkills {
-    public static string Implement = """
+public static class DeveloperSkills
+{
+    public const string Implement = """
         You are a Developer for an application. 
         Please output the code required to accomplish the task assigned to you below and wrap it in a bash script that creates the files.
         Do not use any IDE commands and do not build and run the code.
@@ -11,7 +12,7 @@ public static class DeveloperSkills {
         {{$waf}}
         """;
 
-    public static string Improve = """
+    public const string Improve = """
         You are a Developer for an application. Your job is to imrove the code that you are given in the input below. 
         Please output a new version of code that fixes any problems with this version. 
         If there is an error message in the input you should fix that error in the code. 
@@ -23,7 +24,7 @@ public static class DeveloperSkills {
         {{$waf}}
         """;
 
-    public static string Explain = """
+    public const string Explain = """
         You are an experienced software developer, with strong experience in Azure and Microsoft technologies.
         Extract the key features and capabilities of the code file below, with the intent to build an understanding of an entire code repository.
         You can include references or documentation links in your explanation. Also where appropriate please output a list of keywords to describe the code or its capabilities.
@@ -39,7 +40,7 @@ public static class DeveloperSkills {
         Error: The model could not determine the purpose of the code.
         """;
 
-    public static string ConsolidateUnderstanding = """
+    public const string ConsolidateUnderstanding = """
         You are an experienced software developer, with strong experience in Azure and Microsoft technologies.
         You are trying to build an understanding of the codebase from code files. This is the current understanding of the project:
         ===current-understanding===

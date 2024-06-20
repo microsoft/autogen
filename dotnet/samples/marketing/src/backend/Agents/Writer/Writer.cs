@@ -12,22 +12,23 @@ namespace Marketing.Agents;
 public class Writer : AiAgent<WriterState>, IWriter
 {
     protected override string Namespace => Consts.OrleansNamespace;
-    
+
     private readonly ILogger<GraphicDesigner> _logger;
 
-    public Writer([PersistentState("state", "messages")] IPersistentState<AgentState<WriterState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<GraphicDesigner> logger) 
+    public Writer([PersistentState("state", "messages")] IPersistentState<AgentState<WriterState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<GraphicDesigner> logger)
     : base(state, memory, kernel)
     {
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(EventTypes.UserConnected):
                 // The user reconnected, let's send the last message if we have one
-                string lastMessage = _state.State.History.LastOrDefault()?.Message;
+                var lastMessage = _state.State.History.LastOrDefault()?.Message;
                 if (lastMessage == null)
                 {
                     return;
@@ -37,18 +38,18 @@ public class Writer : AiAgent<WriterState>, IWriter
 
                 break;
 
-            case nameof(EventTypes.UserChatInput):                
+            case nameof(EventTypes.UserChatInput):
                 {
-                    var userMessage = item.Data["userMessage"]; 
-                    _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.UserChatInput)}. UserMessage: {userMessage}");
-                
+                    var userMessage = item.Data["userMessage"];
+                    _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.UserChatInput)}. UserMessage: {{UserMessage}}", userMessage);
+
                     var context = new KernelArguments { ["input"] = AppendChatHistory(userMessage) };
                     string newArticle = await CallFunction(WriterPrompts.Write, context);
 
                     await SendDesignedCreatedEvent(newArticle, item.Data["UserId"]);
-                    break;   
+                    break;
                 }
-                
+
             default:
                 break;
         }
@@ -66,9 +67,8 @@ public class Writer : AiAgent<WriterState>, IWriter
         });
     }
 
-
-    public Task<String> GetArticle()
+    public Task<string> GetArticle()
     {
-        return Task.FromResult(_state.State.Data.WrittenArticle);
+        return Task.FromResult(_state.State.Data.WrittenArticle!);
     }
 }

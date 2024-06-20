@@ -6,25 +6,25 @@ public class OpenAIOptions
 {
     // Embeddings
     [Required]
-    public string EmbeddingsEndpoint { get; set; }
+    public required string EmbeddingsEndpoint { get; set; }
     [Required]
-    public string EmbeddingsApiKey { get; set; }
+    public required string EmbeddingsApiKey { get; set; }
     [Required]
-    public string EmbeddingsDeploymentOrModelId { get; set; }
+    public required string EmbeddingsDeploymentOrModelId { get; set; }
 
     // Chat
     [Required]
-    public string ChatEndpoint { get; set; }
+    public required string ChatEndpoint { get; set; }
     [Required]
-    public string ChatApiKey { get; set; }
+    public required string ChatApiKey { get; set; }
     [Required]
-    public string ChatDeploymentOrModelId { get; set; }
+    public required string ChatDeploymentOrModelId { get; set; }
 
     // TextToImage
     [Required]
-    public string ImageEndpoint { get; set; }
+    public required string ImageEndpoint { get; set; }
     [Required]
-    public string ImageApiKey { get; set; }
+    public required string ImageApiKey { get; set; }
     // When using OpenAI, this is not required.
-    public string ImageDeploymentOrModelId { get; set; }
+    public required string ImageDeploymentOrModelId { get; set; }
 }

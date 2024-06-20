@@ -13,9 +13,8 @@ public class ArticleHub : Hub<IArticleHub>
         await base.OnConnectedAsync();
     }
 
-    public override async Task OnDisconnectedAsync(Exception exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        string removedUserId;
         SignalRConnectionsDB.ConnectionIdByUser.TryRemove(Context.ConnectionId, out _);
         await base.OnDisconnectedAsync(exception);
     }
@@ -28,6 +27,8 @@ public class ArticleHub : Hub<IArticleHub>
     /// <returns></returns>
     public async Task ProcessMessage(FrontEndMessage frontEndMessage, IClusterClient clusterClient)
     {
+        ArgumentNullException.ThrowIfNull(frontEndMessage);
+
         var streamProvider = clusterClient.GetStreamProvider("StreamProvider");
         var streamId = StreamId.Create(Consts.OrleansNamespace, frontEndMessage.UserId);
         var stream = streamProvider.GetStream<Event>(streamId);

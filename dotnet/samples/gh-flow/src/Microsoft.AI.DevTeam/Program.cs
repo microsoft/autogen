@@ -21,11 +21,10 @@ builder.Services.AddTransient(CreateKernel);
 builder.Services.AddTransient(CreateMemory);
 builder.Services.AddHttpClient();
 
-
 builder.Services.AddTransient(s =>
 {
-    var ghOptions = s.GetService<IOptions<GithubOptions>>();
-    var logger = s.GetService<ILogger<GithubAuthService>>();
+    var ghOptions = s.GetRequiredService<IOptions<GithubOptions>>();
+    var logger = s.GetRequiredService<ILogger<GithubAuthService>>();
     var ghService = new GithubAuthService(ghOptions, logger);
     var client = ghService.GetGitHubClient();
     return client;
@@ -94,14 +93,19 @@ builder.Host.UseOrleans(siloBuilder =>
                .AddMemoryGrainStorage("PubSubStore")
                .AddMemoryGrainStorage("messages");
 
-    siloBuilder.UseInMemoryReminderService();
-    siloBuilder.UseDashboard(x => x.HostSelf = true);
+        siloBuilder.UseInMemoryReminderService();
+        siloBuilder.UseDashboard(x => x.HostSelf = true);
 
         siloBuilder.UseInMemoryReminderService();
     }
     else
     {
         var cosmosDbconnectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
+        if (cosmosDbconnectionString is null)
+        {
+            throw new ArgumentException($"Set AzureOptions:CosmosConnectionString in configuration.");
+        }
+
         siloBuilder.Configure<ClusterOptions>(options =>
         {
             options.ClusterId = "ai-dev-cluster";
@@ -140,11 +144,11 @@ builder.Host.UseOrleans(siloBuilder =>
                 o.DatabaseName = "persistence";
                 o.IsResourceCreationEnabled = true;
             });
-         //TODO: replace with EventHub
-         siloBuilder
-               .AddMemoryStreams("StreamProvider")
-               .AddMemoryGrainStorage("PubSubStore");
-    }    
+        //TODO: replace with EventHub
+        siloBuilder
+              .AddMemoryStreams("StreamProvider")
+              .AddMemoryGrainStorage("PubSubStore");
+    }
 });
 
 builder.Services.Configure<JsonSerializerOptions>(options =>
@@ -156,7 +160,7 @@ var app = builder.Build();
 app.UseRouting()
    .UseEndpoints(endpoints =>
 {
-    var ghOptions = app.Services.GetService<IOptions<GithubOptions>>().Value;
+    var ghOptions = app.Services.GetRequiredService<IOptions<GithubOptions>>().Value;
     endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret);
 });
 
@@ -166,8 +170,8 @@ app.Run();
 
 static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
-    var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
+    var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+    var qdrantConfig = provider.GetRequiredService<IOptions<QdrantOptions>>().Value;
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
@@ -186,7 +190,7 @@ static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 
 static Kernel CreateKernel(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+    var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
     var clientOptions = new OpenAIClientOptions();
     clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
     var openAIClient = new OpenAIClient(new Uri(openAiConfig.Endpoint), new AzureKeyCredential(openAiConfig.ApiKey), clientOptions);

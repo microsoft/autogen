@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -7,7 +7,6 @@ using Azure.ResourceManager.ContainerInstance.Models;
 using Azure.ResourceManager.Resources;
 using Azure.Storage.Files.Shares;
 using Microsoft.Extensions.Options;
-
 
 namespace Microsoft.AI.DevTeam;
 
@@ -19,6 +18,9 @@ public class AzureService : IManageAzure
 
     public AzureService(IOptions<AzureOptions> azOptions, ILogger<AzureService> logger, ArmClient client)
     {
+        ArgumentNullException.ThrowIfNull(azOptions);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(client);
         _azSettings = azOptions.Value;
         _logger = logger;
         _client = client;
@@ -58,7 +60,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking sandbox status");
-             throw;
+            throw;
         }
     }
 
@@ -66,14 +68,14 @@ public class AzureService : IManageAzure
     {
         try
         {
-            var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}".ToLower();
+            var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}".ToUpperInvariant();
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
             var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
             var scriptPath = $"/azfiles/output/{org}-{repo}/{parentIssueNumber}/{issueNumber}/run.sh";
             var collection = resourceGroupResource.GetContainerGroups();
             var data = new ContainerGroupData(new AzureLocation(_azSettings.Location), new ContainerInstanceContainer[]
             {
-                    new ContainerInstanceContainer(runId,_azSettings.SandboxImage,new ContainerResourceRequirements(new ContainerResourceRequestsContent(1.5,1)))
+                    new ContainerInstanceContainer(runId, _azSettings.SandboxImage,new ContainerResourceRequirements(new ContainerResourceRequestsContent(1.5,1)))
                     {
                         Command = { "/bin/bash", $"{scriptPath}" },
                         VolumeMounts =
@@ -104,13 +106,15 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error running sandbox");
-             throw;
+            throw;
         }
-        
+
     }
 
     public async Task Store(string org, string repo, long parentIssueNumber, long issueNumber, string filename, string extension, string dir, string output)
     {
+        ArgumentNullException.ThrowIfNull(output);
+
         try
         {
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_azSettings.FilesAccountName};AccountKey={_azSettings.FilesAccountKey};EndpointSuffix=core.windows.net";
@@ -134,7 +138,7 @@ public class AzureService : IManageAzure
             var file = directory.GetFileClient(fileName);
             // hack to enable script to save files in the same directory
             var cwdHack = "#!/bin/bash\n cd $(dirname $0)";
-            var contents = extension == "sh" ? output.Replace("#!/bin/bash", cwdHack) : output;
+            var contents = extension == "sh" ? output.Replace("#!/bin/bash", cwdHack, StringComparison.Ordinal) : output;
             using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(contents)))
             {
                 await file.CreateAsync(stream.Length);
@@ -146,7 +150,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error storing output");
-             throw;
+            throw;
         }
     }
 }

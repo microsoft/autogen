@@ -1,7 +1,7 @@
 namespace Microsoft.AI.DevTeam.Dapr;
 public static class PMSkills
 {
-public static string BootstrapProject =  """
+    public const string BootstrapProject = """
        Please write a bash script with the commands that would be required to generate applications as described in the following input.
         You may add comments to the script and the generated output but do not add any other text except the bash script. 
         You may include commands to build the applications but do not run them. 
@@ -9,7 +9,7 @@ public static string BootstrapProject =  """
         Input: {{$input}}
         {{$waf}}
        """;
-   public static string Readme = """
+    public const string Readme = """
        You are a program manager on a software development team. You are working on an app described below. 
         Based on the input below, and any dialog or other context, please output a raw README.MD markdown file documenting the main features of the app and the architecture or code organization. 
         Do not describe how to create the application. 
@@ -18,7 +18,7 @@ public static string BootstrapProject =  """
         {{$waf}}
        """;
 
-   public static string Explain =  """
+    public const string Explain = """
         You are a Product Manager. 
         Please explain the code that is in the input below. You can include references or documentation links in your explanation. 
         Also where appropriate please output a list of keywords to describe the code or its capabilities.

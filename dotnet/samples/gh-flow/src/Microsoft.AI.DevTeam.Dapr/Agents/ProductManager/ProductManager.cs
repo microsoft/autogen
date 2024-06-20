@@ -1,4 +1,3 @@
-using Dapr.Actors;
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
@@ -19,8 +18,9 @@ public class ProductManager : AiAgent<ProductManagerState>, IDaprAgent
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.ReadmeRequested):
@@ -28,8 +28,9 @@ public class ProductManager : AiAgent<ProductManagerState>, IDaprAgent
                     var context = item.ToGithubContext();
                     var readme = await CreateReadme(item.Data["input"]);
                     var data = context.ToData();
-                    data["result"]=readme;
-                    await PublishEvent(Consts.PubSub,Consts.MainTopic, new Event {
+                    data["result"] = readme;
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    {
                         Type = nameof(GithubFlowEventType.ReadmeGenerated),
                         Subject = context.Subject,
                         Data = data
@@ -39,14 +40,15 @@ public class ProductManager : AiAgent<ProductManagerState>, IDaprAgent
             case nameof(GithubFlowEventType.ReadmeChainClosed):
                 {
                     var context = item.ToGithubContext();
-                var lastReadme = state.History.Last().Message;
-                var data = context.ToData();
-                data["readme"] = lastReadme;
-                await PublishEvent(Consts.PubSub,Consts.MainTopic, new Event {
-                     Type = nameof(GithubFlowEventType.ReadmeCreated),
-                     Subject = context.Subject,
-                    Data = data
-                });
+                    var lastReadme = state.History.Last().Message;
+                    var data = context.ToData();
+                    data["readme"] = lastReadme;
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    {
+                        Type = nameof(GithubFlowEventType.ReadmeCreated),
+                        Subject = context.Subject,
+                        Data = data
+                    });
                 }
 
                 break;
@@ -67,12 +69,12 @@ public class ProductManager : AiAgent<ProductManagerState>, IDaprAgent
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating readme");
-            return default;
+            return "";
         }
     }
 }
 
 public class ProductManagerState
 {
-    public string Capabilities { get; set; }
+    public string? Capabilities { get; set; }
 }

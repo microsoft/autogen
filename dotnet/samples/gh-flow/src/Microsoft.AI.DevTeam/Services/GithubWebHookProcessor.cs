@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.DevTeam.Events;
 using Octokit.Webhooks;
@@ -78,10 +79,14 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
        IssueCommentEvent issueCommentEvent,
        IssueCommentAction action)
     {
+        ArgumentNullException.ThrowIfNull(headers);
+        ArgumentNullException.ThrowIfNull(issueCommentEvent);
+        ArgumentNullException.ThrowIfNull(action);
+
         try
         {
             _logger.LogInformation("Processing issue comment event");
-            var org = issueCommentEvent.Repository.Owner.Login;
+            var org = issueCommentEvent.Repository!.Owner.Login;
             var repo = issueCommentEvent.Repository.Name;
             var issueNumber = issueCommentEvent.Issue.Number;
             var input = issueCommentEvent.Comment.Body;
@@ -90,11 +95,12 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
-            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+            var skillName = labels.Keys.First(k => k != "Parent");
+            long? parentNumber = labels.TryGetValue("Parent", out var value) ? long.Parse(value, CultureInfo.InvariantCulture) : null;
             var suffix = $"{org}-{repo}";
+
             // we only respond to non-bot comments
-            if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
+            if (issueCommentEvent.Sender!.Type.Value != UserType.Bot)
             {
                 await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
@@ -109,7 +115,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
 
     private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string org, string repo)
     {
-        var subject =  suffix+issueNumber.ToString();
+        var subject = suffix + issueNumber.ToString();
         var streamProvider = _client.GetStreamProvider("StreamProvider");
         var streamId = StreamId.Create(Consts.MainNamespace, subject);
         var stream = streamProvider.GetStream<Event>(streamId);
@@ -125,7 +131,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             { "org", org },
             { "repo", repo },
             { "issueNumber", issueNumber.ToString() },
-            { "parentNumber", parentNumber?.ToString()}
+            { "parentNumber", (parentNumber ?? 0).ToString()}
         };
 
         await stream.OnNextAsync(new Event
@@ -141,7 +147,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         try
         {
             _logger.LogInformation("Handling new ask");
-            var subject =  suffix+issueNumber.ToString();
+            var subject = suffix + issueNumber.ToString();
             var streamProvider = _client.GetStreamProvider("StreamProvider");
             var streamId = StreamId.Create(Consts.MainNamespace, subject);
             var stream = streamProvider.GetStream<Event>(streamId);
@@ -159,7 +165,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 { "org", org },
                 { "repo", repo },
                 { "issueNumber", issueNumber.ToString() },
-                { "parentNumber", parentNumber?.ToString()},
+                { "parentNumber", (parentNumber ?? 0).ToString()},
                 { "input", input}
 
             };

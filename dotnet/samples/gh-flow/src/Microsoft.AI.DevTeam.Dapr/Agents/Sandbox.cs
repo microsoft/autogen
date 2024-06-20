@@ -1,4 +1,4 @@
-﻿using Dapr.Actors.Runtime;
+using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Dapr;
@@ -8,7 +8,7 @@ namespace Microsoft.AI.DevTeam.Dapr;
 public class Sandbox : Agent, IDaprAgent, IRemindable
 {
     private const string ReminderName = "SandboxRunReminder";
-    public string StateStore = "agents-statestore";
+    public const string StateStore = "agents-statestore";
     private readonly IManageAzure _azService;
 
     public Sandbox(ActorHost host, DaprClient client, IManageAzure azService) : base(host, client)
@@ -18,33 +18,36 @@ public class Sandbox : Agent, IDaprAgent, IRemindable
 
     public override async Task HandleEvent(Event item)
     {
-        switch(item.Type)
-       {
-           case nameof(GithubFlowEventType.SandboxRunCreated):
-            {
-                var context = item.ToGithubContext();
-                await ScheduleCommitSandboxRun(context.Org, context.Repo, context.ParentNumber.Value, context.IssueNumber);
-            }
-             break;
-           
-           default:
-               break;
-       }
+        ArgumentNullException.ThrowIfNull(item);
+
+        switch (item.Type)
+        {
+            case nameof(GithubFlowEventType.SandboxRunCreated):
+                {
+                    var context = item.ToGithubContext();
+                    await ScheduleCommitSandboxRun(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber);
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     public async Task ScheduleCommitSandboxRun(string org, string repo, long parentIssueNumber, long issueNumber)
     {
         await StoreState(org, repo, parentIssueNumber, issueNumber);
         await this.RegisterReminderAsync(
-            ReminderName, 
+            ReminderName,
             null,
-            TimeSpan.Zero, 
+            TimeSpan.Zero,
             TimeSpan.FromMinutes(1));
     }
 
     private async Task StoreState(string org, string repo, long parentIssueNumber, long issueNumber)
     {
-        var state  = new SandboxMetadata {
+        var state = new SandboxMetadata
+        {
             Org = org,
             Repo = repo,
             IssueNumber = issueNumber,
@@ -70,7 +73,7 @@ public class Sandbox : Agent, IDaprAgent, IRemindable
         var agentState = await StateManager.GetStateAsync<SandboxMetadata>(StateStore);
         if (!agentState.IsCompleted)
         {
-            var sandboxId =  $"sk-sandbox-{agentState.Org}-{agentState.Repo}-{agentState.ParentIssueNumber}-{agentState.IssueNumber}";
+            var sandboxId = $"sk-sandbox-{agentState.Org}-{agentState.Repo}-{agentState.ParentIssueNumber}-{agentState.IssueNumber}";
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
                 await _azService.DeleteSandbox(sandboxId);
@@ -81,9 +84,10 @@ public class Sandbox : Agent, IDaprAgent, IRemindable
                         { "parentNumber", agentState.ParentIssueNumber.ToString() }
                     };
                 var subject = $"{agentState.Org}-{agentState.Repo}-{agentState.IssueNumber}";
-                await PublishEvent(Consts.PubSub,Consts.MainTopic, new Event {
-                     Type = nameof(GithubFlowEventType.SandboxRunFinished),
-                     Subject = subject,
+                await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                {
+                    Type = nameof(GithubFlowEventType.SandboxRunFinished),
+                    Subject = subject,
                     Data = data
                 });
                 await Cleanup();
@@ -98,8 +102,8 @@ public class Sandbox : Agent, IDaprAgent, IRemindable
 
 public class SandboxMetadata
 {
-    public string Org { get; set; }
-    public string Repo { get; set; }
+    public required string Org { get; set; }
+    public required string Repo { get; set; }
     public long ParentIssueNumber { get; set; }
     public long IssueNumber { get; set; }
     public bool IsCompleted { get; set; }

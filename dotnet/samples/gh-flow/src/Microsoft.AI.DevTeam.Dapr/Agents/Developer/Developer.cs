@@ -1,4 +1,3 @@
-using Dapr.Actors;
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
@@ -9,20 +8,21 @@ using Microsoft.SemanticKernel.Memory;
 namespace Microsoft.AI.DevTeam.Dapr;
 public class Dev : AiAgent<DeveloperState>, IDaprAgent
 {
-    
     private readonly ILogger<Dev> _logger;
 
-    public Dev(ActorHost host, DaprClient client, Kernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) 
+    public Dev(ActorHost host, DaprClient client, Kernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger)
     : base(host, client, memory, kernel)
     {
         _logger = logger;
     }
-    public async override Task HandleEvent(Event item)
+
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.CodeGenerationRequested):
-               {
+                {
                     var context = item.ToGithubContext();
                     var code = await GenerateCode(item.Data["input"]);
                     var data = context.ToData();
@@ -59,26 +59,26 @@ public class Dev : AiAgent<DeveloperState>, IDaprAgent
         try
         {
             // TODO: ask the architect for the high level architecture as well as the files structure of the project
-            var context = new KernelArguments { ["input"] = AppendChatHistory(ask)};
+            var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
             var instruction = "Consider the following architectural guidelines:!waf!";
-            var enhancedContext = await AddKnowledge(instruction, "waf",context);
+            var enhancedContext = await AddKnowledge(instruction, "waf", context);
             return await CallFunction(DeveloperSkills.Implement, enhancedContext);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating code");
-            return default;
+            return "";
         }
     }
 }
 
 public class DeveloperState
 {
-    public string Understanding { get; set; }
+    public string? Understanding { get; set; }
 }
 
 public class UnderstandingResult
 {
-    public string NewUnderstanding { get; set; }
-    public string Explanation { get; set; }
+    public required string NewUnderstanding { get; set; }
+    public required string Explanation { get; set; }
 }

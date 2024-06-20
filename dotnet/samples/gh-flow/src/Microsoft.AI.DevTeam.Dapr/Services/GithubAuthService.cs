@@ -13,6 +13,8 @@ public class GithubAuthService
 
     public GithubAuthService(IOptions<GithubOptions> ghOptions, ILogger<GithubAuthService> logger)
     {
+        ArgumentNullException.ThrowIfNull(ghOptions);
+        ArgumentNullException.ThrowIfNull(logger);
         _githubSettings = ghOptions.Value;
         _logger = logger;
     }
@@ -43,7 +45,7 @@ public class GithubAuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-    
+
     public GitHubClient GetGitHubClient()
     {
         try
@@ -62,7 +64,7 @@ public class GithubAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting GitHub client");
-             throw;
+            throw;
         }
     }
 }

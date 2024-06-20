@@ -4,7 +4,7 @@ namespace Microsoft.AI.DevTeam;
 public class QdrantOptions
 {
     [Required]
-    public string Endpoint { get; set; }
+    public required string Endpoint { get; set; }
     [Required]
     public int VectorSize { get; set; }
 }

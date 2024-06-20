@@ -1,4 +1,3 @@
-using Dapr.Actors;
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using Microsoft.AI.Agents.Abstractions;
@@ -18,17 +17,18 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, IDaprAgent
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item)
+    public override async Task HandleEvent(Event item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.DevPlanRequested):
                 {
-                     var context = item.ToGithubContext();
+                    var context = item.ToGithubContext();
                     var plan = await CreatePlan(item.Data["input"]);
                     var data = context.ToData();
                     data["result"] = plan;
-                    await PublishEvent(Consts.PubSub,Consts.MainTopic, new Event
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
                     {
                         Type = nameof(GithubFlowEventType.DevPlanGenerated),
                         Subject = context.Subject,
@@ -37,12 +37,12 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, IDaprAgent
                 }
                 break;
             case nameof(GithubFlowEventType.DevPlanChainClosed):
-                 {
+                {
                     var context = item.ToGithubContext();
                     var latestPlan = state.History.Last().Message;
                     var data = context.ToData();
                     data["plan"] = latestPlan;
-                    await PublishEvent(Consts.PubSub,Consts.MainTopic, new Event
+                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
                     {
                         Type = nameof(GithubFlowEventType.DevPlanCreated),
                         Subject = context.Subject,
@@ -68,30 +68,30 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, IDaprAgent
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating development plan");
-            return default;
+            return "";
         }
     }
 }
 
 public class DevLeadPlanResponse
 {
-    public List<Step> steps { get; set; }
+    public required List<StepDescription> Steps { get; set; }
 }
 
-public class Step
+public class StepDescription
 {
-    public string description { get; set; }
-    public string step { get; set; }
-    public List<Subtask> subtasks { get; set; }
+    public required string Description { get; set; }
+    public required string Step { get; set; }
+    public required List<SubtaskDescription> subtasks { get; set; }
 }
 
-public class Subtask
+public class SubtaskDescription
 {
-    public string subtask { get; set; }
-    public string prompt { get; set; }
+    public required string Subtask { get; set; }
+    public required string Prompt { get; set; }
 }
 
 public class DeveloperLeadState
 {
-    public string Plan { get; set; }
+    public string? Plan { get; set; }
 }

@@ -65,7 +65,7 @@ dotnet_naming_symbols.constant_fields.required_modifiers = const
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
 # static fields should have s_ prefix
-dotnet_naming_rule.static_fields_should_have_prefix.severity = warning
+dotnet_naming_rule.static_fields_should_have_prefix.severity = silent
 dotnet_naming_rule.static_fields_should_have_prefix.symbols  = static_fields
 dotnet_naming_rule.static_fields_should_have_prefix.style = static_prefix_style
 dotnet_naming_symbols.static_fields.applicable_kinds   = field
@@ -96,6 +96,27 @@ csharp_style_expression_bodied_indexers = true:silent
 csharp_style_expression_bodied_accessors = true:silent
 csharp_style_expression_bodied_lambdas = true:silent
 csharp_style_expression_bodied_local_functions = false:silent
+
+# IDE0290: Use primary constructor
+dotnet_diagnostic.IDE0290.severity = suggestion
+
+# IDE1591 Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1591.severity = none
+
+# CA1848: Use the LoggerMessage delegates
+dotnet_diagnostic.CA1848.severity = suggestion
+
+# CA1002: Do not expose generic lists
+dotnet_diagnostic.CA1002.severity = none
+
+# CA2227: Collection properties should be read only
+dotnet_diagnostic.CA2227.severity = silent
+
+# CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = silent
+
+# CA1056: URI-like properties should not be strings
+dotnet_diagnostic.CA1056.severity = silent
 
 [*.{xml,config,*proj,nuspec,props,resx,targets,yml,tasks}]
 indent_size = 2
@@ -129,7 +150,7 @@ dotnet_diagnostic.CA1018.severity = warning
 dotnet_diagnostic.CA1047.severity = warning
 
 # CA1305: Specify IFormatProvider
-dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1305.severity = suggestion
 
 # CA1507: Use nameof to express symbol names
 dotnet_diagnostic.CA1507.severity = warning
@@ -162,7 +183,7 @@ dotnet_diagnostic.CA1810.severity = warning
 dotnet_diagnostic.CA1821.severity = warning
 
 # CA1822: Make member static
-dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1822.severity = suggestion
 dotnet_code_quality.CA1822.api_surface = private, internal
 
 # CA1823: Avoid unused private fields
@@ -256,7 +277,7 @@ dotnet_diagnostic.CA1857.severity = warning
 dotnet_diagnostic.CA1858.severity = warning
 
 # CA2007: Consider calling ConfigureAwait on the awaited task
-dotnet_diagnostic.CA2007.severity = warning
+dotnet_diagnostic.CA2007.severity = suggestion
 
 # CA2008: Do not create tasks without passing a TaskScheduler
 dotnet_diagnostic.CA2008.severity = warning
@@ -332,7 +353,7 @@ dotnet_diagnostic.IDE0043.severity = warning
 dotnet_diagnostic.IDE0044.severity = warning
 
 # IDE0051: Remove unused private members
-dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0051.severity = suggestion
 
 # IDE0055: All formatting rules
 dotnet_diagnostic.IDE0055.severity = suggestion
@@ -489,3 +510,9 @@ dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
 dotnet_style_namespace_match_folder = true:suggestion
+
+[**/*.g.cs]
+generated_code = true
+
+# IDE1591 Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1591.severity = none

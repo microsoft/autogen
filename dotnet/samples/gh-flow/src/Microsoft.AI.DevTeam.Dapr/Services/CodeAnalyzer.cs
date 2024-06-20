@@ -1,12 +1,11 @@
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.AI.DevTeam.Dapr;
 
-public interface IAnalyzeCode 
+public interface IAnalyzeCode
 {
-    Task<IEnumerable<CodeAnalysis>> Analyze(string content);
+    Task<IEnumerable<CodeAnalysisResult>> Analyze(string content);
 }
 public class CodeAnalyzer : IAnalyzeCode
 {
@@ -16,38 +15,41 @@ public class CodeAnalyzer : IAnalyzeCode
 
     public CodeAnalyzer(IOptions<ServiceOptions> serviceOptions, HttpClient httpClient, ILogger<CodeAnalyzer> logger)
     {
+        ArgumentNullException.ThrowIfNull(serviceOptions);
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(logger);
+
         _serviceOptions = serviceOptions.Value;
         _httpClient = httpClient;
         _logger = logger;
-        _httpClient.BaseAddress = new Uri(_serviceOptions.IngesterUrl);
-        
+        _httpClient.BaseAddress = _serviceOptions.IngesterUrl;
+
     }
-    public async Task<IEnumerable<CodeAnalysis>> Analyze(string content)
+    public async Task<IEnumerable<CodeAnalysisResult>> Analyze(string content)
     {
         try
         {
-             var request = new CodeAnalysisRequest { Content = content };
-            var body = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("api/AnalyzeCode", body);
+            var request = new CodeAnalysisRequest { Content = content };
+            var response = await _httpClient.PostAsJsonAsync("api/AnalyzeCode", request);
             var stringResult = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<IEnumerable<CodeAnalysis>>(stringResult);
-            return result;
+            var result = JsonSerializer.Deserialize<IEnumerable<CodeAnalysisResult>>(stringResult);
+            return result ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing code");
-            return Enumerable.Empty<CodeAnalysis>();
+            return [];
         }
     }
 }
 
 public class CodeAnalysisRequest
 {
-    public string Content { get; set; }
+    public required string Content { get; set; }
 }
 
-public class CodeAnalysis
+public class CodeAnalysisResult
 {
-    public string Meaning { get; set; }
-    public string CodeBlock { get; set; }
+    public required string Meaning { get; set; }
+    public required string CodeBlock { get; set; }
 }
