@@ -121,15 +121,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         #     )
         # )
 
-        if recipient.namespace not in self._known_namespaces:
-            self._prepare_namespace(recipient.namespace)
-
         future = asyncio.get_event_loop().create_future()
         if recipient.name not in self._known_agent_names:
             future.set_exception(Exception("Recipient not found"))
 
         if sender is not None and sender.namespace != recipient.namespace:
             raise ValueError("Sender and recipient must be in the same namespace to communicate.")
+
+        self._process_seen_namespace(recipient.namespace)
 
         logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {message.__dict__}")
 
@@ -180,8 +179,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         assert explicit_namespace is not None or sender_namespace is not None
         namespace = cast(str, explicit_namespace or sender_namespace)
-        if namespace not in self._known_namespaces:
-            self._prepare_namespace(namespace)
+        self._process_seen_namespace(namespace)
 
         self._message_queue.append(
             PublishMessageEnvelope(
@@ -389,6 +387,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         else:
             self._valid_namespaces[name] = []
 
+        # For all already prepared namespaces we need to prepare this agent
+        for namespace in self._known_namespaces:
+            if self._type_valid_for_namespace(AgentId(name=name, namespace=namespace)):
+                self._get_agent(AgentId(name=name, namespace=namespace))
+
     def _invoke_agent_factory(
         self, agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T], agent_id: AgentId
     ) -> T:
@@ -419,13 +422,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         return agent_id.namespace in valid_namespaces
 
     def _get_agent(self, agent_id: AgentId) -> Agent:
+        self._process_seen_namespace(agent_id.namespace)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
         if not self._type_valid_for_namespace(agent_id):
             raise ValueError(f"Agent with name {agent_id.name} not valid for namespace {agent_id.namespace}.")
 
-        self._known_namespaces.add(agent_id.namespace)
         if agent_id.name not in self._agent_factories:
             raise ValueError(f"Agent with name {agent_id.name} not found.")
 
@@ -446,7 +449,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     # Hydrate the agent instances in a namespace. The primary reason for this is
     # to ensure message type subscriptions are set up.
-    def _prepare_namespace(self, namespace: str) -> None:
+    def _process_seen_namespace(self, namespace: str) -> None:
+        if namespace in self._known_namespaces:
+            return
+
+        self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
             if self._type_valid_for_namespace(AgentId(name=name, namespace=namespace)):
                 self._get_agent(AgentId(name=name, namespace=namespace))

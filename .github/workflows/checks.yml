@@ -9,68 +9,53 @@ on:
       - main
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - run: pip install ".[dev]"
-    - run: ruff check
-
   format:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - run: pip install ".[dev]"
-    - run: ruff format --check
+    - name: Install Hatch
+      uses: pypa/hatch@install
+    - run: hatch run ruff format --check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Hatch
+      uses: pypa/hatch@install
+    - run: hatch run ruff check
 
   mypy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install ".[dev]"
-      - run: mypy
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run mypy
 
   pyright:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install ".[dev]"
-      - uses: jakebailey/pyright-action@v2
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run pyright
 
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # "pypy3.10" disabled until better example than polars used in tests
         python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: pip install ".[dev]"
-      - run: pytest -n auto
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run +python=${{ matrix.python-version }} test-matrix:pytest -n auto
 
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install ".[docs]"
-      - run: sphinx-build --fail-on-warning docs/src docs/build
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run docs:check
