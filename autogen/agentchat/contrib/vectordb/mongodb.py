@@ -77,9 +77,6 @@ class MongoDBAtlasVectorDB(VectorDB):
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
             get_or_create: bool | Whether to get the collection if it exists. Default is True
         """
-        # Check if similarity is valid
-        if similarity not in ["euclidean", "cosine", "dotProduct"]:
-            raise ValueError("Invalid similarity. Allowed values: 'euclidean', 'cosine', 'dotProduct'.")
         # if overwrite is False and get_or_create is False, raise a ValueError
         if not overwrite and not get_or_create:
             raise ValueError("If overwrite is False, get_or_create must be True.")
