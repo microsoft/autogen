@@ -483,6 +483,7 @@ class GeminiClient:
         Convert OpenAPI function definition parameters to Gemini function parameters definition.
         The type key is renamed to type_ and the value is capitalized.
         """
+        assert "anyOf" not in function_definition, "Union types are not supported for function parameter in Gemini."
         function_definition["type_"] = function_definition["type"].upper()
         del function_definition["type"]
         if "properties" in function_definition:
