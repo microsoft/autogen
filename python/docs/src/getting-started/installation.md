@@ -8,7 +8,7 @@ To install the package from GitHub, you will need to authenticate with GitHub.
 
 ```sh
 GITHUB_TOKEN=$(gh auth token)
-pip install git+https://oauth2:$GITHUB_TOKEN@github.com/microsoft/agnext.git
+pip install "git+https://oauth2:$GITHUB_TOKEN@github.com/microsoft/agnext.git#subdirectory=python"
 ```
 
 ### Using a Personal Access Token instead of `gh` CLI

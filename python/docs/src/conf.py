@@ -48,7 +48,7 @@ html_static_path = []
 html_theme_options = {
     "source_repository": "https://github.com/microsoft/agnext",
     "source_branch": "main",
-    "source_directory": "docs/src/",
+    "source_directory": "python/docs/src/",
 }
 
 autodoc_default_options = {
