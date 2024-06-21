@@ -72,6 +72,7 @@ extra_require = {
     "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
     "retrievechat": retrieve_chat,
     "retrievechat-pgvector": retrieve_chat_pgvector,
+    "retrievechat-mongodb": [*retrieve_chat, "pymongo>=4.0.0"],
     "retrievechat-qdrant": [
         *retrieve_chat,
         "qdrant_client[fastembed]<1.9.2",
