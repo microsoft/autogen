@@ -252,7 +252,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                 {"$project": {"score": {"$meta": "vectorSearchScore"}}},
             ]
             if distance_threshold >= 0.00:
-                pipeline.append({"$match": {"score": {"$gte": distance_threshold}}})
+                pipeline.append({"$match": {"score": {"lte": distance_threshold}}})
 
             # do a lookup on the same collection
             pipeline.append(
