@@ -135,8 +135,9 @@ def should_hide_tools(messages: List[Dict[str, Any]], tools: List[Dict[str, Any]
         # Loop through the messages and check if the tools have been run, removing them as we go
         for message in messages:
             if "tool_calls" in message:
-                # Register the tool id and the name
-                tool_call_ids[message["tool_calls"][0]["id"]] = message["tool_calls"][0]["function"]["name"]
+                # Register the tool ids and the function names (there could be multiple tool calls)
+                for tool_call in message["tool_calls"]:
+                    tool_call_ids[tool_call["id"]] = tool_call["function"]["name"]
             elif "tool_call_id" in message:
                 # Tool called, get the name of the function based on the id
                 tool_name_called = tool_call_ids[message["tool_call_id"]]
