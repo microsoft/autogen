@@ -62,8 +62,8 @@ class MongoDBAtlasVectorDB(VectorDB):
     def create_collection(
         self,
         collection_name: str,
-        index_name: str,
-        similarity: Literal["euclidean", "cosine", "dotProduct"],
+        index_name: str="default_index",
+        similarity: Literal["euclidean", "cosine", "dotProduct"]="cosine",
         overwrite: bool = False,
         get_or_create: bool = True,
     ):
@@ -216,7 +216,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         index_name: str = "default",
         n_results: int = 10,
-        n_candidates: int = 10,
         distance_threshold: float = -1,
         **kwargs,
     ) -> QueryResults:
@@ -240,16 +239,12 @@ class MongoDBAtlasVectorDB(VectorDB):
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
             search_collection = self.get_collection(collection_name)
-            if n_results > n_candidates:
-                raise ValueError("n_results must be less than or equal to n_candidates.")
-            if n_candidates < 1:
-                raise ValueError("n_candidates must be greater than or equal to 1.")
             pipeline = [
                 {
                     "$vectorSearch": {
                         "index": index_name,
                         "limit": n_results,
-                        "numCandidates": n_candidates,
+                        "numCandidates": n_results,
                         "queryVector": query_vector,
                         "path": "embedding",
                     }
