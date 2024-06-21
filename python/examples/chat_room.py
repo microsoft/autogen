@@ -5,28 +5,30 @@ import logging
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.memory import BufferedChatMemory, ChatMemory
-from agnext.chat.types import TextMessage
+from agnext.chat.memory import BufferedChatMemory
+from agnext.chat.types import Message, TextMessage
 from agnext.chat.utils import convert_messages_to_llm_messages
 from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, OpenAI, SystemMessage
 from agnext.core import AgentRuntime, CancellationToken
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
 # Define a custom agent that can handle chat room messages.
-class ChatRoomAgent(TypeRoutedAgent):  # type: ignore
-    def __init__(  # type: ignore
+class ChatRoomAgent(TypeRoutedAgent):
+    def __init__(
         self,
         name: str,
         description: str,
         background_story: str,
-        memory: ChatMemory,  # type: ignore
-        model_client: ChatCompletionClient,  # type: ignore
-    ) -> None:  # type: ignore
+        memory: ChatMemory[Message],
+        model_client: ChatCompletionClient,
+    ) -> None:
         super().__init__(description)
         system_prompt = f"""Your name is {name}.
 Your background story is:
@@ -46,8 +48,8 @@ Use the following JSON format to provide your thought on the latest message and 
         self._memory = memory
         self._client = model_client
 
-    @message_handler()  # type: ignore
-    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:  # type: ignore
+    @message_handler()
+    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         # Save the message to memory as structured JSON.
         from_message = TextMessage(
             content=json.dumps({"sender": message.source, "content": message.content}), source=message.source
@@ -75,16 +77,16 @@ Use the following JSON format to provide your thought on the latest message and 
             await self.publish_message(TextMessage(source=self.metadata["name"], content=str(response)))
 
 
-class ChatRoomUserAgent(TextualUserAgent):  # type: ignore
+class ChatRoomUserAgent(TextualUserAgent):
     """An agent that is used to receive messages from the runtime."""
 
-    @message_handler  # type: ignore
-    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:  # type: ignore
+    @message_handler
+    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         await self._app.post_runtime_message(message)
 
 
 # Define a chat room with participants -- the runtime is the chat room.
-def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
+def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     runtime.register(
         "User",
         lambda: ChatRoomUserAgent(
@@ -99,7 +101,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: igno
             description="Alice in the chat room.",
             background_story="Alice is a software engineer who loves to code.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+            model_client=OpenAI(model="gpt-4-turbo"),
         ),
     )
     bob = runtime.register_and_get_proxy(
@@ -109,7 +111,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: igno
             description="Bob in the chat room.",
             background_story="Bob is a data scientist who loves to analyze data.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+            model_client=OpenAI(model="gpt-4-turbo"),
         ),
     )
     charlie = runtime.register_and_get_proxy(
@@ -119,7 +121,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: igno
             description="Charlie in the chat room.",
             background_story="Charlie is a designer who loves to create art.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),  # type: ignore
+            model_client=OpenAI(model="gpt-4-turbo"),
         ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:

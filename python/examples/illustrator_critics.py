@@ -4,19 +4,20 @@ import logging
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents import ChatCompletionAgent, ImageGenerationAgent
 from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns.group_chat_manager import GroupChatManager
+from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.core import AgentRuntime
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
-def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> str:  # type: ignore
+def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
     runtime.register(
         "User",
         lambda: TextualUserAgent(

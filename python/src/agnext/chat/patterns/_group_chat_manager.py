@@ -2,16 +2,17 @@ import logging
 from typing import Any, Callable, List, Mapping
 
 from ...components import TypeRoutedAgent, message_handler
+from ...components.memory import ChatMemory
 from ...components.models import ChatCompletionClient
 from ...core import AgentId, AgentProxy, AgentRuntime, CancellationToken
-from ..memory import ChatMemory
 from ..types import (
+    Message,
     MultiModalMessage,
     PublishNow,
     Reset,
     TextMessage,
 )
-from .group_chat_utils import select_speaker
+from ._group_chat_utils import select_speaker
 
 logger = logging.getLogger("agnext.events")
 
@@ -24,7 +25,7 @@ class GroupChatManager(TypeRoutedAgent):
         description (str): The description of the agent.
         runtime (AgentRuntime): The runtime to register the agent.
         participants (List[AgentId]): The list of participants in the group chat.
-        memory (ChatMemory): The memory to store and retrieve messages.
+        memory (ChatMemory[Message]): The memory to store and retrieve messages.
         model_client (ChatCompletionClient, optional): The client to use for the model.
             If provided, the agent will use the model to select the next speaker.
             If not provided, the agent will select the next speaker from the list of participants
@@ -44,7 +45,7 @@ class GroupChatManager(TypeRoutedAgent):
         description: str,
         runtime: AgentRuntime,
         participants: List[AgentId],
-        memory: ChatMemory,
+        memory: ChatMemory[Message],
         model_client: ChatCompletionClient | None = None,
         termination_word: str = "TERMINATE",
         transitions: Mapping[AgentId, List[AgentId]] = {},

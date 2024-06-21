@@ -7,6 +7,7 @@ from ...components import (
     TypeRoutedAgent,
     message_handler,
 )
+from ...components.memory import ChatMemory
 from ...components.models import (
     ChatCompletionClient,
     FunctionExecutionResult,
@@ -15,7 +16,6 @@ from ...components.models import (
 )
 from ...components.tools import Tool
 from ...core import AgentId, CancellationToken
-from ..memory import ChatMemory
 from ..types import (
     FunctionCallMessage,
     Message,
@@ -36,12 +36,11 @@ class ChatCompletionAgent(TypeRoutedAgent):
     responses and execute tools.
 
     Args:
-        name (str): The name of the agent.
         description (str): The description of the agent.
         runtime (AgentRuntime): The runtime to register the agent.
         system_messages (List[SystemMessage]): The system messages to use for
             the ChatCompletion API.
-        memory (ChatMemory): The memory to store and retrieve messages.
+        memory (ChatMemory[Message]): The memory to store and retrieve messages.
         model_client (ChatCompletionClient): The client to use for the
             ChatCompletion API.
         tools (Sequence[Tool], optional): The tools used by the agent. Defaults
@@ -61,7 +60,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         self,
         description: str,
         system_messages: List[SystemMessage],
-        memory: ChatMemory,
+        memory: ChatMemory[Message],
         model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
         tool_approver: AgentId | None = None,

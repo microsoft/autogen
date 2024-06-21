@@ -1,11 +1,11 @@
 from typing import Any, List, Mapping
 
+from ...components.memory import ChatMemory
 from ...components.models import FunctionExecutionResultMessage
 from ..types import FunctionCallMessage, Message, TextMessage
-from ._base import ChatMemory
 
 
-class HeadAndTailChatMemory(ChatMemory):
+class HeadAndTailChatMemory(ChatMemory[Message]):
     """A chat memory that keeps a view of the first n and last m messages,
     where n is the head size and m is the tail size. The head and tail sizes
     are set at initialization.

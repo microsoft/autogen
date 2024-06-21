@@ -8,9 +8,9 @@ import logging
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
+from agnext.chat.agents._chat_completion_agent import ChatCompletionAgent
 from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns.group_chat_manager import GroupChatManager
+from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import FunctionTool

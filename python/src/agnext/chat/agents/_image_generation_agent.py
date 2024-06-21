@@ -7,9 +7,10 @@ from ...components import (
     TypeRoutedAgent,
     message_handler,
 )
+from ...components.memory import ChatMemory
 from ...core import CancellationToken
-from ..memory import ChatMemory
 from ..types import (
+    Message,
     MultiModalMessage,
     PublishNow,
     Reset,
@@ -18,10 +19,20 @@ from ..types import (
 
 
 class ImageGenerationAgent(TypeRoutedAgent):
+    """An agent that generates images using DALL-E models. It publishes the
+    generated images as MultiModalMessage.
+
+    Args:
+        description (str): The description of the agent.
+        memory (ChatMemory[Message]): The memory to store and retrieve messages.
+        client (openai.AsyncClient): The client to use for the OpenAI API.
+        model (Literal["dall-e-2", "dall-e-3"], optional): The DALL-E model to use. Defaults to "dall-e-2".
+    """
+
     def __init__(
         self,
         description: str,
-        memory: ChatMemory,
+        memory: ChatMemory[Message],
         client: openai.AsyncClient,
         model: Literal["dall-e-2", "dall-e-3"] = "dall-e-2",
     ):
@@ -32,6 +43,7 @@ class ImageGenerationAgent(TypeRoutedAgent):
 
     @message_handler
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a text message. This method adds the message to the memory."""
         await self._memory.add_message(message)
 
     @message_handler
@@ -40,6 +52,10 @@ class ImageGenerationAgent(TypeRoutedAgent):
 
     @message_handler
     async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+        """Handle a publish now message. This method generates an image using a DALL-E model with
+        a prompt. The prompt is a concatenation of all TextMessages in the memory. The generated
+        image is published as a MultiModalMessage."""
+
         response = await self._generate_response(cancellation_token)
         self.publish_message(response)
 

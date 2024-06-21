@@ -9,18 +9,16 @@ import openai
 from agnext.application import (
     SingleThreadedAgentRuntime,
 )
-from agnext.chat.agents.chat_completion_agent import ChatCompletionAgent
-from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
+from agnext.chat.agents._chat_completion_agent import ChatCompletionAgent
+from agnext.chat.agents._oai_assistant import OpenAIAssistantAgent
 from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns.orchestrator_chat import OrchestratorChat
+from agnext.chat.patterns._orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import BaseTool
-from agnext.core import Agent, AgentRuntime, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler, DropMessage
+from agnext.core import AgentRuntime, CancellationToken
 from pydantic import BaseModel, Field
 from tavily import TavilyClient  # type: ignore
-from typing_extensions import Any, override
 
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("agnext").setLevel(logging.DEBUG)
@@ -50,32 +48,6 @@ class SearchTool(BaseTool[SearchQuery, SearchResult]):
             return SearchResult(result=json.dumps(result, indent=2, ensure_ascii=False))
 
         return SearchResult(result="No results found.")
-
-
-class LoggingHandler(DefaultInterventionHandler):  # type: ignore
-    send_color = "\033[31m"
-    response_color = "\033[34m"
-    reset_color = "\033[0m"
-
-    @override
-    async def on_send(self, message: Any, *, sender: Agent | None, recipient: Agent) -> Any | type[DropMessage]:  # type: ignore
-        if sender is None:
-            print(f"{self.send_color}Sending message to {recipient.metadata['name']}:{self.reset_color} {message}")
-        else:
-            print(
-                f"{self.send_color}Sending message from {sender.metadata['name']} to {recipient.metadata['name']}:{self.reset_color} {message}"
-            )
-        return message
-
-    @override
-    async def on_response(self, message: Any, *, sender: Agent, recipient: Agent | None) -> Any | type[DropMessage]:  # type: ignore
-        if recipient is None:
-            print(f"{self.response_color}Received response from {sender.metadata['name']}:{self.reset_color} {message}")
-        else:
-            print(
-                f"{self.response_color}Received response from {sender.metadata['name']} to {recipient.metadata['name']}:{self.reset_color} {message}"
-            )
-        return message
 
 
 def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ignore
@@ -153,7 +125,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
 
 
 async def run(message: str, user: str, scenario: Callable[[AgentRuntime], OrchestratorChat]) -> None:  # type: ignore
-    runtime = SingleThreadedAgentRuntime(before_send=LoggingHandler())
+    runtime = SingleThreadedAgentRuntime()
     chat = scenario(runtime)
     response = runtime.send_message(TextMessage(content=message, source=user), chat.id)
     while not response.done():

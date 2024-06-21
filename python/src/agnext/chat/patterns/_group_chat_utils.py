@@ -3,13 +3,13 @@
 import re
 from typing import Dict, List
 
+from ...components.memory import ChatMemory
 from ...components.models import ChatCompletionClient, SystemMessage
 from ...core import AgentProxy
-from ..memory import ChatMemory
-from ..types import TextMessage
+from ..types import Message, TextMessage
 
 
-async def select_speaker(memory: ChatMemory, client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
+async def select_speaker(memory: ChatMemory[Message], client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
     """Selects the next speaker in a group chat using a ChatCompletion client."""
     # TODO: Handle multi-modal messages.
 

@@ -1,6 +1,11 @@
-from .chat_completion_agent import ChatCompletionAgent
-from .image_generation_agent import ImageGenerationAgent
-from .oai_assistant import OpenAIAssistantAgent
-from .user_proxy import UserProxyAgent
+from ._chat_completion_agent import ChatCompletionAgent
+from ._image_generation_agent import ImageGenerationAgent
+from ._oai_assistant import OpenAIAssistantAgent
+from ._user_proxy import UserProxyAgent
 
-__all__ = ["ChatCompletionAgent", "OpenAIAssistantAgent", "UserProxyAgent", "ImageGenerationAgent"]
+__all__ = [
+    "ChatCompletionAgent",
+    "OpenAIAssistantAgent",
+    "UserProxyAgent",
+    "ImageGenerationAgent",
+]

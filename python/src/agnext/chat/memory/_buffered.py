@@ -1,11 +1,11 @@
 from typing import Any, List, Mapping
 
+from ...components.memory import ChatMemory
 from ...components.models import FunctionExecutionResultMessage
 from ..types import Message
-from ._base import ChatMemory
 
 
-class BufferedChatMemory(ChatMemory):
+class BufferedChatMemory(ChatMemory[Message]):
     """A buffered chat memory that keeps a view of the last n messages,
     where n is the buffer size. The buffer size is set at initialization.
 

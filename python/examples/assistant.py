@@ -11,9 +11,9 @@ from typing import List
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents.oai_assistant import OpenAIAssistantAgent
+from agnext.chat.agents import OpenAIAssistantAgent
 from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns.group_chat_manager import GroupChatManager
+from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.chat.types import PublishNow, TextMessage
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import AgentId, AgentRuntime, CancellationToken

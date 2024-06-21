@@ -13,21 +13,22 @@ import logging
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 import aiofiles
 import aiohttp
 import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.chat.agents import ChatCompletionAgent
 from agnext.chat.memory import HeadAndTailChatMemory
-from agnext.chat.patterns.group_chat_manager import GroupChatManager
+from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.components.models import OpenAI, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from markdownify import markdownify  # type: ignore
 from tqdm import tqdm
 from typing_extensions import Annotated
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
