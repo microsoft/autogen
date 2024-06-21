@@ -8,7 +8,7 @@ AutoGen supports advanced LLM agent observability and monitoring through built-i
 AutoGen's SQLite and File Logger - [Tutorial Notebook](/docs/notebooks/agentchat_logging)
 
 ### Full-Service Partner Integrations
-AutoGen partners with [AgentOps](https://agentops.ai) to provide seamless agent observability - [AgentOps Tutorial Notebook](/docs/notebooks/agentchat_agentops)
+AutoGen partners with [AgentOps](https://agentops.ai) to provide multi-agent tracking, metrics, and monitoring - [Tutorial Notebook](/docs/notebooks/agentchat_agentops)
 
 
 ## What is Observability?
