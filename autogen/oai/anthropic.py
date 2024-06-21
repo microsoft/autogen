@@ -30,10 +30,11 @@ from typing import Any, Dict, List, Tuple, Union
 from anthropic import Anthropic
 from anthropic import __version__ as anthropic_version
 from anthropic.types import Completion, Message
-from client_utils import validate_parameter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from typing_extensions import Annotated
+
+from .client_utils import validate_parameter
 
 TOOL_ENABLED = anthropic_version >= "0.23.1"
 if TOOL_ENABLED:
@@ -43,6 +44,7 @@ if TOOL_ENABLED:
 
 
 ANTHROPIC_PRICING_1k = {
+    "claude-3-5-sonnet-20240620": (0.003, 0.015),
     "claude-3-sonnet-20240229": (0.003, 0.015),
     "claude-3-opus-20240229": (0.015, 0.075),
     "claude-2.0": (0.008, 0.024),
