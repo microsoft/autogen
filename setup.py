@@ -76,7 +76,7 @@ extra_require = {
         *retrieve_chat,
         "qdrant_client[fastembed]",
     ],
-    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
+    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
     "graph": ["networkx", "matplotlib"],
@@ -88,6 +88,8 @@ extra_require = {
     "jupyter-executor": jupyter_executor,
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
+    "anthropic": ["anthropic>=0.23.1"],
+    "mistral": ["mistralai>=0.2.0"],
 }
 
 setuptools.setup(

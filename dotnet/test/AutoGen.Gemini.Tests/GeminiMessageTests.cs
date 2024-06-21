@@ -2,7 +2,6 @@
 // GeminiMessageTests.cs
 
 using AutoGen.Core;
-using AutoGen.Gemini.Middleware;
 using AutoGen.Tests;
 using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;

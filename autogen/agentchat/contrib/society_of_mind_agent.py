@@ -1,8 +1,6 @@
 # ruff: noqa: E722
 import copy
-import json
 import traceback
-from dataclasses import dataclass
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from autogen import Agent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper
@@ -36,7 +34,7 @@ class SocietyOfMindAgent(ConversableAgent):
         response_preparer: Optional[Union[str, Callable]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "TERMINATE",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
