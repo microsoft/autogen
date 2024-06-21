@@ -904,9 +904,8 @@ When deciding between tools, consider if the request can be best addressed by:
         for a in args:
             _arg_strs.append(a + "='" + str(args[a]) + "'")
 
-        # Need to update this
-        # if logging_enabled():
-        #    log_event(self, "browser_action", action=action, target=target, arg=arg)
+        if logging_enabled():
+            log_event(self, "browser_action", action=fname, args=args)
 
         print(
             colored("\n>>>>>>>> BROWSER ACTION " + fname + "(" + ", ".join(_arg_strs) + ")", "cyan"),
