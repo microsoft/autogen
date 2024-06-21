@@ -7,6 +7,7 @@ import io
 import base64
 import pathlib
 import hashlib
+import traceback
 #import numpy as np
 #import easyocr
 from PIL import Image
@@ -15,6 +16,7 @@ from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
+from playwright._impl._errors import Error as PlaywrightError
 from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
@@ -286,14 +288,6 @@ setInterval(function() {{
     def reset(self):
         super().reset()
         self._log_to_console(fname="reset", args={"home": self.start_page})
-
-        #self._page.goto("about:blank")
-        #self._page.wait_for_load_state()
-        #if self.debug_dir:
-        #    screenshot = self._page.screenshot()
-        #    with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
-        #        png.write(screenshot)
-
         self._visit_page(self.start_page)
         self._page.wait_for_load_state()
         if self.debug_dir:
@@ -763,8 +757,12 @@ When deciding between tools, consider if the request can be best addressed by:
         # Fill it
         target.scroll_into_view_if_needed()
         target.focus()
-        target.fill(value)
+        try:
+            target.fill(value)
+        except PlaywrightError:
+            target.press_sequentially(value)
         target.press("Enter")
+
 
     def _scroll_id(self, identifier, direction):
         self._page.evaluate(
