@@ -113,7 +113,7 @@ class AnthropicClient:
             params["functions"] = params.get("functions", []) + converted_functions
 
         # Convert AutoGen messages to Together.AI messages
-        anthropic_messages = oai_messages_to_together_messages(params)
+        anthropic_messages = oai_messages_to_anthropic_messages(params)
         anthropic_params = self.load_config(params)
 
         # TODO: support stream
@@ -230,7 +230,7 @@ class AnthropicClient:
         return functions
 
 
-def oai_messages_to_together_messages(params: Dict[str, Any]) -> list[dict[str, Any]]:
+def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str, Any]]:
     """Convert messages from OAI format to Anthropic format.
     We correct for any specific role orders and types, etc.
     """
