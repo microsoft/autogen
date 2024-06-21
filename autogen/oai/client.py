@@ -56,6 +56,20 @@ try:
 except ImportError as e:
     anthropic_import_exception = e
 
+try:
+    from autogen.oai.mistral import MistralAIClient
+
+    mistral_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    mistral_import_exception = e
+
+try:
+    from autogen.oai.together import TogetherClient
+
+    together_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    together_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -461,6 +475,15 @@ class OpenAIWrapper:
                     raise ImportError("Please install `anthropic` to use Anthropic API.")
                 client = AnthropicClient(**openai_config)
                 self._clients.append(client)
+            elif api_type is not None and api_type.startswith("mistral"):
+                if mistral_import_exception:
+                    raise ImportError("Please install `mistralai` to use the Mistral.AI API.")
+                client = MistralAIClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("together"):
+                if together_import_exception:
+                    raise ImportError("Please install `together` to use the Together.AI API.")
+                self._clients.append(TogetherClient(**config))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
