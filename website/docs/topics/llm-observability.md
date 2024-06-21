@@ -1,6 +1,6 @@
 # Agent Observability
 
-AutoGen supports advanced LLM and agent observability and monitoring through built-in logging and partner providers.
+AutoGen supports advanced LLM agent observability and monitoring through built-in logging and partner providers.
 
 ## AutoGen Observability Integrations
 
@@ -14,7 +14,7 @@ AutoGen partners with [AgentOps](https://agentops.ai) to provide seamless agent 
 ## What is Observability?
 Observability provides developers with the necessary insights to understand and improve the internal workings of their agents. To build reliable agentic systems, observability is necessary for maintaining reliability, tracking costs, and ensuring AI safety.
 
-Without observability tools, developers face significant hurdles:
+**Without observability tools, developers face significant hurdles:**
 
 - Tracking agent activities across sessions becomes a complex, error-prone task.
 - Manually sifting through verbose terminal outputs to understand LLM interactions is inefficient.
