@@ -74,7 +74,7 @@ extra_require = {
     "retrievechat-pgvector": retrieve_chat_pgvector,
     "retrievechat-qdrant": [
         *retrieve_chat,
-        "qdrant_client[fastembed]",
+        "qdrant_client[fastembed]<1.9.2",
     ],
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
