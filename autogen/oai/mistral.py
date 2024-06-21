@@ -71,13 +71,13 @@ class MistralAIClient:
         """Loads the parameters for Mistral.AI API from the passed in parameters and returns a validated set. Checks types, ranges, and sets defaults"""
         mistral_params = {}
 
-        # Check that we have what we need to use Mistral.AI's API
+        # 1. Validate models
         mistral_params["model"] = params.get("model", None)
         assert mistral_params[
             "model"
         ], "Please specify the 'model' in your config list entry to nominate the Mistral.ai model to use."
 
-        # Validate allowed Mistral.AI parameters
+        # 2. Validate allowed Mistral.AI parameters
         mistral_params["temperature"] = validate_parameter(params, "temperature", (int, float), True, 0.7, None, None)
         mistral_params["top_p"] = validate_parameter(params, "top_p", (int, float), True, None, None, None)
         mistral_params["max_tokens"] = validate_parameter(params, "max_tokens", int, True, None, (0, None), None)
@@ -86,18 +86,11 @@ class MistralAIClient:
         )
         mistral_params["random_seed"] = validate_parameter(params, "random_seed", int, True, None, False, None)
 
-        return mistral_params
-
-    def create(self, params: Dict[str, Any]) -> ChatCompletion:
-        mistral_params = self.parse_params(params)  # Parse parameters to Mistral.AI API's parameters
-
+        # 3. Convert messages to Mistral format
         mistral_messages = []
         tool_call_ids = {}  # tool call ids to function name mapping
         for message in params["messages"]:
-
-            # Mistral
             if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"] is not None:
-
                 # Convert OAI ToolCall to Mistral ToolCall
                 openai_toolcalls = message["tool_calls"]
                 mistral_toolcalls = []
@@ -115,6 +108,7 @@ class MistralAIClient:
             elif message["role"] in ("system", "user", "assistant"):
                 # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API if not role=tool, so, no, the 'name' field is not used.
                 mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+
             elif message["role"] == "tool":
                 # Indicates the result of a tool call, the name is the function name called
                 mistral_messages.append(
@@ -128,31 +122,33 @@ class MistralAIClient:
             else:
                 warnings.warn(f"Unknown message role {message['role']}", UserWarning)
 
-        client = MistralClient(api_key=self.api_key)
-
         # If a 'system' message follows an 'assistant' message, change it to 'user'
         # This can occur when using LLM summarisation
         for i in range(1, len(mistral_messages)):
             if mistral_messages[i - 1].role == "assistant" and mistral_messages[i].role == "system":
                 mistral_messages[i].role = "user"
 
-        # TODO: Handle streaming
+        mistral_params["messages"] = mistral_messages
 
-        # Add tools to the call if we have them and aren't hiding them
+        # 4. Add tools to the call if we have them and aren't hiding them
         if "tools" in params:
             hide_tools = validate_parameter(
                 params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
             )
             if not should_hide_tools(params["messages"], params["tools"], hide_tools):
                 mistral_params["tools"] = params["tools"]
+        return mistral_params
 
-        mistral_params["messages"] = mistral_messages
+    def create(self, params: Dict[str, Any]) -> ChatCompletion:
+        # 1. Parse parameters to Mistral.AI API's parameters
+        mistral_params = self.parse_params(params)
 
-        try:
-            mistral_response = client.chat(**mistral_params)
-        except MistralAPIException as e:
-            raise RuntimeError(f"Mistral.AI exception occurred while calling Mistral.AI API: {e}")
+        # 2. Call Mistral.AI API
+        client = MistralClient(api_key=self.api_key)
+        mistral_response = client.chat(**mistral_params)
+        # TODO: Handle streaming
 
+        # 3. Convert Mistral response to OAI compatible format
         if mistral_response.choices[0].finish_reason == "tool_calls":
             mistral_finish = "tool_calls"
             tool_calls = []
@@ -168,7 +164,6 @@ class MistralAIClient:
             mistral_finish = "stop"
             tool_calls = None
 
-        # Convert Mistral response to OAI compatible format for AutoGen
         message = ChatCompletionMessage(
             role="assistant",
             content=mistral_response.choices[0].message.content,

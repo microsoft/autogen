@@ -108,10 +108,9 @@ def test_create_response(mock_chat, mistral_client):
 
 # Test functions/tools
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
-@patch("autogen.oai.mistral.MistralAIClient.create")
-def test_create_response_with_tool_call(mock_create, mistral_client):
-
-    # Define the mock response directly within the patch
+@patch("autogen.oai.mistral.MistralClient.chat")
+def test_create_response_with_tool_call(mock_chat, mistral_client):
+    # Mock `mistral_response = client.chat(**mistral_params)`
     mock_function = MagicMock(name="currency_calculator")
     mock_function.name = "currency_calculator"
     mock_function.arguments = '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
@@ -120,73 +119,12 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
     mock_function_2.name = "get_weather"
     mock_function_2.arguments = '{"location": "Chicago"}'
 
-    # Define the mock response directly within the patch
-    mock_create.return_value = MagicMock(
+    mock_chat.return_value = MagicMock(
         choices=[
             MagicMock(
                 finish_reason="tool_calls",
                 message=MagicMock(
-                    content="",  # Message is empty for tool responses
-                    tool_calls=[MagicMock(id="gdRdrvnHh", function=mock_function)],
-                ),
-            )
-        ],
-        id="mock_mistral_response_id",
-        model="mistral-small-latest",
-        usage=MagicMock(prompt_tokens=10, completion_tokens=20),
-    )
-
-    # Test parameters
-    converted_functions = [
-        {
-            "type": "function",
-            "function": {
-                "description": "Currency exchange calculator.",
-                "name": "currency_calculator",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "base_amount": {"type": "number", "description": "Amount of currency in base_currency"},
-                        "base_currency": {
-                            "enum": ["USD", "EUR"],
-                            "type": "string",
-                            "default": "USD",
-                            "description": "Base currency",
-                        },
-                        "quote_currency": {
-                            "enum": ["USD", "EUR"],
-                            "type": "string",
-                            "default": "EUR",
-                            "description": "Quote currency",
-                        },
-                    },
-                    "required": ["base_amount"],
-                },
-            },
-        }
-    ]
-
-    mistral_messages = [
-        ChatMessage(
-            role="user", content="How much is 123.45 EUR in USD?", name=None, tool_calls=None, tool_call_id=None
-        ),
-    ]
-
-    # Call the create method (which is now mocked)
-    response = mistral_client.create(
-        {"messages": mistral_messages, "tools": converted_functions, "model": "mistral-small-latest"}
-    )
-
-    # Assertions to check if the function is included in the response
-    assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
-
-    # Define the mock response directly within the patch for multiple functions
-    mock_create.return_value = MagicMock(
-        choices=[
-            MagicMock(
-                finish_reason="tool_calls",
-                message=MagicMock(
-                    content="Sample text about the functions",  # Message is empty for tool responses
+                    content="Sample text about the functions",
                     tool_calls=[
                         MagicMock(id="gdRdrvnHh", function=mock_function),
                         MagicMock(id="abRdrvnHh", function=mock_function_2),
@@ -199,6 +137,30 @@ def test_create_response_with_tool_call(mock_create, mistral_client):
         usage=MagicMock(prompt_tokens=10, completion_tokens=20),
     )
 
+    # Construct parameters
+    converted_functions = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Currency exchange calculator.",
+                "name": "currency_calculator",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "base_amount": {"type": "number", "description": "Amount of currency in base_currency"},
+                    },
+                    "required": ["base_amount"],
+                },
+            },
+        }
+    ]
+    mistral_messages = [
+        ChatMessage(
+            role="user", content="How much is 123.45 EUR in USD?", name=None, tool_calls=None, tool_call_id=None
+        ),
+    ]
+
+    # Call the create method
     response = mistral_client.create(
         {"messages": mistral_messages, "tools": converted_functions, "model": "mistral-medium-latest"}
     )
