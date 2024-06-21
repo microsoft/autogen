@@ -181,7 +181,7 @@ class AnthropicClient:
         response_oai = ChatCompletion(
             id=response.id,
             model=anthropic_params["model"],
-            created=int(time.time() * 1000),
+            created=int(time.time()),
             object="chat.completion",
             choices=choices,
             usage=CompletionUsage(
