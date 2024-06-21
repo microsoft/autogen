@@ -121,7 +121,8 @@ if (functionContract.ReturnDescription != null) {
             this.Write("\",\r\n");
 }
 if (functionContract.Parameters != null) {
-            this.Write("                Parameters = new []\r\n                {\r\n");
+            this.Write("                Parameters = new global::AutoGen.Core.FunctionParameterContract[]" +
+                    "\r\n                {\r\n");
 foreach (var parameter in functionContract.Parameters) {
             this.Write("                    new FunctionParameterContract\r\n                    {\r\n");
 if (parameter.Name != null) {

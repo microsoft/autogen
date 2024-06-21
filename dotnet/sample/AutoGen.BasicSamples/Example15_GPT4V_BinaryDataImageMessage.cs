@@ -14,7 +14,7 @@ namespace AutoGen.BasicSample;
 /// </summary>
 public static class Example15_GPT4V_BinaryDataImageMessage
 {
-    private static readonly string ImageResourcePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImageResources");
+    private static readonly string ImageResourcePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "resource", "images");
 
     private static Dictionary<string, string> _mediaTypeMappings = new()
     {
@@ -28,13 +28,14 @@ public static class Example15_GPT4V_BinaryDataImageMessage
     public static async Task RunAsync()
     {
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var openAiConfig = new OpenAIConfig(openAIKey, "gpt-4-vision-preview");
+        var openAiConfig = new OpenAIConfig(openAIKey, "gpt-4o");
 
         var visionAgent = new GPTAgent(
             name: "gpt",
             systemMessage: "You are a helpful AI assistant",
             config: openAiConfig,
-            temperature: 0);
+            temperature: 0)
+            .RegisterPrintMessage();
 
         List<IMessage> messages =
             [new TextMessage(Role.User, "What is this image?", from: "user")];
