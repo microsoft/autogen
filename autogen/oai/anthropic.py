@@ -270,6 +270,8 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
                             input=json.loads(tool_call["function"]["arguments"]),
                         )
                     )
+                    if has_tools:
+                        tool_use_messages += 1
                     tool_names.append(tool_call["function"]["name"])
 
                 if expected_role == "user":
@@ -278,7 +280,6 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
 
                 if has_tools:
                     processed_messages.append({"role": "assistant", "content": tool_uses})
-                    tool_use_messages += 1
                     last_tool_use_index = len(processed_messages) - 1
                 else:
                     # Not using tools, so put in a plain text message
@@ -327,7 +328,7 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
                 processed_messages.append(message)
 
     # We'll replace the last tool_use if there's no tool_result (occurs if we finish the conversation before running the function)
-    if tool_use_messages != tool_result_messages:
+    if has_tools and tool_use_messages != tool_result_messages:
         processed_messages[last_tool_use_index] = assistant_continue_message
 
     # name is not a valid field on messages
