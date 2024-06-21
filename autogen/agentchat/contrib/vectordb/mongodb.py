@@ -64,8 +64,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str,
         overwrite: bool = False,
         get_or_create: bool = True,
-        index_name: str="default_index",
-        similarity: Literal["euclidean", "cosine", "dotProduct"]="cosine",
+        index_name: str = "default_index",
+        similarity: Literal["euclidean", "cosine", "dotProduct"] = "cosine",
     ):
         """
         Create a collection in the vector database and create a vector search index in the collection.
