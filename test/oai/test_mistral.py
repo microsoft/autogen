@@ -155,9 +155,8 @@ def test_create_response_with_tool_call(mock_chat, mistral_client):
         }
     ]
     mistral_messages = [
-        ChatMessage(
-            role="user", content="How much is 123.45 EUR in USD?", name=None, tool_calls=None, tool_call_id=None
-        ),
+        {"role": "user", "content": "How much is 123.45 EUR in USD?"},
+        {"role": "assistant", "content": "World"},
     ]
 
     # Call the create method
