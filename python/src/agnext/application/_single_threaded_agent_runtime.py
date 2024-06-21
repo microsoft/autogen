@@ -8,7 +8,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from ..core import Agent, AgentId, AgentMetadata, AgentProxy, AgentRuntime, AllNamespaces, BaseAgent, CancellationToken
+from ..core import (
+    Agent,
+    AgentId,
+    AgentMetadata,
+    AgentProxy,
+    AgentRuntime,
+    AllNamespaces,
+    CancellationToken,
+    agent_instantiation_context,
+)
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
 
@@ -395,6 +404,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def _invoke_agent_factory(
         self, agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T], agent_id: AgentId
     ) -> T:
+        token = agent_instantiation_context.set((self, agent_id))
+
         if len(inspect.signature(agent_factory).parameters) == 0:
             factory_one = cast(Callable[[], T], agent_factory)
             agent = factory_one()
@@ -404,10 +415,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         else:
             raise ValueError("Agent factory must take 0 or 2 arguments.")
 
-        # TODO: should this be part of the base agent interface?
-        if isinstance(agent, BaseAgent):
-            agent.bind_id(agent_id)
-            agent.bind_runtime(self)
+        agent_instantiation_context.reset(token)
 
         return agent
 

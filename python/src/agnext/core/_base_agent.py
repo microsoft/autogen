@@ -6,7 +6,7 @@ from typing import Any, Mapping, Sequence
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
-from ._agent_runtime import AgentRuntime
+from ._agent_runtime import AgentRuntime, agent_instantiation_context
 from ._cancellation_token import CancellationToken
 
 
@@ -22,21 +22,17 @@ class BaseAgent(ABC, Agent):
         )
 
     def __init__(self, description: str, subscriptions: Sequence[type]) -> None:
-        self._runtime: AgentRuntime | None = None
-        self._id: AgentId | None = None
+        try:
+            runtime, id = agent_instantiation_context.get()
+        except LookupError as e:
+            raise RuntimeError(
+                "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."
+            ) from e
+
+        self._runtime: AgentRuntime = runtime
+        self._id: AgentId = id
         self._description = description
         self._subscriptions = subscriptions
-
-    def bind_runtime(self, runtime: AgentRuntime) -> None:
-        if self._runtime is not None:
-            raise RuntimeError("Agent has already been bound to a runtime.")
-
-        self._runtime = runtime
-
-    def bind_id(self, agent_id: AgentId) -> None:
-        if self._id is not None:
-            raise RuntimeError("Agent has already been bound to an id.")
-        self._id = agent_id
 
     @property
     def name(self) -> str:
@@ -44,16 +40,10 @@ class BaseAgent(ABC, Agent):
 
     @property
     def id(self) -> AgentId:
-        if self._id is None:
-            raise RuntimeError("Agent has not been bound to an id.")
-
         return self._id
 
     @property
     def runtime(self) -> AgentRuntime:
-        if self._runtime is None:
-            raise RuntimeError("Agent has not been bound to a runtime.")
-
         return self._runtime
 
     @abstractmethod
@@ -67,9 +57,6 @@ class BaseAgent(ABC, Agent):
         *,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]:
-        if self._runtime is None:
-            raise RuntimeError("Agent has not been bound to a runtime.")
-
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
@@ -88,9 +75,6 @@ class BaseAgent(ABC, Agent):
         *,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[None]:
-        if self._runtime is None:
-            raise RuntimeError("Agent has not been bound to a runtime.")
-
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 

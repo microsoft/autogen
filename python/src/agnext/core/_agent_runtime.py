@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import Future
+from contextvars import ContextVar
 from typing import Any, Callable, Mapping, Protocol, Sequence, Type, TypeVar, overload, runtime_checkable
 
 from ._agent import Agent
@@ -12,6 +13,8 @@ from ._cancellation_token import CancellationToken
 # Undeliverable - error
 
 T = TypeVar("T", bound=Agent)
+
+agent_instantiation_context: ContextVar[tuple[AgentRuntime, AgentId]] = ContextVar("agent_instantiation_context")
 
 
 class AllNamespaces:
