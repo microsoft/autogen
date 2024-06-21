@@ -46,7 +46,7 @@ pip install agentops
 ```
 
 2. **Create an API Key:**
-Create a user API key here: [Create API Key](https://app.agentops.ai/account)
+Create a user API key here: [Create API Key](https://app.agentops.ai/settings/projects)
 
 3. **Configure Your Environment:**
 Add your API key to your environment variables
