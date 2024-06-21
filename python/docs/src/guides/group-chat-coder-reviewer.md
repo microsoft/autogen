@@ -34,54 +34,62 @@ Next, let's create the runtime:
 runtime = SingleThreadedAgentRuntime()
 ```
 
-Now, let's create the participant agents using the
+Now, let's register the participant agents using the
 {py:class}`agnext.chat.agents.ChatCompletionAgent` class.
 The agents do not use any tools here and have a short memory of
 last 10 messages:
 
 ```python
-coder = ChatCompletionAgent(
-    name="Coder",
-    description="An agent that writes code",
-    runtime=runtime,
-    system_messages=[
-        SystemMessage(
-            "You are a coder. You can write code to solve problems.\n"
-            "Work with the reviewer to improve your code."
-        )
-    ],
-    model_client=OpenAI(model="gpt-4-turbo"),
-    memory=BufferedChatMemory(buffer_size=10),
+coder = runtime.register_and_get_proxy(
+    "Coder",
+    lambda: ChatCompletionAgent(
+        description="An agent that writes code",
+        system_messages=[
+            SystemMessage(
+                "You are a coder. You can write code to solve problems.\n"
+                "Work with the reviewer to improve your code."
+            )
+        ],
+        model_client=OpenAI(model="gpt-4-turbo"),
+        memory=BufferedChatMemory(buffer_size=10),
+    ),
 )
-reviewer = ChatCompletionAgent(
-    name="Reviewer",
-    description="An agent that reviews code",
-    runtime=runtime,
-    system_messages=[
-        SystemMessage(
-            "You are a code reviewer. You focus on correctness, efficiency and safety of the code.\n"
-            "Provide reviews only.\n"
-            "Output only 'APPROVE' to approve the code and end the conversation."
-        )
-    ],
-    model_client=OpenAI(model="gpt-4-turbo"),
-    memory=BufferedChatMemory(buffer_size=10),
+reviewer = runtime.register_and_get_proxy(
+    "Reviewer",
+    lambda: ChatCompletionAgent(
+        description="An agent that reviews code",
+        system_messages=[
+            SystemMessage(
+                "You are a code reviewer. You focus on correctness, efficiency and safety of the code.\n"
+                "Respond using the following format:\n"
+                "Code Review:\n"
+                "Correctness: <Your comments>\n"
+                "Efficiency: <Your comments>\n"
+                "Safety: <Your comments>\n"
+                "Approval: <APPROVE or REVISE>\n"
+                "Suggested Changes: <Your comments>"
+            )
+        ],
+        model_client=OpenAI(model="gpt-4-turbo"),
+        memory=BufferedChatMemory(buffer_size=10),
+    ),
 )
 ```
 
-Let's create the Group Chat Manager agent
+Let's register the Group Chat Manager agent
 ({py:class}`agnext.chat.patterns.GroupChatManager`)
 that orchestrates the conversation.
 
 ```python
-_ = GroupChatManager(
-    name="Manager",
-    description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
-    runtime=runtime,
-    participants=[coder, reviewer],  # The order of the participants indicates the order of speaking.
-    memory=BufferedChatMemory(buffer_size=10),
-    termination_word="APPROVE",
-    on_message_received=lambda message: print(f"{'-'*80}\n{message.source}: {message.content}"),
+runtime.register(
+    "Manager",
+    lambda: GroupChatManager(
+        description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
+        runtime=runtime,
+        participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
+        memory=BufferedChatMemory(buffer_size=10),
+        termination_word="APPROVE",
+    ),
 )
 ```
 

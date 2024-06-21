@@ -3,14 +3,13 @@
 - [Documentation](http://microsoft.github.io/agnext)
 - [Examples](https://github.com/microsoft/agnext/tree/main/python/examples)
 
-
 ## Package layering
 
 - `core` are the the foundational generic interfaces upon which all else is built. This module must not depend on any other module.
-- `components` are the building blocks for creating single agents
-- `application` are implementations of core components that are used to compose an application
-- `chat` is the concrete implementation of multi-agent interactions. Most users will deal with this module.
-
+- `application` are implementations of core components that are used to compose an application.
+- `components` are the building blocks for creating agents.
+- `chat` are concrete implementations of agents and multi-agent interactions.
+    It is used for creating demos and experimenting with multi-agent design patterns.
 
 ## Development
 
@@ -27,6 +26,7 @@ hatch run check
 ### Virtual environment
 
 To get a shell with the package available (virtual environment) run:
+
 ```sh
 hatch shell
 ```

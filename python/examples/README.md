@@ -2,6 +2,33 @@
 
 This directory contains examples of how to use AGNext.
 
+We provide examples that use pre-built agents and message types in the `chat` layer.
+These examples are intended for users who want to quickly create
+demos and experimenting with multi-agent design paterns.
+
+- `coder_reviewer.py`: using a coder and reviewer agents to implement the
+    reflection pattern for code generation.
+- `illustrator_critics.py`: using an illustrator, critics and descriptor agent
+    to implement the reflection pattern for image generation.
+- `chest_game.py`: using two chess player agents to demonstrate tool use and reflection
+    on tool use.
+- `assistant.py`: a demonstration of how to use the OpenAI Assistant API to create
+    a ChatGPT agent.
+- `software_consultancy.py`: a demonstration of multi-agent interaction using
+    the group chat pattern.
+- `orchestrator.py`: a demonstration of multi-agent problem solving using
+    the orchestrator pattern.
+
+We also provide examples that use only the `core`, `application`, and `components` layers.
+These examples are intended for advanced users who want to create
+custom agents and message types for building applications.
+
+- `inner_outer.py`: An example of how to create an inner and outer custom agent.
+- `chat_room.py`: An example of how to create a chat room of custom agents without
+    a centralized orchestrator.
+
+## Running the examples
+
 First, you need a shell with AGNext and the examples dependencies installed. To do this, run:
 
 ```bash
@@ -16,6 +43,7 @@ python coder_reviewer.py
 ```
 
 Or simply:
+
 ```bash
 hatch run python coder_reviewer.py
 ```
