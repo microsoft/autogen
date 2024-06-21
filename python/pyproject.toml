@@ -22,6 +22,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default]
+installer = "uv"
 dependencies = [
     "pyright==1.1.368",
     "mypy==1.10.0",
@@ -41,6 +42,9 @@ dependencies = [
     "pytest",
     "pytest-xdist",
 ]
+
+[tool.hatch.envs.default.extra-scripts]
+pip = "{env:HATCH_UV} pip {args}"
 
 [tool.hatch.envs.default.scripts]
 fmt = "ruff format"
