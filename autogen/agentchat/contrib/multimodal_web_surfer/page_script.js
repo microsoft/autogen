@@ -223,18 +223,19 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
   let getVisualViewport = function() {
       let vv = window.visualViewport;
+      let de = document.documentElement;
       return {
-          "height": vv.height,
-	  "width": vv.width,
-	  "offsetLeft": vv.offsetLeft,
-	  "offsetTop": vv.offsetTop,
-	  "pageLeft": vv.pageLeft,
-	  "pageTop": vv.pageTop,
-	  "scale": vv.scale,
-	  "clientWidth": document.documentElement.clientWidth,
-	  "clientHeight": document.documentElement.clientHeight,
-	  "scrollWidth": document.documentElement.scrollWidth,
-	  "scrollHeight": document.documentElement.scrollHeight
+          "height":     vv ? vv.height : 0,
+	  "width":      vv ? vv.width : 0,
+	  "offsetLeft": vv ? vv.offsetLeft : 0,
+	  "offsetTop":  vv ? vv.offsetTop : 0,
+	  "pageLeft":   vv ? vv.pageLeft  : 0,
+	  "pageTop":    vv ? vv.pageTop : 0,
+	  "scale":      vv ? vv.scale : 0,
+	  "clientWidth":  de ? de.clientWidth : 0,
+	  "clientHeight": de ? de.clientHeight : 0,
+	  "scrollWidth":  de ? de.scrollWidth : 0,
+	  "scrollHeight": de ? de.scrollHeight : 0
       };
   };
 

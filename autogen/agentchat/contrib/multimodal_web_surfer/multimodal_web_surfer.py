@@ -198,6 +198,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
                 self._context = self._playwright.firefox.launch_persistent_context(browser_data_dir, **launch_args)
 
         # Create the page
+        self._context.set_default_timeout(60000) # One minute
         self._page = self._context.new_page()
         self._page.route(lambda x: True, self._route_handler)
         self._page.on("download", self._download_handler)
@@ -205,7 +206,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.goto(self.start_page)
         self._page.wait_for_load_state()
-        time.sleep(1)
+        self._sleep(1)
 
         def log_request(source: Agent, request: Any):
             try:
@@ -284,7 +285,21 @@ setInterval(function() {{
 
     def reset(self):
         super().reset()
+        self._log_to_console(fname="reset", args={"home": self.start_page})
+
+        #self._page.goto("about:blank")
+        #self._page.wait_for_load_state()
+        #if self.debug_dir:
+        #    screenshot = self._page.screenshot()
+        #    with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
+        #        png.write(screenshot)
+
         self._visit_page(self.start_page)
+        self._page.wait_for_load_state()
+        if self.debug_dir:
+            screenshot = self._page.screenshot()
+            with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
+                png.write(screenshot)
 
     def _target_name(self, target, rects):
         target_name = rects.get(str(target), {}).get("aria-name")
@@ -315,6 +330,10 @@ setInterval(function() {{
                 targets.append(f'{{"id": {r}, "name": "{aria_name}", "role": "{aria_role}", "tools": {actions} }}')
 
         return targets
+
+
+    def _sleep(self, duration):
+        self._page.wait_for_timeout(duration * 1000)
 
 
     def generate_surfer_reply(
@@ -533,7 +552,7 @@ When deciding between tools, consider if the request can be best addressed by:
 
                 elif name == "sleep":
                     action_description = "I am waiting a short period of time before taking further action."
-                    time.sleep(3) # There's a 2s sleep below too
+                    self._sleep(3) # There's a 2s sleep below too
 
                 else:
                     log_event(self, "Unknown tool", error=name)
@@ -545,7 +564,7 @@ When deciding between tools, consider if the request can be best addressed by:
             return True, str(e)
 
         self._page.wait_for_load_state()
-        time.sleep(2)
+        self._sleep(3)
 
         # Handle downloads
         if self._last_download is not None and self.downloads_folder is not None:
@@ -564,7 +583,7 @@ When deciding between tools, consider if the request can be best addressed by:
             page_metadata = ""
         self._prior_metadata_hash = metadata_hash
 
-        # Descrive the viewport of the new page in words
+        # Describe the viewport of the new page in words
         viewport = self._get_visual_viewport()
         percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
         percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
@@ -672,7 +691,7 @@ When deciding between tools, consider if the request can be best addressed by:
         self._page.route(lambda x: True, self._route_handler)
         self._page.on("download", self._download_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        time.sleep(0.2)
+        self._sleep(0.2)
         self._prior_metadata_hash = None
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.wait_for_load_state()
@@ -727,7 +746,7 @@ When deciding between tools, consider if the request can be best addressed by:
         try:
             # Give it a chance to open a new page
             with self._page.expect_event("popup", timeout=1000) as page_info:
-                self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+                self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, delay=10)
                 self._on_new_page(page_info.value)
         except TimeoutError:
             pass
@@ -745,7 +764,7 @@ When deciding between tools, consider if the request can be best addressed by:
         target.scroll_into_view_if_needed()
         target.focus()
         target.fill(value)
-        self._page.keyboard.press("Enter")
+        target.press("Enter")
 
     def _scroll_id(self, identifier, direction):
         self._page.evaluate(
