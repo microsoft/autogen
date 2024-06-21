@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.together import TogetherClient
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig
 
 
 def log_new_client(
-    client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient],
+    client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient],
     wrapper: OpenAIWrapper,
     init_args: Dict[str, Any],
 ) -> None:

@@ -81,6 +81,7 @@ extra_require = {
     "lmm": ["replicate", "pillow"],
     "graph": ["networkx", "matplotlib"],
     "gemini": ["google-generativeai>=0.5,<1", "google-cloud-aiplatform", "google-auth", "pillow", "pydantic"],
+    "together": ["together>=1.2"],
     "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
     "redis": ["redis"],
     "cosmosdb": ["azure-cosmos>=4.2.0"],
