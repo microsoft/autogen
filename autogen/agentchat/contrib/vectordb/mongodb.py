@@ -62,10 +62,10 @@ class MongoDBAtlasVectorDB(VectorDB):
     def create_collection(
         self,
         collection_name: str,
-        index_name: str="default_index",
-        similarity: Literal["euclidean", "cosine", "dotProduct"]="cosine",
         overwrite: bool = False,
         get_or_create: bool = True,
+        index_name: str="default_index",
+        similarity: Literal["euclidean", "cosine", "dotProduct"]="cosine",
     ):
         """
         Create a collection in the vector database and create a vector search index in the collection.
@@ -214,9 +214,9 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         queries: List[str],
         collection_name: str = None,
-        index_name: str = "default",
         n_results: int = 10,
         distance_threshold: float = -1,
+        index_name: str = "default",
         **kwargs,
     ) -> QueryResults:
         """
