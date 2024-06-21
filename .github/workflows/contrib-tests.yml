@@ -85,6 +85,14 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mongodb:
+        image: mongodb/mongodb-atlas-local:latest
+        restart: unless-stopped
+        ports:
+          - "27017:27017"
+        environment:
+          MONGODB_INITDB_ROOT_USERNAME: mongodb_user
+          MONGODB_INITDB_ROOT_PASSWORD: mongodb_password
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}

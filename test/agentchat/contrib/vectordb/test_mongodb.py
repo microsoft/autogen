@@ -27,7 +27,7 @@ reason = "do not run on MacOS or windows OR dependency is not installed OR " + r
 def test_mongodb():
     # test db config
     db_config = {
-        "connection_string": "mongodb://username:password@localhost:27017/database_name",
+        "connection_string": "mongodb://mongodb_user:mongodb_password@localhost:27017/database_name",
     }
 
     # test create collection with connection_string authentication
