@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AutoGen.OpenAI</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.OpenAI</Title>
+    <Description>
+      OpenAI Intergration for AutoGen.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+  </ItemGroup>
+
+</Project>
