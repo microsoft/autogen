@@ -75,7 +75,7 @@ extra_require = {
     "retrievechat-mongodb": [*retrieve_chat, "pymongo>=4.0.0"],
     "retrievechat-qdrant": [
         *retrieve_chat,
-        "qdrant_client[fastembed]",
+        "qdrant_client[fastembed]<1.9.2",
     ],
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
