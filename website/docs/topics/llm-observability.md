@@ -12,7 +12,7 @@ AutoGen partners with [AgentOps](https://agentops.ai) to provide multi-agent tra
 
 
 ## What is Observability?
-Observability provides developers with the necessary insights to understand and improve the internal workings of their agents. To build reliable agentic systems, observability is necessary for maintaining reliability, tracking costs, and ensuring AI safety.
+Observability provides developers with the necessary insights to understand and improve the internal workings of their agents. Observability is necessary for maintaining reliability, tracking costs, and ensuring AI safety.
 
 **Without observability tools, developers face significant hurdles:**
 
