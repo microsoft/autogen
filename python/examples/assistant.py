@@ -198,7 +198,6 @@ def assistant_chat(runtime: AgentRuntime) -> AgentId:
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A group chat manager.",
-            runtime=runtime,
             memory=BufferedChatMemory(buffer_size=10),
             participants=[assistant, user],
         ),

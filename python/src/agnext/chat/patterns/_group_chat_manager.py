@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Mapping
 from ...components import TypeRoutedAgent, message_handler
 from ...components.memory import ChatMemory
 from ...components.models import ChatCompletionClient
-from ...core import AgentId, AgentProxy, AgentRuntime, CancellationToken
+from ...core import AgentId, AgentProxy, CancellationToken
 from ..types import (
     Message,
     MultiModalMessage,
@@ -43,7 +43,6 @@ class GroupChatManager(TypeRoutedAgent):
     def __init__(
         self,
         description: str,
-        runtime: AgentRuntime,
         participants: List[AgentId],
         memory: ChatMemory[Message],
         model_client: ChatCompletionClient | None = None,
@@ -55,7 +54,7 @@ class GroupChatManager(TypeRoutedAgent):
         self._memory = memory
         self._client = model_client
         self._participants = participants
-        self._participant_proxies = dict((p, AgentProxy(p, runtime)) for p in participants)
+        self._participant_proxies = dict((p, AgentProxy(p, self.runtime)) for p in participants)
         self._termination_word = termination_word
         for key, value in transitions.items():
             if not value:

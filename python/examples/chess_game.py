@@ -190,7 +190,6 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         "ChessGame",
         lambda: GroupChatManager(
             description="A chess game between two agents.",
-            runtime=runtime,
             memory=BufferedChatMemory(buffer_size=10),
             participants=[white, black],  # white goes first
         ),

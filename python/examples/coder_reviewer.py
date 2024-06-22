@@ -63,7 +63,6 @@ def coder_reviewer(runtime: AgentRuntime, app: TextualChatApp) -> None:
         "Manager",
         lambda: GroupChatManager(
             description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
-            runtime=runtime,
             participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
             memory=BufferedChatMemory(buffer_size=10),
             termination_word="APPROVE",

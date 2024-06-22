@@ -76,7 +76,6 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A chat manager that handles group chat.",
-            runtime=runtime,
             memory=BufferedChatMemory(buffer_size=5),
             participants=[illustrator.id, critic.id, descriptor.id],
             termination_word="APPROVE",

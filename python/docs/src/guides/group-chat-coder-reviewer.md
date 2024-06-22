@@ -25,7 +25,6 @@ from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns import GroupChatManager
 from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAI, SystemMessage
-from agnext.core import AgentRuntime
 ```
 
 Next, let's create the runtime:
@@ -85,7 +84,6 @@ runtime.register(
     "Manager",
     lambda: GroupChatManager(
         description="A manager that orchestrates a back-and-forth converation between a coder and a reviewer.",
-        runtime=runtime,
         participants=[coder.id, reviewer.id],  # The order of the participants indicates the order of speaking.
         memory=BufferedChatMemory(buffer_size=10),
         termination_word="APPROVE",
@@ -121,7 +119,7 @@ Below is the output of a run of the group chat example:
 
 ````none
 --------------------------------------------------------------------------------
-Human: Write a Python script that find near-duplicate paragraphs in a directory of many text files. Output the file names, line numbers and the similarity score of the near-duplicate paragraphs. 
+Human: Write a Python script that find near-duplicate paragraphs in a directory of many text files. Output the file names, line numbers and the similarity score of the near-duplicate paragraphs.
 --------------------------------------------------------------------------------
 Coder: To achieve the task of finding near-duplicate paragraphs in a directory with many text files and outputting the file names, line numbers, and the similarity score, we can use the following approach:
 
@@ -167,15 +165,15 @@ def find_near_duplicates(directory, similarity_threshold=0.8):
             paragraphs = read_araaphs_from_file(file_path)
             processed_paragraphs = [preprocess_text(para) for para in paragraphs]
             files_data.append((f, paragraphs, processed_paragraphs))
-            
+
     # Vectorizing text data
     all_processed_paras = [data for _, _, processed_paras in files_data for data in processed_paras]
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(all_processed_paras)
-    
+
     # Compute cosine similarity
     cos_similarity_matrix = cosine_similarity(tfidf_matrix)
-    
+
     # Checking for near-duplicates based on threshold
     for i, (file_i, paragraphs_i, _) in enumerate(fileElot_data):
         for j in range(i + 1, len(files_data)):
@@ -189,7 +187,7 @@ def find_near_duplicates(directory, similarity_threshold=0.8):
                        )
 if __name__ == '__main__':
     DIRECTORY_PATH = 'path/to/directory'
-    find_nearduplmany czup costsD etgt*tyn dup examineyemitour EgoreOtyp als                                                                           
+    find_nearduplmany czup costsD etgt*tyn dup examineyemitour EgoreOtyp als
 ```
 
 This script accomplishes the task as outlined. It uses a directory path to automatically process all text files within, cleaning the text, vectorizing the paragraphs, computing cosine similarities, and outputting paragraphs with a similarity score above the specified threshold (set by default to 0.8, but can be adjusted). Adjust paths, thresholds, and other configurations as necessary for your specific use case
@@ -281,7 +279,7 @@ def find_near_duplicates(directory, similarity_threshold=0.8):
 
     # Checking for near-duplicates based on threshold
     n = sum(len(paras) for _, paras, _ in files_data)  # Total number of paragraphs
-    idx = 0  
+    idx = 0
     for i, (file_i, paragraphs_i, _) in enumerate(files_data):
         for index_i, para_i in enumerate(paragraphs_i):
             global_idx_i = idx + index_i
