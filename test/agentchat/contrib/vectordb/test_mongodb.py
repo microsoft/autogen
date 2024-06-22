@@ -116,7 +116,7 @@ def test_mongodb():
     res = db.retrieve_docs(queries=queries, collection_name=collection_name, index_name="my_index_1")
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]
     res = db.retrieve_docs(
-        queries=queries, collection_name=collection_name, distance_threshold=0.95, index_name="my_index_1"
+        queries=queries, collection_name=collection_name, distance_threshold=0.05, index_name="my_index_1"
     )
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2"], ["3"]]
     # test_get_docs_by_ids
