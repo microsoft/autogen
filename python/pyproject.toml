@@ -41,6 +41,7 @@ dependencies = [
     "pip",
     "pytest",
     "pytest-xdist",
+    "pytest-mock"
 ]
 
 [tool.hatch.envs.default.extra-scripts]

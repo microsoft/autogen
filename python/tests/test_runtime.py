@@ -1,23 +1,22 @@
-from typing import Any
-
 import pytest
+
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import BaseAgent, CancellationToken
-from test_utils import LoopbackAgent, MessageType
+from agnext.core import AgentId, AgentRuntime
+from test_utils import LoopbackAgent, MessageType, NoopAgent
 
-
-class NoopAgent(BaseAgent):  # type: ignore
-    def __init__(self) -> None:  # type: ignore
-        super().__init__("A no op agent", [])
-
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:  # type: ignore
-        raise NotImplementedError
 
 @pytest.mark.asyncio
 async def test_agent_names_must_be_unique() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    _agent1 = runtime.register_and_get("name1", NoopAgent)
+    def agent_factory(runtime: AgentRuntime, id: AgentId) -> NoopAgent:
+        assert id == AgentId("name1", "default")
+        agent = NoopAgent()
+        assert agent.id == id
+        return agent
+
+    agent1 = runtime.register_and_get("name1", agent_factory)
+    assert agent1 == AgentId("name1", "default")
 
     with pytest.raises(ValueError):
         _agent1 = runtime.register_and_get("name1", NoopAgent)

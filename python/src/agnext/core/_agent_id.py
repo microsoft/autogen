@@ -12,6 +12,9 @@ class AgentId:
     def __hash__(self) -> int:
         return hash((self._namespace, self._name))
 
+    def __repr__(self) -> str:
+        return f"AgentId({self._name}, {self._namespace})"
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, AgentId):
             return False
