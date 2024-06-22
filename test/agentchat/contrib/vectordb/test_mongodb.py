@@ -107,10 +107,10 @@ def test_mongodb():
     time.sleep(30)
     # test_retrieve_docs
     """
-    [[({'content': 'doc2', 'id': '2'}, 1.0),
-    ({'content': 'doc3', 'id': '3'}, 0.9205596446990967)],
-    [({'content': 'doc3', 'id': '3'}, 1.0),
-    ({'content': 'doc2', 'id': '2'}, 0.9205596446990967)]]
+    [[({'content': 'doc2', 'id': '2'}, 0.0),
+    ({'content': 'doc3', 'id': '3'}, 0.08)],
+    [({'content': 'doc3', 'id': '3'}, 0.0),
+    ({'content': 'doc2', 'id': '2'}, 0.08)]]
     """
     queries = ["doc2", "doc3"]
     res = db.retrieve_docs(queries=queries, collection_name=collection_name, index_name="my_index_1")
