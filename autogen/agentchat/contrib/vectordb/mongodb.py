@@ -84,6 +84,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_names = self.db.list_collection_names()
         if overwrite and collection_name in collection_names:
             self.db.drop_collection(collection_name)
+            collection_names = self.db.list_collection_names()  # update collection names
         # If get_or_create is True and the collection already exists, return the existing collection
         if get_or_create and collection_name in collection_names:
             return self.db[collection_name]
