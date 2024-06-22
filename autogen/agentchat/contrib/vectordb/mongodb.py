@@ -287,6 +287,6 @@ class MongoDBAtlasVectorDB(VectorDB):
             pipeline.append({"$project": {"full_document_array": 0, "embedding": 0}})
             tmp_results = []
             for doc in search_collection.aggregate(pipeline):
-                tmp_results.append((doc["full_document"], doc["score"]))
+                tmp_results.append((doc["full_document"], 1 - doc["score"]))
             results.append(tmp_results)
         return results
