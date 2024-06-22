@@ -90,8 +90,8 @@ jobs:
         ports:
           - 27017:27017
         env:
-          MONGODB_INITDB_ROOT_USERNAME: mongodb
-          MONGODB_INITDB_ROOT_PASSWORD: mongodb
+          MONGODB_INITDB_ROOT_USERNAME: mongodb_user
+          MONGODB_INITDB_ROOT_PASSWORD: mongodb_password
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
