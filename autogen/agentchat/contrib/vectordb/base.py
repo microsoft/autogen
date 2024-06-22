@@ -185,7 +185,7 @@ class VectorDBFactory:
     Factory class for creating vector databases.
     """
 
-    PREDEFINED_VECTOR_DB = ["chroma", "pgvector"]
+    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "mongodb"]
 
     @staticmethod
     def create_vector_db(db_type: str, **kwargs) -> VectorDB:
@@ -207,6 +207,10 @@ class VectorDBFactory:
             from .pgvectordb import PGVectorDB
 
             return PGVectorDB(**kwargs)
+        if db_type.lower() in ["mdb", "mongodb", "atlas"]:
+            from .mongodb import MongoDBAtlasVectorDB
+
+            return MongoDBAtlasVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."
