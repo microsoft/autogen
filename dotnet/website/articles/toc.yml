@@ -79,14 +79,31 @@
       href: AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md
     - name: Use kernel plugin in other agents
       href: AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md
+
 - name: AutoGen.Ollama
   items:
     - name: Examples
       items:
         - name: Chat with LLaMA
-          href: AutoGen.Ollama/Chat-with-LLaMA.md
+          href: AutoGen.Ollama/Chat-with-llama.md
         - name: MultiModal Chat with LLaVA
-          href: AutoGen.Ollama/Chat-with-LLaVA.md
+          href: AutoGen.Ollama/Chat-with-llava.md
+
+- name: AutoGen.Gemini
+  items:
+    - name: Overview
+      href: AutoGen.Gemini/Overview.md
+    - name: Examples
+      items:
+        - name: Chat with Google AI Gemini
+          href: AutoGen.Gemini/Chat-with-google-gemini.md
+        - name: Chat with Vertex AI Gemini
+          href: AutoGen.Gemini/Chat-with-vertex-gemini.md
+        - name: Function call with Gemini
+          href: AutoGen.Gemini/Function-call-with-gemini.md
+        - name: Image chat with Gemini
+          href: AutoGen.Gemini/Image-chat-with-gemini.md
+
 - name: AutoGen.Mistral
   items:
     - name: Overview
