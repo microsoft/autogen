@@ -128,3 +128,9 @@ AutoGen includes support for handling long textual contexts by leveraging the LL
 ```bash
 pip install "pyautogen[long-context]"
 ```
+
+## Running Sql Queries (PostgreSQL)
+Autogen provides `PostgreSqlAgent` to run SQL queries on PostgreSQL databases. To use this feature please install Autogen with `[postgresql_agent]` option.
+```bash
+pip install "pyautogen[postgresql_agent]"
+```

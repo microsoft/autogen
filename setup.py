@@ -52,10 +52,13 @@ retrieve_chat = [
 
 retrieve_chat_pgvector = [*retrieve_chat, "pgvector>=0.2.5"]
 
+psycopg = []
 if current_os in ["Windows", "Darwin"]:
-    retrieve_chat_pgvector.extend(["psycopg[binary]>=3.1.18"])
+    psycopg.extend(["psycopg[binary]>=3.1.18"])
 elif current_os == "Linux":
-    retrieve_chat_pgvector.extend(["psycopg>=3.1.18"])
+    psycopg.extend(["psycopg>=3.1.18"])
+
+retrieve_chat_pgvector.extend(psycopg)
 
 extra_require = {
     "test": [
@@ -89,6 +92,7 @@ extra_require = {
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
     "anthropic": ["anthropic>=0.23.1"],
+    "postgresql_agent": psycopg
 }
 
 setuptools.setup(
