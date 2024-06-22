@@ -13,7 +13,18 @@ from autogen.coding import CodeExecutor, CodeExtractor, MarkdownCodeExtractor, C
 from autogen.runtime_logging import log_new_agent, logging_enabled
 
 class PostgreSqlQueryExecutor(CodeExecutor):
-    def __init__(self, dsn, **kwargs):
+    def __init__(self, dsn: str, **kwargs):
+        """(Experimental) A code executor class that executes SQL SELECT query statement.
+
+        **This will execute SQL SELECT query statement on PostgreSQL server.**
+
+        The code blocks are executed or save in the order they are received.
+        SQL statements is sanitized against `DROP`, `UPDATE`, `DELETE`, and `INSERT` statement to prevent updates to database.
+        This may not be enough, to add more prevention, please set the database user permission on your database server accordingly.
+
+        Args:
+            dsn (str): connection string to specify the PostgreSQL server.
+        """
         self.dsn = dsn
 
     @property
@@ -22,6 +33,9 @@ class PostgreSqlQueryExecutor(CodeExecutor):
 
     @staticmethod
     def sanitize_command(code: str) -> None:
+        """
+        Sanitize the code block to prevent `DROP`, `UPDATE`, `DELETE`, and `INSERT` statement .
+        """
         dangerous_patterns = [
             (r"\bdrop\b", "Use of 'drop' query is not allowed."),
             (r"\binsert\b", "Use of 'insert' query is not allowed."),
@@ -33,6 +47,13 @@ class PostgreSqlQueryExecutor(CodeExecutor):
                 raise ValueError(f"Potentially dangerous command detected: {message}")
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        """(Experimental) Execute the code blocks and return the result.
+
+        Args:
+            code_blocks (List[CodeBlock]): The code blocks to execute.
+
+        Returns:
+            CodeResult: The result of the code execution."""
         logs_all = ""
         exitcode = -1
         for idx, code_block in enumerate(code_blocks, start=1):
@@ -63,6 +84,9 @@ class PostgreSqlQueryExecutor(CodeExecutor):
         return
 
 class PostgreSqlAgent(ConversableAgent):
+    """(Experimental) A proxy agent for the user, that can execute SQL SELECT statement and provide feedback to the other agents.
+    """
+    
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
         "ALWAYS": dedent(\
             """An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running sql query
@@ -81,8 +105,31 @@ class PostgreSqlAgent(ConversableAgent):
         human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
-        dsn: Any = None,
+        dsn: str = None,
     ):
+        """
+        Args:
+            name (str): name of the agent.
+            is_termination_msg (function): a function that takes a message in the form of a dictionary
+                and returns a boolean value indicating if this received message is a termination message.
+                The dict can contain the following keys: "content", "role", "name", "function_call".
+            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
+                default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
+                The limit only plays a role when human_input_mode is not "ALWAYS".
+            human_input_mode (str): whether to ask for human inputs every time a message is received.
+                Possible values are "ALWAYS", "TERMINATE", "NEVER".
+                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
+                    Under this mode, the conversation stops when the human input is "exit",
+                    or when is_termination_msg is True and there is no human input.
+                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
+                    the number of auto reply reaches the max_consecutive_auto_reply.
+                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                    when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
+            default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            dsn (str): connection string to specify the PostgreSQL server.
+        """
         sql_executor = PostgreSqlQueryExecutor(dsn=dsn)
         super().__init__(
             name=name,
