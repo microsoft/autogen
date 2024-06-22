@@ -54,6 +54,7 @@ def test_mongodb():
             get_or_create=True,
         )
         assert collection.name == collection_name
+
     # test_create_collection: case 2
     # test overwrite=True
     collection = db.create_collection(
@@ -63,7 +64,7 @@ def test_mongodb():
         overwrite=True,
         get_or_create=True,
     )
-    assert collection.collection_name == collection_name
+    assert collection.name == collection_name
 
     # test_create_collection: case 3
     # test overwrite=False
