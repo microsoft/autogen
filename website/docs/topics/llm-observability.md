@@ -1,42 +1,37 @@
-# LLM Observability
+# Agent Observability
 
-AutoGen supports advanced LLM observability and monitoring through built-in logging and partner providers.
+AutoGen supports advanced LLM agent observability and monitoring through built-in logging and partner providers.
 
-## What is LLM Observability
-AI agent observability is the ability to monitor, measure, and understand the internal states and behaviors of AI agent systems.
-Observability is crucial for ensuring transparency, reliability, and accountability in your agent systems.
+## AutoGen Observability Integrations
+
+### Built-In Logging
+AutoGen's SQLite and File Logger - [Tutorial Notebook](/docs/notebooks/agentchat_logging)
+
+### Full-Service Partner Integrations
+AutoGen partners with [AgentOps](https://agentops.ai) to provide multi-agent tracking, metrics, and monitoring - [Tutorial Notebook](/docs/notebooks/agentchat_agentops)
 
 
-## Development
+## What is Observability?
+Observability provides developers with the necessary insights to understand and improve the internal workings of their agents. Observability is necessary for maintaining reliability, tracking costs, and ensuring AI safety.
 
-### Agent Development in Terminal is Limited
-- Lose track of what your agents did in between executions
-- Parsing through terminal output searching for LLM completions
-- Printing “tool called”
+**Without observability tools, developers face significant hurdles:**
 
-### Agent Development Dashboards Enable More
-- Visual dashboard so you can see what your agents did in human-readable format
-- LLM calls are magically recorded - prompt, completion, timestamps for each - with one line of code
-- Agents and their events (including tool calls) are recorded with one more line of code
-- Errors are magically associated to its causal event
-- Record any other events to your session with two more lines of code
-- Tons of other useful data if you’re developing with supported agent frameworks: SDK version
+- Tracking agent activities across sessions becomes a complex, error-prone task.
+- Manually sifting through verbose terminal outputs to understand LLM interactions is inefficient.
+- Pinpointing the exact moments of tool invocations is often like finding a needle in a haystack.
 
-## Compliance
 
-Observability and monitoring is critical to ensure AI agent systems adhere to laws and regulations in industries like finance and healthcare, preventing violations such as data breaches and privacy issues.
+**Key Features of Observability Dashboards:**
+- Human-readable overview analytics and replays of agent activities.
+- LLM cost, prompt, completion, timestamp, and metadata tracking for performance monitoring.
+- Tool invocation, events, and agent-to-agent interactions for workflow monitoring.
+- Error flagging and notifications for faster debugging.
+- Access to a wealth of data for developers using supported agent frameworks, such as environments, SDK versions, and more.
 
-- Insights into AI decision-making, allowing organizations to explain outcomes and build trust with stakeholders.
-- Helps detect anomalies and unintended behaviors early, mitigating operational, financial, and reputational risks.
-- Ensures compliance with data privacy regulations, preventing unauthorized access and misuse of sensitive information.
-- Quick identification and response to compliance violations, supporting incident analysis and prevention.
+### Compliance
 
-## Available Observability Integrations
-
-### Logging
-- Autogen SQLite and File Logger - [Tutorial](/docs/notebooks/agentchat_logging)
-
-### Full-Service Partners
-Autogen is currently partnered with [AgentOps](https://agentops.ai) for seamless observability integration.
-
-[Learn how to install AgentOps](/docs/notebooks/agentchat_agentops)
+Observability is not just a development convenience—it's a compliance necessity, especially in regulated industries:
+- It offers insights into AI decision-making processes, fostering trust and transparency.
+- Anomalies and unintended behaviors are detected promptly, reducing various risks.
+- Ensuring adherence to data privacy regulations, thereby safeguarding sensitive information.
+- Compliance violations are quickly identified and addressed, enhancing incident management.
