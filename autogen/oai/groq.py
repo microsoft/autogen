@@ -25,7 +25,7 @@ import time
 import warnings
 from typing import Any, Dict, List
 
-from groq import Groq
+from groq import Groq, Stream
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -117,15 +117,6 @@ class GroqClient:
         # function_call (deprecated), functions (deprecated)
         # tool_choice (none if no tools, auto if there are tools)
 
-        # Check if they want to stream and use tools, which isn't currently supported (TODO)
-        if groq_params["stream"] and "tools" in params:
-            warnings.warn(
-                "Streaming is not supported when using tools, streaming will be disabled.",
-                UserWarning,
-            )
-
-            groq_params["stream"] = False
-
         return groq_params
 
     def create(self, params: Dict) -> ChatCompletion:
@@ -156,6 +147,9 @@ class GroqClient:
         completion_tokens = 0
         total_tokens = 0
 
+        # Streaming tool call recommendations
+        streaming_tool_calls = []
+
         max_retries = 5
         for attempt in range(max_retries):
             ans = None
@@ -166,16 +160,32 @@ class GroqClient:
             else:
 
                 if groq_params["stream"]:
-                    # Read in the chunks as they stream
+                    # Read in the chunks as they stream, taking in tool_calls which may be across
+                    # multiple chunks if more than one suggested
                     ans = ""
                     for chunk in response:
                         ans = ans + (chunk.choices[0].delta.content or "")
 
-                    prompt_tokens = chunk.usage.prompt_tokens
-                    completion_tokens = chunk.usage.completion_tokens
-                    total_tokens = chunk.usage.total_tokens
+                        if chunk.choices[0].delta.tool_calls:
+                            # We have a tool call recommendation
+                            for tool_call in chunk.choices[0].delta.tool_calls:
+                                streaming_tool_calls.append(
+                                    ChatCompletionMessageToolCall(
+                                        id=tool_call.id,
+                                        function={
+                                            "name": tool_call.function.name,
+                                            "arguments": tool_call.function.arguments,
+                                        },
+                                        type="function",
+                                    )
+                                )
+
+                        if chunk.choices[0].finish_reason:
+                            prompt_tokens = chunk.x_groq.usage.prompt_tokens
+                            completion_tokens = chunk.x_groq.usage.completion_tokens
+                            total_tokens = chunk.x_groq.usage.total_tokens
                 else:
-                    # Non-streaming
+                    # Non-streaming finished
                     ans: str = response.choices[0].message.content
 
                     prompt_tokens = response.usage.prompt_tokens
@@ -184,36 +194,52 @@ class GroqClient:
                 break
 
         if response is not None:
-            # If we have tool calls as the response, populate completed tool calls for our return OAI response
-            if response.choices[0].finish_reason == "tool_calls":
-                groq_finish = "tool_calls"
-                tool_calls = []
-                for tool_call in response.choices[0].message.tool_calls:
-                    tool_calls.append(
-                        ChatCompletionMessageToolCall(
-                            id=tool_call.id,
-                            function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
-                            type="function",
-                        )
-                    )
-            else:
-                groq_finish = "stop"
-                tool_calls = None
 
+            if isinstance(response, Stream):
+                # Streaming response
+                if chunk.choices[0].finish_reason == "tool_calls":
+                    groq_finish = "tool_calls"
+                    tool_calls = streaming_tool_calls
+                else:
+                    groq_finish = "stop"
+                    tool_calls = None
+
+                response_content = ans
+                response_id = chunk.id
+            else:
+                # Non-streaming response
+                # If we have tool calls as the response, populate completed tool calls for our return OAI response
+                if response.choices[0].finish_reason == "tool_calls":
+                    groq_finish = "tool_calls"
+                    tool_calls = []
+                    for tool_call in response.choices[0].message.tool_calls:
+                        tool_calls.append(
+                            ChatCompletionMessageToolCall(
+                                id=tool_call.id,
+                                function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
+                                type="function",
+                            )
+                        )
+                else:
+                    groq_finish = "stop"
+                    tool_calls = None
+
+                response_content = response.choices[0].message.content
+                response_id = response.id
         else:
             raise RuntimeError(f"Failed to get response from Groq after retrying {attempt + 1} times.")
 
         # 3. convert output
         message = ChatCompletionMessage(
             role="assistant",
-            content=response.choices[0].message.content,
+            content=response_content,
             function_call=None,
             tool_calls=tool_calls,
         )
         choices = [Choice(finish_reason=groq_finish, index=0, message=message)]
 
         response_oai = ChatCompletion(
-            id=response.id,
+            id=response_id,
             model=groq_params["model"],
             created=int(time.time()),
             object="chat.completion",
