@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from autogen import OpenAIWrapper, config_list_from_json
 from autogen.cache.cache import Cache
 from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 
@@ -36,7 +36,7 @@ def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"api_type": ["azure"], "tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
@@ -58,7 +58,7 @@ def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"api_type": ["azure"], "tags": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(
@@ -104,10 +104,13 @@ def test_chat_completion():
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_completion():
-    config_list = config_list_openai_aoai(KEY_LOC)
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
+    )
     client = OpenAIWrapper(config_list=config_list)
-    model = "gpt-3.5-turbo-instruct"
-    response = client.create(prompt="1+1=", model=model)
+    response = client.create(prompt="1+1=")
     print(response)
     print(client.extract_text_or_completion_object(response))
 
@@ -121,19 +124,37 @@ def test_completion():
     ],
 )
 def test_cost(cache_seed):
-    config_list = config_list_openai_aoai(KEY_LOC)
-    model = "gpt-3.5-turbo-instruct"
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
+    )
     client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
-    response = client.create(prompt="1+3=", model=model)
+    response = client.create(prompt="1+3=")
     print(response.cost)
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_customized_cost():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo-instruct"]}
+    )
+    for config in config_list:
+        config.update({"price": [1, 1]})
+    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+    response = client.create(prompt="1+3=")
+    assert response.cost >= 4, "Due to customized pricing, cost should be greater than 4"
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
-    config_list = config_list_openai_aoai(KEY_LOC)
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-35-turbo-instruct", "gpt-3.5-turbo-instruct"]},
+    )
     client = OpenAIWrapper(config_list=config_list)
-    model = "gpt-3.5-turbo-instruct"
-    response = client.create(prompt="1+3=", model=model, cache_seed=None)
+    response = client.create(prompt="1+3=", cache_seed=None)
 
     # usage should be recorded
     assert client.actual_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
@@ -148,14 +169,14 @@ def test_usage_summary():
     assert client.total_usage_summary is None, "total_usage_summary should be None"
 
     # actual usage and all usage should be different
-    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    response = client.create(prompt="1+3=", cache_seed=42)
     assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
     client.clear_usage_summary()
-    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    response = client.create(prompt="1+3=", cache_seed=42)
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
 
     # check update
-    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    response = client.create(prompt="1+3=", cache_seed=42)
     assert (
         client.total_usage_summary["total_cost"] == response.cost * 2
     ), "total_cost should be equal to response.cost * 2"
@@ -166,7 +187,7 @@ def test_legacy_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 
     # Prompt to use for testing.
@@ -235,7 +256,7 @@ def test_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 
     # Prompt to use for testing.
@@ -303,8 +324,8 @@ if __name__ == "__main__":
     # test_aoai_chat_completion()
     # test_oai_tool_calling_extraction()
     # test_chat_completion()
-    # test_completion()
+    test_completion()
     # # test_cost()
     # test_usage_summary()
-    test_legacy_cache()
-    test_cache()
+    # test_legacy_cache()
+    # test_cache()
