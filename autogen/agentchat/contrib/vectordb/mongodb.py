@@ -1,3 +1,4 @@
+import time
 from typing import Callable, List, Literal
 
 import numpy as np
@@ -21,6 +22,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         connection_string: str = "",
         database_name: str = "vector_db",
         embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
+        index_name: str = "default_index",
+        similarity: Literal["euclidean", "cosine", "dotProduct"] = "cosine",
     ):
         """
         Initialize the vector database.
@@ -46,6 +49,10 @@ class MongoDBAtlasVectorDB(VectorDB):
         ]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+        # index lookup
+        self.database_name = database_name
+        self.index_name = index_name
+        self.similarity = similarity
 
     def list_collections(self):
         """
@@ -59,14 +66,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         except Exception as err:
             raise err
 
-    def create_collection(
-        self,
-        collection_name: str,
-        overwrite: bool = False,
-        get_or_create: bool = True,
-        index_name: str = "default_index",
-        similarity: Literal["euclidean", "cosine", "dotProduct"] = "cosine",
-    ):
+    def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True):
         """
         Create a collection in the vector database and create a vector search index in the collection.
 
@@ -83,6 +83,16 @@ class MongoDBAtlasVectorDB(VectorDB):
         # If overwrite is True and the collection already exists, drop the existing collection
         collection_names = self.db.list_collection_names()
         if overwrite and collection_name in collection_names:
+            collection = self.db[collection_name]
+            collection.drop_search_index(self.index_name)
+            pleaseWait = True
+            print(f"Waiting for index: {self.index_name} on {collection_name} to be dropped.")
+            while pleaseWait:
+                current_index_status = collection.list_search_indexes()
+                pleaseWait = False
+                for index in current_index_status:
+                    if index["name"] == self.index_name:
+                        pleaseWait = True
             self.db.drop_collection(collection_name)
             collection_names = self.db.list_collection_names()  # update collection names
         # If get_or_create is True and the collection already exists, return the existing collection
@@ -98,15 +108,30 @@ class MongoDBAtlasVectorDB(VectorDB):
         search_index_model = SearchIndexModel(
             definition={
                 "fields": [
-                    {"type": "vector", "numDimensions": self.dimensions, "path": "embedding", "similarity": similarity},
+                    {
+                        "type": "vector",
+                        "numDimensions": self.dimensions,
+                        "path": "embedding",
+                        "similarity": self.similarity,
+                    },
                 ]
             },
-            name=index_name,
+            name=self.index_name,
             type="vectorSearch",
         )
         # Create the search index
         try:
             collection.create_search_index(model=search_index_model)
+            # wait until the search_index is 'ready' before returning collection
+            pleaseWait = True
+            print("Creating index on " + collection_name + ". Let's wait for the index to be READY.")
+            while pleaseWait:
+                current_index_status = collection.list_search_indexes()
+                for index in current_index_status:
+                    if index["name"] == self.index_name:
+                        if str(index["status"]).lower() == "ready":
+                            pleaseWait = False
+                            print(f"{self.index_name} on {collection_name} is READY.")
             return collection
         except Exception as e:
             logger.error(f"Error creating search index: {e}")
@@ -217,7 +242,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         n_results: int = 10,
         distance_threshold: float = -1,
-        index_name: str = "default",
         **kwargs,
     ) -> QueryResults:
         """
@@ -239,11 +263,11 @@ class MongoDBAtlasVectorDB(VectorDB):
         for query_text in queries:
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
-            search_collection = self.get_collection(collection_name)
+            search_collection = self.db[collection_name]
             pipeline = [
                 {
                     "$vectorSearch": {
-                        "index": index_name,
+                        "index": self.index_name,
                         "limit": n_results,
                         "numCandidates": n_results,
                         "queryVector": query_vector,
@@ -287,7 +311,21 @@ class MongoDBAtlasVectorDB(VectorDB):
             )
             pipeline.append({"$project": {"full_document_array": 0, "embedding": 0}})
             tmp_results = []
-            for doc in search_collection.aggregate(pipeline):
+            # lets check the status of the index
+            pleaseWait = True
+            while pleaseWait:
+                current_index_status = search_collection.list_search_indexes()
+                for index in current_index_status:
+                    if index["name"] == self.index_name and str(index["status"]).lower() == "ready":
+                        pleaseWait = False
+                        print("index is ready to use.")
+                        print(index)
+            # run the pipeline
+            time.sleep(15)  # not sure why I need this :(
+            logger.debug(f"Now running pipeline: {pipeline}")
+            print(f"Now running pipeline: {pipeline}")
+            search_results = list(search_collection.aggregate(pipeline))
+            for doc in search_results:
                 tmp_results.append((doc["full_document"], 1 - doc["score"]))
             results.append(tmp_results)
         return results

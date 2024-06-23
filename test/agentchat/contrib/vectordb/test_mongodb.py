@@ -48,8 +48,6 @@ def test_mongodb():
     if collection_name not in db.list_collections():
         collection = db.create_collection(
             collection_name=collection_name,
-            index_name="my_index",
-            similarity="cosine",
             overwrite=False,
             get_or_create=True,
         )
@@ -59,8 +57,6 @@ def test_mongodb():
     # test overwrite=True
     collection = db.create_collection(
         collection_name=collection_name,
-        index_name="my_index_1",
-        similarity="cosine",
         overwrite=True,
         get_or_create=True,
     )
@@ -70,13 +66,9 @@ def test_mongodb():
     # test overwrite=False
     # test get_or_create=False
     with pytest.raises(ValueError):
-        collection = db.create_collection(
-            collection_name, index_name="my_index_1", similarity="cosine", overwrite=False, get_or_create=False
-        )
+        collection = db.create_collection(collection_name, overwrite=False, get_or_create=False)
     # test get_or_create=True
-    collection = db.create_collection(
-        collection_name, index_name="my_index_1", similarity="cosine", overwrite=False, get_or_create=True
-    )
+    collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
     assert collection.name == collection_name
 
     # test_get_collection
@@ -114,11 +106,9 @@ def test_mongodb():
     ({'content': 'doc2', 'id': '2'}, 0.08)]]
     """
     queries = ["doc2", "doc3"]
-    res = db.retrieve_docs(queries=queries, collection_name=collection_name, index_name="my_index_1")
+    res = db.retrieve_docs(queries=queries, collection_name=collection_name)
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]
-    res = db.retrieve_docs(
-        queries=queries, collection_name=collection_name, distance_threshold=0.05, index_name="my_index_1"
-    )
+    res = db.retrieve_docs(queries=queries, collection_name=collection_name, distance_threshold=0.05)
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2"], ["3"]]
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
