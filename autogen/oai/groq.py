@@ -32,6 +32,14 @@ from openai.types.completion_usage import CompletionUsage
 
 from autogen.oai.client_utils import should_hide_tools, validate_parameter
 
+# Cost per thousand tokens - Input / Output (NOTE: Convert $/Million to $/K)
+GROQ_PRICING_1K = {
+    "llama3-70b-8192": (0.00059, 0.00079),
+    "mixtral-8x7b-32768": (0.00024, 0.00024),
+    "llama3-8b-8192": (0.00005, 0.00008),
+    "gemma-7b-it": (0.00007, 0.00007),
+}
+
 
 class GroqClient:
     """Client for Groq's API."""
@@ -243,25 +251,14 @@ def oai_messages_to_groq_messages(messages: list[Dict[str, Any]]) -> list[dict[s
     return groq_messages
 
 
-# PRICING
-
-# Cost per million tokens - Input / Output
-GROQ_PRICING_1M = {
-    "llama3-70b-8192": (0.59, 0.79),
-    "mixtral-8x7b-32768": (0.24, 0.24),
-    "llama3-8b-8192": (0.05, 0.08),
-    "gemma-7b-it": (0.07, 0.07),
-}
-
-
 def calculate_groq_cost(input_tokens: int, output_tokens: int, model: str) -> float:
     """Calculate the cost of the completion using the Groq pricing."""
     total = 0.0
 
-    if model in GROQ_PRICING_1M:
-        input_cost_per_mil, output_cost_per_mil = GROQ_PRICING_1M[model]
-        input_cost = (input_tokens / 1000000) * input_cost_per_mil
-        output_cost = (output_tokens / 1000000) * output_cost_per_mil
+    if model in GROQ_PRICING_1K:
+        input_cost_per_k, output_cost_per_k = GROQ_PRICING_1K[model]
+        input_cost = (input_tokens / 1000) * input_cost_per_k
+        output_cost = (output_tokens / 1000) * output_cost_per_k
         total = input_cost + output_cost
     else:
         warnings.warn(f"Cost calculation not available for model {model}", UserWarning)
