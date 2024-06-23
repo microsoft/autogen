@@ -29,6 +29,7 @@ install_requires = [
     # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
     "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
     "docker",
+    "pyyaml",
     "packaging",
 ]
 

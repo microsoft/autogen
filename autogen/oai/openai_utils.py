@@ -6,7 +6,7 @@ import re
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
 from openai import OpenAI
@@ -63,6 +63,16 @@ OAI_PRICE1K = {
     "gpt-35-turbo-16k": (0.003, 0.004),
     "gpt-35-turbo-16k-0613": (0.003, 0.004),
 }
+
+
+def load_yaml_json(env_or_file: Union[str, bytes]) -> dict:
+    try:
+        import yaml
+
+        load_func = yaml.safe_load(env_or_file)
+    except ImportError:
+        load_func = json.loads(env_or_file)
+    return load_func
 
 
 def get_key(config: Dict[str, Any]) -> str:
@@ -461,10 +471,10 @@ def config_list_from_json(
     filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Retrieves a list of API configurations from a JSON stored in an environment variable or a file.
+    Retrieves a list of API configurations from a JSON/YAML stored in an environment variable or a file.
 
-    This function attempts to parse JSON data from the given `env_or_file` parameter. If `env_or_file` is an
-    environment variable containing JSON data, it will be used directly. Otherwise, it is assumed to be a filename,
+    This function attempts to parse JSON/YAML data from the given `env_or_file` parameter. If `env_or_file` is an
+    environment variable containing JSON/YAML data, it will be used directly. Otherwise, it is assumed to be a filename,
     and the function will attempt to read the file from the specified `file_location`.
 
     The `filter_dict` parameter allows for filtering the configurations based on specified criteria. Each key in the
@@ -474,21 +484,38 @@ def config_list_from_json(
 
     Args:
         env_or_file (str): The name of the environment variable, the filename, or the environment variable of the filename
-            that containing the JSON data.
+            that containing the JSON/YAML data; if you want to load from a yaml file, you need to do `pip install pyyaml`.
         file_location (str, optional): The directory path where the file is located, if `env_or_file` is a filename.
         filter_dict (dict, optional): A dictionary specifying the filtering criteria for the configurations, with
             keys representing field names and values being lists or sets of acceptable values for those fields.
 
     Example:
-    ```python
-    # Suppose we have an environment variable 'CONFIG_JSON' with the following content:
-    # '[{"model": "gpt-3.5-turbo", "api_type": "azure"}, {"model": "gpt-4"}]'
 
-    # We can retrieve a filtered list of configurations like this:
-    filter_criteria = {"model": ["gpt-3.5-turbo"]}
-    configs = config_list_from_json('CONFIG_JSON', filter_dict=filter_criteria)
-    # The 'configs' variable will now contain only the configurations that match the filter criteria.
-    ```
+    JSON:
+        ```python
+        # Suppose we have an environment variable 'CONFIG_JSON' with the following content:
+        # '[{"model": "gpt-3.5-turbo", "api_type": "azure"}, {"model": "gpt-4"}]'
+
+        # We can retrieve a filtered list of configurations like this:
+        filter_criteria = {"model": ["gpt-3.5-turbo"]}
+        configs = config_list_from_json('CONFIG_JSON', filter_dict=filter_criteria)
+        # The 'configs' variable will now contain only the configurations that match the filter criteria.
+        ```
+
+    YAML:
+        ```python
+        # Suppose we have an environment variable 'CONFIG_YAML' with the following content:
+        '''
+        - model: gpt-3.5-turbo
+          api_type: azure
+        - model: gpt-4
+        '''
+
+        # We can retrieve a filtered list of configurations like this:
+        filter_criteria = {"model": ["gpt-3.5-turbo"]}
+        configs = config_list_from_json('CONFIG_YAML', filter_dict=filter_criteria)
+        # The 'configs' variable will now contain only the configurations that match the filter criteria.
+        ```
 
     Returns:
         List[Dict]: A list of configuration dictionaries that match the filtering criteria specified in `filter_dict`.
@@ -503,11 +530,11 @@ def config_list_from_json(
         if os.path.exists(env_str):
             # It is a file location, and we need to load the json from the file.
             with open(env_str, "r") as file:
-                json_str = file.read()
+                json_or_yaml_str = file.read()
         else:
             # Else, it should be a JSON string by itself.
-            json_str = env_str
-        config_list = json.loads(json_str)
+            json_or_yaml_str = env_str
+        config_list = load_yaml_json(json_or_yaml_str)
     else:
         # The environment variable does not exist.
         # So, `env_or_file` is a filename. We should use the file location.
@@ -517,7 +544,7 @@ def config_list_from_json(
             config_list_path = env_or_file
 
         with open(config_list_path) as json_file:
-            config_list = json.load(json_file)
+            config_list = load_yaml_json(json_file)
     return filter_config(config_list, filter_dict)
 
 
