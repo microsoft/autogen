@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AutoGen.Anthropic.DTO;
 using AutoGen.Anthropic.Utils;
@@ -106,6 +107,52 @@ public class AnthropicClientTests
         Assert.Equal("text", textContent.Type);
         Assert.NotNull(response.Usage);
         response.Usage.OutputTokens.Should().BeGreaterThan(0);
+    }
+
+    [ApiKeyFact("ANTHROPIC_API_KEY")]
+    public async Task AnthropicClientTestToolsAsync()
+    {
+        var anthropicClient = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
+
+        var stockPriceTool = new Tool
+        {
+            Name = "get_stock_price",
+            Description = "Get the current stock price for a given ticker symbol.",
+            InputSchema = new InputSchema
+            {
+                Type = "object",
+                Properties = new Dictionary<string, SchemaProperty>
+                {
+                    {
+                        "ticker", new SchemaProperty
+                        {
+                            Type = "string",
+                            Description = "The stock ticker symbol, e.g. AAPL for Apple Inc."
+                        }
+                    }
+                },
+                Required = new List<string> { "ticker" }
+            }
+        };
+
+        var request = new ChatCompletionRequest();
+        request.Model = AnthropicConstants.Claude3Haiku;
+        request.Stream = false;
+        request.MaxTokens = 100;
+        request.Messages = new List<ChatMessage>() { new("user", "Use the stock price tool to look for MSFT. Your response should only be the tool.") };
+        request.Tools = new List<Tool>() { stockPriceTool };
+
+        ChatCompletionResponse response =
+            await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+
+        Assert.NotNull(response.Content);
+        Assert.True(response.Content.First() is ToolUseContent);
+        ToolUseContent toolUseContent = ((ToolUseContent)response.Content.First());
+        Assert.Equal("get_stock_price", toolUseContent.Name);
+        Assert.NotNull(toolUseContent.Input);
+        Assert.True(toolUseContent.Input is JsonNode);
+        JsonNode jsonNode = toolUseContent.Input;
+        Assert.Equal("{\"ticker\":\"MSFT\"}", jsonNode.ToJsonString());
     }
 
     private sealed class Person
