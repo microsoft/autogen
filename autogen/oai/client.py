@@ -70,6 +70,13 @@ try:
 except ImportError as e:
     together_import_exception = e
 
+try:
+    from autogen.oai.groq import GroqClient
+
+    groq_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    groq_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -484,6 +491,10 @@ class OpenAIWrapper:
                 if together_import_exception:
                     raise ImportError("Please install `together` to use the Together.AI API.")
                 self._clients.append(TogetherClient(**config))
+            elif api_type is not None and api_type.startswith("groq"):
+                if groq_import_exception:
+                    raise ImportError("Please install `groq` to use the Groq API.")
+                self._clients.append(GroqClient(**config))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
