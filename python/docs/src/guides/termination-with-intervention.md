@@ -46,15 +46,15 @@ Next, we create an InterventionHandler that will detect the termination message 
 class TerminationHandler(DefaultInterventionHandler):
 
     def __init__(self):
-        self.termination_value: T | None = None
+        self.termination_value: Termination | None = None
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
         if isinstance(message, Termination):
-            self.termination_value = self.termination_type(message.reason)
+            self.termination_value = message
         return message
 
     @property
-    def termination_value(self) -> T | None:
+    def termination_value(self) -> Termination | None:
         return self.termination_value
 
     @property
