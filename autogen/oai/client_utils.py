@@ -1,7 +1,19 @@
 """Utilities for client classes"""
 
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
+from openai import AzureOpenAI, OpenAI
+
+if TYPE_CHECKING:
+    from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.cohere import CohereClient
+    from autogen.oai.gemini import GeminiClient
+    from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.together import TogetherClient
+
+
+ClientType = Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient, CohereClient]
 
 
 def validate_parameter(
