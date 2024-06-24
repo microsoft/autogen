@@ -2,7 +2,7 @@ import asyncio
 import inspect
 import logging
 import threading
-from asyncio import Future
+from asyncio import CancelledError, Future
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -281,11 +281,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         try:
             _all_responses = await asyncio.gather(*responses)
-        except BaseException:
+        except BaseException as e:
+            # Ignore cancelled errors from logs
+            if isinstance(e, CancelledError):
+                return
             logger.error("Error processing publish message", exc_info=True)
-            return
-
-        self._outstanding_tasks.decrement()
+        finally:
+            self._outstanding_tasks.decrement()
         # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
