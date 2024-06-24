@@ -19,21 +19,18 @@ Resources:
 
 from __future__ import annotations
 
-import copy
-import inspect
 import json
 import os
 import random
 import time
 import warnings
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List
 
 from cohere import Client as Cohere
 from cohere.types import ToolParameterDefinitionsValue, ToolResult
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
-from typing_extensions import Annotated
 
 from autogen.oai.client_utils import validate_parameter
 
@@ -151,9 +148,6 @@ class CohereClient:
         completion_tokens = 0
         total_tokens = 0
 
-        # Streaming tool call recommendations
-        # streaming_tool_calls = []
-
         # Stream if in parameters
         streaming = True if "stream" in params and params["stream"] else False
         cohere_finish = ""
@@ -209,14 +203,16 @@ class CohereClient:
                     prompt_tokens = response.meta.tokens.input_tokens
                     completion_tokens = response.meta.tokens.output_tokens
                     total_tokens = prompt_tokens + completion_tokens
+
+                    response_id = response.response_id
                 break
 
         if response is not None:
 
+            response_content = ans
+
             if streaming:
                 # Streaming response
-                response_content = ans
-
                 if cohere_finish == "":
                     cohere_finish = "stop"
                     tool_calls = None
@@ -375,7 +371,11 @@ def oai_messages_to_cohere_messages(
 
                         call = {
                             "name": tool_call["function"]["name"],
-                            "parameters": json.loads(tool_call["function"]["arguments"]),
+                            "parameters": json.loads(
+                                tool_call["function"]["arguments"]
+                                if not tool_call["function"]["arguments"] == ""
+                                else "{}"
+                            ),
                         }
                         output = [{"value": content_output}]
 
