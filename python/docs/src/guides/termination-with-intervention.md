@@ -9,7 +9,7 @@ There are many different ways to handle termination in `agnext`. Ultimately, the
 ```python
 import asyncio
 from dataclasses import dataclass
-from typing import Any, Generic, Type, TypeVar
+from typing import Any
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -43,12 +43,9 @@ class AnAgent(TypeRoutedAgent):
 Next, we create an InterventionHandler that will detect the termination message and act on it. This one hooks into publishes and when it encounters `Termination` it alters its internal state to indicate that termination has been requested.
 ```python
 
-T = TypeVar("T")
+class TerminationHandler(DefaultInterventionHandler):
 
-class TerminationHandler(Generic[T], DefaultInterventionHandler):
-
-    def __init__(self, termination_type: Type[T]):
-        self.termination_type = termination_type
+    def __init__(self):
         self.termination_value: T | None = None
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
@@ -69,7 +66,7 @@ Finally, we add this handler to the runtime and use it to detect termination and
 
 ```python
 async def main() -> None:
-    termination_handler = TerminationHandler(Termination)
+    termination_handler = TerminationHandler()
     runtime = SingleThreadedAgentRuntime(
         before_send=termination_handler
     )
