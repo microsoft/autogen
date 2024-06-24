@@ -32,7 +32,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         database_name: str = "vector_db",
         embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
         collection_name: str = None,
-        index_name: str = "default_index",
     ):
         """
         Initialize the vector database.
@@ -60,9 +59,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         sentences = ["The weather is lovely today in paradise."]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
-        # index lookup
-        self.database_name = database_name
-        self.index_name = index_name
 
     def list_collections(self):
         """
@@ -368,6 +364,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         n_results: int = 10,
         distance_threshold: float = -1,
+        index_name: str = "default",
         **kwargs,
     ) -> QueryResults:
         """
@@ -396,7 +393,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Ensure that there is at least one search index
         search_indexes = list(collection.list_search_indexes())
         assert len(search_indexes), f"There are no search indexes for {collection.name}"
-        
+
         results = []
         for query_text in queries:
             # Compute embedding vector from semantic query
@@ -406,7 +403,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                 query_vector,
                 n_results,
                 collection,
-                self.index_name,
+                index_name,
                 distance_threshold,
                 kwargs.get("oversampling_factor", 10),
             )
