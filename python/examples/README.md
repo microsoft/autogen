@@ -24,11 +24,11 @@ We provide examples to illustrate how to use tools in AGNext:
 
 We provide examples to illustrate how multi-agent patterns can be implemented in AGNext:
 
-- [`mixture_of_agents_direct.py`](pattern/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using async direct messaging API.
-- [`mixture_of_agents_pub_sub.py`](pattern/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using publish-subscribe API.
-- [`coder_reviewer_direct.py`](pattern/coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using async direct messaging API.
-- [`coder_reviewer_pub_sub.py`](pattern/coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using publish-subscribe API.
-- [`group_chat_pub_sub.py`](pattern/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using publish-subscribe API.
+- [`mixture_of_agents_direct.py`](patterns/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using async direct messaging API.
+- [`mixture_of_agents_pub_sub.py`](patterns/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using publish-subscribe API.
+- [`coder_reviewer_direct.py`](patterns/coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using async direct messaging API.
+- [`coder_reviewer_pub_sub.py`](patterns/coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using publish-subscribe API.
+- [`group_chat_pub_sub.py`](patterns/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using publish-subscribe API.
 
 ## Demos
 
