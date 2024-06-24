@@ -23,7 +23,7 @@ def cohere_client():
 
 @pytest.mark.skipif(skip, reason=reason)
 def test_initialization_missing_api_key():
-    os.environ.pop("ANTHROPIC_API_KEY", None)
+    os.environ.pop("COHERE_API_KEY", None)
     with pytest.raises(
         AssertionError,
         match="Please include the api_key in your config list entry for Cohere or set the COHERE_API_KEY env variable.",
