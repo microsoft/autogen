@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -12,7 +12,8 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
+from agnext.core import AgentId, CancellationToken
+from agnext.core.intervention import DefaultInterventionHandler
 
 
 @dataclass
@@ -21,10 +22,15 @@ class Message:
     content: str
 
 
+@dataclass
+class Termination:
+    pass
+
+
 class ChatCompletionAgent(TypeRoutedAgent):
     """An agent that uses a chat completion model to respond to messages.
     It keeps a memory of the conversation and uses it to generate responses.
-    It terminates the conversation when the termination word is mentioned."""
+    It publishes a termination message when the termination word is mentioned."""
 
     def __init__(
         self,
@@ -43,6 +49,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
         self._memory.append(message)
         if self._termination_word in message.content:
+            self.publish_message(Termination())
             return
         llm_messages: List[LLMMessage] = []
         for m in self._memory[-10:]:
@@ -55,8 +62,30 @@ class ChatCompletionAgent(TypeRoutedAgent):
         self.publish_message(Message(content=response.content, source=self.metadata["name"]))
 
 
+class TerminationHandler(DefaultInterventionHandler):
+    """A handler that listens for termination messages."""
+
+    def __init__(self) -> None:
+        self._terminated = False
+
+    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+        if isinstance(message, Termination):
+            self._terminated = True
+        return message
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+
 async def main() -> None:
-    runtime = SingleThreadedAgentRuntime()
+    # Create the termination handler.
+    termination_handler = TerminationHandler()
+
+    # Create the runtime with the termination handler.
+    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+
+    # Register the agents.
     jack = runtime.register_and_get(
         "Jack",
         lambda: ChatCompletionAgent(
@@ -84,8 +113,8 @@ async def main() -> None:
     message = Message(content="Can you tell me something fun about SF?", source="User")
     runtime.send_message(message, jack)
 
-    # Process messages until the agent responds.
-    while True:
+    # Process messages until termination.
+    while not termination_handler.terminated:
         await runtime.process_next()
 
 
