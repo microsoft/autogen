@@ -422,6 +422,6 @@ def calculate_cohere_cost(input_tokens: int, output_tokens: int, model: str) -> 
         output_cost = (output_tokens / 1000) * output_cost_per_k
         total = input_cost + output_cost
     else:
-        warnings.warn(f"Cost calculation not available for model {model}", UserWarning)
+        warnings.warn(f"Cost calculation not available for {model} model", UserWarning)
 
     return total
