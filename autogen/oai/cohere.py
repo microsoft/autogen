@@ -11,7 +11,7 @@ Example:
 
     agent = autogen.AssistantAgent("my_agent", llm_config=llm_config)
 
-Install Groq's python library using: pip install --upgrade cohere
+Install Cohere's python library using: pip install --upgrade cohere
 
 Resources:
 - https://docs.cohere.com/reference/chat
@@ -118,7 +118,7 @@ class CohereClient:
 
         # Cohere parameters we are ignoring:
         # preamble - we will put the system prompt in here.
-        # parallel_tool_calls (defaults to True), stop
+        # parallel_tool_calls (defaults to True), perfect as is.
         # conversation_id - allows resuming a previous conversation, we don't support this.
         # connectors - allows web search or other custom connectors, not implementing for now but could be useful in the future.
         # search_queries_only - to control whether only search queries are used, we're not using connectors so ignoring.
@@ -246,7 +246,7 @@ class CohereClient:
                     cohere_finish = "stop"
                     tool_calls = None
         else:
-            raise RuntimeError(f"Failed to get response from Groq after retrying {attempt + 1} times.")
+            raise RuntimeError(f"Failed to get response from Cohere after retrying {attempt + 1} times.")
 
         # 3. convert output
         message = ChatCompletionMessage(
