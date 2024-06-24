@@ -33,7 +33,18 @@ Once the criteria are established, the QuantifierAgent takes over to quantify ho
 
 **VerifierAgent: Ensuring Robustness and Relevance**
 
-The newly added step involves the VerifierAgent, which ensures the robustness and relevance of the criteria suggested by the CriticAgent. It checks whether the criteria can be quantified consistently across different samples and whether they effectively distinguish between varying levels of performance. If necessary, the VerifierAgent updates the criteria to enhance their robustness and discriminative power.
+VerifierAgent ensures the criteria used to evaluate a utility are effective for the end-user, maintaining both robustness and high discriminative power. It does this through two main actions:
+
+1. Criteria Stability:
+   * Ensures criteria are essential, non-redundant, and consistently measurable.
+   * Iterates over generating and quantifying criteria, eliminating redundancies, and evaluating their stability.
+   * Retains only the most robust criteria.
+
+2. Discriminative Power:
+
+   * Tests the system's reliability by introducing adversarial examples (noisy or compromised data).
+   * Assesses the system's ability to distinguish these from standard cases.
+   * If the system fails, it indicates the need for better criteria to handle varied conditions effectively.
 
 ## A Flexible and Scalable Framework
 
@@ -44,8 +55,6 @@ Furthermore, AgentEval allows for the incorporation of human expertise. Domain e
 ## Empirical Validation
 
 To validate AgentEval, the framework was tested on two applications: math problem solving and ALFWorld, a household task simulation. The math dataset comprised 12,500 challenging problems, each with step-by-step solutions, while the ALFWorld dataset involved multi-turn interactions in a simulated environment. In both cases, AgentEval successfully identified relevant criteria, quantified performance, and verified the robustness of the evaluations, demonstrating its effectiveness and versatility.
-
-
 
 ## How to use `AgentEval`
 
