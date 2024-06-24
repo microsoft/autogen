@@ -59,6 +59,10 @@ class MongoDBAtlasVectorDB(VectorDB):
         sentences = ["The weather is lovely today in paradise."]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+        # index lookup
+        self.database_name = database_name
+        self.index_name = index_name
+        self.similarity = similarity
 
     def list_collections(self):
         """
@@ -363,7 +367,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         n_results: int = 10,
         distance_threshold: float = -1,
-        index_name: str = "default",
         **kwargs,
     ) -> QueryResults:
         """

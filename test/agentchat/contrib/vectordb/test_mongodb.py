@@ -116,7 +116,6 @@ def test_create_collection(db):
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
     assert collection.name == collection_name
 
-
 def test_get_collection(db):
     collection_name = MONGODB_COLLECTION
 
