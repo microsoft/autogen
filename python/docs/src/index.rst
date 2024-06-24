@@ -47,6 +47,7 @@ AGNext's developer API consists of the following layers:
     guides/type-routed-agent
     guides/group-chat-coder-reviewer
     guides/azure-openai-with-aad-auth
+    guides/termination-with-intervention
 
 
 .. toctree::
