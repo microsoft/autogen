@@ -17,6 +17,7 @@ from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferA
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
 from autogen.agentchat.contrib.file_surfer.file_surfer import FileSurferAgent
 from autogen.code_utils import content_str
+from autogen.runtime_logging import logging_enabled, log_event
 
 MAX_IMAGES = 9
 DEFAULT_TEMPERATURE = 0.1
@@ -34,6 +35,9 @@ def encode_image(image_path):
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
+
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="read_prompt", prompt=PROMPT)
 
 config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
@@ -204,14 +208,28 @@ if len(filename) > 0:
                 filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
     except UnsupportedFormatException:
         pass
-    except FileConversionException:
+    except FileConversionException as e:
         traceback.print_exc()
+        if logging_enabled():
+            exc_type = type(e).__name__
+            exc_message = str(e)
+            exc_traceback = traceback.format_exc().splitlines()
+            log_event(
+                os.path.basename(__file__),
+                name="exception_thrown",
+                exc_type=exc_type,
+                exc_message=exc_message,
+                exc_traceback=exc_traceback,
+            )
 
 
 question = f"""{PROMPT}
 
 {filename_prompt}
 """.strip()
+
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="start_conversation")
 
 try:
     # Initiate one turn of the conversation
@@ -221,12 +239,27 @@ try:
         request_reply=True,
         silent=False,
     )
-except:
+except Exception as e:
     traceback.print_exc()
+    if logging_enabled():
+        exc_type = type(e).__name__
+        exc_message = str(e)
+        exc_traceback = traceback.format_exc().splitlines()
+        log_event(
+            os.path.basename(__file__),
+            name="exception_thrown",
+            exc_type=exc_type,
+            exc_message=exc_message,
+            exc_traceback=exc_traceback,
+        )
 
 
 print()
-print(response_preparer(maestro.orchestrated_messages))
+prepared_response = response_preparer(maestro.orchestrated_messages)
+print(prepared_response)
+
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="prepared_response", response=prepared_response)
 
 ##############################
 testbed_utils.finalize(agents=[assistant, user_proxy, web_surfer, file_surfer, maestro])
