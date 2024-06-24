@@ -11,39 +11,51 @@ on:
 jobs:
   format:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory: ["./python", "./python/teams/team-one"]
     steps:
     - uses: actions/checkout@v4
     - name: Install Hatch
       uses: pypa/hatch@install
     - run: hatch run ruff format --check
-      working-directory: ./python
+      working-directory: ${{ matrix.working-directory }}
 
   lint:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory: ["./python", "./python/teams/team-one"]
     steps:
     - uses: actions/checkout@v4
     - name: Install Hatch
       uses: pypa/hatch@install
     - run: hatch run ruff check
-      working-directory: ./python
+      working-directory: ${{ matrix.working-directory }}
 
   mypy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory: ["./python", "./python/teams/team-one"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run mypy
-        working-directory: ./python
+        working-directory: ${{ matrix.working-directory }}
 
   pyright:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory: ["./python", "./python/teams/team-one"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run pyright
-        working-directory: ./python
+        working-directory: ${{ matrix.working-directory }}
 
   test:
     runs-on: ubuntu-latest
