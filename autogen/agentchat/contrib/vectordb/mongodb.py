@@ -32,6 +32,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         database_name: str = "vector_db",
         embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
         collection_name: str = None,
+        index_name: str = "default_index",
     ):
         """
         Initialize the vector database.
@@ -62,7 +63,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         # index lookup
         self.database_name = database_name
         self.index_name = index_name
-        self.similarity = similarity
 
     def list_collections(self):
         """
@@ -234,7 +234,8 @@ class MongoDBAtlasVectorDB(VectorDB):
             id_batch.append(id)
             text_batch.append(text)
             metadata_batch.append(metadata)
-            size += len(text) + len(metadata)  # todo consider len(id) when str|int
+            id_size = 1 if isinstance(id, int) else len(id)
+            size += len(text) + len(metadata) + id_size
             if (i + 1) % batch_size == 0 or size >= 47_000_000:
                 result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))
                 input_ids.update(id_batch)
@@ -395,7 +396,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Ensure that there is at least one search index
         search_indexes = list(collection.list_search_indexes())
         assert len(search_indexes), f"There are no search indexes for {collection.name}"
-
+        
         results = []
         for query_text in queries:
             # Compute embedding vector from semantic query
@@ -405,7 +406,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                 query_vector,
                 n_results,
                 collection,
-                index_name,
+                self.index_name,
                 distance_threshold,
                 kwargs.get("oversampling_factor", 10),
             )
