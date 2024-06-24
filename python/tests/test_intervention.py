@@ -18,7 +18,7 @@ async def test_intervention_count_messages() -> None:
             return message
 
     handler = DebugInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
     loopback = runtime.register_and_get("name", LoopbackAgent)
 
     response = runtime.send_message(MessageType(), recipient=loopback)
@@ -38,7 +38,7 @@ async def test_intervention_drop_send() -> None:
             return DropMessage
 
     handler = DropSendInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     loopback = runtime.register_and_get("name", LoopbackAgent)
     response = runtime.send_message(MessageType(), recipient=loopback)
@@ -61,7 +61,7 @@ async def test_intervention_drop_response() -> None:
             return DropMessage
 
     handler = DropResponseInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     loopback = runtime.register_and_get("name", LoopbackAgent)
     response = runtime.send_message(MessageType(), recipient=loopback)
@@ -84,7 +84,7 @@ async def test_intervention_raise_exception_on_send() -> None:
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     long_running = runtime.register_and_get("name", LoopbackAgent)
     response = runtime.send_message(MessageType(), recipient=long_running)
@@ -109,7 +109,7 @@ async def test_intervention_raise_exception_on_respond() -> None:
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     long_running = runtime.register_and_get("name", LoopbackAgent)
     response = runtime.send_message(MessageType(), recipient=long_running)

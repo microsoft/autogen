@@ -41,34 +41,3 @@ async def test_register_receives_publish() -> None:
     other_long_running_agent: LoopbackAgent = runtime._get_agent(runtime.get("name", namespace="other")) # type: ignore
     assert other_long_running_agent.num_calls == 0
 
-
-
-@pytest.mark.asyncio
-async def test_try_instantiate_agent_invalid_namespace() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    runtime.register("name", LoopbackAgent, valid_namespaces=["default"])
-    await runtime.publish_message(MessageType(), namespace="non_default")
-
-    while len(runtime.unprocessed_messages) > 0 or runtime.outstanding_tasks > 0:
-        await runtime.process_next()
-
-    # Agent in default namespace should have received the message
-    long_running_agent: LoopbackAgent = runtime._get_agent(runtime.get("name")) # type: ignore
-    assert long_running_agent.num_calls == 0
-
-    with pytest.raises(ValueError):
-        _agent = runtime.get("name", namespace="non_default")
-
-@pytest.mark.asyncio
-async def test_send_crosses_namepace() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    runtime.register("name", LoopbackAgent)
-
-    default_ns_agent = runtime.get("name")
-    non_default_ns_agent = runtime.get("name", namespace="non_default")
-
-    with pytest.raises(ValueError):
-        await runtime.send_message(MessageType(), default_ns_agent, sender=non_default_ns_agent)
-

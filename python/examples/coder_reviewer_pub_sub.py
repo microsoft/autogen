@@ -267,7 +267,7 @@ class DisplayAgent(TypeRoutedAgent):
 
 async def main() -> None:
     termination_handler = TerminationHandler()
-    runtime = SingleThreadedAgentRuntime(before_send=termination_handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
     runtime.register(
         "ReviewerAgent",
         lambda: ReviewerAgent(

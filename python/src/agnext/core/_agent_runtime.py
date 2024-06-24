@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from asyncio import Future
 from contextvars import ContextVar
-from typing import Any, Callable, Mapping, Protocol, Sequence, Type, TypeVar, overload, runtime_checkable
+from typing import Any, Callable, Mapping, Protocol, TypeVar, overload, runtime_checkable
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -15,10 +15,6 @@ from ._cancellation_token import CancellationToken
 T = TypeVar("T", bound=Agent)
 
 agent_instantiation_context: ContextVar[tuple[AgentRuntime, AgentId]] = ContextVar("agent_instantiation_context")
-
-
-class AllNamespaces:
-    pass
 
 
 @runtime_checkable
@@ -45,7 +41,9 @@ class AgentRuntime(Protocol):
 
     @overload
     def register(
-        self, name: str, agent_factory: Callable[[], T], *, valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...
+        self,
+        name: str,
+        agent_factory: Callable[[], T],
     ) -> None: ...
 
     @overload
@@ -53,23 +51,18 @@ class AgentRuntime(Protocol):
         self,
         name: str,
         agent_factory: Callable[[AgentRuntime, AgentId], T],
-        *,
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...,
     ) -> None: ...
 
     def register(
         self,
         name: str,
         agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
-        *,
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = AllNamespaces,
     ) -> None:
         """Register an agent factory with the runtime associated with a specific name. The name must be unique.
 
         Args:
             name (str): The name of the type agent this factory creates.
             agent_factory (Callable[[], T] | Callable[[AgentRuntime, AgentId], T]): The factory that creates the agent.
-            valid_namespaces (Sequence[str] | Type[AllNamespaces], optional): Valid namespaces for this type. Defaults to AllNamespaces.
 
 
         Example:
@@ -99,7 +92,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...,
     ) -> AgentId: ...
 
     @overload
@@ -109,7 +101,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[AgentRuntime, AgentId], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...,
     ) -> AgentId: ...
 
     def register_and_get(
@@ -118,7 +109,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = AllNamespaces,
     ) -> AgentId:
         self.register(name, agent_factory)
         return self.get(name, namespace=namespace)
@@ -130,7 +120,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...,
     ) -> AgentProxy: ...
 
     @overload
@@ -140,7 +129,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[AgentRuntime, AgentId], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = ...,
     ) -> AgentProxy: ...
 
     def register_and_get_proxy(
@@ -149,7 +137,6 @@ class AgentRuntime(Protocol):
         agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
         *,
         namespace: str = "default",
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = AllNamespaces,
     ) -> AgentProxy:
         self.register(name, agent_factory)
         return self.get_proxy(name, namespace=namespace)

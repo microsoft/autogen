@@ -6,7 +6,7 @@ from asyncio import Future
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
+from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, TypeVar, cast
 
 from ..core import (
     Agent,
@@ -14,7 +14,6 @@ from ..core import (
     AgentMetadata,
     AgentProxy,
     AgentRuntime,
-    AllNamespaces,
     CancellationToken,
     agent_instantiation_context,
 )
@@ -82,15 +81,13 @@ class Counter:
 
 
 class SingleThreadedAgentRuntime(AgentRuntime):
-    def __init__(self, *, before_send: InterventionHandler | None = None) -> None:
+    def __init__(self, *, intervention_handler: InterventionHandler | None = None) -> None:
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._per_type_subscribers: DefaultDict[tuple[str, type], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[str, Callable[[], Agent] | Callable[[AgentRuntime, AgentId], Agent]] = {}
-        # If empty, then all namespaces are valid for that agent type
-        self._valid_namespaces: Dict[str, Sequence[str]] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
-        self._before_send = before_send
+        self._intervention_handler = intervention_handler
         self._known_namespaces: set[str] = set()
         self._outstanding_tasks = Counter()
 
@@ -322,9 +319,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._before_send is not None:
+                if self._intervention_handler is not None:
                     try:
-                        temp_message = await self._before_send.on_send(message, sender=sender, recipient=recipient)
+                        temp_message = await self._intervention_handler.on_send(
+                            message, sender=sender, recipient=recipient
+                        )
                     except BaseException as e:
                         future.set_exception(e)
                         return
@@ -339,9 +338,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 message=message,
                 sender=sender,
             ):
-                if self._before_send is not None:
+                if self._intervention_handler is not None:
                     try:
-                        temp_message = await self._before_send.on_publish(message, sender=sender)
+                        temp_message = await self._intervention_handler.on_publish(message, sender=sender)
                     except BaseException as e:
                         # TODO: we should raise the intervention exception to the publisher.
                         logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
@@ -354,9 +353,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._outstanding_tasks.increment()
                 asyncio.create_task(self._process_publish(message_envelope))
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._before_send is not None:
+                if self._intervention_handler is not None:
                     try:
-                        temp_message = await self._before_send.on_response(message, sender=sender, recipient=recipient)
+                        temp_message = await self._intervention_handler.on_response(
+                            message, sender=sender, recipient=recipient
+                        )
                     except BaseException as e:
                         # TODO: should we raise the exception to sender of the response instead?
                         future.set_exception(e)
@@ -385,21 +386,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self,
         name: str,
         agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
-        *,
-        valid_namespaces: Sequence[str] | Type[AllNamespaces] = AllNamespaces,
     ) -> None:
         if name in self._agent_factories:
             raise ValueError(f"Agent with name {name} already exists.")
         self._agent_factories[name] = agent_factory
-        if valid_namespaces is not AllNamespaces:
-            self._valid_namespaces[name] = cast(Sequence[str], valid_namespaces)
-        else:
-            self._valid_namespaces[name] = []
 
         # For all already prepared namespaces we need to prepare this agent
         for namespace in self._known_namespaces:
-            if self._type_valid_for_namespace(AgentId(name=name, namespace=namespace)):
-                self._get_agent(AgentId(name=name, namespace=namespace))
+            self._get_agent(AgentId(name=name, namespace=namespace))
 
     def _invoke_agent_factory(
         self, agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T], agent_id: AgentId
@@ -419,23 +413,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         return agent
 
-    def _type_valid_for_namespace(self, agent_id: AgentId) -> bool:
-        if agent_id.name not in self._agent_factories:
-            raise KeyError(f"Agent with name {agent_id.name} not found.")
-
-        valid_namespaces = self._valid_namespaces[agent_id.name]
-        if len(valid_namespaces) == 0:
-            return True
-
-        return agent_id.namespace in valid_namespaces
-
     def _get_agent(self, agent_id: AgentId) -> Agent:
         self._process_seen_namespace(agent_id.namespace)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
-
-        if not self._type_valid_for_namespace(agent_id):
-            raise ValueError(f"Agent with name {agent_id.name} not valid for namespace {agent_id.namespace}.")
 
         if agent_id.name not in self._agent_factories:
             raise ValueError(f"Agent with name {agent_id.name} not found.")
@@ -463,5 +444,4 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
-            if self._type_valid_for_namespace(AgentId(name=name, namespace=namespace)):
-                self._get_agent(AgentId(name=name, namespace=namespace))
+            self._get_agent(AgentId(name=name, namespace=namespace))
