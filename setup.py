@@ -91,7 +91,7 @@ extra_require = {
     "long-context": ["llmlingua<0.3"],
     "anthropic": ["anthropic>=0.23.1"],
     "mistral": ["mistralai>=0.2.0"],
-    "cohere": ["cohere"],
+    "cohere": ["cohere>=5.5.8"],
 }
 
 setuptools.setup(
