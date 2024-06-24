@@ -4,12 +4,13 @@ Mixture of agents: https://github.com/togethercomputer/moa"""
 import asyncio
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient, OpenAI, SystemMessage, UserMessage
-from agnext.core import CancellationToken
+from agnext.core import AgentId, CancellationToken
+from agnext.core.intervention import DefaultInterventionHandler
 
 
 @dataclass
@@ -32,6 +33,11 @@ class AggregatorTask:
 @dataclass
 class AggregatorTaskResult:
     result: str
+
+
+@dataclass
+class Termination:
+    pass
 
 
 class ReferenceAgent(TypeRoutedAgent):
@@ -96,8 +102,39 @@ class AggregatorAgent(TypeRoutedAgent):
             self._session_results.pop(message.session_id)
 
 
+class TerminationHandler(DefaultInterventionHandler):
+    """A handler that listens for termination messages."""
+
+    def __init__(self) -> None:
+        self._terminated = False
+
+    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+        if isinstance(message, Termination):
+            self._terminated = True
+        return message
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+
+class DisplayAgent(TypeRoutedAgent):
+    """An agent that displays code writing result to the console and
+    publishes a termination message to the runtime."""
+
+    @message_handler
+    async def handle_code_writing_result(
+        self, message: AggregatorTaskResult, cancellation_token: CancellationToken
+    ) -> None:
+        print("Aggregator Task Result:", message.result)
+        # Terminate the runtime.
+        await self.publish_message(Termination())
+
+
 async def main() -> None:
-    runtime = SingleThreadedAgentRuntime()
+    termination_handler = TerminationHandler()
+    runtime = SingleThreadedAgentRuntime(before_send=termination_handler)
+    # TODO: use different models for each agent.
     runtime.register(
         "ReferenceAgent1",
         lambda: ReferenceAgent(
@@ -135,8 +172,14 @@ async def main() -> None:
             num_references=3,
         ),
     )
+    runtime.register(
+        "DisplayAgent",
+        lambda: DisplayAgent(description="Display Agent"),
+    )
     await runtime.publish_message(AggregatorTask(task="What are something fun to do in SF?"), namespace="default")
-    while True:
+
+    # Keep processing messages until termination.
+    while not termination_handler.terminated:
         await runtime.process_next()
 
 

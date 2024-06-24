@@ -1,52 +1,36 @@
 # Examples
 
-This directory contains examples of how to use AGNext.
+This directory contains examples and demos of how to use AGNext.
 
-## `chat` layer examples
+## Core examples
 
-We provide examples that use pre-built agents and message types in the `chat` layer.
-These examples are intended for users who want to quickly create
-demos and experimenting with multi-agent design paterns.
+We provide examples to illustrate the core concepts of AGNext:
+agents, runtime, and message passing APIs.
 
-### Single agent examples
+- [`inner_outer.py`](inner_outer.py): A simple example of how to create custom agent and message type.
+- [`mixture_of_agents_direct.py`](mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using async direct messaging API.
+- [`mixture_of_agents_pub_sub.py`](mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using publish-subscribe API.
+- [`coder_reviewer_direct.py`](coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using async direct messaging API.
+- [`coder_reviewer_pub_sub.py`](coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using publish-subscribe API.
+
+## Demos
+
+We provide interactive demos that showcase the capabilities of AGNext:
 
 - `assistant.py`: a demonstration of how to use the OpenAI Assistant API to create
     a ChatGPT agent.
-
-### Reflection pattern examples
-
-- `coder_reviewer.py`: using a coder and reviewer agents to implement the
-    reflection pattern for code generation.
-- `illustrator_critics.py`: using an illustrator, critics and descriptor agent
+- `chat_room.py`: An example of how to create a chat room of custom agents without
+    a centralized orchestrator.
+- `illustrator_critics.py`: a demo that uses an illustrator, critics and descriptor agent
     to implement the reflection pattern for image generation.
-- `chest_game.py`: using two chess player agents to demonstrate tool use and reflection
+- `chest_game.py`: a demo that two chess player agents to demonstrate tool use and reflection
     on tool use.
-
-### Group chat pattern examples
-
 - `software_consultancy.py`: a demonstration of multi-agent interaction using
     the group chat pattern.
-
-### Orchestrator pattern examples
-
 - `orchestrator.py`: a demonstration of multi-agent problem solving using
     the orchestrator pattern.
 
-## Advanced examples
-
-We also provide examples that use only the `core`, `application`, and `components` layers.
-These examples are intended for advanced users who want to create
-custom agents and message types for building applications.
-
-- `inner_outer.py`: An example of how to create an inner and outer custom agent.
-- `chat_room.py`: An example of how to create a chat room of custom agents without
-    a centralized orchestrator.
-- `mixture_of_agents_pub_sub.py`: An example of how to create [a mixture of agents](https://github.com/togethercomputer/moa)
-    that communicate using a publish-subscribe pattern.
-- `mixture_of_agents_gather.py`: An example of how to create [a mixture of agents](https://github.com/togethercomputer/moa)
-    that communicate using an async distribute-gather pattern.
-
-## Running the examples
+## Running the examples and demos
 
 First, you need a shell with AGNext and the examples dependencies installed. To do this, run:
 
