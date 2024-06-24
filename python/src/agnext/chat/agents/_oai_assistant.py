@@ -15,7 +15,6 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
 
     Args:
         description (str): The description of the agent.
-        runtime (AgentRuntime): The runtime to register the agent.
         client (openai.AsyncClient): The client to use for the OpenAI API.
         assistant_id (str): The assistant ID to use for the OpenAI API.
         thread_id (str): The thread ID to use for the OpenAI API.

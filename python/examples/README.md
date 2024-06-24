@@ -41,6 +41,10 @@ custom agents and message types for building applications.
 - `inner_outer.py`: An example of how to create an inner and outer custom agent.
 - `chat_room.py`: An example of how to create a chat room of custom agents without
     a centralized orchestrator.
+- `mixture_of_agents_pub_sub.py`: An example of how to create [a mixture of agents](https://github.com/togethercomputer/moa)
+    that communicate using a publish-subscribe pattern.
+- `mixture_of_agents_gather.py`: An example of how to create [a mixture of agents](https://github.com/togethercomputer/moa)
+    that communicate using an async distribute-gather pattern.
 
 ## Running the examples
 

@@ -11,7 +11,6 @@ class UserProxyAgent(TypeRoutedAgent):
 
     Args:
         description (str): The description of the agent.
-        runtime (AgentRuntime): The runtime to register the agent.
         user_input_prompt (str): The console prompt to show to the user when asking for input.
     """
 

@@ -37,7 +37,6 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
     Args:
         description (str): The description of the agent.
-        runtime (AgentRuntime): The runtime to register the agent.
         system_messages (List[SystemMessage]): The system messages to use for
             the ChatCompletion API.
         memory (ChatMemory[Message]): The memory to store and retrieve messages.
