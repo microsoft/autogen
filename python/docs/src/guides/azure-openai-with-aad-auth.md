@@ -15,7 +15,7 @@ pip install azure-identity
 ## Using the Model Client
 
 ```python
-from agnext.components.models import AzureOpenAI
+from agnext.components.models import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 # Create the token provider
@@ -23,7 +23,7 @@ token_provider = get_bearer_token_provider(
     DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
 )
 
-client = AzureOpenAI(
+client = AzureOpenAIChatCompletionClient(
     model="{your-azure-deployment}",
     api_version="2024-02-01",
     azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",

@@ -13,7 +13,7 @@ from agnext.components.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    OpenAI,
+    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
@@ -210,7 +210,7 @@ async def main() -> None:
         lambda: ToolUseAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
             tools=tools,
         ),
     )

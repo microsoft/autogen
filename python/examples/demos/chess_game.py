@@ -12,7 +12,7 @@ from agnext.chat.agents._chat_completion_agent import ChatCompletionAgent
 from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.chat.types import TextMessage
-from agnext.components.models import OpenAI, SystemMessage
+from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
@@ -163,7 +163,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
             tools=black_tools,
         ),
     )
@@ -180,7 +180,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
             tools=white_tools,
         ),
     )

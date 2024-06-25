@@ -8,7 +8,7 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAI,
+    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
@@ -120,7 +120,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="A data scientist",
             system_messages=[SystemMessage("You are a data scientist.")],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
     )
     agent2 = runtime.register_and_get(
@@ -128,7 +128,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="An engineer",
             system_messages=[SystemMessage("You are an engineer.")],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
     )
     agent3 = runtime.register_and_get(
@@ -136,7 +136,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="An artist",
             system_messages=[SystemMessage("You are an artist.")],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
     )
 

@@ -74,7 +74,7 @@ def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpe
         copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
     copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
 
-    # Shave down the config to just the AzureOpenAI kwargs
+    # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
     azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
     return AsyncAzureOpenAI(**azure_config)
 
@@ -249,7 +249,7 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
-class BaseOpenAI(ChatCompletionClient):
+class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
@@ -258,7 +258,7 @@ class BaseOpenAI(ChatCompletionClient):
     ):
         self._client = client
         if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
-            raise ValueError("AzureOpenAI requires explicit model capabilities")
+            raise ValueError("AzureOpenAIChatCompletionClient requires explicit model capabilities")
         elif model_capabilities is None:
             self._model_capabilities = _model_info.get_capabilties(create_args["model"])
         else:
@@ -281,7 +281,7 @@ class BaseOpenAI(ChatCompletionClient):
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
-        return OpenAI(**config)
+        return OpenAIChatCompletionClient(**config)
 
     async def create(
         self,
@@ -517,10 +517,10 @@ class BaseOpenAI(ChatCompletionClient):
         return self._model_capabilities
 
 
-class OpenAI(BaseOpenAI):
+class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
         if "model" not in kwargs:
-            raise ValueError("model is required for OpenAI")
+            raise ValueError("model is required for OpenAIChatCompletionClient")
 
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
@@ -543,10 +543,10 @@ class OpenAI(BaseOpenAI):
         self._client = _openai_client_from_config(state["_raw_config"])
 
 
-class AzureOpenAI(BaseOpenAI):
+class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         if "model" not in kwargs:
-            raise ValueError("model is required for OpenAI")
+            raise ValueError("model is required for OpenAIChatCompletionClient")
 
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()

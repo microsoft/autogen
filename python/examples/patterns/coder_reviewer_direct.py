@@ -10,7 +10,7 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAI,
+    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
@@ -197,14 +197,14 @@ async def main() -> None:
         "ReviewerAgent",
         lambda: ReviewerAgent(
             description="Code Reviewer",
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
     )
     coder = runtime.register_and_get(
         "CoderAgent",
         lambda: CoderAgent(
             description="Coder",
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
             reviewer=reviewer,
         ),
     )

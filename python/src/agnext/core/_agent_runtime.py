@@ -73,7 +73,7 @@ class AgentRuntime(Protocol):
                     lambda: ChatCompletionAgent(
                         description="A generic chat agent.",
                         system_messages=[SystemMessage("You are a helpful assistant")],
-                        model_client=OpenAI(model="gpt-4o"),
+                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
                         memory=BufferedChatMemory(buffer_size=10),
                     ),
                 )

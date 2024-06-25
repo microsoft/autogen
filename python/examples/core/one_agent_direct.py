@@ -5,7 +5,7 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import (
     ChatCompletionClient,
-    OpenAI,
+    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
@@ -34,7 +34,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     agent = runtime.register_and_get(
-        "chat_agent", lambda: ChatCompletionAgent("Chat agent", OpenAI(model="gpt-3.5-turbo"))
+        "chat_agent", lambda: ChatCompletionAgent("Chat agent", OpenAIChatCompletionClient(model="gpt-3.5-turbo"))
     )
 
     # Send a message to the agent.

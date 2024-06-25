@@ -8,7 +8,7 @@ from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.components.models import ChatCompletionClient, OpenAI, SystemMessage, UserMessage
+from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage, UserMessage
 from agnext.core import AgentId, CancellationToken
 
 
@@ -94,7 +94,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 1",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=0.1),
         ),
     )
     ref2 = runtime.register_and_get(
@@ -102,7 +102,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 2",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAI(model="gpt-3.5-turbo", temperature=0.5),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=0.5),
         ),
     )
     ref3 = runtime.register_and_get(
@@ -110,7 +110,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 3",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAI(model="gpt-3.5-turbo", temperature=1.0),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=1.0),
         ),
     )
     agg = runtime.register_and_get(
@@ -122,7 +122,7 @@ async def main() -> None:
                     "...synthesize these responses into a single, high-quality response... Responses from models:"
                 )
             ],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
             references=[ref1, ref2, ref3],
         ),
     )

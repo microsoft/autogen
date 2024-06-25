@@ -24,7 +24,7 @@ from agnext.chat.agents import ChatCompletionAgent
 from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns import GroupChatManager
 from agnext.chat.types import TextMessage
-from agnext.components.models import OpenAI, SystemMessage
+from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 ```
 
 Next, let's create the runtime:
@@ -49,7 +49,7 @@ coder = runtime.register_and_get_proxy(
                 "Work with the reviewer to improve your code."
             )
         ],
-        model_client=OpenAI(model="gpt-4-turbo"),
+        model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         memory=BufferedChatMemory(buffer_size=10),
     ),
 )
@@ -69,7 +69,7 @@ reviewer = runtime.register_and_get_proxy(
                 "Suggested Changes: <Your comments>"
             )
         ],
-        model_client=OpenAI(model="gpt-4-turbo"),
+        model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         memory=BufferedChatMemory(buffer_size=10),
     ),
 )

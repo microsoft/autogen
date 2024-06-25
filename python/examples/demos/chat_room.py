@@ -11,7 +11,7 @@ from agnext.chat.types import Message, TextMessage
 from agnext.chat.utils import convert_messages_to_llm_messages
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
-from agnext.components.models import ChatCompletionClient, OpenAI, SystemMessage
+from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage
 from agnext.core import AgentRuntime, CancellationToken
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -101,7 +101,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Alice in the chat room.",
             background_story="Alice is a software engineer who loves to code.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
     bob = runtime.register_and_get_proxy(
@@ -111,7 +111,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Bob in the chat room.",
             background_story="Bob is a data scientist who loves to analyze data.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
     charlie = runtime.register_and_get_proxy(
@@ -121,7 +121,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Charlie in the chat room.",
             background_story="Charlie is a designer who loves to create art.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:

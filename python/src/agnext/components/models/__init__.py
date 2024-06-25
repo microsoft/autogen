@@ -1,7 +1,7 @@
 from ._model_client import ChatCompletionClient, ModelCapabilities
 from ._openai_client import (
-    AzureOpenAI,
-    OpenAI,
+    AzureOpenAIChatCompletionClient,
+    OpenAIChatCompletionClient,
 )
 from ._types import (
     AssistantMessage,
@@ -16,8 +16,8 @@ from ._types import (
 )
 
 __all__ = [
-    "AzureOpenAI",
-    "OpenAI",
+    "AzureOpenAIChatCompletionClient",
+    "OpenAIChatCompletionClient",
     "ModelCapabilities",
     "ChatCompletionClient",
     "SystemMessage",

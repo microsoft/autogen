@@ -5,7 +5,7 @@ import sys
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import (
-    OpenAI,
+    OpenAIChatCompletionClient,
     SystemMessage,
 )
 from agnext.components.tools import FunctionTool
@@ -31,7 +31,7 @@ async def main() -> None:
         lambda: ToolEnabledAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=OpenAI(model="gpt-3.5-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
             tools=[
                 # Define a tool that gets the stock price.
                 FunctionTool(

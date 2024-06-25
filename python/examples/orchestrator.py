@@ -14,7 +14,7 @@ from agnext.chat.agents._oai_assistant import OpenAIAssistantAgent
 from agnext.chat.memory import BufferedChatMemory
 from agnext.chat.patterns._orchestrator_chat import OrchestratorChat
 from agnext.chat.types import TextMessage
-from agnext.components.models import OpenAI, SystemMessage
+from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 from agnext.components.tools import BaseTool
 from agnext.core import AgentRuntime, CancellationToken
 from pydantic import BaseModel, Field
@@ -57,7 +57,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
             description="A developer that writes code.",
             system_messages=[SystemMessage("You are a Python developer.")],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
 
@@ -88,7 +88,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
                 SystemMessage("You can use the search tool to find information on the web."),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
             tools=[SearchTool()],
         ),
     )
@@ -99,7 +99,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
             description="A planner that organizes and schedules tasks.",
             system_messages=[SystemMessage("You are a planner of complex tasks.")],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
 
@@ -111,7 +111,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
                 SystemMessage("You are an orchestrator that coordinates the team to complete a complex task.")
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAI(model="gpt-4-turbo"),
+            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
         ),
     )
 
