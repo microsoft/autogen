@@ -1,9 +1,20 @@
 import asyncio
+import os
 import random
+import sys
 from asyncio import Future
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.types import (
+from agnext.components import Image, TypeRoutedAgent, message_handler
+from agnext.core import AgentRuntime, CancellationToken
+from textual.app import App, ComposeResult
+from textual.containers import ScrollableContainer
+from textual.widgets import Button, Footer, Header, Input, Markdown, Static
+from textual_imageview.viewer import ImageViewer
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from common.types import (
     MultiModalMessage,
     PublishNow,
     RespondNow,
@@ -11,12 +22,6 @@ from agnext.chat.types import (
     ToolApprovalRequest,
     ToolApprovalResponse,
 )
-from agnext.components import Image, TypeRoutedAgent, message_handler
-from agnext.core import AgentRuntime, CancellationToken
-from textual.app import App, ComposeResult
-from textual.containers import ScrollableContainer
-from textual.widgets import Button, Footer, Header, Input, Markdown, Static
-from textual_imageview.viewer import ImageViewer
 
 
 class ChatAppMessage(Static):

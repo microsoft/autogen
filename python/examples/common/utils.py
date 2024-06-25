@@ -1,14 +1,14 @@
 from typing import List, Optional, Union
 
-from typing_extensions import Literal
-
-from ..components.models import (
+from agnext.components.models import (
     AssistantMessage,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
 )
+from typing_extensions import Literal
+
 from .types import (
     FunctionCallMessage,
     Message,

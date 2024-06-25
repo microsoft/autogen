@@ -17,9 +17,6 @@ import aiofiles
 import aiohttp
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents import ChatCompletionAgent
-from agnext.chat.memory import HeadAndTailChatMemory
-from agnext.chat.patterns._group_chat_manager import GroupChatManager
 from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
@@ -28,7 +25,11 @@ from tqdm import tqdm
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from common.agents import ChatCompletionAgent
+from common.memory import HeadAndTailChatMemory
+from common.patterns._group_chat_manager import GroupChatManager
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 

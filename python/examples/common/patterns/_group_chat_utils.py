@@ -3,9 +3,10 @@
 import re
 from typing import Dict, List
 
-from ...components.memory import ChatMemory
-from ...components.models import ChatCompletionClient, SystemMessage
-from ...core import AgentProxy
+from agnext.components.memory import ChatMemory
+from agnext.components.models import ChatCompletionClient, SystemMessage
+from agnext.core import AgentProxy
+
 from ..types import Message, TextMessage
 
 

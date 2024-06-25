@@ -1,8 +1,9 @@
 import json
 from typing import Any, Sequence, Tuple
 
-from ...components import TypeRoutedAgent, message_handler
-from ...core import AgentId, AgentRuntime, CancellationToken
+from agnext.components import TypeRoutedAgent, message_handler
+from agnext.core import AgentId, AgentRuntime, CancellationToken
+
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
 __all__ = ["OrchestratorChat"]

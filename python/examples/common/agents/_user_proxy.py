@@ -1,7 +1,8 @@
 import asyncio
 
-from ...components import TypeRoutedAgent, message_handler
-from ...core import CancellationToken
+from agnext.components import TypeRoutedAgent, message_handler
+from agnext.core import CancellationToken
+
 from ..types import PublishNow, TextMessage
 
 

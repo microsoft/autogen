@@ -6,15 +6,12 @@ import asyncio
 import logging
 import os
 import re
+import sys
 from typing import List
 
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents import OpenAIAssistantAgent
-from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns._group_chat_manager import GroupChatManager
-from agnext.chat.types import PublishNow, TextMessage
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import AgentId, AgentRuntime, CancellationToken
 from openai import AsyncAssistantEventHandler
@@ -22,6 +19,13 @@ from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
 from openai.types.beta.threads.runs import RunStep, RunStepDelta
 from typing_extensions import override
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from common.agents import OpenAIAssistantAgent
+from common.memory import BufferedChatMemory
+from common.patterns._group_chat_manager import GroupChatManager
+from common.types import PublishNow, TextMessage
 
 sep = "-" * 50
 

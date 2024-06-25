@@ -3,13 +3,7 @@
 Memory is a collection of data corresponding to the conversation history
 of an agent.
 Data in meory can be just a simple list of all messages,
-or one which provides a view of the last N messages
-({py:class}`agnext.chat.memory.BufferedChatMemory`).
-
-Built-in memory implementations are:
-
-- {py:class}`agnext.chat.memory.BufferedChatMemory`
-- {py:class}`agnext.chat.memory.HeadAndTailChatMemory`
+or one which provides a view of the last N messages.
 
 To create a custom memory implementation, you need to subclass the
 {py:class}`agnext.components.memory.ChatMemory` protocol class and implement
@@ -17,3 +11,53 @@ all its methods.
 For example, you can use [LLMLingua](https://github.com/microsoft/LLMLingua)
 to create a custom memory implementation that provides a compressed
 view of the conversation history.
+
+Here is an example of a custom memory implementation that keeps a view of the
+last N messages:
+
+```python
+from typing import Any, List, Mapping
+
+from agnext.components.memory import ChatMemory
+from agnext.components.models import FunctionExecutionResultMessage, LLMMessage
+
+
+class BufferedChatMemory(ChatMemory[LLMMessage]):
+    """A buffered chat memory that keeps a view of the last n messages,
+    where n is the buffer size. The buffer size is set at initialization.
+
+    Args:
+        buffer_size (int): The size of the buffer.
+
+    """
+
+    def __init__(self, buffer_size: int) -> None:
+        self._messages: List[LLMMessage] = []
+        self._buffer_size = buffer_size
+
+    async def add_message(self, message: LLMMessage) -> None:
+        """Add a message to the memory."""
+        self._messages.append(message)
+
+    async def get_messages(self) -> List[LLMMessage]:
+        """Get at most `buffer_size` recent messages."""
+        messages = self._messages[-self._buffer_size :]
+        # Handle the first message is a function call result message.
+        if messages and isinstance(messages[0], FunctionExecutionResultMessage):
+            # Remove the first message from the list.
+            messages = messages[1:]
+        return messages
+
+    async def clear(self) -> None:
+        """Clear the message memory."""
+        self._messages = []
+
+    def save_state(self) -> Mapping[str, Any]:
+        return {
+            "messages": [message for message in self._messages],
+            "buffer_size": self._buffer_size,
+        }
+
+    def load_state(self, state: Mapping[str, Any]) -> None:
+        self._messages = state["messages"]
+        self._buffer_size = state["buffer_size"]

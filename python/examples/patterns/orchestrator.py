@@ -3,22 +3,25 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from typing import Callable
 
 import openai
 from agnext.application import (
     SingleThreadedAgentRuntime,
 )
-from agnext.chat.agents._chat_completion_agent import ChatCompletionAgent
-from agnext.chat.agents._oai_assistant import OpenAIAssistantAgent
-from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns._orchestrator_chat import OrchestratorChat
-from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 from agnext.components.tools import BaseTool
 from agnext.core import AgentRuntime, CancellationToken
 from pydantic import BaseModel, Field
 from tavily import TavilyClient  # type: ignore
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from common.agents import ChatCompletionAgent, OpenAIAssistantAgent
+from common.memory import BufferedChatMemory
+from common.patterns._orchestrator_chat import OrchestratorChat
+from common.types import TextMessage
 
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("agnext").setLevel(logging.DEBUG)

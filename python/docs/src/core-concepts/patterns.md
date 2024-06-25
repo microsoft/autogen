@@ -10,10 +10,3 @@ like software development.
 You can implement any multi-agent pattern using AGNext agents, which
 communicate with each other using messages through the agent runtime
 (see {doc}`/core-concepts/runtime` and {doc}`/core-concepts/agent`).
-To make life easier, AGNext provides built-in patterns
-in {py:mod}`agnext.chat.patterns` that you can use to build
-multi-agent systems quickly.
-
-To read about the built-in patterns, see the following guides:
-
-1. {doc}`/guides/group-chat-coder-reviewer`

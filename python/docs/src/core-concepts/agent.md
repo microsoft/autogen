@@ -19,7 +19,7 @@ Generally, messages are one of:
 
 Messages are purely data, and should not contain any logic.
 
-### Required Message Types
+<!-- ### Required Message Types
 
 At the core framework level there is *no requirement* of which message types are handled by an agent. However, some behavior patterns require agents understand certain message types. For an agent to participate in these patterns, it must understand any such required message types.
 
@@ -34,7 +34,7 @@ Agents should document which message types they can handle. Orchestrating agents
 
 ```{tip}
 An important part of designing an agent or choosing which agents to use is understanding which message types are required by the agents you are using.
-```
+``` -->
 
 ## Communication
 

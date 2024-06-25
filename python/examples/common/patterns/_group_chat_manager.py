@@ -1,10 +1,11 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
-from ...components import TypeRoutedAgent, message_handler
-from ...components.memory import ChatMemory
-from ...components.models import ChatCompletionClient
-from ...core import AgentId, AgentProxy, CancellationToken
+from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components.memory import ChatMemory
+from agnext.components.models import ChatCompletionClient
+from agnext.core import AgentId, AgentProxy, CancellationToken
+
 from ..types import (
     Message,
     MultiModalMessage,

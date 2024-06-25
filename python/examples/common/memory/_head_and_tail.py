@@ -1,7 +1,8 @@
 from typing import Any, List, Mapping
 
-from ...components.memory import ChatMemory
-from ...components.models import FunctionExecutionResultMessage
+from agnext.components.memory import ChatMemory
+from agnext.components.models import FunctionExecutionResultMessage
+
 from ..types import FunctionCallMessage, Message, TextMessage
 
 

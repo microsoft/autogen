@@ -2,6 +2,12 @@
 
 This directory contains examples and demos of how to use AGNext.
 
+- `common`: Contains common implementations and utilities used by the examples.
+- `core`: Contains examples that illustrate the core concepts of AGNext.
+- `tool-use`: Contains examples that illustrate tool use in AGNext.
+- `patterns`: Contains examples that illustrate how multi-agent patterns can be implemented in AGNext.
+- `demos`: Contains interactive demos that showcase applications that can be built using AGNext.
+
 ## Core examples
 
 We provide examples to illustrate the core concepts of AGNext:
@@ -42,7 +48,7 @@ We provide interactive demos that showcase applications that can be built using 
     to implement the reflection pattern for image generation.
 - [`software_consultancy.py`](demos/software_consultancy.py): a demonstration of multi-agent interaction using
     the group chat pattern.
-- [`chest_game.py`](tool-use/chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
+- [`chest_game.py`](demos/chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 
 ## Running the examples and demos
 
@@ -52,24 +58,15 @@ First, you need a shell with AGNext and the examples dependencies installed. To 
 hatch shell
 ```
 
-To run an example, just run the corresponding Python script. For example, to run the `coder_reviewer_pub_sub.py` example, run:
+To run an example, just run the corresponding Python script. For example:
 
 ```bash
 hatch shell
-python core/coder_reviewer.py
+python core/one_agent_direct.py
 ```
 
 Or simply:
 
 ```bash
-hatch run python core/coder_reviewer.py
+hatch run python core/one_agent_direct.py
 ```
-
-To enable logging, turn on verbose mode by setting `--verbose` flag:
-
-```bash
-hatch run python core/coder_reviewer.py --verbose
-```
-
-By default the log file is saved in the same directory with the same filename
-as the script, e.g., "coder_reviewer.log".

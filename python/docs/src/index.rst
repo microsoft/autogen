@@ -16,9 +16,8 @@ AGNext's developer API consists of the following layers:
 - :doc:`core <reference/agnext.core>` - The core interfaces that defines agent and runtime.
 - :doc:`application <reference/agnext.application>` - Implementations of the runtime and other modules (e.g., logging) for building applications.
 - :doc:`components <reference/agnext.components>` - Interfaces and implementations for agents, models, memory, and tools.
-- :doc:`chat <reference/agnext.chat>` - High-level API for creating demos and experimenting with multi-agent patterns. It offers pre-built agents, patterns, message types, and memory stores.
 
-
+To get you started quickly, we also offers [a suite of examples](https://github.com/microsoft/agnext/tree/main/python/examples) to demonstrate the core concepts.
 
 .. toctree::
     :caption: Getting started
@@ -45,7 +44,6 @@ AGNext's developer API consists of the following layers:
     :hidden:
 
     guides/type-routed-agent
-    guides/group-chat-coder-reviewer
     guides/azure-openai-with-aad-auth
     guides/termination-with-intervention
 
@@ -56,7 +54,6 @@ AGNext's developer API consists of the following layers:
 
     reference/agnext.components
     reference/agnext.application
-    reference/agnext.chat
     reference/agnext.core
 
 .. toctree::

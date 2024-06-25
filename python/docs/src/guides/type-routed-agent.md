@@ -7,9 +7,9 @@ The decorator {py:func}`agnext.components.message_handler` should be added to fu
 - The function must be an `async` function.
 - The function must be decorated with the `message_handler` decorator.
 - The function must have exactly 3 arguments.
-    - `self`
-    - `message`: The message to be handled, this must be type hinted with the message type that it is intended to handle.
-    - `cancellation_token`: A {py:class}`agnext.core.CancellationToken` object
+  - `self`
+  - `message`: The message to be handled, this must be type hinted with the message type that it is intended to handle.
+  - `cancellation_token`: A {py:class}`agnext.core.CancellationToken` object
 - The function must be type hinted with what message types it can return.
 
 ```{tip}
@@ -23,9 +23,24 @@ The following is an example of a simple agent that broadcasts the fact it receiv
 One important thing to point out is that when an agent is constructed it must be passed a runtime object. This allows the agent to communicate with other agents via the runtime.
 
 ```python
-from agnext.chat.types import MultiModalMessage, Reset, TextMessage
-from agnext.components import TypeRoutedAgent, message_handler
+from dataclasses import dataclass
+from typing import List, Union
+from agnext.components import TypeRoutedAgent, message_handler, Image
 from agnext.core import AgentRuntime, CancellationToken
+
+@dataclass
+class TextMessage:
+    content: str
+    source: str
+
+@dataclass
+class MultiModalMessage:
+    content: List[Union[str, Image]]
+    source: str
+
+@dataclass
+class Reset:
+    pass
 
 
 class MyAgent(TypeRoutedAgent):

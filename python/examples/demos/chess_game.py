@@ -5,18 +5,23 @@ and make moves, and using a group chat manager to orchestrate the conversation."
 import argparse
 import asyncio
 import logging
+import os
+import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.agents._chat_completion_agent import ChatCompletionAgent
-from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.patterns._group_chat_manager import GroupChatManager
-from agnext.chat.types import TextMessage
 from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from common.agents._chat_completion_agent import ChatCompletionAgent
+from common.memory import BufferedChatMemory
+from common.patterns._group_chat_manager import GroupChatManager
+from common.types import TextMessage
 
 
 def validate_turn(board: Board, player: Literal["white", "black"]) -> None:

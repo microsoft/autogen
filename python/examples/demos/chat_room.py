@@ -6,16 +6,17 @@ import os
 import sys
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.chat.memory import BufferedChatMemory
-from agnext.chat.types import Message, TextMessage
-from agnext.chat.utils import convert_messages_to_llm_messages
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage
 from agnext.core import AgentRuntime, CancellationToken
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from common.memory import BufferedChatMemory
+from common.types import Message, TextMessage
+from common.utils import convert_messages_to_llm_messages
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
