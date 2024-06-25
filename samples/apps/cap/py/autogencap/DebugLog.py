@@ -34,19 +34,25 @@ class BaseLogger:
 
 
 class ConsoleLogger(BaseLogger):
-    def __init__(self):
+    def __init__(self, use_color=True):
         super().__init__()
+        self._use_color = use_color
+
+    def _colorize(self, msg, color):
+        if self._use_color:
+            return colored(msg, color)
+        return msg
 
     def WriteLog(self, level, context, msg):
-        timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
+        timestamp = self._colorize(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
         # Translate level number to name and color
-        level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
+        level_name = self._colorize(LEVEL_NAMES[level], LEVEL_COLOR[level])
         # Left justify the context and color it blue
-        context = colored(context.ljust(14), "blue")
+        context = self._colorize(context.ljust(14), "blue")
         # Left justify the threadid and color it blue
-        thread_id = colored(str(threading.get_ident()).ljust(5), "blue")
+        thread_id = self._colorize(str(threading.get_ident()).ljust(5), "blue")
         # color the msg based on the level
-        msg = colored(msg, LEVEL_COLOR[level])
+        msg = self._colorize(msg, LEVEL_COLOR[level])
         print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
 
 
