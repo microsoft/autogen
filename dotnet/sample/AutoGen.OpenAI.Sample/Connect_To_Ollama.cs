@@ -42,7 +42,7 @@ public class Connect_To_Ollama
         // api-key is not required for local server
         // so you can use any string here
         var openAIClient = new OpenAIClient("api-key", option);
-        var model = "dolphincoder";
+        var model = "llama3";
 
         var agent = new OpenAIChatAgent(
             openAIClient: openAIClient,
