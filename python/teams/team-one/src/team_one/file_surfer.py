@@ -1,10 +1,11 @@
 import asyncio
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
+import aiofiles
 from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
-from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -14,7 +15,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.components.tools import PythonCodeExecutionTool
+from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
 
 
@@ -38,15 +39,31 @@ class LLMResponseMessage:
     content: str
 
 
-class Coder(TypeRoutedAgent):
-    """An agent that uses tools to write, execute, and debug Python code."""
+async def read_local_file(file_path: str) -> str:
+    """Async read the contents of a local file."""
+    try:
+        async with aiofiles.open(file_path, mode="r") as file:
+            return str(await file.read())
+    except FileNotFoundError:
+        return f"File not found: {file_path}"
 
-    DEFAULT_DESCRIPTION = "A Python coder assistant."
+
+def list_files_in_directory(dir_path: str) -> str:
+    """List files in a directory asynchronously and return them as a single string."""
+    path = Path(dir_path)
+    # Joining the file names into a single string separated by new lines
+    return "\n".join(item.name for item in path.iterdir() if item.is_file())
+
+
+class FileSurfer(TypeRoutedAgent):
+    """An agent that uses tools to read and navigate local files."""
+
+    DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""You are a helpful AI Assistant. Use your tools to solve problems.
-                        If the tool results in an error, use the error trace to improve
-                        the python code. If the code requires installing packages, use python to install the packages"""),
+        SystemMessage("""You are a helpful AI Assistant. Use your tools to solve problems
+                      that involve reading and navigating files.
+                      """),
     ]
 
     def __init__(
@@ -58,7 +75,18 @@ class Coder(TypeRoutedAgent):
         super().__init__(description)
         self._model_client = model_client
         self._system_messages = system_messages
-        self._tools = [PythonCodeExecutionTool(LocalCommandLineCodeExecutor())]
+        self._tools = [
+            FunctionTool(
+                read_local_file,
+                description="Read the contents of a local file.",
+                name="read_local_file",
+            ),
+            FunctionTool(
+                list_files_in_directory,
+                description="Read the contents of a directory",
+                name="list_files_in_directory",
+            ),
+        ]
 
     @message_handler
     async def handle_user_message(
