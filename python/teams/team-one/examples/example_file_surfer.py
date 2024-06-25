@@ -4,7 +4,7 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import (
     OpenAIChatCompletionClient,
 )
-from team_one.file_surfer import FileSurfer, LLMResponseMessage, TaskMessage
+from team_one.agents.file_surfer import FileSurfer, LLMResponseMessage, TaskMessage
 
 
 async def main() -> None:

@@ -2,7 +2,7 @@ import asyncio
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import OpenAIChatCompletionClient
-from team_one.coder import Coder, LLMResponseMessage, TaskMessage
+from team_one.agents.coder import Coder, LLMResponseMessage, TaskMessage
 
 
 async def main() -> None:
