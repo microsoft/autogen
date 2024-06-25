@@ -15,7 +15,7 @@ agents, runtime, and message passing APIs.
 
 We provide examples to illustrate how to use tools in AGNext:
 
-- [`coding_one_agent_direct.py`](tool-use/coding_two_agent_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
+- [`coding_one_agent_direct.py`](tool-use/coding_one_agent_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
 - [`coding_two_agent_direct.py`](tool-use/coding_two_agent_direct.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
 - [`coding_two_agent_pub_sub.py`](tool-use/coding_two_agent_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses the publish-subscribe API.
 - [`custom_function_tool_one_agent_direct.py`](tool-use/custom_function_tool_one_agent_direct.py): a custom function tool example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
