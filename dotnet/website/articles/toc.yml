@@ -1,5 +1,7 @@
 - name: Getting start
   items:
+    - name: Overview
+      href: ../index.md
     - name: Installation
       href: Installation.md
     - name: agent

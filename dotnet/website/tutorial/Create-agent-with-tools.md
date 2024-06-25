@@ -47,12 +47,19 @@ Also, you might need to enable structural xml document support by setting `Gener
 
 [!code-csharp[Using Statements](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Using)]
 
-## Define `Tool` class
+## Create agent
+
+Create an @AutoGen.OpenAI.OpenAIChatAgent with `GPT-3.5-turbo` as the backend LLM model.
+
+[!code-csharp[Create an agent with tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_Agent)]
+
+## Define `Tool` class and create tools
 Create a `public partial` class to host the tools you want to use in AutoGen agents. The method has to be a `public` instance method and its return type must be `Task<string>`. After the methods is defined, mark them with @AutoGen.Core.FunctionAttribute attribute.
 
 In the following example, we define a `GetWeather` tool that returns the weather information of a city.
 
 [!code-csharp[Define Tool class](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Tools)]
+[!code-csharp[Create tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_tools)]
 
 ## Tool call without auto-invoke
 In this case, when receiving a @AutoGen.Core.ToolCallMessage, the agent will not automatically invoke the tool. Instead, the agent will return the original message back to the user. The user can then decide whether to invoke the tool or not.
@@ -61,9 +68,11 @@ In this case, when receiving a @AutoGen.Core.ToolCallMessage, the agent will not
 
 To implement this, you can create the @AutoGen.Core.FunctionCallMiddleware without passing the `functionMap` parameter to the constructor so that the middleware will not automatically invoke the tool once it receives a @AutoGen.Core.ToolCallMessage from its inner agent.
 
-[!code-csharp[Create_tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_tools)]
-
 [!code-csharp[Single-turn tool call without auto-invoke](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_no_invoke_middleware)]
+
+After creating the function call middleware, you can register it to the agent using `RegisterMiddleware` method, which will return a new agent which can use the methods defined in the `Tool` class.
+
+[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_No_Invoke)]
 
 ## Tool call with auto-invoke
 In this case, the agent will automatically invoke the tool when receiving a @AutoGen.Core.ToolCallMessage and return the @AutoGen.Core.ToolCallAggregateMessage which contains both the tool call request and the tool call result.
@@ -74,19 +83,9 @@ To implement this, you can create the @AutoGen.Core.FunctionCallMiddleware with 
 
 [!code-csharp[Single-turn tool call with auto-invoke](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_auto_invoke_middleware)]
 
-## Create an agent with the @AutoGen.Core.FunctionCallMiddleware and chat with the agent
-
-To use tools with an agent, you can create an agent and register the @AutoGen.Core.FunctionCallMiddleware to the agent that was just created above.
-
-[!code-csharp[Create an agent with tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_Agent)]
-
-To automatically invoke the tool, you can register the agent with `autoInvokeMiddleware`. In this situation, the agent will automatically invoke the tool when receiving a @AutoGen.Core.ToolCallMessage. And return the @AutoGen.Core.ToolCallAggregateMessage which contains both the tool call request and the tool call result.
+After creating the function call middleware, you can register it to the agent using `RegisterMiddleware` method, which will return a new agent which can use the methods defined in the `Tool` class.
 
 [!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_Auto_Invoke)]
-
-To retrieve the raw @AutoGen.Core.ToolCallMessage without invoking the tool, you can register the agent with `noInvokeMiddleware`. In this situation, the agent will return the original message back to the user when receiving a @AutoGen.Core.ToolCallMessage.
-
-[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_No_Invoke)]
 
 ## Send the tool call result back to LLM to generate further response
 In some cases, you may want to send the tool call result back to the LLM to generate further response. To do this, you can send the tool call response from agent back to the LLM by calling the `SendAsync` method of the agent.
