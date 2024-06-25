@@ -49,10 +49,10 @@ ANTHROPIC_PRICING_1k = {
     "claude-3-5-sonnet-20240620": (0.003, 0.015),
     "claude-3-sonnet-20240229": (0.003, 0.015),
     "claude-3-opus-20240229": (0.015, 0.075),
-    "claude-2.0": (0.008, 0.024),
+    "claude-3-haiku-20240307": (0.00025, 0.00125),
     "claude-2.1": (0.008, 0.024),
-    "claude-3.0-opus": (0.015, 0.075),
-    "claude-3.0-haiku": (0.00025, 0.00125),
+    "claude-2.0": (0.008, 0.024),
+    "claude-instant-1.2": (0.008, 0.024),
 }
 
 
@@ -181,7 +181,7 @@ class AnthropicClient:
         response_oai = ChatCompletion(
             id=response.id,
             model=anthropic_params["model"],
-            created=int(time.time() * 1000),
+            created=int(time.time()),
             object="chat.completion",
             choices=choices,
             usage=CompletionUsage(
@@ -242,86 +242,106 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
 
     # Convert messages to Anthropic compliant format
     processed_messages = []
+
+    # Used to interweave user messages to ensure user/assistant alternating
+    user_continue_message = {"content": "Please continue.", "role": "user"}
+    assistant_continue_message = {"content": "Please continue.", "role": "assistant"}
+
     tool_use_messages = 0
     tool_result_messages = 0
     last_tool_use_index = -1
+    last_tool_result_index = -1
     for message in params["messages"]:
         if message["role"] == "system":
             params["system"] = message["content"]
-        elif "tool_calls" in message:
-            # Map the tool call options to Anthropic's ToolUseBlock
-            tool_uses = []
-            tool_names = []
-            for tool_call in message["tool_calls"]:
-                tool_uses.append(
-                    ToolUseBlock(
-                        type="tool_use",
-                        id=tool_call["id"],
-                        name=tool_call["function"]["name"],
-                        input=json.loads(tool_call["function"]["arguments"]),
-                    )
-                )
-                tool_names.append(tool_call["function"]["name"])
-
-            if has_tools:
-                processed_messages.append({"role": "assistant", "content": tool_uses})
-                tool_use_messages += 1
-                last_tool_use_index = len(processed_messages) - 1
-            else:
-                # Not using tools, so put in a plain text message
-                processed_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": f"Some internal function(s) that could be used: [{', '.join(tool_names)}]",
-                    }
-                )
-        elif "tool_call_id" in message:
-            if has_tools:
-                # Map the tool usage call to tool_result for Anthropic
-                processed_messages.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": message["tool_call_id"],
-                                "content": message["content"],
-                            }
-                        ],
-                    }
-                )
-                tool_result_messages += 1
-            else:
-                # Not using tools, so put in a plain text message
-                processed_messages.append(
-                    {"role": "user", "content": f"Running the function returned: {message['content']}"}
-                )
-        elif message["content"] == "":
-            message["content"] = (
-                "I'm done. Please send TERMINATE"  # TODO: Determine why we would be getting a blank response. Typically this is because 'assistant' is the last message role.
-            )
-            processed_messages.append(message)
         else:
-            processed_messages.append(message)
+            # New messages will be added here, manage role alternations
+            expected_role = "user" if len(processed_messages) % 2 == 0 else "assistant"
 
-    # We'll drop the last tool_use if there's no tool_result (occurs if we finish the conversation before running the function)
-    if tool_use_messages != tool_result_messages:
-        # Too many tool_use messages, drop the last one as we haven't run it.
-        processed_messages.pop(last_tool_use_index)
+            if "tool_calls" in message:
+                # Map the tool call options to Anthropic's ToolUseBlock
+                tool_uses = []
+                tool_names = []
+                for tool_call in message["tool_calls"]:
+                    tool_uses.append(
+                        ToolUseBlock(
+                            type="tool_use",
+                            id=tool_call["id"],
+                            name=tool_call["function"]["name"],
+                            input=json.loads(tool_call["function"]["arguments"]),
+                        )
+                    )
+                    if has_tools:
+                        tool_use_messages += 1
+                    tool_names.append(tool_call["function"]["name"])
 
-    # Check for interleaving roles and correct, for Anthropic must be: user, assistant, user, etc.
-    for i, message in enumerate(processed_messages):
-        if message["role"] is not ("user" if i % 2 == 0 else "assistant"):
-            message["role"] = "user" if i % 2 == 0 else "assistant"
+                if expected_role == "user":
+                    # Insert an extra user message as we will append an assistant message
+                    processed_messages.append(user_continue_message)
 
-        # Also remove name key from message as it is not supported
-        message.pop("name", None)
+                if has_tools:
+                    processed_messages.append({"role": "assistant", "content": tool_uses})
+                    last_tool_use_index = len(processed_messages) - 1
+                else:
+                    # Not using tools, so put in a plain text message
+                    processed_messages.append(
+                        {
+                            "role": "assistant",
+                            "content": f"Some internal function(s) that could be used: [{', '.join(tool_names)}]",
+                        }
+                    )
+            elif "tool_call_id" in message:
+                if has_tools:
+                    # Map the tool usage call to tool_result for Anthropic
+                    tool_result = {
+                        "type": "tool_result",
+                        "tool_use_id": message["tool_call_id"],
+                        "content": message["content"],
+                    }
+
+                    # If the previous message also had a tool_result, add it to that
+                    # Otherwise append a new message
+                    if last_tool_result_index == len(processed_messages) - 1:
+                        processed_messages[-1]["content"].append(tool_result)
+                    else:
+                        if expected_role == "assistant":
+                            # Insert an extra assistant message as we will append a user message
+                            processed_messages.append(assistant_continue_message)
+
+                        processed_messages.append({"role": "user", "content": [tool_result]})
+                        last_tool_result_index = len(processed_messages) - 1
+
+                    tool_result_messages += 1
+                else:
+                    # Not using tools, so put in a plain text message
+                    processed_messages.append(
+                        {"role": "user", "content": f"Running the function returned: {message['content']}"}
+                    )
+            elif message["content"] == "":
+                # Ignoring empty messages
+                pass
+            else:
+                if expected_role != message["role"]:
+                    # Inserting the alternating continue message
+                    processed_messages.append(
+                        user_continue_message if expected_role == "user" else assistant_continue_message
+                    )
+
+                processed_messages.append(message)
+
+    # We'll replace the last tool_use if there's no tool_result (occurs if we finish the conversation before running the function)
+    if has_tools and tool_use_messages != tool_result_messages:
+        processed_messages[last_tool_use_index] = assistant_continue_message
+
+    # name is not a valid field on messages
+    for message in processed_messages:
+        if "name" in message:
+            message.pop("name", None)
 
     # Note: When using reflection_with_llm we may end up with an "assistant" message as the last message and that may cause a blank response
+    # So, if the last role is not user, add a 'user' continue message at the end
     if processed_messages[-1]["role"] != "user":
-        # If the last role is not user, add a continue message at the end
-        continue_message = {"content": "continue", "role": "user"}
-        processed_messages.append(continue_message)
+        processed_messages.append(user_continue_message)
 
     return processed_messages
 
