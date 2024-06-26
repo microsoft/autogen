@@ -40,8 +40,8 @@ An important part of designing an agent or choosing which agents to use is under
 
 There are two forms of communication in AGNext:
 
-- **Direct communication**: An agent sends a message to another agent.
-- **Broadcast communication**: An agent publishes a message to all agents.
+- **Direct communication**: An agent sends a direct message to another agent.
+- **Broadcast communication**: An agent publishes a message to all agents in the same namespace.
 
 ### Message Handling
 
@@ -55,7 +55,8 @@ To send a message to an agent outside of agent handling a message the message sh
 
 ### Broadcast Communication
 
-As part of the agent's implementation it must advertise the message types that it would like to receive when published ({py:attr}`agnext.core.Agent.subscriptions`). If one of these messages is published, the agent's message handler will be invoked. The key difference between direct and broadcast communication is that broadcast communication is not a request/response pattern. When an agent publishes a message it is one way, it is not expecting a response from any other agent. In fact, they cannot respond to the message.
+Broadcast communication is effectively the publish-subscribe model.
+As part of the agent's implementation it must advertise the message types that it would like to receive when published ({py:attr}`agnext.core.Agent.subscriptions`). If one of these messages is published, the agent's message handler will be invoked. The key difference between direct and broadcast communication is that broadcast communication is not a request/response model. When an agent publishes a message it is one way, it is not expecting a response from any other agent. In fact, they cannot respond to the message.
 
 To publish a message to all agents, use the {py:meth}`agnext.core.BaseAgent.publish_message` method. This call must still be awaited to allow the runtime to deliver the message to all agents, but it will always return `None`. If an agent raises an exception while handling a published message, this will be logged but will not be propagated back to the publishing agent.
 

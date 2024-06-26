@@ -1,3 +1,17 @@
+"""
+This example shows how to use direct messaging to implement
+a simple interaction between a coder and a reviewer agent.
+1. The coder agent receives a code writing task message, generates a code block,
+and sends a code review task message to the reviewer agent.
+2. The reviewer agent receives the code review task message, reviews the code block,
+and sends a code review result message to the coder agent.
+3. The coder agent receives the code review result message, depending on the result:
+if the code is approved, it sends a code writing result message; otherwise, it generates
+a new code block and sends a code review task message.
+4. The process continues until the coder agent receives an approved code review result message.
+5. The main function prints the code writing result.
+"""
+
 import asyncio
 import json
 import re

@@ -1,3 +1,15 @@
+"""
+This example implements a tool-enabled agent that uses tools to perform tasks.
+1. The agent receives a user message, and makes an inference using a model.
+If the response is a list of function calls, the agent executes the tools by
+sending tool execution task to itself.
+2. The agent executes the tools and sends the results back to itself, and
+makes an inference using the model again.
+3. The agent keeps executing the tools until the inference response is not a
+list of function calls.
+4. The agent returns the final response to the user.
+"""
+
 import asyncio
 import json
 from dataclasses import dataclass

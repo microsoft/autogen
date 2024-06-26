@@ -1,3 +1,10 @@
+"""
+This example shows how to use direct messaging to implement
+a simple chat completion agent.
+The agent receives a message from the main function, sends it to the
+chat completion model, and returns the response to the main function.
+"""
+
 import asyncio
 from dataclasses import dataclass
 

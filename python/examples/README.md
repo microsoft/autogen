@@ -10,31 +10,30 @@ This directory contains examples and demos of how to use AGNext.
 
 ## Core examples
 
-We provide examples to illustrate the core concepts of AGNext:
-agents, runtime, and message passing APIs.
+We provide examples to illustrate the core concepts of AGNext: agents, runtime, and message passing.
 
-- [`one_agent_direct.py`](core/one_agent_direct.py): A simple example of how to create a single agent powered by ChatCompletion model client. Communicate with the agent using async direct messaging API.
-- [`inner_outer_direct.py`](core/inner_outer_direct.py): A simple example of how to create an agent that calls an inner agent using async direct messaging API.
-- [`two_agents_pub_sub_termination.py`](core/two_agents_pub_sub_termination.py): An example of how to create two agents that communicate using publish-subscribe API, and termination using an intervention handler.
+- [`one_agent_direct.py`](core/one_agent_direct.py): A simple example of how to create a single agent powered by ChatCompletion model client. Communicate with the agent using direct communication.
+- [`inner_outer_direct.py`](core/inner_outer_direct.py): A simple example of how to create an agent that calls an inner agent using direct communication.
+- [`two_agents_pub_sub_termination.py`](core/two_agents_pub_sub_termination.py): An example of how to create two agents that communicate using broadcast communication (i.e., pub/sub), and termination using an intervention handler.
 
 ## Tool use examples
 
 We provide examples to illustrate how to use tools in AGNext:
 
-- [`coding_one_agent_direct.py`](tool-use/coding_one_agent_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
-- [`coding_two_agent_direct.py`](tool-use/coding_two_agent_direct.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
-- [`coding_two_agent_pub_sub.py`](tool-use/coding_two_agent_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses the publish-subscribe API.
-- [`custom_function_tool_one_agent_direct.py`](tool-use/custom_function_tool_one_agent_direct.py): a custom function tool example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses the async direct messaging API.
+- [`coding_one_agent_direct.py`](tool-use/coding_one_agent_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
+- [`coding_two_agent_pub_sub.py`](tool-use/coding_two_agent_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses broadcast communication.
+- [`custom_function_tool_one_agent_direct.py`](tool-use/custom_function_tool_one_agent_direct.py): a custom function tool example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
 
 ## Pattern examples
 
 We provide examples to illustrate how multi-agent patterns can be implemented in AGNext:
 
-- [`mixture_of_agents_direct.py`](patterns/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using async direct messaging API.
-- [`mixture_of_agents_pub_sub.py`](patterns/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) that communicate using publish-subscribe API.
-- [`coder_reviewer_direct.py`](patterns/coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using async direct messaging API.
-- [`coder_reviewer_pub_sub.py`](patterns/coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using publish-subscribe API.
-- [`group_chat_pub_sub.py`](patterns/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using publish-subscribe API.
+- [`coder_executor_pub_sub.py`](patterns/coder_executor_pub_sub.py): An example of how to create a coder-executor reflection pattern using broadcast communication. This example creates a plot of stock prices using the Yahoo Finance API.
+- [`coder_reviewer_direct.py`](patterns/coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using direct communication.
+- [`coder_reviewer_pub_sub.py`](patterns/coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using broadcast communication.
+- [`group_chat_pub_sub.py`](patterns/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using broadcast communication.
+- [`mixture_of_agents_direct.py`](patterns/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using direct communication.
+- [`mixture_of_agents_pub_sub.py`](patterns/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using broadcast communication.
 
 ## Demos
 

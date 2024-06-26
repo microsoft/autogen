@@ -1,3 +1,18 @@
+"""
+This example shows how to use publish-subscribe to implement a simple
+interaction between two agents that use a chat completion model to respond to messages.
+
+1. The main function sends a message to Jack to start the conversation.
+2. The Jack agent receives the message, generates a response using a chat completion model,
+and publishes the response.
+3. The Cathy agent receives the message, generates a response using a chat completion model,
+and publishes the response.
+4. The conversation continues until a termination message is received by any agent, which
+then publishes a termination message.
+5. The termination handler listens for the termination message and when it is received,
+it sets the termination flag to True, and the main function terminates the process.
+"""
+
 import asyncio
 from dataclasses import dataclass
 from typing import Any, List

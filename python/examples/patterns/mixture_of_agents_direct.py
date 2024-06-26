@@ -1,6 +1,12 @@
-"""This example demonstrates the mixture of agents implemented using direct
+"""
+This example demonstrates the mixture of agents implemented using direct
 messaging and async gathering of results.
-Mixture of agents: https://github.com/togethercomputer/moa"""
+Mixture of agents: https://github.com/togethercomputer/moa
+
+The example consists of two types of agents: reference agents and an aggregator agent.
+The aggregator agent distributes tasks to reference agents and aggregates the results.
+The reference agents handle each task independently and return the results to the aggregator agent.
+"""
 
 import asyncio
 from dataclasses import dataclass

@@ -1,3 +1,19 @@
+"""
+This example shows how to use publish-subscribe to implement
+a simple interaction between a coder and a reviewer agent.
+1. The coder agent receives a code writing task message, generates a code block,
+and publishes a code review task message.
+2. The reviewer agent receives the code review task message, reviews the code block,
+and publishes a code review result message.
+3. The coder agent receives the code review result message, depending on the result:
+if the code is approved, it publishes a code writing result message; otherwise, it generates
+a new code block and publishes a code review task message.
+4. The process continues until the coder agent publishes a code writing result message.
+5. The termination handler listens for the code writing result message and when it is
+received, it sets the termination flag to True, and the main function
+terminates the process.
+"""
+
 import asyncio
 import json
 import re
@@ -44,11 +60,6 @@ class CodeReviewResult:
     review: str
     session_id: str
     approved: bool
-
-
-@dataclass
-class Termination:
-    pass
 
 
 class ReviewerAgent(TypeRoutedAgent):
@@ -236,33 +247,21 @@ class TerminationHandler(DefaultInterventionHandler):
         self._terminated = False
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Termination):
+        if isinstance(message, CodeWritingResult):
             self._terminated = True
+            print("Code Writing Result:")
+            print("-" * 80)
+            print(f"Task:\n{message.task}")
+            print("-" * 80)
+            print(f"Code:\n{message.code}")
+            print("-" * 80)
+            print(f"Review:\n{message.review}")
+            print("-" * 80)
         return message
 
     @property
     def terminated(self) -> bool:
         return self._terminated
-
-
-class DisplayAgent(TypeRoutedAgent):
-    """An agent that displays code writing result to the console and
-    publishes termination message."""
-
-    @message_handler
-    async def handle_code_writing_result(
-        self, message: CodeWritingResult, cancellation_token: CancellationToken
-    ) -> None:
-        print("Code Writing Result:")
-        print("-" * 80)
-        print(f"Task:\n{message.task}")
-        print("-" * 80)
-        print(f"Code:\n{message.code}")
-        print("-" * 80)
-        print(f"Review:\n{message.review}")
-        print("-" * 80)
-        # Publish a termination message to the runtime.
-        self.publish_message(Termination())
 
 
 async def main() -> None:
@@ -281,10 +280,6 @@ async def main() -> None:
             description="Coder",
             model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
-    )
-    runtime.register(
-        "DisplayAgent",
-        lambda: DisplayAgent(description="Display Agent"),
     )
     runtime.publish_message(
         message=CodeWritingTask(

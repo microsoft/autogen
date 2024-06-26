@@ -1,5 +1,11 @@
-"""This example demonstrates the mixture of agents implemented using pub/sub messaging.
-Mixture of agents: https://github.com/togethercomputer/moa"""
+"""
+This example demonstrates the mixture of agents implemented using pub/sub.
+Mixture of agents: https://github.com/togethercomputer/moa
+
+The example consists of two types of agents: reference agents and an aggregator agent.
+The aggregator agent distributes tasks to reference agents and aggregates the results.
+The reference agents handle each task independently and return the results to the aggregator agent.
+"""
 
 import asyncio
 import uuid
@@ -33,11 +39,6 @@ class AggregatorTask:
 @dataclass
 class AggregatorTaskResult:
     result: str
-
-
-@dataclass
-class Termination:
-    pass
 
 
 class ReferenceAgent(TypeRoutedAgent):
@@ -109,26 +110,14 @@ class TerminationHandler(DefaultInterventionHandler):
         self._terminated = False
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Termination):
+        if isinstance(message, AggregatorTaskResult):
             self._terminated = True
+            print(f"Aggregator result: {message.result}")
         return message
 
     @property
     def terminated(self) -> bool:
         return self._terminated
-
-
-class DisplayAgent(TypeRoutedAgent):
-    """An agent that displays code writing result to the console and
-    publishes a termination message to the runtime."""
-
-    @message_handler
-    async def handle_code_writing_result(
-        self, message: AggregatorTaskResult, cancellation_token: CancellationToken
-    ) -> None:
-        print("Aggregator Task Result:", message.result)
-        # Terminate the runtime.
-        await self.publish_message(Termination())
 
 
 async def main() -> None:
@@ -171,10 +160,6 @@ async def main() -> None:
             model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
             num_references=3,
         ),
-    )
-    runtime.register(
-        "DisplayAgent",
-        lambda: DisplayAgent(description="Display Agent"),
     )
     await runtime.publish_message(AggregatorTask(task="What are something fun to do in SF?"), namespace="default")
 

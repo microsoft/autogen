@@ -1,3 +1,19 @@
+"""
+This example shows how to use pub/sub to implement
+a simple interaction between a tool executor agent and a tool use agent.
+1. The tool use agent receives a user message, and makes an inference using a model.
+If the response is a list of function calls, the agent publishes the function calls
+to the tool executor agent.
+2. The tool executor agent receives the function calls, executes the tools, and publishes
+the results back to the tool use agent.
+3. The tool use agent receives the tool results, and makes an inference using the model again.
+4. The process continues until the inference response is not a list of function calls.
+5. The tool use agent publishes a final response to the user.
+6. The termination handler listens for the final response message and when it is
+received, it sets the termination flag to True, and the main function
+terminates the process.
+"""
+
 import asyncio
 import json
 import uuid
@@ -40,13 +56,8 @@ class UserRequest:
 
 
 @dataclass
-class AIResponse:
+class AgentResponse:
     content: str
-
-
-@dataclass
-class Termination:
-    pass
 
 
 class ToolExecutorAgent(TypeRoutedAgent):
@@ -113,8 +124,9 @@ class ToolUseAgent(TypeRoutedAgent):
 
         if isinstance(response.content, str):
             # If the response is a string, just publish the response.
-            response_message = AIResponse(content=response.content)
+            response_message = AgentResponse(content=response.content)
             await self.publish_message(response_message)
+            return
 
         # Handle the response as a list of function calls.
         assert isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content)
@@ -153,7 +165,7 @@ class ToolUseAgent(TypeRoutedAgent):
         )
         # If the response is a string, just publish the response.
         if isinstance(response.content, str):
-            response_message = AIResponse(content=response.content)
+            response_message = AgentResponse(content=response.content)
             await self.publish_message(response_message)
             self._tool_results.pop(message.session_id)
             self._tool_counter.pop(message.session_id)
@@ -174,24 +186,14 @@ class TerminationHandler(DefaultInterventionHandler):
         self._terminated = False
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Termination):
+        if isinstance(message, AgentResponse):
             self._terminated = True
+            print(f"AI Response: {message.content}")
         return message
 
     @property
     def terminated(self) -> bool:
         return self._terminated
-
-
-class DisplayAgent(TypeRoutedAgent):
-    """An agent that displays to the console and publishes a termination message
-    to the runtime."""
-
-    @message_handler
-    async def handle_code_writing_result(self, message: AIResponse, cancellation_token: CancellationToken) -> None:
-        print("AI Response:", message.content)
-        # Terminate the runtime.
-        await self.publish_message(Termination())
 
 
 async def main() -> None:
@@ -214,7 +216,6 @@ async def main() -> None:
             tools=tools,
         ),
     )
-    runtime.register("display_agent", lambda: DisplayAgent("Display Agent"))
 
     # Publish a task.
     runtime.publish_message(UserRequest("Run the following Python code: print('Hello, World!')"), namespace="default")

@@ -1,3 +1,11 @@
+"""
+This example shows how to use direct messaging to implement
+a simple interaction between an inner and an outer agent.
+1. The outer agent receives a message, sends a message to the inner agent.
+2. The inner agent receives the message, processes it, and sends a response to the outer agent.
+3. The outer agent receives the response and processes it, and returns the final response.
+"""
+
 import asyncio
 import logging
 from dataclasses import dataclass

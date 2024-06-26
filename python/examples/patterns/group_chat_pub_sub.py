@@ -1,3 +1,17 @@
+"""
+This example shows how to use publish-subscribe to implement
+a simple round-robin group chat among multiple agents:
+each agent in the group chat takes turns speaking in a round-robin fashion.
+The conversation ends after a specified number of rounds.
+
+1. Upon receiving a message, the group chat manager selects the next speaker
+in a round-robin fashion and sends a request to speak message to the selected speaker.
+2. Upon receiving a request to speak message, the speaker generates a response
+to the last message in the memory and publishes the response.
+3. The conversation continues until the specified number of rounds is reached.
+The group chat manager publishes a termination message to end the conversation.
+"""
+
 import asyncio
 from dataclasses import dataclass
 from typing import Any, List

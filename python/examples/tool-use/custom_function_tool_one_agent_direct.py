@@ -1,3 +1,8 @@
+"""
+This example shows how to use custom function tools with a tool-enabled
+agent.
+"""
+
 import asyncio
 import os
 import random
