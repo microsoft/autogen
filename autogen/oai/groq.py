@@ -139,8 +139,8 @@ class GroqClient:
 
         groq_params["messages"] = groq_messages
 
-        # We use chat model by default
-        client = Groq(api_key=self.api_key)
+        # We use chat model by default, and set max_retries to 5 (in line with typical retries loop)
+        client = Groq(api_key=self.api_key, max_retries=5)
 
         # Token counts will be returned
         prompt_tokens = 0
@@ -150,48 +150,45 @@ class GroqClient:
         # Streaming tool call recommendations
         streaming_tool_calls = []
 
-        max_retries = 5
-        for attempt in range(max_retries):
-            ans = None
-            try:
-                response = client.chat.completions.create(**groq_params)
-            except Exception as e:
-                raise RuntimeError(f"Groq exception occurred: {e}")
-            else:
+        ans = None
+        try:
+            response = client.chat.completions.create(**groq_params)
+        except Exception as e:
+            raise RuntimeError(f"Groq exception occurred: {e}")
+        else:
 
-                if groq_params["stream"]:
-                    # Read in the chunks as they stream, taking in tool_calls which may be across
-                    # multiple chunks if more than one suggested
-                    ans = ""
-                    for chunk in response:
-                        ans = ans + (chunk.choices[0].delta.content or "")
+            if groq_params["stream"]:
+                # Read in the chunks as they stream, taking in tool_calls which may be across
+                # multiple chunks if more than one suggested
+                ans = ""
+                for chunk in response:
+                    ans = ans + (chunk.choices[0].delta.content or "")
 
-                        if chunk.choices[0].delta.tool_calls:
-                            # We have a tool call recommendation
-                            for tool_call in chunk.choices[0].delta.tool_calls:
-                                streaming_tool_calls.append(
-                                    ChatCompletionMessageToolCall(
-                                        id=tool_call.id,
-                                        function={
-                                            "name": tool_call.function.name,
-                                            "arguments": tool_call.function.arguments,
-                                        },
-                                        type="function",
-                                    )
+                    if chunk.choices[0].delta.tool_calls:
+                        # We have a tool call recommendation
+                        for tool_call in chunk.choices[0].delta.tool_calls:
+                            streaming_tool_calls.append(
+                                ChatCompletionMessageToolCall(
+                                    id=tool_call.id,
+                                    function={
+                                        "name": tool_call.function.name,
+                                        "arguments": tool_call.function.arguments,
+                                    },
+                                    type="function",
                                 )
+                            )
 
-                        if chunk.choices[0].finish_reason:
-                            prompt_tokens = chunk.x_groq.usage.prompt_tokens
-                            completion_tokens = chunk.x_groq.usage.completion_tokens
-                            total_tokens = chunk.x_groq.usage.total_tokens
-                else:
-                    # Non-streaming finished
-                    ans: str = response.choices[0].message.content
+                    if chunk.choices[0].finish_reason:
+                        prompt_tokens = chunk.x_groq.usage.prompt_tokens
+                        completion_tokens = chunk.x_groq.usage.completion_tokens
+                        total_tokens = chunk.x_groq.usage.total_tokens
+            else:
+                # Non-streaming finished
+                ans: str = response.choices[0].message.content
 
-                    prompt_tokens = response.usage.prompt_tokens
-                    completion_tokens = response.usage.completion_tokens
-                    total_tokens = response.usage.total_tokens
-                break
+                prompt_tokens = response.usage.prompt_tokens
+                completion_tokens = response.usage.completion_tokens
+                total_tokens = response.usage.total_tokens
 
         if response is not None:
 
@@ -227,7 +224,7 @@ class GroqClient:
                 response_content = response.choices[0].message.content
                 response_id = response.id
         else:
-            raise RuntimeError(f"Failed to get response from Groq after retrying {attempt + 1} times.")
+            raise RuntimeError("Failed to get response from Groq after retrying 5 times.")
 
         # 3. convert output
         message = ChatCompletionMessage(
