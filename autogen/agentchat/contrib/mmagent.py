@@ -7,12 +7,14 @@ class MultimodalAgent(autogen.ConversableAgent):
     def __init__(
         self,
         name,
+        max_images=1,
         **kwargs,
     ):
         super().__init__(
             name=name,
             **kwargs,
         )
+        self.max_images = max_images
         self._reply_func_list = []
         self.register_reply([autogen.Agent, None], MultimodalAgent.generate_mlm_reply)
         self.register_reply([autogen.Agent, None], autogen.ConversableAgent.generate_code_execution_reply)
@@ -56,6 +58,6 @@ class MultimodalAgent(autogen.ConversableAgent):
             messages = self._oai_messages[sender]
 
         # Clone the messages to give context, but remove old screenshots
-        response = self._create_with_images(messages=self._oai_system_message + messages)
+        response = self._create_with_images(messages=self._oai_system_message + messages, max_images=self.max_images)
         completion = self.client.extract_text_or_completion_object(response)[0]
         return True, completion

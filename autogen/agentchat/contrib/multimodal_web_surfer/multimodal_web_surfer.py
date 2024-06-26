@@ -71,6 +71,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
+        navigation_allow_list = lambda url: True,
     ):
         """
         Create a new MultimodalWebSurferAgent.
@@ -104,17 +105,43 @@ class MultimodalWebSurferAgent(ConversableAgent):
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
         )
+
         # self._mlm_config = mlm_config
         # self._mlm_client = OpenAIWrapper(**self._mlm_config)
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
+
+        # Handle the allow list
+        self._navigation_allow_list = navigation_allow_list
+        if isinstance(self._navigation_allow_list, list):
+            def _closure(url):
+                for entry in navigation_allow_list:
+                    if url.startswith(entry):
+                        return True
+                return False 
+            self._navigation_allow_list = _closure
+
+        # Configure the router
+        def _route_handler(route):
+            if route.request.url == "about:blank" or self._navigation_allow_list(route.request.url):
+                route.continue_()
+            else:
+                response = route.fetch()
+                if "html" in response.headers.get("content-type", "").lower():
+                    route.fulfill(
+                        status=403,
+                        content_type="text/html",
+                        body="<html><body><h1>Navigation Blocked</h1><p>Navigation was blocked by the client. Click the <a href=\"javascript: history.back()\">browser back button</a> to go back, return Home to <a href=\"" + self.start_page + "\">" + self.start_page + "</a>.</p></body></html>")
+                else:
+                    route.fulfill(response=response)
+        self._route_handler = _route_handler
 
         # Create the playwright instance
         launch_args = {"headless": headless}
         if browser_channel is not DEFAULT_CHANNEL:
             launch_args["channel"] = browser_channel
         self._playwright = sync_playwright().start()
-
+ 
         # Create the context -- are we launching a persistent instance?
         if browser_data_dir is None:
             if browser_channel == "chromium":
@@ -136,6 +163,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         # Create the page
         self._page = self._context.new_page()
+        self._page.route(lambda x: True, self._route_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.goto(self.start_page)
@@ -216,6 +244,10 @@ setInterval(function() {{
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    def reset(self):
+        super().reset()
+        self._visit_page(self.start_page)
 
     def generate_surfer_reply(
         self,
@@ -342,7 +374,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 action_description = f"I typed '{argument}' into the browser address bar."
                 self._log_to_console("goto", arg=argument)
                 # Check if the argument starts with a known protocol
-                if argument.startswith(("https://", "http://", "file://")):
+                if argument.startswith(("https://", "http://", "file://", "about:")):
                     self._visit_page(argument)
                 # If the argument contains a space, treat it as a search query
                 elif " " in argument:
@@ -496,6 +528,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _on_new_page(self, page):
         self._page = page
+        self._page.route(lambda x: True, self._route_handler)
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
         self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
@@ -533,7 +566,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         # Click it
         box = target.bounding_box()
         try:
-            # Git it a chance to open a new page
+            # Give it a chance to open a new page
             with self._page.expect_event("popup", timeout=1000) as page_info:
                 self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
             self._on_new_page(page_info.value)
@@ -570,6 +603,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         }})();
     """
         )
+
 
     def _log_to_console(self, action, target="", arg=""):
 

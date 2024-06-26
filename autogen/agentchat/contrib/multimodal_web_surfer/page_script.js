@@ -23,11 +23,15 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       "textarea": "textbox"
   };
 
+  let getCursor = function(elm) {
+      return window.getComputedStyle(elm)["cursor"];
+  };
+
   let getInteractiveElements = function() {
 
       let results = []
       let roles = ["scrollbar", "searchbox", "slider", "spinbutton", "switch", "tab", "treeitem", "button", "checkbox", "gridcell", "link", "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar", "radio", "textbox", "combobox", "menu", "tree", "treegrid", "grid", "listbox", "radiogroup", "widget"];
-
+      let inertCursors = ["auto", "default", "none", "text", "vertical-text", "not-allowed", "no-drop"];
 
       // Get the main interactive elements
       let nodeList = document.querySelectorAll("input, select, textarea, button, [href], [onclick], [contenteditable], [tabindex]:not([tabindex='-1'])");
@@ -45,6 +49,31 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 	      }
 	  }
       }
+
+      // Any element that changes the cursor to something implying interactivity
+      nodeList = document.querySelectorAll("*");
+      for (let i=0; i<nodeList.length; i++) {
+         let node = nodeList[i];
+
+         // Cursor is default, or does not suggest interactivity
+         let cursor = getCursor(node);
+         if (inertCursors.indexOf(cursor) >= 0) {
+             continue;
+         }
+
+         // Move up to the first instance of this cursor change
+         parent = node.parentNode;
+         while (parent && getCursor(parent) == cursor) {
+             node = parent;
+	     parent = node.parentNode;
+         }
+
+         // Add the node if it is new
+         if (results.indexOf(node) == -1) {
+             results.push(node);
+         }
+      }
+
       return results;
   };
 

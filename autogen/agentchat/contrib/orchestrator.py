@@ -22,6 +22,7 @@ class Orchestrator(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         response_format_is_supported: bool = True,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        max_images: int = 1,
     ):
         super().__init__(
             name=name,
@@ -35,6 +36,8 @@ class Orchestrator(ConversableAgent):
             default_auto_reply=default_auto_reply,
         )
 
+        self.max_images = max_images
+        self._temperature_bonus = 0.0
         self._agents = agents
         self.response_format_is_supported = response_format_is_supported
         self.orchestrated_messages = []
@@ -86,6 +89,11 @@ class Orchestrator(ConversableAgent):
 
             # Prepend the message -- since we are iterating backwards
             history.insert(0, message)
+
+        # Increase the temperature by a fixed amount (up to a max)
+        if "temperature" in kwargs:
+            kwargs["temperature"] = min(2.0, kwargs["temperature"] + self._temperature_bonus)
+
         return self.client.create(messages=history, **kwargs)
 
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
@@ -189,6 +197,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
         response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
+            max_images=self.max_images,
         )
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         _messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
@@ -205,6 +214,7 @@ Based on the team composition, and known and unknown facts, please devise a shor
         response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
+            max_images=self.max_images,
         )
 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
@@ -286,6 +296,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
+                        max_images=self.max_images,
                     )
                     self.orchestrated_messages.pop()
 
@@ -348,6 +359,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
+                        max_images=self.max_images,
                     )
                     self.orchestrated_messages.pop()
 
@@ -371,6 +383,8 @@ Please output an answer in pure JSON format according to the following schema. T
                     stalled_count += 1
 
                 if stalled_count >= 3:
+                    self._temperature_bonus += 0.5 # Be more creative.
+
                     self._print_thought("We aren't making progress. Let's reset.")
                     new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).
 
@@ -382,6 +396,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
+                        max_images=self.max_images,
                     )
                     facts = self.client.extract_text_or_completion_object(response)[0]
                     self.orchestrated_messages.append({"role": "assistant", "content": facts, "name": self.name})
@@ -395,6 +410,7 @@ Team membership:
                     response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
+                        max_images=self.max_images,
                     )
 
                     plan = self.client.extract_text_or_completion_object(response)[0]
