@@ -163,10 +163,13 @@ output/
 # local config files
 *.config.local
 OAI_CONFIG_LIST
+OAI_CONFIG_LIST.*
 key_openai.txt
 key_aoai.txt
 base_aoai.txt
 wolfram.txt
+
+debug/
 
 # DB on disk for Teachability
 tmp/
