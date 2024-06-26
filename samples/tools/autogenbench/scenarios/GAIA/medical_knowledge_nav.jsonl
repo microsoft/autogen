@@ -1,0 +1,1 @@
+{"id": "1", "template": ["/home/gaganbansal/workspace/autogen/samples/tools/autogenbench/scenarios/GAIA/Templates/FiveAgents"], "substitutions": {"scenario.py": {"__FILE_NAME__": ""}, "expected_answer.txt": {"__EXPECTED_ANSWER__": ""}, "prompt.txt": {"__PROMPT__": "What is the effect of exercise on blood pressure."}}}
