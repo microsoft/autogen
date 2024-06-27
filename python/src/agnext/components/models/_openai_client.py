@@ -32,7 +32,8 @@ from openai.types.chat import (
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from typing_extensions import Unpack
 
-from ...application.logging import EVENT_LOGGER_NAME, LLMCallEvent
+from ...application.logging import EVENT_LOGGER_NAME
+from ...application.logging.events import LLMCallEvent
 from .. import (
     FunctionCall,
     Image,

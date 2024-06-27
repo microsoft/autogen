@@ -1,6 +1,6 @@
 import logging
 
-from ._events import LLMCallEvent
+from .events import LLMCallEvent
 
 
 class LLMUsageTracker(logging.Handler):

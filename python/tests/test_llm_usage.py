@@ -1,6 +1,7 @@
 import logging
 
-from agnext.application.logging import EVENT_LOGGER_NAME, LLMCallEvent, LLMUsageTracker
+from agnext.application.logging import EVENT_LOGGER_NAME, LLMUsageTracker
+from agnext.application.logging.events import LLMCallEvent
 
 
 def test_llm_usage() -> None:
