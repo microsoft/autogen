@@ -1,6 +1,5 @@
 import asyncio
 import json
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
@@ -18,25 +17,7 @@ from agnext.components.models import (
 from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
 
-
-@dataclass
-class ToolMessage:
-    function_call: FunctionCall
-
-
-@dataclass
-class ToolResultMessage:
-    result: FunctionExecutionResult
-
-
-@dataclass
-class TaskMessage:
-    content: str
-
-
-@dataclass
-class LLMResponseMessage:
-    content: str
+from ..messages import TaskMessage, LLMResponseMessage, ToolMessage, ToolResultMessage
 
 
 async def read_local_file(file_path: str) -> str:

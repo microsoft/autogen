@@ -1,6 +1,5 @@
 import asyncio
 import json
-from dataclasses import dataclass
 from typing import List
 
 from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
@@ -17,25 +16,7 @@ from agnext.components.models import (
 from agnext.components.tools import PythonCodeExecutionTool
 from agnext.core import CancellationToken
 
-
-@dataclass
-class ToolMessage:
-    function_call: FunctionCall
-
-
-@dataclass
-class ToolResultMessage:
-    result: FunctionExecutionResult
-
-
-@dataclass
-class TaskMessage:
-    content: str
-
-
-@dataclass
-class LLMResponseMessage:
-    content: str
+from ..messages import TaskMessage, LLMResponseMessage, ToolMessage, ToolResultMessage
 
 
 class Coder(TypeRoutedAgent):
