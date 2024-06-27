@@ -6,7 +6,7 @@ import requests
 import io
 
 try:
-    from autogen.browser_utils import MarkdownConverter, UnsupportedFormatException, FileConversionException
+    from screen_parsing.utils import MarkdownConverter
 except ImportError:
     skip_all = True
 else:

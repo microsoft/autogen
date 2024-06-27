@@ -2,7 +2,6 @@
 
 import pytest
 import os
-import sys
 import requests
 import hashlib
 import re

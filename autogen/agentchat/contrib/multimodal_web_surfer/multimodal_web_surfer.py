@@ -13,12 +13,17 @@ from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
-from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
-from .state_of_mark import add_state_of_mark
+
+from autogen.runtime_logging import logging_enabled, log_event
+from screen_parsing.ocr import OCR, OCRParsingError
+from screen_parsing.utils.state_of_mark import add_state_of_mark
+
+from importlib import resources
 
 try:
     from termcolor import colored
+
 except ImportError:
 
     def colored(x, *args, **kwargs):
@@ -71,6 +76,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
+        ocr_enabled: Optional[bool] = False,
     ):
         """
         Create a new MultimodalWebSurferAgent.
@@ -108,6 +114,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # self._mlm_client = OpenAIWrapper(**self._mlm_config)
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
+        self.ocr = OCR() if ocr_enabled else None
 
         # Create the playwright instance
         launch_args = {"headless": headless}
@@ -137,7 +144,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # Create the page
         self._page = self._context.new_page()
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.add_init_script(path=self._get_page_script_path())
         self._page.goto(self.start_page)
         self._page.wait_for_load_state()
         time.sleep(1)
@@ -407,7 +414,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         self._page.wait_for_load_state()
         time.sleep(1)
 
-        # Descrive the viewport of the new page in words
+        # Describe the viewport of the new page in words
         viewport = self._get_visual_viewport()
         percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
         percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
@@ -433,11 +440,40 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 percent_visible=percent_visible,
                 percent_scrolled=percent_scrolled,
             )
+
+        ocr_text = None
+        if self.ocr is not None:
+            try:
+                ocr_text = self.ocr.get_ocr_text(new_screenshot)
+            except OCRParsingError as e:
+                if logging_enabled():
+                    import traceback
+
+                    exc_type = type(e).__name__
+                    exc_message = str(e)
+                    exc_traceback = traceback.format_exc().splitlines()
+                    log_event(
+                        self,
+                        "exception_thrown_ocr_detecting",
+                        exc_type=exc_type,
+                        exc_message=exc_message,
+                        exc_traceback=exc_traceback,
+                    )
+
+        text_prompt = f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip()
+
+        if ocr_text is not None:
+            text_prompt += ocr_text
+
         # Return the complete observation
         return True, self._make_mm_message(
-            f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
+            text_prompt,
             new_screenshot,
         )
+
+    def _get_page_script_path(self):
+        with resources.path("screen_parsing.static", "page_script.js") as path:
+            return str(path)
 
     def _image_to_data_uri(self, image):
         """
@@ -472,7 +508,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_interactive_rects(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -480,7 +516,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_visual_viewport(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -488,7 +524,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_focused_rect_id(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -498,7 +534,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         self._page = page
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.add_init_script(self._get_page_script_path())
         self._page.wait_for_load_state()
 
         title = None

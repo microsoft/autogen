@@ -3,7 +3,6 @@ from autogen import UserProxyAgent, config_list_from_json
 from autogen.browser_utils import (
     RequestsMarkdownBrowser,
     PlaywrightMarkdownBrowser,
-    SeleniumMarkdownBrowser,
     BingMarkdownSearch,
 )
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
