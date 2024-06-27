@@ -1,3 +1,5 @@
+import copy
+import json
 import logging
 import random
 import re
@@ -12,6 +14,7 @@ from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 from ..io.base import IOStream
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent
+from .chat import ChatResult
 from .conversable_agent import ConversableAgent
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,7 @@ class GroupChat:
                 Then select the next role from {agentlist} to play. Only return the role."
     - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
         "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+        To ignore this prompt being used, set this to None. If set to None, ensure your instructions for selecting a speaker are in the select_speaker_message_template string.
     - select_speaker_auto_multiple_template: customize the follow-up prompt used when selecting a speaker fails with a response that contains multiple agent names. This prompt guides the LLM to return just one agent name. Applies only to "auto" speaker selection method. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
         "You provided more than one name in your text, please return just the name of the next speaker. To determine the speaker use these prioritised rules:
                 1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
@@ -98,15 +102,15 @@ class GroupChat:
 
     agents: List[Agent]
     messages: List[Dict]
-    max_round: Optional[int] = 10
-    admin_name: Optional[str] = "Admin"
-    func_call_filter: Optional[bool] = True
+    max_round: int = 10
+    admin_name: str = "Admin"
+    func_call_filter: bool = True
     speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
-    max_retries_for_selecting_speaker: Optional[int] = 2
+    max_retries_for_selecting_speaker: int = 2
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
-    enable_clear_history: Optional[bool] = False
+    enable_clear_history: bool = False
     send_introductions: bool = False
     select_speaker_message_template: str = """You are in a role play game. The following roles are available:
                 {roles}.
@@ -222,8 +226,8 @@ class GroupChat:
         if self.select_speaker_message_template is None or len(self.select_speaker_message_template) == 0:
             raise ValueError("select_speaker_message_template cannot be empty or None.")
 
-        if self.select_speaker_prompt_template is None or len(self.select_speaker_prompt_template) == 0:
-            raise ValueError("select_speaker_prompt_template cannot be empty or None.")
+        if self.select_speaker_prompt_template is not None and len(self.select_speaker_prompt_template) == 0:
+            self.select_speaker_prompt_template = None
 
         if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
             raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
@@ -327,7 +331,13 @@ class GroupChat:
         return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
-        """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
+        """Return the floating system prompt selecting the next speaker.
+        This is always the *last* message in the context.
+        Will return None if the select_speaker_prompt_template is None."""
+
+        if self.select_speaker_prompt_template is None:
+            return None
+
         if agents is None:
             agents = self.agents
 
@@ -599,7 +609,6 @@ class GroupChat:
 
         # Registered reply function for checking_agent, checks the result of the response for agent names
         def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
-
             # The number of retries left, starting at max_retries_for_selecting_speaker
             nonlocal attempts_left
             nonlocal attempt
@@ -621,24 +630,36 @@ class GroupChat:
             remove_other_reply_funcs=True,
         )
 
+        # NOTE: Do we have a speaker prompt (select_speaker_prompt_template is not None)? If we don't, we need to feed in the last message to start the nested chat
+
         # Agent for selecting a single agent name from the response
         speaker_selection_agent = ConversableAgent(
             "speaker_selection_agent",
             system_message=self.select_speaker_msg(agents),
-            chat_messages={checking_agent: messages},
+            chat_messages=(
+                {checking_agent: messages}
+                if self.select_speaker_prompt_template is not None
+                else {checking_agent: messages[:-1]}
+            ),
             llm_config=selector.llm_config,
             human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
         )
+
+        # Create the starting message
+        if self.select_speaker_prompt_template is not None:
+            start_message = {
+                "content": self.select_speaker_prompt(agents),
+                "name": "checking_agent",
+                "override_role": self.role_for_select_speaker_messages,
+            }
+        else:
+            start_message = messages[-1]
 
         # Run the speaker selection chat
         result = checking_agent.initiate_chat(
             speaker_selection_agent,
             cache=None,  # don't use caching for the speaker selection chat
-            message={
-                "content": self.select_speaker_prompt(agents),
-                "name": "checking_agent",
-                "override_role": self.role_for_select_speaker_messages,
-            },
+            message=start_message,
             max_turns=2
             * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
             clear_history=False,
@@ -687,7 +708,6 @@ class GroupChat:
 
         # Registered reply function for checking_agent, checks the result of the response for agent names
         def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
-
             # The number of retries left, starting at max_retries_for_selecting_speaker
             nonlocal attempts_left
             nonlocal attempt
@@ -709,6 +729,8 @@ class GroupChat:
             remove_other_reply_funcs=True,
         )
 
+        # NOTE: Do we have a speaker prompt (select_speaker_prompt_template is not None)? If we don't, we need to feed in the last message to start the nested chat
+
         # Agent for selecting a single agent name from the response
         speaker_selection_agent = ConversableAgent(
             "speaker_selection_agent",
@@ -718,11 +740,20 @@ class GroupChat:
             human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
         )
 
+        # Create the starting message
+        if self.select_speaker_prompt_template is not None:
+            start_message = {
+                "content": self.select_speaker_prompt(agents),
+                "override_role": self.role_for_select_speaker_messages,
+            }
+        else:
+            start_message = messages[-1]
+
         # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
             speaker_selection_agent,
             cache=None,  # don't use caching for the speaker selection chat
-            message=self.select_speaker_prompt(agents),
+            message=start_message,
             max_turns=2
             * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
             clear_history=False,
@@ -750,7 +781,6 @@ class GroupChat:
         mentions = self._mentioned_agents(select_name, agents)
 
         if len(mentions) == 1:
-
             # Success on retry, we have just one name mentioned
             selected_agent_name = next(iter(mentions))
 
@@ -834,17 +864,14 @@ class GroupChat:
 
         Used by auto_select_speaker and a_auto_select_speaker."""
         if len(result.chat_history) > 0:
-
             # Use the final message, which will have the selected agent or reason for failure
             final_message = result.chat_history[-1]["content"]
 
             if "[AGENT SELECTED]" in final_message:
-
                 # Have successfully selected an agent, return it
                 return self.agent_by_name(final_message.replace("[AGENT SELECTED]", ""))
 
             else:  # "[AGENT SELECTION FAILED]"
-
                 # Failed to select an agent, so we'll select the next agent in the list
                 next_agent = self.next_agent(last_speaker, agents)
 
@@ -915,8 +942,9 @@ class GroupChatManager(ConversableAgent):
         name: Optional[str] = "chat_manager",
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
+        silent: bool = False,
         **kwargs,
     ):
         if (
@@ -939,6 +967,8 @@ class GroupChatManager(ConversableAgent):
             log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
+
+        self._silent = silent
 
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
@@ -992,6 +1022,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1017,6 +1048,9 @@ class GroupChatManager(ConversableAgent):
             try:
                 # select the next speaker
                 speaker = groupchat.select_speaker(speaker, self)
+                if not silent:
+                    iostream = IOStream.get_default()
+                    iostream.print(colored(f"\nNext speaker: {speaker.name}\n", "green"), flush=True)
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
@@ -1046,7 +1080,7 @@ class GroupChatManager(ConversableAgent):
                 reply["content"] = self.clear_agents_history(reply, groupchat)
 
             # The speaker sends the message without requesting a reply
-            speaker.send(reply, self, request_reply=False)
+            speaker.send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
@@ -1067,6 +1101,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1111,13 +1146,311 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply
-            await speaker.a_send(reply, self, request_reply=False)
+            await speaker.a_send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.client_cache = a.previous_cache
                 a.previous_cache = None
         return True, None
+
+    def resume(
+        self,
+        messages: Union[List[Dict], str],
+        remove_termination_string: Union[str, Callable[[str], str]] = None,
+        silent: Optional[bool] = False,
+    ) -> Tuple[ConversableAgent, Dict]:
+        """Resumes a group chat using the previous messages as a starting point. Requires the agents, group chat, and group chat manager to be established
+        as per the original group chat.
+
+        Args:
+            - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
+            - remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function.
+            - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+
+        Returns:
+            - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
+        """
+
+        # Convert messages from string to messages list, if needed
+        if isinstance(messages, str):
+            messages = self.messages_from_string(messages)
+        elif isinstance(messages, list) and all(isinstance(item, dict) for item in messages):
+            messages = copy.deepcopy(messages)
+        else:
+            raise Exception("Messages is not of type str or List[Dict]")
+
+        # Clean up the objects, ensuring there are no messages in the agents and group chat
+
+        # Clear agent message history
+        for agent in self._groupchat.agents:
+            if isinstance(agent, ConversableAgent):
+                agent.clear_history()
+
+        # Clear Manager message history
+        self.clear_history()
+
+        # Clear GroupChat messages
+        self._groupchat.reset()
+
+        # Validation of message and agents
+
+        try:
+            self._valid_resume_messages(messages)
+        except:
+            raise
+
+        # Load the messages into the group chat
+        for i, message in enumerate(messages):
+            if "name" in message:
+                message_speaker_agent = self._groupchat.agent_by_name(message["name"])
+            else:
+                # If there's no name, assign the group chat manager (this is an indication the ChatResult messages was used instead of groupchat.messages as state)
+                message_speaker_agent = self
+                message["name"] = self.name
+
+            # If it wasn't an agent speaking, it may be the manager
+            if not message_speaker_agent and message["name"] == self.name:
+                message_speaker_agent = self
+
+            # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
+            if i != len(messages) - 1:
+                for agent in self._groupchat.agents:
+                    if agent.name != message["name"]:
+                        self.send(message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True)
+
+                # Add previous message to the new groupchat, if it's an admin message the name may not match so add the message directly
+                if message_speaker_agent:
+                    self._groupchat.append(message, message_speaker_agent)
+                else:
+                    self._groupchat.messages.append(message)
+
+            # Last speaker agent
+            last_speaker_name = message["name"]
+
+            # Last message to check for termination (we could avoid this by ignoring termination check for resume in the future)
+            last_message = message
+
+        # Get last speaker as an agent
+        previous_last_agent = self._groupchat.agent_by_name(name=last_speaker_name)
+
+        # If we didn't match a last speaker agent, we check that it's the group chat's admin name and assign the manager, if so
+        if not previous_last_agent and (
+            last_speaker_name == self._groupchat.admin_name or last_speaker_name == self.name
+        ):
+            previous_last_agent = self
+
+        # Termination removal and check
+        self._process_resume_termination(remove_termination_string, messages)
+
+        if not silent:
+            iostream = IOStream.get_default()
+            iostream.print(
+                f"Prepared group chat with {len(messages)} messages, the last speaker is",
+                colored(last_speaker_name, "yellow"),
+                flush=True,
+            )
+
+        # Update group chat settings for resuming
+        self._groupchat.send_introductions = False
+
+        return previous_last_agent, last_message
+
+    async def a_resume(
+        self,
+        messages: Union[List[Dict], str],
+        remove_termination_string: Union[str, Callable[[str], str]],
+        silent: Optional[bool] = False,
+    ) -> Tuple[ConversableAgent, Dict]:
+        """Resumes a group chat using the previous messages as a starting point, asynchronously. Requires the agents, group chat, and group chat manager to be established
+        as per the original group chat.
+
+        Args:
+            - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
+            - remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function, and the function returns the string after processing.
+            - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+
+        Returns:
+            - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
+        """
+
+        # Convert messages from string to messages list, if needed
+        if isinstance(messages, str):
+            messages = self.messages_from_string(messages)
+        elif isinstance(messages, list) and all(isinstance(item, dict) for item in messages):
+            messages = copy.deepcopy(messages)
+        else:
+            raise Exception("Messages is not of type str or List[Dict]")
+
+        # Clean up the objects, ensuring there are no messages in the agents and group chat
+
+        # Clear agent message history
+        for agent in self._groupchat.agents:
+            if isinstance(agent, ConversableAgent):
+                agent.clear_history()
+
+        # Clear Manager message history
+        self.clear_history()
+
+        # Clear GroupChat messages
+        self._groupchat.reset()
+
+        # Validation of message and agents
+
+        try:
+            self._valid_resume_messages(messages)
+        except:
+            raise
+
+        # Load the messages into the group chat
+        for i, message in enumerate(messages):
+            if "name" in message:
+                message_speaker_agent = self._groupchat.agent_by_name(message["name"])
+            else:
+                # If there's no name, assign the group chat manager (this is an indication the ChatResult messages was used instead of groupchat.messages as state)
+                message_speaker_agent = self
+                message["name"] = self.name
+
+            # If it wasn't an agent speaking, it may be the manager
+            if not message_speaker_agent and message["name"] == self.name:
+                message_speaker_agent = self
+
+            # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
+            if i != len(messages) - 1:
+                for agent in self._groupchat.agents:
+                    if agent.name != message["name"]:
+                        await self.a_send(
+                            message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True
+                        )
+
+                # Add previous message to the new groupchat, if it's an admin message the name may not match so add the message directly
+                if message_speaker_agent:
+                    self._groupchat.append(message, message_speaker_agent)
+                else:
+                    self._groupchat.messages.append(message)
+
+            # Last speaker agent
+            last_speaker_name = message["name"]
+
+            # Last message to check for termination (we could avoid this by ignoring termination check for resume in the future)
+            last_message = message
+
+        # Get last speaker as an agent
+        previous_last_agent = self._groupchat.agent_by_name(name=last_speaker_name)
+
+        # If we didn't match a last speaker agent, we check that it's the group chat's admin name and assign the manager, if so
+        if not previous_last_agent and (
+            last_speaker_name == self._groupchat.admin_name or last_speaker_name == self.name
+        ):
+            previous_last_agent = self
+
+        # Termination removal and check
+        self._process_resume_termination(remove_termination_string, messages)
+
+        if not silent:
+            iostream = IOStream.get_default()
+            iostream.print(
+                f"Prepared group chat with {len(messages)} messages, the last speaker is",
+                colored(last_speaker_name, "yellow"),
+                flush=True,
+            )
+
+        # Update group chat settings for resuming
+        self._groupchat.send_introductions = False
+
+        return previous_last_agent, last_message
+
+    def _valid_resume_messages(self, messages: List[Dict]):
+        """Validates the messages used for resuming
+
+        args:
+            messages (List[Dict]): list of messages to resume with
+
+        returns:
+            - bool: Whether they are valid for resuming
+        """
+        # Must have messages to start with, otherwise they should run run_chat
+        if not messages:
+            raise Exception(
+                "Cannot resume group chat as no messages were provided. Use GroupChatManager.run_chat or ConversableAgent.initiate_chat to start a new chat."
+            )
+
+        # Check that all agents in the chat messages exist in the group chat
+        for message in messages:
+            if message.get("name"):
+                if (
+                    not self._groupchat.agent_by_name(message["name"])
+                    and not message["name"] == self._groupchat.admin_name  # ignore group chat's name
+                    and not message["name"] == self.name  # ignore group chat manager's name
+                ):
+                    raise Exception(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
+
+    def _process_resume_termination(
+        self, remove_termination_string: Union[str, Callable[[str], str]], messages: List[Dict]
+    ):
+        """Removes termination string, if required, and checks if termination may occur.
+
+        args:
+            remove_termination_string (str or function): Remove the termination string from the last message to prevent immediate termination
+                If a string is provided, this string will be removed from last message.
+                If a function is provided, the last message will be passed to this function, and the function returns the string after processing.
+
+        returns:
+            None
+        """
+
+        last_message = messages[-1]
+
+        # Replace any given termination string in the last message
+        if isinstance(remove_termination_string, str):
+
+            def _remove_termination_string(content: str) -> str:
+                return content.replace(remove_termination_string, "")
+
+        else:
+            _remove_termination_string = remove_termination_string
+
+        if _remove_termination_string:
+            if messages[-1].get("content"):
+                messages[-1]["content"] = _remove_termination_string(messages[-1]["content"])
+
+        # Check if the last message meets termination (if it has one)
+        if self._is_termination_msg:
+            if self._is_termination_msg(last_message):
+                logger.warning("WARNING: Last message meets termination criteria and this may terminate the chat.")
+
+    def messages_from_string(self, message_string: str) -> List[Dict]:
+        """Reads the saved state of messages in Json format for resume and returns as a messages list
+
+        args:
+            - message_string: Json string, the saved state
+
+        returns:
+            - List[Dict]: List of messages
+        """
+        try:
+            state = json.loads(message_string)
+        except json.JSONDecodeError:
+            raise Exception("Messages string is not a valid JSON string")
+
+        return state
+
+    def messages_to_string(self, messages: List[Dict]) -> str:
+        """Converts the provided messages into a Json string that can be used for resuming the chat.
+        The state is made up of a list of messages
+
+        args:
+            - messages (List[Dict]): set of messages to convert to a string
+
+        returns:
+            - str: Json representation of the messages which can be persisted for resuming later
+        """
+
+        return json.dumps(messages)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.

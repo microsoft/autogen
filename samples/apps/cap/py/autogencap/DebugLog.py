@@ -15,42 +15,58 @@ ERROR = 3
 LEVEL_NAMES = ["DBG", "INF", "WRN", "ERR"]
 LEVEL_COLOR = ["dark_grey", "green", "yellow", "red"]
 
-console_lock = threading.Lock()
+
+class BaseLogger:
+    def __init__(self):
+        self._lock = threading.Lock()
+
+    def Log(self, level, context, msg):
+        # Check if the current level meets the threshold
+        if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
+            # Check if the context is in the list of ignored contexts
+            if context in Config.IGNORED_LOG_CONTEXTS:
+                return
+            with self._lock:
+                self.WriteLog(level, context, msg)
+
+    def WriteLog(self, level, context, msg):
+        raise NotImplementedError("Subclasses must implement this method")
 
 
-def Log(level, context, msg):
-    # Check if the current level meets the threshold
-    if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
-        # Check if the context is in the list of ignored contexts
-        if context in Config.IGNORED_LOG_CONTEXTS:
-            return
-        with console_lock:
-            timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
-            # Translate level number to name and color
-            level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
-            # Left justify the context and color it blue
-            context = colored(context.ljust(14), "blue")
-            # Left justify the threadid and color it blue
-            thread_id = colored(str(threading.get_ident()).ljust(5), "blue")
-            # color the msg based on the level
-            msg = colored(msg, LEVEL_COLOR[level])
-            print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
+class ConsoleLogger(BaseLogger):
+    def __init__(self):
+        super().__init__()
+
+    def WriteLog(self, level, context, msg):
+        timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
+        # Translate level number to name and color
+        level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
+        # Left justify the context and color it blue
+        context = colored(context.ljust(14), "blue")
+        # Left justify the threadid and color it blue
+        thread_id = colored(str(threading.get_ident()).ljust(5), "blue")
+        # color the msg based on the level
+        msg = colored(msg, LEVEL_COLOR[level])
+        print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
+
+
+LOGGER = ConsoleLogger()
 
 
 def Debug(context, message):
-    Log(DEBUG, context, message)
+    LOGGER.Log(DEBUG, context, message)
 
 
 def Info(context, message):
-    Log(INFO, context, message)
+    LOGGER.Log(INFO, context, message)
 
 
 def Warn(context, message):
-    Log(WARN, context, message)
+    LOGGER.Log(WARN, context, message)
 
 
 def Error(context, message):
-    Log(ERROR, context, message)
+    LOGGER.Log(ERROR, context, message)
 
 
 def shorten(msg, num_parts=5, max_len=100):

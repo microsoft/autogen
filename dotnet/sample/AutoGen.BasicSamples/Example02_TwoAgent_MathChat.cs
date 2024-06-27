@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example02_TwoAgent_MathChat.cs
 
-using AutoGen.Core;
 using AutoGen;
 using AutoGen.BasicSample;
+using AutoGen.Core;
 using FluentAssertions;
 public static class Example02_TwoAgent_MathChat
 {

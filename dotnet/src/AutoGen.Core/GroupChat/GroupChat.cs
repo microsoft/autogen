@@ -95,7 +95,7 @@ public class GroupChat : IGroupChat
 
             if (agentNames.Count() == 1)
             {
-                return this.agents.FirstOrDefault(x => x.Name == agentNames.First());
+                return this.agents.First(x => x.Name == agentNames.First());
             }
         }
 
@@ -110,7 +110,7 @@ The available roles are:
 {string.Join(",", agentNames)}
 
 Each message will start with 'From name:', e.g:
-From admin:
+From {agentNames.First()}:
 //your message//.");
 
         var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
