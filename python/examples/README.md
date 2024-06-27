@@ -14,7 +14,7 @@ We provide examples to illustrate the core concepts of AGNext: agents, runtime, 
 
 - [`one_agent_direct.py`](core/one_agent_direct.py): A simple example of how to create a single agent powered by ChatCompletion model client. Communicate with the agent using direct communication.
 - [`inner_outer_direct.py`](core/inner_outer_direct.py): A simple example of how to create an agent that calls an inner agent using direct communication.
-- [`two_agents_pub_sub_termination.py`](core/two_agents_pub_sub_termination.py): An example of how to create two agents that communicate using broadcast communication (i.e., pub/sub), and termination using an intervention handler.
+- [`two_agents_pub_sub.py`](core/two_agents_pub_sub.py): An example of how to create two agents that communicate using broadcast communication (i.e., pub/sub).
 
 ## Tool use examples
 

@@ -9,12 +9,11 @@ in a round-robin fashion and sends a request to speak message to the selected sp
 2. Upon receiving a request to speak message, the speaker generates a response
 to the last message in the memory and publishes the response.
 3. The conversation continues until the specified number of rounds is reached.
-The group chat manager publishes a termination message to end the conversation.
 """
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any, List
+from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -27,7 +26,6 @@ from agnext.components.models import (
     UserMessage,
 )
 from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
 
 
 @dataclass
@@ -105,28 +103,9 @@ class GroupChatParticipant(TypeRoutedAgent):
         await self.publish_message(speach)
 
 
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Termination):
-            self._terminated = True
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-
 async def main() -> None:
-    # Create the termination handler.
-    termination_handler = TerminationHandler()
-
     # Create the runtime.
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
 
     # Register the participants.
     agent1 = runtime.register_and_get(
@@ -167,9 +146,8 @@ async def main() -> None:
     # Start the conversation.
     await runtime.publish_message(Message(content="Hello, everyone!", source="Moderator"), namespace="default")
 
-    # Run the runtime until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Run the runtime.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

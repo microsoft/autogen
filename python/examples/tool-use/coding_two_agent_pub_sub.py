@@ -9,16 +9,13 @@ the results back to the tool use agent.
 3. The tool use agent receives the tool results, and makes an inference using the model again.
 4. The process continues until the inference response is not a list of function calls.
 5. The tool use agent publishes a final response to the user.
-6. The termination handler listens for the final response message and when it is
-received, it sets the termination flag to True, and the main function
-terminates the process.
 """
 
 import asyncio
 import json
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
@@ -34,8 +31,7 @@ from agnext.components.models import (
     UserMessage,
 )
 from agnext.components.tools import PythonCodeExecutionTool, Tool
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 
 @dataclass
@@ -126,6 +122,7 @@ class ToolUseAgent(TypeRoutedAgent):
             # If the response is a string, just publish the response.
             response_message = AgentResponse(content=response.content)
             await self.publish_message(response_message)
+            print(f"AI Response: {response.content}")
             return
 
         # Handle the response as a list of function calls.
@@ -169,6 +166,7 @@ class ToolUseAgent(TypeRoutedAgent):
             await self.publish_message(response_message)
             self._tool_results.pop(message.session_id)
             self._tool_counter.pop(message.session_id)
+            print(f"AI Response: {response.content}")
             return
         # Handle the response as a list of function calls.
         assert isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content)
@@ -179,26 +177,8 @@ class ToolUseAgent(TypeRoutedAgent):
             await self.publish_message(task)
 
 
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, AgentResponse):
-            self._terminated = True
-            print(f"AI Response: {message.content}")
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-
 async def main() -> None:
-    termination_handler = TerminationHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
     # Define the tools.
     tools: List[Tool] = [
         PythonCodeExecutionTool(
@@ -222,9 +202,8 @@ async def main() -> None:
         UserRequest("Run the following Python code: print('Hello, World!')"), namespace="default"
     )
 
-    # Run the runtime until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Run the runtime.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

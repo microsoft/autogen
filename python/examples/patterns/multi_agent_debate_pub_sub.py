@@ -22,7 +22,6 @@ The pattern works as follows:
 4. Each solver agent again use the responses from other agents to refine its response, publish a new response.
 5. Repeat step 4 for a fixed number of rounds. In the final round, each solver agent publish a final response.
 6. The aggregator agent use majority voting to aggregate the final responses from all solver agents to get the final answer, and publishes the answer.
-7. The main function uses a termination handler to listen for the final answer from the aggregator agent, and prints the result.
 
 To make the connection dense, modify SolverAgent's handle_response method
 to consider all neighbors' responses to use.
@@ -36,7 +35,7 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -48,8 +47,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -199,35 +197,12 @@ class MathAggregator(TypeRoutedAgent):
             await self.publish_message(Answer(content=majority_answer))
             # Clear the responses.
             self._responses.pop(message.session_id)
-
-
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-        self._result: Answer | None = None
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Answer):
-            self._terminated = True
-            self._result = message
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-    @property
-    def result(self) -> Any:
-        return self._result
+            print(f"Aggregated answer: {majority_answer}")
 
 
 async def main(question: str) -> None:
-    # Create the termination handler.
-    termination_handler = TerminationHandler()
     # Create the runtime.
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
     # Register the solver agents.
     # Create a sparse connection: each solver agent has two neighbors.
     # NOTE: to create a dense connection, each solver agent should be connected to all other solver agents.
@@ -269,11 +244,8 @@ async def main(question: str) -> None:
     # Send a math problem to the aggregator agent.
     await runtime.publish_message(Question(content=question), namespace="default")
 
-    # Run the runtime until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
-
-    print(f"Aggregator result: {termination_handler.result.content}")
+    # Run the runtime.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

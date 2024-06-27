@@ -10,13 +10,12 @@ The reference agents handle each task independently and return the results to th
 import asyncio
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage, UserMessage
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 
 @dataclass
@@ -101,28 +100,11 @@ class AggregatorAgent(TypeRoutedAgent):
             task_result = AggregatorTaskResult(result=response.content)
             await self.publish_message(task_result)
             self._session_results.pop(message.session_id)
-
-
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, AggregatorTaskResult):
-            self._terminated = True
-            print(f"Aggregator result: {message.result}")
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
+            print(f"Aggregator result: {response.content}")
 
 
 async def main() -> None:
-    termination_handler = TerminationHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
     # TODO: use different models for each agent.
     runtime.register(
         "ReferenceAgent1",
@@ -163,9 +145,8 @@ async def main() -> None:
     )
     await runtime.publish_message(AggregatorTask(task="What are something fun to do in SF?"), namespace="default")
 
-    # Keep processing messages until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Keep processing messages.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

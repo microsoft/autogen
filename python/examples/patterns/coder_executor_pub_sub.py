@@ -10,16 +10,13 @@ executes the code block, and publishes a code execution task result message.
 on the result: if the task is completed, it publishes a task completion message;
 otherwise, it generates a new code block and publishes a code execution task message.
 4. The process continues until the coder agent publishes a task completion message.
-5. The termination handler listens for the task completion message and when it is
-received, it sets the termination flag to True, and the main function
-terminates the process.
 """
 
 import asyncio
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -32,8 +29,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 
 @dataclass
@@ -121,6 +117,9 @@ Reply "TERMINATE" in the end when everything is done."""
         if "TERMINATE" in response.content:
             # If the task is completed, publish a message with the completion content.
             await self.publish_message(TaskCompletion(content=response.content), cancellation_token=cancellation_token)
+            print("--------------------")
+            print("Task completed:")
+            print(response.content)
             return
 
         # Publish the code execution task.
@@ -171,31 +170,9 @@ class Executor(TypeRoutedAgent):
         return code_blocks
 
 
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, TaskCompletion):
-            self._terminated = True
-            print("--------------------")
-            print("Task completed:")
-            print(message.content)
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-
 async def main(task: str, temp_dir: str) -> None:
-    # Create the termination handler.
-    termination_handler = TerminationHandler()
-
     # Create the runtime with the termination handler.
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
     runtime.register("coder", lambda: Coder(model_client=OpenAIChatCompletionClient(model="gpt-4-turbo")))
@@ -204,9 +181,8 @@ async def main(task: str, temp_dir: str) -> None:
     # Publish the task message.
     await runtime.publish_message(TaskMessage(content=task), namespace="default")
 
-    # Run the runtime until the termination condition is met.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Run the runtime until no more message.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

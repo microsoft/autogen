@@ -7,15 +7,12 @@ interaction between two agents that use a chat completion model to respond to me
 and publishes the response.
 3. The Cathy agent receives the message, generates a response using a chat completion model,
 and publishes the response.
-4. The conversation continues until a termination message is received by any agent, which
-then publishes a termination message.
-5. The termination handler listens for the termination message and when it is received,
-it sets the termination flag to True, and the main function terminates the process.
+4. The conversation continues until a message with termination word is received by any agent.
 """
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any, List
+from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -27,19 +24,13 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 
 @dataclass
 class Message:
     source: str
     content: str
-
-
-@dataclass
-class Termination:
-    pass
 
 
 class ChatCompletionAgent(TypeRoutedAgent):
@@ -64,7 +55,6 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
         self._memory.append(message)
         if self._termination_word in message.content:
-            await self.publish_message(Termination())
             return
         llm_messages: List[LLMMessage] = []
         for m in self._memory[-10:]:
@@ -77,28 +67,9 @@ class ChatCompletionAgent(TypeRoutedAgent):
         await self.publish_message(Message(content=response.content, source=self.metadata["name"]))
 
 
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, Termination):
-            self._terminated = True
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-
 async def main() -> None:
-    # Create the termination handler.
-    termination_handler = TerminationHandler()
-
-    # Create the runtime with the termination handler.
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    # Create the runtime.
+    runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
     jack = runtime.register_and_get(
@@ -128,9 +99,8 @@ async def main() -> None:
     message = Message(content="Can you tell me something fun about SF?", source="User")
     await runtime.send_message(message, jack)
 
-    # Process messages until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Process messages.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

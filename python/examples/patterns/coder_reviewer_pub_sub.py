@@ -9,9 +9,6 @@ and publishes a code review result message.
 if the code is approved, it publishes a code writing result message; otherwise, it generates
 a new code block and publishes a code review task message.
 4. The process continues until the coder agent publishes a code writing result message.
-5. The termination handler listens for the code writing result message and when it is
-received, it sets the termination flag to True, and the main function
-terminates the process.
 """
 
 import asyncio
@@ -19,7 +16,7 @@ import json
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -31,8 +28,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.core import CancellationToken
 
 
 @dataclass
@@ -199,6 +195,14 @@ Code: <Your code>
                     review=message.review,
                 )
             )
+            print("Code Writing Result:")
+            print("-" * 80)
+            print(f"Task:\n{review_request.code_writing_task}")
+            print("-" * 80)
+            print(f"Code:\n{review_request.code}")
+            print("-" * 80)
+            print(f"Review:\n{message.review}")
+            print("-" * 80)
         else:
             # Create a list of LLM messages to send to the model.
             messages: List[LLMMessage] = [*self._system_messages]
@@ -240,33 +244,8 @@ Code: <Your code>
         return None
 
 
-class TerminationHandler(DefaultInterventionHandler):
-    """A handler that listens for termination messages."""
-
-    def __init__(self) -> None:
-        self._terminated = False
-
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
-        if isinstance(message, CodeWritingResult):
-            self._terminated = True
-            print("Code Writing Result:")
-            print("-" * 80)
-            print(f"Task:\n{message.task}")
-            print("-" * 80)
-            print(f"Code:\n{message.code}")
-            print("-" * 80)
-            print(f"Review:\n{message.review}")
-            print("-" * 80)
-        return message
-
-    @property
-    def terminated(self) -> bool:
-        return self._terminated
-
-
 async def main() -> None:
-    termination_handler = TerminationHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=termination_handler)
+    runtime = SingleThreadedAgentRuntime()
     runtime.register(
         "ReviewerAgent",
         lambda: ReviewerAgent(
@@ -288,9 +267,8 @@ async def main() -> None:
         namespace="default",
     )
 
-    # Keep processing messages until termination.
-    while not termination_handler.terminated:
-        await runtime.process_next()
+    # Keep processing messages until idle.
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

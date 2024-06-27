@@ -308,6 +308,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         message_envelope.future.set_result(message_envelope.message)
 
     async def process_next(self) -> None:
+        """Process the next message in the queue."""
+
         if len(self._message_queue) == 0:
             # Yield control to the event loop to allow other tasks to run
             await asyncio.sleep(0)
@@ -370,6 +372,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         # Yield control to the message loop to allow other tasks to run
         await asyncio.sleep(0)
+
+    async def process_until_idle(self) -> None:
+        """Process messages until there is no unprocessed message and no message currently being processed."""
+
+        while len(self.unprocessed_messages) > 0 or self.outstanding_tasks > 0:
+            await self.process_next()
 
     def agent_metadata(self, agent: AgentId) -> AgentMetadata:
         return self._get_agent(agent).metadata
