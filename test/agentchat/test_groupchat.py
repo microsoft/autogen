@@ -1647,6 +1647,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_multiple_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1693,6 +1694,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_none_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1762,6 +1764,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_multiple_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1771,6 +1774,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_no_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
