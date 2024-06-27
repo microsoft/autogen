@@ -136,14 +136,13 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessChatResponseMessage(ChatResponseMessage chatResponseMessage, string? from)
     {
-        if (chatResponseMessage.Content is string content && !string.IsNullOrEmpty(content))
-        {
-            return new TextMessage(Role.Assistant, content, from);
-        }
-
+        var textContent = chatResponseMessage.Content;
         if (chatResponseMessage.FunctionCall is FunctionCall functionCall)
         {
-            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from);
+            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from)
+            {
+                Content = textContent,
+            };
         }
 
         if (chatResponseMessage.ToolCalls.Where(tc => tc is ChatCompletionsFunctionToolCall).Any())
@@ -154,7 +153,15 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
             var toolCalls = functionToolCalls.Select(tc => new ToolCall(tc.Name, tc.Arguments) { ToolCallId = tc.Id });
 
-            return new ToolCallMessage(toolCalls, from);
+            return new ToolCallMessage(toolCalls, from)
+            {
+                Content = textContent,
+            };
+        }
+
+        if (textContent is string content && !string.IsNullOrEmpty(content))
+        {
+            return new TextMessage(Role.Assistant, content, from);
         }
 
         throw new InvalidOperationException("Invalid ChatResponseMessage");
@@ -314,9 +321,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private ChatMessageImageContentItem CreateChatMessageImageContentItemFromImageMessage(ImageMessage message)
     {
-        return message.Data is null
+        return message.Data is null && message.Url is not null
             ? new ChatMessageImageContentItem(new Uri(message.Url))
-            : new ChatMessageImageContentItem(message.Data, message.Data.MediaType);
+            : new ChatMessageImageContentItem(message.Data, message.Data?.MediaType);
     }
 
     private IEnumerable<ChatRequestMessage> ProcessToolCallMessage(IAgent agent, ToolCallMessage message)
@@ -327,7 +334,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
 
         var toolCall = message.ToolCalls.Select((tc, i) => new ChatCompletionsFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
-        var chatRequestMessage = new ChatRequestAssistantMessage(string.Empty) { Name = message.From };
+        var textContent = message.GetContent() ?? string.Empty;
+        var chatRequestMessage = new ChatRequestAssistantMessage(textContent) { Name = message.From };
         foreach (var tc in toolCall)
         {
             chatRequestMessage.ToolCalls.Add(tc);

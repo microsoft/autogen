@@ -95,7 +95,7 @@ public class GroupChat : IGroupChat
 
             if (agentNames.Count() == 1)
             {
-                return this.agents.FirstOrDefault(x => x.Name == agentNames.First());
+                return this.agents.First(x => x.Name == agentNames.First());
             }
         }
 

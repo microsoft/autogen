@@ -72,7 +72,7 @@ namespace <#=NameSpace#>
                 ReturnDescription = @"<#=functionContract.ReturnDescription#>",
 <#}#>
 <#if (functionContract.Parameters != null) {#>
-                Parameters = new []
+                Parameters = new global::AutoGen.Core.FunctionParameterContract[]
                 {
 <#foreach (var parameter in functionContract.Parameters) {#>
                     new FunctionParameterContract
@@ -110,6 +110,6 @@ namespace <#=NameSpace#>
 <#+
 public string NameSpace {get; set;}
 public string ClassName {get; set;}
-public IEnumerable<FunctionContract> FunctionContracts {get; set;}
+public IEnumerable<SourceGeneratorFunctionContract> FunctionContracts {get; set;}
 public bool IsStatic {get; set;} = false;
 #>
