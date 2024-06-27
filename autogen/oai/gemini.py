@@ -32,6 +32,7 @@ Resources:
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import logging
 import random
@@ -52,9 +53,9 @@ from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 from vertexai.generative_models import Content as VertexAIContent
 from vertexai.generative_models import GenerativeModel
-from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
 from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
+from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
 logger = logging.getLogger(__name__)
@@ -393,8 +394,8 @@ class GeminiClient:
         """Convert safety settings to VertexAI format if needed,
         like when specifying them in the OAI_CONFIG_LIST
         """
-        if (type(safety_settings) == list) and all(
-            [type(safety_setting) == dict] for safety_setting in safety_settings
+        if isinstance(safety_settings, list) and all(
+            [isinstance(safety_setting, dict)] for safety_setting in safety_settings
         ):
             vertexai_safety_settings = []
             for safety_setting in safety_settings:
