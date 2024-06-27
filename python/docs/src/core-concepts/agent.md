@@ -4,10 +4,6 @@ An agent in AGNext is an entity that can react to, send, and publish
 messages. Messages are the only means through which agents can communicate
 with each other.
 
-Examples of agents include:
-
-- A chat completion agent that makes requests to an LLM in response to receiving messages.
-
 ## Messages
 
 Messages are typed, and serializable (to JSON) objects that agents use to communicate. The type of a message is used to determine which agents a message should be delivered to, if an agent can handle a message and the handler that should be invoked when the message is received by an agent. If an agent is invoked with a message it is not able to handle, it must raise {py:class}`~agnext.core.exceptions.CantHandleException`.
