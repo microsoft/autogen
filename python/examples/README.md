@@ -34,6 +34,7 @@ We provide examples to illustrate how multi-agent patterns can be implemented in
 - [`group_chat_pub_sub.py`](patterns/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using broadcast communication.
 - [`mixture_of_agents_direct.py`](patterns/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using direct communication.
 - [`mixture_of_agents_pub_sub.py`](patterns/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using broadcast communication.
+- [`multi_agent_debate_pub_sub.py`](patterns/multi_agent_debate_pub_sub.py): An example of how to create a [sparse multi-agent debate](https://arxiv.org/abs/2406.11776) pattern using broadcast communication.
 
 ## Demos
 
