@@ -75,8 +75,9 @@ class Coder(TypeRoutedAgent):
 
         # Keep executing the tools until the response is not a list of function calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
+            # TODO: gather internally too
             results = await asyncio.gather(
-                *[self.send_message(ToolMessage(function_call=call), self.id) for call in response.content]
+                *[await self.send_message(ToolMessage(function_call=call), self.id) for call in response.content]
             )
             # Combine the results into a single response.
             result = FunctionExecutionResultMessage(content=[result.result for result in results])

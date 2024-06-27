@@ -184,7 +184,7 @@ Code: <Your code>
             # Send the code review task to the reviewer.
             result = await self.send_message(code_review_task, self._reviewer)
             # Store the review result in the session memory.
-            memory.append(result)
+            memory.append(await result)
         # Obtain the request from previous messages.
         review_request = next(m for m in reversed(memory) if isinstance(m, CodeReviewTask))
         assert review_request is not None
@@ -222,7 +222,7 @@ async def main() -> None:
             reviewer=reviewer,
         ),
     )
-    result = runtime.send_message(
+    result = await runtime.send_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
         ),

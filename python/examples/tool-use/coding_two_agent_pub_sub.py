@@ -218,7 +218,9 @@ async def main() -> None:
     )
 
     # Publish a task.
-    runtime.publish_message(UserRequest("Run the following Python code: print('Hello, World!')"), namespace="default")
+    await runtime.publish_message(
+        UserRequest("Run the following Python code: print('Hello, World!')"), namespace="default"
+    )
 
     # Run the runtime until termination.
     while not termination_handler.terminated:

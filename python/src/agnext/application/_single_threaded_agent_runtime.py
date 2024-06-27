@@ -106,7 +106,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         return set(self._agent_factories.keys())
 
     # Returns the response of the message
-    def send_message(
+    async def send_message(
         self,
         message: Any,
         recipient: AgentId,
@@ -150,14 +150,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         return future
 
-    def publish_message(
+    async def publish_message(
         self,
         message: Any,
         *,
         namespace: str | None = None,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[None]:
+    ) -> None:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
@@ -195,10 +195,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 namespace=namespace,
             )
         )
-
-        future = asyncio.get_event_loop().create_future()
-        future.set_result(None)
-        return future
 
     def save_state(self) -> Mapping[str, Any]:
         state: Dict[str, Dict[str, Any]] = {}

@@ -25,7 +25,9 @@ dependencies = [
     "pyright==1.1.368",
     "mypy==1.10.0",
     "ruff==0.4.8",
-    "pytest"
+    "pytest",
+    "aiofiles",
+    "types-aiofiles"
 ]
 
 [tool.hatch.envs.default.extra-scripts]

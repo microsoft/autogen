@@ -49,7 +49,7 @@ async def main() -> None:
     )
 
     # Send a task to the tool user.
-    result = runtime.send_message(UserRequest("What is the stock price of NVDA on 2024/06/01"), tool_agent)
+    result = await runtime.send_message(UserRequest("What is the stock price of NVDA on 2024/06/01"), tool_agent)
 
     # Run the runtime until the task is completed.
     while not result.done():

@@ -18,7 +18,7 @@ async def main() -> None:
     task = TaskMessage(input(f"Enter a task for {coder.name}: "))
 
     # Send a task to the tool user.
-    result = runtime.send_message(task, coder)
+    result = await runtime.send_message(task, coder)
 
     # Run the runtime until the task is completed.
     while not result.done():

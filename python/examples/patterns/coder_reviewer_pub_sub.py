@@ -281,7 +281,7 @@ async def main() -> None:
             model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
         ),
     )
-    runtime.publish_message(
+    await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
         ),

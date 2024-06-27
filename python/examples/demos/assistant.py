@@ -228,7 +228,7 @@ Type "exit" to exit the chat.
     user = assistant_chat(runtime)
     print(usage)
     # Request the user to start the conversation.
-    runtime.send_message(PublishNow(), user)
+    await runtime.send_message(PublishNow(), user)
     while True:
         # TODO: have a way to exit the loop.
         await runtime.process_next()

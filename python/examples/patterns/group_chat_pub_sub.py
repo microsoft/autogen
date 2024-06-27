@@ -65,10 +65,10 @@ class RoundRobinGroupChatManager(TypeRoutedAgent):
         self._round_count += 1
         if self._round_count == self._num_rounds * len(self._participants):
             # End the conversation after the specified number of rounds.
-            self.publish_message(Termination())
+            await self.publish_message(Termination())
             return
         # Send a request to speak message to the selected speaker.
-        self.send_message(RequestToSpeak(), speaker)
+        await self.send_message(RequestToSpeak(), speaker)
 
 
 class GroupChatParticipant(TypeRoutedAgent):
@@ -102,7 +102,7 @@ class GroupChatParticipant(TypeRoutedAgent):
         assert isinstance(response.content, str)
         speach = Message(content=response.content, source=self.metadata["name"])
         self._memory.append(speach)
-        self.publish_message(speach)
+        await self.publish_message(speach)
 
 
 class TerminationHandler(DefaultInterventionHandler):
@@ -165,7 +165,7 @@ async def main() -> None:
     )
 
     # Start the conversation.
-    runtime.publish_message(Message(content="Hello, everyone!", source="Moderator"), namespace="default")
+    await runtime.publish_message(Message(content="Hello, everyone!", source="Moderator"), namespace="default")
 
     # Run the runtime until termination.
     while not termination_handler.terminated:

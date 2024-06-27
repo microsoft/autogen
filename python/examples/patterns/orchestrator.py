@@ -130,7 +130,7 @@ def software_development(runtime: AgentRuntime) -> OrchestratorChat:  # type: ig
 async def run(message: str, user: str, scenario: Callable[[AgentRuntime], OrchestratorChat]) -> None:  # type: ignore
     runtime = SingleThreadedAgentRuntime()
     chat = scenario(runtime)
-    response = runtime.send_message(TextMessage(content=message, source=user), chat.id)
+    response = await runtime.send_message(TextMessage(content=message, source=user), chat.id)
     while not response.done():
         await runtime.process_next()
     print((await response).content)  # type: ignore

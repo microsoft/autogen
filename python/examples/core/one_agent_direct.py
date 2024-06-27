@@ -46,7 +46,7 @@ async def main() -> None:
 
     # Send a message to the agent.
     message = Message(content="Can you tell me something fun about SF?")
-    result = runtime.send_message(message, agent)
+    result = await runtime.send_message(message, agent)
 
     # Process messages until the agent responds.
     while result.done() is False:

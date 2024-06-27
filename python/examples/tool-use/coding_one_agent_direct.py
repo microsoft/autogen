@@ -78,8 +78,8 @@ class ToolEnabledAgent(TypeRoutedAgent):
 
         # Keep executing the tools until the response is not a list of function calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            results = await asyncio.gather(
-                *[self.send_message(ToolExecutionTask(function_call=call), self.id) for call in response.content]
+            results: List[ToolExecutionTaskResult] = await asyncio.gather(
+                *[await self.send_message(ToolExecutionTask(function_call=call), self.id) for call in response.content]
             )
             # Combine the results into a single response.
             result = FunctionExecutionResultMessage(content=[result.result for result in results])
@@ -136,7 +136,9 @@ async def main() -> None:
     )
 
     # Send a task to the tool user.
-    result = runtime.send_message(UserRequest("Run the following Python code: print('Hello, World!')"), tool_agent)
+    result = await runtime.send_message(
+        UserRequest("Run the following Python code: print('Hello, World!')"), tool_agent
+    )
 
     # Run the runtime until the task is completed.
     while not result.done():

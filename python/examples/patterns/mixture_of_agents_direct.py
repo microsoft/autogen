@@ -83,7 +83,7 @@ class AggregatorAgent(TypeRoutedAgent):
         and aggregates the results."""
         ref_task = ReferenceAgentTask(task=message.task)
         results: List[ReferenceAgentTaskResult] = await asyncio.gather(
-            *[self.send_message(ref_task, ref) for ref in self._references]
+            *[await self.send_message(ref_task, ref) for ref in self._references]
         )
         combined_result = "\n\n".join([r.result for r in results])
         response = await self._model_client.create(
@@ -132,7 +132,7 @@ async def main() -> None:
             references=[ref1, ref2, ref3],
         ),
     )
-    result = runtime.send_message(AggregatorTask(task="What are something fun to do in SF?"), agg)
+    result = await runtime.send_message(AggregatorTask(task="What are something fun to do in SF?"), agg)
     while result.done() is False:
         await runtime.process_next()
     print(result.result())

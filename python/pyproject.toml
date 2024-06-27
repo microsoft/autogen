@@ -18,8 +18,7 @@ dependencies = [
     "pillow",
     "aiohttp",
     "typing-extensions",
-    "pydantic>=1.10,<3",
-    "types-aiofiles"
+    "pydantic>=1.10,<3"
 ]
 
 [tool.hatch.envs.default]

@@ -18,7 +18,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinxcontrib.apidoc",
-    "myst_parser"
+    "myst_parser",
+    "sphinx.ext.intersphinx"
 ]
 
 apidoc_module_dir = '../../src/agnext'
@@ -55,3 +56,5 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
 }
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

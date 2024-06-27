@@ -64,7 +64,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
     async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
         self._memory.append(message)
         if self._termination_word in message.content:
-            self.publish_message(Termination())
+            await self.publish_message(Termination())
             return
         llm_messages: List[LLMMessage] = []
         for m in self._memory[-10:]:
@@ -74,7 +74,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
                 llm_messages.append(UserMessage(content=m.content, source=m.source))
         response = await self._model_client.create(self._system_messages + llm_messages)
         assert isinstance(response.content, str)
-        self.publish_message(Message(content=response.content, source=self.metadata["name"]))
+        await self.publish_message(Message(content=response.content, source=self.metadata["name"]))
 
 
 class TerminationHandler(DefaultInterventionHandler):
@@ -126,7 +126,7 @@ async def main() -> None:
 
     # Send a message to Jack to start the conversation.
     message = Message(content="Can you tell me something fun about SF?", source="User")
-    runtime.send_message(message, jack)
+    await runtime.send_message(message, jack)
 
     # Process messages until termination.
     while not termination_handler.terminated:

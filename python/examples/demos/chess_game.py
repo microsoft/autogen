@@ -205,7 +205,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     chess_game(runtime)
     # Publish an initial message to trigger the group chat manager to start orchestration.
-    runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
+    await runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
     while True:
         await runtime.process_next()
         await asyncio.sleep(1)

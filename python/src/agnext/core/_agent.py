@@ -27,8 +27,9 @@ class Agent(Protocol):
         Returns:
             Any: Response to the message. Can be None.
 
-        Notes:
-            If there was a cancellation, this function should raise a `CancelledError`.
+        Raises:
+            asyncio.CancelledError: If the message was cancelled.
+            CantHandleException: If the agent cannot handle the message.
         """
         ...
 

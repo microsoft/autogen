@@ -57,7 +57,7 @@ class ImageGenerationAgent(TypeRoutedAgent):
         image is published as a MultiModalMessage."""
 
         response = await self._generate_response(cancellation_token)
-        self.publish_message(response)
+        await self.publish_message(response)
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:
         messages = await self._memory.get_messages()

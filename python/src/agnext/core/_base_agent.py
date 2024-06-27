@@ -49,18 +49,18 @@ class BaseAgent(ABC, Agent):
     @abstractmethod
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...
 
-    # Returns the response of the message
-    def send_message(
+    async def send_message(
         self,
         message: Any,
         recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]:
+        """See :py:meth:`agnext.core.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
-        future = self._runtime.send_message(
+        future = await self._runtime.send_message(
             message,
             sender=self.id,
             recipient=recipient,
@@ -69,17 +69,13 @@ class BaseAgent(ABC, Agent):
         cancellation_token.link_future(future)
         return future
 
-    def publish_message(
+    async def publish_message(
         self,
         message: Any,
         *,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[None]:
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-
-        future = self._runtime.publish_message(message, sender=self.id, cancellation_token=cancellation_token)
-        return future
+    ) -> None:
+        await self._runtime.publish_message(message, sender=self.id, cancellation_token=cancellation_token)
 
     def save_state(self) -> Mapping[str, Any]:
         warnings.warn("save_state not implemented", stacklevel=2)

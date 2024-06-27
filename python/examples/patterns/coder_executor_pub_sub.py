@@ -100,7 +100,7 @@ Reply "TERMINATE" in the end when everything is done."""
         )
 
         # Publish the code execution task.
-        self.publish_message(
+        await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=session_id), cancellation_token=cancellation_token
         )
 
@@ -120,11 +120,11 @@ Reply "TERMINATE" in the end when everything is done."""
 
         if "TERMINATE" in response.content:
             # If the task is completed, publish a message with the completion content.
-            self.publish_message(TaskCompletion(content=response.content), cancellation_token=cancellation_token)
+            await self.publish_message(TaskCompletion(content=response.content), cancellation_token=cancellation_token)
             return
 
         # Publish the code execution task.
-        self.publish_message(
+        await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=message.session_id),
             cancellation_token=cancellation_token,
         )
@@ -143,7 +143,7 @@ class Executor(TypeRoutedAgent):
         code_blocks = self._extract_code_blocks(message.content)
         if not code_blocks:
             # If no code block is found, publish a message with an error.
-            self.publish_message(
+            await self.publish_message(
                 CodeExecutionTaskResult(
                     output="Error: no Markdown code block found.", exit_code=1, session_id=message.session_id
                 ),
@@ -155,7 +155,7 @@ class Executor(TypeRoutedAgent):
         cancellation_token.link_future(future)
         result = await future
         # Publish the code execution result.
-        self.publish_message(
+        await self.publish_message(
             CodeExecutionTaskResult(output=result.output, exit_code=result.exit_code, session_id=message.session_id),
             cancellation_token=cancellation_token,
         )
@@ -202,7 +202,7 @@ async def main(task: str, temp_dir: str) -> None:
     runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
 
     # Publish the task message.
-    runtime.publish_message(TaskMessage(content=task), namespace="default")
+    await runtime.publish_message(TaskMessage(content=task), namespace="default")
 
     # Run the runtime until the termination condition is met.
     while not termination_handler.terminated:

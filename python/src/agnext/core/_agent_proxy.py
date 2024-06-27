@@ -26,14 +26,14 @@ class AgentProxy:
         """Metadata of the agent."""
         return self._runtime.agent_metadata(self._agent)
 
-    def send_message(
+    async def send_message(
         self,
         message: Any,
         *,
         sender: AgentId,
         cancellation_token: CancellationToken | None = None,
     ) -> Future[Any]:
-        return self._runtime.send_message(
+        return await self._runtime.send_message(
             message,
             recipient=self._agent,
             sender=sender,

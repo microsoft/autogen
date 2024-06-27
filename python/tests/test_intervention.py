@@ -21,7 +21,7 @@ async def test_intervention_count_messages() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
     loopback = runtime.register_and_get("name", LoopbackAgent)
 
-    response = runtime.send_message(MessageType(), recipient=loopback)
+    response = await runtime.send_message(MessageType(), recipient=loopback)
 
     while not response.done():
         await runtime.process_next()
@@ -41,7 +41,7 @@ async def test_intervention_drop_send() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     loopback = runtime.register_and_get("name", LoopbackAgent)
-    response = runtime.send_message(MessageType(), recipient=loopback)
+    response = await runtime.send_message(MessageType(), recipient=loopback)
 
     while not response.done():
         await runtime.process_next()
@@ -64,7 +64,7 @@ async def test_intervention_drop_response() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     loopback = runtime.register_and_get("name", LoopbackAgent)
-    response = runtime.send_message(MessageType(), recipient=loopback)
+    response = await runtime.send_message(MessageType(), recipient=loopback)
 
     while not response.done():
         await runtime.process_next()
@@ -87,7 +87,7 @@ async def test_intervention_raise_exception_on_send() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     long_running = runtime.register_and_get("name", LoopbackAgent)
-    response = runtime.send_message(MessageType(), recipient=long_running)
+    response = await runtime.send_message(MessageType(), recipient=long_running)
 
     while not response.done():
         await runtime.process_next()
@@ -112,7 +112,7 @@ async def test_intervention_raise_exception_on_respond() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
 
     long_running = runtime.register_and_get("name", LoopbackAgent)
-    response = runtime.send_message(MessageType(), recipient=long_running)
+    response = await runtime.send_message(MessageType(), recipient=long_running)
 
     while not response.done():
         await runtime.process_next()

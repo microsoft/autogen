@@ -128,7 +128,11 @@ class MathSolver(TypeRoutedAgent):
             "Your final answer should be a single numerical number, "
             "in the form of {{answer}}, at the end of your response."
             # Send the question to the agent itself.
-            self.send_message(SolverRequest(content=prompt, session_id=message.session_id, question=question), self.id)
+            await (
+                await self.send_message(
+                    SolverRequest(content=prompt, session_id=message.session_id, question=question), self.id
+                )
+            )
             # Clear the buffer.
             self._buffer.clear()
 
@@ -192,7 +196,7 @@ class MathAggregator(TypeRoutedAgent):
             answers = [resp.answer for resp in self._responses[message.session_id]]
             majority_answer = max(set(answers), key=answers.count)
             # Publish the aggregated response.
-            self.publish_message(Answer(content=majority_answer))
+            await self.publish_message(Answer(content=majority_answer))
             # Clear the responses.
             self._responses.pop(message.session_id)
 
