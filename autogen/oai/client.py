@@ -490,11 +490,13 @@ class OpenAIWrapper:
             elif api_type is not None and api_type.startswith("together"):
                 if together_import_exception:
                     raise ImportError("Please install `together` to use the Together.AI API.")
-                self._clients.append(TogetherClient(**config))
+                client = TogetherClient(**openai_config)
+                self._clients.append(client)
             elif api_type is not None and api_type.startswith("groq"):
                 if groq_import_exception:
                     raise ImportError("Please install `groq` to use the Groq API.")
-                self._clients.append(GroqClient(**config))
+                client = GroqClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
