@@ -4,6 +4,9 @@ import pytest
 
 try:
     from google.api_core.exceptions import InternalServerError
+    from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
+    from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
+    from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
     from autogen.oai.gemini import GeminiClient
 
@@ -92,6 +95,38 @@ def test_gemini_message_handling(gemini_client):
         assert expected_msg["role"] == converted_messages[i].role, "Incorrect mapped message role"
         for j, part in enumerate(expected_msg["parts"]):
             assert converted_messages[i].parts[j].text == part, "Incorrect mapped message text"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_safety_setting_conversion(gemini_client):
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+    ]
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+    harm_categories = [
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    ]
+    expected_safety_settings = [
+        VertexAISafetySetting(category=category, threshold=VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH)
+        for category in harm_categories
+    ]
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for i, expected_setting in enumerate(expected_safety_settings):
+            converted_setting = converted_safety_settings[i]
+            yield expected_setting.to_dict() == converted_setting.to_dict()
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
 
 
 # Test error handling

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import base64
 import os
+import logging
 import random
 import re
 import time
@@ -52,6 +53,11 @@ from PIL import Image
 from vertexai.generative_models import Content as VertexAIContent
 from vertexai.generative_models import GenerativeModel
 from vertexai.generative_models import Part as VertexAIPart
+from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
+from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
+from vertexai.generative_models import SafetySetting as VertexAISafetySetting
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiClient:
@@ -165,7 +171,10 @@ class GeminiClient:
             for autogen_term, gemini_term in self.PARAMS_MAPPING.items()
             if autogen_term in params
         }
-        safety_settings = params.get("safety_settings", {})
+        if self.use_vertexai:
+            safety_settings = GeminiClient._to_vertexai_safety_settings(params.get("safety_settings", {}))
+        else:
+            safety_settings = params.get("safety_settings", {})
 
         if stream:
             warnings.warn(
@@ -194,7 +203,7 @@ class GeminiClient:
             for attempt in range(max_retries):
                 ans = None
                 try:
-                    response = chat.send_message(gemini_messages[-1], stream=stream)
+                    response = chat.send_message(gemini_messages[-1].parts, stream=stream)
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
@@ -227,7 +236,7 @@ class GeminiClient:
                 genai.configure(api_key=self.api_key)
             # Gemini's vision model does not support chat history yet
             # chat = model.start_chat(history=gemini_messages[:-1])
-            # response = chat.send_message(gemini_messages[-1])
+            # response = chat.send_message(gemini_messages[-1].parts)
             user_message = self._oai_content_to_gemini_content(messages[-1]["content"])
             if len(messages) > 2:
                 warnings.warn(
@@ -371,6 +380,32 @@ class GeminiClient:
                 rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="user"))
 
         return rst
+
+    @staticmethod
+    def _to_vertexai_safety_settings(safety_settings):
+        """Convert safety settings to VertexAI format if needed,
+        like when specifying them in the OAI_CONFIG_LIST
+        """
+        if (type(safety_settings) == list) and all(
+            [type(safety_setting) == dict] for safety_setting in safety_settings
+        ):
+            vertexai_safety_settings = []
+            for safety_setting in safety_settings:
+                if safety_setting["category"] not in VertexAIHarmCategory.__members__:
+                    invalid_category = safety_setting["category"]
+                    logger.error(f"Safety setting category {invalid_category} is invalid")
+                elif safety_setting["threshold"] not in VertexAIHarmBlockThreshold.__members__:
+                    invalid_threshold = safety_setting["threshold"]
+                    logger.error(f"Safety threshold {invalid_threshold} is invalid")
+                else:
+                    vertexai_safety_setting = VertexAISafetySetting(
+                        category=safety_setting["category"],
+                        threshold=safety_setting["threshold"],
+                    )
+                    vertexai_safety_settings.append(vertexai_safety_setting)
+            return vertexai_safety_settings
+        else:
+            return safety_settings
 
 
 def _to_pil(data: str) -> Image.Image:
