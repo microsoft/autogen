@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 from pathlib import Path
 from typing import List
@@ -9,7 +10,6 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
@@ -17,7 +17,7 @@ from agnext.components.models import (
 from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
 
-from ..messages import LLMResponseMessage, TaskMessage, ToolMessage, ToolResultMessage
+from ..messages import BroadcastMessage, RequestReplyMessage
 
 
 async def read_local_file(file_path: str) -> str:
@@ -68,52 +68,58 @@ class FileSurfer(TypeRoutedAgent):
                 name="list_files_in_directory",
             ),
         ]
+        self._history: List[LLMMessage] = []
 
     @message_handler
-    async def handle_user_message(
-        self, message: TaskMessage, cancellation_token: CancellationToken
-    ) -> LLMResponseMessage:
+    async def on_broadcast_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
         """Handle a user message, execute the model and tools, and returns the response."""
+        assert isinstance(message.content, UserMessage)
+        self._history.append(message.content)
 
-        session: List[LLMMessage] = []
-        session.append(UserMessage(content=message.content, source="User"))
+    @message_handler
+    async def on_request_reply_message(
+        self, message: RequestReplyMessage, cancellation_token: CancellationToken
+    ) -> None:
+        session: List[LLMMessage] = copy.deepcopy(self._history)
 
         response = await self._model_client.create(self._system_messages + session, tools=self._tools)
-
         session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
 
-        # Keep executing the tools until the response is not a list of function calls.
-        while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            # TODO: gather internally too
-            results = await asyncio.gather(
-                *[await self.send_message(ToolMessage(function_call=call), self.id) for call in response.content]
-            )
-            # Combine the results into a single response.
-            result = FunctionExecutionResultMessage(content=[result.result for result in results])
-            session.append(result)
-            # Execute the model again with the new response.
-            response = await self._model_client.create(self._system_messages + session, tools=self._tools)
-            session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+        if isinstance(response.content, str):
+            final_result = response.content
 
-        assert isinstance(response.content, str)
-        return LLMResponseMessage(content=response.content)
+        elif isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
+            results = await asyncio.gather(*[await self.send_message(call, self.id) for call in response.content])
+            for result in results:
+                assert isinstance(result, FunctionExecutionResult)
+            final_result = "\n".join(result.content for result in results)
+        else:
+            raise ValueError(f"Unexpected response type: {response.content}")
+
+        assert isinstance(final_result, str)
+
+        session.append(AssistantMessage(content=final_result, source=self.metadata["name"]))
+        await self.publish_message(
+            BroadcastMessage(content=UserMessage(content=final_result, source=self.metadata["name"]))
+        )
 
     @message_handler
-    async def handle_tool_call(self, message: ToolMessage, cancellation_token: CancellationToken) -> ToolResultMessage:
+    async def handle_tool_call(
+        self, message: FunctionCall, cancellation_token: CancellationToken
+    ) -> FunctionExecutionResult:
         """Handle a tool execution task. This method executes the tool and publishes the result."""
+        function_call = message
         # Find the tool
-        tool = next((tool for tool in self._tools if tool.name == message.function_call.name), None)
+        tool = next((tool for tool in self._tools if tool.name == function_call.name), None)
         if tool is None:
-            result_as_str = f"Error: Tool not found: {message.function_call.name}"
+            result_as_str = f"Error: Tool not found: {function_call.name}"
         else:
             try:
-                arguments = json.loads(message.function_call.arguments)
+                arguments = json.loads(function_call.arguments)
                 result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError:
-                result_as_str = f"Error: Invalid arguments: {message.function_call.arguments}"
+                result_as_str = f"Error: Invalid arguments: {function_call.arguments}"
             except Exception as e:
                 result_as_str = f"Error: {e}"
-        return ToolResultMessage(
-            result=FunctionExecutionResult(content=result_as_str, call_id=message.function_call.id),
-        )
+        return FunctionExecutionResult(content=result_as_str, call_id=function_call.id)

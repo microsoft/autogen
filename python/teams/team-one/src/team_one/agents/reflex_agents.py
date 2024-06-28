@@ -1,4 +1,5 @@
 from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components.models import UserMessage
 from agnext.core import CancellationToken
 
 from ..messages import BroadcastMessage, RequestReplyMessage
@@ -18,6 +19,10 @@ class ReflexAgent(TypeRoutedAgent):
         self, message: RequestReplyMessage, cancellation_token: CancellationToken
     ) -> None:
         name = self.metadata["name"]
-        await self.publish_message(
-            BroadcastMessage(content=f"Hello, world from {name}!"), cancellation_token=cancellation_token
+
+        response_message = UserMessage(
+            content=f"Hello, world from {name}!",
+            source=name,
         )
+
+        await self.publish_message(BroadcastMessage(response_message), cancellation_token=cancellation_token)

@@ -20,7 +20,7 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
     async def handle_incoming_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
         """Handle an incoming message."""
 
-        if self._num_rounds > 3:
+        if self._num_rounds > 20:
             return
 
         next_agent = self._select_next_agent()

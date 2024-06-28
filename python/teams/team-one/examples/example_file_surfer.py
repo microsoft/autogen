@@ -1,11 +1,9 @@
 import asyncio
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import (
-    OpenAIChatCompletionClient,
-)
+from agnext.components.models import OpenAIChatCompletionClient, UserMessage
 from team_one.agents.file_surfer import FileSurfer
-from team_one.messages import LLMResponseMessage, TaskMessage
+from team_one.messages import BroadcastMessage, RequestReplyMessage
 
 
 async def main() -> None:
@@ -17,21 +15,15 @@ async def main() -> None:
         "file_surfer",
         lambda: FileSurfer(model_client=OpenAIChatCompletionClient(model="gpt-4o")),
     )
-
-    task = TaskMessage(input(f"Enter a task for {file_surfer.name}: "))
+    task = input(f"Enter a task for {file_surfer.name}: ")
+    msg = BroadcastMessage(content=UserMessage(content=task, source="human"))
 
     # Send a task to the tool user.
-    result = await runtime.send_message(task, file_surfer)
+    await runtime.publish_message(msg, namespace="default")
+    await runtime.publish_message(RequestReplyMessage(), namespace="default")
 
     # Run the runtime until the task is completed.
-    while not result.done():
-        await runtime.process_next()
-
-    # Print the result.
-    final_response = result.result()
-    assert isinstance(final_response, LLMResponseMessage)
-    print("--------------------")
-    print(final_response.content)
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":

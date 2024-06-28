@@ -1,22 +1,19 @@
 import asyncio
-import json
-from typing import List
+import re
+from typing import List, Optional, Union
 
-from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
-from agnext.components.code_executor import LocalCommandLineCodeExecutor
+from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-from agnext.components.tools import PythonCodeExecutionTool
 from agnext.core import CancellationToken
 
-from ..messages import LLMResponseMessage, TaskMessage, ToolMessage, ToolResultMessage
+from team_one.messages import BroadcastMessage, RequestReplyMessage
 
 
 class Coder(TypeRoutedAgent):
@@ -25,9 +22,23 @@ class Coder(TypeRoutedAgent):
     DEFAULT_DESCRIPTION = "A Python coder assistant."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""You are a helpful AI Assistant. Use your tools to solve problems.
-                        If the tool results in an error, use the error trace to improve
-                        the python code. If the code requires installing packages, use python to install the packages"""),
+        SystemMessage("""You are a helpful AI assistant. Solve tasks using your Python coding skills. The code you output must be formatted in Markdown code blocks demarcated by triple backticks (```). As an example:
+
+```python
+
+def main():
+    print("Hello world.")
+
+if __name__ == "__main__":
+    main()
+```
+
+The user cannot provide any feedback or perform any other action beyond executing the code you suggest. In particular, the user can't modify your code, and can't copy and paste anything, and can't fill in missing values. Thus, do not suggest incomplete code which requires users to perform any of these actions.
+
+Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes -- code blocks must stand alone and be ready to execute without modification. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, and think of a different approach to try.
+
+If the code has executed successfully, and the problem is stolved, reply "TERMINATE".
+""")
     ]
 
     def __init__(
@@ -39,53 +50,78 @@ class Coder(TypeRoutedAgent):
         super().__init__(description)
         self._model_client = model_client
         self._system_messages = system_messages
-        self._tools = [PythonCodeExecutionTool(LocalCommandLineCodeExecutor())]
+        self._chat_history: List[LLMMessage] = []
 
     @message_handler
-    async def handle_user_message(
-        self, message: TaskMessage, cancellation_token: CancellationToken
-    ) -> LLMResponseMessage:
-        """Handle a user message, execute the model and tools, and returns the response."""
+    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+        """Handle an incoming broadcast message."""
+        assert isinstance(message.content, UserMessage)
+        self._chat_history.append(message.content)
 
-        session: List[LLMMessage] = []
-        session.append(UserMessage(content=message.content, source="User"))
+    @message_handler
+    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+        """Respond to a reply request."""
 
-        response = await self._model_client.create(self._system_messages + session, tools=self._tools)
-
-        session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
-
-        # Keep executing the tools until the response is not a list of function calls.
-        while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            # TODO: gather internally too
-            results = await asyncio.gather(
-                *[await self.send_message(ToolMessage(function_call=call), self.id) for call in response.content]
-            )
-            # Combine the results into a single response.
-            result = FunctionExecutionResultMessage(content=[result.result for result in results])
-            session.append(result)
-            # Execute the model again with the new response.
-            response = await self._model_client.create(self._system_messages + session, tools=self._tools)
-            session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
-
+        # Make an inference to the model.
+        response = await self._model_client.create(self._system_messages + self._chat_history)
         assert isinstance(response.content, str)
-        return LLMResponseMessage(content=response.content)
+        self._chat_history.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+
+        if "TERMINATE" in response.content:
+            return
+        else:
+            await self.publish_message(
+                BroadcastMessage(content=UserMessage(content=response.content, source=self.metadata["name"]))
+            )
+
+
+class Executor(TypeRoutedAgent):
+    def __init__(self, description: str, executor: Optional[CodeExecutor] = None) -> None:
+        super().__init__(description)
+        self._executor = executor or LocalCommandLineCodeExecutor()
+        self._chat_history: List[LLMMessage] = []
 
     @message_handler
-    async def handle_tool_call(self, message: ToolMessage, cancellation_token: CancellationToken) -> ToolResultMessage:
-        """Handle a tool execution task. This method executes the tool and publishes the result."""
-        # Find the tool
-        tool = next((tool for tool in self._tools if tool.name == message.function_call.name), None)
-        if tool is None:
-            result_as_str = f"Error: Tool not found: {message.function_call.name}"
+    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+        """Handle an incoming broadcast message."""
+        self._chat_history.append(message.content)
+
+    @message_handler
+    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+        """Respond to a reply request."""
+
+        # Extract code block from the message.
+        assert isinstance(self._chat_history[-1].content, str)
+        code = self._extract_execution_request(self._chat_history[-1].content)
+        if code is not None:
+            execution_requests = [CodeBlock(code=code, language="python")]
+            future = asyncio.get_event_loop().run_in_executor(
+                None, self._executor.execute_code_blocks, execution_requests
+            )
+            cancellation_token.link_future(future)
+            result = await future
+
+            str_result = (
+                f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}"
+            )
+            await self.publish_message(
+                BroadcastMessage(content=UserMessage(content=str_result, source=self.metadata["name"]))
+            )
         else:
-            try:
-                arguments = json.loads(message.function_call.arguments)
-                result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
-                result_as_str = tool.return_value_as_string(result)
-            except json.JSONDecodeError:
-                result_as_str = f"Error: Invalid arguments: {message.function_call.arguments}"
-            except Exception as e:
-                result_as_str = f"Error: {e}"
-        return ToolResultMessage(
-            result=FunctionExecutionResult(content=result_as_str, call_id=message.function_call.id),
-        )
+            await self.publish_message(
+                BroadcastMessage(
+                    content=UserMessage(
+                        content="No code block detected. Please provide a markdown-encoded code block to execute for the original task.",
+                        source=self.metadata["name"],
+                    )
+                )
+            )
+
+    def _extract_execution_request(self, markdown_text: str) -> Union[str, None]:
+        pattern = r"```(\w+)\n(.*?)\n```"
+        # Search for the pattern in the markdown text
+        match = re.search(pattern, markdown_text, re.DOTALL)
+        # Extract the language and code block if a match is found
+        if match:
+            return match.group(2)
+        return None

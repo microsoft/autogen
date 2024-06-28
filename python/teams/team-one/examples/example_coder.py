@@ -1,35 +1,35 @@
 import asyncio
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import OpenAIChatCompletionClient
-from team_one.agents.coder import Coder
-from team_one.messages import LLMResponseMessage, TaskMessage
+from agnext.components.models import OpenAIChatCompletionClient, UserMessage
+from team_one.agents.coder import Coder, Executor
+from team_one.agents.orchestrator import RoundRobinOrchestrator
+from team_one.messages import BroadcastMessage
 
 
 async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
+    client = OpenAIChatCompletionClient(model="gpt-4o")
+
     # Register agents.
-    coder = runtime.register_and_get(
-        "coder",
-        lambda: Coder(model_client=OpenAIChatCompletionClient(model="gpt-4o")),
+    coder = runtime.register_and_get_proxy(
+        "Coder",
+        lambda: Coder(model_client=client),
+    )
+    executor = runtime.register_and_get_proxy("Executor", lambda: Executor("A agent for executing code"))
+
+    runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, executor]))
+
+    task = input("Enter a task: ")
+
+    await runtime.publish_message(
+        BroadcastMessage(content=UserMessage(content=task, source="human")), namespace="default"
     )
 
-    task = TaskMessage(input(f"Enter a task for {coder.name}: "))
-
-    # Send a task to the tool user.
-    result = await runtime.send_message(task, coder)
-
     # Run the runtime until the task is completed.
-    while not result.done():
-        await runtime.process_next()
-
-    # Print the result.
-    final_response = result.result()
-    assert isinstance(final_response, LLMResponseMessage)
-    print("--------------------")
-    print(final_response.content)
+    await runtime.process_until_idle()
 
 
 if __name__ == "__main__":
