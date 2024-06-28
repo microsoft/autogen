@@ -203,7 +203,7 @@ async def main() -> None:
     agent = runtime.register_and_get("my_agent", lambda: MyAgent("My Agent"))
     await runtime.send_message(TextMessage(content="Hello, World!", source="User"), agent)
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="User"), agent)
-    runtime.process_until_idle()
+    await runtime.process_until_idle()
 
 import asyncio
 asyncio.run(main())
@@ -251,8 +251,8 @@ class InnerAgent(TypeRoutedAgent):
         return f"Hello from inner, {message}"
 
 class OuterAgent(TypeRoutedAgent):
-    def __init__(self, inner_agent_id: AgentId):
-        super().__init__("OuterAgent")
+    def __init__(self, description: str, inner_agent_id: AgentId):
+        super().__init__(description)
         self.inner_agent_id = inner_agent_id
 
     @message_handler
@@ -269,7 +269,7 @@ async def main() -> None:
     inner = runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
     outer = runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
     await runtime.send_message("Hello, World!", outer)
-    runtime.process_until_idle()
+    await runtime.process_until_idle()
 
 import asyncio
 asyncio.run(main())
@@ -309,8 +309,8 @@ class InnerAgent(TypeRoutedAgent):
         print(f"Hello from inner, {message}")
 
 class OuterAgent(TypeRoutedAgent):
-    def __init__(self, inner_agent_id: AgentId):
-        super().__init__("OuterAgent")
+    def __init__(self, description: str, inner_agent_id: AgentId):
+        super().__init__(description)
         self.inner_agent_id = inner_agent_id
 
     @message_handler
@@ -325,7 +325,7 @@ async def main() -> None:
     inner = runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
     outer = runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
     await runtime.send_message("Hello, World!", outer)
-    runtime.process_until_idle()
+    await runtime.process_until_idle()
 
 import asyncio
 asyncio.run(main())
@@ -389,7 +389,7 @@ async def main() -> None:
     broadcaster = runtime.register_and_get("broadcasting_agent", lambda: BroadcastingAgent("Broadcasting Agent"))
     runtime.register("receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
     await runtime.send_message("Hello, World!", broadcaster)
-    runtime.process_until_idle()
+    await runtime.process_until_idle()
 
 import asyncio
 asyncio.run(main())

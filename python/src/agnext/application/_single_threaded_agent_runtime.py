@@ -136,7 +136,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         self._process_seen_namespace(recipient.namespace)
 
-        logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {message.__dict__}")
+        content = message.__dict__ if hasattr(message, "__dict__") else message
+        logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {content}")
 
         self._message_queue.append(
             SendMessageEnvelope(
@@ -160,8 +161,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     ) -> None:
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-
-        logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {message.__dict__}")
+        content = message.__dict__ if hasattr(message, "__dict__") else message
+        logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {content}")
 
         # event_logger.info(
         #     MessageEvent(
