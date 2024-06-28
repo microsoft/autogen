@@ -1,16 +1,4 @@
-# Memory
-
-Memory is a collection of data corresponding to the conversation history
-of an agent.
-Data in meory can be just a simple list of all messages,
-or one which provides a view of the last N messages.
-
-To create a custom memory implementation, you need to subclass the
-{py:class}`agnext.components.memory.ChatMemory` protocol class and implement
-all its methods.
-For example, you can use [LLMLingua](https://github.com/microsoft/LLMLingua)
-to create a custom memory implementation that provides a compressed
-view of the conversation history.
+# Buffered Memory
 
 Here is an example of a custom memory implementation that keeps a view of the
 last N messages:

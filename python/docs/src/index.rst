@@ -3,18 +3,16 @@ AGNext
 
 AGNext is a framework for building multi-agent applications.
 
-At a high level, it provides a framework for inter-agent communication and a
-suite of independent components for building and managing agents. It models agents as
-independent actors communicating via messages. You can implement agents in
-different languages and run them on different machines across organizational boundaries.
+At a high level, it provides a framework for inter-agent communication and a 
+suite of independent components for building and managing agents.
+You can implement agents in 
+different programming languages and run them on different machines across organizational boundaries.
 You can also implement agents using other agent frameworks and run them in AGNext.
 
-:doc:`Agents <core-concepts/agent>` are hosted by and managed by a :doc:`runtime <core-concepts/runtime>`.
-AGNext supports both RPC-like direct messaging and event based
-communication between agents, allowing for a :doc:`diverse set of agent patterns
-<core-concepts/patterns>`.
+Please read :doc:`Core Concepts <getting-started/core-concepts>` for 
+a detailed overview of AGNext's architecture and design.
 
-AGNext's developer API consists of the following layers:
+AGNext's API consists of the following modules:
 
 - :doc:`core <reference/agnext.core>` - The core interfaces that defines agent and runtime.
 - :doc:`application <reference/agnext.application>` - Implementations of the runtime and other modules (e.g., logging) for building applications.
@@ -29,30 +27,26 @@ that demonstrate how to use AGNext.
     :hidden:
 
     getting-started/installation
-    getting-started/tutorial
-
-.. toctree::
-    :caption: Core Concepts
-    :hidden:
-
-    core-concepts/runtime
-    core-concepts/agent
-    core-concepts/patterns
-    core-concepts/memory
-    core-concepts/tools
-    core-concepts/cancellation
-    core-concepts/logging
-    core-concepts/namespace
-    core-concepts/worker_protocol
+    getting-started/core-concepts
 
 .. toctree::
     :caption: Guides
     :hidden:
 
-    guides/type-routed-agent
-    guides/azure-openai-with-aad-auth
-    guides/termination-with-intervention
-    guides/extracting-results-with-an-agent
+    guides/components
+    guides/patterns
+    guides/logging
+    guides/worker-protocol
+
+.. toctree::
+    :caption: Cookbook
+    :hidden:
+
+    cookbook/type-routed-agent
+    cookbook/azure-openai-with-aad-auth
+    cookbook/termination-with-intervention
+    cookbook/buffered-memory
+    cookbook/extracting-results-with-an-agent
 
 
 .. toctree::
