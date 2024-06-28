@@ -11,11 +11,11 @@ tags: [mistral ai,anthropic,together.ai,gemini]
 ## TL;DR
 
 - **AutoGen has expanded integrations with a variety of cloud-based model providers beyond OpenAI.**
-- **Leverage models and platforms from Gemini, Anthropic, Mistral AI, and Together.AI for your AutoGen agents.**
+- **Leverage models and platforms from Gemini, Anthropic, Mistral AI, Together.AI, and Groq for your AutoGen agents.**
 - **Utilise models specifically for chat, language, image, and coding.**
 - **LLM provider diversification can provide cost and resilience benefits.**
 
-In addition to the recently released AutoGen [Google Gemini](https://ai.google.dev/) client, new client classes for [Mistral AI](https://mistral.ai/), [Anthropic](https://www.anthropic.com/), and [Together.AI](https://www.together.ai/) enable you to utilize over 75 different large language models in your AutoGen agent workflow.
+In addition to the recently released AutoGen [Google Gemini](https://ai.google.dev/) client, new client classes for [Mistral AI](https://mistral.ai/), [Anthropic](https://www.anthropic.com/), [Together.AI](https://www.together.ai/), and [Groq](https://groq.com/) enable you to utilize over 75 different large language models in your AutoGen agent workflow.
 
 These new client classes tailor AutoGen's underlying messages to each provider's unique requirements and remove that complexity from the developer, who can then focus on building their AutoGen workflow.
 
@@ -75,6 +75,7 @@ Install the appropriate client based on the model you wish to use.
 pip install pyautogen["mistral"] # for Mistral AI client
 pip install pyautogen["anthropic"] # for Anthropic client
 pip install pyautogen["together"] # for Together.AI client
+pip install pyautogen["groq"] # for Groq client
 ```
 
 ### Configuration Setup
@@ -97,6 +98,11 @@ Add your model configurations to the `OAI_CONFIG_LIST`. Ensure you specify the `
         "model": "your together.ai model name",
         "api_key": "your Together.AI api_key",
         "api_type": "together"
+    },
+    {
+        "model": "your groq model name",
+        "api_key": "your Groq api_key",
+        "api_type": "groq"
     }
 ]
 ```
