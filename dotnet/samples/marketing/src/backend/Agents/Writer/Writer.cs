@@ -57,8 +57,9 @@ public class Writer : AiAgent<WriterState>, IWriter
 
     private async Task SendDesignedCreatedEvent(string article, string userId)
     {
-        await PublishEvent(Consts.OrleansNamespace, this.GetPrimaryKeyString(), new Event
+        await PublishEvent(new Event
         {
+            Namespace = this.GetPrimaryKeyString(),
             Type = nameof(EventTypes.ArticleCreated),
             Data = new Dictionary<string, string> {
                             { "UserId", userId },

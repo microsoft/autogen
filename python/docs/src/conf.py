@@ -28,6 +28,7 @@ apidoc_template_dir = '_apidoc_templates'
 apidoc_separate_modules = True
 apidoc_extra_args = ["--no-toc"]
 napoleon_custom_sections = [('Returns', 'params_style')]
+apidoc_excluded_paths = ["./worker/protos/"]
 
 templates_path = []
 exclude_patterns = ["reference/agnext.rst"]

@@ -1,4 +1,4 @@
-﻿using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Abstractions;
 using Orleans.Runtime;
 using Orleans.Streams;
 
@@ -14,10 +14,10 @@ public abstract class Agent : Grain, IGrainWithStringKey, IAgent
         await HandleEvent(item).ConfigureAwait(true);
     }
 
-    public async Task PublishEvent(string ns, string id, Event item)
+    public async Task PublishEvent(Event item)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(ns, id);
+        var streamId = StreamId.Create(ns: "default", key: item.Namespace);
         var stream = streamProvider.GetStream<Event>(streamId);
         await stream.OnNextAsync(item).ConfigureAwait(true);
     }

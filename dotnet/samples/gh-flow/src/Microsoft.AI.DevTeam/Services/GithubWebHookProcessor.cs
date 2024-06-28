@@ -117,7 +117,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
     {
         var subject = suffix + issueNumber.ToString();
         var streamProvider = _client.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(Consts.MainNamespace, subject);
+        var streamId = StreamId.Create(ns: "default", key: subject);
         var stream = streamProvider.GetStream<Event>(streamId);
         var eventType = (skillName, functionName) switch
         {
@@ -128,14 +128,15 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         };
         var data = new Dictionary<string, string>
         {
-            { "org", org },
-            { "repo", repo },
-            { "issueNumber", issueNumber.ToString() },
-            { "parentNumber", (parentNumber ?? 0).ToString()}
+            ["org"] = org,
+            ["repo"] = repo,
+            ["issueNumber"] = issueNumber.ToString(),
+            ["parentNumber"] = (parentNumber ?? 0).ToString()
         };
 
         await stream.OnNextAsync(new Event
         {
+            Namespace = subject,
             Type = eventType,
             Subject = subject,
             Data = data
@@ -171,6 +172,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             };
             await stream.OnNextAsync(new Event
             {
+                Namespace = subject,
                 Type = eventType,
                 Subject = subject,
                 Data = data

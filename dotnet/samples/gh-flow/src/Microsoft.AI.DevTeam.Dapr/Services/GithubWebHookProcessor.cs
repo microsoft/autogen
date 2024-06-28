@@ -117,6 +117,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
 
         var evt = new Event
         {
+            Namespace = subject,
             Type = eventType,
             Subject = subject,
             Data = data
@@ -148,6 +149,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             };
             var evt = new Event
             {
+                Namespace = subject,
                 Type = eventType,
                 Subject = subject,
                 Data = data

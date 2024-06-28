@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package agents;
+
+message AgentId {
+    string name = 1;
+    string namespace = 2;
+}
+
+message RpcRequest {
+    string request_id = 1;
+    AgentId source = 2;
+    AgentId target = 3;
+    string method = 4;
+    string data = 5;
+    map<string, string> metadata = 6;
+}
+
+message RpcResponse {
+    string request_id = 1;
+    string result = 2;
+    string error = 3;
+    map<string, string> metadata = 4;
+}
+
+message Event {
+    string namespace = 1;
+    string type = 2;
+    string data = 3;
+    map<string, string> metadata = 4;
+}
+
+message RegisterAgentType {
+    string type = 1;
+}
+
+service AgentRpc {
+    rpc OpenChannel (stream Message) returns (stream Message);
+}
+
+message Message {
+    oneof message {
+        RpcRequest request = 1;
+        RpcResponse response = 2;
+        Event event = 3;
+        RegisterAgentType registerAgentType = 4;
+    }
+}
+

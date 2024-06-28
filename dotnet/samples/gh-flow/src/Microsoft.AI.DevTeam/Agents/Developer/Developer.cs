@@ -31,8 +31,9 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
                     var code = await GenerateCode(item.Data["input"]);
                     var data = context.ToData();
                     data["result"] = code;
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.CodeGenerated),
                         Subject = context.Subject,
                         Data = data
@@ -46,8 +47,9 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
                     var lastCode = _state.State.History.Last().Message;
                     var data = context.ToData();
                     data["code"] = lastCode;
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.CodeCreated),
                         Subject = context.Subject,
                         Data = data

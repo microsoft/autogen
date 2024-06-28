@@ -58,14 +58,16 @@ public sealed class Sandbox : Agent, IRemindable
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
                 await _azService.DeleteSandbox(sandboxId);
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                await PublishEvent(new Event
                 {
+                    Namespace = this.GetPrimaryKeyString(),
                     Type = nameof(GithubFlowEventType.SandboxRunFinished),
-                    Data = new Dictionary<string, string> {
-                        { "org", _state.State.Org },
-                        { "repo", _state.State.Repo },
-                        { "issueNumber", _state.State.IssueNumber.ToString() },
-                        { "parentNumber", _state.State.ParentIssueNumber.ToString() }
+                    Data = new Dictionary<string, string>
+                    {
+                        ["org"] = _state.State.Org,
+                        ["repo"] = _state.State.Repo,
+                        ["issueNumber"] = _state.State.IssueNumber.ToString(),
+                        ["parentNumber"] = _state.State.ParentIssueNumber.ToString()
                     }
                 });
                 await Cleanup();

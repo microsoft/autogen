@@ -1,4 +1,4 @@
-﻿using Marketing.Agents;
+using Marketing.Agents;
 using Marketing.Events;
 using Marketing.Options;
 using Microsoft.AI.Agents.Abstractions;
@@ -53,6 +53,7 @@ public class Articles : ControllerBase
 
         await stream.OnNextAsync(new Event
         {
+            Namespace = UserId,
             Type = nameof(EventTypes.UserChatInput),
             Data = data
         });

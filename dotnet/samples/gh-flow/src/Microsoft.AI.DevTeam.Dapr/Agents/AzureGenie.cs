@@ -24,8 +24,9 @@ public class AzureGenie : Agent, IDaprAgent
                 {
                     var context = item.ToGithubContext();
                     await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
-                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = Consts.MainTopic,
                         Type = nameof(GithubFlowEventType.ReadmeStored),
                         Subject = context.Subject,
                         Data = context.ToData()
@@ -38,8 +39,9 @@ public class AzureGenie : Agent, IDaprAgent
                     var context = item.ToGithubContext();
                     await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
                     await RunInSandbox(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber);
-                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = Consts.MainTopic,
                         Type = nameof(GithubFlowEventType.SandboxRunCreated),
                         Subject = context.Subject,
                         Data = context.ToData()

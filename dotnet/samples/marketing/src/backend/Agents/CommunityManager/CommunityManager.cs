@@ -60,13 +60,15 @@ public class CommunityManager : AiAgent<CommunityManagerState>
 
     private async Task SendDesignedCreatedEvent(string socialMediaPost, string userId)
     {
-        await PublishEvent(Consts.OrleansNamespace, this.GetPrimaryKeyString(), new Event
+        await PublishEvent(new Event
         {
+            Namespace = this.GetPrimaryKeyString(),
             Type = nameof(EventTypes.SocialMediaPostCreated),
-            Data = new Dictionary<string, string> {
-                            { "UserId", userId },
-                            { nameof(socialMediaPost), socialMediaPost}
-                        }
+            Data = new Dictionary<string, string>
+            {
+                ["UserId"] = userId,
+                [nameof(socialMediaPost)] = socialMediaPost,
+            }
         });
     }
 

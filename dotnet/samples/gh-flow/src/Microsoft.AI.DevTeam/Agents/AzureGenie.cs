@@ -28,8 +28,9 @@ public class AzureGenie : Agent
                 {
                     var context = item.ToGithubContext();
                     await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "readme", "md", "output", item.Data["readme"]);
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.ReadmeStored),
                         Subject = context.Subject,
                         Data = context.ToData()
@@ -42,8 +43,9 @@ public class AzureGenie : Agent
                     var context = item.ToGithubContext();
                     await Store(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber, "run", "sh", "output", item.Data["code"]);
                     await RunInSandbox(context.Org, context.Repo, context.ParentNumber ?? 0, context.IssueNumber);
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.SandboxRunCreated),
                         Subject = context.Subject,
                         Data = context.ToData()

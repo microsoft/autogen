@@ -6,10 +6,12 @@ namespace Microsoft.AI.Agents.Orleans;
 internal struct EventSurrogate
 {
     [Id(0)]
-    public Dictionary<string, string> Data { get; set; }
+    public string Namespace { get; set; }
     [Id(1)]
-    public string Type { get; set; }
+    public Dictionary<string, string> Data { get; set; }
     [Id(2)]
+    public string Type { get; set; }
+    [Id(3)]
     public string Subject { get; set; }
 }
 
@@ -19,12 +21,13 @@ internal sealed class EventSurrogateConverter :
 {
     public Event ConvertFromSurrogate(
         in EventSurrogate surrogate) =>
-        new Event { Data = surrogate.Data, Subject = surrogate.Subject, Type = surrogate.Type };
+        new() { Namespace = surrogate.Namespace, Data = surrogate.Data, Subject = surrogate.Subject, Type = surrogate.Type };
 
     public EventSurrogate ConvertToSurrogate(
         in Event value) =>
-        new EventSurrogate
+        new()
         {
+            Namespace = value.Namespace,
             Data = value.Data,
             Type = value.Type,
             Subject = value.Subject

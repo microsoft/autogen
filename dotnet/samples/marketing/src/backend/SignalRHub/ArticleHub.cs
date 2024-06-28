@@ -1,4 +1,4 @@
-﻿namespace Marketing.SignalRHub;
+namespace Marketing.SignalRHub;
 
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AspNetCore.SignalR;
@@ -41,6 +41,7 @@ public class ArticleHub : Hub<IArticleHub>
 
         await stream.OnNextAsync(new Event
         {
+            Namespace = frontEndMessage.UserId,
             Type = nameof(EventTypes.UserChatInput),
             Data = data
         });
@@ -69,6 +70,7 @@ public class ArticleHub : Hub<IArticleHub>
             };
         await stream.OnNextAsync(new Event
         {
+            Namespace = frontEndMessage.UserId,
             Type = nameof(EventTypes.UserConnected),
             Data = data
         });

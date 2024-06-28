@@ -84,8 +84,9 @@ public class Sandbox : Agent, IDaprAgent, IRemindable
                         { "parentNumber", agentState.ParentIssueNumber.ToString() }
                     };
                 var subject = $"{agentState.Org}-{agentState.Repo}-{agentState.IssueNumber}";
-                await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                await PublishEvent(new Event
                 {
+                    Namespace = Consts.MainTopic,
                     Type = nameof(GithubFlowEventType.SandboxRunFinished),
                     Subject = subject,
                     Data = data

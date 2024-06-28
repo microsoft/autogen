@@ -43,6 +43,7 @@ that demonstrate how to use AGNext.
     core-concepts/cancellation
     core-concepts/logging
     core-concepts/namespace
+    core-concepts/worker_protocol
 
 .. toctree::
     :caption: Guides
@@ -61,6 +62,7 @@ that demonstrate how to use AGNext.
     reference/agnext.components
     reference/agnext.application
     reference/agnext.core
+    reference/agnext.worker
 
 .. toctree::
     :caption: Other

@@ -61,8 +61,9 @@ public class GraphicDesigner : AiAgent<GraphicDesignerState>
 
     private async Task SendDesignedCreatedEvent(string imageUri, string userId)
     {
-        await PublishEvent(Consts.OrleansNamespace, this.GetPrimaryKeyString(), new Event
+        await PublishEvent(new Event
         {
+            Namespace = this.GetPrimaryKeyString(),
             Type = nameof(EventTypes.GraphicDesignCreated),
             Data = new Dictionary<string, string> {
                             { "UserId", userId },

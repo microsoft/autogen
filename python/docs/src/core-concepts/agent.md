@@ -15,6 +15,10 @@ Generally, messages are one of:
 
 Messages are purely data, and should not contain any logic.
 
+```{tip}
+It is *strongly* recommended that messages are Pydantic models. This allows for easy serialization and deserialization of messages, and provides a clear schema for the message.
+```
+
 <!-- ### Required Message Types
 
 At the core framework level there is *no requirement* of which message types are handled by an agent. However, some behavior patterns require agents understand certain message types. For an agent to participate in these patterns, it must understand any such required message types.

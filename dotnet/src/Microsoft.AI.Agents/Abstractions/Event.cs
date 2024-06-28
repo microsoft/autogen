@@ -6,6 +6,7 @@ namespace Microsoft.AI.Agents.Abstractions;
 public class Event
 {
     public required Dictionary<string, string> Data { get; set; }
+    public required string Namespace { get; set; }
     public required string Type { get; set; }
     public string Subject { get; set; } = "";
 }

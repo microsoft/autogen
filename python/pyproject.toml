@@ -18,7 +18,10 @@ dependencies = [
     "pillow",
     "aiohttp",
     "typing-extensions",
-    "pydantic>=1.10,<3"
+    "pydantic>=1.10,<3",
+    "types-aiofiles",
+    "grpcio",
+    "protobuf"
 ]
 
 [tool.hatch.envs.default]
@@ -41,7 +44,8 @@ dependencies = [
     "pip",
     "pytest",
     "pytest-xdist",
-    "pytest-mock"
+    "pytest-mock",
+    "grpcio-tools",
 ]
 
 [tool.hatch.envs.default.extra-scripts]
@@ -67,7 +71,11 @@ python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.docs]
 dependencies = [
-  "sphinx", "furo", "sphinxcontrib-apidoc", "myst-parser", "sphinx-autobuild"
+    "sphinx",
+    "furo",
+    "sphinxcontrib-apidoc",
+    "myst-parser",
+    "sphinx-autobuild",
 ]
 
 [tool.hatch.envs.docs.scripts]
@@ -78,7 +86,7 @@ check = "sphinx-build --fail-on-warning docs/src docs/build"
 [tool.ruff]
 line-length = 120
 fix = true
-exclude = ["build", "dist"]
+exclude = ["build", "dist", "src/agnext/worker/protos"]
 target-version = "py310"
 include = ["src/**", "examples/*.py"]
 
@@ -95,6 +103,7 @@ ignore = ["F401", "E501"]
 
 [tool.mypy]
 files = ["src", "examples", "tests"]
+exclude = ["src/agnext/worker/protos"]
 
 strict = true
 python_version = "3.10"
@@ -117,7 +126,23 @@ include = ["src", "tests", "examples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
+exclude = ["src/agnext/worker/protos"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+
+[tool.hatch.build.hooks.protobuf]
+dependencies = ["hatch-protobuf", "mypy-protobuf~=3.0"]
+generate_pyi = false
+proto_paths = ["../protos"]
+output_path = "src/agnext/worker/protos"
+
+
+[[tool.hatch.build.hooks.protobuf.generators]]
+name = "mypy"
+outputs = ["{proto_path}/{proto_name}_pb2.pyi"]
+
+[[tool.hatch.build.hooks.protobuf.generators]]
+name = "mypy_grpc"
+outputs = ["{proto_path}/{proto_name}_pb2_grpc.pyi"]

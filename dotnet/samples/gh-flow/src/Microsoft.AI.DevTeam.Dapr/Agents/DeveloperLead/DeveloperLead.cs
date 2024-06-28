@@ -28,8 +28,9 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, IDaprAgent
                     var plan = await CreatePlan(item.Data["input"]);
                     var data = context.ToData();
                     data["result"] = plan;
-                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = Consts.MainTopic,
                         Type = nameof(GithubFlowEventType.DevPlanGenerated),
                         Subject = context.Subject,
                         Data = data
@@ -42,8 +43,9 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, IDaprAgent
                     var latestPlan = state.History.Last().Message;
                     var data = context.ToData();
                     data["plan"] = latestPlan;
-                    await PublishEvent(Consts.PubSub, Consts.MainTopic, new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = Consts.MainTopic,
                         Type = nameof(GithubFlowEventType.DevPlanCreated),
                         Subject = context.Subject,
                         Data = data

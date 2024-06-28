@@ -30,8 +30,9 @@ public class ProductManager : AiAgent<ProductManagerState>, IManageProducts
                     var readme = await CreateReadme(item.Data["input"]);
                     var data = context.ToData();
                     data["result"] = readme;
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.ReadmeGenerated),
                         Subject = context.Subject,
                         Data = data
@@ -45,8 +46,9 @@ public class ProductManager : AiAgent<ProductManagerState>, IManageProducts
                     var lastReadme = _state.State.History.Last().Message;
                     var data = context.ToData();
                     data["readme"] = lastReadme;
-                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    await PublishEvent(new Event
                     {
+                        Namespace = this.GetPrimaryKeyString(),
                         Type = nameof(GithubFlowEventType.ReadmeCreated),
                         Subject = context.Subject,
                         Data = data
