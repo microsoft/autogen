@@ -3,9 +3,9 @@ AGNext
 
 AGNext is a framework for building multi-agent applications.
 
-At a high level, it provides a framework for inter-agent communication and a 
-suite of independent components for building and managing agents. It models agents as 
-independent actors communicating via messages. You can implement agents in 
+At a high level, it provides a framework for inter-agent communication and a
+suite of independent components for building and managing agents. It models agents as
+independent actors communicating via messages. You can implement agents in
 different languages and run them on different machines across organizational boundaries.
 You can also implement agents using other agent frameworks and run them in AGNext.
 
@@ -20,7 +20,7 @@ AGNext's developer API consists of the following layers:
 - :doc:`application <reference/agnext.application>` - Implementations of the runtime and other modules (e.g., logging) for building applications.
 - :doc:`components <reference/agnext.components>` - Independent agent-building components: agents, models, memory, and tools.
 
-To get you started quickly, we also offers 
+To get you started quickly, we also offers
 `a suite of examples <https://github.com/microsoft/agnext/tree/main/python/examples>`_
 that demonstrate how to use AGNext.
 
@@ -51,6 +51,7 @@ that demonstrate how to use AGNext.
     guides/type-routed-agent
     guides/azure-openai-with-aad-auth
     guides/termination-with-intervention
+    guides/extracting-results-with-an-agent
 
 
 .. toctree::

@@ -1,7 +1,7 @@
 from typing import List
 
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken, AgentProxy
+from agnext.core import AgentProxy, CancellationToken
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 

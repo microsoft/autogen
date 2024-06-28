@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from agnext.components.models import FunctionExecutionResult
+
 from agnext.components import FunctionCall
+from agnext.components.models import FunctionExecutionResult
 
 
 @dataclass
