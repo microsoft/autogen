@@ -53,8 +53,6 @@ from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 from vertexai.generative_models import Content as VertexAIContent
 from vertexai.generative_models import GenerativeModel
-from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
-from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
 from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
