@@ -36,7 +36,8 @@
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
-				"ms-python.debugpy"
+				"ms-python.debugpy",
+				"GitHub.copilot"
 			]
 		}
 	}
