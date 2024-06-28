@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, overload
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -19,6 +19,22 @@ class BingTextBrowser(SimpleTextBrowser):
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
         super().__init__(start_page, viewport_size, downloads_folder, base_url, api_key, request_kwargs)
+
+    def set_address(self, uri_or_path: str) -> None:
+        self.history.append(uri_or_path)
+
+        # Handle special URIs
+        if uri_or_path == "about:blank":
+            self._set_page_content("")
+        elif uri_or_path.startswith("bing:"):
+            self._bing_search(uri_or_path[len("bing:") :].strip())
+        else:
+            if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
+                uri_or_path = urljoin(self.address, uri_or_path)
+                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
+            self._fetch_page(uri_or_path)
+
+        self.viewport_current_page = 0
 
     def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
         # Make sure the key was set

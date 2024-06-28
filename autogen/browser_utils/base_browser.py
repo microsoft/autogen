@@ -3,7 +3,7 @@ import mimetypes
 import os
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, overload
 from urllib.parse import urljoin, urlparse
 
 import markdownify
@@ -35,7 +35,7 @@ class SimpleTextBrowser:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
-        base_url: str = "https://api.bing.microsoft.com/v7.0/search",
+        base_url: str = None,
         api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
@@ -58,19 +58,9 @@ class SimpleTextBrowser:
         """Return the address of the current page."""
         return self.history[-1]
 
+    @overload
     def set_address(self, uri_or_path: str) -> None:
         self.history.append(uri_or_path)
-
-        # Handle special URIs
-        if uri_or_path == "about:blank":
-            self._set_page_content("")
-        elif uri_or_path.startswith("bing:"):
-            self._bing_search(uri_or_path[len("bing:") :].strip())
-        else:
-            if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
-                uri_or_path = urljoin(self.address, uri_or_path)
-                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
-            self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
 
