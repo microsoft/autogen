@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
     from autogen.oai.mistral import MistralAIClient
     from autogen.oai.together import TogetherClient
 
@@ -204,7 +205,7 @@ class FileLogger(BaseLogger):
 
     def log_new_client(
         self,
-        client: AzureOpenAI | OpenAI | GeminiClient | AnthropicClient | MistralAIClient | TogetherClient,
+        client: AzureOpenAI | OpenAI | GeminiClient | AnthropicClient | MistralAIClient | TogetherClient | GroqClient,
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],
     ) -> None:
