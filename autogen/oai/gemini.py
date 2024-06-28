@@ -165,6 +165,7 @@ class GeminiClient:
         messages = params.get("messages", [])
         stream = params.get("stream", False)
         n_response = params.get("n", 1)
+        system_instruction = params.get("system_instruction", None)
 
         generation_config = {
             gemini_term: params[autogen_term]
@@ -190,12 +191,18 @@ class GeminiClient:
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
             if self.use_vertexai:
                 model = GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=safety_settings
+                    model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    system_instruction=system_instruction,
                 )
             else:
                 # we use chat model by default
                 model = genai.GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=safety_settings
+                    model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    system_instruction=system_instruction,
                 )
                 genai.configure(api_key=self.api_key)
             chat = model.start_chat(history=gemini_messages[:-1])
