@@ -73,9 +73,7 @@ def test_transform_chat_history_with_agents():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         KEY_LOC,
-        filter_dict={
-            "model": "gpt-3.5-turbo",
-        },
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list}, max_consecutive_auto_reply=1)
     context_handling = TransformChatHistory(max_messages=10, max_tokens_per_message=5, max_tokens=1000)

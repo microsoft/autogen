@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
+using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 
-namespace AutoGen.Tests;
+namespace AutoGen.OpenAI.Tests;
 
 public partial class OpenAIChatAgentTest
 {
@@ -25,16 +25,17 @@ public partial class OpenAIChatAgentTest
         return $"The weather in {location} is sunny.";
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicConversationTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         // By default, OpenAIChatClient supports the following message types
         // - IMessage<ChatRequestMessage>
@@ -56,16 +57,17 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatMessageContentConnectorTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
             .RegisterMessageConnector();
@@ -79,7 +81,6 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, "Hello", from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, "Hello", from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
@@ -103,16 +104,17 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatAgentToolCallTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract]);
@@ -133,7 +135,6 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, question, from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, question, from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
@@ -172,16 +173,17 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatAgentToolCallInvokingTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract],
@@ -202,14 +204,13 @@ public partial class OpenAIChatAgentTest
                     new TextMessage(Role.Assistant, question, from: "user"),
                 ],
                 from: "user"),
-            new Message(Role.Assistant, question, from: "user"), // Message type is going to be deprecated, please use TextMessage instead
         };
 
         foreach (var message in messages)
         {
             var reply = await functionCallAgent.SendAsync(message);
 
-            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+            reply.Should().BeOfType<ToolCallAggregateMessage>();
             reply.From.Should().Be("assistant");
             reply.GetToolCalls()!.Count().Should().Be(1);
             reply.GetToolCalls()!.First().FunctionName.Should().Be(this.GetWeatherAsyncFunctionContract.Name);
@@ -229,7 +230,7 @@ public partial class OpenAIChatAgentTest
                 }
                 else
                 {
-                    streamingMessage.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+                    streamingMessage.Should().BeOfType<ToolCallAggregateMessage>();
                     streamingMessage.As<IMessage>().GetContent()!.ToLower().Should().Contain("seattle");
                 }
             }

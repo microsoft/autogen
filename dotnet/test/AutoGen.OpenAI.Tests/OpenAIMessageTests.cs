@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI;
+using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 
-namespace AutoGen.Tests;
+namespace AutoGen.OpenAI.Tests;
 
 public class OpenAIMessageTests
 {
@@ -34,15 +34,6 @@ public class OpenAIMessageTests
             new TextMessage(Role.System, "You are a helpful AI assistant"),
             new TextMessage(Role.User, "Hello", "user"),
             new TextMessage(Role.Assistant, "How can I help you?", from: "assistant"),
-            new Message(Role.System, "You are a helpful AI assistant"),
-            new Message(Role.User, "Hello", "user"),
-            new Message(Role.Assistant, "How can I help you?", from: "assistant"),
-            new Message(Role.Function, "result", "user"),
-            new Message(Role.Assistant, null, "assistant")
-            {
-                FunctionName = "functionName",
-                FunctionArguments = "functionArguments",
-            },
             new ImageMessage(Role.User, "https://example.com/image.png", "user"),
             new MultiModalMessage(Role.Assistant,
                 [
@@ -287,19 +278,58 @@ public class OpenAIMessageTests
                 var innerMessage = msgs.Last();
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().BeNullOrEmpty();
                 chatRequestMessage.Name.Should().Be("assistant");
                 chatRequestMessage.ToolCalls.Count().Should().Be(1);
+                chatRequestMessage.Content.Should().Be("textContent");
                 chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
 
         // user message
-        IMessage message = new ToolCallMessage("test", "test", "assistant");
+        IMessage message = new ToolCallMessage("test", "test", "assistant")
+        {
+            Content = "textContent",
+        };
+        await agent.GenerateReplyAsync([message]);
+    }
+
+    [Fact]
+    public async Task ItProcessParallelToolCallMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().BeNullOrEmpty();
+                chatRequestMessage.Name.Should().Be("assistant");
+                chatRequestMessage.ToolCalls.Count().Should().Be(2);
+                for (int i = 0; i < chatRequestMessage.ToolCalls.Count(); i++)
+                {
+                    chatRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatCompletionsFunctionToolCall>();
+                    var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.ElementAt(i);
+                    functionToolCall.Name.Should().Be("test");
+                    functionToolCall.Id.Should().Be($"test_{i}");
+                    functionToolCall.Arguments.Should().Be("test");
+                }
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var toolCalls = new[]
+        {
+            new ToolCall("test", "test"),
+            new ToolCall("test", "test"),
+        };
+        IMessage message = new ToolCallMessage(toolCalls, "assistant");
         await agent.GenerateReplyAsync([message]);
     }
 
@@ -333,6 +363,37 @@ public class OpenAIMessageTests
 
         // user message
         IMessage message = new ToolCallResultMessage("result", "test", "test", "user");
+        await agent.GenerateReplyAsync([message]);
+    }
+
+    [Fact]
+    public async Task ItProcessParallelToolCallResultMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                msgs.Count().Should().Be(2);
+
+                for (int i = 0; i < msgs.Count(); i++)
+                {
+                    var innerMessage = msgs.ElementAt(i);
+                    innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                    var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                    chatRequestMessage.Content.Should().Be("result");
+                    chatRequestMessage.ToolCallId.Should().Be($"test_{i}");
+                }
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var toolCalls = new[]
+        {
+            new ToolCall("test", "test", "result"),
+            new ToolCall("test", "test", "result"),
+        };
+        IMessage message = new ToolCallResultMessage(toolCalls, "user");
         await agent.GenerateReplyAsync([message]);
     }
 
@@ -372,6 +433,7 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().Be("result");
+                chatRequestMessage.ToolCallId.Should().Be("test");
 
                 var toolCallMessage = msgs.First();
                 toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
@@ -381,6 +443,7 @@ public class OpenAIMessageTests
                 toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
+                functionToolCall.Id.Should().Be("test");
                 functionToolCall.Arguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -389,6 +452,54 @@ public class OpenAIMessageTests
         // user message
         var toolCallMessage = new ToolCallMessage("test", "test", "assistant");
         var toolCallResultMessage = new ToolCallResultMessage("result", "test", "test", "assistant");
+        var aggregateMessage = new ToolCallAggregateMessage(toolCallMessage, toolCallResultMessage, "assistant");
+        await agent.GenerateReplyAsync([aggregateMessage]);
+    }
+
+    [Fact]
+    public async Task ItProcessParallelFunctionCallMiddlewareMessageFromAssistantAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                msgs.Count().Should().Be(3);
+                var toolCallMessage = msgs.First();
+                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var toolCallRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)toolCallMessage!).Content;
+                toolCallRequestMessage.Content.Should().BeNullOrEmpty();
+                toolCallRequestMessage.ToolCalls.Count().Should().Be(2);
+
+                for (int i = 0; i < toolCallRequestMessage.ToolCalls.Count(); i++)
+                {
+                    toolCallRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatCompletionsFunctionToolCall>();
+                    var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.ElementAt(i);
+                    functionToolCall.Name.Should().Be("test");
+                    functionToolCall.Id.Should().Be($"test_{i}");
+                    functionToolCall.Arguments.Should().Be("test");
+                }
+
+                for (int i = 1; i < msgs.Count(); i++)
+                {
+                    var toolCallResultMessage = msgs.ElementAt(i);
+                    toolCallResultMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                    var toolCallResultRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)toolCallResultMessage!).Content;
+                    toolCallResultRequestMessage.Content.Should().Be("result");
+                    toolCallResultRequestMessage.ToolCallId.Should().Be($"test_{i - 1}");
+                }
+
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var toolCalls = new[]
+        {
+            new ToolCall("test", "test", "result"),
+            new ToolCall("test", "test", "result"),
+        };
+        var toolCallMessage = new ToolCallMessage(toolCalls, "assistant");
+        var toolCallResultMessage = new ToolCallResultMessage(toolCalls, "assistant");
         var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "assistant");
         await agent.GenerateReplyAsync([aggregateMessage]);
     }
@@ -418,13 +529,14 @@ public class OpenAIMessageTests
             .RegisterMiddleware(middleware);
 
         // tool call message
-        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
+        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "textContent", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
         var chatRequestMessage = MessageEnvelope.Create(toolCallMessage);
         var message = await agent.GenerateReplyAsync([chatRequestMessage]);
         message.Should().BeOfType<ToolCallMessage>();
         message.GetToolCalls()!.Count().Should().Be(1);
         message.GetToolCalls()!.First().FunctionName.Should().Be("test");
         message.GetToolCalls()!.First().FunctionArguments.Should().Be("test");
+        message.GetContent().Should().Be("textContent");
     }
 
     [Fact]

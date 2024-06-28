@@ -25,6 +25,8 @@ from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+gpt4_config_list = [{"model": "gpt-4"}, {"model": "gpt-4-turbo"}, {"model": "gpt-4-32k"}, {"model": "gpt-4o"}]
+
 
 @pytest.fixture
 def conversable_agent():
@@ -502,7 +504,7 @@ async def test_a_generate_reply_with_messages_and_sender_none(conversable_agent)
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         def exec_python(cell: str) -> None:
             pass
@@ -656,9 +658,9 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -729,9 +731,9 @@ def test_register_for_llm():
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -800,7 +802,7 @@ def test_register_for_llm_api_style_function():
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         with pytest.raises(ValueError) as e:
 
@@ -877,7 +879,7 @@ def test_register_for_execution():
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
         user_proxy = UserProxyAgent(name="user_proxy")
 
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
@@ -1001,7 +1003,7 @@ async def test_function_registration_e2e_async() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
         file_location=KEY_LOC,
     )
@@ -1072,7 +1074,7 @@ async def test_function_registration_e2e_async() -> None:
 
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo"]})
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
@@ -1403,6 +1405,64 @@ def test_http_client():
         )
 
 
+def test_adding_duplicate_function_warning():
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+
+    agent = autogen.ConversableAgent(
+        "jtoy",
+        llm_config={"config_list": config_base},
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1414,4 +1474,5 @@ if __name__ == "__main__":
     # test_process_before_send()
     # test_message_func()
     test_summary()
+    test_adding_duplicate_function_warning()
     # test_function_registration_e2e_sync()
