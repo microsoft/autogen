@@ -2526,14 +2526,16 @@ class ConversableAgent(LLMAgent):
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
             retval = func(*args, **kwargs)
-            log_function_use(self, func, kwargs, retval)
+            if logging_enabled():
+                log_function_use(self, func, kwargs, retval)
             return serialize_to_str(retval)
 
         @load_basemodels_if_needed
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
             retval = await func(*args, **kwargs)
-            log_function_use(self, func, kwargs, retval)
+            if logging_enabled():
+                log_function_use(self, func, kwargs, retval)
             return serialize_to_str(retval)
 
         wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
