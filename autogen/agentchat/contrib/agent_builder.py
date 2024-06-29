@@ -120,11 +120,18 @@ output after executing the code) and provide a corrected answer or code.
 
     The agent details are given in the format: {format_agent_details}
 
-    Which one of the following agents should be able to execute this function?
+    Which one of the following agents should be able to execute this function, preferably an agent with programming background?
     {agent_details}
 
     Hint:
     # Only respond with the name of the agent that is most suited to execute the function and nothing else.
+    """
+
+    UPDATED_AGENT_SYSTEM_MESSAGE = """
+    {agent_system_message}
+
+    You have access to execute the function: {function_name}.
+    With following description: {function_description}
     """
 
     def __init__(
@@ -735,6 +742,18 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                     executor=agent_list[0],
                     name=func["name"],
                     description=func["description"],
+                )
+
+                agents_current_system_message = [
+                    agent["system_message"] for agent in agent_configs if agent["name"] == resp
+                ][0]
+
+                self.agent_procs_assign[resp][0].update_system_message(
+                    self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
+                        agent_system_message=agents_current_system_message,
+                        function_name=func["name"],
+                        function_description=func["description"],
+                    )
                 )
 
                 print(f"Function {func['name']} is registered to agent {resp}.")
