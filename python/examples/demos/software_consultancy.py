@@ -17,7 +17,7 @@ import aiofiles
 import aiohttp
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
+from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from markdownify import markdownify  # type: ignore
@@ -30,6 +30,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from common.agents import ChatCompletionAgent
 from common.memory import HeadAndTailChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
+from common.utils import get_chat_completion_client_from_envs
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
@@ -127,7 +128,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
                     "Be concise and deliver now."
                 )
             ],
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
             tools=[
                 FunctionTool(
@@ -167,7 +168,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
                     "Be VERY concise."
                 )
             ],
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
             tools=[
                 FunctionTool(
@@ -195,7 +196,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
                     "Be concise and deliver now."
                 )
             ],
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
             tools=[
                 FunctionTool(
@@ -227,7 +228,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
                     "Be concise and deliver now."
                 )
             ],
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
             tools=[
                 FunctionTool(
@@ -244,7 +245,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
         lambda: GroupChatManager(
             description="A group chat manager.",
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             participants=[developer, product_manager, ux_designer, illustrator, user_agent],
         ),
     )

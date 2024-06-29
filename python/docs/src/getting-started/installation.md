@@ -2,7 +2,22 @@
 
 The repo is private, so the installation process is a bit more involved than usual.
 
-## Option 1: Install from GitHub
+## Option 1: Install from a local clone
+
+Make a clone of the repo:
+
+```sh
+git clone https://github.com/microsoft/agnext.git
+```
+
+You can install the package by running:
+
+```sh
+cd agnext/python
+pip install .
+```
+
+## Option 2: Install from GitHub
 
 To install the package from GitHub, you will need to authenticate with GitHub.
 
@@ -20,11 +35,3 @@ If you don't have the `gh` CLI installed, you can generate a personal access tok
 3. Set `Repository Access` to `Only select repositories` and select `Microsoft/agnext`
 4. Set `Permissions` to `Repository permissions` and select `Contents: Read`
 5. Use the generated token for `GITHUB_TOKEN` in the commad above
-
-## Option 2: Install from a local copy
-
-With a copy of the repo cloned locally, you can install the package by running the following command from the root of the repo:
-
-```sh
-pip install .
-```

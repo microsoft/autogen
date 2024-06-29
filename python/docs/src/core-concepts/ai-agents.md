@@ -1,6 +1,8 @@
-# Agent Components
+# AI Agents
 
-AGNext provides a suite of components to help developers build agents.
+AGNext provides a suite of components to help developers build AI agents.
+This section is still under construction.
+The best place to start is the [examples](https://github.com/microsoft/agnext/tree/main/python/examples).
 
 ## Type-Routed Agent
 

@@ -8,7 +8,7 @@ import sys
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
-from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage
+from agnext.components.models import ChatCompletionClient, SystemMessage
 from agnext.core import AgentRuntime, CancellationToken
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -16,7 +16,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from common.memory import BufferedChatMemory
 from common.types import Message, TextMessage
-from common.utils import convert_messages_to_llm_messages
+from common.utils import convert_messages_to_llm_messages, get_chat_completion_client_from_envs
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
@@ -102,7 +102,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Alice in the chat room.",
             background_story="Alice is a software engineer who loves to code.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
     bob = runtime.register_and_get_proxy(
@@ -112,7 +112,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Bob in the chat room.",
             background_story="Bob is a data scientist who loves to analyze data.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
     charlie = runtime.register_and_get_proxy(
@@ -122,7 +122,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="Charlie in the chat room.",
             background_story="Charlie is a designer who loves to create art.",
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:

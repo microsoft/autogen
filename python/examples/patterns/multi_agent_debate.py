@@ -32,7 +32,9 @@ to sample a random number of neighbors' responses to use.
 
 import asyncio
 import logging
+import os
 import re
+import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
@@ -43,11 +45,14 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -209,7 +214,7 @@ async def main(question: str) -> None:
     runtime.register(
         "MathSolver1",
         lambda: MathSolver(
-            OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
@@ -217,7 +222,7 @@ async def main(question: str) -> None:
     runtime.register(
         "MathSolver2",
         lambda: MathSolver(
-            OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),
@@ -225,7 +230,7 @@ async def main(question: str) -> None:
     runtime.register(
         "MathSolver3",
         lambda: MathSolver(
-            OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
@@ -233,7 +238,7 @@ async def main(question: str) -> None:
     runtime.register(
         "MathSolver4",
         lambda: MathSolver(
-            OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),

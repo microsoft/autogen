@@ -10,7 +10,7 @@ import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
+from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
@@ -22,6 +22,7 @@ from common.agents._chat_completion_agent import ChatCompletionAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
 from common.types import TextMessage
+from common.utils import get_chat_completion_client_from_envs
 
 
 def validate_turn(board: Board, player: Literal["white", "black"]) -> None:
@@ -168,7 +169,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             tools=black_tools,
         ),
     )
@@ -185,7 +186,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
             tools=white_tools,
         ),
     )

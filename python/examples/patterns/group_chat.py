@@ -12,6 +12,8 @@ to the last message in the memory and publishes the response.
 """
 
 import asyncio
+import os
+import sys
 from dataclasses import dataclass
 from typing import List
 
@@ -21,11 +23,14 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.core import AgentId, CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -113,7 +118,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="A data scientist",
             system_messages=[SystemMessage("You are a data scientist.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
     agent2 = runtime.register_and_get(
@@ -121,7 +126,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="An engineer",
             system_messages=[SystemMessage("You are an engineer.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
     agent3 = runtime.register_and_get(
@@ -129,7 +134,7 @@ async def main() -> None:
         lambda: GroupChatParticipant(
             description="An artist",
             system_messages=[SystemMessage("You are an artist.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
 

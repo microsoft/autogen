@@ -8,14 +8,20 @@ The reference agents handle each task independently and return the results to th
 """
 
 import asyncio
+import os
+import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.components.models import ChatCompletionClient, OpenAIChatCompletionClient, SystemMessage, UserMessage
+from agnext.components.models import ChatCompletionClient, SystemMessage, UserMessage
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -111,7 +117,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 1",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=0.1),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.1),
         ),
     )
     runtime.register(
@@ -119,7 +125,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 2",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=0.5),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.5),
         ),
     )
     runtime.register(
@@ -127,7 +133,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 3",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo", temperature=1.0),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=1.0),
         ),
     )
     runtime.register(
@@ -139,7 +145,7 @@ async def main() -> None:
                     "...synthesize these responses into a single, high-quality response... Responses from models:"
                 )
             ],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             num_references=3,
         ),
     )

@@ -6,17 +6,22 @@ chat completion model, and returns the response to the main function.
 """
 
 import asyncio
+import os
+import sys
 from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import (
     ChatCompletionClient,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -41,7 +46,8 @@ class ChatCompletionAgent(TypeRoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     agent = runtime.register_and_get(
-        "chat_agent", lambda: ChatCompletionAgent("Chat agent", OpenAIChatCompletionClient(model="gpt-3.5-turbo"))
+        "chat_agent",
+        lambda: ChatCompletionAgent("Chat agent", get_chat_completion_client_from_envs(model="gpt-3.5-turbo")),
     )
 
     # Send a message to the agent.

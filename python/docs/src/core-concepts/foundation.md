@@ -1,57 +1,19 @@
-# Core Concepts
+# Foundation
 
-## What is Multi-Agent Application?
-
-A wide variety of software applications can be modeled as a collection of independent
-agents that communicate with each other through messages:
-sensors on a factory floor,
-distributed services powering web applications,
-business workflows involving multiple stakeholders,
-and more recently, generative artificial intelligence (AI) models (e.g., GPT-4) that can write code and interact with
-other software systems.
-We refer to them as multi-agent applications.
-
-In a multi-agent application, agents can live in the same process, on the same machine,
-or on different machines and across organizational boundaries.
-They can be implemented using different AI models, instructions, and programming languages.
-They can collaborate and work toward a common goal.
-
-Each agent is a self-contained unit:
-developers can build, test and deploy it independently, and reuse it for different scenarios.
-Agents are composable: simple agents can form complex applications.
-
-## AGNext Overview
-
-AGNext is a framework for building multi-agent applications.
-It provides a runtime envionment to facilitate communication between agents,
-manage their identities and lifecycles, and enforce boundaries.
-It also provides a set of common patterns and components to help developers build
-AI agents that can work together.
-
-AGNext is designed to be unopinionated and extensible.
-It does not prescribe an abstraction for agents or messages, rather, it provides
-a minimal base layer that can be extended to suit the application's needs.
-Developers can build agents quickly by using the provided components including
-type-routed agent, AI model clients, tools for AI models, code execution sandboxes,
-memory stores, and more.
-Developers can also make use of the provided multi-agent patterns to build
-orchestrated workflows, group chat systems, and more.
-
-The API consists of the following modules:
-
-- {py:mod}`agnext.core` - The core interfaces that defines agent and runtime.
-- {py:mod}`agnext.application` - Implementations of the runtime and other modules (e.g., logging) for building applications.
-- {py:mod}`agnext.components` - Independent agent-building components: agents, models, memory, and tools.
+In this section, we focus on the core concepts of AGNext:
+agents, agent runtime, messages, and communication.
+You will not find any AI models or tools here, just the foundational
+building blocks for building multi-agent applications.
 
 ## Agent and Agent Runtime
 
-An agent in AGNext is an entity that can react to, send, and publish
-messages. Messages are the only means through which agents can communicate
+An agent in AGNext can react to, send, and publish messages.
+Messages are the only means through which agents can communicate
 with each other.
 
 An agent runtime is the execution environment for agents in AGNext.
-Similar to the runtime environment of a programming language, the
-agent runtime provides the necessary infrastructure to facilitate communication
+Similar to the runtime environment of a programming language,
+an agent runtime provides the necessary infrastructure to facilitate communication
 between agents, manage agent lifecycles, enforce security boundaries, and support monitoring and
 debugging.
 For local development, developers can use {py:class}`~agnext.application.SingleThreadedAgentRuntime`,
@@ -147,8 +109,8 @@ Other runtime implementations will have their own way of running the runtime.
 Agents communicate with each other via messages.
 Messages are serializable objects, they can be defined using:
 
-- A subclass of Pydantic's {py:class}`pydantic.BaseModel`, or
-- A dataclass
+- A subclass of Pydantic's {py:class}`pydantic.BaseModel`,
+- A dataclass, or
 - A built-in serializable Python type (e.g., `str`).
 
 For example:
@@ -177,8 +139,10 @@ When an agent receives a message the runtime will invoke the agent's message han
 ({py:meth}`~agnext.core.Agent.on_message`) which should implement the agents message handling logic.
 If this message cannot be handled by the agent, the agent should raise a
 {py:class}`~agnext.core.exceptions.CantHandleException`.
+
 For convenience, the {py:class}`~agnext.components.TypeRoutedAgent` base class
-provides a simple API for associating message types with message handlers,
+provides the {py:meth}`~agnext.components.message_handler` decorator
+for associating message types with message handlers,
 so developers do not need to implement the {py:meth}`~agnext.core.Agent.on_message` method.
 
 For example, the following type-routed agent responds to `TextMessage` and `ImageMessage`
@@ -221,14 +185,12 @@ There are two types of communication in AGNext:
 To send a direct message to another agent, within a message handler use
 the {py:meth}`agnext.core.BaseAgent.send_message` method,
 from the runtime use the {py:meth}`agnext.core.AgentRuntime.send_message` method.
-
-Awaiting this method call will return the a `Future[T]` object where `T` is the type
-of response of the invoked agent.
-The future object can be awaited to get the actual response.
+Awaiting calls to these methods will return the return value of the
+receiving agent's message handler.
 
 ```{note}
-If the invoked agent raises an exception while the sender is awaiting on
-the future, the exception will be propagated back to the sender.
+If the invoked agent raises an exception while the sender is awaiting, 
+the exception will be propagated back to the sender.
 ```
 
 #### Request/Response
@@ -258,10 +220,8 @@ class OuterAgent(TypeRoutedAgent):
     @message_handler
     async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
         print(f"Received message: {message}")
-        # Send a direct message to the inner agent and receves a response future.
-        response_future = await self.send_message(f"Hello from outer, {message}", self.inner_agent_id)
-        # Wait for the response to be ready.
-        response = await response_future
+        # Send a direct message to the inner agent and receves a response.
+        response = await self.send_message(f"Hello from outer, {message}", self.inner_agent_id)
         print(f"Received inner response: {response}")
 
 async def main() -> None:
@@ -289,54 +249,19 @@ To get the response after sending a message, the sender must await on the
 response future. So you can also write `response = await await self.send_message(...)`.
 ```
 
-#### Send, No Reply
+#### Command/Notification
 
-In many scenarios, the sender does not need a response from the receiver.
-In this case, the sender does not need to await on the response future,
+In many scenarios, an agent can commanded another agent to perform an action,
+or notify another agent of an event. In this case,
+the sender does not need a response from the receiver -- it is a command or notification,
 and the receiver does not need to return a value from the message handler.
-In the following example, the `InnerAgent` does not return a value,
-and the `OuterAgent` does not await on the response future:
+For example, the `InnerAgent` can be modified to just print the message it receives:
 
 ```python
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken, AgentId
-
 class InnerAgent(TypeRoutedAgent):
     @message_handler
     async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        # Just print the message.
         print(f"Hello from inner, {message}")
-
-class OuterAgent(TypeRoutedAgent):
-    def __init__(self, description: str, inner_agent_id: AgentId):
-        super().__init__(description)
-        self.inner_agent_id = inner_agent_id
-
-    @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        print(f"Received message: {message}")
-        # Send a direct message to the inner agent and move on.
-        await self.send_message(f"Hello from outer, {message}", self.inner_agent_id)
-        # No need to wait for the response, just do other things.
-
-async def main() -> None:
-    runtime = SingleThreadedAgentRuntime()
-    inner = runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
-    outer = runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
-    await runtime.send_message("Hello, World!", outer)
-    await runtime.process_until_idle()
-
-import asyncio
-asyncio.run(main())
-```
-
-In the above example, the `OuterAgent` sends a direct string message to the `InnerAgent`
-but does not await on the response future. The following output will be produced:
-
-```text
-Received message: Hello, World!
-Hello from inner, Hello from outer, Hello, World!
 ```
 
 ### Broadcast Communication

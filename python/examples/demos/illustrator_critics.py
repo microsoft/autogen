@@ -6,7 +6,7 @@ import sys
 
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import OpenAIChatCompletionClient, SystemMessage
+from agnext.components.models import SystemMessage
 from agnext.core import AgentRuntime
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from common.agents import ChatCompletionAgent, ImageGenerationAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
+from common.utils import get_chat_completion_client_from_envs
 from utils import TextualChatApp, TextualUserAgent, start_runtime
 
 
@@ -42,7 +43,7 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo", max_tokens=500),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo", max_tokens=500),
         ),
     )
     illustrator = runtime.register_and_get_proxy(
@@ -70,7 +71,7 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=2),
-            model_client=OpenAIChatCompletionClient(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
     runtime.register(

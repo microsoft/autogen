@@ -1,10 +1,14 @@
-from typing import List, Optional, Union
+import os
+from typing import Any, List, Optional, Union
 
 from agnext.components.models import (
     AssistantMessage,
+    AzureOpenAIChatCompletionClient,
+    ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    OpenAIChatCompletionClient,
     UserMessage,
 )
 from typing_extensions import Literal
@@ -96,3 +100,28 @@ def convert_messages_to_llm_messages(
                 raise AssertionError("unreachable")
 
     return result
+
+
+def get_chat_completion_client_from_envs(**kwargs: Any) -> ChatCompletionClient:
+    # Check API type.
+    api_type = os.getenv("OPENAI_API_TYPE", "openai")
+    if api_type == "openai":
+        # Check API key.
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key is None:
+            raise ValueError("OPENAI_API_KEY is not set")
+        kwargs["api_key"] = api_key
+        return OpenAIChatCompletionClient(**kwargs)
+    elif api_type == "azure":
+        # Check Azure API key.
+        azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        if azure_api_key is None:
+            raise ValueError("AZURE_OPENAI_API_KEY is not set")
+        kwargs["api_key"] = azure_api_key
+        # Check Azure API endpoint.
+        azure_api_endpoint = os.getenv("AZURE_OPENAI_API_ENDPOINT")
+        if azure_api_endpoint is None:
+            raise ValueError("AZURE_OPENAI_API_ENDPOINT is not set")
+        kwargs["azure_endpoint"] = azure_api_endpoint
+        return AzureOpenAIChatCompletionClient(**kwargs)  # type: ignore
+    raise ValueError(f"Unknown API type: {api_type}")

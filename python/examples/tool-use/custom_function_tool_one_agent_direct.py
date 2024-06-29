@@ -10,15 +10,16 @@ import sys
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import (
-    OpenAIChatCompletionClient,
     SystemMessage,
 )
 from agnext.components.tools import FunctionTool
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from coding_one_agent_direct import AIResponse, ToolEnabledAgent, UserRequest
+from common.utils import get_chat_completion_client_from_envs
 
 
 async def get_stock_price(ticker: str, date: Annotated[str, "The date in YYYY/MM/DD format."]) -> float:
@@ -36,7 +37,7 @@ async def main() -> None:
         lambda: ToolEnabledAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             tools=[
                 # Define a tool that gets the stock price.
                 FunctionTool(

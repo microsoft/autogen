@@ -8,6 +8,8 @@ This directory contains examples and demos of how to use AGNext.
 - `patterns`: Contains examples that illustrate how multi-agent patterns can be implemented in AGNext.
 - `demos`: Contains interactive demos that showcase applications that can be built using AGNext.
 
+See [Running the examples](#running-the-examples) for instructions on how to run the examples.
+
 ## Core examples
 
 We provide examples to illustrate the core concepts of AGNext: agents, runtime, and message passing.
@@ -28,13 +30,11 @@ We provide examples to illustrate how to use tools in AGNext:
 
 We provide examples to illustrate how multi-agent patterns can be implemented in AGNext:
 
-- [`coder_executor_pub_sub.py`](patterns/coder_executor_pub_sub.py): An example of how to create a coder-executor reflection pattern using broadcast communication. This example creates a plot of stock prices using the Yahoo Finance API.
-- [`coder_reviewer_direct.py`](patterns/coder_reviewer_direct.py): An example of how to create a coder-reviewer reflection pattern using direct communication.
-- [`coder_reviewer_pub_sub.py`](patterns/coder_reviewer_pub_sub.py): An example of how to create a coder-reviewer reflection pattern using broadcast communication.
-- [`group_chat_pub_sub.py`](patterns/group_chat_pub_sub.py): An example of how to create a round-robin group chat among three agents using broadcast communication.
-- [`mixture_of_agents_direct.py`](patterns/mixture_of_agents_direct.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using direct communication.
-- [`mixture_of_agents_pub_sub.py`](patterns/mixture_of_agents_pub_sub.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa) using broadcast communication.
-- [`multi_agent_debate_pub_sub.py`](patterns/multi_agent_debate_pub_sub.py): An example of how to create a [sparse multi-agent debate](https://arxiv.org/abs/2406.11776) pattern using broadcast communication.
+- [`coder_executor.py`](patterns/coder_executor.py): An example of how to create a coder-executor reflection pattern. This example creates a plot of stock prices using the Yahoo Finance API.
+- [`coder_reviewer.py`](patterns/coder_reviewer.py): An example of how to create a coder-reviewer reflection pattern.
+- [`group_chat.py`](patterns/group_chat.py): An example of how to create a round-robin group chat among three agents.
+- [`mixture_of_agents.py`](patterns/mixture_of_agents.py): An example of how to create a [mixture of agents](https://github.com/togethercomputer/moa).
+- [`multi_agent_debate.py`](patterns/multi_agent_debate.py): An example of how to create a [sparse multi-agent debate](https://arxiv.org/abs/2406.11776) pattern.
 
 ## Demos
 
@@ -50,13 +50,39 @@ We provide interactive demos that showcase applications that can be built using 
     the group chat pattern.
 - [`chest_game.py`](demos/chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 
-## Running the examples and demos
+## Running the examples
 
-First, you need a shell with AGNext and the examples dependencies installed. To do this, run:
+### Prerequisites
+
+First, you need a shell with AGNext and the examples dependencies installed.
+To do this, in the example directory, run:
 
 ```bash
 hatch shell
 ```
+
+Then, you need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key.
+
+```bash
+export OPENAI_API_KEY=your_openai_api_key
+```
+
+For Azure OpenAI API, you need to set the following environment variables:
+
+```bash
+export AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+export AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
+```
+
+By default, OpenAI API is used.
+To use Azure OpenAI API, set the `OPENAI_API_TYPE`
+environment variable to `azure`.
+
+```bash
+export OPENAI_API_TYPE=azure
+```
+
+### Running
 
 To run an example, just run the corresponding Python script. For example:
 

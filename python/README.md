@@ -23,7 +23,9 @@ hatch run check
 
 ### Virtual environment
 
-To get a shell with the package available (virtual environment) run:
+To get a shell with the package available (virtual environment),
+in the current directory,
+run:
 
 ```sh
 hatch shell

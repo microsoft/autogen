@@ -13,7 +13,9 @@ otherwise, it generates a new code block and publishes a code execution task mes
 """
 
 import asyncio
+import os
 import re
+import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
@@ -25,11 +27,14 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -175,7 +180,7 @@ async def main(task: str, temp_dir: str) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
-    runtime.register("coder", lambda: Coder(model_client=OpenAIChatCompletionClient(model="gpt-4-turbo")))
+    runtime.register("coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")))
     runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
 
     # Publish the task message.

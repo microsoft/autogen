@@ -13,6 +13,8 @@ the results back to the tool use agent.
 
 import asyncio
 import json
+import os
+import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
@@ -26,12 +28,15 @@ from agnext.components.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.components.tools import PythonCodeExecutionTool, Tool
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -192,7 +197,7 @@ async def main() -> None:
         lambda: ToolUseAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             tools=tools,
         ),
     )

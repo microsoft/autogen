@@ -46,6 +46,7 @@ dependencies = [
     "pytest-xdist",
     "pytest-mock",
     "grpcio-tools",
+    "markdownify",
 ]
 
 [tool.hatch.envs.default.extra-scripts]

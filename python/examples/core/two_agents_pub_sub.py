@@ -11,6 +11,8 @@ and publishes the response.
 """
 
 import asyncio
+import os
+import sys
 from dataclasses import dataclass
 from typing import List
 
@@ -20,11 +22,14 @@ from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
 from agnext.core import CancellationToken
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
@@ -76,7 +81,7 @@ async def main() -> None:
         "Jack",
         lambda: ChatCompletionAgent(
             description="Jack a comedian",
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             system_messages=[
                 SystemMessage("You are a comedian likes to make jokes. " "When you are done talking, say 'TERMINATE'.")
             ],
@@ -87,7 +92,7 @@ async def main() -> None:
         "Cathy",
         lambda: ChatCompletionAgent(
             description="Cathy a poet",
-            model_client=OpenAIChatCompletionClient(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
             system_messages=[
                 SystemMessage("You are a poet likes to write poems. " "When you are done talking, say 'TERMINATE'.")
             ],
