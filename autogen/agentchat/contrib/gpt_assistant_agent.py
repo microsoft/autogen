@@ -67,6 +67,9 @@ class GPTAssistantAgent(ConversableAgent):
         if logging_enabled():
             log_new_agent(self, locals())
 
+        if logging_enabled():
+            log_new_agent(self, locals())
+
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
         model_name = self.DEFAULT_MODEL_NAME
@@ -214,6 +217,12 @@ class GPTAssistantAgent(ConversableAgent):
                 content=message["content"],
                 role=message["role"],
             )
+
+        self.client.create(
+            context=messages[-1].pop("context", None),
+            messages=messages,
+            cache=self.client_cache,
+        )
 
         # Create a new run to get responses from the assistant
         run = self._openai_client.beta.threads.runs.create(
