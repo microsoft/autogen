@@ -151,7 +151,7 @@ class GeminiClient:
         if not model_name:
             raise ValueError(
                 "Please provide a model name for the Gemini Client. "
-                "You can configurate it in the OAI Config List file. "
+                "You can configure it in the OAI Config List file. "
                 "See this [LLM configuration tutorial](https://microsoft.github.io/autogen/docs/topics/llm_configuration/) for more details."
             )
 
@@ -194,7 +194,7 @@ class GeminiClient:
             for attempt in range(max_retries):
                 ans = None
                 try:
-                    response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
+                    response = chat.send_message(gemini_messages[-1], stream=stream)
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
@@ -253,7 +253,7 @@ class GeminiClient:
         response_oai = ChatCompletion(
             id=str(random.randint(0, 1000)),
             model=model_name,
-            created=int(time.time() * 1000),
+            created=int(time.time()),
             object="chat.completion",
             choices=choices,
             usage=CompletionUsage(
@@ -344,19 +344,19 @@ class GeminiClient:
         for i, message in enumerate(messages):
             parts = self._oai_content_to_gemini_content(message["content"])
             role = "user" if message["role"] in ["user", "system"] else "model"
-
-            if prev_role is None or role == prev_role:
+            if (prev_role is None) or (role == prev_role):
                 curr_parts += parts
             elif role != prev_role:
                 if self.use_vertexai:
-                    rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=prev_role))
+                    rst.append(VertexAIContent(parts=curr_parts, role=prev_role))
                 else:
                     rst.append(Content(parts=curr_parts, role=prev_role))
+                curr_parts = parts
             prev_role = role
 
         # handle the last message
         if self.use_vertexai:
-            rst.append(VertexAIContent(parts=self._concat_parts(curr_parts), role=role))
+            rst.append(VertexAIContent(parts=curr_parts, role=role))
         else:
             rst.append(Content(parts=curr_parts, role=role))
 

@@ -183,7 +183,7 @@ client = OpenAIWrapper(
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
             "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2024-02-15-preview",
+            "api_version": "2024-02-01",
         },
         {
             "model": "gpt-3.5-turbo",

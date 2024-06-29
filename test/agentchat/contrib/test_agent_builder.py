@@ -66,7 +66,10 @@ def ask_ossinsight(question: str) -> str:
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_build():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -197,7 +200,10 @@ def test_build_gpt_assistant_with_function_calling():
 )
 def test_build_from_library():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -244,7 +250,10 @@ def test_build_from_library():
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_save():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -275,7 +284,10 @@ def test_save():
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_load():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
@@ -298,7 +310,10 @@ def test_load():
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_clear_agent():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
