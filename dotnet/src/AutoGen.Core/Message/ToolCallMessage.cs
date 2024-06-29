@@ -36,7 +36,7 @@ public class ToolCall
     }
 }
 
-public class ToolCallMessage : IMessage, ICanGetToolCalls
+public class ToolCallMessage : IMessage, ICanGetToolCalls, ICanGetTextContent
 {
     public ToolCallMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
@@ -80,6 +80,12 @@ public class ToolCallMessage : IMessage, ICanGetToolCalls
 
     public string? From { get; set; }
 
+    /// <summary>
+    /// Some LLMs might also include text content in a tool call response, like GPT.
+    /// This field is used to store the text content in that case.
+    /// </summary>
+    public string? Content { get; set; }
+
     public override string ToString()
     {
         var sb = new StringBuilder();
@@ -95,6 +101,11 @@ public class ToolCallMessage : IMessage, ICanGetToolCalls
     public IEnumerable<ToolCall> GetToolCalls()
     {
         return this.ToolCalls;
+    }
+
+    public string? GetContent()
+    {
+        return this.Content;
     }
 }
 

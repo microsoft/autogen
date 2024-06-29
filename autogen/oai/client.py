@@ -71,6 +71,13 @@ except ImportError as e:
     together_import_exception = e
 
 try:
+    from autogen.oai.groq import GroqClient
+
+    groq_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    groq_import_exception = e
+
+try:
     from autogen.oai.cohere import CohereClient
 
     cohere_import_exception: Optional[ImportError] = None
@@ -490,6 +497,13 @@ class OpenAIWrapper:
             elif api_type is not None and api_type.startswith("together"):
                 if together_import_exception:
                     raise ImportError("Please install `together` to use the Together.AI API.")
+                client = TogetherClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("groq"):
+                if groq_import_exception:
+                    raise ImportError("Please install `groq` to use the Groq API.")
+                client = GroqClient(**openai_config)
+                self._clients.append(client)
                 self._clients.append(TogetherClient(**config))
             elif api_type is not None and api_type.startswith("cohere"):
                 client = CohereClient(**openai_config)
