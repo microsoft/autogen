@@ -135,6 +135,63 @@ def test_vertexai_safety_setting_conversion(gemini_client):
     assert all(settings_comparison), "Converted safety settings are incorrect"
 
 
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_default_safety_settings_dict(gemini_client):
+    safety_settings = {
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+    }
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+
+    expected_safety_settings = {
+        category: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH for category in safety_settings.keys()
+    }
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for expected_setting_key in expected_safety_settings.keys():
+            expected_setting = expected_safety_settings[expected_setting_key]
+            converted_setting = converted_safety_settings[expected_setting_key]
+            yield expected_setting == converted_setting
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_safety_setting_list(gemini_client):
+    harm_categories = [
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    ]
+
+    expected_safety_settings = safety_settings = [
+        VertexAISafetySetting(category=category, threshold=VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH)
+        for category in harm_categories
+    ]
+
+    print(safety_settings)
+
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for i, expected_setting in enumerate(expected_safety_settings):
+            converted_setting = converted_safety_settings[i]
+            yield expected_setting.to_dict() == converted_setting.to_dict()
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
+
+
 # Test error handling
 @patch("autogen.oai.gemini.genai")
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")

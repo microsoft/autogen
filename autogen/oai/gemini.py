@@ -34,7 +34,6 @@ from __future__ import annotations
 import base64
 import logging
 import os
-import logging
 import random
 import re
 import time
@@ -53,6 +52,8 @@ from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 from vertexai.generative_models import Content as VertexAIContent
 from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
+from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
 from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
@@ -393,7 +394,10 @@ class GeminiClient:
         like when specifying them in the OAI_CONFIG_LIST
         """
         if isinstance(safety_settings, list) and all(
-            [isinstance(safety_setting, dict)] for safety_setting in safety_settings
+            [
+                isinstance(safety_setting, dict) and not isinstance(safety_setting, VertexAISafetySetting)
+                for safety_setting in safety_settings
+            ]
         ):
             vertexai_safety_settings = []
             for safety_setting in safety_settings:
