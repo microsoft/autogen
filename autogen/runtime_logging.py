@@ -112,7 +112,9 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig
 
 
 def log_new_client(
-    client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient, GroqClient, CohereClient],
+    client: Union[
+        AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient, GroqClient, CohereClient
+    ],
     wrapper: OpenAIWrapper,
     init_args: Dict[str, Any],
 ) -> None:

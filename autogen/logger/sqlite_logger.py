@@ -393,7 +393,16 @@ class SqliteLogger(BaseLogger):
 
     def log_new_client(
         self,
-        client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient, GroqClient, CohereClient],
+        client: Union[
+            AzureOpenAI,
+            OpenAI,
+            GeminiClient,
+            AnthropicClient,
+            MistralAIClient,
+            TogetherClient,
+            GroqClient,
+            CohereClient,
+        ],
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],
     ) -> None:

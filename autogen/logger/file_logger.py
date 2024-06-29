@@ -206,7 +206,16 @@ class FileLogger(BaseLogger):
 
     def log_new_client(
         self,
-        client: AzureOpenAI | OpenAI | GeminiClient | AnthropicClient | MistralAIClient | TogetherClient | GroqClient | CohereClient,
+        client: (
+            AzureOpenAI
+            | OpenAI
+            | GeminiClient
+            | AnthropicClient
+            | MistralAIClient
+            | TogetherClient
+            | GroqClient
+            | CohereClient
+        ),
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],
     ) -> None:
