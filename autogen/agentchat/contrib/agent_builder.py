@@ -394,6 +394,7 @@ Match roles in the role set to each expert in expert set.
             coding: use to identify if the user proxy (a code interpreter) should be added.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
             default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
+            list_of_functions: list of functions to be associated with Agents
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             user_proxy: user proxy's class that can be used to replace the default user proxy.
 
@@ -504,7 +505,6 @@ Match roles in the role set to each expert in expert set.
 
         _config_check(self.cached_configs)
         return self._build_agents(use_oai_assistant, list_of_functions, user_proxy=user_proxy, **kwargs)
-
 
     def build_from_library(
         self,
@@ -676,7 +676,11 @@ Match roles in the role set to each expert in expert set.
         return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
 
     def _build_agents(
-        self, use_oai_assistant: Optional[bool] = False, list_of_functions: Optional[List[Dict]] = None, user_proxy: Optional[autogen.ConversableAgent] = None, **kwargs
+        self,
+        use_oai_assistant: Optional[bool] = False,
+        list_of_functions: Optional[List[Dict]] = None,
+        user_proxy: Optional[autogen.ConversableAgent] = None,
+        **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
@@ -721,20 +725,12 @@ Match roles in the role set to each expert in expert set.
 
             agent_details = []
 
-            for agent in agent_list[1:]:
+            for agent in agent_list[:-1]:
                 agent_details.append({"name": agent.name, "description": agent.description})
-
-            config_list = autogen.config_list_from_json(
-                self.config_file_or_env,
-                file_location=self.config_file_location,
-                filter_dict={"model": [self.builder_model]},
-            )
-
-            build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
             for func in list_of_functions:
                 resp = (
-                    build_manager.create(
+                    self.builder_model.create(
                         messages=[
                             {
                                 "role": "user",
