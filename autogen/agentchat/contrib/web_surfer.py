@@ -43,7 +43,7 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser: str = "bing",
+        browser_name: str = "bing",
         browser_config: Optional[Union[Dict, None]] = None,
     ):
         super().__init__(
@@ -62,7 +62,8 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        chosen_browser = BROWSERS[browser]
+        self.browser_name = browser_name
+        chosen_browser = BROWSERS[self.browser_name]
         self.browser = chosen_browser(**(browser_config if browser_config else {}))
 
         inner_llm_config = copy.deepcopy(llm_config)
@@ -139,7 +140,7 @@ class WebSurferAgent(ConversableAgent):
             description="Perform an INFORMATIONAL web search query then return the search results.",
         )
         def _informational_search(query: Annotated[str, "The informational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"{self.browser_name}: {query}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
@@ -149,7 +150,7 @@ class WebSurferAgent(ConversableAgent):
             description="Perform a NAVIGATIONAL web search query then immediately navigate to the top result. Useful, for example, to navigate to a particular Wikipedia article or other known destination. Equivalent to Google's \"I'm Feeling Lucky\" button.",
         )
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"{self.browser_name}: {query}")
 
             # Extract the first linl
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
