@@ -234,11 +234,17 @@ class GeminiClient:
             # B. handle the vision model
             if self.use_vertexai:
                 model = GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=safety_settings
+                    model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    system_instruction=system_instruction,
                 )
             else:
                 model = genai.GenerativeModel(
-                    model_name, generation_config=generation_config, safety_settings=safety_settings
+                    model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    system_instruction=system_instruction,
                 )
                 genai.configure(api_key=self.api_key)
             # Gemini's vision model does not support chat history yet
