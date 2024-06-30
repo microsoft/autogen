@@ -43,6 +43,8 @@ class LiteLLMClient:
     # process
     # 1. (before tools have been called) Return JSON with the functions to call
     # 2. (directly after tools have been called) Return Text describing the results of the function calls in text format
+
+    # Override using "manual_tool_call_instruction" config parameter
     TOOL_CALL_MANUAL_INSTRUCTION = (
         "You are to follow a strict two step process that will occur over "
         "a number of interactions, so pay attention to what step you are in based on the full "
@@ -53,15 +55,17 @@ class LiteLLMClient:
         "it returning only TEXT and not Python or JSON. "
         "In terms of your response format, for step 1 return only JSON and NO OTHER text, "
         "for step 2 return only text and NO JSON/Python/Markdown. "
-        'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}] and if there are no arguments then return an empty set of arguments '
-        "The following functions are available to you:\n[FUNCTIONS_LIST]"
+        'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}]\n'
+        "The following functions are available to you:[FUNCTIONS_LIST]"
     )
 
     # Appended to the last user message if no tools have been called
-    TOOL_CALL_MANUAL_STEP1 = """ (proceed with step 1)"""
+    # Override using "manual_tool_call_step1" config parameter
+    TOOL_CALL_MANUAL_STEP1 = " (proceed with step 1)"
 
     # Appended to the user message after tools have been executed. Will create a 'user' message if one doesn't exist.
-    TOOL_CALL_MANUAL_STEP2 = """ (proceed with step 2)"""
+    # Override using "manual_tool_call_step2" config parameter
+    TOOL_CALL_MANUAL_STEP2 = " (proceed with step 2)"
 
     def __init__(self, **kwargs):
         """Note that no api_key or environment variable is required as we're using LiteLLM only for Ollama.
@@ -118,8 +122,7 @@ class LiteLLMClient:
             "api_base"
         ], "Please specify the 'api_base' in your config list entry to indicate the path to your Ollama server, e.g. 'http://localhost:11434'."
 
-        # Validate allowed Groq parameters
-        # https://console.groq.com/docs/api-reference#chat
+        # Validate allowed LiteLLM parameters
         litellm_params["max_tokens"] = validate_parameter(params, "max_tokens", int, True, None, (0, None), None)
         litellm_params["presence_penalty"] = validate_parameter(
             params, "presence_penalty", (int, float), True, None, (-2, 2), None
@@ -152,12 +155,24 @@ class LiteLLMClient:
             params, "tool_calling_mode", str, False, "default", None, ["default", "manual"]
         )
 
+        if self._tool_calling_mode == "manual":
+            # Load defaults
+            self._manual_tool_call_instruction = validate_parameter(
+                params, "manual_tool_call_instruction", str, False, self.TOOL_CALL_MANUAL_INSTRUCTION, None, None
+            )
+            self._manual_tool_call_step1 = validate_parameter(
+                params, "manual_tool_call_step1", str, False, self.TOOL_CALL_MANUAL_STEP1, None, None
+            )
+            self._manual_tool_call_step2 = validate_parameter(
+                params, "manual_tool_call_step2", str, False, self.TOOL_CALL_MANUAL_STEP2, None, None
+            )
+
         # Convert AutoGen messages to LiteLLM messages
         litellm_messages = self.oai_messages_to_litellm_messages(
             messages, params["tools"] if self._tools_in_conversation else None
         )
 
-        # Parse parameters to the Groq API's parameters
+        # Parse parameters to the LiteLLM API's parameters
         litellm_params = self.parse_params(params)
 
         # Add tools to the call if we have them and aren't hiding them
@@ -300,7 +315,7 @@ class LiteLLMClient:
 
                 response_id = response.id
         else:
-            raise RuntimeError("Failed to get response from Groq after retrying 5 times.")
+            raise RuntimeError("Failed to get response from LiteLLM after retrying 5 times.")
 
         # 3. convert output
         message = ChatCompletionMessage(
@@ -360,9 +375,27 @@ class LiteLLMClient:
 
             tool_result_is_last_msg = have_tool_results and last_tool_result_index == len(litellm_messages) - 1
 
+            if litellm_messages[0]["role"] == "system":
+                manual_instruction = self._manual_tool_call_instruction
+
+                # Build a string of the functions available
+                functions_string = ""
+                for function in tools:
+                    functions_string += f"""\n{function}\n"""
+
+                # Replace single quotes with double questions - Not sure why this helps the LLM perform
+                # better, but it seems to. Monitor and remove if not necessary.
+                functions_string = functions_string.replace("'", '"')
+
+                manual_instruction = manual_instruction.replace("[FUNCTIONS_LIST]", functions_string)
+
+                # Update the system message with the instructions and functions
+                litellm_messages[0]["content"] = litellm_messages[0]["content"] + manual_instruction.rstrip()
+
             # If we are still in the function calling or evaluating process, append the steps instruction
             if not have_tool_calls or tool_result_is_last_msg:
                 if litellm_messages[0]["role"] == "system":
+                    '''
                     manual_instruction = self.TOOL_CALL_MANUAL_INSTRUCTION
 
                     # Build a string of the functions available
@@ -378,17 +411,19 @@ class LiteLLMClient:
 
                     # Update the system message with the instructions and functions
                     litellm_messages[0]["content"] = litellm_messages[0]["content"] + manual_instruction.rstrip()
+                    '''
 
-                # Append the manual step instructions
-                content_to_append = (
-                    self.TOOL_CALL_MANUAL_STEP1 if not have_tool_results else self.TOOL_CALL_MANUAL_STEP2
-                )
+                    # NOTE: we require a system message to exist, also, for the manual steps texts
+                    # Append the manual step instructions
+                    content_to_append = (
+                        self._manual_tool_call_step1 if not have_tool_results else self._manual_tool_call_step2
+                    )
 
-                # Append the relevant tool call instruction to the latest user message
-                if litellm_messages[-1]["role"] == "user":
-                    litellm_messages[-1]["content"] = litellm_messages[-1]["content"] + content_to_append
-                else:
-                    litellm_messages.append({"role": "user", "content": content_to_append})
+                    # Append the relevant tool call instruction to the latest user message
+                    if litellm_messages[-1]["role"] == "user":
+                        litellm_messages[-1]["content"] = litellm_messages[-1]["content"] + content_to_append
+                    else:
+                        litellm_messages.append({"role": "user", "content": content_to_append})
 
         # Ensure the last message is a user message, if not, add a user message
         if litellm_messages[-1]["role"] != "user":
@@ -404,11 +439,45 @@ def response_to_object(response_string: str) -> Any:
 
         # Validate that the data is a list of dictionaries
         if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
+            # Perfect format, a list of dictionaries
+
+            # Check that each dictionary has at least 'name', optionally 'arguments' and no other keys
+            for item in data_object:
+                if not is_valid_tool_call_item(item):
+                    return False
+
+            # All passed, name and (optionally) arguments exist for all entries.
             return data_object
-        else:
-            # print("Invalid data format: Must be a list of dictionaries.")
-            return None
+        elif isinstance(data_object, list):
+            # If it's a list but the items are not dictionaries, check if they are strings that can be converted to dictionaries
+            data_copy = data_object.copy()
+            for i, item in enumerate(data_copy):
+                try:
+                    new_item = eval(item)
+                    if isinstance(new_item, dict):
+                        if is_valid_tool_call_item(new_item):
+                            data_object[i] = new_item
+                        else:
+                            return None
+                    else:
+                        return None
+                except Exception:
+                    return None
+
+            # All items were valid arguments dictionaries
+            return data_copy
     except (SyntaxError, NameError, TypeError):
         return None
 
     return None
+
+
+def is_valid_tool_call_item(call_item: dict) -> bool:
+    """Check that a dictionary item has at least 'name', optionally 'arguments' and no other keys to match a tool call JSON"""
+    if "name" not in call_item and not isinstance(call_item["name"], str):
+        return False
+
+    if set(call_item.keys()) - {"name", "arguments"}:
+        return False
+
+    return True
