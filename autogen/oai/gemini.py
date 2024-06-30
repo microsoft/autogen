@@ -210,7 +210,9 @@ class GeminiClient:
             for attempt in range(max_retries):
                 ans = None
                 try:
-                    response = chat.send_message(gemini_messages[-1].parts, stream=stream)
+                    response = chat.send_message(
+                        gemini_messages[-1].parts, stream=stream, safety_settings=safety_settings
+                    )
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
