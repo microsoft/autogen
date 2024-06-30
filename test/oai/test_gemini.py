@@ -33,10 +33,10 @@ def mock_response():
 
 @pytest.fixture
 def gemini_client():
-    system_instruction = [
+    system_message = [
         "You are a helpful AI assistant.",
     ]
-    return GeminiClient(api_key="fake_api_key", system_instruction=system_instruction)
+    return GeminiClient(api_key="fake_api_key", system_message=system_message)
 
 
 # Test compute location initialization and configuration
@@ -50,10 +50,10 @@ def test_compute_location_initialization():
 
 @pytest.fixture
 def gemini_google_auth_default_client():
-    system_instruction = [
+    system_message = [
         "You are a helpful AI assistant.",
     ]
-    return GeminiClient(system_instruction=system_instruction)
+    return GeminiClient(system_message=system_message)
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
