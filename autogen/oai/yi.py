@@ -16,7 +16,7 @@ Resources:
 """
 from __future__ import annotations
 
-import time
+import os, time
 import warnings
 from typing import Any, Dict, List
 from openai import OpenAI
@@ -35,10 +35,16 @@ class YiClient:
 
     def __init__(self, **kwargs):
         """Initialize the YiClient with the provided API key and base URL."""
-        self._oai_client = OpenAI(
-            api_key=kwargs.get("api_key", None),
-            base_url=kwargs.get("base_url", None),
-        )
+        api_key = kwargs.get("api_key", None)
+        if not api_key:
+            api_key = os.getenv("YI_API_KEY")
+        base_url = kwargs.get("base_url", None)
+
+        assert (
+            api_key
+        ), "Please include the api_key in your config list entry for Yi or set the YI_API_KEY env variable."
+
+        self._oai_client = OpenAI(api_key=api_key, base_url=base_url)
 
     def message_retrieval(self, response) -> List:
         """

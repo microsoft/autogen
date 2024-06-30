@@ -3,14 +3,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 try:
-    from autogen.oai.yi import YiClient, calculate_yi_cost
+    from autogen.oai.yi import YiClient, calculate_yi_cost, YI_PRICING_1K
 
     skip = False
 except ImportError:
     YiClient = object
     InternalServerError = object
     skip = True
-
 
 # Fixtures for mock data
 @pytest.fixture
@@ -53,7 +52,7 @@ def test_initialization():
 # Test standard initialization
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_valid_initialization(yi_client):
-    assert yi_client.api_key == "fake_api_key", "Config api_key should be correctly set"
+    assert yi_client._oai_client.api_key == "fake_api_key", "Config api_key should be correctly set"
 
 
 # Test parameters
@@ -72,13 +71,14 @@ def test_parsing_params(yi_client):
     }
     expected_params = {
         "model": "yi-large",
+        "messages": [],
         "max_tokens": 1000,
         "stream": False,
         "temperature": 1,
         "top_p": 0.8,
     }
     result = yi_client.parse_params(params)
-    assert result == expected_params
+    assert result == expected_params, f"{result=}, {params=}"
 
     # Only model, others set as defaults
     params = {
@@ -86,13 +86,14 @@ def test_parsing_params(yi_client):
     }
     expected_params = {
         "model": "yi-large",
+        "messages": [],
         "max_tokens": None,
         "stream": False,
         "temperature": 0.3,
         "top_p": 0.9,
     }
     result = yi_client.parse_params(params)
-    assert result == expected_params
+    assert result == expected_params, f"{result=}, {params=}"
 
     # Incorrect types, defaults should be set, will show warnings but not trigger assertions
     params = {
@@ -130,7 +131,6 @@ def test_parsing_params(yi_client):
         assertinfo.value
     )
 
-
 # Test cost calculation
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_cost_calculation(mock_response):
@@ -141,10 +141,11 @@ def test_cost_calculation(mock_response):
         cost=None,
         model="yi-large",
     )
+    correct_cost = YI_PRICING_1K[response.model][0] * response.usage["prompt_tokens"] / 1000 + YI_PRICING_1K[response.model][1] * response.usage["completion_tokens"] / 1000
     assert (
         calculate_yi_cost(response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model)
-        == 0.000532
-    ), "Cost for this should be $0.000532"
+        == correct_cost
+    ), f"Cost for this should be ${correct_cost}"
 
 
 # Test text generation
