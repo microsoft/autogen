@@ -166,9 +166,9 @@ class TogetherClient:
                     for chunk in response:
                         ans = ans + (chunk.choices[0].delta.content or "")
 
-                    prompt_tokens = chunk.usage.prompt_tokens
-                    completion_tokens = chunk.usage.completion_tokens
-                    total_tokens = chunk.usage.total_tokens
+                        prompt_tokens += chunk.usage.prompt_tokens
+                        completion_tokens += chunk.usage.completion_tokens
+                        total_tokens += chunk.usage.total_tokens
                 else:
                     ans: str = response.choices[0].message.content
 
