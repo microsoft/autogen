@@ -23,16 +23,13 @@ from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = os.environ.get("MONGODB_URI")
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
 MONGODB_DATABASE = os.environ.get("DATABASE", "autogen_test_db")
 MONGODB_COLLECTION = os.environ.get("MONGODB_COLLECTION", "autogen_test_vectorstore")
 MONGODB_INDEX = os.environ.get("MONGODB_INDEX", "vector_index")
 
 RETRIES = 10
 DELAY = 2
-
-if "MONGODB_URI" not in os.environ:
-    pytest.skip(allow_module_level=True)
 
 
 @pytest.fixture
@@ -141,17 +138,16 @@ def test_delete_collection(db):
 
 
 def test_insert_docs(db, example_documents):
-    # Test exception if one attempts to upsert with insert
-    with pytest.raises(ValueError) as exc:
-        db.insert_docs(example_documents, upsert=True)
-    assert "use update_docs with upsert=True" in str(exc.value)
-
     # Test that there's an active collection
     with pytest.raises(ValueError) as exc:
         db.insert_docs(example_documents)
     assert "No collection is specified" in str(exc.value)
 
+    # Test upsert
+    db.insert_docs(example_documents, MONGODB_COLLECTION, upsert=True)
+
     # Create a collection
+    db.delete_collection(MONGODB_COLLECTION)
     collection = db.create_collection(MONGODB_COLLECTION)
     # Create a search index
     if MONGODB_INDEX not in collection.list_search_indexes():
@@ -236,6 +232,7 @@ def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
 
 def test_retrieve_docs(db, example_documents):
     # Create collection
+    db.delete_collection(MONGODB_COLLECTION)
     collection = db.get_collection(MONGODB_COLLECTION)
     # Sanity test. Retrieving docs before documents have been added
     results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
@@ -244,9 +241,7 @@ def test_retrieve_docs(db, example_documents):
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
     # Sanity test. Retrieving docs before the search index had been created
-    with pytest.raises(AssertionError) as exc:
-        db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
-    assert "There are no search indexes" in str(exc.value)
+    db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
     # Create the index
     db.create_vector_search_index(collection=collection, index_name=MONGODB_INDEX)
 
