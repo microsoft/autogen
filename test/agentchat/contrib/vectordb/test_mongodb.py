@@ -116,6 +116,7 @@ def test_create_collection(db):
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
     assert collection.name == collection_name
 
+
 def test_get_collection(db):
     collection_name = MONGODB_COLLECTION
 
@@ -237,9 +238,7 @@ def test_retrieve_docs(db, example_documents):
     # Create collection
     collection = db.get_collection(MONGODB_COLLECTION)
     # Sanity test. Retrieving docs before documents have been added
-    results = db.retrieve_docs(
-        queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2
-    )
+    results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
     assert results == []
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
@@ -260,9 +259,7 @@ def test_retrieve_docs(db, example_documents):
     success = False
     retries = RETRIES
     while retries and not success:
-        results = db.retrieve_docs(
-            queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results
-        )
+        results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
         if len(results[0]) == n_results:
             success = True
         else:
@@ -274,16 +271,12 @@ def test_retrieve_docs(db, example_documents):
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
 
     # Empty list of queries returns empty list of results
-    results = db.retrieve_docs(
-        queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results
-    )
+    results = db.retrieve_docs(queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results)
     assert results == []
 
     # Empty list of queries returns empty list of results
     queries = ["Some good pets", "What kind of Sandwich?"]
-    results = db.retrieve_docs(
-        queries=queries, collection_name=MONGODB_COLLECTION, n_results=2
-    )
+    results = db.retrieve_docs(queries=queries, collection_name=MONGODB_COLLECTION, n_results=2)
     assert len(results) == len(queries)
     assert all([len(res) == n_results for res in results])
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
