@@ -153,7 +153,7 @@ public class AnthropicClientAgentTest
                                       }
                                       """;
 
-        var function = new TypeSafeFunctionCall();
+        var function = new AnthropicTestFunctionCalls();
         var functionCallResult = await function.GetWeatherReportWrapper(weatherFunctionArgumets);
         var toolCall = new ToolCall(function.WeatherReportFunctionContract.Name!, weatherFunctionArgumets)
         {
@@ -177,7 +177,7 @@ public class AnthropicClientAgentTest
     public async Task AnthropicAgentFunctionCallMiddlewareMessageTest()
     {
         var client = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
-        var function = new TypeSafeFunctionCall();
+        var function = new AnthropicTestFunctionCalls();
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [function.WeatherReportFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>>

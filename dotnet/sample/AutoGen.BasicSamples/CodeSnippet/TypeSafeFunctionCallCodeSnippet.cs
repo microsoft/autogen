@@ -2,7 +2,6 @@
 // TypeSafeFunctionCallCodeSnippet.cs
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 #region weather_report_using_statement
@@ -12,15 +11,6 @@ using AutoGen.Core;
 #region weather_report
 public partial class TypeSafeFunctionCall
 {
-    private class GetWeatherSchema
-    {
-        [JsonPropertyName(@"city")]
-        public string city { get; set; }
-
-        [JsonPropertyName(@"date")]
-        public string date { get; set; }
-    }
-
     /// <summary>
     /// Get weather report
     /// </summary>
@@ -31,20 +21,7 @@ public partial class TypeSafeFunctionCall
     {
         return $"Weather report for {city} on {date} is sunny";
     }
-
-    public Task<string> GetWeatherReportWrapper(string arguments)
-    {
-        var schema = JsonSerializer.Deserialize<GetWeatherSchema>(
-            arguments,
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            });
-
-        return WeatherReport(schema.city, schema.date);
-    }
 }
-
 #endregion weather_report
 
 public partial class TypeSafeFunctionCall
