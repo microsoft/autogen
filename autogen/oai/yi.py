@@ -16,10 +16,13 @@ Resources:
 """
 from __future__ import annotations
 
+import time
 import warnings
 from typing import Any, Dict, List
 from openai import OpenAI
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
+from openai.types.completion_usage import CompletionUsage
 from autogen.oai.client_utils import validate_parameter
 
 # Cost per thousand tokens - Input / Output (NOTE: Convert $/Million to $/K)
@@ -83,11 +86,83 @@ class YiClient:
         """
         yi_params = self.parse_params(params)
 
-        response = self._oai_client.chat.completions.create(**yi_params)
+        # Token counts will be returned
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
 
-        response.cost = calculate_yi_cost(response.usage.prompt_tokens, response.usage.completion_tokens, response.model)
+        max_retries = 5
+        for attempt in range(max_retries):
+            ans = None
+            try:
+                # response = client.chat.completions.create(**together_params)
+                response = self._oai_client.chat.completions.create(**yi_params,)
 
-        return response
+            except Exception as e:
+                raise RuntimeError(f"Together.AI exception occurred: {e}")
+            else:
+
+                if yi_params["stream"]:
+                    # Read in the chunks as they stream
+                    ans = ""
+                    for chunk in response:
+                        ans = ans + (chunk.choices[0].delta.content or "")
+
+                    prompt_tokens = chunk.usage.prompt_tokens
+                    completion_tokens = chunk.usage.completion_tokens
+                    total_tokens = chunk.usage.total_tokens
+                else:
+                    ans: str = response.choices[0].message.content
+
+                    prompt_tokens = response.usage.prompt_tokens
+                    completion_tokens = response.usage.completion_tokens
+                    total_tokens = response.usage.total_tokens
+                break
+
+        if response is not None:
+            # If we have tool calls as the response, populate completed tool calls for our return OAI response
+            if response.choices[0].finish_reason == "tool_calls":
+                yi_finish = "tool_calls"
+                tool_calls = []
+                for tool_call in response.choices[0].message.tool_calls:
+                    tool_calls.append(
+                        ChatCompletionMessageToolCall(
+                            id=tool_call.id,
+                            function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
+                            type="function",
+                        )
+                    )
+            else:
+                yi_finish = "stop"
+                tool_calls = None
+
+        else:
+            raise RuntimeError(f"Failed to get response from 01.AI after retrying {attempt + 1} times.")
+
+        # 3. convert output
+        message = ChatCompletionMessage(
+            role="assistant",
+            content=response.choices[0].message.content,
+            function_call=None,
+            tool_calls=tool_calls,
+        )
+        choices = [Choice(finish_reason=yi_finish, index=0, message=message)]
+
+        response_oai = ChatCompletion(
+            id=response.id,
+            model=yi_params["model"],
+            created=int(time.time()),
+            object="chat.completion",
+            choices=choices,
+            usage=CompletionUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            ),
+            cost=calculate_yi_cost(prompt_tokens, completion_tokens, yi_params["model"]),
+        )
+
+        return response_oai
 
     def cost(self, response) -> float:
         return response.cost

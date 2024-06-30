@@ -179,3 +179,65 @@ def test_create_response(mock_chat, yi_client):
     assert response.model == "llama3-70b-8192", "Response model should match the mocked response model"
     assert response.usage.prompt_tokens == 10, "Response prompt tokens should match the mocked response usage"
     assert response.usage.completion_tokens == 20, "Response completion tokens should match the mocked response usage"
+
+
+# Test functions/tools
+@pytest.mark.skipif(skip, reason=skip_reason)
+@patch("autogen.oai.yi.YiClient.create")
+def test_create_response_with_tool_call(mock_chat, yi_client):
+    # Mock `yi_response = client.chat(**yi_params)`
+    mock_function = MagicMock(name="currency_calculator")
+    mock_function.name = "currency_calculator"
+    mock_function.arguments = '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
+
+    mock_function_2 = MagicMock(name="get_weather")
+    mock_function_2.name = "get_weather"
+    mock_function_2.arguments = '{"location": "Chicago"}'
+
+    mock_chat.return_value = MagicMock(
+        choices=[
+            MagicMock(
+                finish_reason="tool_calls",
+                message=MagicMock(
+                    content="Sample text about the functions",
+                    tool_calls=[
+                        MagicMock(id="gdRdrvnHh", function=mock_function),
+                        MagicMock(id="abRdrvnHh", function=mock_function_2),
+                    ],
+                ),
+            )
+        ],
+        id="mock_yi_response_id",
+        model="yi-large",
+        usage=MagicMock(prompt_tokens=10, completion_tokens=20),
+    )
+
+    # Construct parameters
+    converted_functions = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Currency exchange calculator.",
+                "name": "currency_calculator",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "base_amount": {"type": "number", "description": "Amount of currency in base_currency"},
+                    },
+                    "required": ["base_amount"],
+                },
+            },
+        }
+    ]
+    yi_messages = [
+        {"role": "user", "content": "How much is 123.45 EUR in USD?"},
+        {"role": "assistant", "content": "World"},
+    ]
+
+    # Call the create method
+    response = yi_client.create({"messages": yi_messages, "tools": converted_functions, "model": "yi-large"})
+
+    # Assertions to check if the functions and content are included in the response
+    assert response.choices[0].message.content == "Sample text about the functions"
+    assert response.choices[0].message.tool_calls[0].function.name == "currency_calculator"
+    assert response.choices[0].message.tool_calls[1].function.name == "get_weather"
