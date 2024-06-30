@@ -20,6 +20,15 @@ public class Tool_Call_With_Ollama_And_LiteLLM
 {
     public static async Task RunAsync()
     {
+        // Before running this code, make sure you have
+        // - Ollama:
+        //  - Install dolphincoder:latest in Ollama
+        //  - Ollama running on http://localhost:11434
+        // - LiteLLM
+        //  - Install LiteLLM
+        //  - Start LiteLLM with the following command:
+        //    - litellm --model ollama_chat/dolphincoder --port 4000
+
         #region Create_Agent
         var liteLLMUrl = "http://localhost:4000";
         using var httpClient = new HttpClient(new CustomHttpClientHandler(liteLLMUrl));
@@ -43,7 +52,7 @@ public class Tool_Call_With_Ollama_And_LiteLLM
         var agent = new OpenAIChatAgent(
             openAIClient: openAIClient,
             name: "assistant",
-            modelName: "placeholder",
+            modelName: "dolphincoder:latest",
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionMiddleware)
