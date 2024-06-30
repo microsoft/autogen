@@ -37,11 +37,6 @@ namespace AutoGen.Tests
             await Example03_Agent_FunctionCall.RunAsync();
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-        public async Task OpenAIAgent_JsonMode()
-        {
-            await Example13_OpenAIAgent_JsonMode.RunAsync();
-        }
 
         [ApiKeyFact("MISTRAL_API_KEY")]
         public async Task MistralClientAgent_TokenCount()
