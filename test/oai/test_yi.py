@@ -165,7 +165,7 @@ def test_create_response(mock_chat, yi_client):
     # Test parameters
     params = {
         "messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "World"}],
-        "model": "llama3-70b-8192",
+        "model": "yi-large",
     }
 
     # Call the create method
@@ -176,7 +176,7 @@ def test_create_response(mock_chat, yi_client):
         response.choices[0].message.content == "Example Yi response"
     ), "Response content should match expected output"
     assert response.id == "mock_yi_response_id", "Response ID should match the mocked response ID"
-    assert response.model == "llama3-70b-8192", "Response model should match the mocked response model"
+    assert response.model == "yi-large", "Response model should match the mocked response model"
     assert response.usage.prompt_tokens == 10, "Response prompt tokens should match the mocked response usage"
     assert response.usage.completion_tokens == 20, "Response completion tokens should match the mocked response usage"
 
