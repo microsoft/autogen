@@ -38,6 +38,31 @@ from autogen.oai.client_utils import should_hide_tools, validate_parameter
 class LiteLLMClient:
     """Client for LiteLLM's API."""
 
+    # Defaults for manual tool calling
+    # Instruction is added to the first system message and provides directions to follow a two step
+    # process
+    # 1. (before tools have been called) Return JSON with the functions to call
+    # 2. (directly after tools have been called) Return Text describing the results of the function calls in text format
+    TOOL_CALL_MANUAL_INSTRUCTION = (
+        "You are to follow a strict two step process that will occur over "
+        "a number of interactions, so pay attention to what step you are in based on the full "
+        "conversation. We will be taking turns so only do one step at a time so don't perform step "
+        "2 until step 1 is complete and I've told you the result. The first step is to choose one "
+        "or more functions based on the request given and return only JSON with the functions and "
+        "arguments to use. The second step is to analyse the given output of the function and summarise "
+        "it returning only TEXT and not Python or JSON. "
+        "In terms of your response format, for step 1 return only JSON and NO OTHER text, "
+        "for step 2 return only text and NO JSON/Python/Markdown. "
+        'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}] and if there are no arguments then return an empty set of arguments '
+        "The following functions are available to you:\n[FUNCTIONS_LIST]"
+    )
+
+    # Appended to the last user message if no tools have been called
+    TOOL_CALL_MANUAL_STEP1 = """ (proceed with step 1)"""
+
+    # Appended to the user message after tools have been executed. Will create a 'user' message if one doesn't exist.
+    TOOL_CALL_MANUAL_STEP2 = """ (proceed with step 2)"""
+
     def __init__(self, **kwargs):
         """Note that no api_key or environment variable is required as we're using LiteLLM only for Ollama.
 
@@ -117,23 +142,35 @@ class LiteLLMClient:
 
         messages = params.get("messages", [])
 
+        # Are tools involved in this conversation?
+        self._tools_in_conversation = "tools" in params
+
+        # Function/Tool calling options
+        # 'default' = uses LiteLLM function calling mode
+        # 'manual' injects directions, functions into system prompt, 2-step process for LLM to follow
+        self._tool_calling_mode = validate_parameter(
+            params, "tool_calling_mode", str, False, "default", None, ["default", "manual"]
+        )
+
         # Convert AutoGen messages to LiteLLM messages
-        litellm_messages = oai_messages_to_litellm_messages(messages)
+        litellm_messages = self.oai_messages_to_litellm_messages(
+            messages, params["tools"] if self._tools_in_conversation else None
+        )
 
         # Parse parameters to the Groq API's parameters
         litellm_params = self.parse_params(params)
 
         # Add tools to the call if we have them and aren't hiding them
-        if "tools" in params:
-            hide_tools = validate_parameter(
-                params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
-            )
-            if not should_hide_tools(litellm_messages, params["tools"], hide_tools):
-                # litellm_params["tools"] = params["tools"]
-                add_tools_to_prompt(litellm_messages, params["tools"])
-                # Test adding the tools in to the prompt
-
-        litellm_params["format"] = ""  # TEST not JSON
+        if self._tools_in_conversation:
+            if self._tool_calling_mode == "default":
+                hide_tools = validate_parameter(
+                    params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
+                )
+                if not should_hide_tools(litellm_messages, params["tools"], hide_tools):
+                    # LiteLLMs standard tools support
+                    litellm_params["tools"] = params["tools"]
+            else:
+                litellm_params["format"] = ""  # Don't force JSON for manual tool calling mode
 
         litellm_params["messages"] = litellm_messages
 
@@ -201,37 +238,10 @@ class LiteLLMClient:
                 response_content = ans
                 response_id = chunk.id
             else:
-
-                tool_call_json, is_tool_call = validate_tool_call_json(ans)
-                if is_tool_call:
-                    # JSON response we'll temporarily assume is a function call
-
-                    litellm_finish = "tool_calls"
-                    tool_calls = []
-
-                    for json_function in tool_call_json:
-                        tool_calls.append(
-                            ChatCompletionMessageToolCall(
-                                id="litellm_func_{}".format(random.randint(0, 10000)),
-                                function={
-                                    "name": json_function["name"],
-                                    "arguments": json.dumps(json_function["arguments"]),
-                                },
-                                type="function",
-                            )
-                        )
-
-                    # Blank the message content
-                    response_content = ""
-                else:
-                    response_content = response.choices[0].message.content
-                    litellm_finish = "stop"
-                    tool_calls = None
-
-                """
                 # Non-streaming response
-                # If we have tool calls as the response, populate completed tool calls for our return OAI response
+
                 if response.choices[0].finish_reason == "tool_calls":
+                    # LiteLLM default tool calling
                     litellm_finish = "tool_calls"
                     tool_calls = []
                     for tool_call in response.choices[0].message.tool_calls:
@@ -242,10 +252,51 @@ class LiteLLMClient:
                                 type="function",
                             )
                         )
+
+                    # Blank the message content
+                    response_content = ""
                 else:
-                    litellm_finish = "stop"
-                    tool_calls = None
-                """
+                    # Not returned as a tool_call, but could be a text response
+                    # with tool calling if we're using 'manual' tool_calling_mode
+                    is_manual_tool_calling = False
+
+                    if self._tools_in_conversation and self._tool_calling_mode == "manual":
+                        # Try to convert the response to a tool call object
+                        response_toolcalls = response_to_object(ans)
+
+                        # If we can, then it's a manual tool call
+                        if response_toolcalls is not None:
+                            litellm_finish = "tool_calls"
+                            tool_calls = []
+                            random_id = random.randint(0, 10000)
+
+                            for json_function in response_toolcalls:
+                                tool_calls.append(
+                                    ChatCompletionMessageToolCall(
+                                        id="litellm_func_{}".format(random_id),
+                                        function={
+                                            "name": json_function["name"],
+                                            "arguments": (
+                                                json.dumps(json_function["arguments"])
+                                                if "arguments" in json_function
+                                                else "{}"
+                                            ),
+                                        },
+                                        type="function",
+                                    )
+                                )
+
+                                random_id += 1
+
+                            is_manual_tool_calling = True
+
+                            # Blank the message content
+                            response_content = ""
+
+                    if not is_manual_tool_calling:
+                        response_content = response.choices[0].message.content
+                        litellm_finish = "stop"
+                        tool_calls = None
 
                 response_id = response.id
         else:
@@ -276,104 +327,88 @@ class LiteLLMClient:
 
         return response_oai
 
+    def oai_messages_to_litellm_messages(self, messages: list[Dict[str, Any]], tools: list) -> list[dict[str, Any]]:
+        """Convert messages from OAI format to LiteLLM's format.
+        We correct for any specific role orders and types.
+        """
 
-def oai_messages_to_litellm_messages(messages: list[Dict[str, Any]]) -> list[dict[str, Any]]:
-    """Convert messages from OAI format to LiteLLM's format.
-    We correct for any specific role orders and types.
-    """
+        # IMPORTANT NOTE: LiteLLM's Ollama library changes 'tool' roles to 'assistant'
 
-    litellm_messages = copy.deepcopy(messages)
+        litellm_messages = copy.deepcopy(messages)
 
-    # Remove the name field
-    for message in litellm_messages:
-        if "name" in message:
-            message.pop("name", None)
+        # Remove the name field
+        for message in litellm_messages:
+            if "name" in message:
+                message.pop("name", None)
 
-    # IMPORTANT: LiteLLM's Ollama library changes 'tool' roles to 'assistant'
+        # Process messages for tool calling manually
+        if self._tools_in_conversation and self._tool_calling_mode == "manual":
+            # 1. We need to append instructions to the starting system message on function calling
+            # 2. If we have not yet called tools we append "step 1 instruction" to the latest user message
+            # 3. If we have already called tools we append "step 2 instruction" to the latest user message
 
-    # If the last message is the result of a tool call, add a user message indicating that
-    if litellm_messages[-1]["role"] == "tool":
-        litellm_messages.append(
-            {
-                "role": "user",
-                "content": "Please note the result of that function/tool call and do not call that function/tool again.",
-            }
-        )
+            have_tool_calls = False
+            have_tool_results = False
+            last_tool_result_index = -1
 
-    # Ensure the last message is a user message, if not, add a user message
-    if litellm_messages[-1]["role"] != "user":
-        litellm_messages.append({"role": "user", "content": "Please continue."})
+            for i, message in enumerate(litellm_messages):
+                if "tool_calls" in message:
+                    have_tool_calls = True
+                if "tool_call_id" in message:
+                    have_tool_results = True
+                    last_tool_result_index = i
 
-    return litellm_messages
+            tool_result_is_last_msg = have_tool_results and last_tool_result_index == len(litellm_messages) - 1
+
+            # If we are still in the function calling or evaluating process, append the steps instruction
+            if not have_tool_calls or tool_result_is_last_msg:
+                if litellm_messages[0]["role"] == "system":
+                    manual_instruction = self.TOOL_CALL_MANUAL_INSTRUCTION
+
+                    # Build a string of the functions available
+                    functions_string = ""
+                    for function in tools:
+                        functions_string += f"""\n{function}\n"""
+
+                    # Replace single quotes with double questions - Not sure why this helps the LLM perform
+                    # better, but it seems to. Monitor and remove if not necessary.
+                    functions_string = functions_string.replace("'", '"')
+
+                    manual_instruction = manual_instruction.replace("[FUNCTIONS_LIST]", functions_string)
+
+                    # Update the system message with the instructions and functions
+                    litellm_messages[0]["content"] = litellm_messages[0]["content"] + manual_instruction.rstrip()
+
+                # Append the manual step instructions
+                content_to_append = (
+                    self.TOOL_CALL_MANUAL_STEP1 if not have_tool_results else self.TOOL_CALL_MANUAL_STEP2
+                )
+
+                # Append the relevant tool call instruction to the latest user message
+                if litellm_messages[-1]["role"] == "user":
+                    litellm_messages[-1]["content"] = litellm_messages[-1]["content"] + content_to_append
+                else:
+                    litellm_messages.append({"role": "user", "content": content_to_append})
+
+        # Ensure the last message is a user message, if not, add a user message
+        if litellm_messages[-1]["role"] != "user":
+            litellm_messages.append({"role": "user", "content": "Please continue."})
+
+        return litellm_messages
 
 
-def validate_tool_call_json(response_str) -> Tuple[list, bool]:
-    """Is the response string a JSON tool call? Validates the format and returns the validated json if it is and whether it is."""
-    json_ans, valid_json = is_valid_json(response_str)
-
-    if valid_json:
-        response_json = json.loads(json_ans)
-
-        if not isinstance(response_json, list):  # Put it into a list if it's not already
-            response_json = [response_json]
-
-        invalid_functions = False
-
-        for json_function in response_json:
-            # Must have name and arguments
-            if "name" in json_function and "arguments" in json_function:
-                arguments = json_function["arguments"]
-                # Arguments must be a dictionary
-                if not isinstance(arguments, dict):
-                    invalid_functions = True
-            else:
-                invalid_functions = True
-
-        return response_json if not invalid_functions else [], not invalid_functions
-
-    else:
-        return [], False
-
-
-# TEMP TEMP TEMP
-def is_valid_json(json_str) -> Tuple[str, bool]:
+def response_to_object(response_string: str) -> Any:
+    """Attempts to convert the response to an object, aimed to align with function format [{},{}]"""
     try:
-        json.loads(json_str)
-        return json_str, True
-    except json.JSONDecodeError:
-        return fix_json_string(json_str)
+        data_object = eval(response_string.strip())
 
+        # Validate that the data is a list of dictionaries
+        if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
+            return data_object
+        else:
+            # print("Invalid data format: Must be a list of dictionaries.")
+            return None
+    except (SyntaxError, NameError, TypeError):
+        return None
 
-def fix_json_string(json_string) -> Tuple[str, bool]:
-    """Corrects a malformed JSON string by wrapping objects in an array."""
-    lines = json_string.splitlines()
-    if len(lines) > 1:
-        # If there are multiple objects, wrap them in an array
-        fixed_string = f"[{''.join(lines)}]"
-
-        try:
-            json.loads(fixed_string)
-            return fixed_string, True
-        except json.JSONDecodeError:
-            return "", False
-    else:
-        return json_string, False
-
-
-def add_tools_to_prompt(messages: list, functions: list):
-    function_prompt = """Produce JSON OUTPUT ONLY! Adhere to this format {"name": "function_name", "arguments":{"argument_name": "argument_value"}} The following functions are available to you:"""
-    # function_prompt = """You must return only one of these formats: (1) ONLY TEXT, no JSON, if you have already called the necessary functions or (2) ONLY JSON, no code/results/verbiage, if using a tool/function and it must adhere to this format {"name": "function_name", "arguments":{"argument_name": "argument_value"}} . The following functions are available to you:"""
-    for function in functions:
-        function_prompt += f"""\n{function}\n"""
-
-    function_added_to_prompt = False
-    for message in messages:
-        if "system" in message["role"]:
-            message["content"] += f""" {function_prompt}"""
-            function_added_to_prompt = True
-            break
-
-    if not function_added_to_prompt:
-        messages.append({"role": "system", "content": f"""{function_prompt}"""})
-
-    return messages
+    return None
