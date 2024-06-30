@@ -238,7 +238,7 @@ def test_retrieve_docs(db, example_documents):
     collection = db.get_collection(MONGODB_COLLECTION)
     # Sanity test. Retrieving docs before documents have been added
     results = db.retrieve_docs(
-        queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2, index_name=MONGODB_INDEX
+        queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2
     )
     assert results == []
     # Insert example documents
@@ -246,7 +246,7 @@ def test_retrieve_docs(db, example_documents):
 
     # Sanity test. Retrieving docs before the search index had been created
     with pytest.raises(AssertionError) as exc:
-        db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2, index_name=MONGODB_INDEX)
+        db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
     assert "There are no search indexes" in str(exc.value)
     # Create the index
     db.create_vector_search_index(collection=collection, index_name=MONGODB_INDEX)
@@ -261,7 +261,7 @@ def test_retrieve_docs(db, example_documents):
     retries = RETRIES
     while retries and not success:
         results = db.retrieve_docs(
-            queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results, index_name=MONGODB_INDEX
+            queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results
         )
         if len(results[0]) == n_results:
             success = True
@@ -275,14 +275,14 @@ def test_retrieve_docs(db, example_documents):
 
     # Empty list of queries returns empty list of results
     results = db.retrieve_docs(
-        queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results, index_name=MONGODB_INDEX
+        queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results
     )
     assert results == []
 
     # Empty list of queries returns empty list of results
     queries = ["Some good pets", "What kind of Sandwich?"]
     results = db.retrieve_docs(
-        queries=queries, collection_name=MONGODB_COLLECTION, n_results=2, index_name=MONGODB_INDEX
+        queries=queries, collection_name=MONGODB_COLLECTION, n_results=2
     )
     assert len(results) == len(queries)
     assert all([len(res) == n_results for res in results])

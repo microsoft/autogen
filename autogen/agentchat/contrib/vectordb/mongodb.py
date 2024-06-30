@@ -1,4 +1,5 @@
 from copy import deepcopy
+from time import sleep
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
 
 import numpy as np
@@ -6,6 +7,7 @@ from pymongo import MongoClient, UpdateOne, errors
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 from pymongo.operations import SearchIndexModel
+from pymongo.errors import OperationFailure
 from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
@@ -32,6 +34,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         database_name: str = "vector_db",
         embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
         collection_name: str = None,
+        index_name: str = "vector_index",
     ):
         """
         Initialize the vector database.
@@ -59,6 +62,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         sentences = ["The weather is lovely today in paradise."]
         embeddings = self.embedding_function(sentences)
         self.dimensions = len(embeddings[0])
+        # MongoDB Atlas Search Index
+        self.index_name = index_name
 
     def list_collections(self):
         """
@@ -80,8 +85,6 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         Args:
             collection_name: str | The name of the collection.
-            index_name: str | The name of the index.
-            similarity: str | The similarity metric for the vector search index.
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
             get_or_create: bool | Whether to get the collection if it exists. Default is True
         """
@@ -103,6 +106,36 @@ class MongoDBAtlasVectorDB(VectorDB):
         else:
             # get_or_create is False and the collection already exists, raise an error.
             raise ValueError(f"Collection {collection_name} already exists.")
+    def create_index_if_not_exists(self, index_name: str = "vector_index", collection: Collection = None):
+        """
+        Creates a vector search index on the specified collection in MongoDB.
+
+        Args:
+            MONGODB_INDEX (str, optional): The name of the vector search index to create. Defaults to "vector_search_index".
+            collection (Collection, optional): The MongoDB collection to create the index on. Defaults to None.
+
+        Returns:
+            bool: True if the index was successfully created, False otherwise.
+        """
+        success = False
+        # Check if the index already exists
+        if index_name not in collection.list_search_indexes():
+            # Define retry logic with exponential backoff
+            retries = 3
+            delay = 3
+            while retries and not success:
+                try:
+                    # Attempt to create the vector search index
+                    self.create_vector_search_index(collection, index_name)
+                    success = True
+                except OperationFailure:
+                    # Handle potential operation failure
+                    retries -= 1
+                    sleep(delay)
+                    delay *= 2  # Increase delay for next retry
+        else: # index exists
+            success = True
+        return success
 
     def get_collection(self, collection_name: str = None) -> Collection:
         """
@@ -139,7 +172,7 @@ class MongoDBAtlasVectorDB(VectorDB):
     def create_vector_search_index(
         self,
         collection: Collection,
-        index_name: Union[str, None] = "default_index",
+        index_name: Union[str, None] = "vector_index",
         similarity: Literal["euclidean", "cosine", "dotProduct"] = "cosine",
     ) -> None:
         """Create a vector search index in the collection.
@@ -170,6 +203,16 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Create the search index
         try:
             collection.create_search_index(model=search_index_model)
+            # Wait for the index to be created
+            keep_trying = True
+            while keep_trying:
+                indexes = collection.list_search_indexes()
+                for index in indexes:
+                    if index["name"] == index_name and index["status"] == "READY":
+                        keep_trying = False
+                    else:
+                        sleep(2) # 2s delay between checks            
+            logger.info(f"Search index {index_name} created successfully.")
         except Exception as e:
             logger.error(
                 f"Error creating search index: {e}. \n"
@@ -178,7 +221,11 @@ class MongoDBAtlasVectorDB(VectorDB):
                 f"if you are on a free/shared cluster."
             )
             raise e
-
+    def upsert_docs(self, docs, collection):
+        for doc in docs:
+            query = {"id": doc["id"]}
+            new_values = {"$set": doc}
+            collection.update_one(query, new_values, upsert=True)
     def insert_docs(
         self,
         docs: List[Document],
@@ -201,57 +248,52 @@ class MongoDBAtlasVectorDB(VectorDB):
             logger.info("No documents to insert.")
             return
 
-        if upsert:
-            raise ValueError(
-                "If attempting to upsert, please use update_docs with upsert=True. "
-                "upsert is a function of update in MongoDB. "
-                "It is most efficient if done there."
-            )
-
         collection = self.get_collection(collection_name)
+        if upsert:
+            self.upsert_docs(docs, collection)
+        else:   
+            # Sanity checking the first document
+            if docs[0].get("content") is None:
+                raise ValueError("The document content is required.")
+            if docs[0].get("id") is None:
+                raise ValueError("The document id is required.")
 
-        # Sanity checking the first document
-        if docs[0].get("content") is None:
-            raise ValueError("The document content is required.")
-        if docs[0].get("id") is None:
-            raise ValueError("The document id is required.")
-
-        input_ids = set()
-        result_ids = set()
-        id_batch = []
-        text_batch = []
-        metadata_batch = []
-        size = 0
-        i = 0
-        for doc in docs:
-            id = doc["id"]
-            text = doc["content"]
-            metadata = doc.get("metadata", {})
-            id_batch.append(id)
-            text_batch.append(text)
-            metadata_batch.append(metadata)
-            id_size = 1 if isinstance(id, int) else len(id)
-            size += len(text) + len(metadata) + id_size
-            if (i + 1) % batch_size == 0 or size >= 47_000_000:
-                result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))
+            input_ids = set()
+            result_ids = set()
+            id_batch = []
+            text_batch = []
+            metadata_batch = []
+            size = 0
+            i = 0
+            for doc in docs:
+                id = doc["id"]
+                text = doc["content"]
+                metadata = doc.get("metadata", {})
+                id_batch.append(id)
+                text_batch.append(text)
+                metadata_batch.append(metadata)
+                id_size = 1 if isinstance(id, int) else len(id)
+                size += len(text) + len(metadata) + id_size
+                if (i + 1) % batch_size == 0 or size >= 47_000_000:
+                    result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))
+                    input_ids.update(id_batch)
+                    id_batch = []
+                    text_batch = []
+                    metadata_batch = []
+                    size = 0
+                i += 1
+            if text_batch:
+                result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))  # type: ignore
                 input_ids.update(id_batch)
-                id_batch = []
-                text_batch = []
-                metadata_batch = []
-                size = 0
-            i += 1
-        if text_batch:
-            result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))  # type: ignore
-            input_ids.update(id_batch)
 
-        if result_ids != input_ids:
-            logger.warning(
-                "Possible data corruption. "
-                "input_ids not in result_ids: {in_diff}.\n"
-                "result_ids not in input_ids: {out_diff}".format(
-                    in_diff=input_ids.difference(result_ids), out_diff=result_ids.difference(input_ids)
+            if result_ids != input_ids:
+                logger.warning(
+                    "Possible data corruption. "
+                    "input_ids not in result_ids: {in_diff}.\n"
+                    "result_ids not in input_ids: {out_diff}".format(
+                        in_diff=input_ids.difference(result_ids), out_diff=result_ids.difference(input_ids)
+                    )
                 )
-            )
 
     def _insert_batch(
         self, collection: Collection, texts: List[str], metadatas: List[Mapping[str, Any]], ids: List[ItemID]
@@ -352,11 +394,15 @@ class MongoDBAtlasVectorDB(VectorDB):
             include_fields = {"_id": 1, "content": 1, "metadata": 1}
         else:
             include_fields = {k: 1 for k in set(include).union({"_id"})}
-
         collection = self.get_collection(collection_name)
-        docs = collection.find({"_id": {"$in": ids}}, include_fields)
-        # Return with _id field from Collection into id for Document
-        return with_id_rename(docs)
+        if ids is not None:
+            docs = collection.find({"_id": {"$in": ids}}, include_fields)
+            # Return with _id field from Collection into id for Document
+            return with_id_rename(docs)
+        else:
+            docs = collection.find({}, include_fields)
+            # Return with _id field from Collection into id for Document
+            return with_id_rename(docs)
 
     def retrieve_docs(
         self,
@@ -364,7 +410,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         n_results: int = 10,
         distance_threshold: float = -1,
-        index_name: str = "default",
         **kwargs,
     ) -> QueryResults:
         """
@@ -384,8 +429,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         Returns:
             QueryResults | For each query string, a list of nearest documents and their scores.
         """
-
         collection = self.get_collection(collection_name)
+        self.create_index_if_not_exists(index_name=self.index_name, collection=collection)
         # Trivial case of an empty collection
         if collection.count_documents({}) == 0:
             return []
@@ -403,7 +448,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                 query_vector,
                 n_results,
                 collection,
-                index_name,
+                self.index_name,
                 distance_threshold,
                 kwargs.get("oversampling_factor", 10),
             )
