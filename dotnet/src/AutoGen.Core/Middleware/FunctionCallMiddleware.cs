@@ -70,7 +70,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         return reply;
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(
+    public async IAsyncEnumerable<IMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -86,7 +86,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         var combinedFunctions = this.functions?.Concat(options.Functions ?? []) ?? options.Functions;
         options.Functions = combinedFunctions?.ToArray();
 
-        IStreamingMessage? initMessage = default;
+        IMessage? initMessage = default;
         await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
         {
             if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)

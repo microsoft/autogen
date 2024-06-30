@@ -28,7 +28,7 @@ public class AnthropicMessageConnector : IStreamingMiddleware
             : response;
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = context.Messages;
@@ -36,7 +36,7 @@ public class AnthropicMessageConnector : IStreamingMiddleware
 
         await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
         {
-            if (reply is IStreamingMessage<ChatCompletionResponse> chatMessage)
+            if (reply is IMessage<ChatCompletionResponse> chatMessage)
             {
                 var response = ProcessChatCompletionResponse(chatMessage, agent);
                 if (response is not null)
@@ -51,7 +51,7 @@ public class AnthropicMessageConnector : IStreamingMiddleware
         }
     }
 
-    private IStreamingMessage? ProcessChatCompletionResponse(IStreamingMessage<ChatCompletionResponse> chatMessage,
+    private IMessage? ProcessChatCompletionResponse(IMessage<ChatCompletionResponse> chatMessage,
         IStreamingAgent agent)
     {
         var delta = chatMessage.Content.Delta;
