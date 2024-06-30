@@ -332,7 +332,7 @@ the message should be published via the runtime with the
 
 ```python
 await runtime.publish_message("Hello, World! From the runtime!", namespace="default")
-runtime.process_until_idle()
+await runtime.process_until_idle()
 ```
 
 Running the above code will produce the following output:

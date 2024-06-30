@@ -23,16 +23,25 @@ Each agent is a self-contained unit:
 developers can build, test and deploy it independently, and reuse it for different scenarios.
 Agents are composable: simple agents can form complex applications.
 
-## AGNext Overview
+## AGNext Architecture
 
 AGNext is a framework for building multi-agent applications with AI agents.
-It provides a runtime envionment to facilitate communication between agents,
-manage their identities and lifecycles, and enforce boundaries.
-It also provides a set of common patterns and components to help developers build
-AI agents that can work together.
+At the foundation level, it provides a runtime envionment to facilitate
+communication between agents, manage their identities and lifecycles,
+and enforce security and privacy boundaries.
 
-AGNext is designed to be unopinionated and extensible.
-It does not prescribe an abstraction for agents or messages, rather, it provides
+The following diagram shows the runtime architecture of AGNext.
+
+![AGNext Runtime](agnext-runtime.svg)
+
+Agent communicate via a message queue and form logical namespaces.
+Runtime uses the message queue to deliver messages,
+and the namespaces to apply security and privacy rules.
+Runtime also provides a gateway for local agents to interact with remote
+agents in other applications, separate machines, or in different organizations.
+
+AGNext also offers a set of unopinionated and extensible components for building AI agents.
+It does not prescribe an abstraction for AI agents, rather, it provides
 a minimal base layer that can be extended to suit the application's needs.
 Developers can build agents quickly by using the provided components including
 type-routed agent, AI model clients, tools for AI models, code execution sandboxes,
