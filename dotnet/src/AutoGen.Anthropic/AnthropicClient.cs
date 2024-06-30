@@ -24,12 +24,12 @@ public sealed class AnthropicClient : IDisposable
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new ContentBaseConverter() }
+        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
     };
 
     private static readonly JsonSerializerOptions JsonDeserializerOptions = new()
     {
-        Converters = { new ContentBaseConverter() }
+        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
     };
 
     public AnthropicClient(HttpClient httpClient, string baseUrl, string apiKey)

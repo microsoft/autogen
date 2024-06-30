@@ -40,6 +40,9 @@ public class ChatCompletionRequest
     [JsonPropertyName("tools")]
     public List<Tool>? Tools { get; set; }
 
+    [JsonPropertyName("tool_choice")]
+    public ToolChoice? ToolChoice { get; set; }
+
     public ChatCompletionRequest()
     {
         Messages = new List<ChatMessage>();

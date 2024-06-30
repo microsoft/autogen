@@ -18,6 +18,7 @@ public class AnthropicClientAgent : IStreamingAgent
     private readonly decimal _temperature;
     private readonly int _maxTokens;
     private readonly Tool[]? _tools;
+    private readonly ToolChoice? _toolChoice;
 
     public AnthropicClientAgent(
         AnthropicClient anthropicClient,
@@ -26,7 +27,8 @@ public class AnthropicClientAgent : IStreamingAgent
         string systemMessage = "You are a helpful AI assistant",
         decimal temperature = 0.7m,
         int maxTokens = 1024,
-        Tool[]? tools = null)
+        Tool[]? tools = null,
+        ToolChoice? toolChoice = null)
     {
         Name = name;
         _anthropicClient = anthropicClient;
@@ -35,6 +37,7 @@ public class AnthropicClientAgent : IStreamingAgent
         _temperature = temperature;
         _maxTokens = maxTokens;
         _tools = tools;
+        _toolChoice = toolChoice;
     }
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null,
@@ -63,7 +66,8 @@ public class AnthropicClientAgent : IStreamingAgent
             Model = _modelName,
             Stream = shouldStream,
             Temperature = (decimal?)options?.Temperature ?? _temperature,
-            Tools = _tools?.ToList()
+            Tools = _tools?.ToList(),
+            ToolChoice = _toolChoice ?? ToolChoice.Auto
         };
 
         chatCompletionRequest.Messages = BuildMessages(messages);

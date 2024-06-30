@@ -114,33 +114,12 @@ public class AnthropicClientTests
     {
         var anthropicClient = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
 
-        var stockPriceTool = new Tool
-        {
-            Name = "get_stock_price",
-            Description = "Get the current stock price for a given ticker symbol.",
-            InputSchema = new InputSchema
-            {
-                Type = "object",
-                Properties = new Dictionary<string, SchemaProperty>
-                {
-                    {
-                        "ticker", new SchemaProperty
-                        {
-                            Type = "string",
-                            Description = "The stock ticker symbol, e.g. AAPL for Apple Inc."
-                        }
-                    }
-                },
-                Required = new List<string> { "ticker" }
-            }
-        };
-
         var request = new ChatCompletionRequest();
         request.Model = AnthropicConstants.Claude3Haiku;
         request.Stream = false;
         request.MaxTokens = 100;
         request.Messages = new List<ChatMessage>() { new("user", "Use the stock price tool to look for MSFT. Your response should only be the tool.") };
-        request.Tools = new List<Tool>() { stockPriceTool };
+        request.Tools = new List<Tool>() { AnthropicTestUtils.StockTool };
 
         ChatCompletionResponse response =
             await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
@@ -153,6 +132,32 @@ public class AnthropicClientTests
         Assert.True(toolUseContent.Input is JsonNode);
         JsonNode jsonNode = toolUseContent.Input;
         Assert.Equal("{\"ticker\":\"MSFT\"}", jsonNode.ToJsonString());
+    }
+
+    [ApiKeyFact("ANTHROPIC_API_KEY")]
+    public async Task AnthropicClientTestToolChoiceAsync()
+    {
+        var anthropicClient = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
+
+        var request = new ChatCompletionRequest();
+        request.Model = AnthropicConstants.Claude3Haiku;
+        request.Stream = false;
+        request.MaxTokens = 100;
+        request.Messages = new List<ChatMessage>() { new("user", "What is the weather today? Your response should only be the tool.") };
+        request.Tools = new List<Tool>() { AnthropicTestUtils.StockTool, AnthropicTestUtils.WeatherTool };
+
+        // Force to use get_stock_price even though the prompt is about weather 
+        request.ToolChoice = ToolChoice.ToolUse("get_stock_price");
+
+        ChatCompletionResponse response =
+            await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+
+        Assert.NotNull(response.Content);
+        Assert.True(response.Content.First() is ToolUseContent);
+        ToolUseContent toolUseContent = ((ToolUseContent)response.Content.First());
+        Assert.Equal("get_stock_price", toolUseContent.Name);
+        Assert.NotNull(toolUseContent.Input);
+        Assert.True(toolUseContent.Input is JsonNode);
     }
 
     private sealed class Person

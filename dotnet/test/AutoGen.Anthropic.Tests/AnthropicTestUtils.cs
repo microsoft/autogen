@@ -36,4 +36,31 @@ public static class AnthropicTestUtils
             };
         }
     }
+
+    public static Tool StockTool
+    {
+        get
+        {
+            return new Tool
+            {
+                Name = "get_stock_price",
+                Description = "Get the current stock price for a given ticker symbol.",
+                InputSchema = new InputSchema
+                {
+                    Type = "object",
+                    Properties = new Dictionary<string, SchemaProperty>
+                    {
+                        {
+                            "ticker", new SchemaProperty
+                            {
+                                Type = "string",
+                                Description = "The stock ticker symbol, e.g. AAPL for Apple Inc."
+                            }
+                        }
+                    },
+                    Required = new List<string> { "ticker" }
+                }
+            };
+        }
+    }
 }
