@@ -24,12 +24,12 @@ public sealed class AnthropicClient : IDisposable
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new ContentBaseConverter() }
+        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
     };
 
     private static readonly JsonSerializerOptions JsonDeserializerOptions = new()
     {
-        Converters = { new ContentBaseConverter() }
+        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
     };
 
     public AnthropicClient(HttpClient httpClient, string baseUrl, string apiKey)
@@ -61,24 +61,64 @@ public sealed class AnthropicClient : IDisposable
         using var reader = new StreamReader(await httpResponseMessage.Content.ReadAsStreamAsync());
 
         var currentEvent = new SseEvent();
+
         while (await reader.ReadLineAsync() is { } line)
         {
             if (!string.IsNullOrEmpty(line))
             {
-                currentEvent.Data = line.Substring("data:".Length).Trim();
-            }
-            else
-            {
-                if (currentEvent.Data == "[DONE]")
-                    continue;
-
-                if (currentEvent.Data != null)
+                if (line.StartsWith("event:"))
                 {
-                    yield return await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
-                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)),
-                        cancellationToken: cancellationToken) ?? throw new Exception("Failed to deserialize response");
+                    currentEvent.EventType = line.Substring("event:".Length).Trim();
                 }
-                else if (currentEvent.Data != null)
+                else if (line.StartsWith("data:"))
+                {
+                    currentEvent.Data = line.Substring("data:".Length).Trim();
+                }
+            }
+            else // an empty line indicates the end of an event
+            {
+                if (currentEvent.EventType == "content_block_start" && !string.IsNullOrEmpty(currentEvent.Data))
+                {
+                    var dataBlock = JsonSerializer.Deserialize<DataBlock>(currentEvent.Data!);
+                    if (dataBlock != null && dataBlock.ContentBlock?.Type == "tool_use")
+                    {
+                        currentEvent.ContentBlock = dataBlock.ContentBlock;
+                    }
+                }
+
+                if (currentEvent.EventType is "message_start" or "content_block_delta" or "message_delta" && currentEvent.Data != null)
+                {
+                    var res = await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
+                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)),
+                        cancellationToken: cancellationToken);
+
+                    if (res == null)
+                    {
+                        throw new Exception("Failed to deserialize response");
+                    }
+
+                    if (res.Delta?.Type == "input_json_delta" && !string.IsNullOrEmpty(res.Delta.PartialJson) &&
+                        currentEvent.ContentBlock != null)
+                    {
+                        currentEvent.ContentBlock.AppendDeltaParameters(res.Delta.PartialJson!);
+                    }
+                    else if (res.Delta is { StopReason: "tool_use" } && currentEvent.ContentBlock != null)
+                    {
+                        if (res.Content == null)
+                        {
+                            res.Content = [currentEvent.ContentBlock.CreateToolUseContent()];
+                        }
+                        else
+                        {
+                            res.Content.Add(currentEvent.ContentBlock.CreateToolUseContent());
+                        }
+
+                        currentEvent = new SseEvent();
+                    }
+
+                    yield return res;
+                }
+                else if (currentEvent.EventType == "error" && currentEvent.Data != null)
                 {
                     var res = await JsonSerializer.DeserializeAsync<ErrorResponse>(
                         new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)), cancellationToken: cancellationToken);
@@ -86,8 +126,10 @@ public sealed class AnthropicClient : IDisposable
                     throw new Exception(res?.Error?.Message);
                 }
 
-                // Reset the current event for the next one
-                currentEvent = new SseEvent();
+                if (currentEvent.ContentBlock == null)
+                {
+                    currentEvent = new SseEvent();
+                }
             }
         }
     }
@@ -113,11 +155,50 @@ public sealed class AnthropicClient : IDisposable
 
     private struct SseEvent
     {
+        public string EventType { get; set; }
         public string? Data { get; set; }
+        public ContentBlock? ContentBlock { get; set; }
 
-        public SseEvent(string? data = null)
+        public SseEvent(string eventType, string? data = null, ContentBlock? contentBlock = null)
         {
+            EventType = eventType;
             Data = data;
+            ContentBlock = contentBlock;
         }
+    }
+
+    private class ContentBlock
+    {
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("input")]
+        public object? Input { get; set; }
+
+        public string? parameters { get; set; }
+
+        public void AppendDeltaParameters(string deltaParams)
+        {
+            StringBuilder sb = new StringBuilder(parameters);
+            sb.Append(deltaParams);
+            parameters = sb.ToString();
+        }
+
+        public ToolUseContent CreateToolUseContent()
+        {
+            return new ToolUseContent { Id = Id, Name = Name, Input = parameters };
+        }
+    }
+
+    private class DataBlock
+    {
+        [JsonPropertyName("content_block")]
+        public ContentBlock? ContentBlock { get; set; }
     }
 }

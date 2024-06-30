@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Anthropic.DTO;
@@ -54,6 +55,17 @@ public class AnthropicMessageConnector : IStreamingMiddleware
     private IStreamingMessage? ProcessChatCompletionResponse(IStreamingMessage<ChatCompletionResponse> chatMessage,
         IStreamingAgent agent)
     {
+        if (chatMessage.Content.Content is { Count: 1 } &&
+            chatMessage.Content.Content[0] is ToolUseContent toolUseContent)
+        {
+            return new ToolCallMessage(
+                toolUseContent.Name ??
+                throw new InvalidOperationException($"Expected {nameof(toolUseContent.Name)} to be specified"),
+                toolUseContent.Input?.ToString() ??
+                throw new InvalidOperationException($"Expected {nameof(toolUseContent.Input)} to be specified"),
+                from: agent.Name);
+        }
+
         var delta = chatMessage.Content.Delta;
         return delta != null && !string.IsNullOrEmpty(delta.Text)
             ? new TextMessageUpdate(role: Role.Assistant, delta.Text, from: agent.Name)
@@ -71,16 +83,20 @@ public class AnthropicMessageConnector : IStreamingMiddleware
                 TextMessage textMessage => ProcessTextMessage(textMessage, agent),
 
                 ImageMessage imageMessage =>
-                    new MessageEnvelope<ChatMessage>(new ChatMessage("user",
+                    (MessageEnvelope<ChatMessage>[])[new MessageEnvelope<ChatMessage>(new ChatMessage("user",
                             new ContentBase[] { new ImageContent { Source = await ProcessImageSourceAsync(imageMessage) } }
                                 .ToList()),
-                        from: agent.Name),
+                        from: agent.Name)],
 
                 MultiModalMessage multiModalMessage => await ProcessMultiModalMessageAsync(multiModalMessage, agent),
-                _ => message,
+
+                ToolCallMessage toolCallMessage => ProcessToolCallMessage(toolCallMessage, agent),
+                ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
+                AggregateMessage<ToolCallMessage, ToolCallResultMessage> toolCallAggregateMessage => ProcessToolCallAggregateMessage(toolCallAggregateMessage, agent),
+                _ => [message],
             };
 
-            processedMessages.Add(processedMessage);
+            processedMessages.AddRange(processedMessage);
         }
 
         return processedMessages;
@@ -93,15 +109,42 @@ public class AnthropicMessageConnector : IStreamingMiddleware
             throw new ArgumentNullException(nameof(response.Content));
         }
 
-        if (response.Content.Count != 1)
+        // When expecting a tool call, sometimes the response will contain two messages, one chat and one tool.
+        // The first message is typically a TextContent, of the LLM explaining what it is trying to do.
+        // The second message contains the tool call.
+        if (response.Content.Count > 1)
         {
-            throw new NotSupportedException($"{nameof(response.Content)} != 1");
+            if (response.Content.Count == 2 && response.Content[0] is TextContent &&
+                response.Content[1] is ToolUseContent toolUseContent)
+            {
+                return new ToolCallMessage(toolUseContent.Name ?? string.Empty,
+                    toolUseContent.Input?.ToJsonString() ?? string.Empty,
+                    from: from.Name);
+            }
+
+            throw new NotSupportedException($"Expected {nameof(response.Content)} to have one output");
         }
 
-        return new TextMessage(Role.Assistant, ((TextContent)response.Content[0]).Text ?? string.Empty, from: from.Name);
+        var content = response.Content[0];
+        switch (content)
+        {
+            case TextContent textContent:
+                return new TextMessage(Role.Assistant, textContent.Text ?? string.Empty, from: from.Name);
+
+            case ToolUseContent toolUseContent:
+                return new ToolCallMessage(toolUseContent.Name ?? string.Empty,
+                    toolUseContent.Input?.ToJsonString() ?? string.Empty,
+                    from: from.Name);
+
+            case ImageContent:
+                throw new InvalidOperationException(
+                    "Claude is an image understanding model only. It can interpret and analyze images, but it cannot generate, produce, edit, manipulate or create images");
+            default:
+                throw new ArgumentOutOfRangeException(nameof(content));
+        }
     }
 
-    private IMessage<ChatMessage> ProcessTextMessage(TextMessage textMessage, IAgent agent)
+    private IEnumerable<IMessage<ChatMessage>> ProcessTextMessage(TextMessage textMessage, IAgent agent)
     {
         ChatMessage messages;
 
@@ -139,10 +182,10 @@ public class AnthropicMessageConnector : IStreamingMiddleware
                 "user", textMessage.Content);
         }
 
-        return new MessageEnvelope<ChatMessage>(messages, from: textMessage.From);
+        return [new MessageEnvelope<ChatMessage>(messages, from: textMessage.From)];
     }
 
-    private async Task<IMessage> ProcessMultiModalMessageAsync(MultiModalMessage multiModalMessage, IAgent agent)
+    private async Task<IEnumerable<IMessage>> ProcessMultiModalMessageAsync(MultiModalMessage multiModalMessage, IAgent agent)
     {
         var content = new List<ContentBase>();
         foreach (var message in multiModalMessage.Content)
@@ -158,8 +201,7 @@ public class AnthropicMessageConnector : IStreamingMiddleware
             }
         }
 
-        var chatMessage = new ChatMessage("user", content);
-        return MessageEnvelope.Create(chatMessage, agent.Name);
+        return [MessageEnvelope.Create(new ChatMessage("user", content), agent.Name)];
     }
 
     private async Task<ImageSource> ProcessImageSourceAsync(ImageMessage imageMessage)
@@ -191,5 +233,53 @@ public class AnthropicMessageConnector : IStreamingMiddleware
             MediaType = "image/jpeg",
             Data = Convert.ToBase64String(await response.Content.ReadAsByteArrayAsync())
         };
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent agent)
+    {
+        var chatMessage = new ChatMessage("assistant", new List<ContentBase>());
+        foreach (var toolCall in toolCallMessage.ToolCalls)
+        {
+            chatMessage.AddContent(new ToolUseContent
+            {
+                Id = toolCall.ToolCallId,
+                Name = toolCall.FunctionName,
+                Input = JsonNode.Parse(toolCall.FunctionArguments)
+            });
+        }
+
+        return [MessageEnvelope.Create(chatMessage, toolCallMessage.From)];
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallResultMessage(ToolCallResultMessage toolCallResultMessage)
+    {
+        var chatMessage = new ChatMessage("user", new List<ContentBase>());
+        foreach (var toolCall in toolCallResultMessage.ToolCalls)
+        {
+            chatMessage.AddContent(new ToolResultContent
+            {
+                Id = toolCall.ToolCallId ?? string.Empty,
+                Content = toolCall.Result,
+            });
+        }
+
+        return [MessageEnvelope.Create(chatMessage, toolCallResultMessage.From)];
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallAggregateMessage(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage, IAgent agent)
+    {
+        if (aggregateMessage.From is { } from && from != agent.Name)
+        {
+            var contents = aggregateMessage.Message2.ToolCalls.Select(t => t.Result);
+            var messages = contents.Select(c =>
+                new ChatMessage("assistant", c ?? throw new ArgumentNullException(nameof(c))));
+
+            return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: from));
+        }
+
+        var toolCallMessage = ProcessToolCallMessage(aggregateMessage.Message1, agent);
+        var toolCallResult = ProcessToolCallResultMessage(aggregateMessage.Message2);
+
+        return toolCallMessage.Concat(toolCallResult);
     }
 }
