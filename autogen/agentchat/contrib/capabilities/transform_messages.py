@@ -1,9 +1,8 @@
 import copy
 from typing import Dict, List
 
-from autogen import ConversableAgent
-
 from ....formatting_utils import colored
+from ...conversable_agent import ConversableAgent
 from .transforms import MessageTransform
 
 
