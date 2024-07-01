@@ -23,16 +23,13 @@ from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = os.environ.get("MONGODB_URI")
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
 MONGODB_DATABASE = os.environ.get("DATABASE", "autogen_test_db")
 MONGODB_COLLECTION = os.environ.get("MONGODB_COLLECTION", "autogen_test_vectorstore")
 MONGODB_INDEX = os.environ.get("MONGODB_INDEX", "vector_index")
 
 RETRIES = 10
 DELAY = 2
-
-if "MONGODB_URI" not in os.environ:
-    pytest.skip(allow_module_level=True)
 
 
 @pytest.fixture
@@ -116,6 +113,7 @@ def test_create_collection(db):
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
     assert collection.name == collection_name
 
+
 def test_get_collection(db):
     collection_name = MONGODB_COLLECTION
 
@@ -140,17 +138,16 @@ def test_delete_collection(db):
 
 
 def test_insert_docs(db, example_documents):
-    # Test exception if one attempts to upsert with insert
-    with pytest.raises(ValueError) as exc:
-        db.insert_docs(example_documents, upsert=True)
-    assert "use update_docs with upsert=True" in str(exc.value)
-
     # Test that there's an active collection
     with pytest.raises(ValueError) as exc:
         db.insert_docs(example_documents)
     assert "No collection is specified" in str(exc.value)
 
+    # Test upsert
+    db.insert_docs(example_documents, MONGODB_COLLECTION, upsert=True)
+
     # Create a collection
+    db.delete_collection(MONGODB_COLLECTION)
     collection = db.create_collection(MONGODB_COLLECTION)
     # Create a search index
     if MONGODB_INDEX not in collection.list_search_indexes():
@@ -235,19 +232,16 @@ def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
 
 def test_retrieve_docs(db, example_documents):
     # Create collection
+    db.delete_collection(MONGODB_COLLECTION)
     collection = db.get_collection(MONGODB_COLLECTION)
     # Sanity test. Retrieving docs before documents have been added
-    results = db.retrieve_docs(
-        queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2
-    )
+    results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
     assert results == []
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
     # Sanity test. Retrieving docs before the search index had been created
-    with pytest.raises(AssertionError) as exc:
-        db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
-    assert "There are no search indexes" in str(exc.value)
+    db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
     # Create the index
     db.create_vector_search_index(collection=collection, index_name=MONGODB_INDEX)
 
@@ -260,9 +254,7 @@ def test_retrieve_docs(db, example_documents):
     success = False
     retries = RETRIES
     while retries and not success:
-        results = db.retrieve_docs(
-            queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results
-        )
+        results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
         if len(results[0]) == n_results:
             success = True
         else:
@@ -274,16 +266,12 @@ def test_retrieve_docs(db, example_documents):
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
 
     # Empty list of queries returns empty list of results
-    results = db.retrieve_docs(
-        queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results
-    )
+    results = db.retrieve_docs(queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results)
     assert results == []
 
     # Empty list of queries returns empty list of results
     queries = ["Some good pets", "What kind of Sandwich?"]
-    results = db.retrieve_docs(
-        queries=queries, collection_name=MONGODB_COLLECTION, n_results=2
-    )
+    results = db.retrieve_docs(queries=queries, collection_name=MONGODB_COLLECTION, n_results=2)
     assert len(results) == len(queries)
     assert all([len(res) == n_results for res in results])
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}

@@ -171,7 +171,8 @@ class VectorDB(Protocol):
             ids: List[ItemID] | A list of document ids. If None, will return all the documents. Default is None.
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadata", "content"], ids will always be included.  # TODO - Confirm keys
+                If None, will include ["metadatas", "documents"], ids will always be included. This may differ
+                depending on the implementation.
             kwargs: dict | Additional keyword arguments.
 
         Returns:

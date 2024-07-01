@@ -6,8 +6,8 @@ import numpy as np
 from pymongo import MongoClient, UpdateOne, errors
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
-from pymongo.operations import SearchIndexModel
 from pymongo.errors import OperationFailure
+from pymongo.operations import SearchIndexModel
 from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
@@ -111,6 +111,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         else:
             # get_or_create is False and the collection already exists, raise an error.
             raise ValueError(f"Collection {collection_name} already exists.")
+
     def create_index_if_not_exists(self, index_name: str = "vector_index", collection: Collection = None):
         """
         Creates a vector search index on the specified collection in MongoDB.
@@ -138,7 +139,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                     retries -= 1
                     sleep(delay)
                     delay *= 2  # Increase delay for next retry
-        else: # index exists
+        else:  # index exists
             success = True
         return success
 
@@ -216,7 +217,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                     if index["name"] == index_name and index["status"] == "READY":
                         keep_trying = False
                     else:
-                        sleep(2) # 2s delay between checks            
+                        sleep(2)  # 2s delay between checks
             logger.info(f"Search index {index_name} created successfully.")
         except Exception as e:
             logger.error(
@@ -226,12 +227,14 @@ class MongoDBAtlasVectorDB(VectorDB):
                 f"if you are on a free/shared cluster."
             )
             raise e
+
     def upsert_docs(self, docs, collection):
         for doc in docs:
             query = {"id": doc["id"]}
             doc["embedding"] =  np.array(self.embedding_function([doc["content"]])).tolist()[0]
             new_values = {"$set": doc}
             collection.update_one(query, new_values, upsert=True)
+
     def insert_docs(
         self,
         docs: List[Document],
@@ -257,7 +260,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection = self.get_collection(collection_name)
         if upsert:
             self.upsert_docs(docs, collection)
-        else:   
+        else:
             # Sanity checking the first document
             if docs[0].get("content") is None:
                 raise ValueError("The document content is required.")
