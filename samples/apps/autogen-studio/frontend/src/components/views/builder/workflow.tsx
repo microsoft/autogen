@@ -21,7 +21,7 @@ import {
   truncateText,
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
-import { WorflowViewer } from "./utils/workflowconfig";
+import { WorkflowViewer } from "./utils/workflowconfig";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -248,7 +248,7 @@ const WorkflowView = ({}: any) => {
       >
         <>
           {localWorkflow && (
-            <WorflowViewer
+            <WorkflowViewer
               workflow={localWorkflow}
               setWorkflow={setLocalWorkflow}
               close={closeModal}

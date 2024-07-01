@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import queue
 import threading
@@ -407,15 +408,44 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         }
 
 
-@api.post("/agenteval/criteria/generate")
-async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, workflow_id:int, success_session_id: int = None, failure_session_id: int = None, 
+@api.get("/agenteval/criteria")
+async def criteria():
+    criteria_entries = list_entity(Criteria, return_json=True)
+    criteria_list = []
+    for entry in criteria_entries.data:
+        filters = {"criteria_list_id": entry["id"]}
+        models = list_entity(CriterionModel, filters=filters, return_json=True).data
+        models = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in models]
+        criteria_list.append({"id": entry["id"], "task_name": entry["task_name"], "task_description": entry["task_description"], "criteria": Criterion.write_json(models)})
+    return criteria_list
+
+
+@api.get("/agenteval/criteria/{criteria_id}")
+async def get_agenteval_criteria(criteria_id: int):
+    filters = {"id": criteria_id}
+    criteria_entry = list_entity(Criteria, return_json=True).data
+    filters = {"criteria_list_id": criteria_id}
+
+    entities = list_entity(CriterionModel, filters=filters, return_json=True).data
+    entities = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in entities]
+    return {"id": criteria_entry["id"], "workflow_id": criteria_entry["workflow_id"], "criteria": Criterion.write_json(entities)}
+
+
+@api.delete("/agenteval/criteria/delete/{criteria_id}")
+async def delete_agenteval_criteria(criteria_id: int):
+    filters = {"id": criteria_id}
+    return delete_entity(Criteria, filters=filters)
+
+
+@api.post("/agenteval/criteria/generate") # TODO: figure out a better way to pass all of these in
+async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, success_session_id: int = None, failure_session_id: int = None, 
                                     additonal_instructions: str = "", max_round: int = 5, use_subcritic: bool = False):
     if(not success_session_id and not failure_session_id):
         return {
             "status": False,
             "message": "At least one session is required to be selected."
         }
-
+    
     # if(success_session_id):
     #     messages = (await list_messages(user_id=user_id, session_id=success_session_id)).data
     #     task.successful_response = str(messages)
@@ -443,14 +473,42 @@ async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, w
 
     # criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
     #                              max_round=max_round, use_subcritic=use_subcritic)
-    # TODO: save criteria to DB
-    
-    criteria_entry = Criteria(workflow_id=workflow_id, criteria=[])
+
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=[])
     create_entity(criteria_entry, Criteria)
     for criterion in criteria:
         create_entity(CriterionModel(criteria_list_id=criteria_entry.id, **criterion.model_dump()), CriterionModel)
     
     return Criterion.write_json(criteria)
+
+
+@api.post("/agenteval/criteria/create")
+async def create_agenteval_criteria(criteria: list[Criterion], task: Task):
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=[])
+    create_entity(criteria_entry, Criteria)
+    for criterion in criteria:
+        create_entity(CriterionModel(criteria_list_id=criteria_entry.id, **criterion.model_dump()), CriterionModel)
+    return Criterion.write_json(criteria)
+
+
+@api.get("/agenteval/criteria/validate/{criteria}")
+async def validate_agenteval_criteria(criteria: str):
+    # TODO: Can we pass in through the body somehow instead of a super long string, does it need to be a POST?
+    try:
+        criteria = Criterion.parse_json_str(criteria)
+    except ValueError as ex:
+        return {
+            "status": False,
+            "message": f"Invalid json: " + str(ex),
+        }
+    except Exception as ex:
+        return {
+            "status": False,
+            "message": str(ex)
+        }
+    return {
+        "status": True
+    }
 
 
 @api.get("/version")

@@ -1,7 +1,9 @@
 import * as React from "react";
 import SkillsView from "./skills";
+import ModelsView from "./models";
 import AgentsView from "./agents";
 import WorkflowView from "./workflow";
+import AgentEvalView from "./agenteval";
 import { Tabs } from "antd";
 import {
   BugAntIcon,
@@ -9,7 +11,7 @@ import {
   Square2StackIcon,
   Square3Stack3DIcon,
 } from "@heroicons/react/24/outline";
-import ModelsView from "./models";
+
 
 const BuildView = () => {
   return (
@@ -24,7 +26,7 @@ const BuildView = () => {
         {" "}
         <Tabs
           tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
-          defaultActiveKey="4"
+          defaultActiveKey="5" // TODO: revert back to 4
           tabPosition="left"
           items={[
             {
@@ -68,6 +70,16 @@ const BuildView = () => {
               ),
               key: "4",
               children: <WorkflowView />,
+            },
+            {
+              label: (
+                <>
+                  <Square3Stack3DIcon className="h-4 w-4 inline-block mr-1" />
+                  AgentEval
+                </>
+              ),
+              key: "5",
+              children: <AgentEvalView />,
             },
           ]}
         />

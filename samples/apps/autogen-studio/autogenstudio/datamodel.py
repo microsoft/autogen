@@ -263,8 +263,8 @@ class Criteria(SQLModel, table=True):
     __tablename__ = "criteria" 
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
-    # Foreign key that points to the Workflow
-    workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
+    task_name: str
+    task_description: str
     criteria: List[CriterionModel] = Relationship(back_populates="criteria_list")
 
 

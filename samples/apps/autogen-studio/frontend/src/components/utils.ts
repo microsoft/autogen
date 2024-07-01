@@ -441,6 +441,7 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
   return workFlowConfig;
 };
 
+
 export const getSampleSkill = () => {
   const content = `
 from typing import List
