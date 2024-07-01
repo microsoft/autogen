@@ -1,4 +1,3 @@
-mammoth
 markdownify
 arxiv
 pymupdf

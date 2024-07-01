@@ -31,7 +31,4 @@ docid	document_content
 30	information_retrieval optical_character_recognition Perform optical character recognition (OCR) on the given image.
 31	information_retrieval get_youtube_caption Retrieves the captions for a YouTube video.
 32	information_retrieval youtube_download Downloads a YouTube video and returns the download link.
-33	information_retrieval excel_to_md Convert an Excel file to Markdown format.
-34	information_retrieval docx_to_md Converts a DOCX file to Markdown format.
-35	information_retrieval pptx_to_md Convert a PowerPoint presentation (PPTX) to Markdown format.
-36	information_retrieval get_wikipedia_text Retrieves the text content of a Wikipedia page. It does not support tables and other complex formatting.
+33	information_retrieval get_wikipedia_text Retrieves the text content of a Wikipedia page. It does not support tables and other complex formatting.
