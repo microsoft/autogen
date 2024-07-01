@@ -282,6 +282,10 @@ module.exports = {
             from: ["/docs/notebooks/agentchat_chess"],
           },
           {
+            to: "/docs/notebooks/agentchat_nested_chats_chess_altmodels",
+            from: ["/docs/notebooks/agentchat_chess_altmodels"],
+          },
+          {
             to: "/docs/contributor-guide/contributing",
             from: ["/docs/Contribute"],
           },
