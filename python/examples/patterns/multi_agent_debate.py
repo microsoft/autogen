@@ -246,11 +246,12 @@ async def main(question: str) -> None:
     # Register the aggregator agent.
     runtime.register("MathAggregator", lambda: MathAggregator(num_solvers=4))
 
+    run_context = runtime.start()
+
     # Send a math problem to the aggregator agent.
     await runtime.publish_message(Question(content=question), namespace="default")
 
-    # Run the runtime.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

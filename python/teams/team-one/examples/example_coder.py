@@ -24,12 +24,14 @@ async def main() -> None:
 
     task = input("Enter a task: ")
 
+    run_context = runtime.start()
+
     await runtime.publish_message(
         BroadcastMessage(content=UserMessage(content=task, source="human")), namespace="default"
     )
 
     # Run the runtime until the task is completed.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

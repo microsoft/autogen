@@ -18,12 +18,14 @@ async def main() -> None:
     task = input(f"Enter a task for {file_surfer.name}: ")
     msg = BroadcastMessage(content=UserMessage(content=task, source="human"))
 
+    run_context = runtime.start()
+
     # Send a task to the tool user.
     await runtime.publish_message(msg, namespace="default")
     await runtime.publish_message(RequestReplyMessage(), namespace="default")
 
     # Run the runtime until the task is completed.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

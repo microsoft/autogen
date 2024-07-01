@@ -149,10 +149,11 @@ async def main() -> None:
             num_references=3,
         ),
     )
+    run_context = runtime.start()
     await runtime.publish_message(AggregatorTask(task="What are something fun to do in SF?"), namespace="default")
 
     # Keep processing messages.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

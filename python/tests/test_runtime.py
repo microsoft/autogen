@@ -28,9 +28,10 @@ async def test_register_receives_publish() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     runtime.register("name", LoopbackAgent)
+    run_context = runtime.start()
     await runtime.publish_message(MessageType(), namespace="default")
 
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
     # Agent in default namespace should have received the message
     long_running_agent: LoopbackAgent = runtime._get_agent(runtime.get("name")) # type: ignore
@@ -54,13 +55,15 @@ async def test_register_receives_publish_cascade() -> None:
     # Register agents
     for i in range(num_agents):
         runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
-    
+
+    run_context = runtime.start()
+
     # Publish messages
     for _ in range(num_initial_messages):
         await runtime.publish_message(CascadingMessageType(round=1), namespace="default")
 
     # Process until idle.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):

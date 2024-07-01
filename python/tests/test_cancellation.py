@@ -43,7 +43,7 @@ class NestingLongRunningAgent(TypeRoutedAgent):
     @message_handler
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
         self.called = True
-        response = await self.send_message(message, self._nested_agent, cancellation_token=cancellation_token)
+        response = self.send_message(message, self._nested_agent, cancellation_token=cancellation_token)
         try:
             val = await response
             assert isinstance(val, MessageType)
@@ -59,10 +59,14 @@ async def test_cancellation_with_token() -> None:
 
     long_running = runtime.register_and_get("long_running", LongRunningAgent)
     token = CancellationToken()
-    response = await runtime.send_message(MessageType(), recipient=long_running, cancellation_token=token)
+    response = asyncio.create_task(runtime.send_message(MessageType(), recipient=long_running, cancellation_token=token))
     assert not response.done()
 
+    while len(runtime.unprocessed_messages) == 0:
+        await asyncio.sleep(0.01)
+
     await runtime.process_next()
+
     token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
@@ -83,8 +87,11 @@ async def test_nested_cancellation_only_outer_called() -> None:
     nested = runtime.register_and_get("nested", lambda: NestingLongRunningAgent(long_running))
 
     token = CancellationToken()
-    response = await runtime.send_message(MessageType(), nested, cancellation_token=token)
+    response = asyncio.create_task(runtime.send_message(MessageType(), nested, cancellation_token=token))
     assert not response.done()
+
+    while len(runtime.unprocessed_messages) == 0:
+        await asyncio.sleep(0.01)
 
     await runtime.process_next()
     token.cancel()
@@ -108,8 +115,11 @@ async def test_nested_cancellation_inner_called() -> None:
     nested = runtime.register_and_get("nested", lambda: NestingLongRunningAgent(long_running))
 
     token = CancellationToken()
-    response = await runtime.send_message(MessageType(), nested, cancellation_token=token)
+    response = asyncio.create_task(runtime.send_message(MessageType(), nested, cancellation_token=token))
     assert not response.done()
+
+    while len(runtime.unprocessed_messages) == 0:
+        await asyncio.sleep(0.01)
 
     await runtime.process_next()
     # allow the inner agent to process

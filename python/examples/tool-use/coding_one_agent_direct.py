@@ -140,14 +140,15 @@ async def main() -> None:
         ),
     )
 
+    run_context = runtime.start()
+
     # Send a task to the tool user.
     result = await runtime.send_message(
         UserRequest("Run the following Python code: print('Hello, World!')"), tool_agent
     )
 
     # Run the runtime until the task is completed.
-    while not result.done():
-        await runtime.process_next()
+    await run_context.stop()
 
     # Print the result.
     ai_response = result.result()

@@ -100,12 +100,14 @@ async def main() -> None:
         ),
     )
 
+    run_context = runtime.start()
+
     # Send a message to Jack to start the conversation.
     message = Message(content="Can you tell me something fun about SF?", source="User")
     await runtime.send_message(message, jack)
 
     # Process messages.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

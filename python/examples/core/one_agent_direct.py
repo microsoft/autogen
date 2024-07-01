@@ -50,18 +50,18 @@ async def main() -> None:
         lambda: ChatCompletionAgent("Chat agent", get_chat_completion_client_from_envs(model="gpt-3.5-turbo")),
     )
 
+    run_context = runtime.start()
+
     # Send a message to the agent.
     message = Message(content="Can you tell me something fun about SF?")
     result = await runtime.send_message(message, agent)
-
-    # Process messages until the agent responds.
-    while result.done() is False:
-        await runtime.process_next()
 
     # Get the response from the agent.
     response = await result
     assert isinstance(response, Message)
     print(response.content)
+
+    await run_context.stop()
 
 
 if __name__ == "__main__":

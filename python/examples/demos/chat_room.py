@@ -17,7 +17,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from common.memory import BufferedChatMemory
 from common.types import Message, TextMessage
 from common.utils import convert_messages_to_llm_messages, get_chat_completion_client_from_envs
-from utils import TextualChatApp, TextualUserAgent, start_runtime
+from utils import TextualChatApp, TextualUserAgent
 
 
 # Define a custom agent that can handle chat room messages.
@@ -140,7 +140,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
     chat_room(runtime, app)
-    asyncio.create_task(start_runtime(runtime))
+    _run_context = runtime.start()
     await app.run_async()
 
 

@@ -16,7 +16,7 @@ from common.agents import ChatCompletionAgent, ImageGenerationAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
 from common.utils import get_chat_completion_client_from_envs
-from utils import TextualChatApp, TextualUserAgent, start_runtime
+from utils import TextualChatApp, TextualUserAgent
 
 
 def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
@@ -98,7 +98,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
     illustrator_critics(runtime, app)
-    asyncio.create_task(start_runtime(runtime))
+    _run_context = runtime.start()
     await app.run_async()
 
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from asyncio import Future
 from typing import TYPE_CHECKING, Any, Mapping
 
 from ._agent_id import AgentId
@@ -32,7 +31,7 @@ class AgentProxy:
         *,
         sender: AgentId,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[Any]:
+    ) -> Any:
         return await self._runtime.send_message(
             message,
             recipient=self._agent,

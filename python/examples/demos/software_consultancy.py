@@ -31,7 +31,7 @@ from common.agents import ChatCompletionAgent
 from common.memory import HeadAndTailChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
 from common.utils import get_chat_completion_client_from_envs
-from utils import TextualChatApp, TextualUserAgent, start_runtime
+from utils import TextualChatApp, TextualUserAgent
 
 
 async def write_file(filename: str, content: str) -> str:
@@ -281,7 +281,7 @@ async def main() -> None:
     app = TextualChatApp(runtime, user_name="You")
     software_consultancy(runtime, app)
     # Start the runtime.
-    asyncio.create_task(start_runtime(runtime))
+    _run_context = runtime.start()
     # Start the app.
     await app.run_async()
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from asyncio import Future
 from contextvars import ContextVar
 from typing import Any, Callable, Mapping, Protocol, TypeVar, overload, runtime_checkable
 
@@ -19,8 +18,6 @@ agent_instantiation_context: ContextVar[tuple[AgentRuntime, AgentId]] = ContextV
 
 @runtime_checkable
 class AgentRuntime(Protocol):
-    # Returns the response of the message
-    # Can raise CantHandleException
     async def send_message(
         self,
         message: Any,
@@ -28,17 +25,8 @@ class AgentRuntime(Protocol):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[Any]:
-        """Send a message to an agent and return a future that will resolve to the response.
-
-        The act of sending a message may be asynchronous, and the response to the message itself is also asynchronous. For example:
-
-        .. code-block:: python
-
-            response_future = await runtime.send_message(MyMessage("Hello"), recipient=agent_id)
-            response = await response_future
-
-        The returned future only needs to be awaited if the response is needed. If the response is not needed, the future can be ignored.
+    ) -> Any:
+        """Send a message to an agent and get a response.
 
         Args:
             message (Any): The message to send.
@@ -49,14 +37,14 @@ class AgentRuntime(Protocol):
         Raises:
             CantHandleException: If the recipient cannot handle the message.
             UndeliverableException: If the message cannot be delivered.
+            Other: Any other exception raised by the recipient.
 
         Returns:
-            Future[Any]: A future that will resolve to the response of the message.
+            Any: The response from the agent.
         """
 
         ...
 
-    # No responses from publishing
     async def publish_message(
         self,
         message: Any,

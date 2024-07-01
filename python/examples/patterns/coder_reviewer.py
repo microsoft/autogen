@@ -265,6 +265,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
+    run_context = runtime.start()
     await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
@@ -273,7 +274,7 @@ async def main() -> None:
     )
 
     # Keep processing messages until idle.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

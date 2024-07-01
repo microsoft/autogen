@@ -4,7 +4,6 @@ import random
 import sys
 from asyncio import Future
 
-from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import Image, TypeRoutedAgent, message_handler
 from agnext.core import AgentRuntime, CancellationToken
 from textual.app import App, ComposeResult
@@ -189,9 +188,3 @@ class TextualUserAgent(TypeRoutedAgent):  # type: ignore
         self, message: ToolApprovalRequest, cancellation_token: CancellationToken
     ) -> ToolApprovalResponse:
         return await self._app.handle_tool_approval_request(message)
-
-
-async def start_runtime(runtime: SingleThreadedAgentRuntime) -> None:  # type: ignore
-    """Run the runtime in a loop."""
-    while True:
-        await runtime.process_next()

@@ -47,12 +47,12 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     inner = runtime.register_and_get("inner", Inner)
     outer = runtime.register_and_get("outer", lambda: Outer(inner))
+
+    run_context = runtime.start()
+
     response = await runtime.send_message(MessageType(body="Hello", sender="external"), outer)
-
-    while not response.done():
-        await runtime.process_next()
-
-    print(await response)
+    print(response)
+    await run_context.stop()
 
 
 if __name__ == "__main__":

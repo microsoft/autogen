@@ -182,12 +182,12 @@ async def main(task: str, temp_dir: str) -> None:
     # Register the agents.
     runtime.register("coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")))
     runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
+    run_context = runtime.start()
 
     # Publish the task message.
     await runtime.publish_message(TaskMessage(content=task), namespace="default")
 
-    # Run the runtime until no more message.
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

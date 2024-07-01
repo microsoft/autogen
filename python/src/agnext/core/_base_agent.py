@@ -1,6 +1,5 @@
 import warnings
 from abc import ABC, abstractmethod
-from asyncio import Future
 from typing import Any, Mapping, Sequence
 
 from ._agent import Agent
@@ -55,19 +54,17 @@ class BaseAgent(ABC, Agent):
         recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
-    ) -> Future[Any]:
+    ) -> Any:
         """See :py:meth:`agnext.core.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
-        future = await self._runtime.send_message(
+        return await self._runtime.send_message(
             message,
             sender=self.id,
             recipient=recipient,
             cancellation_token=cancellation_token,
         )
-        cancellation_token.link_future(future)
-        return future
 
     async def publish_message(
         self,

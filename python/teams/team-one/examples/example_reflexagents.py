@@ -16,9 +16,10 @@ async def main() -> None:
     runtime.register_and_get("orchestrator", lambda: RoundRobinOrchestrator([fake1, fake2, fake3]))
 
     task_message = UserMessage(content="Test Message", source="User")
+    run_context = runtime.start()
     await runtime.publish_message(BroadcastMessage(task_message), namespace="default")
 
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

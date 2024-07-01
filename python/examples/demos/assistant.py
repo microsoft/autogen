@@ -226,13 +226,12 @@ Type "exit" to exit the chat.
 """
     runtime = SingleThreadedAgentRuntime()
     user = assistant_chat(runtime)
+    _run_context = runtime.start()
     print(usage)
     # Request the user to start the conversation.
     await runtime.send_message(PublishNow(), user)
-    while True:
-        # TODO: have a way to exit the loop.
-        await runtime.process_next()
-        await asyncio.sleep(1)
+
+    # TODO: have a way to exit the loop.
 
 
 if __name__ == "__main__":

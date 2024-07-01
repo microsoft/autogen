@@ -93,10 +93,11 @@ The local embedded runtime {py:class}`~agnext.application.SingleThreadedAgentRun
 can be called to process messages until there are no more messages to process.
 
 ```python
-await runtime.process_until_idle()
+run_context = runtime.start()
+await run_context.stop_when_idle()
 ```
 
-It can also be called to process a single message:
+`runtime.start()` will start a background task to process messages. You can directly process messages without a background task using:
 
 ```python
 await runtime.process_next()
@@ -157,7 +158,7 @@ class MyAgent(TypeRoutedAgent):
     @message_handler
     async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
         print(f"Hello, {message.source}, you said {message.content}!")
-    
+
     @message_handler
     async def on_image_message(self, message: ImageMessage, cancellation_token: CancellationToken) -> None:
         print(f"Hello, {message.source}, you sent me {message.url}!")
@@ -165,9 +166,10 @@ class MyAgent(TypeRoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     agent = runtime.register_and_get("my_agent", lambda: MyAgent("My Agent"))
+    run_context = runtime.start()
     await runtime.send_message(TextMessage(content="Hello, World!", source="User"), agent)
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="User"), agent)
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 import asyncio
 asyncio.run(main())
@@ -189,7 +191,7 @@ Awaiting calls to these methods will return the return value of the
 receiving agent's message handler.
 
 ```{note}
-If the invoked agent raises an exception while the sender is awaiting, 
+If the invoked agent raises an exception while the sender is awaiting,
 the exception will be propagated back to the sender.
 ```
 
@@ -228,8 +230,9 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     inner = runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
     outer = runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
+    run_context = runtime.start()
     await runtime.send_message("Hello, World!", outer)
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 import asyncio
 asyncio.run(main())
@@ -242,11 +245,6 @@ a string message in response. The following output will be produced:
 ```text
 Received message: Hello, World!
 Received inner response: Hello from inner, Hello from outer, Hello, World!
-```
-
-```{note}
-To get the response after sending a message, the sender must await on the 
-response future. So you can also write `response = await await self.send_message(...)`.
 ```
 
 #### Command/Notification
@@ -278,7 +276,7 @@ When an agent publishes a message it is one way only, it cannot receive a respon
 from any other agent, even if a receiving agent sends a response.
 
 ```{note}
-An agent receiving a message does not know if it is handling a published or direct message. 
+An agent receiving a message does not know if it is handling a published or direct message.
 So, if a response is given to a published message, it will be thrown away.
 ```
 
@@ -313,8 +311,9 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     broadcaster = runtime.register_and_get("broadcasting_agent", lambda: BroadcastingAgent("Broadcasting Agent"))
     runtime.register("receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
+    run_context = runtime.start()
     await runtime.send_message("Hello, World!", broadcaster)
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
 import asyncio
 asyncio.run(main())

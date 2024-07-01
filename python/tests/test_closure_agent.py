@@ -29,11 +29,12 @@ async def test_register_receives_publish() -> None:
         await queue.put((namespace, message.content))
 
     runtime.register("name", lambda: ClosureAgent("My agent", log_message))
+    run_context = runtime.start()
     await runtime.publish_message(Message("first message"), namespace="default")
     await runtime.publish_message(Message("second message"), namespace="default")
     await runtime.publish_message(Message("third message"), namespace="default")
 
-    await runtime.process_until_idle()
+    await run_context.stop_when_idle()
 
     assert queue.qsize() == 3
     assert queue.get_nowait() == ("default", "first message")
