@@ -241,78 +241,75 @@ class LiteLLMClient:
         if response is not None:
 
             if litellm_params["stream"]:
-                # Streaming response
-                if chunk.choices[0].finish_reason == "tool_calls":
-                    litellm_finish = "tool_calls"
-                    tool_calls = streaming_tool_calls
-                else:
-                    litellm_finish = "stop"
-                    tool_calls = None
-
                 response_content = ans
                 response_id = chunk.id
             else:
-                # Non-streaming response
-
-                if response.choices[0].finish_reason == "tool_calls":
-                    # LiteLLM default tool calling
-                    litellm_finish = "tool_calls"
-                    tool_calls = []
-                    for tool_call in response.choices[0].message.tool_calls:
-                        tool_calls.append(
-                            ChatCompletionMessageToolCall(
-                                id=tool_call.id,
-                                function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
-                                type="function",
-                            )
-                        )
-
-                    # Blank the message content
-                    response_content = ""
-                else:
-                    # Not returned as a tool_call, but could be a text response
-                    # with tool calling if we're using 'manual' tool_calling_mode
-                    is_manual_tool_calling = False
-
-                    if self._tools_in_conversation and self._tool_calling_mode == "manual":
-                        # Try to convert the response to a tool call object
-                        response_toolcalls = response_to_tool_call(ans)
-
-                        # If we can, then it's a manual tool call
-                        if response_toolcalls is not None:
-                            litellm_finish = "tool_calls"
-                            tool_calls = []
-                            random_id = random.randint(0, 10000)
-
-                            for json_function in response_toolcalls:
-                                tool_calls.append(
-                                    ChatCompletionMessageToolCall(
-                                        id="litellm_func_{}".format(random_id),
-                                        function={
-                                            "name": json_function["name"],
-                                            "arguments": (
-                                                json.dumps(json_function["arguments"])
-                                                if "arguments" in json_function
-                                                else "{}"
-                                            ),
-                                        },
-                                        type="function",
-                                    )
-                                )
-
-                                random_id += 1
-
-                            is_manual_tool_calling = True
-
-                            # Blank the message content
-                            response_content = ""
-
-                    if not is_manual_tool_calling:
-                        response_content = response.choices[0].message.content
-                        litellm_finish = "stop"
-                        tool_calls = None
-
                 response_id = response.id
+
+            if litellm_params["stream"] and chunk.choices[0].finish_reason == "tool_calls":
+                # Streaming and standard LiteLLM tool call
+                litellm_finish = "tool_calls"
+                tool_calls = streaming_tool_calls
+            elif not litellm_params["stream"] and response.choices[0].finish_reason == "tool_calls":
+                # Non-streaming and standard LiteLLM tool call
+                litellm_finish = "tool_calls"
+                tool_calls = []
+                for tool_call in response.choices[0].message.tool_calls:
+                    tool_calls.append(
+                        ChatCompletionMessageToolCall(
+                            id=tool_call.id,
+                            function={"name": tool_call.function.name, "arguments": tool_call.function.arguments},
+                            type="function",
+                        )
+                    )
+
+                # Blank the message content for tool call
+                response_content = ""
+            else:
+                # Not a LiteLLM handled tool call, so check if we need to
+                # manually parse a tool call or it's just a text response
+
+                # Are we doing a manual tool call
+                is_manual_tool_calling = False
+
+                if self._tools_in_conversation and self._tool_calling_mode == "manual":
+                    # Try to convert the response to a tool call object
+                    response_toolcalls = response_to_tool_call(ans)
+
+                    # If we can, then it's a manual tool call
+                    if response_toolcalls is not None:
+                        litellm_finish = "tool_calls"
+                        tool_calls = []
+                        random_id = random.randint(0, 10000)
+
+                        for json_function in response_toolcalls:
+                            tool_calls.append(
+                                ChatCompletionMessageToolCall(
+                                    id="litellm_func_{}".format(random_id),
+                                    function={
+                                        "name": json_function["name"],
+                                        "arguments": (
+                                            json.dumps(json_function["arguments"])
+                                            if "arguments" in json_function
+                                            else "{}"
+                                        ),
+                                    },
+                                    type="function",
+                                )
+                            )
+
+                            random_id += 1
+
+                        is_manual_tool_calling = True
+
+                        # Blank the message content
+                        response_content = ""
+
+                if not is_manual_tool_calling:
+                    if not litellm_params["stream"]:
+                        response_content = response.choices[0].message.content
+                    litellm_finish = "stop"
+                    tool_calls = None
         else:
             raise RuntimeError("Failed to get response from LiteLLM after retrying 5 times.")
 
@@ -394,25 +391,7 @@ class LiteLLMClient:
             # If we are still in the function calling or evaluating process, append the steps instruction
             if not have_tool_calls or tool_result_is_last_msg:
                 if litellm_messages[0]["role"] == "system":
-                    '''
-                    manual_instruction = self.TOOL_CALL_MANUAL_INSTRUCTION
-
-                    # Build a string of the functions available
-                    functions_string = ""
-                    for function in tools:
-                        functions_string += f"""\n{function}\n"""
-
-                    # Replace single quotes with double questions - Not sure why this helps the LLM perform
-                    # better, but it seems to. Monitor and remove if not necessary.
-                    functions_string = functions_string.replace("'", '"')
-
-                    manual_instruction = manual_instruction.replace("[FUNCTIONS_LIST]", functions_string)
-
-                    # Update the system message with the instructions and functions
-                    litellm_messages[0]["content"] = litellm_messages[0]["content"] + manual_instruction.rstrip()
-                    '''
-
-                    # NOTE: we require a system message to exist, also, for the manual steps texts
+                    # NOTE: we require a system message to exist for the manual steps texts
                     # Append the manual step instructions
                     content_to_append = (
                         self._manual_tool_call_step1 if not have_tool_results else self._manual_tool_call_step2
@@ -435,7 +414,7 @@ def response_to_tool_call(response_string: str) -> Any:
     """Attempts to convert the response to an object, aimed to align with function format [{},{}]"""
 
     # We try and detect the list[dict] format:
-    pattern = r"\[[\s\S]*?\]"  # r'\[([\s\S]*?)\]'
+    pattern = r"\[[\s\S]*?\]"
 
     # Search for the pattern in the input string
     matches = re.findall(pattern, response_string.strip())
@@ -447,50 +426,72 @@ def response_to_tool_call(response_string: str) -> Any:
         try:
             data_object = json.loads(json_str)
 
-            # If it's a dictionary and not a list then wrap in a list
-            if isinstance(data_object, dict):
-                data_object = [data_object]
+            data_object = _object_to_tool_call(data_object)
 
-            # Validate that the data is a list of dictionaries
-            if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
-                # Perfect format, a list of dictionaries
-
-                # Check that each dictionary has at least 'name', optionally 'arguments' and no other keys
-                is_invalid = False
-                for item in data_object:
-                    if not is_valid_tool_call_item(item):
-                        is_invalid = True
-                        break
-
-                # All passed, name and (optionally) arguments exist for all entries.
-                if not is_invalid:
-                    return data_object
-            elif isinstance(data_object, list):
-                # If it's a list but the items are not dictionaries, check if they are strings that can be converted to dictionaries
-                data_copy = data_object.copy()
-                is_invalid = False
-                for i, item in enumerate(data_copy):
-                    try:
-                        new_item = eval(item)
-                        if isinstance(new_item, dict):
-                            if is_valid_tool_call_item(new_item):
-                                data_object[i] = new_item
-                            else:
-                                is_invalid = True
-                                break
-                        else:
-                            is_invalid = True
-                            break
-                    except Exception:
-                        is_invalid = True
-                        break
-
-                if not is_invalid:
-                    return data_object
+            if data_object is not None:
+                return data_object
         except Exception:
             pass
 
+    # Couldn't parse with Regular Expression, try as eval
+    try:
+        data_object = eval(response_string.strip())
+
+        data_object = _object_to_tool_call(data_object)
+
+        if data_object is not None:
+            return data_object
+    except Exception:
+        pass
+
     # There's no tool call in the response
+    return None
+
+
+def _object_to_tool_call(data_object: Any) -> List[Dict]:
+    """Attempts to convert an object to a valid tool call object List[Dict] and returns it, if it can, otherwise None"""
+
+    # If it's a dictionary and not a list then wrap in a list
+    if isinstance(data_object, dict):
+        data_object = [data_object]
+
+    # Validate that the data is a list of dictionaries
+    if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
+        # Perfect format, a list of dictionaries
+
+        # Check that each dictionary has at least 'name', optionally 'arguments' and no other keys
+        is_invalid = False
+        for item in data_object:
+            if not is_valid_tool_call_item(item):
+                is_invalid = True
+                break
+
+        # All passed, name and (optionally) arguments exist for all entries.
+        if not is_invalid:
+            return data_object
+    elif isinstance(data_object, list):
+        # If it's a list but the items are not dictionaries, check if they are strings that can be converted to dictionaries
+        data_copy = data_object.copy()
+        is_invalid = False
+        for i, item in enumerate(data_copy):
+            try:
+                new_item = eval(item)
+                if isinstance(new_item, dict):
+                    if is_valid_tool_call_item(new_item):
+                        data_object[i] = new_item
+                    else:
+                        is_invalid = True
+                        break
+                else:
+                    is_invalid = True
+                    break
+            except Exception:
+                is_invalid = True
+                break
+
+        if not is_invalid:
+            return data_object
+
     return None
 
 
