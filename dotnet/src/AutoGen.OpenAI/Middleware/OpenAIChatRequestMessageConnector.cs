@@ -136,14 +136,13 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessChatResponseMessage(ChatResponseMessage chatResponseMessage, string? from)
     {
-        if (chatResponseMessage.Content is string content && !string.IsNullOrEmpty(content))
-        {
-            return new TextMessage(Role.Assistant, content, from);
-        }
-
+        var textContent = chatResponseMessage.Content;
         if (chatResponseMessage.FunctionCall is FunctionCall functionCall)
         {
-            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from);
+            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from)
+            {
+                Content = textContent,
+            };
         }
 
         if (chatResponseMessage.ToolCalls.Where(tc => tc is ChatCompletionsFunctionToolCall).Any())
@@ -152,9 +151,17 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 .Where(tc => tc is ChatCompletionsFunctionToolCall)
                 .Select(tc => (ChatCompletionsFunctionToolCall)tc);
 
-            var toolCalls = functionToolCalls.Select(tc => new ToolCall(tc.Name, tc.Arguments));
+            var toolCalls = functionToolCalls.Select(tc => new ToolCall(tc.Name, tc.Arguments) { ToolCallId = tc.Id });
 
-            return new ToolCallMessage(toolCalls, from);
+            return new ToolCallMessage(toolCalls, from)
+            {
+                Content = textContent,
+            };
+        }
+
+        if (textContent is string content && !string.IsNullOrEmpty(content))
+        {
+            return new TextMessage(Role.Assistant, content, from);
         }
 
         throw new InvalidOperationException("Invalid ChatResponseMessage");
@@ -178,7 +185,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                     ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(agent, toolCallMessage),
                     ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
                     AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessFunctionCallMiddlewareMessage(agent, aggregateMessage),
+#pragma warning disable CS0618 // deprecated
                     Message msg => ProcessMessage(agent, msg),
+#pragma warning restore CS0618 // deprecated
                     _ when strictMode is false => [],
                     _ => throw new InvalidOperationException($"Invalid message type: {m.GetType().Name}"),
                 };
@@ -195,6 +204,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         });
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(Message message)
     {
         if (message.Role == Role.System)
@@ -230,6 +240,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(Message message)
     {
         if (message.Role == Role.System)
@@ -310,9 +321,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private ChatMessageImageContentItem CreateChatMessageImageContentItemFromImageMessage(ImageMessage message)
     {
-        return message.Data is null
+        return message.Data is null && message.Url is not null
             ? new ChatMessageImageContentItem(new Uri(message.Url))
-            : new ChatMessageImageContentItem(message.Data, message.Data.MediaType);
+            : new ChatMessageImageContentItem(message.Data, message.Data?.MediaType);
     }
 
     private IEnumerable<ChatRequestMessage> ProcessToolCallMessage(IAgent agent, ToolCallMessage message)
@@ -322,8 +333,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
         }
 
-        var toolCall = message.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
-        var chatRequestMessage = new ChatRequestAssistantMessage(string.Empty) { Name = message.From };
+        var toolCall = message.ToolCalls.Select((tc, i) => new ChatCompletionsFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
+        var textContent = message.GetContent() ?? string.Empty;
+        var chatRequestMessage = new ChatRequestAssistantMessage(textContent) { Name = message.From };
         foreach (var tc in toolCall)
         {
             chatRequestMessage.ToolCalls.Add(tc);
@@ -336,9 +348,10 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         return message.ToolCalls
             .Where(tc => tc.Result is not null)
-            .Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
+            .Select((tc, i) => new ChatRequestToolMessage(tc.Result, tc.ToolCallId ?? $"{tc.FunctionName}_{i}"));
     }
 
+    [Obsolete("This method is deprecated, please use ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages) instead.")]
     private IEnumerable<ChatRequestMessage> ProcessMessage(IAgent agent, Message message)
     {
         if (message.From is not null && message.From != agent.Name)

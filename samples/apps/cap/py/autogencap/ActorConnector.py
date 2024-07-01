@@ -29,8 +29,11 @@ class ActorSender:
             evt: Dict[str, Any] = {}
             mon_evt = recv_monitor_message(monitor)
             evt.update(mon_evt)
-            if evt["event"] == zmq.EVENT_MONITOR_STOPPED or evt["event"] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
-                Debug("ActorSender", "Handshake received (Or Monitor stopped)")
+            if evt["event"] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
+                Debug("ActorSender", "Handshake received")
+                break
+            elif evt["event"] == zmq.EVENT_MONITOR_STOPPED:
+                Debug("ActorSender", "Monitor stopped")
                 break
         self._pub_socket.disable_monitor()
         monitor.close()
@@ -117,27 +120,28 @@ class ActorConnector:
     def send_bin_msg(self, msg_type: str, msg):
         self._sender.send_bin_msg(msg_type, msg)
 
-    def binary_request(self, msg_type: str, msg, retry=5):
+    def send_recv_msg(self, msg_type: str, msg, num_attempts=5):
         original_timeout: int = 0
-        if retry == -1:
+        if num_attempts == -1:
             original_timeout = self._resp_socket.getsockopt(zmq.RCVTIMEO)
             self._resp_socket.setsockopt(zmq.RCVTIMEO, 1000)
 
         try:
             self._sender.send_bin_request_msg(msg_type, msg, self._resp_topic)
-            while retry == -1 or retry > 0:
+            while num_attempts == -1 or num_attempts > 0:
                 try:
                     topic, resp_msg_type, _, resp = self._resp_socket.recv_multipart()
                     return topic, resp_msg_type, resp
                 except zmq.Again:
                     Debug(
-                        "ActorConnector", f"{self._topic}: No response received. retry_count={retry}, max_retry={retry}"
+                        "ActorConnector",
+                        f"{self._topic}: No response received. retry_count={num_attempts}, max_retry={num_attempts}",
                     )
                     time.sleep(0.01)
-                    if retry != -1:
-                        retry -= 1
+                    if num_attempts != -1:
+                        num_attempts -= 1
         finally:
-            if retry == -1:
+            if num_attempts == -1:
                 self._resp_socket.setsockopt(zmq.RCVTIMEO, original_timeout)
 
         Error("ActorConnector", f"{self._topic}: No response received. Giving up.")

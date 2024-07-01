@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import uuid
+from typing import Any, Callable
 
 import pytest
 
@@ -17,6 +18,10 @@ import autogen.runtime_logging
 from autogen.logger.file_logger import FileLogger
 
 is_windows = sys.platform.startswith("win")
+
+
+def dummy_function(param1: str, param2: int) -> Any:
+    return param1 * param2
 
 
 @pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
@@ -49,8 +54,19 @@ def test_log_chat_completion(logger: FileLogger):
     is_cached = 0
     cost = 0.5
     start_time = "2024-05-06 15:20:21.263231"
+    agent = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
 
-    logger.log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time)
+    logger.log_chat_completion(
+        invocation_id=invocation_id,
+        client_id=client_id,
+        wrapper_id=wrapper_id,
+        request=request,
+        response=response,
+        is_cached=is_cached,
+        cost=cost,
+        start_time=start_time,
+        source=agent,
+    )
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
@@ -63,6 +79,26 @@ def test_log_chat_completion(logger: FileLogger):
         assert log_data["is_cached"] == is_cached
         assert log_data["cost"] == cost
         assert log_data["start_time"] == start_time
+        assert log_data["source_name"] == "TestAgent"
+        assert isinstance(log_data["thread_id"], int)
+
+
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
+def test_log_function_use(logger: FileLogger):
+    source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
+    func: Callable[[str, int], Any] = dummy_function
+    args = {"foo": "bar"}
+    returns = True
+
+    logger.log_function_use(source=source, function=func, args=args, returns=returns)
+
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        assert len(lines) == 1
+        log_data = json.loads(lines[0])
+        assert log_data["source_name"] == "TestAgent"
+        assert log_data["input_args"] == json.dumps(args)
+        assert log_data["returns"] == json.dumps(returns)
         assert isinstance(log_data["thread_id"], int)
 
 

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - dotnet/release/**
+      - release/dotnet/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
