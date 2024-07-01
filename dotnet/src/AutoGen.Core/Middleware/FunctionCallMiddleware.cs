@@ -70,7 +70,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         return reply;
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(
+    public async IAsyncEnumerable<IMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -86,16 +86,16 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         var combinedFunctions = this.functions?.Concat(options.Functions ?? []) ?? options.Functions;
         options.Functions = combinedFunctions?.ToArray();
 
-        IStreamingMessage? initMessage = default;
+        IMessage? mergedFunctionCallMessage = default;
         await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
         {
             if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
             {
-                if (initMessage is null)
+                if (mergedFunctionCallMessage is null)
                 {
-                    initMessage = new ToolCallMessage(toolCallMessageUpdate);
+                    mergedFunctionCallMessage = new ToolCallMessage(toolCallMessageUpdate);
                 }
-                else if (initMessage is ToolCallMessage toolCall)
+                else if (mergedFunctionCallMessage is ToolCallMessage toolCall)
                 {
                     toolCall.Update(toolCallMessageUpdate);
                 }
@@ -104,13 +104,17 @@ public class FunctionCallMiddleware : IStreamingMiddleware
                     throw new InvalidOperationException("The first message is ToolCallMessage, but the update message is not ToolCallMessageUpdate");
                 }
             }
+            else if (message is ToolCallMessage toolCallMessage1)
+            {
+                mergedFunctionCallMessage = toolCallMessage1;
+            }
             else
             {
                 yield return message;
             }
         }
 
-        if (initMessage is ToolCallMessage toolCallMsg)
+        if (mergedFunctionCallMessage is ToolCallMessage toolCallMsg)
         {
             yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
         }

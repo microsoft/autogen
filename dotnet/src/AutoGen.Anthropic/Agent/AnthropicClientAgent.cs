@@ -47,7 +47,7 @@ public class AnthropicClientAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletionResponse>(response, from: this.Name);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages,
+    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var message in _anthropicClient.StreamingChatCompletionsAsync(
