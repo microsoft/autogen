@@ -207,6 +207,10 @@ class VectorDBFactory:
             from .pgvectordb import PGVectorDB
 
             return PGVectorDB(**kwargs)
+        if db_type.lower() in ["qdrant", "qdrantdb"]:
+            from .qdrant import QdrantVectorDB
+
+            return QdrantVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."
