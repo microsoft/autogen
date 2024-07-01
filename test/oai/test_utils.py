@@ -420,10 +420,10 @@ def test_is_valid_api_key():
     assert not is_valid_api_key("SK-")
     assert not is_valid_api_key("sk-asajsdjsd2")
     assert not is_valid_api_key("FooBar")
-    assert not is_valid_api_key("sk-asajsdjsd22372%23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
-    assert is_valid_api_key("sk-proj-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert not is_valid_api_key("sk-test123Test%123test123Test123test123T")
+    assert is_valid_api_key("sk-test123Test123test123Test123test123Te")
+    assert is_valid_api_key("sk-test123Test123test123Test123test123Test123test123Test12")
+    assert is_valid_api_key("sk-proj-test123Test123test123Test123test123Test123test12")
     assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 
