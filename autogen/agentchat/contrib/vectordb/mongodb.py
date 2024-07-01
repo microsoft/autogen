@@ -95,14 +95,19 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_names = self.db.list_collection_names()
         if collection_name not in collection_names:
             # Create a new collection
-            return self.db.create_collection(collection_name)
-
+            coll = self.db.create_collection(collection_name)
+            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+            return coll
         if overwrite:
             self.db.drop_collection(collection_name)
-
+            coll = self.db.create_collection(collection_name)
+            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+            return coll
         if get_or_create:
             # The collection already exists, return it.
-            return self.db[collection_name]
+            coll = self.db[collection_name]
+            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+            return coll
         else:
             # get_or_create is False and the collection already exists, raise an error.
             raise ValueError(f"Collection {collection_name} already exists.")
@@ -224,6 +229,7 @@ class MongoDBAtlasVectorDB(VectorDB):
     def upsert_docs(self, docs, collection):
         for doc in docs:
             query = {"id": doc["id"]}
+            doc["embedding"] =  np.array(self.embedding_function([doc["content"]])).tolist()[0]
             new_values = {"$set": doc}
             collection.update_one(query, new_values, upsert=True)
     def insert_docs(
@@ -430,7 +436,6 @@ class MongoDBAtlasVectorDB(VectorDB):
             QueryResults | For each query string, a list of nearest documents and their scores.
         """
         collection = self.get_collection(collection_name)
-        self.create_index_if_not_exists(index_name=self.index_name, collection=collection)
         # Trivial case of an empty collection
         if collection.count_documents({}) == 0:
             return []
@@ -438,10 +443,17 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Ensure that there is at least one search index
         search_indexes = list(collection.list_search_indexes())
         assert len(search_indexes), f"There are no search indexes for {collection.name}"
-
+        # Check status of index!
+        for index in search_indexes:
+            if index["name"] == self.index_name and index["type"] == "vectorSearch" and index["status"] != "READY":
+                raise Exception(f"Index {self.index_name} is not ready!")
+        logger.info(f"Using index: {str(list(search_indexes))}")
         results = []
+        sleep(15)
         for query_text in queries:
             # Compute embedding vector from semantic query
+            print('query_text', query_text)
+            logger.info(f"Query: {query_text}")
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
             query_result = _vector_search(
@@ -497,6 +509,8 @@ def _vector_search(
         },
         {"$set": {"score": {"$meta": "vectorSearchScore"}}},
     ]
+    print("pipeline: ", pipeline)
+    logger.info("pipeline: %s", pipeline)
     if distance_threshold >= 0.0:
         similarity_threshold = 1.0 - distance_threshold
         pipeline.append({"$match": {"score": {"gte": similarity_threshold}}})
