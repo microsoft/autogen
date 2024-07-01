@@ -92,6 +92,7 @@ extra_require = {
     "anthropic": ["anthropic>=0.23.1"],
     "mistral": ["mistralai>=0.2.0"],
     "groq": ["groq>=0.9.0"],
+    "ollama": ["ollama>=0.2.1"],
 }
 
 setuptools.setup(
