@@ -303,8 +303,6 @@ class OllamaClient:
         We correct for any specific role orders and types, and convert tools to messages (as Ollama can't use tool messages)
         """
 
-        #### MS UP TO HERE - CONVERT TOOL MESSAGES TO STANDARD MESSAGES ####
-
         ollama_messages = copy.deepcopy(messages)
 
         # Remove the name field
