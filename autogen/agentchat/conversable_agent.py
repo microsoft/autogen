@@ -2136,7 +2136,9 @@ class ConversableAgent(LLMAgent):
 
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
-            code, lang = code_block
+            code = code_block.code
+            lang = code_block.language
+
             if not lang:
                 lang = infer_lang(code)
             iostream.print(
