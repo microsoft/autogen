@@ -37,6 +37,12 @@ public class ChatCompletionRequest
     [JsonPropertyName("top_p")]
     public decimal? TopP { get; set; }
 
+    [JsonPropertyName("tools")]
+    public List<Tool>? Tools { get; set; }
+
+    [JsonPropertyName("tool_choice")]
+    public ToolChoice? ToolChoice { get; set; }
+
     public ChatCompletionRequest()
     {
         Messages = new List<ChatMessage>();
@@ -62,4 +68,6 @@ public class ChatMessage
         Role = role;
         Content = content;
     }
+
+    public void AddContent(ContentBase content) => Content.Add(content);
 }
