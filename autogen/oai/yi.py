@@ -38,7 +38,7 @@ class YiClient:
         api_key = kwargs.get("api_key", None)
         if not api_key:
             api_key = os.getenv("YI_API_KEY")
-        base_url = kwargs.get("base_url", None)
+        base_url = kwargs.get("base_url", "https://api.01.ai/v1")
 
         assert (
             api_key
