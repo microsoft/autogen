@@ -20,10 +20,9 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import random
+import re
 import time
-import warnings
 from typing import Any, Dict, List, Tuple
 
 import litellm
@@ -277,7 +276,7 @@ class LiteLLMClient:
 
                     if self._tools_in_conversation and self._tool_calling_mode == "manual":
                         # Try to convert the response to a tool call object
-                        response_toolcalls = response_to_object(ans)
+                        response_toolcalls = response_to_tool_call(ans)
 
                         # If we can, then it's a manual tool call
                         if response_toolcalls is not None:
@@ -432,43 +431,66 @@ class LiteLLMClient:
         return litellm_messages
 
 
-def response_to_object(response_string: str) -> Any:
+def response_to_tool_call(response_string: str) -> Any:
     """Attempts to convert the response to an object, aimed to align with function format [{},{}]"""
-    try:
-        data_object = eval(response_string.strip())
 
-        # Validate that the data is a list of dictionaries
-        if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
-            # Perfect format, a list of dictionaries
+    # We try and detect the list[dict] format:
+    pattern = r"\[[\s\S]*?\]"  # r'\[([\s\S]*?)\]'
 
-            # Check that each dictionary has at least 'name', optionally 'arguments' and no other keys
-            for item in data_object:
-                if not is_valid_tool_call_item(item):
-                    return False
+    # Search for the pattern in the input string
+    matches = re.findall(pattern, response_string.strip())
 
-            # All passed, name and (optionally) arguments exist for all entries.
-            return data_object
-        elif isinstance(data_object, list):
-            # If it's a list but the items are not dictionaries, check if they are strings that can be converted to dictionaries
-            data_copy = data_object.copy()
-            for i, item in enumerate(data_copy):
-                try:
-                    new_item = eval(item)
-                    if isinstance(new_item, dict):
-                        if is_valid_tool_call_item(new_item):
-                            data_object[i] = new_item
+    for match in matches:
+
+        # It has matched, extract it and load it
+        json_str = match.strip()
+        try:
+            data_object = json.loads(json_str)
+
+            # If it's a dictionary and not a list then wrap in a list
+            if isinstance(data_object, dict):
+                data_object = [data_object]
+
+            # Validate that the data is a list of dictionaries
+            if isinstance(data_object, list) and all(isinstance(item, dict) for item in data_object):
+                # Perfect format, a list of dictionaries
+
+                # Check that each dictionary has at least 'name', optionally 'arguments' and no other keys
+                is_invalid = False
+                for item in data_object:
+                    if not is_valid_tool_call_item(item):
+                        is_invalid = True
+                        break
+
+                # All passed, name and (optionally) arguments exist for all entries.
+                if not is_invalid:
+                    return data_object
+            elif isinstance(data_object, list):
+                # If it's a list but the items are not dictionaries, check if they are strings that can be converted to dictionaries
+                data_copy = data_object.copy()
+                is_invalid = False
+                for i, item in enumerate(data_copy):
+                    try:
+                        new_item = eval(item)
+                        if isinstance(new_item, dict):
+                            if is_valid_tool_call_item(new_item):
+                                data_object[i] = new_item
+                            else:
+                                is_invalid = True
+                                break
                         else:
-                            return None
-                    else:
-                        return None
-                except Exception:
-                    return None
+                            is_invalid = True
+                            break
+                    except Exception:
+                        is_invalid = True
+                        break
 
-            # All items were valid arguments dictionaries
-            return data_copy
-    except (SyntaxError, NameError, TypeError):
-        return None
+                if not is_invalid:
+                    return data_object
+        except Exception:
+            pass
 
+    # There's no tool call in the response
     return None
 
 
