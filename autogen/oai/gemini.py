@@ -165,8 +165,21 @@ class GeminiClient:
             for autogen_term, gemini_term in self.PARAMS_MAPPING.items()
             if autogen_term in params
         }
-        safety_settings = params.get("safety_settings", {})
+        
+        safety_settings_json = params.get("safety_settings", [])
 
+        safety_settings = []
+        for setting in safety_settings_json:
+            category = getattr(vertexai.generative_models.HarmCategory, setting['category'], None)
+            threshold = getattr(vertexai.generative_models.HarmBlockThreshold, setting['threshold'], None)
+
+            if category is not None and threshold is not None:
+                safety_setting = vertexai.generative_models.SafetySetting(
+                    category=category,
+                    threshold=threshold
+                )
+                safety_settings.append(safety_setting)
+                
         if stream:
             warnings.warn(
                 "Streaming is not supported for Gemini yet, and it will have no effect. Please set stream=False.",
