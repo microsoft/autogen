@@ -14,7 +14,7 @@ customPostCssPlugin = () => {
 
 module.exports = {
   title: "AutoGen",
-  tagline: "Enable Next-Gen Large Language Model Applications",
+  tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
   baseUrl: "/autogen/",
   onBrokenLinks: "throw",
