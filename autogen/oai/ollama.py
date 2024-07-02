@@ -212,15 +212,15 @@ class OllamaClient:
                     ans = ans + (chunk["message"]["content"] or "")
 
                     if "done_reason" in chunk:
-                        prompt_tokens = chunk["prompt_eval_count"]
-                        completion_tokens = chunk["eval_count"]
+                        prompt_tokens = chunk["prompt_eval_count"] if "prompt_eval_count" in chunk else 0
+                        completion_tokens = chunk["eval_count"] if "eval_count" in chunk else 0
                         total_tokens = prompt_tokens + completion_tokens
             else:
                 # Non-streaming finished
                 ans: str = response["message"]["content"]
 
-                prompt_tokens = response["prompt_eval_count"]
-                completion_tokens = response["eval_count"]
+                prompt_tokens = response["prompt_eval_count"] if "prompt_eval_count" in response else 0
+                completion_tokens = response["eval_count"] if "eval_count" in response else 0
                 total_tokens = prompt_tokens + completion_tokens
 
         if response is not None:
