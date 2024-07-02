@@ -259,13 +259,6 @@ def oai_messages_to_groq_messages(messages: list[Dict[str, Any]]) -> list[dict[s
 
     groq_messages = copy.deepcopy(messages)
 
-    # If we have a message with role='tool', which occurs when a function is executed, change it to 'user'
-    """
-    for msg in together_messages:
-        if "role" in msg and msg["role"] == "tool":
-            msg["role"] = "user"
-    """
-
     # Remove the name field
     for message in groq_messages:
         if "name" in message:
