@@ -7,7 +7,7 @@ using AutoGen.Core;
 
 namespace AutoGen.Anthropic.Samples;
 
-public static class AnthropicSamples
+public static class Create_Anthropic_Agent
 {
     public static async Task RunAsync()
     {

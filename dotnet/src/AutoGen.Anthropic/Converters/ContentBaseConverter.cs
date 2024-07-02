@@ -24,6 +24,10 @@ public sealed class ContentBaseConverter : JsonConverter<ContentBase>
                     return JsonSerializer.Deserialize<TextContent>(text, options) ?? throw new InvalidOperationException();
                 case "image":
                     return JsonSerializer.Deserialize<ImageContent>(text, options) ?? throw new InvalidOperationException();
+                case "tool_use":
+                    return JsonSerializer.Deserialize<ToolUseContent>(text, options) ?? throw new InvalidOperationException();
+                case "tool_result":
+                    return JsonSerializer.Deserialize<ToolResultContent>(text, options) ?? throw new InvalidOperationException();
             }
         }
 
