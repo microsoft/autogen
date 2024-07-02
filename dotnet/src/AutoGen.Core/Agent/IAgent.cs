@@ -7,10 +7,14 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutoGen.Core;
-public interface IAgent
+
+public interface IAgentMetaInformation
 {
     public string Name { get; }
+}
 
+public interface IAgent : IAgentMetaInformation
+{
     /// <summary>
     /// Generate reply
     /// </summary>

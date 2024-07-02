@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 Console.ReadLine();
-await Example17_ReActAgent.RunAsync();
+await Sequential_GroupChat_Example.RunAsync();
