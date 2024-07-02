@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one"]
+        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
     - uses: actions/checkout@v4
     - name: Install Hatch
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one"]
+        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
     - uses: actions/checkout@v4
     - name: Install Hatch
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one"]
+        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one"]
+        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch

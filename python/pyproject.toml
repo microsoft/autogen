@@ -84,6 +84,24 @@ build = "sphinx-build docs/src docs/build"
 serve = "sphinx-autobuild --watch src docs/src docs/build"
 check = "sphinx-build --fail-on-warning docs/src docs/build"
 
+# Benchmark environments
+[tool.hatch.envs.bench-humaneval-teamone]
+installer = "uv"
+detached = true
+dependencies = [
+    "agnext@{root:uri}",
+    "agbench@{root:uri}/tools/agbench",
+    "team-one@{root:uri}/teams/team-one",
+]
+
+[tool.hatch.envs.bench-humaneval-twoagents]
+installer = "uv"
+detached = true
+dependencies = [
+    "agnext@{root:uri}",
+    "agbench@{root:uri}/tools/agbench",
+]
+
 [tool.ruff]
 line-length = 120
 fix = true
