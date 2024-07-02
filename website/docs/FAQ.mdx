@@ -109,7 +109,7 @@ You can also develop your AutoGen application in a docker container.
 For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1),
 AutoGen runs in a docker container.
 If you are not developing in GitHub Codespaces,
-follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker)
+follow instructions [here](installation/Docker.md)
 to install and run AutoGen in docker.
 
 ## Agents keep thanking each other when using `gpt-3.5-turbo`
@@ -203,7 +203,7 @@ You can save that image name. For a new conversation, you can set "use_docker" t
 
 When using VMs such as Azure Machine Learning compute instances,
 you may encounter a "database locked error". This is because the
-[LLM cache](./Use-Cases/agent_chat.md#cache)
+[LLM cache](./topics/llm-caching.md)
 is trying to write to a location that the application does not have access to.
 
 You can set the `cache_path_root` to a location where the application has access.
@@ -225,7 +225,7 @@ with Cache.redis(redis_url=...) as cache:
     agent_a.initate_chat(agent_b, ..., cache=cache)
 ```
 
-You can also disable the cache. See [here](./Use-Cases/agent_chat.md#llm-caching) for details.
+You can also disable the cache. See [here](./topics/llm-caching#disabling-cache) for details.
 
 ## Agents are throwing due to docker not running, how can I resolve this?
 
