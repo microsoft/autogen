@@ -11,3 +11,9 @@ class BroadcastMessage:
 @dataclass
 class RequestReplyMessage:
     pass
+
+
+@dataclass
+class OrchestrationEvent:
+    timestamp: str
+    message: str
