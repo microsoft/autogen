@@ -398,6 +398,11 @@ def oai_messages_to_cohere_messages(
         # Enable multi-step tool use: https://docs.cohere.com/docs/multi-step-tool-use
         cohere_params["force_single_step"] = False
 
+        # If we're adding tool_results, like we are, the last message can't be a USER message
+        # So, we add a CHATBOT 'continue' message, if so.
+        if cohere_messages[-1]["role"] == "USER":
+            cohere_messages.append({"role": "CHATBOT", "content": "Please continue."})
+
         # We return a blank message when we have tool results
         # TODO: Check what happens if tool_results aren't the latest message
         return cohere_messages, preamble, ""
