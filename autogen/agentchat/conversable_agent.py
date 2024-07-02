@@ -2136,7 +2136,9 @@ class ConversableAgent(LLMAgent):
 
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
-            lang, code = code_block
+            code = code_block.code
+            lang = code_block.language
+
             if not lang:
                 lang = infer_lang(code)
             iostream.print(
@@ -2147,7 +2149,7 @@ class ConversableAgent(LLMAgent):
                 flush=True,
             )
             if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
+                exitcode, logs, image = self.run_code(code, lang=lang,)
             elif lang in PYTHON_VARIANTS:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
@@ -2157,7 +2159,6 @@ class ConversableAgent(LLMAgent):
                     code,
                     lang="python",
                     filename=filename,
-                    **self._code_execution_config,
                 )
             else:
                 # In case the language is not supported, we return an error message.
