@@ -87,6 +87,8 @@ class GeminiClient:
             vertexai_init_args["project"] = params["project_id"]
         if "location" in params:
             vertexai_init_args["location"] = params["location"]
+        if "credentials" in params:
+            vertexai_init_args["credentials"] = params["credentials"]
         if vertexai_init_args:
             vertexai.init(**vertexai_init_args)
 
