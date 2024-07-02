@@ -7,6 +7,7 @@ try:
     from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
+    import google.auth
 
     from autogen.oai.gemini import GeminiClient
 
@@ -39,6 +40,20 @@ def gemini_client():
     return GeminiClient(api_key="fake_api_key", system_message=system_message)
 
 
+@pytest.fixture
+def gemini_google_auth_default_client():
+    system_message = [
+        "You are a helpful AI assistant.",
+    ]
+    return GeminiClient(system_message=system_message)
+
+
+@pytest.fixture
+@patch("autogen.oai.gemini.Credentials")
+def gemini_client_with_credentials(mock_credentials):
+    return GeminiClient(credentials=mock_credentials)
+
+
 # Test compute location initialization and configuration
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_compute_location_initialization():
@@ -55,14 +70,6 @@ def test_project_initialization():
         GeminiClient(
             api_key="fake_api_key", project="fake-project-id"
         )  # Should raise an AssertionError due to specifying API key and compute location
-
-
-@pytest.fixture
-def gemini_google_auth_default_client():
-    system_message = [
-        "You are a helpful AI assistant.",
-    ]
-    return GeminiClient(system_message=system_message)
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
@@ -250,6 +257,62 @@ def test_create_response(mock_configure, mock_generative_model, gemini_client):
 
     # Call the create method
     response = gemini_client.create(
+        {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
+    )
+
+    # Assertions to check if response is structured as expected
+    assert response.choices[0].message.content == "Example response", "Response content should match expected output"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_create_response(mock_init, mock_generative_model, gemini_client_with_credentials):
+    # Mock the genai model configuration and creation process
+    mock_chat = MagicMock()
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+    mock_model.start_chat.return_value = mock_chat
+
+    # Set up a mock for the chat history item access and the text attribute return
+    mock_history_part = MagicMock()
+    mock_history_part.text = "Example response"
+    mock_chat.history.__getitem__.return_value.parts.__getitem__.return_value = mock_history_part
+
+    # Setup the mock to return a mocked chat response
+    mock_chat.send_message.return_value = MagicMock(history=[MagicMock(parts=[MagicMock(text="Example response")])])
+
+    # Call the create method
+    response = gemini_client_with_credentials.create(
+        {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
+    )
+
+    # Assertions to check if response is structured as expected
+    assert response.choices[0].message.content == "Example response", "Response content should match expected output"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_default_auth_create_response(mock_init, mock_generative_model, gemini_google_auth_default_client):
+    # Mock the genai model configuration and creation process
+    mock_chat = MagicMock()
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+    mock_model.start_chat.return_value = mock_chat
+
+    # Set up a mock for the chat history item access and the text attribute return
+    mock_history_part = MagicMock()
+    mock_history_part.text = "Example response"
+    mock_chat.history.__getitem__.return_value.parts.__getitem__.return_value = mock_history_part
+
+    # Setup the mock to return a mocked chat response
+    mock_chat.send_message.return_value = MagicMock(history=[MagicMock(parts=[MagicMock(text="Example response")])])
+
+    # Call the create method
+    response = gemini_google_auth_default_client.create(
         {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
     )
 
