@@ -6,6 +6,11 @@ import json
 import logging
 import re
 import warnings
+import itertools
+import threading
+import time
+import sys
+
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
@@ -815,7 +820,20 @@ class ConversableAgent(LLMAgent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
+        done = False
+        #here is the animation
+        def animate():
+            for c in itertools.cycle(['|', '/', '-', '\\']):
+                if done:
+                    print("\n")
+                    break
+                sys.stdout.write('\rloading ' + c)
+                sys.stdout.flush()
+                time.sleep(0.1)
+        t = threading.Thread(target=animate)
+        t.start()
         reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        done = True
         if reply is not None:
             self.send(reply, sender, silent=silent)
 
