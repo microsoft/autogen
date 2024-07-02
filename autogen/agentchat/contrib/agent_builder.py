@@ -172,6 +172,26 @@ Match roles in the role set to each expert in expert set.
 ```
 """
 
+    AGENT_FUNCTION_MAP_PROMPT = """Consider the following function.
+    Function Name: {function_name}
+    Function Description: {function_description}
+
+    The agent details are given in the format: {format_agent_details}
+
+    Which one of the following agents should be able to execute this function, preferably an agent with programming background?
+    {agent_details}
+
+    Hint:
+    # Only respond with the name of the agent that is most suited to execute the function and nothing else.
+    """
+
+    UPDATED_AGENT_SYSTEM_MESSAGE = """
+    {agent_system_message}
+
+    You have access to execute the function: {function_name}.
+    With following description: {function_description}
+    """
+
     def __init__(
         self,
         config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
@@ -358,6 +378,7 @@ Match roles in the role set to each expert in expert set.
         self,
         building_task: str,
         default_llm_config: Dict,
+        list_of_functions: Optional[List[Dict]] = None,
         coding: Optional[bool] = None,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
@@ -373,6 +394,7 @@ Match roles in the role set to each expert in expert set.
             coding: use to identify if the user proxy (a code interpreter) should be added.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
             default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
+            list_of_functions: list of functions to be associated with Agents
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             user_proxy: user proxy's class that can be used to replace the default user proxy.
 
@@ -480,8 +502,9 @@ Match roles in the role set to each expert in expert set.
                 "code_execution_config": code_execution_config,
             }
         )
+
         _config_check(self.cached_configs)
-        return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
+        return self._build_agents(use_oai_assistant, list_of_functions, user_proxy=user_proxy, **kwargs)
 
     def build_from_library(
         self,
@@ -653,13 +676,18 @@ Match roles in the role set to each expert in expert set.
         return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
 
     def _build_agents(
-        self, use_oai_assistant: Optional[bool] = False, user_proxy: Optional[autogen.ConversableAgent] = None, **kwargs
+        self,
+        use_oai_assistant: Optional[bool] = False,
+        list_of_functions: Optional[List[Dict]] = None,
+        user_proxy: Optional[autogen.ConversableAgent] = None,
+        **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
 
         Args:
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+            list_of_functions: list of functions to be associated to Agents
             user_proxy: user proxy's class that can be used to replace the default user proxy.
 
         Returns:
@@ -694,6 +722,52 @@ Match roles in the role set to each expert in expert set.
                     default_auto_reply=self.DEFAULT_PROXY_AUTO_REPLY,
                 )
             agent_list = agent_list + [user_proxy]
+
+            agent_details = []
+
+            for agent in agent_list[:-1]:
+                agent_details.append({"name": agent.name, "description": agent.description})
+
+            for func in list_of_functions:
+                resp = (
+                    self.builder_model.create(
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
+                                    function_name=func["name"],
+                                    function_description=func["description"],
+                                    format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
+                                    agent_details=str(json.dumps(agent_details)),
+                                ),
+                            }
+                        ]
+                    )
+                    .choices[0]
+                    .message.content
+                )
+
+                autogen.agentchat.register_function(
+                    func["function"],
+                    caller=self.agent_procs_assign[resp][0],
+                    executor=agent_list[0],
+                    name=func["name"],
+                    description=func["description"],
+                )
+
+                agents_current_system_message = [
+                    agent["system_message"] for agent in agent_configs if agent["name"] == resp
+                ][0]
+
+                self.agent_procs_assign[resp][0].update_system_message(
+                    self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
+                        agent_system_message=agents_current_system_message,
+                        function_name=func["name"],
+                        function_description=func["description"],
+                    )
+                )
+
+                print(f"Function {func['name']} is registered to agent {resp}.")
 
         return agent_list, self.cached_configs.copy()
 
