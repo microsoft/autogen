@@ -26,6 +26,7 @@ import time
 from typing import Any, Dict, List, Tuple
 
 import ollama
+from fix_busted_json import repair_json
 from ollama import Client
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
@@ -415,26 +416,24 @@ def response_to_tool_call(response_string: str) -> Any:
 
         # It has matched, extract it and load it
         json_str = match.strip()
-        try:
-            data_object = json.loads(json_str)
+        data_object = None
 
+        try:
+            # Attempt to convert it as is
+            data_object = json.loads(json_str)
+        except Exception:
+            try:
+                # If that fails, attempt to repair it
+                fixed_json = repair_json(json_str)
+                data_object = json.loads(fixed_json)
+            except Exception:
+                pass
+
+        if data_object is not None:
             data_object = _object_to_tool_call(data_object)
 
             if data_object is not None:
                 return data_object
-        except Exception:
-            pass
-
-    # Couldn't parse with Regular Expression, try as eval
-    try:
-        data_object = eval(response_string.strip())
-
-        data_object = _object_to_tool_call(data_object)
-
-        if data_object is not None:
-            return data_object
-    except Exception:
-        pass
 
     # There's no tool call in the response
     return None
