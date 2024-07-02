@@ -424,8 +424,20 @@ def response_to_tool_call(response_string: str) -> Any:
         except Exception:
             try:
                 # If that fails, attempt to repair it
-                fixed_json = repair_json(json_str)
+
+                # Enclose to a JSON object for repairing, which is restored upon fix
+                fixed_json = repair_json("{'temp':" + json_str + "}")
                 data_object = json.loads(fixed_json)
+                data_object = data_object["temp"]
+            except json.JSONDecodeError as e:
+                if e.msg == "Invalid \\escape":
+                    # Handle Mistral/Mixtral trying to escape underlines with \\
+                    try:
+                        fixed_json = repair_json("{'temp':" + json_str.replace("\\_", "_") + "}")
+                        data_object = json.loads(fixed_json)
+                        data_object = data_object["temp"]
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
