@@ -30,7 +30,7 @@ FAST_MODEL = "gpt-3.5-turbo"
 #   The (.*?) matches the code itself (non-greedy).
 #   The \r?\n makes sure there is a linebreak before ```.
 #   The [ \t]* matches the potential spaces before closing ``` (the spec allows indentation).
-CODE_BLOCK_PATTERN = r"```[ \t]*(\w+)?[ \t]*\r?\n(.*?)\r?\n[ \t]*```"
+CODE_BLOCK_PATTERN = r"```[ \t]*(\w+)?[ \t]*\r?\n*(.*?)\r?\n*[ \t]*```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
