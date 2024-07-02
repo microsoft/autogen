@@ -47,7 +47,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return PostProcessMessage(reply);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatMessageContents = ProcessMessage(context.Messages, agent)
             .Select(m => new MessageEnvelope<ChatMessageContent>(m));
@@ -67,11 +67,11 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         };
     }
 
-    private IStreamingMessage PostProcessStreamingMessage(IStreamingMessage input)
+    private IMessage PostProcessStreamingMessage(IMessage input)
     {
         return input switch
         {
-            IStreamingMessage<StreamingChatMessageContent> streamingMessage => PostProcessMessage(streamingMessage),
+            IMessage<StreamingChatMessageContent> streamingMessage => PostProcessMessage(streamingMessage),
             IMessage msg => PostProcessMessage(msg),
             _ => input,
         };
@@ -98,7 +98,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         }
     }
 
-    private IStreamingMessage PostProcessMessage(IStreamingMessage<StreamingChatMessageContent> streamingMessage)
+    private IMessage PostProcessMessage(IMessage<StreamingChatMessageContent> streamingMessage)
     {
         var chatMessageContent = streamingMessage.Content;
         if (chatMessageContent.ChoiceIndex > 0)

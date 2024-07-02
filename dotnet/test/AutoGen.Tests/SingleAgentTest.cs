@@ -297,7 +297,7 @@ namespace AutoGen.Tests
             };
             var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { helloWorld }, option);
             var answer = "[ECHO] Hello world";
-            IStreamingMessage? finalReply = default;
+            IMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
                 reply.From.Should().Be(agent.Name);
