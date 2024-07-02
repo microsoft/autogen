@@ -41,12 +41,12 @@ import warnings
 from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
-from google.auth.credentials import Credentials
 import google.generativeai as genai
 import requests
 import vertexai
 from google.ai.generativelanguage import Content, Part
 from google.api_core.exceptions import InternalServerError
+from google.auth.credentials import Credentials
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -90,7 +90,7 @@ class GeminiClient:
             vertexai_init_args["location"] = params["location"]
         if "credentials" in params:
             assert isinstance(
-                params["credentials"], Credentials
+                params["credentials"], type(Credentials)
             ), "Object type google.auth.credentials.Credentials is expected!"
             vertexai_init_args["credentials"] = params["credentials"]
         if vertexai_init_args:
