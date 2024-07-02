@@ -225,10 +225,10 @@ public class GeminiMessageTests
             })
             .Select(m => MessageEnvelope.Create(m));
 
-        IStreamingMessage? finalReply = null;
+        IMessage? finalReply = null;
         await foreach (var reply in agent.GenerateStreamingReplyAsync(messageChunks))
         {
-            reply.Should().BeAssignableTo<IStreamingMessage>();
+            reply.Should().BeAssignableTo<IMessage>();
             finalReply = reply;
         }
 
