@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 try:
+    import google.auth
     from google.api_core.exceptions import InternalServerError
     from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
-    import google.auth
 
     from autogen.oai.gemini import GeminiClient
 
