@@ -26,6 +26,8 @@
           href: Create-type-safe-function-call.md
         - name: Use function call in an agent
           href: Use-function-call.md
+        - name: Function call with local model
+          href: Function-call-with-ollama-and-litellm.md
     - name: middleware
       items:
         - name: middleware overview
