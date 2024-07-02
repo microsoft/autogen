@@ -59,6 +59,8 @@ WORKDIR "${HOME}"
         stop_container: bool = True,
         docker_env: Dict[str, str] = {},
         token: Union[str, GenerateToken] = GenerateToken(),
+        **kwargs: Any,
+        
     ):
         """Start a Jupyter kernel gateway server in a Docker container.
 
@@ -77,6 +79,7 @@ WORKDIR "${HOME}"
             token (Union[str, GenerateToken], optional): Token to use for authentication.
                 If GenerateToken is used, a random token will be generated. Empty string
                 will be unauthenticated.
+            kwargs (Any): Additional keyword arguments to pass to the docker container.
         """
         if container_name is None:
             container_name = f"autogen-jupyterkernelgateway-{uuid.uuid4()}"
@@ -118,6 +121,7 @@ WORKDIR "${HOME}"
             environment=env,
             publish_all_ports=True,
             name=container_name,
+            **kwargs,
         )
         _wait_for_ready(container)
         container_ports = container.ports
