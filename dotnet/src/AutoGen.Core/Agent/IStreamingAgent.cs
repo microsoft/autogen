@@ -11,7 +11,7 @@ namespace AutoGen.Core;
 /// </summary>
 public interface IStreamingAgent : IAgent
 {
-    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default);
