@@ -35,4 +35,4 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ## Contact Maintainers
 
-The project is currently maintained by a [dynamic group of volunteers](https://common-cobra-5ca.notion.site/dac8db56a10d4c64b1cb168f5d0047c9?v=a50227b2746d4096a900c0c00712ede0&pvs=4) from several different organizations. Contact project administrators Chi Wang and Qingyun Wu via auto-gen@outlook.com if you are interested in becoming a maintainer.
+The project is currently maintained by a [dynamic group of volunteers](https://butternut-swordtail-8a5.notion.site/410675be605442d3ada9a42eb4dfef30?v=fa5d0a79fd3d4c0f9c112951b2831cbb&pvs=4) from several different organizations. Contact project administrators Chi Wang and Qingyun Wu via auto-gen@outlook.com if you are interested in becoming a maintainer.
