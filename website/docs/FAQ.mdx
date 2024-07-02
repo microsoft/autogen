@@ -37,7 +37,15 @@ Yes. You currently have two options:
 - Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
 - You can supply your own custom model implementation and use it with Autogen. Please check https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
-## Handle Rate Limit Error and Timeout Error
+## Handling API Rate Limits
+
+### Setting the API Rate Limit
+
+You can set the `api_rate_limit` in a `config_list` for an agent, which will be used to control the rate at which API requests are sent.
+
+- `api_rate_limit` (float): the maximum number of API requests allowed per second.
+
+### Handle Rate Limit Error and Timeout Error
 
 You can set `max_retries` to handle rate limit error. And you can set `timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the OpenAI client for LLM inference. They can be set differently for different clients if they are set in the `config_list`.
 
