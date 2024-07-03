@@ -20,19 +20,30 @@ Resources:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
+import sys
 import time
 import warnings
 from typing import Any, Dict, List
 
 from cohere import Client as Cohere
 from cohere.types import ToolParameterDefinitionsValue, ToolResult
+from flaml.automl.logger import logger_formatter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 
 from autogen.oai.client_utils import validate_parameter
+
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    # Add the console handler.
+    _ch = logging.StreamHandler(stream=sys.stdout)
+    _ch.setFormatter(logger_formatter)
+    logger.addHandler(_ch)
+
 
 COHERE_PRICING_1K = {
     "command-r-plus": (0.003, 0.015),
@@ -117,12 +128,16 @@ class CohereClient:
         # preamble - we will put the system prompt in here.
         # parallel_tool_calls (defaults to True), perfect as is.
         # conversation_id - allows resuming a previous conversation, we don't support this.
+        logging.info("Conversation ID: %s", params.get("conversation_id", "None"))
         # connectors - allows web search or other custom connectors, not implementing for now but could be useful in the future.
+        logging.info("Connectors: %s", params.get("connectors", "None"))
         # search_queries_only - to control whether only search queries are used, we're not using connectors so ignoring.
         # documents - a list of documents that can be used to support the chat. Perhaps useful in the future for RAG.
         # citation_quality - used for RAG flows and dependent on other parameters we're ignoring.
         # max_input_tokens - limits input tokens, not needed.
+        logging.info("Max Input Tokens: %s", params.get("max_input_tokens", "None"))
         # stop_sequences - used to stop generation, not needed.
+        logging.info("Stop Sequences: %s", params.get("stop_sequences", "None"))
 
         return cohere_params
 
