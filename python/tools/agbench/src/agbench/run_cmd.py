@@ -524,7 +524,7 @@ echo RUN.SH COMPLETE !#!#
 
     while True:
         try:
-            chunk = cast(bytes, next(logs))  # Manually step the iterator so it is captures with the try-catch
+            chunk = next(logs)  # Manually step the iterator so it is captures with the try-catch
 
             # Stream the data to the log file and the console
             chunk_str = chunk.decode("utf-8")

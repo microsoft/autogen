@@ -35,9 +35,9 @@ if __name__ == "__main__":
 
 The user cannot provide any feedback or perform any other action beyond executing the code you suggest. In particular, the user can't modify your code, and can't copy and paste anything, and can't fill in missing values. Thus, do not suggest incomplete code which requires users to perform any of these actions.
 
-Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes -- code blocks must stand alone and be ready to execute without modification. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, and think of a different approach to try.
+The user will run all code that you provide, and will report back the results. When receiving the results, check if the output indicates an error. Fix the error. When fixing the error, output the full code, as before, instead of partial code or code changes -- code blocks must stand alone and be ready to execute without modification. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, and think of a different approach to try.
 
-If the code has executed successfully, and the problem is stolved, reply "TERMINATE".
+If the code was executed, and the output appears to indicate that the original prolem was solved successful, reply "TERMINATE". UNDER NO OTHER CONDITIONS SHOULD "TERMINATE" BE USED.
 """)
     ]
 
@@ -67,12 +67,12 @@ If the code has executed successfully, and the problem is stolved, reply "TERMIN
         assert isinstance(response.content, str)
         self._chat_history.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
 
-        if "TERMINATE" in response.content:
-            return
-        else:
-            await self.publish_message(
-                BroadcastMessage(content=UserMessage(content=response.content, source=self.metadata["name"]))
+        await self.publish_message(
+            BroadcastMessage(
+                content=UserMessage(content=response.content, source=self.metadata["name"]),
+                request_halt=("TERMINATE" in response.content),
             )
+        )
 
 
 class Executor(TypeRoutedAgent):

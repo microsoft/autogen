@@ -17,9 +17,11 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         self,
         agents: List[AgentProxy],
         description: str = "Round robin orchestrator",
+        max_rounds: int = 20,
     ) -> None:
         super().__init__(description)
         self._agents = agents
+        self._max_rounds = max_rounds
         self._num_rounds = 0
 
     @message_handler
@@ -34,7 +36,25 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         current_timestamp = datetime.now().isoformat()
         logger.info(OrchestrationEvent(current_timestamp, source, content))
 
-        if self._num_rounds > 20:
+        # Termination conditions
+        if self._num_rounds >= self._max_rounds:
+            logger.info(
+                OrchestrationEvent(
+                    current_timestamp,
+                    f"{self.metadata['name']} (termination condition)",
+                    f"Max rounds ({self._max_rounds}) reached.",
+                )
+            )
+            return
+
+        if message.request_halt:
+            logger.info(
+                OrchestrationEvent(
+                    current_timestamp,
+                    f"{self.metadata['name']} (termination condition)",
+                    f"{source} requested halt.",
+                )
+            )
             return
 
         next_agent = self._select_next_agent()
@@ -45,14 +65,13 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         logger.info(
             OrchestrationEvent(
                 current_timestamp,
-                source="Orchestrator (thought)",
+                source=f"{self.metadata['name']} (thought)",
                 message=f"Next speaker {next_agent.metadata['name']}" "",
             )
         )
 
+        self._num_rounds += 1  # Call before sending the message
         await self.send_message(request_reply_message, next_agent.id)
-
-        self._num_rounds += 1
 
     def _select_next_agent(self) -> AgentProxy:
         self._current_index = (self._num_rounds) % len(self._agents)
