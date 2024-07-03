@@ -175,7 +175,7 @@ class CohereClient:
                     response = client.chat_stream(**cohere_params)
                 else:
                     response = client.chat(**cohere_params)
-            except Exception as e:
+            except CohereRateLimitError as e:
                 raise RuntimeError(f"Cohere exception occurred: {e}")
             else:
 
@@ -445,3 +445,15 @@ def calculate_cohere_cost(input_tokens: int, output_tokens: int, model: str) -> 
         warnings.warn(f"Cost calculation not available for {model} model", UserWarning)
 
     return total
+
+
+class CohereError(Exception):
+    """Base class for other Cohere exceptions"""
+
+    pass
+
+
+class CohereRateLimitError(CohereError):
+    """Raised when rate limit is exceeded"""
+
+    pass
