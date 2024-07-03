@@ -382,6 +382,7 @@ class OllamaClient:
                 # Executed tool results
                 message["result"] = message["content"]
                 del message["content"]
+                del message["role"]
                 content = "The following function was run: " + str(message)
                 ollama_messages[i] = {"role": "user", "content": content}
 
