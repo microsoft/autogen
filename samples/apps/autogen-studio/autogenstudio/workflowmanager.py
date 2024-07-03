@@ -244,12 +244,6 @@ class AutoWorkflowManager:
 
         agent.config.code_execution_config = self.code_executor_pool.get(agent.config.code_execution_config, False)
 
-        print("**** pool ****", self.code_executor_pool, "****", agent.config.code_execution_config)
-
-        # executor = self.code_executor_pool.get(
-        #     agent.config.code_execution_config)
-        # print("*****", executor, "****", agent.config.code_execution_config)
-
         if skills:
             skills_prompt = ""
             skills_prompt = get_skills_from_prompt(skills, self.work_dir)
