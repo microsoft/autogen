@@ -29,18 +29,10 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
             source = message.content.source
 
-        assert isinstance(source, str)
+        content = str(message.content.content)
 
         current_timestamp = datetime.now().isoformat()
-        logger.info(
-            OrchestrationEvent(
-                current_timestamp,
-                f"""{source}:
-
-{message.content.content}
--------------------------------------""",
-            )
-        )
+        logger.info(OrchestrationEvent(current_timestamp, source, content))
 
         if self._num_rounds > 20:
             return
@@ -53,10 +45,8 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         logger.info(
             OrchestrationEvent(
                 current_timestamp,
-                f"""Orchestrator (thought):
-
-Next speaker {next_agent.metadata['name']}
--------------------------------------""",
+                source="Orchestrator (thought)",
+                message=f"Next speaker {next_agent.metadata['name']}" "",
             )
         )
 
