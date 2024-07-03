@@ -53,8 +53,6 @@ const SecretsEditor = ({
     updateSkillConfig("secrets", updatedSecrets);
   };
 
-  console.log("secrets", secrets);
-
   return (
     <div className="mt-4">
       {secrets && (
