@@ -78,6 +78,13 @@ except ImportError as e:
     groq_import_exception = e
 
 try:
+    from autogen.oai.cohere import CohereClient
+
+    cohere_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cohere_import_exception = e
+
+try:
     from autogen.oai.ollama import OllamaClient
 
     ollama_import_exception: Optional[ImportError] = None
@@ -503,6 +510,11 @@ class OpenAIWrapper:
                 if groq_import_exception:
                     raise ImportError("Please install `groq` to use the Groq API.")
                 client = GroqClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("cohere"):
+                if cohere_import_exception:
+                    raise ImportError("Please install `cohere` to use the Groq API.")
+                client = CohereClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("ollama"):
                 if ollama_import_exception:
