@@ -5,6 +5,7 @@ import pytest
 try:
     import google.auth
     from google.api_core.exceptions import InternalServerError
+    from google.auth.credentials import Credentials
     from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
@@ -49,8 +50,8 @@ def gemini_google_auth_default_client():
 
 
 @pytest.fixture
-@patch("autogen.oai.gemini.Credentials")
-def gemini_client_with_credentials(mock_credentials):
+def gemini_client_with_credentials():
+    mock_credentials = MagicMock(Credentials)
     return GeminiClient(credentials=mock_credentials)
 
 

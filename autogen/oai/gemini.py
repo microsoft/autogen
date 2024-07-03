@@ -90,7 +90,7 @@ class GeminiClient:
             vertexai_init_args["location"] = params["location"]
         if "credentials" in params:
             assert isinstance(
-                params["credentials"], type(Credentials)
+                params["credentials"], Credentials
             ), "Object type google.auth.credentials.Credentials is expected!"
             vertexai_init_args["credentials"] = params["credentials"]
         if vertexai_init_args:
