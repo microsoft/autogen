@@ -58,12 +58,12 @@ public class RolePlayOrchestratorTests
             ChatHistory = [],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEquivalentTo([alice]);
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().Be(alice);
     }
 
     [Fact]
-    public async Task ItReturnEmptyListWhenNoCandidateIsAvailableAsync()
+    public async Task ItReturnNullWhenNoCandidateIsAvailableAsync()
     {
         var admin = Mock.Of<IAgent>();
         var orchestrator = new RolePlayOrchestrator(admin);
@@ -73,23 +73,24 @@ public class RolePlayOrchestratorTests
             ChatHistory = [],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEmpty();
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().BeNull();
     }
 
     [Fact]
     public async Task ItReturnCandidateWhenOnlyOneCandidateIsAvailableAsync()
     {
         var admin = Mock.Of<IAgent>();
+        var alice = new EchoAgent("Alice");
         var orchestrator = new RolePlayOrchestrator(admin);
         var context = new OrchestrationContext
         {
-            Candidates = [new EchoAgent("Alice")],
+            Candidates = [alice],
             ChatHistory = [],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEquivalentTo([new EchoAgent("Alice")]);
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().Be(alice);
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public class RolePlayOrchestratorTests
             ChatHistory = [],
         };
 
-        var action = async () => await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
+        var action = async () => await orchestrator.GetNextSpeakerAsync(context);
 
         await action.Should().ThrowAsync<Exception>()
             .WithMessage("The response from admin is 't know, which is either not in the candidates list or not in the correct format.");
@@ -141,12 +142,12 @@ public class RolePlayOrchestratorTests
             ],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEquivalentTo([bob]);
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().Be(bob);
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfNoAvailableAgentFromWorkflowAsync()
+    public async Task ItReturnNullIfNoAvailableAgentFromWorkflowAsync()
     {
         var workflow = new Graph();
         var alice = new EchoAgent("Alice");
@@ -164,8 +165,8 @@ public class RolePlayOrchestratorTests
             ],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEmpty();
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().BeNull();
     }
 
     [Fact]
@@ -207,8 +208,8 @@ public class RolePlayOrchestratorTests
             ],
         };
 
-        var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-        speakers.Should().BeEquivalentTo([bob]);
+        var speaker = await orchestrator.GetNextSpeakerAsync(context);
+        speaker.Should().Be(bob);
     }
 
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
@@ -313,18 +314,18 @@ public class RolePlayOrchestratorTests
                 ChatHistory = initializeMessage,
             };
 
-            var speakers = await orchestrator.GetNextSpeakerAsync(context, 1).ToListAsync();
-            speakers.First().Name.Should().Be(message.From);
+            var speaker = await orchestrator.GetNextSpeakerAsync(context);
+            speaker!.Name.Should().Be(message.From);
             initializeMessage.Add(message);
         }
 
         // the last next speaker should be the user
-        var lastSpeakers = await orchestrator.GetNextSpeakerAsync(new OrchestrationContext
+        var lastSpeaker = await orchestrator.GetNextSpeakerAsync(new OrchestrationContext
         {
             Candidates = [coder, reviewer, runner, user],
             ChatHistory = initializeMessage,
-        }, 1).ToListAsync();
+        });
 
-        lastSpeakers.First().Name.Should().Be(user.Name);
+        lastSpeaker!.Name.Should().Be(user.Name);
     }
 }

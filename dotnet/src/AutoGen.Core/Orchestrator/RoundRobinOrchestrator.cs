@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // RoundRobinOrchestrator.cs
 
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
@@ -22,26 +21,25 @@ namespace AutoGen.Core;
 /// </summary>
 public class RoundRobinOrchestrator : IOrchestrator
 {
-    public async IAsyncEnumerable<IAgent> GetNextSpeakerAsync(
+    public async Task<IAgent?> GetNextSpeakerAsync(
         OrchestrationContext context,
-        int maxRound,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         var lastMessage = context.ChatHistory.LastOrDefault();
 
         if (lastMessage == null)
         {
-            yield break;
+            return null;
         }
 
         var candidates = context.Candidates.ToList();
         var lastAgentIndex = candidates.FindIndex(a => a.Name == lastMessage.From);
         if (lastAgentIndex == -1)
         {
-            yield break;
+            return null;
         }
 
         var nextAgentIndex = (lastAgentIndex + 1) % candidates.Count;
-        yield return candidates[nextAgentIndex];
+        return candidates[nextAgentIndex];
     }
 }

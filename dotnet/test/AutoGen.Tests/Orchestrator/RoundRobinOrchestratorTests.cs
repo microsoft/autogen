@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Xunit;
 
 namespace AutoGen.Tests;
@@ -38,14 +39,13 @@ public class RoundRobinOrchestratorTests
         foreach (var (msg, expect) in zip)
         {
             context.ChatHistory = [msg];
-            var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-            Assert.Single(result);
-            Assert.Equal(expect, result.First().Name);
+            var nextSpeaker = await orchestrator.GetNextSpeakerAsync(context);
+            Assert.Equal(expect, nextSpeaker!.Name);
         }
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfNoCandidates()
+    public async Task ItReturnNullIfNoCandidates()
     {
         var orchestrator = new RoundRobinOrchestrator();
         var context = new OrchestrationContext
@@ -57,12 +57,12 @@ public class RoundRobinOrchestratorTests
             },
         };
 
-        var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-        Assert.Empty(result);
+        var result = await orchestrator.GetNextSpeakerAsync(context);
+        Assert.Null(result);
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfLastMessageIsNotFromCandidates()
+    public async Task ItReturnNullIfLastMessageIsNotFromCandidates()
     {
         var orchestrator = new RoundRobinOrchestrator();
         var context = new OrchestrationContext
@@ -79,8 +79,8 @@ public class RoundRobinOrchestratorTests
             },
         };
 
-        var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-        Assert.Empty(result);
+        var result = await orchestrator.GetNextSpeakerAsync(context);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class RoundRobinOrchestratorTests
             },
         };
 
-        var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-        Assert.Empty(result);
+        var result = await orchestrator.GetNextSpeakerAsync(context);
+        result.Should().BeNull();
     }
 }

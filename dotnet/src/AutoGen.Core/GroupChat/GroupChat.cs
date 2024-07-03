@@ -186,22 +186,25 @@ From {agentNames.First()}:
                 Candidates = this.agents,
                 ChatHistory = conversationHistory,
             };
-            await foreach (var nextSpeaker in this.orchestrator.GetNextSpeakerAsync(orchestratorContext, roundLeft, ct))
+            var nextSpeaker = await this.orchestrator.GetNextSpeakerAsync(orchestratorContext, ct);
+            if (nextSpeaker == null)
             {
-                var result = await nextSpeaker.GenerateReplyAsync(conversationHistory, cancellationToken: ct);
-                conversationHistory.Add(result);
+                break;
+            }
 
-                if (result.IsGroupChatTerminateMessage())
-                {
-                    return conversationHistory;
-                }
+            var result = await nextSpeaker.GenerateReplyAsync(conversationHistory, cancellationToken: ct);
+            conversationHistory.Add(result);
 
-                roundLeft--;
+            if (result.IsGroupChatTerminateMessage())
+            {
+                return conversationHistory;
+            }
 
-                if (roundLeft <= 0)
-                {
-                    break;
-                }
+            roundLeft--;
+
+            if (roundLeft <= 0)
+            {
+                break;
             }
         }
 

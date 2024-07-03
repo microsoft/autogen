@@ -42,14 +42,13 @@ public class WorkflowOrchestratorTests
         foreach (var (msg, expect) in zip)
         {
             context.ChatHistory = [msg];
-            var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-            Assert.Single(result);
-            Assert.Equal(expect, result.First().Name);
+            var result = await orchestrator.GetNextSpeakerAsync(context);
+            Assert.Equal(expect, result!.Name);
         }
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfNoCandidates()
+    public async Task ItReturnNullIfNoCandidates()
     {
         var workflow = new Graph();
         var orchestrator = new WorkflowOrchestrator(workflow);
@@ -62,12 +61,12 @@ public class WorkflowOrchestratorTests
             },
         };
 
-        var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-        Assert.Empty(result);
+        var nextAgent = await orchestrator.GetNextSpeakerAsync(context);
+        nextAgent.Should().BeNull();
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfNoAgentIsAvailableFromWorkflowAsync()
+    public async Task ItReturnNullIfNoAgentIsAvailableFromWorkflowAsync()
     {
         var workflow = new Graph();
         var alice = new EchoAgent("Alice");
@@ -83,8 +82,8 @@ public class WorkflowOrchestratorTests
             },
         };
 
-        var result = await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
-        Assert.Empty(result);
+        var nextSpeaker = await orchestrator.GetNextSpeakerAsync(context);
+        nextSpeaker.Should().BeNull();
     }
 
     [Fact]
@@ -106,7 +105,7 @@ public class WorkflowOrchestratorTests
             },
         };
 
-        var action = async () => await orchestrator.GetNextSpeakerAsync(context, 10).ToListAsync();
+        var action = async () => await orchestrator.GetNextSpeakerAsync(context);
 
         await action.Should().ThrowExactlyAsync<Exception>().WithMessage("There are more than one available agents from the workflow for the next speaker.");
     }

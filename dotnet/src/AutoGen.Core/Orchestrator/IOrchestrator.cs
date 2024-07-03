@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
@@ -17,12 +18,11 @@ public class OrchestrationContext
 public interface IOrchestrator
 {
     /// <summary>
-    /// Return the next agent as the next speaker. It can be a single agent (single step) or multiple agents (multi-steps).
+    /// Return the next agent as the next speaker. return null if no agent is selected.
     /// </summary>
     /// <param name="context">orchestration context, such as candidate agents and chat history.</param>
     /// <param name="cancellationToken">cancellation token</param>
-    public IAsyncEnumerable<IAgent> GetNextSpeakerAsync(
+    public Task<IAgent?> GetNextSpeakerAsync(
         OrchestrationContext context,
-        int maxRound,
         CancellationToken cancellationToken = default);
 }

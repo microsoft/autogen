@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
@@ -19,22 +19,20 @@ public class RolePlayOrchestrator : IOrchestrator
         this.workflow = workflow;
     }
 
-    public async IAsyncEnumerable<IAgent> GetNextSpeakerAsync(
+    public async Task<IAgent?> GetNextSpeakerAsync(
         OrchestrationContext context,
-        int maxRound,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         var candidates = context.Candidates.ToList();
 
         if (candidates.Count == 0)
         {
-            yield break;
+            return null;
         }
 
         if (candidates.Count == 1)
         {
-            yield return candidates.First();
-            yield break;
+            return candidates.First();
         }
 
         // if there's a workflow
@@ -45,7 +43,7 @@ public class RolePlayOrchestrator : IOrchestrator
             var lastMessage = context.ChatHistory.LastOrDefault();
             if (lastMessage == null)
             {
-                yield break;
+                return null;
             }
             var currentSpeaker = candidates.First(candidates => candidates.Name == lastMessage.From);
             var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory);
@@ -53,13 +51,12 @@ public class RolePlayOrchestrator : IOrchestrator
             candidates = nextAgents.ToList();
             if (!candidates.Any())
             {
-                yield break;
+                return null;
             }
 
             if (candidates is { Count: 1 })
             {
-                yield return nextAgents.First();
-                yield break;
+                return candidates.First();
             }
         }
 
@@ -96,8 +93,7 @@ From {agentNames.First()}:
 
         if (candidate != null)
         {
-            yield return candidate;
-            yield break;
+            return candidate;
         }
 
         var errorMessage = $"The response from admin is {name}, which is either not in the candidates list or not in the correct format.";
