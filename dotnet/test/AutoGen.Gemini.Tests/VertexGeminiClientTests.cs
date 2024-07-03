@@ -53,7 +53,7 @@ public class VertexGeminiClientTests
         var model = "gemini-1.5-flash-001";
 
         var text = "what's in the image";
-        var imagePath = Path.Combine("testData", "images", "image.png");
+        var imagePath = Path.Combine("testData", "images", "square.png");
         var image = File.ReadAllBytes(imagePath);
         var request = new GenerateContentRequest
         {

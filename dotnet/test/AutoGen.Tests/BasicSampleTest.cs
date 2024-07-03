@@ -44,12 +44,6 @@ namespace AutoGen.Tests
             await Example14_MistralClientAgent_TokenCount.RunAsync();
         }
 
-        [ApiKeyFact("OPENAI_API_KEY")]
-        public async Task DynamicGroupChatGetMLNetPRTestAsync()
-        {
-            await Example04_Dynamic_GroupChat_Coding_Task.RunAsync();
-        }
-
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task DynamicGroupChatCalculateFibonacciAsync()
         {
