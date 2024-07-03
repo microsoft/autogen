@@ -55,7 +55,9 @@ class OllamaClient:
         "it returning only TEXT and not Python or JSON. "
         "In terms of your response format, for step 1 return only JSON and NO OTHER text, "
         "for step 2 return only text and NO JSON/Python/Markdown. "
-        'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}]\n'
+        'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}] '
+        'Make sure the keys "name" and "arguments" are as described. '
+        "If you don't get the format correct, try again. "
         "The following functions are available to you:[FUNCTIONS_LIST]"
     )
 
@@ -407,45 +409,57 @@ def response_to_tool_call(response_string: str) -> Any:
     """Attempts to convert the response to an object, aimed to align with function format [{},{}]"""
 
     # We try and detect the list[dict] format:
-    pattern = r"\[[\s\S]*?\]"
+    # Pattern 1 is [{},{}]
+    # Pattern 2 is {} (without the [], so could be a single function call)
+    patterns = [r"\[[\s\S]*?\]", r"\{[\s\S]*\}"]
 
-    # Search for the pattern in the input string
-    matches = re.findall(pattern, response_string.strip())
+    for i, pattern in enumerate(patterns):
+        # Search for the pattern in the input string
+        matches = re.findall(pattern, response_string.strip())
 
-    for match in matches:
+        for match in matches:
 
-        # It has matched, extract it and load it
-        json_str = match.strip()
-        data_object = None
+            # It has matched, extract it and load it
+            json_str = match.strip()
+            data_object = None
 
-        try:
-            # Attempt to convert it as is
-            data_object = json.loads(json_str)
-        except Exception:
             try:
-                # If that fails, attempt to repair it
+                # Attempt to convert it as is
+                data_object = json.loads(json_str)
+            except Exception:
+                try:
+                    # If that fails, attempt to repair it
 
-                # Enclose to a JSON object for repairing, which is restored upon fix
-                fixed_json = repair_json("{'temp':" + json_str + "}")
-                data_object = json.loads(fixed_json)
-                data_object = data_object["temp"]
-            except json.JSONDecodeError as e:
-                if e.msg == "Invalid \\escape":
-                    # Handle Mistral/Mixtral trying to escape underlines with \\
-                    try:
-                        fixed_json = repair_json("{'temp':" + json_str.replace("\\_", "_") + "}")
+                    if i == 0:
+                        # Enclose to a JSON object for repairing, which is restored upon fix
+                        fixed_json = repair_json("{'temp':" + json_str + "}")
                         data_object = json.loads(fixed_json)
                         data_object = data_object["temp"]
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-
-        if data_object is not None:
-            data_object = _object_to_tool_call(data_object)
+                    else:
+                        fixed_json = repair_json(json_str)
+                        data_object = json.loads(fixed_json)
+                except json.JSONDecodeError as e:
+                    if e.msg == "Invalid \\escape":
+                        # Handle Mistral/Mixtral trying to escape underlines with \\
+                        try:
+                            json_str = json_str.replace("\\_", "_")
+                            if i == 0:
+                                fixed_json = repair_json("{'temp':" + json_str + "}")
+                                data_object = json.loads(fixed_json)
+                                data_object = data_object["temp"]
+                            else:
+                                fixed_json = repair_json("{'temp':" + json_str + "}")
+                                data_object = json.loads(fixed_json)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
 
             if data_object is not None:
-                return data_object
+                data_object = _object_to_tool_call(data_object)
+
+                if data_object is not None:
+                    return data_object
 
     # There's no tool call in the response
     return None
@@ -500,7 +514,7 @@ def _object_to_tool_call(data_object: Any) -> List[Dict]:
 
 def is_valid_tool_call_item(call_item: dict) -> bool:
     """Check that a dictionary item has at least 'name', optionally 'arguments' and no other keys to match a tool call JSON"""
-    if "name" not in call_item and not isinstance(call_item["name"], str):
+    if "name" not in call_item or not isinstance(call_item["name"], str):
         return False
 
     if set(call_item.keys()) - {"name", "arguments"}:
