@@ -100,12 +100,14 @@ class GeminiClient:
         """Uses either either api_key for authentication from the LLM config
         (specifying the GOOGLE_API_KEY environment variable also works),
         or follows the Google authentication mechanism for VertexAI in Google Cloud if no api_key is specified,
-        where project and location can also be passed as parameters. Service account key file can also be used.
-        If neither a service account key file, nor the api_key are passed, then the default credentials will be used,
-        which could be a personal account if the user is already authenticated in, like in Google Cloud Shell.
+        where project and location can also be passed as parameters. Previously created credentials object can be provided,
+        or a Service account key file can also be used. If neither a service account key file, nor the api_key are passed,
+        then the default credentials will be used, which could be a personal account if the user is already authenticated in,
+        like in Google Cloud Shell.
 
         Args:
             api_key (str): The API key for using Gemini.
+            credentials (google.auth.credentials.Credentials): credentials to be used for authentication.
             google_application_credentials (str): Path to the JSON service account key file of the service account.
             Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
             can also be set instead of using this argument.
