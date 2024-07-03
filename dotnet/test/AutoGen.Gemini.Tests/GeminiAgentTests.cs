@@ -8,7 +8,6 @@ using FluentAssertions;
 using AutoGen.Gemini.Extension;
 using static Google.Cloud.AIPlatform.V1.Part;
 using Xunit.Abstractions;
-using AutoGen.Gemini.Middleware;
 namespace AutoGen.Gemini.Tests;
 
 public class GeminiAgentTests
@@ -87,8 +86,8 @@ public class GeminiAgentTests
         var message = MessageEnvelope.Create(textContent, from: agent.Name);
 
         var completion = agent.GenerateStreamingReplyAsync([message]);
-        var chunks = new List<IStreamingMessage>();
-        IStreamingMessage finalReply = null!;
+        var chunks = new List<IMessage>();
+        IMessage finalReply = null!;
 
         await foreach (var item in completion)
         {
@@ -213,8 +212,8 @@ public class GeminiAgentTests
 
         var message = MessageEnvelope.Create(textContent, from: agent.Name);
 
-        var chunks = new List<IStreamingMessage>();
-        IStreamingMessage finalReply = null!;
+        var chunks = new List<IMessage>();
+        IMessage finalReply = null!;
 
         var completion = agent.GenerateStreamingReplyAsync([message]);
 

@@ -61,7 +61,7 @@ The image is generated from prompt {prompt}
         var gpt4vConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-4-vision-preview" });
         var openAIClient = new OpenAIClient(openAIKey);
         var instance = new Example05_Dalle_And_GPT4V(openAIClient);
-        var imagePath = Path.Combine(Environment.CurrentDirectory, "image.jpg");
+        var imagePath = Path.Combine("resource", "images", "background.png");
         if (File.Exists(imagePath))
         {
             File.Delete(imagePath);

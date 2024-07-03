@@ -16,7 +16,7 @@ using Google.Protobuf.WellKnownTypes;
 using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using IMessage = AutoGen.Core.IMessage;
 
-namespace AutoGen.Gemini.Middleware;
+namespace AutoGen.Gemini;
 
 public class GeminiMessageConnector : IStreamingMiddleware
 {
@@ -39,7 +39,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
 
     public string Name => nameof(GeminiMessageConnector);
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = ProcessMessage(context.Messages, agent);
 
