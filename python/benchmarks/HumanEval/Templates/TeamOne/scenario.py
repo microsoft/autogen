@@ -89,7 +89,7 @@ class MyHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             if isinstance(record.msg, OrchestrationEvent):
-                print(f"[{record.msg.timestamp}]: {record.msg.message}", flush=True)
+                print(record.msg.message, flush=True)
         except Exception:
             self.handleError(record)
 

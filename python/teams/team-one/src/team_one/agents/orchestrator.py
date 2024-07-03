@@ -35,11 +35,10 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         logger.info(
             OrchestrationEvent(
                 current_timestamp,
-                f"""
--------------------------------------
-{source}: {message.content.content}
--------------------------------------
-""",
+                f"""{source}:
+
+{message.content.content}
+-------------------------------------""",
             )
         )
 
@@ -54,7 +53,10 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         logger.info(
             OrchestrationEvent(
                 current_timestamp,
-                f"Orchestrator (thought): Next speaker {next_agent.metadata['name']}",
+                f"""Orchestrator (thought):
+
+Next speaker {next_agent.metadata['name']}
+-------------------------------------""",
             )
         )
 
