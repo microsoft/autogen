@@ -81,7 +81,7 @@ namespace <#=NameSpace#>
                         Name = @"<#=parameter.Name#>",
 <#}#>
 <#if (parameter.Description != null) {#>
-                        Description = @"<#=parameter.Description#>",
+                        Description = @"<#= parameter.Description.Replace("\"", "\"\"") #>",
 <#}#>
 <#if (parameter.Type != null) {#>
                         ParameterType = typeof(<#=parameter.Type#>),
