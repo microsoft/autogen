@@ -89,7 +89,7 @@ class FileSurfer(TypeRoutedAgent):
             final_result = response.content
 
         elif isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            results = await asyncio.gather(*[await self.send_message(call, self.id) for call in response.content])
+            results = await asyncio.gather(*[self.send_message(call, self.id) for call in response.content])
             for result in results:
                 assert isinstance(result, FunctionExecutionResult)
             final_result = "\n".join(result.content for result in results)
