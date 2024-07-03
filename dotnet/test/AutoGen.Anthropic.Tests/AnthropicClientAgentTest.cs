@@ -33,6 +33,30 @@ public class AnthropicClientAgentTest
     }
 
     [ApiKeyFact("ANTHROPIC_API_KEY")]
+    public async Task AnthropicAgentMergeMessageWithSameRoleTests()
+    {
+        // this test is added to fix issue #2884
+        var client = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
+
+        var agent = new AnthropicClientAgent(
+            client,
+            name: "AnthropicAgent",
+            AnthropicConstants.Claude3Haiku,
+            systemMessage: "You are a helpful AI assistant that convert user message to upper case")
+            .RegisterMessageConnector();
+
+        var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
+        var anotherUserMessage = new TextMessage(Role.User, "hijklmn");
+        var assistantMessage = new TextMessage(Role.Assistant, "opqrst");
+        var anotherAssistantMessage = new TextMessage(Role.Assistant, "uvwxyz");
+        var yetAnotherUserMessage = new TextMessage(Role.User, "123456");
+
+        // just make sure it doesn't throw exception
+        var reply = await agent.SendAsync(chatHistory: [uppCaseMessage, anotherUserMessage, assistantMessage, anotherAssistantMessage, yetAnotherUserMessage]);
+        reply.GetContent().Should().NotBeNull();
+    }
+
+    [ApiKeyFact("ANTHROPIC_API_KEY")]
     public async Task AnthropicAgentTestProcessImageAsync()
     {
         var client = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);

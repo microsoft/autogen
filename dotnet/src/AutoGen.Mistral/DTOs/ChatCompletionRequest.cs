@@ -105,6 +105,9 @@ public class ChatCompletionRequest
     [JsonPropertyName("random_seed")]
     public int? RandomSeed { get; set; }
 
+    [JsonPropertyName("stop")]
+    public string[]? Stop { get; set; }
+
     [JsonPropertyName("tools")]
     public List<FunctionTool>? Tools { get; set; }
 

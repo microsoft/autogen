@@ -29,8 +29,12 @@ public class WorkflowOrchestrator : IOrchestrator
         }
 
         var candidates = context.Candidates.ToList();
-        var currentSpeaker = candidates.First(candidates => candidates.Name == lastMessage.From);
+        var currentSpeaker = candidates.FirstOrDefault(candidates => candidates.Name == lastMessage.From);
 
+        if (currentSpeaker == null)
+        {
+            yield break;
+        }
         var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory);
         nextAgents = nextAgents.Where(nextAgent => candidates.Any(candidate => candidate.Name == nextAgent.Name));
         candidates = nextAgents.ToList();

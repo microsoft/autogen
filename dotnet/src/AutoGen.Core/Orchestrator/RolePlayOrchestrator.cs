@@ -24,20 +24,30 @@ public class RolePlayOrchestrator : IOrchestrator
         int maxRound,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var lastMessage = context.ChatHistory.LastOrDefault();
-        if (lastMessage == null)
+        var candidates = context.Candidates.ToList();
+
+        if (candidates.Count == 0)
         {
             yield break;
         }
 
-        var candidates = context.Candidates.ToList();
-        var currentSpeaker = candidates.First(candidates => candidates.Name == lastMessage.From);
+        if (candidates.Count == 1)
+        {
+            yield return candidates.First();
+            yield break;
+        }
 
         // if there's a workflow
         // and the next available agent from the workflow is in the group chat
         // then return the next agent from the workflow
         if (this.workflow != null)
         {
+            var lastMessage = context.ChatHistory.LastOrDefault();
+            if (lastMessage == null)
+            {
+                yield break;
+            }
+            var currentSpeaker = candidates.First(candidates => candidates.Name == lastMessage.From);
             var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory);
             nextAgents = nextAgents.Where(nextAgent => candidates.Any(candidate => candidate.Name == nextAgent.Name));
             candidates = nextAgents.ToList();
@@ -49,13 +59,14 @@ public class RolePlayOrchestrator : IOrchestrator
             if (candidates is { Count: 1 })
             {
                 yield return nextAgents.First();
+                yield break;
             }
         }
 
         // In this case, since there are more than one available agents from the workflow for the next speaker
         // the admin will be invoked to decide the next speaker
         var agentNames = candidates.Select(candidate => candidate.Name);
-        var systemMessage = new TextMessage(Role.System,
+        var rolePlayMessage = new TextMessage(Role.User,
             content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
 The available roles are:
 {string.Join(",", agentNames)}
@@ -65,7 +76,7 @@ From {agentNames.First()}:
 //your message//.");
 
         var chatHistoryWithName = this.ProcessConversationsForRolePlay(context.ChatHistory);
-        var messages = new IMessage[] { systemMessage }.Concat(chatHistoryWithName);
+        var messages = new IMessage[] { rolePlayMessage }.Concat(chatHistoryWithName);
 
         var response = await this.admin.GenerateReplyAsync(
             messages: messages,
@@ -74,7 +85,7 @@ From {agentNames.First()}:
                 Temperature = 0,
                 MaxToken = 128,
                 StopSequence = [":"],
-                Functions = [],
+                Functions = null,
             });
 
         var name = response?.GetContent() ?? throw new Exception("No name is returned.");
@@ -86,9 +97,11 @@ From {agentNames.First()}:
         if (candidate != null)
         {
             yield return candidate;
+            yield break;
         }
 
-        yield break;
+        var errorMessage = $"The response from admin is {name}, which is either not in the candidates list or not in the correct format.";
+        throw new Exception(errorMessage);
     }
 
     private IEnumerable<IMessage> ProcessConversationsForRolePlay(IEnumerable<IMessage> messages)
