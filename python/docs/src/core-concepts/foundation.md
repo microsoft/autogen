@@ -72,6 +72,7 @@ send a message to the agent we just registered:
 
 ```python
 agent = runtime.get("my_agent")
+run_context = runtime.start() # Start processing messages in the background.
 await runtime.send_message("Hello, World!", agent)
 ```
 
@@ -87,23 +88,41 @@ is only used to communicate with the agent or retrieve its metadata (e.g., descr
 
 ### Running the Agent Runtime
 
-The above code snippets will not actually produce any output because the
-runtime is not running.
-The local embedded runtime {py:class}`~agnext.application.SingleThreadedAgentRuntime`
-can be called to process messages until there are no more messages to process.
+The above code snippet uses `runtime.start()` to start a background task
+to process and deliver messages to recepients' message handlers.
+This is a feature of the
+local embedded runtime {py:class}`~agnext.application.SingleThreadedAgentRuntime`.
+
+To stop the background task immediately, use the `stop()` method:
 
 ```python
 run_context = runtime.start()
-await run_context.stop_when_idle()
+# ... Send messages, publish messages, etc.
+await run_context.stop() # This will return immediately but will not cancel
+# any in-progress message handling.
 ```
 
-`runtime.start()` will start a background task to process messages. You can directly process messages without a background task using:
+You can resume the background task by calling `start()` again.
+
+For batch scenarios such as running benchmarks for evaluating agents,
+you may want to wait for the background task to stop automatically when
+there are no unprocessed messages and no agent is handling messages --
+the batch may considered complete.
+You can achieve this by using the `stop_when_idle()` method:
+
+```python
+run_context = runtime.start()
+# ... Send messages, publish messages, etc.
+await run_context.stop_when_idle() # This will block until the runtime is idle.
+```
+
+You can also directly process messages one-by-one without a background task using:
 
 ```python
 await runtime.process_next()
 ```
 
-Other runtime implementations will have their own way of running the runtime.
+Other runtime implementations will have their own ways of running the runtime.
 
 ## Messages
 
@@ -330,8 +349,9 @@ the message should be published via the runtime with the
 {py:meth}`agnext.core.AgentRuntime.publish_message` method.
 
 ```python
+# ... Replace send_message with publish_message in the above example.
 await runtime.publish_message("Hello, World! From the runtime!", namespace="default")
-await runtime.process_until_idle()
+# ...
 ```
 
 Running the above code will produce the following output:
