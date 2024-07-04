@@ -104,7 +104,7 @@ public class GPTAgent : IStreamingAgent
         return await _innerAgent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
-    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
