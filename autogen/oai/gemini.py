@@ -107,7 +107,7 @@ class GeminiClient:
 
         Args:
             api_key (str): The API key for using Gemini.
-            credentials (google.auth.credentials.Credentials): credentials to be used for authentication.
+            credentials (google.auth.credentials.Credentials): credentials to be used for authentication with vertexai.
             google_application_credentials (str): Path to the JSON service account key file of the service account.
             Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
             can also be set instead of using this argument.
@@ -175,6 +175,7 @@ class GeminiClient:
         stream = params.get("stream", False)
         n_response = params.get("n", 1)
         system_instruction = params.get("system_instruction", None)
+        response_validation = params.get("response_validation", True)
 
         generation_config = {
             gemini_term: params[autogen_term]
@@ -205,6 +206,7 @@ class GeminiClient:
                     safety_settings=safety_settings,
                     system_instruction=system_instruction,
                 )
+                chat = model.start_chat(history=gemini_messages[:-1], response_validation=response_validation)
             else:
                 # we use chat model by default
                 model = genai.GenerativeModel(
@@ -214,7 +216,7 @@ class GeminiClient:
                     system_instruction=system_instruction,
                 )
                 genai.configure(api_key=self.api_key)
-            chat = model.start_chat(history=gemini_messages[:-1])
+                chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
             for attempt in range(max_retries):
                 ans = None
