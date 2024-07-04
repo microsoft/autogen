@@ -15,14 +15,14 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
 {
     public string? Name => nameof(MistralChatMessageConnector);
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = context.Messages;
         var chatMessages = ProcessMessage(messages, agent);
         var chunks = new List<ChatCompletionResponse>();
         await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
         {
-            if (reply is IStreamingMessage<ChatCompletionResponse> chatMessage)
+            if (reply is IMessage<ChatCompletionResponse> chatMessage)
             {
                 chunks.Add(chatMessage.Content);
                 var response = ProcessChatCompletionResponse(chatMessage, agent);
@@ -167,7 +167,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         }
     }
 
-    private IStreamingMessage? ProcessChatCompletionResponse(IStreamingMessage<ChatCompletionResponse> message, IAgent agent)
+    private IMessage? ProcessChatCompletionResponse(IMessage<ChatCompletionResponse> message, IAgent agent)
     {
         var response = message.Content;
         if (response.VarObject != "chat.completion.chunk")

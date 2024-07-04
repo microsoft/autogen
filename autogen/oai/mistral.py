@@ -175,7 +175,7 @@ class MistralAIClient:
         response_oai = ChatCompletion(
             id=mistral_response.id,
             model=mistral_response.model,
-            created=int(time.time() * 1000),
+            created=int(time.time()),
             object="chat.completion",
             choices=choices,
             usage=CompletionUsage(

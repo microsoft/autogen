@@ -87,7 +87,7 @@ public class OpenAIChatAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletions>(reply, from: this.Name);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
