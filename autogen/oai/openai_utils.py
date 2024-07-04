@@ -96,7 +96,7 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-(proj-)?[A-Za-z0-9]{32,}$")
+    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
     return bool(re.fullmatch(api_key_re, api_key))
 
 
