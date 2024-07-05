@@ -63,7 +63,7 @@ namespace <#=NameSpace#>
                 Name = @"<#=functionContract.Name#>",
 <#}#>
 <#if (functionContract.Description != null) {#>
-                Description = @"<#=functionContract.Description#>",
+                Description = @"<#=functionContract.Description.Replace("\"", "\"\"")#>",
 <#}#>
 <#if (functionContract.ReturnType != null) {#>
                 ReturnType = typeof(<#=functionContract.ReturnType#>),
