@@ -47,7 +47,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         return PostProcessMessage(reply);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(
+    public async IAsyncEnumerable<IMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -57,7 +57,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         string? currentToolName = null;
         await foreach (var reply in streamingReply)
         {
-            if (reply is IStreamingMessage<StreamingChatCompletionsUpdate> update)
+            if (reply is IMessage<StreamingChatCompletionsUpdate> update)
             {
                 if (update.Content.FunctionName is string functionName)
                 {
@@ -98,7 +98,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         };
     }
 
-    public IStreamingMessage? PostProcessStreamingMessage(IStreamingMessage<StreamingChatCompletionsUpdate> update, string? currentToolName)
+    public IMessage? PostProcessStreamingMessage(IMessage<StreamingChatCompletionsUpdate> update, string? currentToolName)
     {
         if (update.Content.ContentUpdate is string contentUpdate)
         {
