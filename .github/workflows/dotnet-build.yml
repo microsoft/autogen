@@ -9,6 +9,8 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -31,9 +33,14 @@ jobs:
           filters: |
             dotnet:
               - "dotnet/**"
+            workflows:
+              - ".github/workflows/**"
       - name: dotnet has changes
         run: echo "dotnet has changes"
         if: steps.filter.outputs.dotnet == 'true'
+      - name: workflows has changes
+        run: echo "workflows has changes"
+        if: steps.filter.outputs.workflows == 'true'
   build:
     name: Dotnet Build
     runs-on: ubuntu-latest
@@ -60,6 +67,31 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
+  aot-test: # this make sure the AutoGen.Core is aot compatible
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        os: [ ubuntu-latest ]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetching all
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: dotnet/global.json
+
+    - name: publish AOT testApp, assert static analysis warning count, and run the app
+      shell: pwsh
+      run: ./.tools/test-aot-compatibility.ps1 ${{ matrix.version }}
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
@@ -67,8 +99,8 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
-    needs: build
+    if: success() && (github.ref == 'refs/heads/main')
+    needs: aot-test
     steps:
     - uses: actions/checkout@v4
       with:

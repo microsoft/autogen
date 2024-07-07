@@ -3,12 +3,13 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutoGen.Tests
 {
-    internal class EchoAgent : IAgent
+    public class EchoAgent : IStreamingAgent
     {
         public EchoAgent(string name)
         {
@@ -26,6 +27,15 @@ namespace AutoGen.Tests
             lastMessage.From = this.Name;
 
             return Task.FromResult(lastMessage);
+        }
+
+        public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            foreach (var message in messages)
+            {
+                message.From = this.Name;
+                yield return message;
+            }
         }
     }
 }

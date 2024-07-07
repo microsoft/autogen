@@ -12,6 +12,8 @@ public static class MessageExtension
 {
     public static string TEXT_CONTENT_TYPE = "text";
     public static string IMAGE_CONTENT_TYPE = "image";
+
+    [Obsolete("This method is deprecated, please replace Message with one of the built-in message types.")]
     public static ChatRequestUserMessage ToChatRequestUserMessage(this Message message)
     {
         if (message.Value is ChatRequestUserMessage message1)
@@ -50,6 +52,7 @@ public static class MessageExtension
         throw new ArgumentException("Content is null and metadata is null");
     }
 
+    [Obsolete("This method is deprecated")]
     public static IEnumerable<ChatRequestMessage> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
     {
         if (message is IMessage<ChatRequestMessage> oaiMessage)
@@ -77,7 +80,7 @@ public static class MessageExtension
             else if (message is ImageMessage imageMessage)
             {
                 // multi-modal
-                var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url)));
+                var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url ?? imageMessage.BuildDataUri())));
 
                 return [msg];
             }
@@ -101,7 +104,7 @@ public static class MessageExtension
                     return m switch
                     {
                         TextMessage textMessage => new ChatMessageTextContentItem(textMessage.Content),
-                        ImageMessage imageMessage => new ChatMessageImageContentItem(new Uri(imageMessage.Url)),
+                        ImageMessage imageMessage => new ChatMessageImageContentItem(new Uri(imageMessage.Url ?? imageMessage.BuildDataUri())),
                         _ => throw new ArgumentException($"Unknown message type: {m.GetType()}")
                     };
                 });

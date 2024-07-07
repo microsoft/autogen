@@ -6,7 +6,7 @@ import os
 import sqlite3
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple, TypeVar, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -18,11 +18,29 @@ from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.cohere import CohereClient
+    from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
+    from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.together import TogetherClient
 
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
 
 __all__ = ("SqliteLogger",)
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def safe_serialize(obj: Any) -> str:
+    def default(o: Any) -> str:
+        if hasattr(o, "to_json"):
+            return str(o.to_json())
+        else:
+            return f"<<non-serializable: {type(o).__qualname__}>>"
+
+    return json.dumps(obj, default=default)
 
 
 class SqliteLogger(BaseLogger):
@@ -48,6 +66,7 @@ class SqliteLogger(BaseLogger):
                     client_id INTEGER,
                     wrapper_id INTEGER,
                     session_id TEXT,
+                    source_name TEXT,
                     request TEXT,
                     response TEXT,
                     is_cached INEGER,
@@ -115,6 +134,18 @@ class SqliteLogger(BaseLogger):
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             """
+            self._run_query(query=query)
+
+            query = """
+                        CREATE TABLE IF NOT EXISTS function_calls (
+                            source_id INTEGER,
+                            source_name TEXT,
+                            function_name TEXT,
+                            args TEXT DEFAULT NULL,
+                            returns TEXT DEFAULT NULL,
+                            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        );
+                        """
             self._run_query(query=query)
 
             current_verion = self._get_current_db_version()
@@ -191,6 +222,7 @@ class SqliteLogger(BaseLogger):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
+        source: Union[str, Agent],
         request: Dict[str, Union[float, str, List[Dict[str, str]]]],
         response: Union[str, ChatCompletion],
         is_cached: int,
@@ -207,10 +239,16 @@ class SqliteLogger(BaseLogger):
         else:
             response_messages = json.dumps(to_dict(response), indent=4)
 
+        source_name = None
+        if isinstance(source, str):
+            source_name = source
+        else:
+            source_name = source.name
+
         query = """
             INSERT INTO chat_completions (
-                invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time, source_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         args = (
             invocation_id,
@@ -223,6 +261,7 @@ class SqliteLogger(BaseLogger):
             cost,
             start_time,
             end_time,
+            source_name,
         )
 
         self._run_query(query=query, args=args)
@@ -235,7 +274,16 @@ class SqliteLogger(BaseLogger):
 
         args = to_dict(
             init_args,
-            exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"),
+            exclude=(
+                "self",
+                "__class__",
+                "api_key",
+                "organization",
+                "base_url",
+                "azure_endpoint",
+                "azure_ad_token",
+                "azure_ad_token_provider",
+            ),
             no_recursive=(Agent,),
         )
 
@@ -300,7 +348,17 @@ class SqliteLogger(BaseLogger):
             return
 
         args = to_dict(
-            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+            init_args,
+            exclude=(
+                "self",
+                "__class__",
+                "api_key",
+                "organization",
+                "base_url",
+                "azure_endpoint",
+                "azure_ad_token",
+                "azure_ad_token_provider",
+            ),
         )
 
         query = """
@@ -315,14 +373,54 @@ class SqliteLogger(BaseLogger):
         )
         self._run_query(query=query, args=args)
 
+    def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: Any) -> None:
+
+        if self.con is None:
+            return
+
+        query = """
+        INSERT INTO function_calls (source_id, source_name, function_name, args, returns, timestamp) VALUES (?, ?, ?, ?, ?, ?)
+        """
+        query_args: Tuple[Any, ...] = (
+            id(source),
+            source.name if hasattr(source, "name") else source,
+            function.__name__,
+            safe_serialize(args),
+            safe_serialize(returns),
+            get_current_ts(),
+        )
+        self._run_query(query=query, args=query_args)
+
     def log_new_client(
-        self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+        self,
+        client: Union[
+            AzureOpenAI,
+            OpenAI,
+            GeminiClient,
+            AnthropicClient,
+            MistralAIClient,
+            TogetherClient,
+            GroqClient,
+            CohereClient,
+        ],
+        wrapper: OpenAIWrapper,
+        init_args: Dict[str, Any],
     ) -> None:
         if self.con is None:
             return
 
         args = to_dict(
-            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+            init_args,
+            exclude=(
+                "self",
+                "__class__",
+                "api_key",
+                "organization",
+                "base_url",
+                "azure_endpoint",
+                "azure_ad_token",
+                "azure_ad_token_provider",
+            ),
         )
 
         query = """

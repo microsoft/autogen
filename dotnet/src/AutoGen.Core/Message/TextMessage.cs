@@ -3,7 +3,7 @@
 
 namespace AutoGen.Core;
 
-public class TextMessage : IMessage, IStreamingMessage
+public class TextMessage : IMessage, ICanGetTextContent
 {
     public TextMessage(Role role, string content, string? from = null)
     {
@@ -44,9 +44,14 @@ public class TextMessage : IMessage, IStreamingMessage
     {
         return $"TextMessage({this.Role}, {this.Content}, {this.From})";
     }
+
+    public string? GetContent()
+    {
+        return this.Content;
+    }
 }
 
-public class TextMessageUpdate : IStreamingMessage
+public class TextMessageUpdate : IMessage, ICanGetTextContent
 {
     public TextMessageUpdate(Role role, string? content, string? from = null)
     {
@@ -60,4 +65,9 @@ public class TextMessageUpdate : IStreamingMessage
     public string? From { get; set; }
 
     public Role Role { get; set; }
+
+    public string? GetContent()
+    {
+        return this.Content;
+    }
 }

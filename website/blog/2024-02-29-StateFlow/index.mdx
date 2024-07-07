@@ -102,7 +102,7 @@ scientist = autogen.AssistantAgent(
 )
 ```
 
-In the Figure, we define a simple workflow for research with 4 states: Init, Retrieve, Reserach, and End. Within each state, we will call different agents to perform the tasks.
+In the Figure, we define a simple workflow for research with 4 states: Init, Retrieve, Research, and End. Within each state, we will call different agents to perform the tasks.
 - Init: We use the initializer to start the workflow.
 - Retrieve: We will first call the coder to write code and then call the executor to execute the code.
 - Research: We will call the scientist to read the papers and write a summary.

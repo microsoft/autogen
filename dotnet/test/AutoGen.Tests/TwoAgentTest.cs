@@ -25,12 +25,12 @@ public partial class TwoAgentTest
         return $"[GetWeatherFunction] The weather in {city} is sunny";
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task TwoAgentWeatherChatTestAsync()
     {
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-        var deploymentName = "gpt-35-turbo-16k";
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
         var config = new AzureOpenAIConfig(endpoint, deploymentName, key);
 
         var assistant = new AssistantAgent(
@@ -68,7 +68,7 @@ public partial class TwoAgentTest
                 else
                 {
                     // terminate message
-                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE);
+                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE);
                 }
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>

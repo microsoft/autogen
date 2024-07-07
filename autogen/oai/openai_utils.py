@@ -13,10 +13,13 @@ from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 from packaging.version import parse
 
-NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
+NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "azure_ad_token", "azure_ad_token_provider"]
+DEFAULT_AZURE_API_VERSION = "2024-02-01"
 OAI_PRICE1K = {
-    # https://openai.com/pricing
+    # https://openai.com/api/pricing/
+    # gpt-4o
+    "gpt-4o": (0.005, 0.015),
+    "gpt-4o-2024-05-13": (0.005, 0.015),
     # gpt-4-turbo
     "gpt-4-turbo-2024-04-09": (0.01, 0.03),
     # gpt-4
@@ -93,7 +96,7 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-(proj-)?[A-Za-z0-9]{32,}$")
+    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
     return bool(re.fullmatch(api_key_re, api_key))
 
 
@@ -124,7 +127,7 @@ def get_config_list(
 
     # Optionally, define the API type and version if they are common for all keys
     api_type = 'azure'
-    api_version = '2024-02-15-preview'
+    api_version = '2024-02-01'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)
@@ -376,11 +379,10 @@ def config_list_gpt4_gpt35(
 def filter_config(
     config_list: List[Dict[str, Any]],
     filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]],
+    exclude: bool = False,
 ) -> List[Dict[str, Any]]:
-    """
-    This function filters `config_list` by checking each configuration dictionary against the
-    criteria specified in `filter_dict`. A configuration dictionary is retained if for every
-    key in `filter_dict`, see example below.
+    """This function filters `config_list` by checking each configuration dictionary against the criteria specified in
+    `filter_dict`. A configuration dictionary is retained if for every key in `filter_dict`, see example below.
 
     Args:
         config_list (list of dict): A list of configuration dictionaries to be filtered.
@@ -391,69 +393,66 @@ def filter_config(
                             when it is found in the list of acceptable values. If the configuration's
                             field's value is a list, then a match occurs if there is a non-empty
                             intersection with the acceptable values.
-
-
+        exclude (bool): If False (the default value), configs that match the filter will be included in the returned
+            list. If True, configs that match the filter will be excluded in the returned list.
     Returns:
         list of dict: A list of configuration dictionaries that meet all the criteria specified
                       in `filter_dict`.
 
     Example:
-    ```python
-    # Example configuration list with various models and API types
-    configs = [
-        {'model': 'gpt-3.5-turbo'},
-        {'model': 'gpt-4'},
-        {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
-        {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
-    ]
-
-    # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
-    # that are also using the 'azure' API type
-    filter_criteria = {
-        'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
-        'api_type': ['azure']       # Only accept configurations for 'azure' API type
-    }
-
-    # Apply the filter to the configuration list
-    filtered_configs = filter_config(configs, filter_criteria)
-
-    # The resulting `filtered_configs` will be:
-    # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
-
-
-    # Define a filter to select a given tag
-    filter_criteria = {
-        'tags': ['gpt35_turbo'],
-    }
-
-    # Apply the filter to the configuration list
-    filtered_configs = filter_config(configs, filter_criteria)
-
-    # The resulting `filtered_configs` will be:
-    # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
-    ```
-
+        ```python
+        # Example configuration list with various models and API types
+        configs = [
+            {'model': 'gpt-3.5-turbo'},
+            {'model': 'gpt-4'},
+            {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+            {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
+        ]
+        # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
+        # that are also using the 'azure' API type
+        filter_criteria = {
+            'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
+            'api_type': ['azure']       # Only accept configurations for 'azure' API type
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
+        # Define a filter to select a given tag
+        filter_criteria = {
+            'tags': ['gpt35_turbo'],
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
+        ```
     Note:
         - If `filter_dict` is empty or None, no filtering is applied and `config_list` is returned as is.
         - If a configuration dictionary in `config_list` does not contain a key specified in `filter_dict`,
           it is considered a non-match and is excluded from the result.
         - If the list of acceptable values for a key in `filter_dict` includes None, then configuration
           dictionaries that do not have that key will also be considered a match.
+
     """
 
-    def _satisfies(config_value: Any, acceptable_values: Any) -> bool:
-        if isinstance(config_value, list):
-            return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
-        else:
-            return config_value in acceptable_values
-
     if filter_dict:
-        config_list = [
-            config
-            for config in config_list
-            if all(_satisfies(config.get(key), value) for key, value in filter_dict.items())
+        return [
+            item
+            for item in config_list
+            if all(_satisfies_criteria(item.get(key), values) != exclude for key, values in filter_dict.items())
         ]
     return config_list
+
+
+def _satisfies_criteria(value: Any, criteria_values: Any) -> bool:
+    if value is None:
+        return False
+
+    if isinstance(value, list):
+        return bool(set(value) & set(criteria_values))  # Non-empty intersection
+    else:
+        return value in criteria_values
 
 
 def config_list_from_json(
@@ -782,3 +781,10 @@ def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Di
             assistant_update_kwargs["file_ids"] = assistant_config["file_ids"]
 
     return client.beta.assistants.update(assistant_id=assistant_id, **assistant_update_kwargs)
+
+
+def _satisfies(config_value: Any, acceptable_values: Any) -> bool:
+    if isinstance(config_value, list):
+        return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
+    else:
+        return config_value in acceptable_values
