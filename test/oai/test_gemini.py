@@ -121,6 +121,24 @@ def test_gemini_message_handling(gemini_client):
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_gemini_empty_message_handling(gemini_client):
+    messages = [
+        {"role": "system", "content": "You are my personal assistant."},
+        {"role": "model", "content": "How can I help you?"},
+        {"role": "user", "content": ""},
+        {
+            "role": "model",
+            "content": "Please provide me with some context or a request! I need more information to assist you.",
+        },
+        {"role": "user", "content": ""},
+    ]
+
+    converted_messages = gemini_client._oai_messages_to_gemini_messages(messages)
+    assert converted_messages[-3].parts[0].text == "empty", "Empty message is not converted to 'empty' correctly"
+    assert converted_messages[-1].parts[0].text == "empty", "Empty message is not converted to 'empty' correctly"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_vertexai_safety_setting_conversion(gemini_client):
     safety_settings = [
         {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},

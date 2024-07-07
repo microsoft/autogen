@@ -305,6 +305,8 @@ class GeminiClient:
         """Convert content from OAI format to Gemini format"""
         rst = []
         if isinstance(content, str):
+            if content == "":
+                content = "empty"  # Empty content is not allowed.
             if self.use_vertexai:
                 rst.append(VertexAIPart.from_text(content))
             else:
