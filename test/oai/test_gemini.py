@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,6 +7,7 @@ try:
     import google.auth
     from google.api_core.exceptions import InternalServerError
     from google.auth.credentials import Credentials
+    from google.cloud.aiplatform.initializer import global_config as vertexai_global_config
     from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
@@ -15,6 +17,10 @@ try:
     skip = False
 except ImportError:
     GeminiClient = object
+    VertexAIHarmBlockThreshold = object
+    VertexAIHarmCategory = object
+    VertexAISafetySetting = object
+    vertexai_global_config = object
     InternalServerError = object
     skip = True
 
@@ -76,6 +82,23 @@ def test_project_initialization():
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_valid_initialization(gemini_client):
     assert gemini_client.api_key == "fake_api_key", "API Key should be correctly set"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_google_application_credentials_initialization():
+    GeminiClient(google_application_credentials="credentials.json", project="fake-project-id")
+    assert (
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] == "credentials.json"
+    ), "Incorrect Google Application Credentials initialization"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_initialization():
+    mock_credentials = MagicMock(Credentials)
+    GeminiClient(credentials=mock_credentials, project="fake-project-id", location="us-west1")
+    assert vertexai_global_config.location == "us-west1", "Incorrect VertexAI location initialization"
+    assert vertexai_global_config.project == "fake-project-id", "Incorrect VertexAI project initialization"
+    assert vertexai_global_config.credentials == mock_credentials, "Incorrect VertexAI credentials initialization"
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
@@ -360,6 +383,52 @@ def test_create_vision_model_response(mock_configure, mock_generative_model, gem
 
     # Call the create method with vision model parameters
     response = gemini_client.create(
+        {
+            "model": "gemini-pro-vision",  # Vision model name
+            "messages": [
+                {
+                    "content": [
+                        {"type": "text", "text": "Let's play a game."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+                            },
+                        },
+                    ],
+                    "role": "user",
+                }
+            ],  # Assuming a simple content input for vision
+            "stream": False,
+        }
+    )
+
+    # Assertions to check if response is structured as expected
+    assert (
+        response.choices[0].message.content == "Vision model output"
+    ), "Response content should match expected output from vision model"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_create_vision_model_response(mock_init, mock_generative_model, gemini_google_auth_default_client):
+    # Mock the genai model configuration and creation process
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+
+    # Set up a mock to simulate the vision model behavior
+    mock_vision_response = MagicMock()
+    mock_vision_part = MagicMock(text="Vision model output")
+
+    # Setting up the chain of return values for vision model response
+    mock_vision_response.candidates.__getitem__.return_value.content.parts.__getitem__.return_value = mock_vision_part
+
+    mock_model.generate_content.return_value = mock_vision_response
+
+    # Call the create method with vision model parameters
+    response = gemini_google_auth_default_client.create(
         {
             "model": "gemini-pro-vision",  # Vision model name
             "messages": [
