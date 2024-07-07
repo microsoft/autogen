@@ -38,7 +38,7 @@ Reply "TERMINATE" in the end when everything is done.
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         description: Optional[str] = None,
         **kwargs,
     ):
