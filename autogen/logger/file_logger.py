@@ -17,7 +17,11 @@ from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
+    from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.together import TogetherClient
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +204,10 @@ class FileLogger(BaseLogger):
             self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_client(
-        self, client: AzureOpenAI | OpenAI | GeminiClient, wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+        self,
+        client: AzureOpenAI | OpenAI | GeminiClient | AnthropicClient | MistralAIClient | TogetherClient | GroqClient,
+        wrapper: OpenAIWrapper,
+        init_args: Dict[str, Any],
     ) -> None:
         """
         Log a new client instance.

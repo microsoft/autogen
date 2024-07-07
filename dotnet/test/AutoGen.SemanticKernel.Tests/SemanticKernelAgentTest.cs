@@ -25,13 +25,14 @@ public partial class SemanticKernelAgentTest
         return $"The weather in {location} is sunny.";
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicConversationTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
 
@@ -53,13 +54,14 @@ public partial class SemanticKernelAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task SemanticKernelChatMessageContentConnectorTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
 
@@ -97,13 +99,14 @@ public partial class SemanticKernelAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task SemanticKernelPluginTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var parameters = this.GetWeatherAsyncFunctionContract.Parameters!.Select(p => new KernelParameterMetadata(p.Name!)
         {
@@ -129,13 +132,14 @@ public partial class SemanticKernelAgentTest
     }
 
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicSkChatCompletionAgentConversationTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
         var agent = new ChatCompletionAgent()
@@ -154,13 +158,14 @@ public partial class SemanticKernelAgentTest
         reply.As<MessageEnvelope<ChatMessageContent>>().From.Should().Be("assistant");
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task SkChatCompletionAgentChatMessageContentConnectorTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
 
@@ -193,13 +198,14 @@ public partial class SemanticKernelAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task SkChatCompletionAgentPluginTestAsync()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var builder = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var parameters = this.GetWeatherAsyncFunctionContract.Parameters!.Select(p => new KernelParameterMetadata(p.Name!)
         {

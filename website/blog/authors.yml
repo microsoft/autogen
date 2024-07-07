@@ -13,14 +13,14 @@ qingyunwu:
 yiranwu:
   name: Yiran Wu
   title: PhD student at Pennsylvania State University
-  url: https://github.com/kevin666aa
-  image_url: https://github.com/kevin666aa.png
+  url: https://github.com/yiranwu0
+  image_url: https://github.com/yiranwu0.png
 
 jialeliu:
   name: Jiale Liu
-  title: Undergraduate student at Xidian University
+  title: PhD student at Pennsylvania State University
   url: https://leoljl.github.io
-  image_url: https://github.com/LeoLjl/leoljl.github.io/blob/main/profile.jpg?raw=true
+  image_url: https://github.com/leoljl.png
 
 thinkall:
   name: Li Jiang
@@ -123,3 +123,8 @@ yifanzeng:
   title: PhD student at Oregon State University
   url: https://xhmy.github.io/
   image_url: https://xhmy.github.io/assets/img/photo.JPG
+
+jluey:
+  name: James Woffinden-Luey
+  title: Senior Research Engineer at Microsoft Research
+  url: https://github.com/jluey1

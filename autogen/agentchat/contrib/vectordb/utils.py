@@ -99,15 +99,20 @@ def chroma_results_to_query_results(data_dict: Dict[str, List[List[Any]]], speci
         ]
     """
 
-    keys = [key for key in data_dict if key != special_key]
+    keys = [
+        key
+        for key in data_dict
+        if key != special_key and data_dict[key] is not None and isinstance(data_dict[key][0], list)
+    ]
     result = []
+    data_special_key = data_dict[special_key]
 
-    for i in range(len(data_dict[special_key])):
+    for i in range(len(data_special_key)):
         sub_result = []
-        for j, distance in enumerate(data_dict[special_key][i]):
+        for j, distance in enumerate(data_special_key[i]):
             sub_dict = {}
             for key in keys:
-                if data_dict[key] is not None and len(data_dict[key]) > i:
+                if len(data_dict[key]) > i:
                     sub_dict[key[:-1]] = data_dict[key][i][j]  # remove 's' in the end from key
             sub_result.append((sub_dict, distance))
         result.append(sub_result)

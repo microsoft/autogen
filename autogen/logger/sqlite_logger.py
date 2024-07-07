@@ -18,7 +18,11 @@ from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
+    from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
+    from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.together import TogetherClient
 
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
@@ -387,7 +391,10 @@ class SqliteLogger(BaseLogger):
         self._run_query(query=query, args=query_args)
 
     def log_new_client(
-        self, client: Union[AzureOpenAI, OpenAI, GeminiClient], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+        self,
+        client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient, GroqClient],
+        wrapper: OpenAIWrapper,
+        init_args: Dict[str, Any],
     ) -> None:
         if self.con is None:
             return
