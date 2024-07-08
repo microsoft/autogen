@@ -5,7 +5,9 @@ using System.Runtime.CompilerServices;
 using AutoGen.Core;
 using AutoGen.Service;
 
-var dummyAgent = new DummyAgent();
+var alice = new DummyAgent("alice");
+var bob = new DummyAgent("bob");
+
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
@@ -13,7 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
 var app = builder.Build();
 
-app.UseAgentAsOpenAIChatCompletionEndpoint(dummyAgent);
+app.UseAgentAsOpenAIChatCompletionEndpoint(alice);
+app.UseAgentAsOpenAIChatCompletionEndpoint(bob);
 
 app.Run();
 
@@ -28,12 +31,12 @@ public class DummyAgent : IStreamingAgent
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return new TextMessage(Role.Assistant, "I am dummy agent", this.Name);
+        return new TextMessage(Role.Assistant, $"I am dummy {this.Name}", this.Name);
     }
 
     public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var reply = "I am dummy agent";
+        var reply = $"I am dummy {this.Name}";
         foreach (var c in reply)
         {
             yield return new TextMessageUpdate(Role.Assistant, c.ToString(), this.Name);

@@ -10,7 +10,9 @@ public static class Extension
 {
     /// <summary>
     /// Serve the agent as an OpenAI chat completion endpoint using <see cref="OpenAIChatCompletionMiddleware"/>.
-    /// The endpoint will be available at /v1/chat/completions
+    /// If the request path is /v1/chat/completions and model name is the same as the agent name,
+    /// the request will be handled by the agent.
+    /// otherwise, the request will be passed to the next middleware.
     /// </summary>
     /// <param name="app">application builder</param>
     /// <param name="agent"><see cref="IAgent"/></param>

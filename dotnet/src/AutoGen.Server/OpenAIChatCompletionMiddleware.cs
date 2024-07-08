@@ -32,12 +32,19 @@ public class OpenAIChatCompletionMiddleware : Microsoft.AspNetCore.Http.IMiddlew
         // call next middleware
         if (context.Request.Method == HttpMethods.Post && context.Request.Path == "/v1/chat/completions")
         {
+            context.Request.EnableBuffering();
             var body = await context.Request.ReadFromJsonAsync<OpenAIChatCompletionOption>();
-
+            context.Request.Body.Position = 0;
             if (body is null)
             {
                 // return 400 Bad Request
                 context.Response.StatusCode = 400;
+                return;
+            }
+
+            if (body.Model != _agent.Name)
+            {
+                await next(context);
                 return;
             }
 
