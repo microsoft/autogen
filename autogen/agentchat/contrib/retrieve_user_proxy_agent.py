@@ -1,14 +1,14 @@
 import hashlib
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from IPython import get_ipython
 
 try:
     import chromadb
-except ImportError:
-    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
+except ImportError as e:
+    raise ImportError(f"{e}. You can try `pip install pyautogen[retrievechat]`, or install `chromadb` manually.")
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
@@ -81,6 +81,7 @@ Context is: {input_context}
 """
 
 HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
+UPDATE_CONTEXT_IN_PROMPT = "you should reply exactly `UPDATE CONTEXT`"
 
 
 class RetrieveUserProxyAgent(UserProxyAgent):
@@ -91,7 +92,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def __init__(
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "ALWAYS",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
@@ -253,7 +254,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._vector_db = self._retrieve_config.get("vector_db", "chroma")
         self._db_config = self._retrieve_config.get("db_config", {})
-        self._client = self._retrieve_config.get("client", chromadb.Client())
+        self._client = self._retrieve_config.get("client", None)
+        if self._client is None:
+            self._client = chromadb.Client()
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
         self._new_docs = self._retrieve_config.get("new_docs", True)
@@ -346,7 +349,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    self._max_tokens,
+                    self._chunk_token_size,
                     self._chunk_mode,
                     self._must_break_at_empty_line,
                 )
@@ -469,7 +472,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
+        update_context_case1 = "UPDATE CONTEXT" in message.upper() and UPDATE_CONTEXT_IN_PROMPT not in message
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
 

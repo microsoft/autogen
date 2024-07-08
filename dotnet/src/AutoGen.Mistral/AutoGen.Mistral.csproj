@@ -16,10 +16,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Memory.Data" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
   </ItemGroup>
 

@@ -1,13 +1,15 @@
 import os
+import shutil
 import sys
 import tempfile
 import uuid
+import venv
 from pathlib import Path
 
 import pytest
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.code_utils import decide_use_docker, is_docker_running
+from autogen.code_utils import WIN32, decide_use_docker, is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
@@ -393,3 +395,47 @@ def test_silent_pip_install(cls, lang: str) -> None:
     code_blocks = [CodeBlock(code=code, language=lang)]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output
+
+
+def test_local_executor_with_custom_python_env():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(temp_dir)
+        env_builder_context = env_builder.ensure_directories(temp_dir)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
+        code_blocks = [
+            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
+            CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
+        ]
+        execution = executor.execute_code_blocks(code_blocks)
+
+        assert execution.exit_code == 0
+        assert execution.output.strip() == "True"
+
+
+def test_local_executor_with_custom_python_env_in_local_relative_path():
+    try:
+        relative_folder_path = "temp_folder"
+        if not os.path.isdir(relative_folder_path):
+            os.mkdir(relative_folder_path)
+
+        venv_path = os.path.join(relative_folder_path, ".venv")
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(venv_path)
+        env_builder_context = env_builder.ensure_directories(venv_path)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
+        code_blocks = [
+            CodeBlock(code="import sys; print(sys.executable)", language="python"),
+        ]
+        execution = executor.execute_code_blocks(code_blocks)
+
+        assert execution.exit_code == 0
+
+        # Check if the expected venv is used
+        bin_path = os.path.abspath(env_builder_context.bin_path)
+        assert Path(execution.output.strip()).parent.samefile(bin_path)
+    finally:
+        if os.path.isdir(relative_folder_path):
+            shutil.rmtree(relative_folder_path)

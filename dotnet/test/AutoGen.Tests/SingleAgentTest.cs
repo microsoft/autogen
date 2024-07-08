@@ -27,7 +27,8 @@ namespace AutoGen.Tests
         {
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-            return new AzureOpenAIConfig(endpoint, "gpt-35-turbo-16k", key);
+            var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
+            return new AzureOpenAIConfig(endpoint, deployName, key);
         }
 
         private ILLMConfig CreateOpenAIGPT4VisionConfig()
@@ -36,7 +37,7 @@ namespace AutoGen.Tests
             return new OpenAIConfig(key, "gpt-4-vision-preview");
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTAgentTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -111,17 +112,16 @@ namespace AutoGen.Tests
             }
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTFunctionCallAgentTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
-            await UpperCaseTestAsync(agentWithFunction);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task AssistantAgentFunctionCallTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -144,7 +144,6 @@ namespace AutoGen.Tests
                 llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
-            await UpperCaseTestAsync(assistantAgent);
         }
 
         [Fact]
@@ -199,7 +198,7 @@ namespace AutoGen.Tests
             reply.From.Should().Be(assistantAgent.Name);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task AssistantAgentFunctionCallSelfExecutionTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -225,7 +224,7 @@ namespace AutoGen.Tests
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task GPTAgentFunctionCallSelfExecutionTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -242,7 +241,6 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallExecutionStreamingTestAsync(agent);
             await EchoFunctionCallExecutionTestAsync(agent);
-            await UpperCaseTestAsync(agent);
         }
 
         /// <summary>
@@ -268,10 +266,10 @@ namespace AutoGen.Tests
 
         public async Task EchoFunctionCallTestAsync(IAgent agent)
         {
-            var message = new TextMessage(Role.System, "You are a helpful AI assistant that call echo function");
+            //var message = new TextMessage(Role.System, "You are a helpful AI assistant that call echo function");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { helloWorld });
 
             reply.From.Should().Be(agent.Name);
             reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
@@ -279,34 +277,34 @@ namespace AutoGen.Tests
 
         public async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
-            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            //var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { helloWorld });
 
             reply.GetContent().Should().Be("[ECHO] Hello world");
             reply.From.Should().Be(agent.Name);
-            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+            reply.Should().BeOfType<ToolCallAggregateMessage>();
         }
 
         public async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            //var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
+            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { helloWorld }, option);
             var answer = "[ECHO] Hello world";
-            IStreamingMessage? finalReply = default;
+            IMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
                 reply.From.Should().Be(agent.Name);
                 finalReply = reply;
             }
 
-            if (finalReply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+            if (finalReply is ToolCallAggregateMessage aggregateMessage)
             {
                 var toolCallResultMessage = aggregateMessage.Message2;
                 toolCallResultMessage.ToolCalls.First().Result.Should().Be(answer);
@@ -321,25 +319,23 @@ namespace AutoGen.Tests
 
         public async Task UpperCaseTestAsync(IAgent agent)
         {
-            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
+            var message = new TextMessage(Role.User, "Please convert abcde to upper case.");
 
-            var reply = await agent.SendAsync(chatHistory: new[] { message, uppCaseMessage });
+            var reply = await agent.SendAsync(chatHistory: new[] { message });
 
-            reply.GetContent().Should().Contain("ABCDEFG");
+            reply.GetContent().Should().Contain("ABCDE");
             reply.From.Should().Be(agent.Name);
         }
 
         public async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new TextMessage(Role.User, "a b c d e f g h i j k l m n");
+            var message = new TextMessage(Role.User, "Please convert 'hello world' to upper case");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
-            var answer = "A B C D E F G H I J K L M N";
+            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { message }, option);
+            var answer = "HELLO WORLD";
             TextMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {

@@ -5,27 +5,27 @@ using AutoGen.SourceGenerator;
 
 internal static class FunctionExtension
 {
-    public static string GetFunctionName(this FunctionContract function)
+    public static string GetFunctionName(this SourceGeneratorFunctionContract function)
     {
         return function.Name ?? string.Empty;
     }
 
-    public static string GetFunctionSchemaClassName(this FunctionContract function)
+    public static string GetFunctionSchemaClassName(this SourceGeneratorFunctionContract function)
     {
         return $"{function.GetFunctionName()}Schema";
     }
 
-    public static string GetFunctionDefinitionName(this FunctionContract function)
+    public static string GetFunctionDefinitionName(this SourceGeneratorFunctionContract function)
     {
         return $"{function.GetFunctionName()}Function";
     }
 
-    public static string GetFunctionWrapperName(this FunctionContract function)
+    public static string GetFunctionWrapperName(this SourceGeneratorFunctionContract function)
     {
         return $"{function.GetFunctionName()}Wrapper";
     }
 
-    public static string GetFunctionContractName(this FunctionContract function)
+    public static string GetFunctionContractName(this SourceGeneratorFunctionContract function)
     {
         return $"{function.GetFunctionName()}FunctionContract";
     }

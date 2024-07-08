@@ -8,26 +8,20 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-/// <summary>
-/// Obsolete: please use <see cref="Graph"/>
-/// </summary>
-[Obsolete("please use Graph")]
-public class Workflow : Graph
-{
-    [Obsolete("please use Graph")]
-    public Workflow(IEnumerable<Transition> transitions)
-        : base(transitions)
-    {
-    }
-}
-
 public class Graph
 {
     private readonly List<Transition> transitions = new List<Transition>();
 
-    public Graph(IEnumerable<Transition> transitions)
+    public Graph()
     {
-        this.transitions.AddRange(transitions);
+    }
+
+    public Graph(IEnumerable<Transition>? transitions)
+    {
+        if (transitions != null)
+        {
+            this.transitions.AddRange(transitions);
+        }
     }
 
     public void AddTransition(Transition transition)

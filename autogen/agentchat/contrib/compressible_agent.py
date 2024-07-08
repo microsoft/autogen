@@ -1,8 +1,7 @@
-import asyncio
 import copy
 import inspect
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from warnings import warn
 
 from autogen import Agent, ConversableAgent, OpenAIWrapper
@@ -13,8 +12,8 @@ from ...formatting_utils import colored
 logger = logging.getLogger(__name__)
 
 warn(
-    "Context handling with CompressibleAgent is deprecated. "
-    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/capabilities/transform_messages",
+    "Context handling with CompressibleAgent is deprecated and will be removed in `0.2.30`. "
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -60,7 +59,7 @@ Reply "TERMINATE" in the end when everything is done.
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, bool]] = False,
         llm_config: Optional[Union[Dict, bool]] = None,

@@ -1,10 +1,17 @@
 [
   {
     "title": "AutoTx - Crypto Transactions Agent",
-    "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
+    "link": "https://www.agentcoin.org/blog/autotx",
     "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
     "image": "autotx.png",
     "tags": ["tools", "groupchat", "app", "blockchain"]
+  },
+  {
+    "title": "AutoGen Virtual Focus Group",
+    "link": "https://github.com/msamylea/autogen_focus_group",
+    "description": "A virtual consumer focus group with multiple custom personas, product details, and final analysis created with AutoGen, Ollama/Llama3, and Streamlit.",
+    "image": "default.png",
+    "tags": ["ui", "groupchat"]
   },
   {
     "title": "Function Generator & Validator",

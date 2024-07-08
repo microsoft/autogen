@@ -26,6 +26,8 @@ public class ToolCall
 
     public string FunctionArguments { get; set; }
 
+    public string? ToolCallId { get; set; }
+
     public string? Result { get; set; }
 
     public override string ToString()
@@ -34,7 +36,7 @@ public class ToolCall
     }
 }
 
-public class ToolCallMessage : IMessage
+public class ToolCallMessage : IMessage, ICanGetToolCalls, ICanGetTextContent
 {
     public ToolCallMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
@@ -45,7 +47,7 @@ public class ToolCallMessage : IMessage
     public ToolCallMessage(string functionName, string functionArgs, string? from = null)
     {
         this.From = from;
-        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) };
+        this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) { ToolCallId = functionName } };
     }
 
     public ToolCallMessage(ToolCallMessageUpdate update)
@@ -78,6 +80,12 @@ public class ToolCallMessage : IMessage
 
     public string? From { get; set; }
 
+    /// <summary>
+    /// Some LLMs might also include text content in a tool call response, like GPT.
+    /// This field is used to store the text content in that case.
+    /// </summary>
+    public string? Content { get; set; }
+
     public override string ToString()
     {
         var sb = new StringBuilder();
@@ -89,9 +97,19 @@ public class ToolCallMessage : IMessage
 
         return sb.ToString();
     }
+
+    public IEnumerable<ToolCall> GetToolCalls()
+    {
+        return this.ToolCalls;
+    }
+
+    public string? GetContent()
+    {
+        return this.Content;
+    }
 }
 
-public class ToolCallMessageUpdate : IStreamingMessage
+public class ToolCallMessageUpdate : IMessage
 {
     public ToolCallMessageUpdate(string functionName, string functionArgumentUpdate, string? from = null)
     {
