@@ -1,23 +1,17 @@
 import {
   ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
-  UserGroupIcon,
-  UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Dropdown, MenuProps, Modal, message } from "antd";
+import { Dropdown, Modal, message } from "antd";
 import * as React from "react";
-import { IAgentEvalCriteria as IAgentEvalCriteria, IModelConfig, IStatus } from "../../types";
+import { IAgentEvalCriteria as IAgentEvalCriteria, IChatSession, IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
   sampleWorkflowConfig,
-  sanitizeConfig,
-  timeAgo,
   truncateText,
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
@@ -32,17 +26,12 @@ const AgentEvalView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listCriteriaUrl = `${serverUrl}/agenteval/criteria`;
-  const createCriteriaUrl = `${serverUrl}/agenteval/criteria/{criteria_id}`;
-  const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate`;
 
   const [criteria_list, setCriteria] = React.useState<IAgentEvalCriteria[] | null>([]);
   const [selectedCriteria, setSelectedCriteria] =
     React.useState<IAgentEvalCriteria | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  // const [newCriteria, setNewCriteria] = React.useState<IAgentEvalCriteria | null>(
-  //   defaultConfig
-  // );
 
   const [showCriteriaModal, setShowCriteriaModal] = React.useState(false);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);
@@ -50,7 +39,6 @@ const AgentEvalView = ({}: any) => {
   const fetchCriteria = () => {
     setError(null);
     setLoading(true);
-    // const fetch;
     const payLoad = {
       method: "GET",
       headers: {
@@ -78,7 +66,6 @@ const AgentEvalView = ({}: any) => {
   const deleteCriteria = (criteria: IAgentEvalCriteria) => {
     setError(null);
     setLoading(true);
-    // const fetch;
     const deleteWorkflowsUrl = `${serverUrl}/agenteval/criteria/delete/${criteria.id}`;
     const payLoad = {
       method: "DELETE",
@@ -201,6 +188,7 @@ const AgentEvalView = ({}: any) => {
 
     
     const [models, setModels] = React.useState<IModelConfig[]>([]);
+    const [sessions, setSessions] = React.useState<IChatSession[]>([]);
     const { user } = React.useContext(appContext);
 
     React.useEffect(() => {
@@ -234,6 +222,37 @@ const AgentEvalView = ({}: any) => {
       fetchModels();
     }, []);
 
+    React.useEffect(() => {
+      const fetchSessions = async () => {
+        const serverUrl = getServerUrl();
+        const listSessionsUrl = `${serverUrl}/sessions?user_id=${user?.email}`;
+        const payload = {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        };
+
+        const onSuccess = (data: any) => {
+          if (data && data.status) {
+            setSessions(data.data);
+          } else {
+            message.error(data.message);
+          }
+          setLoading(false);
+        };
+        const onError = (err: any) => {
+          setError(err);
+          message.error(err.message);
+          setLoading(false);
+        };
+
+        fetchJSON(listSessionsUrl, payload, onSuccess, onError);
+      };
+  
+      fetchSessions();
+    }, []);
+
     return (
       <Modal
         title={
@@ -259,6 +278,7 @@ const AgentEvalView = ({}: any) => {
             <CriteriaViewer
               criteria={localCriteria}
               setCriteria={setLocalCriteria}
+              sessions={sessions}
               models={models}
               close={closeModal}
             />
@@ -273,14 +293,6 @@ const AgentEvalView = ({}: any) => {
     setShowCriteriaModal(true);
   };
 
-  // const criteriaTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-  //   if (key === "uploadworkflow") {
-  //     uploadWorkflow();
-  //     return;
-  //   }
-  //   showWorkflow(sampleWorkflowConfig(key));
-  // };
-
   return (
     <div className=" text-primary ">
       <CriteriaModal
@@ -292,15 +304,6 @@ const AgentEvalView = ({}: any) => {
           fetchCriteria();
         }}
       />
-      {/*
-      <WorkflowModal
-        workflow={newCriteria}
-        showModal={showNewWorkflowModal}
-        setShowModal={setShowNewWorkflowModal}
-        handler={(workflow: IAgentEvalCriteria) => {
-          fetchCriteria();
-        }}
-      /> */}
 
       <div className="mb-2   relative">
         <div className="     rounded  ">
@@ -312,7 +315,6 @@ const AgentEvalView = ({}: any) => {
             <div className=" ">
               <Dropdown.Button
                 type="primary"
-              //   menu={{ items: workflowTypes, onClick: criteriaTypesOnClick }}
                 placement="bottomRight"
                 trigger={["click"]}
                 onClick={() => {
@@ -330,7 +332,6 @@ const AgentEvalView = ({}: any) => {
           </div>
           {criteria_list && criteria_list.length > 0 && (
             <div
-              // style={{ minHeight: "500px" }}
               className="w-full relative"
             >
               <LoadingOverlay loading={loading} />

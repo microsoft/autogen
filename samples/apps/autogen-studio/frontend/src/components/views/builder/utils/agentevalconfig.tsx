@@ -1,36 +1,42 @@
 import React from "react";
-import { IStatus, IAgentEvalCriteria, IModelConfig } from "../../../types";
+import { IStatus, IAgentEvalCriteria, IModelConfig, IChatSession } from "../../../types";
 import { ControlRowView, MonacoEditor } from "../../../atoms";
 import {
   fetchJSON,
-  getRandomIntFromDateAndSalt,
   getServerUrl,
   truncateText,
 } from "../../../utils";
-import { Button, Checkbox, Drawer, Input, Select, Tabs, message, theme } from "antd";
+import { Button, Checkbox, Drawer, Input, Modal, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
 import { UserIcon, LightBulbIcon } from "@heroicons/react/24/outline";
 import { WorkflowAgentSelector, WorkflowTypeSelector } from "./selectors";
 import ChatBox from "../../playground/chatbox";
+import { UserInfo } from "os";
 
 
 export const JsonCriteriaViewConfig = ({
   criteria,
   setCriteria,
+  models,
+  sessions,
   close,
 }: {
   criteria: IAgentEvalCriteria;
   setCriteria: (newFlowConfig: IAgentEvalCriteria) => void;
+  models: IModelConfig[];
+  sessions: IChatSession[];
   close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<IStatus | null>(null);
+  const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const createCriteriaUrl = `${serverUrl}/agenteval/criteria/create?criteria&task`;
   const validateCriteriaUrl = `${serverUrl}/agenteval/criteria/validate/${criteria.criteria}`;
 
   const [controlChanged, setControlChanged] = React.useState<boolean>(false);
   const [localCriteria, setLocalCriteria] = React.useState<IAgentEvalCriteria>(criteria);
+  const [validCriteria, setValidCriteria] = React.useState<boolean>(criteria.id);
 
   const updateFlowConfig = (key: string, value: string) => {
     // When an updatedFlowConfig is created using localWorkflow, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localWorkflow->flowConfig. Fixed a bug.
@@ -98,6 +104,7 @@ export const JsonCriteriaViewConfig = ({
     const onSuccess = (data: any) => {
       if (data.status) {
         message.success("Criteria successfully validated")
+        setValidCriteria(true);
       } else {
         message.error(data.message);
       }
@@ -115,49 +122,10 @@ export const JsonCriteriaViewConfig = ({
     fetchJSON(validateCriteriaUrl, payLoad, onSuccess, onError, onFinal);
   };
 
-  const quantifyCriteria = (criteria: IAgentEvalCriteria) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-
-    const validatePayload = {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-
-    const onValidateSuccess = (data: any) => {
-      if (data.status) {
-        
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-    const onValidateError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    const onValidateFinal = () => {
-      setLoading(false);
-      setControlChanged(false);
-    };
-    fetchJSON(validateCriteriaUrl, validatePayload, onValidateSuccess, onValidateError, onValidateFinal);
-  }
-
   const hasChanged = !controlChanged && criteria.id !== undefined;
-  const [drawerOpen, setDrawerOpen] = React.useState<boolean>(false);
 
-  const openDrawer = () => {
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-  };
   const editorRef = React.useRef<any | null>(null);
+  const [showQuantifyModal, setShowQuantifyModal] = React.useState(false);
 
   return (
     <>
@@ -168,7 +136,6 @@ export const JsonCriteriaViewConfig = ({
           className="mt-4 mb-2"
           description="Name of the task that the criteria with evaluate on."
           value = ""
-          // value={localCriteria.task_name}
           control={
             <Input
               className="mt-2 w-full"
@@ -182,7 +149,6 @@ export const JsonCriteriaViewConfig = ({
           title="Task Description"
           className="mt-4 mb-2"
           description="Description of the task that the criteria with evaluate on."
-          // value={localCriteria.task_description}
           value = ""
           control={
             <Input
@@ -203,15 +169,41 @@ export const JsonCriteriaViewConfig = ({
         />
       </div>
       <div className="w-full mt-4 text-right">
-        <Button
-          type="primary"
-          onClick={() => {
-            quantifyCriteria(localCriteria);
-          }}
-          loading={loading}
-        >
-          {"Quantify Criteria"}
-        </Button>
+        <div>
+          {criteria.id && validCriteria && (
+            <Button
+              type="primary"
+              onClick={() => setShowQuantifyModal(true)}
+              loading={loading}
+            >
+              {"Quantify Criteria"}
+            </Button>
+          )}
+          <Modal
+            title={
+              <>
+                Quantify Criteria{" "}
+                <span className="text-accent font-normal">
+                  {localCriteria?.task_name}
+                </span>{" "}
+              </>
+            }
+            open={showQuantifyModal}
+            onOk={() => setShowQuantifyModal(false)}
+            onCancel={() => setShowQuantifyModal(false)}
+            footer={[]}
+            >
+            <>
+              <QuantifyCriteria
+                criteria={criteria}
+                serverUrl={serverUrl}
+                models={models}
+                sessions={sessions}
+                close={close}
+              />
+            </>
+          </Modal>
+        </div>
         {" "}
         {!hasChanged && (
           <Button
@@ -246,32 +238,18 @@ export const JsonCriteriaViewConfig = ({
           Close
         </Button>
       </div>
-
-      {/* <Drawer
-        title={<div>{criteria?.name || "Test Workflow"}</div>}
-        size="large"
-        onClose={closeDrawer}
-        open={drawerOpen}
-      >
-        <div className="h-full ">
-          {drawerOpen && (
-            <ChatBox
-              initMessages={[]}
-              session={dummySession}
-              heightOffset={100}
-            />
-          )}
-        </div>
-      </Drawer> */}
     </>
   );
 };
 
+
 export const CriteriaGenerateConfig = ({
   models,
+  sessions,
   close,
 }: {
   models: IModelConfig[];
+  sessions: IChatSession[];
   close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -288,21 +266,13 @@ export const CriteriaGenerateConfig = ({
       use_subcritic: false
     });
   const [selectedModel, setSelectedModel] = React.useState("");
+  const [selectedSuccessSession, setSelectedSuccessSession] = React.useState("");
+  const [selectedFailureSession, setSelectedFailureSession] = React.useState("");
   const serverUrl = getServerUrl();
-  const createCriteriaUrl = `${serverUrl}/agenteval/criteria/create?criteria&task`;
   const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate?user_id=guestuser@gmail.com&model_id=${generateParams.model_id}&success_session_id=${generateParams.success_session_id}&failure_session_id=${generateParams.model_id}&additional_instructions=${generateParams.additional_instructions}&max_round=${generateParams.max_round}&use_subcritic=${generateParams.use_subcritic}`;
 
   const [controlChanged, setControlChanged] = React.useState<boolean>(false);
   
-
-  // const updateFlowConfig = (key: string, value: string) => {
-  //   // When an updatedFlowConfig is created using localWorkflow, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localWorkflow->flowConfig. Fixed a bug.
-  //   const updatedFlowConfig = { ...params, [key]: value };
-
-  //   setLocalAgentEvalGenerate(updatedFlowConfig);
-  //   setControlChanged(true);
-  // };
-
   const generateCriteria = (generateParams: IAgentEvalGenerate) => {
     setError(null);
     setLoading(true);
@@ -340,17 +310,6 @@ export const CriteriaGenerateConfig = ({
     fetchJSON(generateCriteriaUrl, payLoad, onSuccess, onError, onFinal);
   };
 
-  const hasChanged = !controlChanged;
-  const [drawerOpen, setDrawerOpen] = React.useState<boolean>(false);
-
-  const openDrawer = () => {
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-  };
-  const editorRef = React.useRef<any | null>(null);
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
@@ -392,14 +351,21 @@ export const CriteriaGenerateConfig = ({
             title="Successful Session Example"
             className="mt-4 mb-2"
             description="Example of a successful agent execution in solving the task."
-            value={generateParams.success_session_id}
+            value={selectedSuccessSession}
             control={
-              <Input
+              <Select
                 className="mt-2 w-full"
-                value={generateParams.success_session_id}
-                onChange={(e) => {
-                  setGenerateParams({...generateParams, success_session_id: e.target.value})
+                onChange={(selectedValue: any) => {
+                  setGenerateParams({...generateParams, success_session_id: selectedValue});
+                  const selectedSession = sessions.find(session => session.id === selectedValue);
+                  setSelectedSuccessSession(selectedSession ? selectedSession.name : "");
                 }}
+                options={
+                  sessions?.map(session => ({
+                    value: session.id,
+                    label: session.name
+                  }))
+                }
               />
             }
           />
@@ -407,15 +373,22 @@ export const CriteriaGenerateConfig = ({
             title="Failed Session Example"
             className="mt-4 mb-2"
             description="Example of a failed agent execution in solving the task."
-            value={generateParams.failure_session_id}
+            value={selectedFailureSession}
             control={
-              <Input
-                className="mt-2 w-full"
-                value={generateParams.failure_session_id}
-                onChange={(e) => {
-                  setGenerateParams({...generateParams, failure_session_id: e.target.value})
-                }}
-              />
+            <Select
+              className="mt-2 w-full"
+              onChange={(selectedValue: any) => {
+                setGenerateParams({...generateParams, failure_session_id: selectedValue}); // TODO: This doesn't get updated
+                const selectedSession = sessions.find(session => session.id === selectedValue);
+                setSelectedFailureSession(selectedSession ? selectedSession.name : "");
+              }}
+              options={
+                sessions?.map(session => ({
+                  value: session.id,
+                  label: session.name
+                }))
+              }
+            />
             }
           />
         </div>
@@ -423,7 +396,7 @@ export const CriteriaGenerateConfig = ({
           <ControlRowView
             title="Model selection"
             className="mt-4 mb-2"
-            description="Example of a failed agent execution in solving the task."
+            description="Which model to use during Criteria Generation"
             value={selectedModel}
             control={
             <Select
@@ -451,8 +424,8 @@ export const CriteriaGenerateConfig = ({
               <>
                 <ControlRowView
                   title="Additional Instructions"
-                  description=""
-                  value={""}
+                  description="Additional instrcutions to pass along to the criteria agent."
+                  value={truncateText(generateParams.additional_instructions, 20)}
                   control={
                     <Input
                       className="mt-2 w-full"
@@ -501,6 +474,7 @@ export const CriteriaGenerateConfig = ({
             type="primary"
             onClick={() => {
               generateCriteria(generateParams);
+              close();
             }}
             loading={loading}
           >
@@ -525,16 +499,15 @@ export const CriteriaViewer = ({
   criteria,
   setCriteria,
   models,
+  sessions,
   close,
 }: {
   criteria: IAgentEvalCriteria;
   setCriteria: (criteria: IAgentEvalCriteria) => void;
   models: IModelConfig[];
+  sessions: IChatSession[];
   close: () => void;
 }) => {
-
-  
-
   let items = [
     {
       label: (
@@ -550,6 +523,8 @@ export const CriteriaViewer = ({
           <JsonCriteriaViewConfig
             criteria={criteria}
             setCriteria={setCriteria}
+            models={models}
+            sessions={sessions}
             close={close}
           />
         </div>
@@ -571,6 +546,7 @@ export const CriteriaViewer = ({
         <div>
           <CriteriaGenerateConfig
             models={models}
+            sessions={sessions}
             close={close}
           />
         </div>
@@ -587,5 +563,140 @@ export const CriteriaViewer = ({
         items={items}
       />
     </div>
+  );
+};
+
+export const QuantifyCriteria = ({
+  criteria,
+  serverUrl,
+  models,
+  sessions,
+  close,
+}: {
+  criteria: IAgentEvalCriteria;
+  serverUrl: string;
+  models: IModelConfig[];
+  sessions: IChatSession[];
+  close: () => void;
+}) => {
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<IStatus | null>(null);
+  const quantifyCriteriaUrl = `${serverUrl}/agenteval/quantify?criteria_id=${criteria.id}&model_id=${criteria.model_id}&test_session_id=${criteria.execution_session_id}`
+  const [selectedSession, setSelectedSession] = React.useState("");
+  const [selectedModel, setSelectedModel] = React.useState("");
+
+  const quantifyCriteria = (criteria: IAgentEvalCriteria) => {
+    const payLoad = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        "name": criteria.task_name, 
+        "description": criteria.task_description, 
+        "successful_response": "",
+        "failed_response": ""
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data) {
+        const element = document.createElement("a");
+        const file = new Blob([data], {
+          type: "application/json",
+        });
+        element.href = URL.createObjectURL(file);
+        element.download = `results.json`;
+        document.body.appendChild(element); // Required for this to work in FireFox
+        element.click();
+        message.success("Results are in the downloaded file.")
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    const onFinal = () => {
+      setLoading(false);
+    };
+    fetchJSON(quantifyCriteriaUrl, payLoad, onSuccess, onError, onFinal);
+  };
+
+  return (
+    <>
+      {/* <div className="mb-2">{flowConfig.name}</div> */}
+      <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between'}}>
+        <div style={{flex: 1, marginRight: '20px'}}>
+          <ControlRowView
+            title="Successful Session Example"
+            className="mt-4 mb-2"
+            description="Example of a successful agent execution in solving the task."
+            value={selectedSession}
+            control={
+              <Select
+                className="mt-2 w-full"
+                onChange={(selectedValue: any) => {
+                  const selectedSession = sessions.find(session => session.id === selectedValue);
+                  setSelectedSession(selectedSession ? selectedSession.name : "");
+                }}
+                options={
+                  sessions?.map(session => ({
+                    value: session.id,
+                    label: session.name
+                  }))
+                }
+              />
+            }
+          />
+          <ControlRowView
+            title="Model selection"
+            className="mt-4 mb-2"
+            description="Which model to use during Criteria Generation"
+            value={selectedModel}
+            control={
+            <Select
+              className="mt-2 w-full"
+              onChange={(selectedValue: any) => {
+                console.log("SelectedValue: " + selectedValue)
+                const selectedModel = models.find(model => model.id === selectedValue);
+                setSelectedModel(selectedModel ? selectedModel.model : "");
+              }}
+              options={
+                models?.map(model => ({
+                  value: model.id,
+                  label: model.model
+                }))
+              }
+            />
+            }
+          />
+        </div>
+      </div>
+      <div>
+          <Button
+              type="primary"
+              onClick={() => {
+                quantifyCriteria(criteria);
+              }}
+              loading={loading}
+            >
+              Quantify Criteria
+          </Button>
+          <Button
+            className="ml-2"
+            key="close"
+            type="default"
+            onClick={() => {
+              close();
+            }}
+          >
+            Close
+          </Button>
+        </div>
+    </>
   );
 };

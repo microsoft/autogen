@@ -65,7 +65,6 @@ def quantify_criteria(
     criteria: List[Criterion] = None,
     task: Task = None,
     test_case: str = "",
-    ground_truth: str = "",
 ):
     """
     Quantifies the performance of a system using the provided criteria.
@@ -74,7 +73,6 @@ def quantify_criteria(
         criteria ([Criterion]): A list of criteria for evaluating the utility of a given task.
         task (Task): The task to evaluate.
         test_case (str): The test case to evaluate.
-        ground_truth (str): The ground truth for the test case.
     Returns:
         dict: A dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
     """
@@ -98,4 +96,4 @@ def quantify_criteria(
         + test_case,
     )
     quantified_results = quantifier_user.last_message()
-    return {"actual_success": ground_truth, "estimated_performance": quantified_results["content"]}
+    return quantified_results["content"]

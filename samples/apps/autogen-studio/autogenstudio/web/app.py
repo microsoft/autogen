@@ -9,7 +9,7 @@ from typing import Any
 
 from autogenstudio.utils.utils import sanitize_model
 
-from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria
+from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.task import Task
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -453,19 +453,6 @@ async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, s
     #     messages = (await list_messages(user_id=user_id, session_id=failure_session_id)).data
     #     task.failed_response = str(messages)
 
-    # filters = {"id": model_id}
-    # model = list_entity(Model, filters=filters).data
-    # print(model)
-    # if(model and len(model) > 0):
-    #     model = model[0]
-    # else:
-    #     return {
-    #         "status": False,
-    #         "message": "Invalid model id"
-    #     }
-
-    # model = sanitize_model(model)
-
     # TODO: remove and replace with actual agenteval call when openai is more consistent
     criteria_file = "/home/jluey/code/autogen/test/test_files/agenteval-in-out/samples/sample_math_criteria.json"
     criteria = open(criteria_file, "r").read()
@@ -511,6 +498,40 @@ async def validate_agenteval_criteria(criteria: str):
     }
 
 
+@api.post("/agenteval/quantify")
+async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task, test_session_id: int, user_id: str):
+    filters = {"criteria_list_id": criteria_id}
+    criteria = list_entity(CriterionModel, filters=filters, return_json=True).data
+    criteria = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in criteria]
+
+    model = get_model(model_id)
+
+    # test_case = get_session(user_id=user_id, session_id=test_session_id)
+    return "Temporary results"
+    # return quantify_criteria(llm_config=model, criteria=criteria, task=task, test_case=test_case)
+
+
+async def get_session(user_id:int, session_id:int):
+    filters = {"user_id": user_id, "session_id": session_id}
+    session = list_entity(Message, filters=filters, order="asc", return_json=True).data
+    return str(session)  
+
+
+def get_model(model_id: int):
+    filters = {"id": model_id}
+    model = list_entity(Model, filters=filters).data
+    print(model)
+    if(model and len(model) > 0):
+        model = model[0]
+    else:
+        return {
+            "status": False,
+            "message": "Invalid model id"
+        }
+
+    return sanitize_model(model)
+
+
 @api.get("/version")
 async def get_version():
     return {
@@ -518,7 +539,6 @@ async def get_version():
         "message": "Version retrieved successfully",
         "data": {"version": VERSION},
     }
-
 
 # websockets
 
