@@ -20,7 +20,7 @@ class BaseAgent(ABC, Agent):
             subscriptions=self._subscriptions,
         )
 
-    def __init__(self, description: str, subscriptions: Sequence[type]) -> None:
+    def __init__(self, description: str, subscriptions: Sequence[str]) -> None:
         try:
             runtime, id = agent_instantiation_context.get()
         except LookupError as e:

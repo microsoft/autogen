@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, TypeVar, cast
 
 from ..core import (
+    MESSAGE_TYPE_REGISTRY,
     Agent,
     AgentId,
     AgentMetadata,
@@ -121,7 +122,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def __init__(self, *, intervention_handler: InterventionHandler | None = None) -> None:
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
-        self._per_type_subscribers: DefaultDict[tuple[str, type], Set[AgentId]] = defaultdict(set)
+        self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[str, Callable[[], Agent] | Callable[[AgentRuntime, AgentId], Agent]] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
         self._intervention_handler = intervention_handler
@@ -290,7 +291,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         responses: List[Awaitable[Any]] = []
         target_namespace = message_envelope.namespace
-        for agent_id in self._per_type_subscribers[(target_namespace, type(message_envelope.message))]:
+        for agent_id in self._per_type_subscribers[
+            (target_namespace, MESSAGE_TYPE_REGISTRY.type_name(message_envelope.message))
+        ]:
             if message_envelope.sender is not None and agent_id.name == message_envelope.sender.name:
                 continue
 

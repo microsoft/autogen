@@ -5,4 +5,4 @@ class AgentMetadata(TypedDict):
     name: str
     namespace: str
     description: str
-    subscriptions: Sequence[type]
+    subscriptions: Sequence[str]

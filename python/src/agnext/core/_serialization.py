@@ -114,3 +114,9 @@ class Serialization:
 
     def serialize(self, message: Any, *, type_name: str) -> str:
         return self._serializers[type_name].serialize(message)
+
+    def is_registered(self, type_name: str) -> bool:
+        return type_name in self._deserializers
+
+
+MESSAGE_TYPE_REGISTRY = Serialization()

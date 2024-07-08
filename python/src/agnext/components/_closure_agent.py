@@ -6,6 +6,7 @@ from ..core._agent_id import AgentId
 from ..core._agent_metadata import AgentMetadata
 from ..core._agent_runtime import AgentRuntime, agent_instantiation_context
 from ..core._cancellation_token import CancellationToken
+from ..core._serialization import MESSAGE_TYPE_REGISTRY
 from ..core.exceptions import CantHandleException
 from ._type_helpers import get_types
 
@@ -54,7 +55,11 @@ class ClosureAgent(Agent):
         self._runtime: AgentRuntime = runtime
         self._id: AgentId = id
         self._description = description
-        self._subscriptions = get_subscriptions_from_closure(closure)
+        subscription_types = get_subscriptions_from_closure(closure)
+        for message_type in subscription_types:
+            if not MESSAGE_TYPE_REGISTRY.is_registered(MESSAGE_TYPE_REGISTRY.type_name(message_type)):
+                MESSAGE_TYPE_REGISTRY.add_type(message_type)
+        self._subscriptions = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscription_types]
         self._closure = closure
 
     @property
@@ -80,7 +85,7 @@ class ClosureAgent(Agent):
         return self._runtime
 
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
-        if type(message) not in self._subscriptions:
+        if MESSAGE_TYPE_REGISTRY.type_name(message) not in self._subscriptions:
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._subscriptions} of {self.id}"
             )

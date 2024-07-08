@@ -28,7 +28,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.application.message_serialization import Serialization
+from agnext.core import MESSAGE_TYPE_REGISTRY
 
 from ..core import (
     Agent,
@@ -177,7 +177,7 @@ class WorkerAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
-        self._per_type_subscribers: DefaultDict[tuple[str, type], Set[AgentId]] = defaultdict(set)
+        self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[str, Callable[[], Agent] | Callable[[AgentRuntime, AgentId], Agent]] = {}
         # If empty, then all namespaces are valid for that agent type
         self._valid_namespaces: Dict[str, Sequence[str]] = {}
@@ -185,7 +185,6 @@ class WorkerAgentRuntime(AgentRuntime):
         self._known_namespaces: set[str] = set()
         self._read_task: None | Task[None] = None
         self._running = False
-        self._serialization = Serialization()
         self._pending_requests: Dict[str, Future[Any]] = {}
         self._pending_requests_lock = threading.Lock()
         self._next_request_id = 0
@@ -227,10 +226,10 @@ class WorkerAgentRuntime(AgentRuntime):
                     future.set_result(response.result)
                 case "event":
                     event: Event = message.event
-                    message = self._serialization.deserialize(event.data, type_name=event.type)
+                    message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
                     namespace = event.namespace
 
-                    for agent_id in self._per_type_subscribers[(namespace, type(message))]:
+                    for agent_id in self._per_type_subscribers[(namespace, MESSAGE_TYPE_REGISTRY.type_name(message))]:
                         agent = self._get_agent(agent_id)
                         try:
                             await agent.on_message(message, CancellationToken())
@@ -301,8 +300,8 @@ class WorkerAgentRuntime(AgentRuntime):
         assert explicit_namespace is not None or sender_namespace is not None
         actual_namespace = cast(str, explicit_namespace or sender_namespace)
         self._process_seen_namespace(actual_namespace)
-        message_type = self._serialization.type_name(message)
-        serialized_message = self._serialization.serialize(message, type_name=message_type)
+        message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
+        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
         message = Message(event=Event(namespace=actual_namespace, type=message_type, data=serialized_message))
 
         async def write_message() -> None:
@@ -371,7 +370,6 @@ class WorkerAgentRuntime(AgentRuntime):
         agent = self._invoke_agent_factory(agent_factory, agent_id)
         for message_type in agent.metadata["subscriptions"]:
             self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
-            self._serialization.add_type(message_type)
 
         self._instantiated_agents[agent_id] = agent
         return agent
@@ -392,6 +390,3 @@ class WorkerAgentRuntime(AgentRuntime):
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
             self._get_agent(AgentId(name=name, namespace=namespace))
-
-    def add_serialization_type(self, message_type: type) -> None:
-        self._serialization.add_type(message_type)

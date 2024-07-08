@@ -17,7 +17,7 @@ from typing import (
     runtime_checkable,
 )
 
-from ..core import BaseAgent, CancellationToken
+from ..core import MESSAGE_TYPE_REGISTRY, BaseAgent, CancellationToken
 from ..core.exceptions import CantHandleException
 from ._type_helpers import AnyType, get_types
 
@@ -143,7 +143,11 @@ class TypeRoutedAgent(BaseAgent):
                     for target_type in message_handler.target_types:
                         self._handlers[target_type] = message_handler
         subscriptions = list(self._handlers.keys())
-        super().__init__(description, subscriptions)
+        for message_type in self._handlers.keys():
+            if not MESSAGE_TYPE_REGISTRY.is_registered(MESSAGE_TYPE_REGISTRY.type_name(message_type)):
+                MESSAGE_TYPE_REGISTRY.add_type(message_type)
+        subscriptions_str = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscriptions]
+        super().__init__(description, subscriptions_str)
 
     async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore

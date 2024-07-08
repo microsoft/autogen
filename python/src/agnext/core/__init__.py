@@ -10,6 +10,7 @@ from ._agent_proxy import AgentProxy
 from ._agent_runtime import AgentRuntime, agent_instantiation_context
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
+from ._serialization import MESSAGE_TYPE_REGISTRY, TypeDeserializer, TypeSerializer
 
 __all__ = [
     "Agent",
@@ -21,4 +22,7 @@ __all__ = [
     "CancellationToken",
     "AgentChildren",
     "agent_instantiation_context",
+    "MESSAGE_TYPE_REGISTRY",
+    "TypeSerializer",
+    "TypeDeserializer",
 ]

@@ -47,6 +47,7 @@ dependencies = [
     "pytest-mock",
     "grpcio-tools",
     "markdownify",
+    "types-protobuf",
 ]
 
 [tool.hatch.envs.default.extra-scripts]
