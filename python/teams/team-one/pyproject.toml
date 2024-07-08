@@ -17,6 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "agnext@{root:parent:parent:uri}",
+    "aiofiles"
 ]
 
 [tool.hatch.envs.default]
