@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIChatCompletionMiddleware.cs
 
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoGen.Core;
 using AutoGen.Server;
@@ -39,10 +40,42 @@ public class OpenAIChatCompletionMiddleware : Microsoft.AspNetCore.Http.IMiddlew
                 context.Response.StatusCode = 400;
                 return;
             }
-            var chatCompletion = await chatCompletionService.GetChatCompletionAsync(body);
-            await context.Response.WriteAsJsonAsync(chatCompletion);
 
-            return;
+            if (body.Stream is true)
+            {
+                // Send as server side events
+                context.Response.Headers.Append("Content-Type", "text/event-stream");
+                context.Response.Headers.Append("Cache-Control", "no-cache");
+                context.Response.Headers.Append("Connection", "keep-alive");
+                await foreach (var chatCompletion in chatCompletionService.GetStreamingChatCompletionAsync(body))
+                {
+                    if (chatCompletion?.Choices?[0].FinishReason is "stop")
+                    {
+                        // the stream is done
+                        // send Data: [DONE]\n\n
+                        await context.Response.WriteAsync("data: [DONE]\n\n");
+                        break;
+                    }
+                    else
+                    {
+                        // remove null
+                        var option = new JsonSerializerOptions
+                        {
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                        };
+                        var data = JsonSerializer.Serialize(chatCompletion, option);
+                        await context.Response.WriteAsync($"data: {data}\n\n");
+                    }
+                }
+
+                return;
+            }
+            else
+            {
+                var chatCompletion = await chatCompletionService.GetChatCompletionAsync(body);
+                await context.Response.WriteAsJsonAsync(chatCompletion);
+                return;
+            }
         }
         else
         {

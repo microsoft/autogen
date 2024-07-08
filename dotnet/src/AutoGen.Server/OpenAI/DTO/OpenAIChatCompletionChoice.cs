@@ -15,4 +15,7 @@ internal class OpenAIChatCompletionChoice
 
     [JsonPropertyName("message")]
     public OpenAIChatCompletionMessage? Message { get; set; }
+
+    [JsonPropertyName("delta")]
+    public OpenAIChatCompletionMessage? Delta { get; set; }
 }

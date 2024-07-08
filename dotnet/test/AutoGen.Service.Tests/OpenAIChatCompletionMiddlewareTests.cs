@@ -34,6 +34,30 @@ public class OpenAIChatCompletionMiddlewareTests
         response.From.Should().Be("test");
     }
 
+    [Fact]
+    public async Task ItReturnTextMessageWhenSendTextMessageUseStreaming()
+    {
+        var agent = new EchoAgent("test");
+        var hostBuilder = CreateHostBuilder(agent);
+        using var host = await hostBuilder.StartAsync();
+        var client = host.GetTestClient();
+        var openaiClient = CreateOpenAIClient(client);
+        var openAIAgent = new OpenAIChatAgent(openaiClient, "test", "test")
+            .RegisterMessageConnector();
+
+        var message = new TextMessage(Role.User, "ABCDEFGHIJKLMN");
+        var chunks = new List<IMessage>();
+        await foreach (var chunk in openAIAgent.GenerateStreamingReplyAsync([message]))
+        {
+            chunk.Should().BeOfType<TextMessageUpdate>();
+            chunks.Add(chunk);
+        }
+
+        var mergedChunks = string.Join("", chunks.Select(c => c.GetContent()));
+        mergedChunks.Should().Be("ABCDEFGHIJKLMN");
+        chunks.Count.Should().Be(14);
+    }
+
     private IHostBuilder CreateHostBuilder(IAgent agent)
     {
         return new HostBuilder()
