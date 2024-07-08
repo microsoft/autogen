@@ -32,9 +32,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Mistral", "src\Auto
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Mistral.Tests", "test\AutoGen.Mistral.Tests\AutoGen.Mistral.Tests.csproj", "{15441693-3659-4868-B6C1-B106F52FF3BA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI", "src\AutoGen.Server\AutoGen.WebAPI.csproj", "{257FFD71-08E5-40C7-AB04-6A81A78EB410}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI", "src\AutoGen.WebAPI\AutoGen.WebAPI.csproj", "{257FFD71-08E5-40C7-AB04-6A81A78EB410}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Tests", "test\AutoGen.Service.Tests\AutoGen.WebAPI.Tests.csproj", "{E2EF5E66-683C-4DDC-8ADA-5F676502B9BA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Tests", "test\AutoGen.WebAPI.Tests\AutoGen.WebAPI.Tests.csproj", "{E2EF5E66-683C-4DDC-8ADA-5F676502B9BA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Tests", "test\AutoGen.SemanticKernel.Tests\AutoGen.SemanticKernel.Tests.csproj", "{1DFABC4A-8458-4875-8DCB-59F3802DAC65}"
 EndProject
@@ -66,7 +66,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AotCompatibility.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "sample\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{0E635268-351C-4A6B-A28D-593D868C2CA4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "sample\AutoGen.Service.Sample\AutoGen.WebAPI.Sample.csproj", "{12079C18-A519-403F-BBFD-200A36A0C083}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "sample\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{12079C18-A519-403F-BBFD-200A36A0C083}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
