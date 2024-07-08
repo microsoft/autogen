@@ -6,7 +6,7 @@ authors:
   - jieyuz2
 tags: [LLM, GPT, AutoBuild]
 ---
-![Illustration of how Captain Agent build a team](./img/overall.png)
+![Illustration of how Captain Agent build a team](img/overall.png)
 
 **TL;DR**
 - We introduce Captain Agent, an agent equipped with the capability to adaptively assemble a team of agents through retrieval-selection-generation process to handle complex tasks via nested chat.
@@ -15,10 +15,12 @@ tags: [LLM, GPT, AutoBuild]
 
 # Introduction
 
-In this blog, we introduce **Captain Agent**, an agent that can automatically build a team of agents to fulfill diverse, complex task requirements. We design a two-step workflow for Captain Agent to build a high quality team for problem-solving:
-
+In this blog, we introduce **Captain Agent**, an agent that can automatically build a team of agents to fulfill diverse, complex task requirements. 
+We design a two-step workflow for Captain Agent to build a high quality team and solve the problem:
 - (**Step 1**) Captain Agent will first identify a subtask instructed by our prompt, list several roles needed for this subtask, and then create a team of agents accordingly by retrieval, selection, and generation. Each of these will be equipped with predefined tools retrieved from the tool library.
+![Building workflow](img/build.png)
 - (**Step 2**) this team of agents will attempt to solve the subtask via conversation with the free-form tool using. Once it's done, a reflector LLM will provide Captain Agent with a reflection report for it to decide whether to adjust the team or subtask instruction or to terminate and output the results.
+![Building workflow](img/chat.png)
 
 Below is the instruction on how to use Captain Agent in AutoGen.
 
