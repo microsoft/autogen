@@ -1,13 +1,12 @@
 import asyncio
+from typing import Tuple
 
-from agnext.components import TypeRoutedAgent, message_handler
-from agnext.components.models import UserMessage
 from agnext.core import CancellationToken
 
-from team_one.messages import BroadcastMessage, RequestReplyMessage
+from .base_agent import BaseAgent, UserContent
 
 
-class UserProxy(TypeRoutedAgent):
+class UserProxy(BaseAgent):
     """An agent that allows the user to play the role of an agent in the conversation."""
 
     DEFAULT_DESCRIPTION = "A human user."
@@ -18,25 +17,12 @@ class UserProxy(TypeRoutedAgent):
     ) -> None:
         super().__init__(description)
 
-    @message_handler
-    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        """Handle an incoming broadcast message."""
-        pass
-
-    @message_handler
-    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+    async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
-
         # Make an inference to the model.
         response = await self.ainput("User input ('exit' to quit): ")
-
         response = response.strip()
-
-        await self.publish_message(
-            BroadcastMessage(
-                content=UserMessage(content=response, source=self.metadata["name"]), request_halt=(response == "exit")
-            )
-        )
+        return response == "exit", response
 
     async def ainput(self, prompt: str) -> str:
         return await asyncio.to_thread(input, f"{prompt} ")

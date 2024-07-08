@@ -1,22 +1,18 @@
 import asyncio
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
-from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
-    AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
     SystemMessage,
-    UserMessage,
 )
 from agnext.core import CancellationToken
 
-from team_one.messages import BroadcastMessage, RequestReplyMessage
+from .base_agent import BaseAgent, UserContent
 
 
-class Coder(TypeRoutedAgent):
+class Coder(BaseAgent):
     """An agent that uses tools to write, execute, and debug Python code."""
 
     DEFAULT_DESCRIPTION = "A Python coder assistant."
@@ -50,44 +46,22 @@ If the code was executed, and the output appears to indicate that the original p
         super().__init__(description)
         self._model_client = model_client
         self._system_messages = system_messages
-        self._chat_history: List[LLMMessage] = []
 
-    @message_handler
-    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        """Handle an incoming broadcast message."""
-        assert isinstance(message.content, UserMessage)
-        self._chat_history.append(message.content)
-
-    @message_handler
-    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+    async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
 
         # Make an inference to the model.
         response = await self._model_client.create(self._system_messages + self._chat_history)
         assert isinstance(response.content, str)
-        self._chat_history.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
-
-        await self.publish_message(
-            BroadcastMessage(
-                content=UserMessage(content=response.content, source=self.metadata["name"]),
-                request_halt=("TERMINATE" in response.content),
-            )
-        )
+        return "TERMINATE" in response.content, response.content
 
 
-class Executor(TypeRoutedAgent):
+class Executor(BaseAgent):
     def __init__(self, description: str, executor: Optional[CodeExecutor] = None) -> None:
         super().__init__(description)
         self._executor = executor or LocalCommandLineCodeExecutor()
-        self._chat_history: List[LLMMessage] = []
 
-    @message_handler
-    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        """Handle an incoming broadcast message."""
-        self._chat_history.append(message.content)
-
-    @message_handler
-    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+    async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
 
         # Extract code block from the message.
@@ -100,21 +74,14 @@ class Executor(TypeRoutedAgent):
             )
             cancellation_token.link_future(future)
             result = await future
-
-            str_result = (
-                f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}"
-            )
-            await self.publish_message(
-                BroadcastMessage(content=UserMessage(content=str_result, source=self.metadata["name"]))
+            return (
+                False,
+                f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
             )
         else:
-            await self.publish_message(
-                BroadcastMessage(
-                    content=UserMessage(
-                        content="No code block detected. Please provide a markdown-encoded code block to execute for the original task.",
-                        source=self.metadata["name"],
-                    )
-                )
+            return (
+                False,
+                "No code block detected. Please provide a markdown-encoded code block to execute for the original task.",
             )
 
     def _extract_execution_request(self, markdown_text: str) -> Union[str, None]:
