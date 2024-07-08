@@ -22,7 +22,12 @@
 			"installTools": true,
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers-contrib/features/hatch:2": {}
+		"ghcr.io/devcontainers-contrib/features/hatch:2": {},
+		"ghcr.io/devcontainers/features/dotnet:2": {
+			"version": "8.0.302"
+		},
+		"ghcr.io/elanhasson/devcontainer-features/dotnet-aspire-daily:1": {},
+		"ghcr.io/devcontainers/features/azure-cli:1": {}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -37,7 +42,9 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.debugpy",
-				"GitHub.copilot"
+				"GitHub.copilot",
+				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.vscodeintellicode-csharp"
 			]
 		}
 	}
