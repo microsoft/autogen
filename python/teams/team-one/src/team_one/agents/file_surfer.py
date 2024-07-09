@@ -1,50 +1,62 @@
 import asyncio
-import copy
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import aiofiles
-from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
+from agnext.components import FunctionCall, message_handler
 from agnext.components.models import (
-    AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
-    LLMMessage,
     SystemMessage,
-    UserMessage,
 )
 from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
+from typing_extensions import Annotated
 
-from ..messages import BroadcastMessage, RequestReplyMessage
+from .base_agent import BaseAgent, UserContent
 
 
-async def read_local_file(file_path: str) -> str:
-    """Async read the contents of a local file."""
+async def read_local_file(file_path: Annotated[str, "relative or absolute path of file to read"]) -> str:
+    """Read contents of a file."""
     try:
         async with aiofiles.open(file_path, mode="r") as file:
-            return str(await file.read())
+            file_contents = str(await file.read())
+            return f"""
+Here are the contents of the file at path: {file_path}
+```
+{file_contents}
+```
+"""
+
     except FileNotFoundError:
         return f"File not found: {file_path}"
 
 
-def list_files_in_directory(dir_path: str) -> str:
-    """List files in a directory asynchronously and return them as a single string."""
+def list_files_and_dirs_like_tree(dir_path: str) -> str:
+    """List files and directories in a directory in a format similar to 'tree' command with level 1."""
     path = Path(dir_path)
-    # Joining the file names into a single string separated by new lines
-    return "\n".join(item.name for item in path.iterdir() if item.is_file())
+    if not path.is_dir():
+        return f"{dir_path} is not a valid directory."
+
+    items = [f"{dir_path}"]
+    for item in path.iterdir():
+        if item.is_dir():
+            items.append(f"├── {item.name}/")  # Indicate directories with a trailing slash
+        else:
+            items.append(f"├── {item.name}")  # List files as is
+    return "\n".join(items)
 
 
-class FileSurfer(TypeRoutedAgent):
+class FileSurfer(BaseAgent):
     """An agent that uses tools to read and navigate local files."""
 
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""You are a helpful AI Assistant. Use your tools to solve problems
-                      that involve reading and navigating files.
-                      """),
+        SystemMessage("""
+        You are a helpful AI Assistant.
+        When given a user query, use available functions to help the user with their request."""),
     ]
 
     def __init__(
@@ -59,31 +71,18 @@ class FileSurfer(TypeRoutedAgent):
         self._tools = [
             FunctionTool(
                 read_local_file,
-                description="Read the contents of a local file.",
+                description="Use this function to read the contents of a local file whose relative or absolute path is given.",
                 name="read_local_file",
             ),
             FunctionTool(
-                list_files_in_directory,
-                description="Read the contents of a directory",
-                name="list_files_in_directory",
+                list_files_and_dirs_like_tree,
+                description="List files and directories in a directory in a format similar to 'tree' command with level 1",
+                name="list_files_and_dirs_like_tree",
             ),
         ]
-        self._history: List[LLMMessage] = []
 
-    @message_handler
-    async def on_broadcast_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        """Handle a user message, execute the model and tools, and returns the response."""
-        assert isinstance(message.content, UserMessage)
-        self._history.append(message.content)
-
-    @message_handler
-    async def on_request_reply_message(
-        self, message: RequestReplyMessage, cancellation_token: CancellationToken
-    ) -> None:
-        session: List[LLMMessage] = copy.deepcopy(self._history)
-
-        response = await self._model_client.create(self._system_messages + session, tools=self._tools)
-        session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+    async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
+        response = await self._model_client.create(self._system_messages + self._chat_history, tools=self._tools)
 
         if isinstance(response.content, str):
             final_result = response.content
@@ -98,10 +97,7 @@ class FileSurfer(TypeRoutedAgent):
 
         assert isinstance(final_result, str)
 
-        session.append(AssistantMessage(content=final_result, source=self.metadata["name"]))
-        await self.publish_message(
-            BroadcastMessage(content=UserMessage(content=final_result, source=self.metadata["name"]))
-        )
+        return "TERMINATE" in final_result, final_result
 
     @message_handler
     async def handle_tool_call(
