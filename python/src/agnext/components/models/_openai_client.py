@@ -38,7 +38,7 @@ from .. import (
     FunctionCall,
     Image,
 )
-from ..tools import Tool
+from ..tools import Tool, ToolSchema
 from . import _model_info
 from ._model_client import ChatCompletionClient, ModelCapabilities
 from ._types import (
@@ -205,11 +205,16 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 
 
 def convert_tools(
-    tools: Sequence[Tool],
+    tools: Sequence[Tool | ToolSchema],
 ) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
     for tool in tools:
-        tool_schema = tool.schema
+        if isinstance(tool, Tool):
+            tool_schema = tool.schema
+        else:
+            assert isinstance(tool, dict)
+            tool_schema = tool
+
         result.append(
             ChatCompletionToolParam(
                 type="function",
@@ -287,7 +292,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
-        tools: Sequence[Tool] = [],
+        tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> CreateResult:
@@ -393,7 +398,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
-        tools: Sequence[Tool] = [],
+        tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

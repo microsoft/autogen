@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 from typing_extensions import NotRequired
@@ -24,6 +24,7 @@ class ToolSchema(TypedDict):
     description: NotRequired[str]
 
 
+@runtime_checkable
 class Tool(Protocol):
     @property
     def name(self) -> str: ...

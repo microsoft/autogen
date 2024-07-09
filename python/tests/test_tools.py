@@ -5,6 +5,7 @@ from typing import Annotated
 import pytest
 from agnext.components._function_utils import get_typed_signature
 from agnext.components.tools import BaseTool, FunctionTool
+from agnext.components.models._openai_client import convert_tools
 from agnext.core import CancellationToken
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
@@ -286,3 +287,25 @@ async def test_func_int_res()-> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({"arg": 5}, CancellationToken())
     assert tool.return_value_as_string(result) == "5"
+
+
+def test_convert_tools_accepts_both_func_tool_and_schema() -> None:
+    def my_function(arg: str, other: Annotated[int, "int arg"], nonrequired: int = 5) -> MyResult:
+        return MyResult(result="test")
+    tool = FunctionTool(my_function, description="Function tool.")
+    schema = tool.schema
+
+    converted_tool_schema = convert_tools([tool, schema])
+
+    assert len(converted_tool_schema) == 2
+    assert converted_tool_schema[0] == converted_tool_schema[1]
+
+
+def test_convert_tools_accepts_both_tool_and_schema() -> None:
+    tool = MyTool()
+    schema = tool.schema
+
+    converted_tool_schema = convert_tools([tool, schema])
+
+    assert len(converted_tool_schema) == 2
+    assert converted_tool_schema[0] == converted_tool_schema[1]
