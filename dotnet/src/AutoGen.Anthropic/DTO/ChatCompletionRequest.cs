@@ -1,10 +1,9 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// ChatCompletionRequest.cs
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace AutoGen.Anthropic.DTO;
-
-using System.Collections.Generic;
 
 public class ChatCompletionRequest
 {
@@ -38,6 +37,12 @@ public class ChatCompletionRequest
     [JsonPropertyName("top_p")]
     public decimal? TopP { get; set; }
 
+    [JsonPropertyName("tools")]
+    public List<Tool>? Tools { get; set; }
+
+    [JsonPropertyName("tool_choice")]
+    public ToolChoice? ToolChoice { get; set; }
+
     public ChatCompletionRequest()
     {
         Messages = new List<ChatMessage>();
@@ -50,11 +55,19 @@ public class ChatMessage
     public string Role { get; set; }
 
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    public List<ContentBase> Content { get; set; }
 
     public ChatMessage(string role, string content)
     {
         Role = role;
+        Content = new List<ContentBase>() { new TextContent { Text = content } };
+    }
+
+    public ChatMessage(string role, List<ContentBase> content)
+    {
+        Role = role;
         Content = content;
     }
+
+    public void AddContent(ContentBase content) => Content.Add(content);
 }

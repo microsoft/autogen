@@ -31,7 +31,7 @@ from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_event, log_new_agent, logging_enabled
+from ..runtime_logging import log_event, log_function_use, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
@@ -242,7 +242,7 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {
+        self.hook_lists: Dict[str, List[Callable]] = {
             "process_last_received_message": [],
             "process_all_messages_before_reply": [],
             "process_message_before_send": [],
@@ -1357,9 +1357,7 @@ class ConversableAgent(LLMAgent):
 
         # TODO: #1143 handle token limit exceeded error
         response = llm_client.create(
-            context=messages[-1].pop("context", None),
-            messages=all_messages,
-            cache=cache,
+            context=messages[-1].pop("context", None), messages=all_messages, cache=cache, agent=self
         )
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
@@ -2528,13 +2526,16 @@ class ConversableAgent(LLMAgent):
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
             retval = func(*args, **kwargs)
-
+            if logging_enabled():
+                log_function_use(self, func, kwargs, retval)
             return serialize_to_str(retval)
 
         @load_basemodels_if_needed
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
             retval = await func(*args, **kwargs)
+            if logging_enabled():
+                log_function_use(self, func, kwargs, retval)
             return serialize_to_str(retval)
 
         wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
@@ -2724,7 +2725,7 @@ class ConversableAgent(LLMAgent):
             processed_messages = hook(processed_messages)
         return processed_messages
 
-    def process_last_received_message(self, messages):
+    def process_last_received_message(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
@@ -2758,6 +2759,7 @@ class ConversableAgent(LLMAgent):
         processed_user_content = user_content
         for hook in hook_list:
             processed_user_content = hook(processed_user_content)
+
         if processed_user_content == user_content:
             return messages  # No hooks actually modified the user's message.
 

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(TestTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <IsTestProject>True</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\sample\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj" />
+    <ProjectReference Include="..\..\src\AutoGen.Gemini\AutoGen.Gemini.csproj" />
+    <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
+    <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

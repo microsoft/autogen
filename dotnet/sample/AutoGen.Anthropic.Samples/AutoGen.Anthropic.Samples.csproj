@@ -13,6 +13,7 @@
       <ProjectReference Include="..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
       <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
       <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
+      <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
     </ItemGroup>
 
 </Project>

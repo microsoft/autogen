@@ -1,3 +1,8 @@
+##### Update on 0.0.15 (2024-06-13) Milestone: [AutoGen.Net 0.0.15](https://github.com/microsoft/autogen/milestone/3)
+
+###### Highlights
+- [Issue 2851](https://github.com/microsoft/autogen/issues/2851) `AutoGen.Gemini` package for Gemini support. Examples can be found [here](https://github.com/microsoft/autogen/tree/main/dotnet/sample/AutoGen.Gemini.Sample)
+
 ##### Update on 0.0.14 (2024-05-28)
 ###### New features
 - [Issue 2319](https://github.com/microsoft/autogen/issues/2319) Add `AutoGen.Ollama` package for Ollama support. Special thanks to @iddelacruz for the effort.

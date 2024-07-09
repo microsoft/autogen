@@ -80,6 +80,9 @@ Links to notebook examples:
 - OpenAI Assistant in a Group Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_groupchat.ipynb)
 - GPTAssistantAgent based Multi-Agent Tool Use - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/gpt_assistant_agent_function_call.ipynb)
 
+### Non-OpenAI Models
+- Conversational Chess using non-OpenAI Models - [View Notebook](/docs/notebooks/agentchat_nested_chats_chess_altmodels)
+
 ### Multimodal Agent
 
 - Multimodal Agent Chat with DALLE and GPT-4V   - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_dalle_and_gpt4v.ipynb)
@@ -99,6 +102,9 @@ Links to notebook examples:
 
 - Automatically Build Multi-agent System with AgentBuilder - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_basic.ipynb)
 - Automatically Build Multi-agent System from Agent Library - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_agent_library.ipynb)
+
+### Observability
+- Track LLM calls, tool usage, actions and errors using AgentOps - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentops.ipynb)
 
 ## Enhanced Inferences
 

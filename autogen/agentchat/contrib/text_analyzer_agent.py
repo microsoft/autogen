@@ -1,6 +1,5 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 
@@ -17,7 +16,7 @@ class TextAnalyzerAgent(ConversableAgent):
         self,
         name="analyzer",
         system_message: Optional[str] = system_message,
-        human_input_mode: Optional[str] = "NEVER",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
         llm_config: Optional[Union[Dict, bool]] = None,
         **kwargs,
     ):

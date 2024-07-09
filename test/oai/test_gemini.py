@@ -33,16 +33,65 @@ def gemini_client():
     return GeminiClient(api_key="fake_api_key")
 
 
-# Test initialization and configuration
+# Test compute location initialization and configuration
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
-def test_initialization():
+def test_compute_location_initialization():
     with pytest.raises(AssertionError):
-        GeminiClient()  # Should raise an AssertionError due to missing API key
+        GeminiClient(
+            api_key="fake_api_key", location="us-west1"
+        )  # Should raise an AssertionError due to specifying API key and compute location
+
+
+@pytest.fixture
+def gemini_google_auth_default_client():
+    return GeminiClient()
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_valid_initialization(gemini_client):
     assert gemini_client.api_key == "fake_api_key", "API Key should be correctly set"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_gemini_message_handling(gemini_client):
+    messages = [
+        {"role": "system", "content": "You are my personal assistant."},
+        {"role": "model", "content": "How can I help you?"},
+        {"role": "user", "content": "Which planet is the nearest to the sun?"},
+        {"role": "user", "content": "Which planet is the farthest from the sun?"},
+        {"role": "model", "content": "Mercury is the closest palnet to the sun."},
+        {"role": "model", "content": "Neptune is the farthest palnet from the sun."},
+        {"role": "user", "content": "How can we determine the mass of a black hole?"},
+    ]
+
+    # The datastructure below defines what the structure of the messages
+    # should resemble after converting to Gemini format.
+    # Messages of similar roles are expected to be merged to a single message,
+    # where the contents of the original messages will be included in
+    # consecutive parts of the converted Gemini message
+    expected_gemini_struct = [
+        # system role is converted to user role
+        {"role": "user", "parts": ["You are my personal assistant."]},
+        {"role": "model", "parts": ["How can I help you?"]},
+        {
+            "role": "user",
+            "parts": ["Which planet is the nearest to the sun?", "Which planet is the farthest from the sun?"],
+        },
+        {
+            "role": "model",
+            "parts": ["Mercury is the closest palnet to the sun.", "Neptune is the farthest palnet from the sun."],
+        },
+        {"role": "user", "parts": ["How can we determine the mass of a black hole?"]},
+    ]
+
+    converted_messages = gemini_client._oai_messages_to_gemini_messages(messages)
+
+    assert len(converted_messages) == len(expected_gemini_struct), "The number of messages is not as expected"
+
+    for i, expected_msg in enumerate(expected_gemini_struct):
+        assert expected_msg["role"] == converted_messages[i].role, "Incorrect mapped message role"
+        for j, part in enumerate(expected_msg["parts"]):
+            assert converted_messages[i].parts[j].text == part, "Incorrect mapped message text"
 
 
 # Test error handling

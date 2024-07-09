@@ -15,9 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="JsonSchema.Net.Generation" Version="$(JsonSchemaVersion)" />
     <ProjectReference Include="..\AutoGen.LMStudio\AutoGen.LMStudio.csproj" />
     <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
+    <ProjectReference Include="..\AutoGen.Ollama\AutoGen.Ollama.csproj" />
+    <ProjectReference Include="..\AutoGen.Gemini\AutoGen.Gemini.csproj" />
     <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
