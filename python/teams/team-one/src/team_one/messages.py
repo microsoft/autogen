@@ -16,6 +16,5 @@ class RequestReplyMessage:
 
 @dataclass
 class OrchestrationEvent:
-    timestamp: str
     source: str
     message: str

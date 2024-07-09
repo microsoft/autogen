@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import List
 
 from agnext.application.logging import EVENT_LOGGER_NAME
@@ -33,14 +32,12 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
 
         content = str(message.content.content)
 
-        current_timestamp = datetime.now().isoformat()
-        logger.info(OrchestrationEvent(current_timestamp, source, content))
+        logger.info(OrchestrationEvent(source, content))
 
         # Termination conditions
         if self._num_rounds >= self._max_rounds:
             logger.info(
                 OrchestrationEvent(
-                    current_timestamp,
                     f"{self.metadata['name']} (termination condition)",
                     f"Max rounds ({self._max_rounds}) reached.",
                 )
@@ -50,7 +47,6 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         if message.request_halt:
             logger.info(
                 OrchestrationEvent(
-                    current_timestamp,
                     f"{self.metadata['name']} (termination condition)",
                     f"{source} requested halt.",
                 )
@@ -61,10 +57,8 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         request_reply_message = RequestReplyMessage()
         # emit an event
 
-        current_timestamp = datetime.now().isoformat()
         logger.info(
             OrchestrationEvent(
-                current_timestamp,
                 source=f"{self.metadata['name']} (thought)",
                 message=f"Next speaker {next_agent.metadata['name']}" "",
             )
