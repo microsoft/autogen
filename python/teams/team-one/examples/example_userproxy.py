@@ -7,8 +7,8 @@ from agnext.application.logging import EVENT_LOGGER_NAME
 from team_one.agents.coder import Coder
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
-from team_one.messages import OrchestrationEvent, RequestReplyMessage
-from team_one.utils import create_completion_client_from_env
+from team_one.messages import RequestReplyMessage
+from team_one.utils import LogHandler, create_completion_client_from_env
 
 
 async def main() -> None:
@@ -35,27 +35,9 @@ async def main() -> None:
     await run_context.stop_when_idle()
 
 
-class MyHandler(logging.Handler):
-    def __init__(self) -> None:
-        super().__init__()
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            if isinstance(record.msg, OrchestrationEvent):
-                print(
-                    f"""---------------------------------------------------------------------------
-\033[91m{record.msg.source}:\033[0m
-
-{record.msg.message}""",
-                    flush=True,
-                )
-        except Exception:
-            self.handleError(record)
-
-
 if __name__ == "__main__":
     logger = logging.getLogger(EVENT_LOGGER_NAME)
     logger.setLevel(logging.INFO)
-    my_handler = MyHandler()
-    logger.handlers = [my_handler]
+    log_handler = LogHandler()
+    logger.handlers = [log_handler]
     asyncio.run(main())

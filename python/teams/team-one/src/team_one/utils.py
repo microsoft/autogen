@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+from datetime import datetime
 from typing import Any, Dict
 
 from agnext.components.models import (
@@ -8,6 +10,8 @@ from agnext.components.models import (
     ModelCapabilities,
     OpenAIChatCompletionClient,
 )
+
+from .messages import OrchestrationEvent
 
 ENVIRON_KEY_CHAT_COMPLETION_PROVIDER = "CHAT_COMPLETION_PROVIDER"
 ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON = "CHAT_COMPLETION_KWARGS_JSON"
@@ -64,3 +68,24 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
         return AzureOpenAIChatCompletionClient(**_kwargs)
     else:
         raise ValueError(f"Unknown OAI provider '{_provider}'")
+
+
+# TeamOne log event handler
+class LogHandler(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            if isinstance(record.msg, OrchestrationEvent):
+                ts = datetime.fromtimestamp(record.created).isoformat()
+                print(
+                    f"""
+---------------------------------------------------------------------------
+\033[91m[{ts}], {record.msg.source}:\033[0m
+
+{record.msg.message}""",
+                    flush=True,
+                )
+        except Exception:
+            self.handleError(record)

@@ -1,10 +1,13 @@
 import asyncio
+import logging
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components.models import UserMessage
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.reflex_agents import ReflexAgent
 from team_one.messages import BroadcastMessage
+from team_one.utils import LogHandler
 
 
 async def main() -> None:
@@ -23,9 +26,8 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
-
+    logger = logging.getLogger(EVENT_LOGGER_NAME)
+    logger.setLevel(logging.INFO)
+    log_handler = LogHandler()
+    logger.handlers = [log_handler]
     asyncio.run(main())
