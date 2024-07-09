@@ -4,30 +4,19 @@ import logging
 # from typing import Any, Dict, List, Tuple, Union
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.components.models import (
-    AzureOpenAIChatCompletionClient,
-    ModelCapabilities,
-)
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from team_one.agents.coder import Coder
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
 from team_one.messages import OrchestrationEvent, RequestReplyMessage
+from team_one.utils import create_completion_client_from_env
 
 
 async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
-    # Create the AzureOpenAI client, with AAD auth
-    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-    client = AzureOpenAIChatCompletionClient(
-        api_version="2024-02-15-preview",
-        azure_endpoint="https://aif-complex-tasks-west-us-3.openai.azure.com/",
-        model="gpt-4o-2024-05-13",
-        model_capabilities=ModelCapabilities(function_calling=True, json_output=True, vision=True),
-        azure_ad_token_provider=token_provider,
-    )
+    # Get an appropriate client
+    client = create_completion_client_from_env()
 
     # Register agents.
     coder = runtime.register_and_get_proxy(

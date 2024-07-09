@@ -1,22 +1,21 @@
 import asyncio
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components.models import OpenAIChatCompletionClient, UserMessage
+from agnext.components.models import UserMessage
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.messages import BroadcastMessage
+from team_one.utils import create_completion_client_from_env
 
 
 async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
-    client = OpenAIChatCompletionClient(model="gpt-4o")
-
     # Register agents.
     coder = runtime.register_and_get_proxy(
         "Coder",
-        lambda: Coder(model_client=client),
+        lambda: Coder(model_client=create_completion_client_from_env()),
     )
     executor = runtime.register_and_get_proxy("Executor", lambda: Executor("A agent for executing code"))
 
