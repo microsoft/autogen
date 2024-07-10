@@ -61,9 +61,6 @@ class GPTAssistantAgent(ConversableAgent):
         self._verbose = kwargs.pop("verbose", False)
         openai_client_cfg, openai_assistant_cfg = self._process_assistant_config(llm_config, assistant_config)
 
-        super().__init__(
-            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
-        )
         if logging_enabled():
             log_new_agent(self, locals())
 
@@ -170,6 +167,9 @@ class GPTAssistantAgent(ConversableAgent):
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
+        super().__init__(
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
+        )
         self.update_system_message(self._openai_assistant.instructions)
         # lazily create threads
         self._openai_threads = {}
