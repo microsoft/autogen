@@ -90,6 +90,7 @@ class GPTAssistantAgent(ConversableAgent):
                     instructions,
                     openai_assistant_cfg.get("tools", []),
                 )
+                instructions = candidate_assistants[0].instructions
 
             if len(candidate_assistants) == 0:
                 logger.warning("No matching assistant found, creating a new assistant")
