@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from agnext.components.models import (
     AzureOpenAIChatCompletionClient,
@@ -11,7 +11,7 @@ from agnext.components.models import (
     OpenAIChatCompletionClient,
 )
 
-from .messages import OrchestrationEvent
+from .messages import AssistantContent, FunctionExecutionContent, OrchestrationEvent, SystemContent, UserContent
 
 ENVIRON_KEY_CHAT_COMPLETION_PROVIDER = "CHAT_COMPLETION_PROVIDER"
 ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON = "CHAT_COMPLETION_KWARGS_JSON"
@@ -68,6 +68,24 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
         return AzureOpenAIChatCompletionClient(**_kwargs)
     else:
         raise ValueError(f"Unknown OAI provider '{_provider}'")
+
+
+# Convert UserContent to a string
+def message_content_to_str(
+    message_content: UserContent | AssistantContent | SystemContent | FunctionExecutionContent,
+) -> str:
+    if isinstance(message_content, str):
+        return message_content
+    elif isinstance(message_content, List):
+        converted: List[str] = list()
+        for item in message_content:
+            if isinstance(item, str):
+                converted.append(item.rstrip())
+            else:
+                converted.append(str(item).rstrip())
+        return "\n".join(converted)
+    else:
+        raise AssertionError("Unexpected response type.")
 
 
 # TeamOne log event handler

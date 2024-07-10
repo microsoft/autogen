@@ -1,6 +1,6 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-from agnext.components import Image, TypeRoutedAgent, message_handler
+from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     LLMMessage,
@@ -8,10 +8,8 @@ from agnext.components.models import (
 )
 from agnext.core import CancellationToken
 
-from team_one.messages import BroadcastMessage, RequestReplyMessage
-
-# Convenience type
-UserContent = Union[str, List[Union[str, Image]]]
+from team_one.messages import BroadcastMessage, RequestReplyMessage, UserContent
+from team_one.utils import message_content_to_str
 
 
 class BaseAgent(TypeRoutedAgent):
@@ -35,21 +33,7 @@ class BaseAgent(TypeRoutedAgent):
         """Respond to a reply request."""
         request_halt, response = await self._generate_reply(cancellation_token)
 
-        # Convert the response to an acceptable format for the assistant
-        if isinstance(response, str):
-            assistant_message = AssistantMessage(content=response, source=self.metadata["name"])
-        elif isinstance(response, List):
-            converted: List[str] = list()
-            for item in response:
-                if isinstance(item, str):
-                    converted.append(item.rstrip())
-                elif isinstance(item, Image):
-                    converted.append("<image>")
-                else:
-                    raise AssertionError("Unexpected response type.")
-            assistant_message = AssistantMessage(content="\n".join(converted), source=self.metadata["name"])
-        else:
-            raise AssertionError("Unexpected response type.")
+        assistant_message = AssistantMessage(content=message_content_to_str(response), source=self.metadata["name"])
         self._chat_history.append(assistant_message)
 
         user_message = UserMessage(content=response, source=self.metadata["name"])

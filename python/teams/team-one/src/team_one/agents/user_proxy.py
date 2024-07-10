@@ -3,7 +3,8 @@ from typing import Tuple
 
 from agnext.core import CancellationToken
 
-from .base_agent import BaseAgent, UserContent
+from ..messages import UserContent
+from .base_agent import BaseAgent
 
 
 class UserProxy(BaseAgent):

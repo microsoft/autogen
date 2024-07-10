@@ -7,6 +7,7 @@ from agnext.components.models import AssistantMessage, UserMessage
 from agnext.core import AgentProxy, CancellationToken
 
 from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
+from ..utils import message_content_to_str
 
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
 
@@ -30,7 +31,7 @@ class RoundRobinOrchestrator(TypeRoutedAgent):
         if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
             source = message.content.source
 
-        content = str(message.content.content)
+        content = message_content_to_str(message.content.content)
 
         logger.info(OrchestrationEvent(source, content))
 

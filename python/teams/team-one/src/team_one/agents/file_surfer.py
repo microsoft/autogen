@@ -14,7 +14,8 @@ from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
 from typing_extensions import Annotated
 
-from .base_agent import BaseAgent, UserContent
+from ..messages import UserContent
+from .base_agent import BaseAgent
 
 
 async def read_local_file(file_path: Annotated[str, "relative or absolute path of file to read"]) -> str:
