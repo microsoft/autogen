@@ -83,9 +83,10 @@ From {agentNames.First()}:
                 MaxToken = 128,
                 StopSequence = [":"],
                 Functions = null,
-            });
+            },
+            cancellationToken: cancellationToken);
 
-        var name = response?.GetContent() ?? throw new Exception("No name is returned.");
+        var name = response.GetContent() ?? throw new Exception("No name is returned.");
 
         // remove From
         name = name!.Substring(5);

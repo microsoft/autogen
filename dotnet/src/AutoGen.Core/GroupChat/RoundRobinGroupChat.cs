@@ -24,10 +24,6 @@ public class SequentialGroupChat : RoundRobinGroupChat
 /// </summary>
 public class RoundRobinGroupChat : GroupChat
 {
-    private readonly List<IAgent> agents = new List<IAgent>();
-    private readonly List<IMessage> initializeMessages = new List<IMessage>();
-    private readonly RoundRobinOrchestrator orchestrator = new RoundRobinOrchestrator();
-
     public RoundRobinGroupChat(
         IEnumerable<IAgent> agents,
         List<IMessage>? initializeMessages = null)

@@ -167,15 +167,15 @@ From {agentNames.First()}:
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
-        IEnumerable<IMessage>? chatHistroy = null,
+        IEnumerable<IMessage>? chatHistory = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
         var conversationHistory = new List<IMessage>();
         conversationHistory.AddRange(this.initializeMessages);
-        if (chatHistroy != null)
+        if (chatHistory != null)
         {
-            conversationHistory.AddRange(chatHistroy);
+            conversationHistory.AddRange(chatHistory);
         }
         var roundLeft = maxRound;
 
@@ -201,11 +201,6 @@ From {agentNames.First()}:
             }
 
             roundLeft--;
-
-            if (roundLeft <= 0)
-            {
-                break;
-            }
         }
 
         return conversationHistory;
