@@ -17,7 +17,8 @@ classifiers = [
 ]
 dependencies = [
     "agnext@{root:parent:parent:uri}",
-    "aiofiles"
+    "aiofiles",
+    "playwright"
 ]
 
 [tool.hatch.envs.default]
@@ -53,7 +54,7 @@ allow-direct-references = true
 [tool.ruff]
 line-length = 120
 fix = true
-exclude = ["build", "dist"]
+exclude = ["build", "dist", "page_script.js"]
 target-version = "py310"
 include = ["src/**", "examples/*.py"]
 
