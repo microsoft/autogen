@@ -100,8 +100,7 @@ public static class GroupChatExtension
             var msg = @$"From {x.From}:
 {x.GetContent()}
 <eof_msg>
-round # 
-                {i}";
+round # {i}";
 
             return new TextMessage(Role.User, content: msg);
         });
