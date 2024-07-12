@@ -18,6 +18,20 @@ classifiers = [
 dependencies = [
     "agnext@{root:parent:parent:uri}",
     "aiofiles",
+    "requests",
+    "mammoth",
+    "markdownify",
+    "numpy",
+    "python-pptx",
+    "pandas",
+    "pdfminer.six",
+    "easyocr",
+    "puremagic",
+    "binaryornot",
+    "pydub",
+    "youtube-transcript-api",
+    "SpeechRecognition",
+    "pathvalidate",
     "playwright"
 ]
 
@@ -30,6 +44,7 @@ dependencies = [
     "pytest",
     "aiofiles",
     "types-aiofiles",
+    "types-requests",
     "azure-identity"
 ]
 
