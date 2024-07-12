@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Literal
 
+from agnext.application.logging.events import LLMCallEvent
 from agnext.components.models import (
     AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
@@ -89,22 +90,37 @@ def message_content_to_str(
 
 
 # TeamOne log event handler
-class LogHandler(logging.Handler):
-    def __init__(self) -> None:
-        super().__init__()
+class LogHandler(logging.FileHandler):
+    def __init__(self, filename: str = "log.jsonl") -> None:
+        super().__init__(filename)
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
+            ts = datetime.fromtimestamp(record.created).isoformat()
             if isinstance(record.msg, OrchestrationEvent):
-                ts = datetime.fromtimestamp(record.created).isoformat()
-                print(
-                    f"""
----------------------------------------------------------------------------
-\033[91m[{ts}], {record.msg.source}:\033[0m
-
-{record.msg.message}""",
-                    flush=True,
+                console_message = (
+                    f"\n{'-'*75} \n" f"\033[91m[{ts}], {record.msg.source}:\033[0m\n" f"\n{record.msg.message}"
                 )
+                print(console_message, flush=True)
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "source": record.msg.source,
+                        "message": record.msg.message,
+                        "type": "OrchestrationEvent",
+                    }
+                )
+                super().emit(record)
+            if isinstance(record.msg, LLMCallEvent):
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "prompt_tokens": record.msg.prompt_tokens,
+                        "completion_tokens": record.msg.completion_tokens,
+                        "type": "LLMCallEvent",
+                    }
+                )
+            super().emit(record)
         except Exception:
             self.handleError(record)
 
