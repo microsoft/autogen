@@ -26,8 +26,8 @@ def check_nested_mode_config(nested_mode_config: Dict):
         raise ValueError("nested_mode_config should contain either autobuild_init_config or meta_prompting_llm_config.")
 
 
-class MetaUserProxyAgent(ConversableAgent):
-    """(In preview) A proxy agent for the meta agent, that can execute code and provide feedback to the other agents."""
+class CaptainUserProxyAgent(ConversableAgent):
+    """(In preview) A proxy agent for the captain agent, that can execute code and provide feedback to the other agents."""
 
     CONVERSATION_REVIEW_PROMPT = """# Your task
 Briefly summarize the conversation history derived from an experts' group chat by following the answer format.

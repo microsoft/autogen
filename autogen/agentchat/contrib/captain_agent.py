@@ -3,9 +3,9 @@ from typing import Callable, Dict, Literal, Optional, Union
 from autogen.agentchat.conversable_agent import ConversableAgent
 
 
-class MetaAgent(ConversableAgent):
+class CaptainAgent(ConversableAgent):
     """
-    (In preview) Meta agent, designed to solve a task with an agent or a group of agents.
+    (In preview) Captain agent, designed to solve a task with an agent or a group of agents.
     """
 
     META_PROMPTING_TOOL = {
