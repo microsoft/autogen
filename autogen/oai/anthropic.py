@@ -27,9 +27,9 @@ import autogen
 config_list = [
     {
         "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        "aws_access_key":accessKey,
-        "aws_secret_key":secretKey,
-        "aws_session_token":sessionTok,
+        "aws_access_key":<accessKey>,
+        "aws_secret_key":<secretKey>,
+        "aws_session_token":<sessionTok>,
         "aws_region":"us-east-1",
         "api_type": "anthropic",
     }
@@ -49,7 +49,7 @@ import time
 import warnings
 from typing import Any, Dict, List, Tuple, Union
 
-from anthropic import Anthropic
+from anthropic import Anthropic, AnthropicBedrock
 from anthropic import __version__ as anthropic_version
 from anthropic.types import Completion, Message, TextBlock, ToolUseBlock
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
@@ -89,33 +89,40 @@ class AnthropicClient:
         self._aws_secret_key = kwargs.get("aws_secret_key", None)
         self._aws_session_token = kwargs.get("aws_session_token", None)
         self._aws_region = kwargs.get("aws_region", None)
-        
+
         if not self._api_key:
             self._api_key = os.getenv("ANTHROPIC_API_KEY")
-            
+
         if not self._aws_access_key:
             self._aws_access_key = os.getenv("AWS_ACCESS_KEY")
-            
+
         if not self._aws_secret_key:
             self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
-            
+
         if not self._aws_session_token:
             self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
-            
+
         if not self._aws_region:
             self._aws_region = os.getenv("AWS_REGION")
-            
-        if self._api_key is None and (self._aws_access_key is None or self._aws_secret_key is None or self._aws_session_token is None or self._aws_region is None):
+
+        if self._api_key is None and (
+            self._aws_access_key is None
+            or self._aws_secret_key is None
+            or self._aws_session_token is None
+            or self._aws_region is None
+        ):
             raise ValueError("API key or AWS credentials are required to use the Anthropic API.")
-            
+
         if self._api_key is not None:
             self._client = Anthropic(api_key=self._api_key)
         else:
-            self._client = AnthropicBedrock(aws_access_key=self._aws_access_key,
-                    aws_secret_key=self._aws_secret_key,
-                    aws_session_token=self._aws_session_token,
-                    aws_region=self._aws_region)
-            
+            self._client = AnthropicBedrock(
+                aws_access_key=self._aws_access_key,
+                aws_secret_key=self._aws_secret_key,
+                aws_session_token=self._aws_session_token,
+                aws_region=self._aws_region,
+            )
+
         self._last_tooluse_status = {}
 
     def load_config(self, params: Dict[str, Any]):
@@ -154,19 +161,19 @@ class AnthropicClient:
     @property
     def aws_access_key(self):
         return self._aws_access_key
-    
+
     @property
     def aws_secret_key(self):
         return self._aws_secret_key
-    
+
     @property
     def aws_session_token(self):
         return self._aws_session_token
-    
+
     @property
     def aws_region(self):
         return self._aws_region
-        
+
     def create(self, params: Dict[str, Any]) -> Completion:
         if "tools" in params:
             converted_functions = self.convert_tools_to_functions(params["tools"])
