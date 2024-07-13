@@ -8,13 +8,13 @@ customPostCssPlugin = () => {
     configurePostCss(options) {
       options.plugins.push(require("postcss-preset-env"));
       return options;
-    }
+    },
   };
-}
+};
 
 module.exports = {
   title: "AutoGen",
-  tagline: "Enable Next-Gen Large Language Model Applications",
+  tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
   baseUrl: "/autogen/",
   onBrokenLinks: "throw",
@@ -24,13 +24,13 @@ module.exports = {
   projectName: "AutoGen", // Usually your repo name.
   scripts: [
     {
-      src: '/autogen/js/custom.js',
+      src: "/autogen/js/custom.js",
       async: true,
       defer: true,
     },
   ],
   markdown: {
-    format: 'detect', // Support for MD files with .md extension
+    format: "detect", // Support for MD files with .md extension
   },
   themeConfig: {
     docs: {
@@ -82,6 +82,11 @@ module.exports = {
             },
             {
               type: "doc",
+              docId: "autogen-studio/getting-started",
+              label: "AutoGen Studio",
+            },
+            {
+              type: "doc",
               docId: "ecosystem",
               label: "Ecosystem",
             },
@@ -127,9 +132,8 @@ module.exports = {
             {
               label: "Dotnet",
               href: "https://microsoft.github.io/autogen-for-net/",
-            }
+            },
           ],
-
         },
         {
           to: "blog",
@@ -175,7 +179,6 @@ module.exports = {
             {
               label: "Discord",
               href: "https://aka.ms/autogen-dc",
-
             },
             {
               label: "Twitter",
@@ -187,17 +190,17 @@ module.exports = {
       copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
     },
     announcementBar: {
-      id: 'whats_new',
+      id: "whats_new",
       content:
         'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
-      backgroundColor: '#fafbfc',
-      textColor: '#091E42',
+      backgroundColor: "#fafbfc",
+      textColor: "#091E42",
       isCloseable: true,
     },
     /* Clarity Config */
     clarity: {
       ID: "lnxpe6skj1", // The Tracking ID provided by Clarity
-    }
+    },
   },
   presets: [
     [
@@ -279,16 +282,16 @@ module.exports = {
             from: ["/docs/notebooks/agentchat_chess"],
           },
           {
+            to: "/docs/notebooks/agentchat_nested_chats_chess_altmodels",
+            from: ["/docs/notebooks/agentchat_chess_altmodels"],
+          },
+          {
             to: "/docs/contributor-guide/contributing",
             from: ["/docs/Contribute"],
-          }
+          },
         ],
       },
     ],
-    [
-      'docusaurus-plugin-clarity',
-      {
-      }
-    ],
+    ["docusaurus-plugin-clarity", {}],
   ],
 };

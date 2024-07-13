@@ -30,14 +30,14 @@ public class OllamaMessageConnector : IStreamingMiddleware
         };
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = ProcessMessage(context.Messages, agent);
         var chunks = new List<ChatResponseUpdate>();
         await foreach (var update in agent.GenerateStreamingReplyAsync(messages, context.Options, cancellationToken))
         {
-            if (update is IStreamingMessage<ChatResponseUpdate> chatResponseUpdate)
+            if (update is IMessage<ChatResponseUpdate> chatResponseUpdate)
             {
                 var response = chatResponseUpdate.Content switch
                 {

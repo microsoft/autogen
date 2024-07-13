@@ -13,12 +13,38 @@
     <CSNoWarn>CS1998;CS1591</CSNoWarn>
     <NoWarn>$(NoWarn);$(CSNoWarn);NU5104</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="ApprovalTests" Version="$(ApprovalTestVersion)" />
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
+    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
+    <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+  </ItemGroup>
+
+  <ItemGroup  Condition="'$(IsTestProject)' == 'true'">
+    <Content Include="$(RepoRoot)resource/**/*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>testData/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup  Condition="'$(IncludeResourceFolder)' == 'true'">
+    <Content Include="$(RepoRoot)resource/**/*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>resource/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
 </Project>

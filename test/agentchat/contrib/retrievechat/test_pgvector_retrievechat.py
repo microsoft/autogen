@@ -56,7 +56,7 @@ def test_retrievechat():
         },
     )
 
-    sentence_transformer_ef = SentenceTransformer("all-MiniLM-L6-v2")
+    sentence_transformer_ef = SentenceTransformer("all-MiniLM-L6-v2").encode
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
