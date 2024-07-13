@@ -13,38 +13,48 @@ public class MiddlewareAgentCodeSnippet
     public async Task CreateMiddlewareAgentAsync()
     {
         #region create_middleware_agent_with_original_agent
-        // Create an agent that always replies "Hello World"
-        IAgent agent = new DefaultReplyAgent(name: "assistant", defaultReply: "Hello World");
+        // Create an agent that always replies "Hi!"
+        IAgent agent = new DefaultReplyAgent(name: "assistant", defaultReply: "Hi!");
 
         // Create a middleware agent on top of default reply agent
         var middlewareAgent = new MiddlewareAgent(innerAgent: agent);
         middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last() as TextMessage;
-            lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+            if (lastMessage != null && lastMessage.Content.Contains("Hello World"))
+            {
+                lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+                return lastMessage;
+            }
+
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         var reply = await middlewareAgent.SendAsync("Hello World");
         reply.GetContent().Should().Be("[middleware 0] Hello World");
+        reply = await middlewareAgent.SendAsync("Hello AI!");
+        reply.GetContent().Should().Be("Hi!");
         #endregion create_middleware_agent_with_original_agent
 
         #region register_middleware_agent
         middlewareAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last() as TextMessage;
-            lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+            if (lastMessage != null && lastMessage.Content.Contains("Hello World"))
+            {
+                lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+                return lastMessage;
+            }
+
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
         #endregion register_middleware_agent
 
         #region short_circuit_middleware_agent
-        // This middleware will short circuit the agent and return the last message directly.
+        // This middleware will short circuit the agent and return a message directly.
         middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
-            var lastMessage = messages.Last() as TextMessage;
-            lastMessage.Content = $"[middleware shortcut]";
-            return lastMessage;
+            return new TextMessage(Role.Assistant, $"[middleware shortcut]");
         });
         #endregion short_circuit_middleware_agent
     }
