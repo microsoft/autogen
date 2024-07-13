@@ -181,7 +181,7 @@ Collect information from the general task, follow the suggestions from manager t
             if self._nested_mode_config.get("autobuild_tool_config", None) and agent_configs["coding"] is True:
                 tool_root_dir = self._nested_mode_config["autobuild_tool_config"]["tool_root"]
                 tool_builder = ToolBuilder(
-                    corpus_path=self._nested_mode_config["autobuild_tool_config"]["tool_corpus"],
+                    corpus_path=os.path.join(tool_root_dir, "tool_description.tsv"),
                     retriever=self._nested_mode_config["autobuild_tool_config"]["retriever"],
                 )
                 for idx, agent in enumerate(agent_list):
@@ -200,17 +200,20 @@ Collect information from the general task, follow the suggestions from manager t
                 if self._nested_mode_config.get("autobuild_tool_config", None) and agent_configs["coding"] is True:
                     print("==> Retrieving tools...", flush=True)
                     skills = building_task.split("\n")
-                    # skills = [line.split("-", 1)[1].strip() if line.startswith("-") else line.strip() for line in lines]
                     if len(skills) == 0:
                         skills = [building_task]
 
+                    if self._nested_mode_config["autobuild_tool_config"]["tool_root"] == "default":
+                        cur_path = os.path.dirname(os.path.abspath(__file__))
+                        tool_root_dir = os.path.join(cur_path, "captainagent", "tools")
+                    else:
+                        tool_root_dir = self._nested_mode_config["autobuild_tool_config"]["tool_root"]
+
                     # Retrieve and build tools based on the smilarities between the skills and the tool description
                     tool_builder = ToolBuilder(
-                        corpus_path=self._nested_mode_config["autobuild_tool_config"]["tool_corpus"],
+                        corpus_path=os.path.join(tool_root_dir, "tool_description.tsv"),
                         retriever=self._nested_mode_config["autobuild_tool_config"]["retriever"],
                     )
-                    tool_root_dir = self._nested_mode_config["autobuild_tool_config"]["tool_root"]
-
                     for idx, skill in enumerate(skills):
                         tools = tool_builder.retrieve(skill)
                         docstrings = []

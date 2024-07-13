@@ -1,0 +1,85 @@
+# Tool Library
+In CaptainAgent, tools are in the form of python functions. The agents can write code to import functions and call them according to their needs. This can significantly enhance the functionality and capabilities of the agents.
+
+We provide a list of tools that comes with the release of CaptainAgent.
+
+## Using the Built-in Tool Library
+### Install dependencies
+First install the requirements for running tools via pip. The requirements file is located in `autogen/agentchat/contrib/captainagent/tools/requirements.txt`.
+
+### Subscribe to Certain APIs
+Some tools require Bing Search API key and RapidAPI key.
+For Bing API, you can read more about how to get an API on the [Bing Web Search API](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api) page.
+For RapidAPI, you can [sign up](https://rapidapi.com/auth/sign-up) and subscribe to these two links([link1](https://rapidapi.com/illmagination/api/youtube-captions-and-transcripts/), [link2](https://rapidapi.com/420vijay47/api/youtube-mp3-downloader2/)).
+These two apis have free billing options and there is no need to worry about extra costs for small scale runs.
+
+Whenever you run the tool-related code, remember to export the api keys to system variables.
+```bash
+export BING_API_KEY=""
+export RAPID_API_KEY=""
+```
+or
+```python
+import os
+os.environ["BING_API_KEY"] = ""
+os.environ["RAPID_API_KEY"] = ""
+```
+
+Then you are good to go. Feel free to try out the examples provided in the CaptainAgent notebook.
+
+## What is in the Tool Library
+The tool library consists of three types of tools: math, data_analysis and information_retrieval.
+
+```
+tools
+├── README.md
+├── data_analysis
+│   ├── calculate_correlation.py
+│   └── ...
+├── information_retrieval
+│   ├── arxiv_download.py
+│   ├── arxiv_search.py
+│   └── ...
+├── math
+│   ├── calculate_circle_area_from_diameter.py
+│   └── ...
+└── tool_description.tsv
+```
+
+Tools can be imported from `tools/{category}/{tool_name}.py` with exactly the same tool name.
+`tool_description.tsv` contains descriptions of tools for retrieval.
+
+## How Tool Library works
+When an agent's description is provided, a retriever will retrieve `top_k` tool candidates from the library based on the semantic
+similarity between agent description and tool description. The tool description is same as that in `tool_description.tsv`.
+
+After candidates are retrieved, the agent's system message will be updated with the tool candidates' information and how to call the tools.
+A user proxy with the ability to execute the code will be added to the nested chat. Under the hood, this is achieved by leveraging the
+[User Defined Functions](/docs/topics/code-execution/user-defined-functions) feature. A `LocalCommandLineCodeExecutor` equipped with all the functions serves as
+code executor for the user proxy.
+
+## Building your own Tool Library
+Building your own tool library is easy, follow the same directory layout as the one we provided. The python files should be named `root/{category}/{tool_name}.py`.
+The tool you'd like to add can be imported in the following fashion:
+
+```python
+from tools.category.tool_name import tool_name
+```
+
+The `tool_description.tsv` file should be a tab-separated file with two columns `docid` and `document_content`. The `document_content` should always follow
+the format "{category} {tool_name} {tool description}". The category and tool_name should always be one word with no space in between. The document_content is
+used to calculate semantic similarity for retrieval.
+
+Once your library is ready, specify the path in `nested_mode_config` of CaptainAgent.
+```python
+nested_mode_config = {
+    ...
+    "autobuild_tool_config": {
+        "tool_root": "Your tool root here",
+        "retriever": "all-mpnet-base-v2", # This is the default embedding model
+    },
+    ...
+}
+```
+
+By following these steps, you can easily customize the tools library of CaptainAgent and empower your agents with new capabilities.
