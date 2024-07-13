@@ -4,7 +4,6 @@ pymupdf
 wikipedia-api
 easyocr
 python-pptx
-textract
 openai-whisper
 pandas
 scipy

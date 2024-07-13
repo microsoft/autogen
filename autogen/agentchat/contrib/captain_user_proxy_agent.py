@@ -179,7 +179,8 @@ Collect information from the general task, follow the suggestions from manager t
         if group_name in self.build_history.keys():
             agent_list, agent_configs = builder.load(config_json=json.dumps(self.build_history[group_name]))
             if self._nested_mode_config.get("autobuild_tool_config", None) and agent_configs["coding"] is True:
-                tool_root_dir = self._nested_mode_config["autobuild_tool_config"]["tool_root"]
+                # tool library enabled, load tools and bind to the agents
+                tool_root_dir = self.tool_root_dir
                 tool_builder = ToolBuilder(
                     corpus_path=os.path.join(tool_root_dir, "tool_description.tsv"),
                     retriever=self._nested_mode_config["autobuild_tool_config"]["retriever"],
@@ -208,6 +209,7 @@ Collect information from the general task, follow the suggestions from manager t
                         tool_root_dir = os.path.join(cur_path, "captainagent", "tools")
                     else:
                         tool_root_dir = self._nested_mode_config["autobuild_tool_config"]["tool_root"]
+                    self.tool_root_dir = tool_root_dir
 
                     # Retrieve and build tools based on the smilarities between the skills and the tool description
                     tool_builder = ToolBuilder(

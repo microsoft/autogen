@@ -1,12 +1,11 @@
 import os
 
-import textract
 from PIL import Image
 
 from autogen.coding.func_with_reqs import with_requirements
 
 
-@with_requirements(["textract", "transformers", "torch"], ["textract", "transformers", "torch", "PIL", "os"])
+@with_requirements(["transformers", "torch"], ["transformers", "torch", "PIL", "os"])
 def image_qa(image, question, ckpt="Salesforce/blip-vqa-base"):
     """
     Perform question answering on an image using a pre-trained VQA model.
@@ -39,11 +38,8 @@ def image_qa(image, question, ckpt="Salesforce/blip-vqa-base"):
         if file_path.endswith(".txt"):
             with open(file_path, "r") as file:
                 content = file.read()
-        elif file_path.endswith(".doc") or file_path.endswith(".docx"):
-            # Use textract to extract text from doc and docx files
-            content = textract.process(file_path).decode("utf-8")
         else:
-            # if the file is not .txt .doc .docx, then it is a string, directly return the string
+            # if the file is not .txt, then it is a string, directly return the string
             return file_path
         return content
 
