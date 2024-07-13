@@ -35,7 +35,7 @@ def single_threaded_demo():
 
     ensemble.disconnect()
 
-    
+
 def main():
     single_threaded_demo()
 
