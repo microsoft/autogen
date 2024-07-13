@@ -67,7 +67,7 @@ from tools.category.tool_name import tool_name
 ```
 
 The `tool_description.tsv` file should be a tab-separated file with two columns `docid` and `document_content`. The `document_content` should always follow
-the format "{category} {tool_name} {tool description}". The category and tool_name should always be one word with no space in between. The document_content is
+the format `"category tool_name tool_description"`. The category and tool_name should always be one word with no space in between. The document_content is
 used to calculate semantic similarity for retrieval.
 
 Once your library is ready, specify the path in `nested_mode_config` of CaptainAgent.
