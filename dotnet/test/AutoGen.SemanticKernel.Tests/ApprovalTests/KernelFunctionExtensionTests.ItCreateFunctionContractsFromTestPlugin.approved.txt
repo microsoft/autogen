@@ -16,8 +16,7 @@
         "Name": "newState",
         "Description": "new state",
         "ParameterType": "System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-        "IsRequired": true,
-        "DefaultValue": ""
+        "IsRequired": true
       }
     ],
     "ReturnType": "System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
