@@ -8,6 +8,7 @@ using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
@@ -138,7 +139,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             name: "code_reviewer",
             systemMessage: @"You review code block from coder",
             config: gpt3Config,
-            functions: [functions.ReviewCodeBlockFunction],
+            functions: [functions.ReviewCodeBlockFunctionContract.ToOpenAIFunctionDefinition()],
             functionMap: new Dictionary<string, Func<string, Task<string>>>()
             {
                 { nameof(ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
