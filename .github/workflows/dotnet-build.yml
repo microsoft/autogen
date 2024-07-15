@@ -61,6 +61,10 @@ jobs:
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
         echo "Build AutoGen"
