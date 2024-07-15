@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
 using AutoGen.LMStudio;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
@@ -69,8 +70,8 @@ public partial class Example09_LMStudio_FunctionCall
         // And ask agent to response in function call object format using few-shot example
         object[] functionList =
             [
-                SerializeFunctionDefinition(instance.GetWeatherFunction),
-                SerializeFunctionDefinition(instance.GoogleSearchFunction)
+                SerializeFunctionDefinition(instance.GetWeatherFunctionContract.ToOpenAIFunctionDefinition()),
+                SerializeFunctionDefinition(instance.GetWeatherFunctionContract.ToOpenAIFunctionDefinition())
             ];
         var functionListString = JsonSerializer.Serialize(functionList, new JsonSerializerOptions { WriteIndented = true });
         var lmAgent = new LMStudioAgent(
@@ -98,12 +99,12 @@ You have access to the following functions. Use them if required:
                     {
                         var arguments = JsonSerializer.Serialize(functionCall.Arguments);
                         // invoke function wrapper
-                        if (functionCall.Name == instance.GetWeatherFunction.Name)
+                        if (functionCall.Name == instance.GetWeatherFunctionContract.Name)
                         {
                             var result = await instance.GetWeatherWrapper(arguments);
                             return new TextMessage(Role.Assistant, result);
                         }
-                        else if (functionCall.Name == instance.GoogleSearchFunction.Name)
+                        else if (functionCall.Name == instance.GetWeatherFunctionContract.Name)
                         {
                             var result = await instance.GoogleSearchWrapper(arguments);
                             return new TextMessage(Role.Assistant, result);
