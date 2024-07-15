@@ -224,7 +224,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         long the39thFibonacciNumber = 63245986;
         var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
         if (!Directory.Exists(workDir))
+        {
             Directory.CreateDirectory(workDir);
+        }
 
         using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
@@ -328,7 +330,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         long the39thFibonacciNumber = 63245986;
         var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
         if (!Directory.Exists(workDir))
+        {
             Directory.CreateDirectory(workDir);
+        }
 
         using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
