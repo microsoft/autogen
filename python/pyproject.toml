@@ -48,6 +48,7 @@ dependencies = [
     "grpcio-tools",
     "markdownify",
     "types-protobuf",
+    "python-dotenv"
 ]
 
 [tool.hatch.envs.default.extra-scripts]
