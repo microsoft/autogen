@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicClient.cs
 
 using System;
@@ -90,13 +90,7 @@ public sealed class AnthropicClient : IDisposable
                 {
                     var res = await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
                         new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)),
-                        cancellationToken: cancellationToken);
-
-                    if (res == null)
-                    {
-                        throw new Exception("Failed to deserialize response");
-                    }
-
+                        cancellationToken: cancellationToken) ?? throw new Exception("Failed to deserialize response");
                     if (res.Delta?.Type == "input_json_delta" && !string.IsNullOrEmpty(res.Delta.PartialJson) &&
                         currentEvent.ContentBlock != null)
                     {
