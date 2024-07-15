@@ -12,10 +12,11 @@ from agnext.components.models import (
 # from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
 
-# from typing_extensions import Annotated
+from ...markdown_browser import RequestsMarkdownBrowser
 from ..base_agent import BaseAgent
+
+# from typing_extensions import Annotated
 from ._tools import TOOL_FIND_NEXT, TOOL_FIND_ON_PAGE_CTRL_F, TOOL_OPEN_LOCAL_FILE, TOOL_PAGE_DOWN, TOOL_PAGE_UP
-from .requests_markdown_browser import RequestsMarkdownBrowser
 
 # async def read_local_file(file_path: Annotated[str, "relative or absolute path of file to read"]) -> str:
 #     """Read contents of a file."""

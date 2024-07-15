@@ -30,17 +30,24 @@ from team_one.agents.base_agent import BaseAgent
 from team_one.messages import UserContent
 from team_one.utils import SentinelMeta, message_content_to_str
 
+# TODO: Fix mdconvert
+from ...markdown_browser import (  # type: ignore
+    DocumentConverterResult,  # type: ignore
+    FileConversionException,  # type: ignore
+    MarkdownConverter,  # type: ignore
+    UnsupportedFormatException,  # type: ignore
+)
 from .set_of_mark import add_set_of_mark
 from .tool_definitions import (
     TOOL_CLICK,
     TOOL_HISTORY_BACK,
     TOOL_PAGE_DOWN,
     TOOL_PAGE_UP,
-    #    TOOL_READ_PAGE_AND_ANSWER,
-    #    TOOL_SCROLL_ELEMENT_DOWN,
-    #    TOOL_SCROLL_ELEMENT_UP,
+    TOOL_READ_PAGE_AND_ANSWER,
+    # TOOL_SCROLL_ELEMENT_DOWN,
+    # TOOL_SCROLL_ELEMENT_UP,
     TOOL_SLEEP,
-    #    TOOL_SUMMARIZE_PAGE,
+    TOOL_SUMMARIZE_PAGE,
     TOOL_TYPE,
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
@@ -102,7 +109,7 @@ class MultimodalWebSurfer(BaseAgent):
         downloads_folder: str | None = None,
         debug_dir: str | None = os.getcwd(),
         # navigation_allow_list=lambda url: True,
-        # markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
+        markdown_converter: Any | None = None,  # TODO: Fixme
     ) -> None:
         self._model_client = model_client
         self.start_page = start_page or self.DEFAULT_START_PAGE
@@ -117,10 +124,10 @@ class MultimodalWebSurfer(BaseAgent):
         self._prior_metadata_hash = None
 
         ## Create or use the provided MarkdownConverter
-        # if markdown_converter is None:
-        #    self._markdown_converter = MarkdownConverter()
-        # else:
-        #    self._markdown_converter = markdown_converter
+        if markdown_converter is None:
+            self._markdown_converter = MarkdownConverter()  # type: ignore
+        else:
+            self._markdown_converter = markdown_converter  # type: ignore
 
         # Create the playwright self
         launch_args: Dict[str, Any] = {"headless": headless}
@@ -266,8 +273,8 @@ setInterval(function() {{
             TOOL_HISTORY_BACK,
             TOOL_CLICK,
             TOOL_TYPE,
-            #            TOOL_SUMMARIZE_PAGE,
-            #            TOOL_READ_PAGE_AND_ANSWER,
+            TOOL_SUMMARIZE_PAGE,
+            TOOL_READ_PAGE_AND_ANSWER,
             TOOL_SLEEP,
         ]
 
@@ -354,7 +361,13 @@ When deciding between tools, consider if the request can be best addressed by:
         #        self._last_download = None
         #        try:
         if True:
-            if isinstance(message, list):
+            if isinstance(message, str):
+                # Answer directly
+                return False, message
+
+            elif isinstance(message, list):
+                # Take an action
+
                 name = message[0].name
                 args = json.loads(message[0].arguments)
 
@@ -429,12 +442,14 @@ When deciding between tools, consider if the request can be best addressed by:
 
                     await self._scroll_id(target_id, "down")
 
-                # elif name == "answer_question":
-                #    question = str(args.get("question"))
-                #    action_description = self._summarize_page(question=question)
-                #
-                # elif name == "summarize_page":
-                #    action_description = self._summarize_page()
+                elif name == "answer_question":
+                    question = str(args.get("question"))
+                    # Do Q&A on the DOM. No need to take further action. Browser state does not change.
+                    return False, await self._summarize_page(question=question)
+
+                elif name == "summarize_page":
+                    # Summarize the DOM. No need to take further action. Browser state does not change.
+                    return False, await self._summarize_page()
 
                 elif name == "sleep":
                     action_description = "I am waiting a short period of time before taking further action."
@@ -442,6 +457,9 @@ When deciding between tools, consider if the request can be best addressed by:
 
                 else:
                     raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
+            else:
+                # Not sure what happened here
+                raise AssertionError(f"Unknown response format '{message}'")
 
         #        except ValueError as e:
         #            return True, str(e)
@@ -543,11 +561,12 @@ When deciding between tools, consider if the request can be best addressed by:
         assert isinstance(result, dict)
         return cast(Dict[str, Any], result)
 
-    # async def _get_page_markdown(self):
-    #    assert self._page is not None
-    #    html = self._page.evaluate("document.documentElement.outerHTML;")
-    #    res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)
-    #    return res.text_content
+    async def _get_page_markdown(self) -> str:
+        assert self._page is not None
+        html = await self._page.evaluate("document.documentElement.outerHTML;")
+        # TODO: fix types
+        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)  # type: ignore
+        return res.text_content  # type: ignore
 
     async def _on_new_page(self, page: Page) -> None:
         self._page = page
@@ -665,57 +684,62 @@ When deciding between tools, consider if the request can be best addressed by:
     """
         )
 
-    #    def _summarize_page(self, question=None, token_limit=100000):
-    #        page_markdown = self._get_page_markdown()
-    #
-    #        buffer = ""
-    #        for line in re.split(r"([\r\n]+)", page_markdown):
-    #            tokens = count_token(buffer + line)
-    #            if tokens + 1024 > token_limit:  # Leave room for our summary
-    #                break
-    #            buffer += line
-    #
-    #        buffer = buffer.strip()
-    #        if len(buffer) == 0:
-    #            return "Nothing to summarize."
-    #
-    #        title = self._page.url
-    #        try:
-    #            title = self._page.title()
-    #        except:
-    #            pass
-    #
-    #        # Take a screenshot and scale it
-    #        screenshot = self._page.screenshot()
-    #        if not isinstance(screenshot, io.BufferedIOBase):
-    #            screenshot = io.BytesIO(screenshot)
-    #        screenshot = Image.open(screenshot)
-    #        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
-    #        screenshot.close()
-    #
-    #        messages = [
-    #            {
-    #                "role": "system",
-    #                "content": "You are a helpful assistant that can summarize long documents to answer question.",
-    #            }
-    #        ]
-    #
-    #        prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
-    #        if question is not None:
-    #            prompt += (
-    #                f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
-    #            )
-    #        else:
-    #            prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
-    #
-    #        messages.append(
-    #            self._make_mm_message(prompt, scaled_screenshot),
-    #        )
-    #        scaled_screenshot.close()
-    #
-    #        response = self.client.create(context=None, messages=messages)
-    #        extracted_response = self.client.extract_text_or_completion_object(response)[0]
-    #        return str(extracted_response)
+    async def _summarize_page(self, question: str | None = None, token_limit: int = 100000) -> str:
+        assert self._page is not None
+
+        page_markdown: str = await self._get_page_markdown()
+
+        # TODO: Get token count working
+
+        buffer = page_markdown
+        # buffer: str = ""
+        # for line in re.split(r"([\r\n]+)", page_markdown):
+        #    tokens = count_token(buffer + line)
+        #    if tokens + 1024 > token_limit:  # Leave room for our summary
+        #        break
+        #    buffer += line
+
+        buffer = buffer.strip()
+        if len(buffer) == 0:
+            return "Nothing to summarize."
+
+        title: str = self._page.url
+        try:
+            title = await self._page.title()
+        except Exception:
+            pass
+
+        # Take a screenshot and scale it
+        screenshot = Image.open(io.BytesIO(await self._page.screenshot()))
+        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        screenshot.close()
+
+        prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
+        if question is not None:
+            prompt += (
+                f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
+            )
+        else:
+            prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
+
+        # Add the multimodal message and make the request
+        messages: List[LLMMessage] = []
+        messages.append(
+            SystemMessage(content="You are a helpful assistant that can summarize long documents to answer question.")
+        )
+        messages.append(
+            UserMessage(
+                content=[
+                    prompt,
+                    AGImage.from_pil(scaled_screenshot),
+                ],
+                source=self.metadata["name"],
+            )
+        )
+        response = await self._model_client.create(messages)
+        scaled_screenshot.close()
+        assert isinstance(response.content, str)
+        return response.content
 
     async def _get_ocr_text(self, image: bytes | io.BufferedIOBase | Image.Image) -> str:
         scaled_screenshot = None
