@@ -92,7 +92,7 @@ class QdrantVectorDB(VectorDB):
             collection_options: dict | The options for creating the collection.
             kwargs: dict | Additional keyword arguments.
         """
-        self.client: QdrantClient = client
+        self.client: QdrantClient = client if client is not None else QdrantClient(location=":memory:")
         self.embedding_function = FastEmbedEmbeddingFunction() or embedding_function
         self.collection_options = collection_options
         self.content_payload_key = content_payload_key
@@ -113,7 +113,10 @@ class QdrantVectorDB(VectorDB):
         """
         embeddings_size = len(self.embedding_function(["test"])[0])
 
-        if not self.client.collection_exists(collection_name) or overwrite:
+        if self.client.collection_exists(collection_name) and overwrite:
+            self.client.delete_collection(collection_name)
+
+        if not self.client.collection_exists(collection_name):
             self.client.create_collection(
                 collection_name,
                 vectors_config=models.VectorParams(size=embeddings_size, distance=models.Distance.COSINE),
@@ -251,7 +254,10 @@ class QdrantVectorDB(VectorDB):
         Returns:
             List[Document] | The results.
         """
-        results = self.client.retrieve(collection_name, ids=ids, with_payload=include, with_vectors=True)
+        if ids is None:
+            results = self.client.scroll(collection_name=collection_name, with_payload=include, with_vectors=True)[0]
+        else:
+            results = self.client.retrieve(collection_name, ids=ids, with_payload=include, with_vectors=True)
         return [self._point_to_document(result) for result in results]
 
     def _point_to_document(self, point) -> Document:
