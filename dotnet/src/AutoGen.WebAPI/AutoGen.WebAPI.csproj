@@ -6,6 +6,17 @@
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
+  
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.WebAPI</Title>
+    <Description>
+      Turn an `AutoGen.Core.IAgent` into a RESTful API.
+    </Description>
+  </PropertyGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" Version="$(MicrosoftASPNETCoreVersion)" />
   </ItemGroup>
