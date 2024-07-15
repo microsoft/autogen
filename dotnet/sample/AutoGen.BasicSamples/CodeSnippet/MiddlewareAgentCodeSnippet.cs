@@ -20,8 +20,7 @@ public class MiddlewareAgentCodeSnippet
         var middlewareAgent = new MiddlewareAgent(innerAgent: agent);
         middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
-            var lastMessage = messages.Last() as TextMessage;
-            if (lastMessage != null && lastMessage.Content.Contains("Hello World"))
+            if (messages.Last() is TextMessage lastMessage && lastMessage.Content.Contains("Hello World"))
             {
                 lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
                 return lastMessage;
@@ -39,8 +38,7 @@ public class MiddlewareAgentCodeSnippet
         #region register_middleware_agent
         middlewareAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
-            var lastMessage = messages.Last() as TextMessage;
-            if (lastMessage != null && lastMessage.Content.Contains("Hello World"))
+            if (messages.Last() is TextMessage lastMessage && lastMessage.Content.Contains("Hello World"))
             {
                 lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
                 return lastMessage;
