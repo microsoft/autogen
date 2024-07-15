@@ -48,7 +48,9 @@ public sealed class AnthropicClient : IDisposable
         var responseStream = await httpResponseMessage.Content.ReadAsStreamAsync();
 
         if (httpResponseMessage.IsSuccessStatusCode)
+        {
             return await DeserializeResponseAsync<ChatCompletionResponse>(responseStream, cancellationToken);
+        }
 
         ErrorResponse res = await DeserializeResponseAsync<ErrorResponse>(responseStream, cancellationToken);
         throw new Exception(res.Error?.Message);
