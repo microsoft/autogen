@@ -1,6 +1,7 @@
 import hashlib
 import os
 import re
+import uuid
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from IPython import get_ipython
@@ -365,7 +366,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 all_docs_ids = set()
 
-            chunk_ids = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            chunk_ids = (
+                [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+                if not self._vector_db.type == "qdrant"
+                else [str(uuid.UUID(hex=hashlib.md5(chunk.encode("utf-8")).hexdigest())) for chunk in chunks]
+            )
             chunk_ids_set = set(chunk_ids)
             chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
             docs = [
