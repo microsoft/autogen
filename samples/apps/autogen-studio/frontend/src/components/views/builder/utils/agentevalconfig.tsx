@@ -9,9 +9,6 @@ import {
 import { Button, Checkbox, Drawer, Input, Modal, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
 import { UserIcon, LightBulbIcon } from "@heroicons/react/24/outline";
-import { WorkflowAgentSelector, WorkflowTypeSelector } from "./selectors";
-import ChatBox from "../../playground/chatbox";
-import { UserInfo } from "os";
 
 
 export const JsonCriteriaViewConfig = ({
@@ -39,9 +36,7 @@ export const JsonCriteriaViewConfig = ({
   const [validCriteria, setValidCriteria] = React.useState<boolean>(criteria.id);
 
   const updateFlowConfig = (key: string, value: string) => {
-    // When an updatedFlowConfig is created using localWorkflow, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localWorkflow->flowConfig. Fixed a bug.
     const updatedFlowConfig = { ...criteria, [key]: value };
-
     setLocalCriteria(updatedFlowConfig);
     setCriteria(updatedFlowConfig);
     setControlChanged(true);
@@ -50,7 +45,6 @@ export const JsonCriteriaViewConfig = ({
   const createCriteria = (criteria: IAgentEvalCriteria) => {
     setError(null);
     setLoading(true);
-    // const fetch;
 
     const payLoad = {
       method: "POST",
@@ -92,7 +86,6 @@ export const JsonCriteriaViewConfig = ({
   const validateCriteria = (criteria: IAgentEvalCriteria) => {
     setError(null);
     setLoading(true);
-    // const fetch;
 
     const payLoad = {
       method: "GET",
@@ -127,116 +120,131 @@ export const JsonCriteriaViewConfig = ({
   const editorRef = React.useRef<any | null>(null);
   const [showQuantifyModal, setShowQuantifyModal] = React.useState(false);
 
+  const [editorText, setEditorText] = React.useState(!criteria.id ? "Paste your criteria here..." : criteria.criteria);
+
   return (
     <>
-      {/* <div className="mb-2">{flowConfig.name}</div> */}
       <div>
-        <ControlRowView
-          title="Task Name"
-          className="mt-4 mb-2"
-          description="Name of the task that the criteria with evaluate on."
-          value = ""
-          control={
-            <Input
-              className="mt-2 w-full"
-              value={localCriteria.task_name}
-              onChange={(e) => updateFlowConfig("task_name", e.target.value)}
-            />
-          }
-        />
-
-        <ControlRowView
-          title="Task Description"
-          className="mt-4 mb-2"
-          description="Description of the task that the criteria with evaluate on."
-          value = ""
-          control={
-            <Input
-              className="mt-2 w-full"
-              value={localCriteria.task_description}
-              onChange={(e) => updateFlowConfig("task_description", e.target.value)}
-            />
-          }
-        />
-      </div>
-      <div style={{ height: "50vh" }} className="h-full  mt-2 rounded">
-        {"Criteria"}
-        <MonacoEditor
-          value={!criteria.id ? "Paste your criteria here..." : criteria.criteria}
-          language="python"
-          editorRef={editorRef}
-          onChange={(e) => updateFlowConfig("criteria", e)}
-        />
-      </div>
-      <div className="w-full mt-4 text-right">
         <div>
-          {criteria.id && validCriteria && (
-            <Button
-              type="primary"
-              onClick={() => setShowQuantifyModal(true)}
-              loading={loading}
-            >
-              {"Quantify Criteria"}
-            </Button>
-          )}
-          <Modal
-            title={
-              <>
-                Quantify Criteria{" "}
-                <span className="text-accent font-normal">
-                  {localCriteria?.task_name}
-                </span>{" "}
-              </>
+          <ControlRowView
+            title="Task Name"
+            className="mt-4 mb-2"
+            description="Name of the task that the criteria with evaluate on."
+            value = ""
+            control={
+              <Input
+                className="mt-2 w-full"
+                value={localCriteria.task_name}
+                onChange={(e) => updateFlowConfig("task_name", e.target.value)}
+              />
             }
-            open={showQuantifyModal}
-            onOk={() => setShowQuantifyModal(false)}
-            onCancel={() => setShowQuantifyModal(false)}
-            footer={[]}
-            >
-            <>
+          />
+          <ControlRowView
+            title="Task Description"
+            className="mt-4 mb-2"
+            description="Description of the task that the criteria with evaluate on."
+            value = ""
+            control={
+              <Input
+                className="mt-2 w-full"
+                value={localCriteria.task_description}
+                onChange={(e) => updateFlowConfig("task_description", e.target.value)}
+              />
+            }
+          />
+        </div>
+        <div style={{ height: "45vh" }} className="h-full mb-8 mt-2 rounded">
+          {"Criteria"}
+          <MonacoEditor
+            value={editorText}
+            onFocus={() => {
+              if (!criteria.criteria) {
+                setEditorText('');
+              }
+            }}
+            onBlur={() => {
+              if (!criteria.criteria) {
+                setEditorText('Paste your criteria here...');
+              }
+            }}
+            language="python"
+            editorRef={editorRef}
+            onChange={(e) => {
+              updateFlowConfig("criteria", e);
+              setEditorText(e);
+            }}
+            style={{ color: !criteria.criteria ? '#BBB' : '#000' }}
+          />
+        </div>
+        <div className="w-full mt-4 text-right">
+          {" "}
+          <div>
+            <Modal
+              title={
+                <>
+                  Quantify Criteria{" "}
+                  <span className="text-accent font-normal">
+                    {localCriteria?.task_name}
+                  </span>{" "}
+                </>
+              }
+              open={showQuantifyModal}
+              onOk={() => setShowQuantifyModal(false)}
+              onCancel={() => setShowQuantifyModal(false)}
+              footer={[]}
+              >
               <QuantifyCriteria
                 criteria={criteria}
                 serverUrl={serverUrl}
                 models={models}
                 sessions={sessions}
+                user_id={user?.email}
                 close={close}
               />
-            </>
-          </Modal>
-        </div>
-        {" "}
-        {!hasChanged && (
+            </Modal>
+          </div>
+          {!hasChanged && (
+            <Button
+              className="ml-2"
+              type="primary"
+              onClick={() => {
+                createCriteria(localCriteria);
+              }}
+              loading={loading}
+            >
+              {criteria.id ? "Update Criteria" : "Create Criteria"}
+            </Button>
+          )}
+          {criteria.id && validCriteria && (
+              <Button
+                className="ml-2"
+                type="primary"
+                onClick={() => setShowQuantifyModal(true)}
+                loading={loading}
+              >
+                {"Quantify Criteria"}
+              </Button>
+            )}
           <Button
+            className="ml-2"
             type="primary"
             onClick={() => {
-              createCriteria(localCriteria);
+              validateCriteria(localCriteria);
             }}
-            loading={loading}
           >
-            {criteria.id ? "Update Criteria" : "Create Criteria"}
+            Validate Criteria
           </Button>
-        )}
-        
-        <Button
-          className="ml-2"
-          type="primary"
-          onClick={() => {
-            validateCriteria(localCriteria);
-          }}
-        >
-          Validate Criteria
-        </Button>
-        
-        <Button
-          className="ml-2"
-          key="close"
-          type="default"
-          onClick={() => {
-            close();
-          }}
-        >
-          Close
-        </Button>
+          <Button
+            className="ml-2"
+            key="close"
+            type="default"
+            onClick={() => {
+              close();
+            }}
+          >
+            Close
+          </Button>
+        </div>
       </div>
     </>
   );
@@ -246,10 +254,12 @@ export const JsonCriteriaViewConfig = ({
 export const CriteriaGenerateConfig = ({
   models,
   sessions,
+  user_id,
   close,
 }: {
   models: IModelConfig[];
   sessions: IChatSession[];
+  user_id: string;
   close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -269,14 +279,11 @@ export const CriteriaGenerateConfig = ({
   const [selectedSuccessSession, setSelectedSuccessSession] = React.useState("");
   const [selectedFailureSession, setSelectedFailureSession] = React.useState("");
   const serverUrl = getServerUrl();
-  const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate?user_id=guestuser@gmail.com&model_id=${generateParams.model_id}&success_session_id=${generateParams.success_session_id}&failure_session_id=${generateParams.model_id}&additional_instructions=${generateParams.additional_instructions}&max_round=${generateParams.max_round}&use_subcritic=${generateParams.use_subcritic}`;
-
-  const [controlChanged, setControlChanged] = React.useState<boolean>(false);
+  const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate?user_id=${user_id}&model_id=${generateParams.model_id}&success_session_id=${generateParams.success_session_id}&failure_session_id=${generateParams.model_id}&additional_instructions=${generateParams.additional_instructions}&max_round=${generateParams.max_round}&use_subcritic=${generateParams.use_subcritic}`;
   
   const generateCriteria = (generateParams: IAgentEvalGenerate) => {
     setError(null);
     setLoading(true);
-    // const fetch;
 
     const payLoad = {
       method: "POST",
@@ -303,10 +310,7 @@ export const CriteriaGenerateConfig = ({
     };
     const onFinal = () => {
       setLoading(false);
-      setControlChanged(false);
     };
-    console.log(payLoad)
-    console.log(payLoad.body)
     fetchJSON(generateCriteriaUrl, payLoad, onSuccess, onError, onFinal);
   };
 
@@ -500,12 +504,14 @@ export const CriteriaViewer = ({
   setCriteria,
   models,
   sessions,
+  user_id,
   close,
 }: {
   criteria: IAgentEvalCriteria;
   setCriteria: (criteria: IAgentEvalCriteria) => void;
   models: IModelConfig[];
   sessions: IChatSession[];
+  user_id: string;
   close: () => void;
 }) => {
   let items = [
@@ -547,6 +553,7 @@ export const CriteriaViewer = ({
           <CriteriaGenerateConfig
             models={models}
             sessions={sessions}
+            user_id={user_id}
             close={close}
           />
         </div>
@@ -571,17 +578,19 @@ export const QuantifyCriteria = ({
   serverUrl,
   models,
   sessions,
+  user_id,
   close,
 }: {
   criteria: IAgentEvalCriteria;
   serverUrl: string;
   models: IModelConfig[];
   sessions: IChatSession[];
+  user_id: string;
   close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<IStatus | null>(null);
-  const quantifyCriteriaUrl = `${serverUrl}/agenteval/quantify?criteria_id=${criteria.id}&model_id=${criteria.model_id}&test_session_id=${criteria.execution_session_id}`
+  const quantifyCriteriaUrl = `${serverUrl}/agenteval/quantify?criteria_id=${criteria.id}&model_id=${criteria.model_id}&test_session_id=${criteria.execution_session_id}&user_id=${user_id}`
   const [selectedSession, setSelectedSession] = React.useState("");
   const [selectedModel, setSelectedModel] = React.useState("");
 
@@ -632,7 +641,7 @@ export const QuantifyCriteria = ({
       <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between'}}>
         <div style={{flex: 1, marginRight: '20px'}}>
           <ControlRowView
-            title="Successful Session Example"
+            title="Test Session"
             className="mt-4 mb-2"
             description="Example of a successful agent execution in solving the task."
             value={selectedSession}
@@ -641,6 +650,7 @@ export const QuantifyCriteria = ({
                 className="mt-2 w-full"
                 onChange={(selectedValue: any) => {
                   const selectedSession = sessions.find(session => session.id === selectedValue);
+                  criteria.execution_session_id = selectedSession?.id
                   setSelectedSession(selectedSession ? selectedSession.name : "");
                 }}
                 options={
@@ -663,6 +673,7 @@ export const QuantifyCriteria = ({
               onChange={(selectedValue: any) => {
                 console.log("SelectedValue: " + selectedValue)
                 const selectedModel = models.find(model => model.id === selectedValue);
+                criteria.model_id = selectedModel?.id
                 setSelectedModel(selectedModel ? selectedModel.model : "");
               }}
               options={
@@ -677,26 +688,27 @@ export const QuantifyCriteria = ({
         </div>
       </div>
       <div>
-          <Button
-              type="primary"
-              onClick={() => {
-                quantifyCriteria(criteria);
-              }}
-              loading={loading}
-            >
-              Quantify Criteria
-          </Button>
-          <Button
-            className="ml-2"
-            key="close"
-            type="default"
+        {criteria.execution_session_id && criteria.model_id &&
+        (<Button
+            type="primary"
             onClick={() => {
-              close();
+              quantifyCriteria(criteria);
             }}
+            loading={loading}
           >
-            Close
-          </Button>
-        </div>
+            Quantify Criteria
+        </Button>)}
+        <Button
+          className="ml-2"
+          key="close"
+          type="default"
+          onClick={() => {
+            close();
+          }}
+        >
+          Close
+        </Button>
+      </div>
     </>
   );
 };

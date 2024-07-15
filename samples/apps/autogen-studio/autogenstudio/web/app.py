@@ -446,20 +446,15 @@ async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, s
             "message": "At least one session is required to be selected."
         }
     
-    # if(success_session_id):
-    #     messages = (await list_messages(user_id=user_id, session_id=success_session_id)).data
-    #     task.successful_response = str(messages)
-    # if(failure_session_id):
-    #     messages = (await list_messages(user_id=user_id, session_id=failure_session_id)).data
-    #     task.failed_response = str(messages)
+    if(success_session_id):
+        task.successful_response = get_session(user_id, success_session_id)
+    if(failure_session_id):
+        task.failed_response = get_session(user_id, failure_session_id)
 
-    # TODO: remove and replace with actual agenteval call when openai is more consistent
-    criteria_file = "/home/jluey/code/autogen/test/test_files/agenteval-in-out/samples/sample_math_criteria.json"
-    criteria = open(criteria_file, "r").read()
-    criteria = Criterion.parse_json_str(criteria)
+    model = get_model(model_id)
 
-    # criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
-    #                              max_round=max_round, use_subcritic=use_subcritic)
+    criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
+                                 max_round=max_round, use_subcritic=use_subcritic)
 
     criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=[])
     create_entity(criteria_entry, Criteria)
@@ -505,13 +500,11 @@ async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task
     criteria = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in criteria]
 
     model = get_model(model_id)
-
-    # test_case = get_session(user_id=user_id, session_id=test_session_id)
-    return "Temporary results"
-    # return quantify_criteria(llm_config=model, criteria=criteria, task=task, test_case=test_case)
+    test_case = get_session(user_id=user_id, session_id=test_session_id)
+    return quantify_criteria(llm_config=model, criteria=criteria, task=task, test_case=test_case)
 
 
-async def get_session(user_id:int, session_id:int):
+def get_session(user_id:int, session_id:int):
     filters = {"user_id": user_id, "session_id": session_id}
     session = list_entity(Message, filters=filters, order="asc", return_json=True).data
     return str(session)  
@@ -520,7 +513,6 @@ async def get_session(user_id:int, session_id:int):
 def get_model(model_id: int):
     filters = {"id": model_id}
     model = list_entity(Model, filters=filters).data
-    print(model)
     if(model and len(model) > 0):
         model = model[0]
     else:

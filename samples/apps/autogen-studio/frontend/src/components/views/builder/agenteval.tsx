@@ -278,8 +278,9 @@ const AgentEvalView = ({}: any) => {
             <CriteriaViewer
               criteria={localCriteria}
               setCriteria={setLocalCriteria}
-              sessions={sessions}
               models={models}
+              sessions={sessions}
+              user_id={user?.email}
               close={closeModal}
             />
           )}

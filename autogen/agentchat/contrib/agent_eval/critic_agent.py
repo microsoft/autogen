@@ -9,7 +9,7 @@ class CriticAgent(ConversableAgent):
     """
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant. You suggest criteria for evaluating different tasks. They should be distinguishable, quantifiable and not redundant.
-    Convert the evaluation criteria into a list where each item is a criteria which consists of the following dictionary as follows
+    Convert the evaluation criteria into a json list where each item is a criteria which consists of the following dictionary as follows
     {"name": name of the criterion, "description": criteria description , "accepted_values": possible accepted inputs for this key}
     Make sure "accepted_values" include the acceptable inputs for each key that are fine-grained and preferably multi-graded levels and "description" includes the criterion description.
     Output just the criteria string you have created, no code.
