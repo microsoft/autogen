@@ -109,7 +109,7 @@ line-length = 120
 fix = true
 exclude = ["build", "dist", "src/agnext/worker/protos"]
 target-version = "py310"
-include = ["src/**", "examples/*.py"]
+include = ["src/**", "samples/*.py"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -123,7 +123,7 @@ ignore = ["F401", "E501"]
 "unittest".msg = "Use `pytest` instead."
 
 [tool.mypy]
-files = ["src", "examples", "tests"]
+files = ["src", "samples", "tests"]
 exclude = ["src/agnext/worker/protos"]
 
 strict = true
@@ -143,7 +143,7 @@ disallow_untyped_decorators = true
 disallow_any_unimported = true
 
 [tool.pyright]
-include = ["src", "tests", "examples"]
+include = ["src", "tests", "samples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
