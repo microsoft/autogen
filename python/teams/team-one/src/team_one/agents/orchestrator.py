@@ -1,73 +1,241 @@
-import logging
-from typing import List
+import json
+from typing import Any, Dict, List, Optional
 
-from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.components import TypeRoutedAgent, message_handler
-from agnext.components.models import AssistantMessage, UserMessage
-from agnext.core import AgentProxy, CancellationToken
+from agnext.components.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from agnext.core import AgentProxy
 
-from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
-from ..utils import message_content_to_str
+from ..messages import BroadcastMessage, OrchestrationEvent
+from .base_orchestrator import BaseOrchestrator, logger
+from .orchestrator_prompts import (
+    ORCHESTRATOR_CLOSED_BOOK_PROMPT,
+    ORCHESTRATOR_LEDGER_PROMPT,
+    ORCHESTRATOR_PLAN_PROMPT,
+    ORCHESTRATOR_SYNTHESIZE_PROMPT,
+    ORCHESTRATOR_SYSTEM_MESSAGE,
+)
 
-logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
 
-
-class RoundRobinOrchestrator(TypeRoutedAgent):
+class RoundRobinOrchestrator(BaseOrchestrator):
     def __init__(
         self,
         agents: List[AgentProxy],
         description: str = "Round robin orchestrator",
         max_rounds: int = 20,
     ) -> None:
-        super().__init__(description)
-        self._agents = agents
-        self._max_rounds = max_rounds
-        self._num_rounds = 0
+        super().__init__(agents=agents, description=description, max_rounds=max_rounds)
 
-    @message_handler
-    async def handle_incoming_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        """Handle an incoming message."""
-        source = "Unknown"
-        if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
-            source = message.content.source
+    async def _select_next_agent(self, message: LLMMessage) -> AgentProxy:
+        self._current_index = (self._num_rounds) % len(self._agents)
+        return self._agents[self._current_index]
 
-        content = message_content_to_str(message.content.content)
 
-        logger.info(OrchestrationEvent(source, content))
+class LedgerOrchestrator(BaseOrchestrator):
+    DEFAULT_SYSTEM_MESSAGES = [
+        SystemMessage(ORCHESTRATOR_SYSTEM_MESSAGE),
+    ]
 
-        # Termination conditions
-        if self._num_rounds >= self._max_rounds:
+    def __init__(
+        self,
+        agents: List[AgentProxy],
+        model_client: ChatCompletionClient,
+        description: str = "Ledger-based orchestrator",
+        system_messages: List[SystemMessage] = DEFAULT_SYSTEM_MESSAGES,
+        closed_book_prompt: str = ORCHESTRATOR_CLOSED_BOOK_PROMPT,
+        plan_prompt: str = ORCHESTRATOR_PLAN_PROMPT,
+        synthesize_prompt: str = ORCHESTRATOR_SYNTHESIZE_PROMPT,
+        ledger_prompt: str = ORCHESTRATOR_LEDGER_PROMPT,
+        max_rounds: int = 20,
+        max_stalls_before_replan: int = 3,
+        max_replans: int = 4,
+    ) -> None:
+        super().__init__(agents=agents, description=description, max_rounds=max_rounds)
+
+        self._model_client = model_client
+
+        # prompt-based parameters
+        self._system_messages = system_messages
+        self._closed_book_prompt = closed_book_prompt
+        self._plan_prompt = plan_prompt
+        self._synthesize_prompt = synthesize_prompt
+        self._ledger_prompt = ledger_prompt
+
+        self._chat_history: List[LLMMessage] = []
+        self._should_replan = True
+        self._max_stalls_before_replan = max_stalls_before_replan
+        self._stall_counter = 0
+        self._max_replans = max_replans
+        self._replan_counter = 0
+        self.task_str = ""
+
+    def _get_closed_book_prompt(self, task: str) -> str:
+        return self._closed_book_prompt.format(task=task)
+
+    def _get_plan_prompt(self, task: str, team: str) -> str:
+        return self._plan_prompt.format(task=task, team=team)
+
+    def _get_synthesize_prompt(self, task: str, team: str, facts: str, plan: str) -> str:
+        return self._synthesize_prompt.format(task=task, team=team, facts=facts, plan=plan)
+
+    def _get_ledger_prompt(self, task: str, team: str, names: List[str]) -> str:
+        return self._ledger_prompt.format(task=task, team=team, names=names)
+
+    def _get_team_description(self) -> str:
+        team_description = ""
+        for agent in self._agents:
+            name = agent.metadata["name"]
+            description = agent.metadata["description"]
+            team_description += f"{name}: {description}\n"
+        return team_description
+
+    def _get_team_names(self) -> List[str]:
+        return [agent.metadata["name"] for agent in self._agents]
+
+    def _set_task_str(self, message: LLMMessage) -> None:
+        if len(self._chat_history) == 1:
+            if isinstance(message.content, str):
+                self.task_str = message.content
+            else:
+                for content in message.content:
+                    if isinstance(content, str):
+                        self.task_str += content + "\n"
+                        break
+        assert len(self.task_str) > 0
+
+    def _needs_replan(self) -> bool:
+        if len(self._chat_history) == 1:
+            self._set_task_str(self._chat_history[0])
+            return True
+
+        if self._stall_counter > self._max_stalls_before_replan:
+            return True
+
+        return False
+
+    async def _plan(self) -> str:
+        team_description = self._get_team_description()
+
+        # 1. GATHER FACTS
+        # create a closed book task and generate a response and update the chat history
+        cb_task = self._get_closed_book_prompt(self.task_str)
+        cb_user_message = UserMessage(
+            content=cb_task, source=self.metadata["name"]
+        )  # TODO: allow images in this message.
+        cb_response = await self._model_client.create(self._system_messages + self._chat_history + [cb_user_message])
+        facts = cb_response.content
+        assert isinstance(facts, str)
+        cb_assistant_message = AssistantMessage(content=facts, source=self.metadata["name"])
+
+        # 2. CREATE A PLAN
+        ## plan based on available information
+        plan_task = self._get_plan_prompt(self.task_str, team_description)
+        plan_user_message = UserMessage(
+            content=plan_task, source=self.metadata["name"]
+        )  # TODO: allow images in this message.
+        plan_response = await self._model_client.create(
+            self._system_messages + self._chat_history + [cb_assistant_message, plan_user_message]
+        )
+        plan = plan_response.content
+        assert isinstance(plan, str)
+
+        # SYNTHESIZE FACTS AND PLAN
+        plan_str = self._get_synthesize_prompt(self.task_str, team_description, facts, plan)
+        return plan_str
+
+    async def update_ledger(self) -> Dict[str, Any]:
+        max_json_retries = 10
+
+        team_description = self._get_team_description()
+        names = self._get_team_names()
+        ledger_prompt = self._get_ledger_prompt(self.task_str, team_description, names)
+        ledger_user_message = UserMessage(content=ledger_prompt, source=self.metadata["name"])
+
+        assert max_json_retries > 0
+        for _ in range(max_json_retries):
+            ledger_response = await self._model_client.create(
+                self._system_messages + self._chat_history + [ledger_user_message],
+                json_output=True,
+            )
+            ledger_str = ledger_response.content
+
+            try:
+                assert isinstance(ledger_str, str)
+                ledger_dict: Dict[str, Any] = json.loads(ledger_str)
+                return ledger_dict
+            except json.JSONDecodeError as e:
+                logger.info(
+                    OrchestrationEvent(
+                        f"{self.metadata['name']} (error)",
+                        f"Failed to parse ledger information: {ledger_str}",
+                    )
+                )
+                raise e
+
+        raise ValueError("Failed to parse ledger information after multiple retries.")
+
+    async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
+        self._chat_history.append(message)
+
+        self._should_replan = self._needs_replan()
+
+        if self._should_replan:
+            plan_str = await self._plan()
+            plan_user_message = UserMessage(content=plan_str, source=self.metadata["name"])
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (termination condition)",
-                    f"Max rounds ({self._max_rounds}) reached.",
+                    f"{self.metadata['name']} (thought)",
+                    f"New plan:\n{plan_str}",
                 )
             )
-            return
+            self._chat_history.append(plan_user_message)
 
-        if message.request_halt:
-            logger.info(
-                OrchestrationEvent(
-                    f"{self.metadata['name']} (termination condition)",
-                    f"{source} requested halt.",
-                )
-            )
-            return
-
-        next_agent = self._select_next_agent()
-        request_reply_message = RequestReplyMessage()
-        # emit an event
-
+        ledger_dict = await self.update_ledger()
         logger.info(
             OrchestrationEvent(
-                source=f"{self.metadata['name']} (thought)",
-                message=f"Next speaker {next_agent.metadata['name']}" "",
+                f"{self.metadata['name']} (thought)",
+                f"Updated Ledger:\n{json.dumps(ledger_dict, indent=2)}",
             )
         )
 
-        self._num_rounds += 1  # Call before sending the message
-        await self.send_message(request_reply_message, next_agent.id)
+        if ledger_dict["is_request_satisfied"]["answer"] is True:
+            logger.info(
+                OrchestrationEvent(
+                    f"{self.metadata['name']} (thought)",
+                    "Request satisfied.",
+                )
+            )
+            return None
 
-    def _select_next_agent(self) -> AgentProxy:
-        self._current_index = (self._num_rounds) % len(self._agents)
-        return self._agents[self._current_index]
+        if ledger_dict["is_in_loop"]["answer"]:
+            self._stall_counter += 1
+
+            if self._stall_counter > self._max_stalls_before_replan:
+                self._replan_counter += 1
+                self._stall_counter = 0
+                if self._replan_counter < self._max_replans:
+                    logger.info(
+                        OrchestrationEvent(
+                            f"{self.metadata['name']} (thought)",
+                            "Stalled.... Replanning...",
+                        )
+                    )
+                    return await self._select_next_agent(message)
+                else:
+                    logger.info(
+                        OrchestrationEvent(
+                            f"{self.metadata['name']} (thought)",
+                            "Replan counter exceeded... Terminating.",
+                        )
+                    )
+                    return None
+
+        next_agent_name = ledger_dict["next_speaker"]["answer"]
+        for agent in self._agents:
+            if agent.metadata["name"] == next_agent_name:
+                # broadcast a new message
+                instruction = ledger_dict["instruction_or_question"]["answer"]
+                user_message = UserMessage(content=instruction, source=self.metadata["name"])
+                logger.info(OrchestrationEvent(f"{self.metadata['name']} (-> {next_agent_name})", instruction))
+                await self.publish_message(BroadcastMessage(content=user_message, request_halt=False))
+                return agent
+
+        return None

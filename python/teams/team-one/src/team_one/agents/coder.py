@@ -6,6 +6,7 @@ from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalComman
 from agnext.components.models import (
     ChatCompletionClient,
     SystemMessage,
+    UserMessage,
 )
 from agnext.core import CancellationToken
 
@@ -58,32 +59,46 @@ If the code was executed, and the output appears to indicate that the original p
 
 
 class Executor(BaseAgent):
-    def __init__(self, description: str, executor: Optional[CodeExecutor] = None) -> None:
+    def __init__(
+        self, description: str, executor: Optional[CodeExecutor] = None, check_last_n_message: int = 5
+    ) -> None:
         super().__init__(description)
         self._executor = executor or LocalCommandLineCodeExecutor()
+        self._check_last_n_message = check_last_n_message
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
 
-        # Extract code block from the message.
-        assert isinstance(self._chat_history[-1].content, str)
-        code = self._extract_execution_request(self._chat_history[-1].content)
-        if code is not None:
-            execution_requests = [CodeBlock(code=code, language="python")]
-            future = asyncio.get_event_loop().run_in_executor(
-                None, self._executor.execute_code_blocks, execution_requests
-            )
-            cancellation_token.link_future(future)
-            result = await future
-            return (
-                False,
-                f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
-            )
-        else:
-            return (
-                False,
-                "No code block detected. Please provide a markdown-encoded code block to execute for the original task.",
-            )
+        n_messages_checked = 0
+        for idx in range(len(self._chat_history)):
+            message = self._chat_history[-(idx + 1)]
+
+            if not isinstance(message, UserMessage):
+                continue
+
+            # Extract code block from the message.
+            assert isinstance(message.content, str)
+            code = self._extract_execution_request(message.content)
+            if code is not None:
+                execution_requests = [CodeBlock(code=code, language="python")]
+                future = asyncio.get_event_loop().run_in_executor(
+                    None, self._executor.execute_code_blocks, execution_requests
+                )
+                cancellation_token.link_future(future)
+                result = await future
+                return (
+                    False,
+                    f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
+                )
+            else:
+                n_messages_checked += 1
+                if n_messages_checked > self._check_last_n_message:
+                    break
+
+        return (
+            False,
+            "No code block detected in the messages. Please provide a markdown-encoded code block to execute for the original task.",
+        )
 
     def _extract_execution_request(self, markdown_text: str) -> Union[str, None]:
         pattern = r"```(\w+)\n(.*?)\n```"
