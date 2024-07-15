@@ -176,11 +176,21 @@ code blocks for the json that you generate.""",
         #################
 
         # Start by writing what we know
-        closed_book_prompt = f"""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
+        closed_book_prompt = f"""
 
+You are an expert medical researcher.
+You can address any requests related to medical research.        
+Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 Here is the request:
 
 {task}
+
+When addressing medical requests, 
+- only use PubMed
+- study at least 5 and maximum 10 papers
+- ensure that you ALWAYS gather the complete abstracts of the papers.
+If a PubMed webpage shows you incomplete abstract, scroll or click to ensure you have the full abstract.
+Its imperitive that you do not miss any information from the abstracts.
 
 Here is the pre-survey:
 
@@ -228,7 +238,7 @@ Based on the team composition, and known and unknown facts, please devise a shor
 
         # Main loop
         total_turns = 0
-        max_turns = 20  # 30
+        max_turns = 100  # 30
         while total_turns < max_turns:
 
             # Populate the message histories
@@ -304,16 +314,33 @@ And we have assembled the following team:
 {team}
 
 To make progress on the request, please answer the following questions, including necessary reasoning:
-
+    - Have we gathered enough information to reconstruct the full abstract of the last paper identified?
+      If the messages in the history (togther) show the complete abstract, then answer True and in the reason paste the completely reconstructed abstract with apa style bib of the paper.
+      If the messages in the history do not show the complete abstract, then answer False. This could e.g., happen if the messages concerning this paper cannot be put together to reconstruct the complete abstract. (Hallucination is not allowed.)
+    - Have we verified the quality of the last abstract we collected?
+    - How many more papers and abstract do we still need to find?
     - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
     - Are we in a loop where we are repeating the same requests and / or getting the same responses as before? Loops can span multiple turns, and can include repeated actions like scrolling up or down more than a handful of times. 
     - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a loop or if there is evidence of significant barriers to success such as the inability to read from a required file)
-    - Who should speak next? (select from: {names})
+    - Who should speak next? (select from: {names}) While choosing the next speaker please carefully consider their expertise (state above) and the current state of the conversation.
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
+    
 
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
     {{
+        "last_abstract_was_completely_collected": {{
+            "reason": string,
+            "answer": boolean
+        }},
+        "was_the_quality_of_the_last_abstract_verified": {{
+            "reason": string,
+            "answer": boolean
+        }},
+        "number_of_papers_left": {{
+            "reason": string,
+            "answer": integer
+        }},
         "is_request_satisfied": {{
             "reason": string,
             "answer": boolean

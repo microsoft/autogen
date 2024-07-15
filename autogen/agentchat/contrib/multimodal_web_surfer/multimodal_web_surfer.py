@@ -849,7 +849,19 @@ When deciding between tools, consider if the request can be best addressed by:
             pil_image.close()
 
         messages = [
-            self._make_mm_message("Please transcribe all visible text on this page, including both main content and the labels of UI elements.", scaled_screenshot),
+            self._make_mm_message("""
+            Please transcribe all visible text on this viewport, including both main content and the labels of UI elements.
+            Do not hallucinate text that is not present. E.g., if a sentence/text is cutoff at the edge of the viewport,
+            do not try to complete it. Only transcribe text that is absolutely clearly and completely visible. But for the text
+            that is incomplete say something like
+            
+                                  <rest of the text is cut off from direction {X} on the page>.
+                                  
+            But please do not hallucinate that text-- the transcription will be used for medical tasks and the consequences can be fatal.
+            When there is text that is incomplete/cut off, you must indicate that in the transcription. Skipping this will make 
+            physicians think that all content was captured/transcribed, leading to incorrect decisions.      
+            """
+            , scaled_screenshot),
         ]
         scaled_screenshot.close()
 

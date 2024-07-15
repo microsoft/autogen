@@ -82,13 +82,26 @@ Read the above conversation and output a FINAL ANSWER to the question. The quest
 
 {PROMPT}
 
-To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
-Your FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
-ADDITIONALLY, your FINAL ANSWER MUST adhere to any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
-If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and don't include units such as $ or percent signs unless specified otherwise.
-If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
-If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
-If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine'
+The final answer must be professional, clear, medical summary that, integrates the findings of the papers reviewed, taking into account the quality assessments you've already done.
+
+Papers must be cited in APA format.
+While citing the papers please include a sentence or two about the quality assessment of the research in the papers.
+
+Answer if there are any contradictions among studies, and if future papers disputed finding of a previous paper?
+If there are any contradictions among studies, please mention them clearly towards the end in a separate paragraph.
+Check if future papers disputed finding of a previous paper. Note whether if the future papers were of higher quality and the disputed paper were of lower.
+For each disputed paper, include a sentence or two about why it was disputed.
+
+Also reflect on whether there is a study of the following nature [or design] that would help to resolve some of the open questions.
+While summarizing open question, be specific and detailed about the study you are proposing.
+Generic high-level proposal are unhelpful and waste of user time.
+While proposing a open question include a sentence or two motivating why the study is important. Cite any papers that support your proposal.
+
+Do not hallucinate or make up citations, otherwise the answer will be rejected.
+
+PLEASE make sure all key statements have a citation.
+
+
 """,
         }
     )
@@ -97,35 +110,8 @@ If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to
     if "finish_reason='content_filter'" in str(response):
         raise Exception(str(response))
     extracted_response = client.extract_text_or_completion_object(response)[0]
-
-    # No answer
-    if "unable to determine" in extracted_response.lower():
-        print("\n>>>Making an educated guess.\n")
-        messages.append({"role": "assistant", "content": extracted_response})
-        messages.append(
-            {
-                "role": "user",
-                "content": """
-I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
-
-To output the educated guess, use the following template: EDUCATED GUESS: [YOUR EDUCATED GUESS]
-Your EDUCATED GUESS should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. DO NOT OUTPUT 'I don't know', 'Unable to determine', etc.
-ADDITIONALLY, your EDUCATED GUESS MUST adhere to any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
-If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and don't include units such as $ or percent signs unless specified otherwise.
-If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
-If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
-""".strip(),
-            }
-        )
-
-        response = client.create(context=None, messages=messages)
-        if "finish_reason='content_filter'" in str(response):
-            raise Exception(str(response))
-        extracted_response = client.extract_text_or_completion_object(response)[0]
-
-        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)
-    else:
-        return extracted_response
+    
+    return extracted_response
 
 
 assistant = MultimodalAgent(
@@ -137,6 +123,43 @@ assistant = MultimodalAgent(
     llm_config=llm_config,
     max_images=MAX_IMAGES,
 )
+
+
+medical_quality_assessment = MultimodalAgent(
+    "medical_quality_assessment",
+    system_message="""
+    You are an expert medical researcher with a PhD in medical research.
+    You can critique the quality of the research.
+
+    When asked to review a paper, answer the following questions:
+     
+    Were you provided with the full text of the abstract of the paper? 
+    
+    If not, ask for the full text or abstract and do not proceed.
+    Instead reply back and say "I need the complete abstract of paper X
+    to assess it" and stop replying. Do not say anything after that.
+
+                
+    if full abstract/test was provided then in one paragraph each, then answer the following questions and include specific 2-3 of justification. Justification must be scientific and specific that a physician/medical researcher would appreciate.
+        1. How would you rate the overall quality of the research in the paper? (e.g., high, medium, low)
+        2. What is the significance of the questions studied in this paper? (e.g., high, medium, low)
+        3. What is the significance of the findings in this paper? (e.g., high, medium, low)
+        4. How scientifically rigorous is the experimental setup in the paper? (e.g., high, medium, low). 
+        While commenting on how scientifically rigorous, consider whether it used large enough sample size, sample was representative of the population studied, and if the study was randomized and blinded. Be very critical and scientific when assessing the quality of the research -- the stakes are high...
+
+    DO NOT try to provide a generic summary of the paper. Your job is only to assess the quality of the research conducted.
+    """,
+    description="""
+This agent is an expert medical researcher with a PhD in medical research.
+Immediately choose this agent as the next speaker when a paper's abstract or full text becomes available from the websurfer.
+Ask it to rate the overall quality of the research in the paper, the significance of the questions studied in the paper, the significance of the findings in the paper, and how robust the experimental setup in the paper is.
+""",
+    is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
+    code_execution_config=False,
+    llm_config=llm_config,
+    max_images=MAX_IMAGES,
+)
+
 
 user_proxy_name = "computer_terminal"
 user_proxy = autogen.UserProxyAgent(
@@ -163,6 +186,7 @@ web_surfer = MultimodalWebSurferAgent(
     downloads_folder="coding",
     start_page=os.environ.get("HOMEPAGE", "about:blank"),
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
+    description=MultimodalWebSurferAgent.DEFAULT_DESCRIPTION + "If pubmed abstracts are not fully visible, feel free to ask me to take actions to do so.",
 )
 
 file_browser = RequestsMarkdownBrowser(
@@ -174,7 +198,7 @@ file_surfer = FileSurferAgent(name="file_surfer_agent", llm_config=llm_config, b
 
 maestro = Orchestrator(
     "orchestrator",
-    agents=[assistant, user_proxy, web_surfer, file_surfer],
+    agents=[assistant, user_proxy, web_surfer, file_surfer, medical_quality_assessment],
     llm_config=llm_config,
     response_format_is_supported=False,
     max_images=MAX_IMAGES,
@@ -208,7 +232,12 @@ if len(filename) > 0:
         traceback.print_exc()
 
 
-question = f"""{PROMPT}
+question = f"""
+You are a team of agents working together to answer a complex medical research question. The question is as follows:
+
+{PROMPT}
+
+While addressing the request please ensure you gather the complete text of the abstract of the paper. If the abstract is not fully collected in the chat history, ask the web surfer to take actions to do so.
 
 {filename_prompt}
 """.strip()
