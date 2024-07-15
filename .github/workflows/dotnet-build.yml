@@ -64,6 +64,7 @@ jobs:
     - name: Format check
       run: |
         echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
         dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
