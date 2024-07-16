@@ -56,11 +56,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
+        dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
         echo "Build AutoGen"

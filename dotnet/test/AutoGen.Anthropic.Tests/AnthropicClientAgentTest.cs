@@ -188,7 +188,7 @@ public class AnthropicClientAgentTest
         IMessage[] chatHistory = [
             new TextMessage(Role.User, "what's the weather in Philadelphia?"),
             new ToolCallMessage([toolCall], from: "assistant"),
-            new ToolCallResultMessage([toolCall], from: "user" ),
+            new ToolCallResultMessage([toolCall], from: "user"),
         ];
 
         var reply = await agent.SendAsync(chatHistory: chatHistory);

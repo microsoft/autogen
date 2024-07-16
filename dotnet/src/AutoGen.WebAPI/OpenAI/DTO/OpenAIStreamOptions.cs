@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-//
+// OpenAIStreamOptions.cs
 
 using System.Text.Json.Serialization;
 
