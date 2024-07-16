@@ -55,16 +55,30 @@ Team-One uses agents with the following personas and capabilities:
 
 
 ### Performance
-
 Team-One currently achieves the following performance on complex agent benchmarks:
 
-GAIA
+_GAIA_
 
-TODO
+| Level | Task Completion Rate* |
+|-------|---------------------|
+| Level 1 | 49% (26/53) |
+| Level 2 | 26% (22/86) |
+| Level 3 | 8% (2/26) |
+| Total | 30% (50/165) |
 
-WebArena
+*Indicates the percentage of tasks completed successfully on the development set.
 
-TODO
+_WebArena_
+
+| Site           | Task Completion Rate           |
+|----------------|----------------|
+| Reddit         | 49%  (27/55)   |
+| Shopping       | 23%  (22/96)   |
+| CMS            | 16%  (16/101)  |
+| Gitlab         | 41%  (32/79)   |
+| Maps           | 35%  (23/65)   |
+| Multiple Sites | %  (--/26)     |
+| Total          | 28%  (120/422) |
 
 
 # Setup
