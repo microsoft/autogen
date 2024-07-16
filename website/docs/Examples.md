@@ -11,7 +11,7 @@ Links to notebook examples:
 
 - Automated Task Solving with Code Generation, Execution & Debugging - [View Notebook](/docs/notebooks/agentchat_auto_feedback_from_code_execution)
 - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
-- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_qdrant_RetrieveChat)
+- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat_qdrant)
 
 ### Multi-Agent Collaboration (>3 Agents)
 
