@@ -50,7 +50,9 @@ public static class Example15_GPT4V_BinaryDataImageMessage
         foreach (string file in Directory.GetFiles(imageResourcePath))
         {
             if (!_mediaTypeMappings.TryGetValue(Path.GetExtension(file).ToLowerInvariant(), out var mediaType))
+            {
                 continue;
+            }
 
             using var fs = new FileStream(file, FileMode.Open, FileAccess.Read);
             var ms = new MemoryStream();

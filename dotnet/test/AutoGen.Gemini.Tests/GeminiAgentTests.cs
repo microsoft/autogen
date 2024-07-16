@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // GeminiAgentTests.cs
 
-using AutoGen.Tests;
-using Google.Cloud.AIPlatform.V1;
 using AutoGen.Core;
-using FluentAssertions;
 using AutoGen.Gemini.Extension;
-using static Google.Cloud.AIPlatform.V1.Part;
+using AutoGen.Tests;
+using FluentAssertions;
+using Google.Cloud.AIPlatform.V1;
 using Xunit.Abstractions;
+using static Google.Cloud.AIPlatform.V1.Part;
 namespace AutoGen.Gemini.Tests;
 
 public class GeminiAgentTests
@@ -86,8 +86,8 @@ public class GeminiAgentTests
         var message = MessageEnvelope.Create(textContent, from: agent.Name);
 
         var completion = agent.GenerateStreamingReplyAsync([message]);
-        var chunks = new List<IStreamingMessage>();
-        IStreamingMessage finalReply = null!;
+        var chunks = new List<IMessage>();
+        IMessage finalReply = null!;
 
         await foreach (var item in completion)
         {
@@ -212,8 +212,8 @@ public class GeminiAgentTests
 
         var message = MessageEnvelope.Create(textContent, from: agent.Name);
 
-        var chunks = new List<IStreamingMessage>();
-        IStreamingMessage finalReply = null!;
+        var chunks = new List<IMessage>();
+        IMessage finalReply = null!;
 
         var completion = agent.GenerateStreamingReplyAsync([message]);
 

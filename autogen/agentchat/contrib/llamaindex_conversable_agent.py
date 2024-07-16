@@ -8,15 +8,14 @@ logger = get_logger(__name__)
 
 try:
     from llama_index.core.agent.runner.base import AgentRunner
+    from llama_index.core.base.llms.types import ChatMessage
     from llama_index.core.chat_engine.types import AgentChatResponse
-    from llama_index_client import ChatMessage
 except ImportError as e:
     logger.fatal("Failed to import llama-index. Try running 'pip install llama-index'")
     raise e
 
 
 class LLamaIndexConversableAgent(ConversableAgent):
-
     def __init__(
         self,
         name: str,
