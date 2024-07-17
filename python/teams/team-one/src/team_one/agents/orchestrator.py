@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from agnext.components.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from agnext.core import AgentProxy
 
-from ..messages import BroadcastMessage, OrchestrationEvent
+from ..messages import BroadcastMessage, OrchestrationEvent, ResetMessage
 from .base_orchestrator import BaseOrchestrator, logger
 from .orchestrator_prompts import (
     ORCHESTRATOR_CLOSED_BOOK_PROMPT,
@@ -186,6 +186,10 @@ class LedgerOrchestrator(BaseOrchestrator):
                     f"New plan:\n{plan_str}",
                 )
             )
+
+            # Reset
+            self._chat_history = [self._chat_history[0]]
+            await self.publish_message(ResetMessage())
             self._chat_history.append(plan_user_message)
 
         ledger_dict = await self.update_ledger()

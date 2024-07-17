@@ -8,7 +8,7 @@ from agnext.components.models import (
 )
 from agnext.core import CancellationToken
 
-from team_one.messages import BroadcastMessage, RequestReplyMessage, UserContent
+from team_one.messages import BroadcastMessage, RequestReplyMessage, ResetMessage, UserContent
 from team_one.utils import message_content_to_str
 
 
@@ -29,6 +29,11 @@ class BaseAgent(TypeRoutedAgent):
         self._chat_history.append(message.content)
 
     @message_handler
+    async def handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a reset message."""
+        await self._reset(cancellation_token)
+
+    @message_handler
     async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
         """Respond to a reply request."""
         request_halt, response = await self._generate_reply(cancellation_token)
@@ -42,3 +47,6 @@ class BaseAgent(TypeRoutedAgent):
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Returns (request_halt, response_message)"""
         raise NotImplementedError()
+
+    async def _reset(self, cancellation_token: CancellationToken) -> None:
+        self._chat_history = []

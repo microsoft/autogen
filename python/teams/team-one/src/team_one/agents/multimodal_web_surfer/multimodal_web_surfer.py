@@ -2,6 +2,7 @@ import base64
 import hashlib
 import io
 import json
+import logging
 import os
 import pathlib
 import re
@@ -10,6 +11,7 @@ from typing import Any, BinaryIO, Dict, List, Tuple, Union, cast  # Any, Callabl
 from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlunparse
 
 import aiofiles
+from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components import Image as AGImage
 from agnext.components.models import (
     AssistantMessage,
@@ -24,10 +26,10 @@ from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 
 # from playwright._impl._async_base.AsyncEventInfo
-from playwright.async_api import BrowserContext, Page, Playwright, async_playwright
+from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 from team_one.agents.base_agent import BaseAgent
-from team_one.messages import UserContent
+from team_one.messages import UserContent, WebSurferEvent
 from team_one.utils import SentinelMeta, message_content_to_str
 
 # TODO: Fix mdconvert
@@ -68,6 +70,8 @@ VIEWPORT_WIDTH = 1440
 MLM_HEIGHT = 765
 MLM_WIDTH = 1224
 
+logger = logging.getLogger(EVENT_LOGGER_NAME + ".MultimodalWebSurfer")
+
 
 # Sentinels
 class DEFAULT_CHANNEL(metaclass=SentinelMeta):
@@ -92,12 +96,19 @@ class MultimodalWebSurfer(BaseAgent):
         self._playwright: Playwright | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
+        self._last_download: Download | None = None
         self._prior_metadata_hash: str | None = None
 
         # Read page_script
         self._page_script: str = ""
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
             self._page_script = fh.read()
+
+        # Define the download handler
+        def _download_handler(download: Download) -> None:
+            self._last_download = download
+
+        self._download_handler = _download_handler
 
     async def init(
         self,
@@ -115,12 +126,7 @@ class MultimodalWebSurfer(BaseAgent):
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.downloads_folder = downloads_folder
         self._chat_history: List[LLMMessage] = []
-
-        # def _download_handler(download):
-        #    self._last_download = download
-        #
-        # self._download_handler = _download_handler
-        # self._last_download = None
+        self._last_download = None
         self._prior_metadata_hash = None
 
         ## Create or use the provided MarkdownConverter
@@ -148,14 +154,13 @@ class MultimodalWebSurfer(BaseAgent):
         self._context.set_default_timeout(60000)  # One minute
         self._page = await self._context.new_page()
         # self._page.route(lambda x: True, self._route_handler)
-        # self._page.on("download", self._download_handler)
+        self._page.on("download", self._download_handler)
         await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         await self._page.add_init_script(
             path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js")
         )
         await self._page.goto(self.start_page)
         await self._page.wait_for_load_state()
-        # self._sleep(1)
 
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
         await self._set_debug_dir(debug_dir)
@@ -194,15 +199,21 @@ setInterval(function() {{
         await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
         print(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
 
-    #    def reset(self):
-    #        super().reset()
-    #        self._log_to_console(fname="reset", args={"home": self.start_page})
-    #        self._visit_page(self.start_page)
-    #        self._page.wait_for_load_state()
-    #        if self.debug_dir:
-    #            screenshot = self._page.screenshot()
-    #            with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
-    #                png.write(screenshot)
+    async def _reset(self, cancellation_token: CancellationToken) -> None:
+        assert self._page is not None
+        future = super()._reset(cancellation_token)
+        await future
+        await self._visit_page(self.start_page)
+        await self._page.wait_for_load_state()
+        if self.debug_dir:
+            await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
+        logger.info(
+            WebSurferEvent(
+                source=self.metadata["name"],
+                url=self._page.url,
+                message="Resetting browser.",
+            )
+        )
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
@@ -358,122 +369,131 @@ When deciding between tools, consider if the request can be best addressed by:
         message = response.content
 
         action_description = ""
-        #        self._last_download = None
-        #        try:
-        if True:
-            if isinstance(message, str):
-                # Answer directly
-                return False, message
+        self._last_download = None
 
-            elif isinstance(message, list):
-                # Take an action
+        if isinstance(message, str):
+            # Answer directly
+            return False, message
 
-                name = message[0].name
-                args = json.loads(message[0].arguments)
+        elif isinstance(message, list):
+            # Take an action
 
-                if name == "visit_url":
-                    url = args.get("url")
-                    action_description = f"I typed '{url}' into the browser address bar."
-                    # Check if the argument starts with a known protocol
-                    if url.startswith(("https://", "http://", "file://", "about:")):
-                        await self._visit_page(url)
-                    # If the argument contains a space, treat it as a search query
-                    elif " " in url:
-                        await self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
-                    # Otherwise, prefix with https://
-                    else:
-                        await self._visit_page("https://" + url)
+            name = message[0].name
+            args = json.loads(message[0].arguments)
 
-                elif name == "history_back":
-                    action_description = "I clicked the browser back button."
-                    await self._back()
+            logger.info(
+                WebSurferEvent(
+                    source=self.metadata["name"],
+                    url=self._page.url,
+                    action=name,
+                    arguments=args,
+                    message=f"{name}( {json.dumps(args)} )",
+                )
+            )
 
-                elif name == "web_search":
-                    query = args.get("query")
-                    action_description = f"I typed '{query}' into the browser search bar."
-                    await self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
-
-                elif name == "page_up":
-                    action_description = "I scrolled up one page in the browser."
-                    await self._page_up()
-
-                elif name == "page_down":
-                    action_description = "I scrolled down one page in the browser."
-                    await self._page_down()
-
-                elif name == "click":
-                    target_id = str(args.get("target_id"))
-                    target_name = self._target_name(target_id, rects)
-                    if target_name:
-                        action_description = f"I clicked '{target_name}'."
-                    else:
-                        action_description = "I clicked the control."
-                    await self._click_id(target_id)
-
-                elif name == "input_text":
-                    input_field_id = str(args.get("input_field_id"))
-                    text_value = str(args.get("text_value"))
-                    input_field_name = self._target_name(input_field_id, rects)
-                    if input_field_name:
-                        action_description = f"I typed '{text_value}' into '{input_field_name}'."
-                    else:
-                        action_description = f"I input '{text_value}'."
-                    await self._fill_id(input_field_id, text_value)
-
-                elif name == "scroll_element_up":
-                    target_id = str(args.get("target_id"))
-                    target_name = self._target_name(target_id, rects)
-
-                    if target_name:
-                        action_description = f"I scrolled '{target_name}' up."
-                    else:
-                        action_description = "I scrolled the control up."
-
-                    await self._scroll_id(target_id, "up")
-
-                elif name == "scroll_element_down":
-                    target_id = str(args.get("target_id"))
-                    target_name = self._target_name(target_id, rects)
-
-                    if target_name:
-                        action_description = f"I scrolled '{target_name}' down."
-                    else:
-                        action_description = "I scrolled the control down."
-
-                    await self._scroll_id(target_id, "down")
-
-                elif name == "answer_question":
-                    question = str(args.get("question"))
-                    # Do Q&A on the DOM. No need to take further action. Browser state does not change.
-                    return False, await self._summarize_page(question=question)
-
-                elif name == "summarize_page":
-                    # Summarize the DOM. No need to take further action. Browser state does not change.
-                    return False, await self._summarize_page()
-
-                elif name == "sleep":
-                    action_description = "I am waiting a short period of time before taking further action."
-                    await self._sleep(3)  # There's a 2s sleep below too
-
+            if name == "visit_url":
+                url = args.get("url")
+                action_description = f"I typed '{url}' into the browser address bar."
+                # Check if the argument starts with a known protocol
+                if url.startswith(("https://", "http://", "file://", "about:")):
+                    await self._visit_page(url)
+                # If the argument contains a space, treat it as a search query
+                elif " " in url:
+                    await self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
+                # Otherwise, prefix with https://
                 else:
-                    raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
-            else:
-                # Not sure what happened here
-                raise AssertionError(f"Unknown response format '{message}'")
+                    await self._visit_page("https://" + url)
 
-        #        except ValueError as e:
-        #            return True, str(e)
+            elif name == "history_back":
+                action_description = "I clicked the browser back button."
+                await self._back()
+
+            elif name == "web_search":
+                query = args.get("query")
+                action_description = f"I typed '{query}' into the browser search bar."
+                await self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+
+            elif name == "page_up":
+                action_description = "I scrolled up one page in the browser."
+                await self._page_up()
+
+            elif name == "page_down":
+                action_description = "I scrolled down one page in the browser."
+                await self._page_down()
+
+            elif name == "click":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
+                if target_name:
+                    action_description = f"I clicked '{target_name}'."
+                else:
+                    action_description = "I clicked the control."
+                await self._click_id(target_id)
+
+            elif name == "input_text":
+                input_field_id = str(args.get("input_field_id"))
+                text_value = str(args.get("text_value"))
+                input_field_name = self._target_name(input_field_id, rects)
+                if input_field_name:
+                    action_description = f"I typed '{text_value}' into '{input_field_name}'."
+                else:
+                    action_description = f"I input '{text_value}'."
+                await self._fill_id(input_field_id, text_value)
+
+            elif name == "scroll_element_up":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
+
+                if target_name:
+                    action_description = f"I scrolled '{target_name}' up."
+                else:
+                    action_description = "I scrolled the control up."
+
+                await self._scroll_id(target_id, "up")
+
+            elif name == "scroll_element_down":
+                target_id = str(args.get("target_id"))
+                target_name = self._target_name(target_id, rects)
+
+                if target_name:
+                    action_description = f"I scrolled '{target_name}' down."
+                else:
+                    action_description = "I scrolled the control down."
+
+                await self._scroll_id(target_id, "down")
+
+            elif name == "answer_question":
+                question = str(args.get("question"))
+                # Do Q&A on the DOM. No need to take further action. Browser state does not change.
+                return False, await self._summarize_page(question=question)
+
+            elif name == "summarize_page":
+                # Summarize the DOM. No need to take further action. Browser state does not change.
+                return False, await self._summarize_page()
+
+            elif name == "sleep":
+                action_description = "I am waiting a short period of time before taking further action."
+                await self._sleep(3)  # There's a 2s sleep below too
+
+            else:
+                raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
+        else:
+            # Not sure what happened here
+            raise AssertionError(f"Unknown response format '{message}'")
 
         await self._page.wait_for_load_state()
         await self._sleep(3)
 
-        #        # Handle downloads
-        #        if self._last_download is not None and self.downloads_folder is not None:
-        #            fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
-        #            self._last_download.save_as(fname)
-        #            page_body = f"<html><head><title>Download Successful</title></head><body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body></html>"
-        #            self._page.goto("data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8"))
-        #            self._page.wait_for_load_state()
+        # Handle downloads
+        if self._last_download is not None and self.downloads_folder is not None:
+            fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
+            # TODO: Fix this type
+            await self._last_download.save_as(fname)  # type: ignore
+            page_body = f"<html><head><title>Download Successful</title></head><body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body></html>"
+            await self._page.goto(
+                "data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8")
+            )
+            await self._page.wait_for_load_state()
 
         # Handle metadata
         page_metadata = json.dumps(await self._get_page_metadata(), indent=4)
@@ -571,7 +591,7 @@ When deciding between tools, consider if the request can be best addressed by:
     async def _on_new_page(self, page: Page) -> None:
         self._page = page
         # self._page.route(lambda x: True, self._route_handler)
-        # self._page.on("download", self._download_handler)
+        self._page.on("download", self._download_handler)
         await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         await self._sleep(0.2)
         self._prior_metadata_hash = None
@@ -644,6 +664,15 @@ When deciding between tools, consider if the request can be best addressed by:
 
                 assert isinstance(new_page, Page)
                 await self._on_new_page(new_page)
+
+                logger.info(
+                    WebSurferEvent(
+                        source=self.metadata["name"],
+                        url=self._page.url,
+                        message="New tab or window.",
+                    )
+                )
+
         except TimeoutError:
             pass
 

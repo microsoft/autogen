@@ -20,7 +20,7 @@ class Coder(BaseAgent):
     DEFAULT_DESCRIPTION = "A Python coder assistant."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""You are a helpful AI assistant. Solve tasks using your Python coding skills. The code you output must be formatted in Markdown code blocks demarcated by triple backticks (```). As an example:
+        SystemMessage("""You are a helpful AI assistant. Solve tasks using your Python coding skills. The code you output must be formatted in Markdown code blocks demarcated by triple backticks (```), and must print their final output to console. As an example:
 
 ```python
 
@@ -86,10 +86,18 @@ class Executor(BaseAgent):
                 )
                 cancellation_token.link_future(future)
                 result = await future
-                return (
-                    False,
-                    f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
-                )
+
+                if result.output.strip() == "":
+                    # Sometimes agents forget to print(). Remind the to print something
+                    return (
+                        False,
+                        f"The script ran but produced no output to console. The Unix exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout.",
+                    )
+                else:
+                    return (
+                        False,
+                        f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
+                    )
             else:
                 n_messages_checked += 1
                 if n_messages_checked > self._check_last_n_message:

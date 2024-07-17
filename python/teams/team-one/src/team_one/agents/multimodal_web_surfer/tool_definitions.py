@@ -21,7 +21,7 @@ TOOL_VISIT_URL: ToolSchema = _load_tool(
         "type": "function",
         "function": {
             "name": "visit_url",
-            "description": "Inputs the given url into the browser's address bar, navigating directly to the requested page.",
+            "description": "Navigate directly to a provided URL using the browser's address bar. Prefer this tool over other navigation techniques in cases where the user provides a fully-qualified URL (e.g., choose it over clicking links, or inputing queries into search boxes).",
             "parameters": {
                 "type": "object",
                 "properties": {

@@ -1,10 +1,12 @@
 import json
 import logging
 import os
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Literal
 
 from agnext.application.logging.events import LLMCallEvent
+from agnext.components import Image
 from agnext.components.models import (
     AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
@@ -12,7 +14,14 @@ from agnext.components.models import (
     OpenAIChatCompletionClient,
 )
 
-from .messages import AssistantContent, FunctionExecutionContent, OrchestrationEvent, SystemContent, UserContent
+from .messages import (
+    AssistantContent,
+    FunctionExecutionContent,
+    OrchestrationEvent,
+    SystemContent,
+    UserContent,
+    WebSurferEvent,
+)
 
 ENVIRON_KEY_CHAT_COMPLETION_PROVIDER = "CHAT_COMPLETION_PROVIDER"
 ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON = "CHAT_COMPLETION_KWARGS_JSON"
@@ -82,6 +91,8 @@ def message_content_to_str(
         for item in message_content:
             if isinstance(item, str):
                 converted.append(item.rstrip())
+            elif isinstance(item, Image):
+                converted.append("<Image>")
             else:
                 converted.append(str(item).rstrip())
         return "\n".join(converted)
@@ -95,7 +106,8 @@ class LogHandler(logging.FileHandler):
         super().__init__(filename)
 
     def emit(self, record: logging.LogRecord) -> None:
-        try:
+        # try:
+        if True:
             ts = datetime.fromtimestamp(record.created).isoformat()
             if isinstance(record.msg, OrchestrationEvent):
                 console_message = (
@@ -111,6 +123,16 @@ class LogHandler(logging.FileHandler):
                     }
                 )
                 super().emit(record)
+            if isinstance(record.msg, WebSurferEvent):
+                console_message = f"\033[96m[{ts}], {record.msg.source}: {record.msg.message}\033[0m"
+                print(console_message, flush=True)
+                payload: Dict[str, Any] = {
+                    "timestamp": ts,
+                    "type": "WebSurferEvent",
+                }
+                payload.update(asdict(record.msg))
+                record.msg = json.dumps(payload)
+                super().emit(record)
             if isinstance(record.msg, LLMCallEvent):
                 record.msg = json.dumps(
                     {
@@ -120,9 +142,9 @@ class LogHandler(logging.FileHandler):
                         "type": "LLMCallEvent",
                     }
                 )
-            super().emit(record)
-        except Exception:
-            self.handleError(record)
+                super().emit(record)
+        # except Exception:
+        #    self.handleError(record)
 
 
 class SentinelMeta(type):

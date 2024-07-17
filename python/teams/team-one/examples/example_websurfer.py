@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
@@ -36,7 +37,7 @@ async def main() -> None:
 
     actual_surfer = runtime._get_agent(web_surfer.id)  # type: ignore
     assert isinstance(actual_surfer, MultimodalWebSurfer)
-    await actual_surfer.init(model_client=client, browser_channel="chromium")
+    await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
 
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)
     await run_context.stop_when_idle()
