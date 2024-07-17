@@ -349,8 +349,11 @@ const AgentsView = ({}: any) => {
 
           <div className="text-xs mb-2 pb-1  ">
             {" "}
-            Configure an agent that can reused in your agent workflow{" "}
-            {selectedAgent?.config.name}
+            Configure an agent that can reused in your agent workflow .
+            <div>
+              Tip: You can also create a Group of Agents ( New Agent -
+              GroupChat) which can have multiple agents in it.
+            </div>
           </div>
           {agents && agents.length > 0 && (
             <div className="w-full  relative">

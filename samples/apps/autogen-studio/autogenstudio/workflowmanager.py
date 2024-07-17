@@ -349,7 +349,6 @@ class AutoWorkflowManager:
         }
         final_usage.append(agent_usage)
 
-        print("agent type", type(agent))
         if type(agent) == ExtendedGroupChatManager:
             print("groupchat found, processing", len(agent.groupchat.agents))
             for agent in agent.groupchat.agents:
@@ -389,7 +388,7 @@ class AutoWorkflowManager:
         output = self._generate_output(message, self.workflow.get("summary_method", "last"))
 
         usage = self._get_usage_summary()
-        print("usage", usage)
+        # print("usage", usage)
 
         result_message = Message(
             content=output,

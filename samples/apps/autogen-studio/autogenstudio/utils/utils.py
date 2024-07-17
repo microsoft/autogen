@@ -415,7 +415,19 @@ def test_model(model: Model):
 
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
-    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    response = client.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that can add numbers. ONLY RETURN THE RESULT.",
+            },
+            {
+                "role": "user",
+                "content": "2+2=",
+            },
+        ],
+        cache_seed=None,
+    )
     return response.choices[0].message.content
 
 
