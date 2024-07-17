@@ -306,14 +306,14 @@ install via pip and use --quiet option.
 
          """
     prompt = ""  # filename:  skills.py
+
     for skill in skills:
-        if skill.secrets:
-            for secret in skill.secrets:
-                print(">> Secret", secret)
-                if secret.get("value"):
-                    os.environ[secret["secret"]] = secret["value"]
-        if not isinstance(skill, Skill):
+        if not isinstance(skill, Skill): 
             skill = Skill(**skill)
+        if(skill.secrets): 
+            for secret in skill.secrets:
+                if secret.get("value") != None:
+                    os.environ[secret["secret"]] = secret["value"]
         prompt += f"""
 
 ##### Begin of {skill.name} #####
