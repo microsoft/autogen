@@ -420,15 +420,15 @@ async def criteria():
     return criteria_list
 
 
-@api.get("/agenteval/criteria/{criteria_id}")
-async def get_agenteval_criteria(criteria_id: int):
-    filters = {"id": criteria_id}
-    criteria_entry = list_entity(Criteria, return_json=True).data
-    filters = {"criteria_list_id": criteria_id}
+# @api.get("/agenteval/criteria/{criteria_id}")
+# async def get_agenteval_criteria(criteria_id: int):
+#     filters = {"id": criteria_id}
+#     criteria_entry = list_entity(Criteria, return_json=True).data
+#     filters = {"criteria_list_id": criteria_id}
 
-    entities = list_entity(CriterionModel, filters=filters, return_json=True).data
-    entities = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in entities]
-    return {"id": criteria_entry["id"], "workflow_id": criteria_entry["workflow_id"], "criteria": Criterion.write_json(entities)}
+#     entities = list_entity(CriterionModel, filters=filters, return_json=True).data
+#     entities = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in entities]
+#     return {"id": criteria_entry["id"], "criteria": Criterion.write_json(entities)}
 
 
 @api.delete("/agenteval/criteria/delete/{criteria_id}")

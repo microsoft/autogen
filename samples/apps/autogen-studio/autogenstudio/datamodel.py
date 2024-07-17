@@ -257,14 +257,16 @@ class CriterionModel(Criterion, SQLModel, table=True):
     accepted_values: List[str] = Field(sa_column=Column(JSON))
     criteria_list_id: Optional[int] = Field(default=None, foreign_key="criteria.id")
     criteria_list: Optional["Criteria"] = Relationship(back_populates="criteria")
+    sub_criteria_list_id: Optional[int] = Field(default=None, foreign_key="criteria.id")
+    sub_criteria: Optional["Criteria"] = Relationship(back_populates="criteria")
 
 
 class Criteria(SQLModel, table=True):
     __tablename__ = "criteria" 
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
-    task_name: str
-    task_description: str
+    task_name: Optional[str]
+    task_description: Optional[str]
     criteria: List[CriterionModel] = Relationship(back_populates="criteria_list")
 
 

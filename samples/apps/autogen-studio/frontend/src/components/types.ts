@@ -110,7 +110,7 @@ export interface IAgentEvalCriteria {
   id?: number;
   task_name: string;
   task_description: string;
-  criteria: Array<string>;
+  criteria: string;
   model_id?: number;
   execution_session_id?: number;
 }

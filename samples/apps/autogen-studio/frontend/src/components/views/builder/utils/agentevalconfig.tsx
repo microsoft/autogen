@@ -119,7 +119,6 @@ export const JsonCriteriaViewConfig = ({
 
   const editorRef = React.useRef<any | null>(null);
   const [showQuantifyModal, setShowQuantifyModal] = React.useState(false);
-
   const [editorText, setEditorText] = React.useState(!criteria.id ? "Paste your criteria here..." : criteria.criteria);
 
   return (
@@ -182,10 +181,10 @@ export const JsonCriteriaViewConfig = ({
             <Modal
               title={
                 <>
-                  Quantify Criteria{" "}
+                  Quantify Criteria
                   <span className="text-accent font-normal">
                     {localCriteria?.task_name}
-                  </span>{" "}
+                  </span>
                 </>
               }
               open={showQuantifyModal}
