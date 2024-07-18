@@ -107,14 +107,13 @@ class GeminiClient:
 
         Args:
             api_key (str): The API key for using Gemini.
-            credentials (google.auth.credentials.Credentials): credentials to be used for authentication with vertexai.
+                credentials (google.auth.credentials.Credentials): credentials to be used for authentication with vertexai.
             google_application_credentials (str): Path to the JSON service account key file of the service account.
-            Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
-            can also be set instead of using this argument.
-
+                Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
+                can also be set instead of using this argument.
             project_id (str): Google Cloud project id, which is only valid in case no API key is specified.
             location (str): Compute region to be used, like 'us-west1'.
-            This parameter is only valid in case no API key is specified.
+                This parameter is only valid in case no API key is specified.
         """
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
