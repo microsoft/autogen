@@ -1,4 +1,16 @@
-from typing import Any, List, Mapping, Optional, Protocol, Sequence, Tuple, TypedDict, Union, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
 
 Metadata = Union[Mapping[str, Any], None]
 Vector = Union[Sequence[float], Sequence[int]]
@@ -49,6 +61,9 @@ class VectorDB(Protocol):
 
     active_collection: Any = None
     type: str = ""
+    embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = (
+        None  # embeddings = embedding_function(sentences)
+    )
 
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """
