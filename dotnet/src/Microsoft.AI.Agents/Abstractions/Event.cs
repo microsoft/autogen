@@ -2,6 +2,9 @@ using System.Runtime.Serialization;
 
 namespace Microsoft.AI.Agents.Abstractions;
 
+/// <summary>
+/// Base class for all events
+/// </summary>
 [DataContract]
 public class Event
 {

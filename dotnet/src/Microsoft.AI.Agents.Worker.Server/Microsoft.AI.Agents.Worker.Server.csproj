@@ -4,6 +4,11 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<PackageId>AGNext.Worker.Server</PackageId>
+		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
+		<Authors>Microsoft</Authors>
+		<Description>AGNext Worker Server Library</Description>
+		<Tags>ai-agents;event-driven-agents</Tags>
 	</PropertyGroup>
 
 	<ItemGroup>
