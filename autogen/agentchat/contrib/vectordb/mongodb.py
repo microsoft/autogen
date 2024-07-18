@@ -1,12 +1,10 @@
 from copy import deepcopy
-from time import sleep
+from time import monotonic, sleep
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
 
 import numpy as np
 from pymongo import MongoClient, UpdateOne, errors
 from pymongo.collection import Collection
-from pymongo.cursor import Cursor
-from pymongo.errors import OperationFailure
 from pymongo.operations import SearchIndexModel
 from sentence_transformers import SentenceTransformer
 
@@ -16,6 +14,9 @@ from .utils import get_logger
 logger = get_logger(__name__)
 
 DEFAULT_INSERT_BATCH_SIZE = 100_000
+_SAMPLE_SENTENCE = ["The weather is lovely today in paradise."]
+_TIMEOUT = 20.0
+_DELAY = 0.5
 
 
 def with_id_rename(docs: Iterable) -> List[Dict[str, Any]]:
@@ -35,6 +36,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
         collection_name: str = None,
         index_name: str = "vector_index",
+        overwrite: bool = False,
+        wait_until_ready: bool = False,
     ):
         """
         Initialize the vector database.
@@ -43,27 +46,61 @@ class MongoDBAtlasVectorDB(VectorDB):
             connection_string: str | The MongoDB connection string to connect to. Default is ''.
             database_name: str | The name of the database. Default is 'vector_db'.
             embedding_function: The embedding function used to generate the vector representation.
+            overwrite: bool | Overwrite existing collection with new information from this object
+                defaults to False
+            wait_until_ready: bool | Blocking call to wait until the database indexes are READY
+                will timeout after 20 seconds. Defaults to False
         """
         self.embedding_function = embedding_function
+        self.index_name = index_name
+        self.overwrite = overwrite
+        self._wait_until_ready = wait_until_ready
+
+        # This will get the model dimension size by computing the embeddings dimensions
+        self.dimensions = self._get_embedding_size()
+
         try:
             self.client = MongoClient(connection_string)
             self.client.admin.command("ping")
-            logger.info("Successfully created MongoClient")
+            logger.debug("Successfully created MongoClient")
         except errors.ServerSelectionTimeoutError as err:
             raise ConnectionError("Could not connect to MongoDB server") from err
 
         self.db = self.client[database_name]
-        logger.info(f"Atlas Database name: {self.db.name}")
+        logger.debug(f"Atlas Database name: {self.db.name}")
         if collection_name:
-            self.active_collection = self.create_collection(collection_name)
+            self.active_collection = self.create_collection(collection_name, overwrite=self.overwrite)
         else:
             self.active_collection = None
-        # This will get the model dimension size by computing the embeddings dimensions
-        sentences = ["The weather is lovely today in paradise."]
-        embeddings = self.embedding_function(sentences)
-        self.dimensions = len(embeddings[0])
-        # MongoDB Atlas Search Index
-        self.index_name = index_name
+
+    def _is_index_ready(self, collection: Collection, index_name: str):
+        """Check for the index name in the list of available search indexes to see if the
+        specified index is of status READY
+
+        Args:
+            collection (Collection): MongoDB Collection to for the search indexes
+            index_name (str): Vector Search Index name
+
+        Returns:
+            bool : True if the index is present and READY false otherwise
+        """
+        for index in collection.list_search_indexes(index_name):
+            if index["type"] == "vectorSearch" and index["status"] == "READY":
+                return True
+        return False
+
+    def _wait_for_index(self, collection: Collection, index_name: str, timeout=_TIMEOUT):
+        """Waits up to 20 seconds for the index to be created to be ready, otherwise
+        throws a TimeoutError"""
+        start = monotonic()
+        while monotonic() - start < timeout:
+            if self._is_index_ready(collection, index_name):
+                return
+            sleep(_DELAY)
+        raise TimeoutError(f"Index {self.index_name} is not ready!")
+
+    def _get_embedding_size(self):
+        return len(self.embedding_function(_SAMPLE_SENTENCE)[0])
 
     def list_collections(self):
         """
@@ -78,70 +115,39 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         collection_name: str,
         overwrite: bool = False,
-        get_or_create: bool = True,
     ) -> Collection:
         """
         Create a collection in the vector database and create a vector search index in the collection.
+        If collection already exists, return the existing collection.
 
         Args:
             collection_name: str | The name of the collection.
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
-            get_or_create: bool | Whether to get the collection if it exists. Default is True
         """
-        # if overwrite is False and get_or_create is False, raise a ValueError
-        if not overwrite and not get_or_create:
-            raise ValueError("If overwrite is False, get_or_create must be True.")
+        collection_exists = collection_name in self.db.list_collection_names()
 
-        collection_names = self.db.list_collection_names()
-        if collection_name not in collection_names:
+        if collection_exists:
             # Create a new collection
-            coll = self.db.create_collection(collection_name)
-            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
-            return coll
-        if overwrite:
-            self.db.drop_collection(collection_name)
-            coll = self.db.create_collection(collection_name)
-            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
-            return coll
-        if get_or_create:
-            # The collection already exists, return it.
             coll = self.db[collection_name]
-            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
-            return coll
+            if overwrite:
+                self.db.drop_collection(collection_name)
+                coll = self.db.create_collection(collection_name)
         else:
-            # get_or_create is False and the collection already exists, raise an error.
-            raise ValueError(f"Collection {collection_name} already exists.")
+            coll = self.db.create_collection(collection_name)
 
-    def create_index_if_not_exists(self, index_name: str = "vector_index", collection: Collection = None):
+        self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+        return coll
+
+    def create_index_if_not_exists(self, index_name: str = "vector_index", collection: Collection = None) -> None:
         """
         Creates a vector search index on the specified collection in MongoDB.
 
         Args:
             MONGODB_INDEX (str, optional): The name of the vector search index to create. Defaults to "vector_search_index".
             collection (Collection, optional): The MongoDB collection to create the index on. Defaults to None.
-
-        Returns:
-            bool: True if the index was successfully created, False otherwise.
         """
-        success = False
-        # Check if the index already exists
-        if index_name not in collection.list_search_indexes():
-            # Define retry logic with exponential backoff
-            retries = 3
-            delay = 3
-            while retries and not success:
-                try:
-                    # Attempt to create the vector search index
-                    self.create_vector_search_index(collection, index_name)
-                    success = True
-                except OperationFailure:
-                    # Handle potential operation failure
-                    retries -= 1
-                    sleep(delay)
-                    delay *= 2  # Increase delay for next retry
-        else:  # index exists
-            success = True
-        return success
+        if not self._is_index_ready(collection, index_name):
+            self.create_vector_search_index(collection, index_name)
 
     def get_collection(self, collection_name: str = None) -> Collection:
         """
@@ -209,16 +215,9 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Create the search index
         try:
             collection.create_search_index(model=search_index_model)
-            # Wait for the index to be created
-            keep_trying = True
-            while keep_trying:
-                indexes = collection.list_search_indexes()
-                for index in indexes:
-                    if index["name"] == index_name and index["status"] == "READY":
-                        keep_trying = False
-                    else:
-                        sleep(2)  # 2s delay between checks
-            logger.info(f"Search index {index_name} created successfully.")
+            if self._wait_until_ready:
+                self._wait_for_index(collection, index_name)
+            logger.debug(f"Search index {index_name} created successfully.")
         except Exception as e:
             logger.error(
                 f"Error creating search index: {e}. \n"
@@ -231,7 +230,7 @@ class MongoDBAtlasVectorDB(VectorDB):
     def upsert_docs(self, docs, collection):
         for doc in docs:
             query = {"id": doc["id"]}
-            doc["embedding"] =  np.array(self.embedding_function([doc["content"]])).tolist()[0]
+            doc["embedding"] = np.array(self.embedding_function([doc["content"]])).tolist()[0]
             new_values = {"$set": doc}
             collection.update_one(query, new_values, upsert=True)
 
@@ -367,9 +366,12 @@ class MongoDBAtlasVectorDB(VectorDB):
         result = collection.bulk_write(all_updates)
 
         # Log a result summary
-        logger.info(f"Matched: {result.matched_count}")
-        logger.info(f"Modified: {result.modified_count}")
-        logger.info(f"Upserted: {result.upserted_count}")
+        logger.info(
+            "Matched: %s, Modified: %s, Upserted: %s",
+            result.matched_count,
+            result.modified_count,
+            result.upserted_count,
+        )
 
     def delete_docs(self, ids: List[ItemID], collection_name: str = None, **kwargs):
         """
@@ -430,10 +432,12 @@ class MongoDBAtlasVectorDB(VectorDB):
             n_results: int | The number of relevant documents to return. Default is 10.
             distance_threshold: float | The threshold for the distance score, only distance smaller than it will be
                 returned. Don't filter with it if < 0. Default is -1.
+            wait_until_ready: bool | Will not execute the retrieval operation until the specified vector index is
+                ready to be queried. Defaults is false.
             kwargs: Dict | Additional keyword arguments. Ones of importance follow:
                 oversampling_factor: int | This times n_results is 'ef' in the HNSW algorithm.
                 It determines the number of nearest neighbor candidates to consider during the search phase.
-                A higher value leads to more accuracy, but is slower. Default = 10
+                A higher value leads to more accuracy, but is slower. Default is 10
 
         Returns:
             QueryResults | For each query string, a list of nearest documents and their scores.
@@ -443,19 +447,13 @@ class MongoDBAtlasVectorDB(VectorDB):
         if collection.count_documents({}) == 0:
             return []
 
-        # Ensure that there is at least one search index
-        search_indexes = list(collection.list_search_indexes())
-        assert len(search_indexes), f"There are no search indexes for {collection.name}"
         # Check status of index!
-        for index in search_indexes:
-            if index["name"] == self.index_name and index["type"] == "vectorSearch" and index["status"] != "READY":
-                raise Exception(f"Index {self.index_name} is not ready!")
-        logger.info(f"Using index: {str(list(search_indexes))}")
+        if self._wait_until_ready:
+            self._wait_for_index(collection, self.index_name)
+        logger.info(f"Using index: {self.index_name}")
         results = []
-        sleep(15)
         for query_text in queries:
             # Compute embedding vector from semantic query
-            print('query_text', query_text)
             logger.info(f"Query: {query_text}")
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
@@ -512,7 +510,6 @@ def _vector_search(
         },
         {"$set": {"score": {"$meta": "vectorSearchScore"}}},
     ]
-    print("pipeline: ", pipeline)
     logger.info("pipeline: %s", pipeline)
     if distance_threshold >= 0.0:
         similarity_threshold = 1.0 - distance_threshold

@@ -1,6 +1,6 @@
 import logging
 import os
-from time import sleep
+from time import monotonic, sleep
 from typing import List
 
 import pytest
@@ -19,29 +19,60 @@ except ImportError:
     pytest.skip(allow_module_level=True)
 
 from pymongo.collection import Collection
-from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:64684/?directConnection=true")
 MONGODB_DATABASE = os.environ.get("DATABASE", "autogen_test_db")
 MONGODB_COLLECTION = os.environ.get("MONGODB_COLLECTION", "autogen_test_vectorstore")
 MONGODB_INDEX = os.environ.get("MONGODB_INDEX", "vector_index")
 
 RETRIES = 10
 DELAY = 2
+TIMEOUT = 20.0
+
+
+def _wait_for_predicate(predicate, err, timeout=TIMEOUT, interval=DELAY):
+    """Generic to block until the predicate returns true
+
+    Args:
+        predicate (Callable[, bool]): A function that returns a boolean value
+        err (str): Error message to raise if nothing occurs
+        timeout (float, optional): Length of time to wait for predicate. Defaults to TIMEOUT.
+        interval (float, optional): Interval to check predicate. Defaults to DELAY.
+
+    Raises:
+        TimeoutError: _description_
+    """
+    start = monotonic()
+    while not predicate():
+        if monotonic() - start > TIMEOUT:
+            raise TimeoutError(err)
+        sleep(DELAY)
+
+
+def _delete_collections(database):
+    """Delete all collections within the database
+
+    Args:
+        database (pymongo.Database): MongoDB Database Abstraction
+    """
+    for collection_name in database.list_collection_names():
+        database[collection_name].drop()
+    _wait_for_predicate(lambda: not database.list_collection_names(), "Not all collections deleted")
 
 
 @pytest.fixture
 def db():
     """VectorDB setup and teardown, including collections and search indexes"""
-    vectorstore = MongoDBAtlasVectorDB(connection_string=MONGODB_URI, database_name=MONGODB_DATABASE)
-    vectorstore.delete_collection(MONGODB_COLLECTION)
+    vectorstore = MongoDBAtlasVectorDB(
+        connection_string=MONGODB_URI,
+        database_name=MONGODB_DATABASE,
+        wait_until_ready=True,
+        overwrite=True,
+    )
     yield vectorstore
-    for c in vectorstore.db.list_collection_names():
-        clxn = vectorstore.get_collection(c)
-        clxn.drop()
-    sleep(20)  # Provide time for resync of db and search services.
+    _delete_collections(vectorstore.db)
 
 
 @pytest.fixture
@@ -56,62 +87,45 @@ def example_documents() -> List[Document]:
 
 
 @pytest.fixture
-def db_with_indexed_clxn(db):
-    """Convenient when we wish to de-emphasize setup.
-
-    We provide wait and retry method when running these quick integration tests.
-    """
-    collection = db.create_collection(MONGODB_COLLECTION)
-    if MONGODB_INDEX not in collection.list_search_indexes():
-        retries = 3
-        delay = 3
-        success = False
-        while retries and not success:
-            try:
-                db.create_vector_search_index(collection, MONGODB_INDEX)
-                success = True
-            except OperationFailure:
-                retries -= 1
-                sleep(delay)
-    return db, collection
+def db_with_indexed_clxn():
+    """VectorDB with a collection created immediately"""
+    vectorstore = MongoDBAtlasVectorDB(
+        connection_string=MONGODB_URI,
+        database_name=MONGODB_DATABASE,
+        wait_until_ready=True,
+        collection_name=MONGODB_COLLECTION,
+        overwrite=True,
+    )
+    yield vectorstore, vectorstore.db[MONGODB_COLLECTION]
+    _delete_collections(vectorstore.db)
 
 
 def test_create_collection(db):
     """
     def create_collection(collection_name: str,
-                        overwrite: bool = False,
-                        get_or_create: bool = True) -> Any
+                        overwrite: bool = False) -> Collection
     Create a collection in the vector database.
     - Case 1. if the collection does not exist, create the collection.
     - Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
-    - Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection, otherwise it raise a ValueError.
+    - Case 3. the collection exists and overwrite is False return the existing collection.
     """
     collection_name = "test_collection"
 
-    # test_create_collection: case 1
-    collection = db.create_collection(
+    collection_case_1 = db.create_collection(
         collection_name=collection_name,
     )
-    if collection_name not in db.list_collections():
-        assert collection.name == collection_name
+    assert collection_case_1.name == collection_name
 
-    # test_create_collection: case 2
-    # test overwrite=True
-    collection = db.create_collection(
+    collection_case_2 = db.create_collection(
         collection_name=collection_name,
         overwrite=True,
-        get_or_create=True,
     )
-    assert collection.name == collection_name
+    assert collection_case_2.name == collection_name
 
-    # test_create_collection: case 3
-    # test overwrite=False
-    # test get_or_create=False
-    with pytest.raises(ValueError):
-        collection = db.create_collection(collection_name, overwrite=False, get_or_create=False)
-    # test get_or_create=True
-    collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)
-    assert collection.name == collection_name
+    collection_case_3 = db.create_collection(
+        collection_name=collection_name,
+    )
+    assert collection_case_3.name == collection_name
 
 
 def test_get_collection(db):
@@ -149,9 +163,6 @@ def test_insert_docs(db, example_documents):
     # Create a collection
     db.delete_collection(MONGODB_COLLECTION)
     collection = db.create_collection(MONGODB_COLLECTION)
-    # Create a search index
-    if MONGODB_INDEX not in collection.list_search_indexes():
-        db.create_vector_search_index(collection, MONGODB_INDEX)
 
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
@@ -199,18 +210,17 @@ def test_update_docs(db_with_indexed_clxn, example_documents):
 
 
 def test_delete_docs(db_with_indexed_clxn, example_documents):
-    db, collection = db_with_indexed_clxn
+    db, clxn = db_with_indexed_clxn
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
     # Delete the 1s
     db.delete_docs(ids=[1, "1"], collection_name=MONGODB_COLLECTION)
     # Confirm just the 2s remain
-    clxn = db.get_collection(MONGODB_COLLECTION)
     assert {2, "2"} == {doc["_id"] for doc in clxn.find({})}
 
 
 def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
-    db, collection = db_with_indexed_clxn
+    db, _ = db_with_indexed_clxn
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
@@ -230,38 +240,30 @@ def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
     assert len(docs) == 0
 
 
-def test_retrieve_docs(db, example_documents):
-    # Create collection
-    db.delete_collection(MONGODB_COLLECTION)
-    collection = db.get_collection(MONGODB_COLLECTION)
+def test_retrieve_docs(db_with_indexed_clxn, example_documents):
+    db, _ = db_with_indexed_clxn
     # Sanity test. Retrieving docs before documents have been added
-    results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
-    assert results == []
+    assert db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2) == []
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
-    # Sanity test. Retrieving docs before the search index had been created
-    db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2)
-    # Create the index
-    db.create_vector_search_index(collection=collection, index_name=MONGODB_INDEX)
-
     # Begin testing Atlas Vector Search
     # NOTE: Indexing may take some time, so we must be patient on the first query.
+    # We have the wait_until_ready flag to ensure index is created and ready
     # Immediately adding documents and then querying is only standard for testing
 
     n_results = 2  # Number of closest docs to return
 
     success = False
-    retries = RETRIES
-    while retries and not success:
+    start = monotonic()
+    while monotonic() - start < TIMEOUT:
         results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
         if len(results[0]) == n_results:
             success = True
+            break
         else:
-            retries -= 1
             sleep(DELAY)
-    if not success:
-        raise OperationFailure(f"Failed to retrieve docs after {RETRIES} retries, waiting {DELAY} seconds after each.")
+    assert success, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each."
 
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
 
@@ -276,8 +278,3 @@ def test_retrieve_docs(db, example_documents):
     assert all([len(res) == n_results for res in results])
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
     assert {doc[0]["id"] for doc in results[1]} == {"1", "2"}
-
-
-def test_search_indexes(db):
-    pass
-    # TODO
