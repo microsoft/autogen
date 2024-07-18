@@ -1,10 +1,12 @@
 from copy import deepcopy
+from importlib.metadata import version
 from time import monotonic, sleep
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
 
 import numpy as np
 from pymongo import MongoClient, UpdateOne, errors
 from pymongo.collection import Collection
+from pymongo.driver_info import DriverInfo
 from pymongo.operations import SearchIndexModel
 from sentence_transformers import SentenceTransformer
 
@@ -60,7 +62,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         self.dimensions = self._get_embedding_size()
 
         try:
-            self.client = MongoClient(connection_string)
+            self.client = MongoClient(connection_string, driver=DriverInfo(name="autogen"))
             self.client.admin.command("ping")
             logger.debug("Successfully created MongoClient")
         except errors.ServerSelectionTimeoutError as err:
@@ -463,7 +465,8 @@ class MongoDBAtlasVectorDB(VectorDB):
                 collection,
                 self.index_name,
                 distance_threshold,
-                kwargs.get("oversampling_factor", 10),
+                **kwargs,
+                oversampling_factor=kwargs.get("oversampling_factor", 10),
             )
             # Change each _id key to id. with_id_rename, but with (doc, score) tuples
             results.append(
@@ -479,6 +482,7 @@ def _vector_search(
     index_name: str,
     distance_threshold: float = -1.0,
     oversampling_factor=10,
+    include_embedding=False,
 ) -> List[Tuple[Dict, float]]:
     """Core $vectorSearch Aggregation pipeline.
 
@@ -488,7 +492,7 @@ def _vector_search(
         collection: MongoDB Collection with vector index
         index_name: Name of the vector index
         distance_threshold: Only distance measures smaller than this will be returned.
-            Don't filter with it if < 0. Default is -1.
+            Don't filter with it if 1 < x < 0. Default is -1.
         oversampling_factor: int | This times n_results is 'ef' in the HNSW algorithm.
             It determines the number of nearest neighbor candidates to consider during the search phase.
             A higher value leads to more accuracy, but is slower. Default = 10
@@ -510,10 +514,13 @@ def _vector_search(
         },
         {"$set": {"score": {"$meta": "vectorSearchScore"}}},
     ]
-    logger.info("pipeline: %s", pipeline)
     if distance_threshold >= 0.0:
         similarity_threshold = 1.0 - distance_threshold
-        pipeline.append({"$match": {"score": {"gte": similarity_threshold}}})
+        pipeline.append({"$match": {"score": {"$gte": similarity_threshold}}})
 
+    if not include_embedding:
+        pipeline.append({"$project": {"embedding": 0}})
+
+    logger.info("pipeline: %s", pipeline)
     agg = collection.aggregate(pipeline)
     return [(doc, doc.pop("score")) for doc in agg]

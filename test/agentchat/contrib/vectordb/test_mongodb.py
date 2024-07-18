@@ -240,41 +240,106 @@ def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
     assert len(docs) == 0
 
 
-def test_retrieve_docs(db_with_indexed_clxn, example_documents):
+def test_retrieve_docs_empty(db_with_indexed_clxn):
     db, _ = db_with_indexed_clxn
-    # Sanity test. Retrieving docs before documents have been added
     assert db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=2) == []
+
+
+def test_retrieve_docs_populated_db_empty_query(db_with_indexed_clxn, example_documents):
+    db, _ = db_with_indexed_clxn
+    db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
+    # Empty list of queries returns empty list of results
+    results = db.retrieve_docs(queries=[], collection_name=MONGODB_COLLECTION, n_results=2)
+    assert results == []
+
+
+def test_retrieve_docs(db_with_indexed_clxn, example_documents):
+    """Begin testing Atlas Vector Search
+    NOTE: Indexing may take some time, so we must be patient on the first query.
+    We have the wait_until_ready flag to ensure index is created and ready
+    Immediately adding documents and then querying is only standard for testing
+    """
+    db, _ = db_with_indexed_clxn
     # Insert example documents
     db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
-    # Begin testing Atlas Vector Search
-    # NOTE: Indexing may take some time, so we must be patient on the first query.
-    # We have the wait_until_ready flag to ensure index is created and ready
-    # Immediately adding documents and then querying is only standard for testing
+    n_results = 2  # Number of closest docs to return
+
+    def results_ready():
+        results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
+        return len(results[0]) == n_results
+
+    _wait_for_predicate(results_ready, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each.")
+
+    results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
+    assert {doc[0]["id"] for doc in results[0]} == {1, 2}
+
+
+def test_retrieve_docs_with_embedding(db_with_indexed_clxn, example_documents):
+    """Begin testing Atlas Vector Search
+    NOTE: Indexing may take some time, so we must be patient on the first query.
+    We have the wait_until_ready flag to ensure index is created and ready
+    Immediately adding documents and then querying is only standard for testing
+    """
+    db, _ = db_with_indexed_clxn
+    # Insert example documents
+    db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
 
     n_results = 2  # Number of closest docs to return
 
-    success = False
-    start = monotonic()
-    while monotonic() - start < TIMEOUT:
+    def results_ready():
         results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
-        if len(results[0]) == n_results:
-            success = True
-            break
-        else:
-            sleep(DELAY)
-    assert success, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each."
+        return len(results[0]) == n_results
 
+    _wait_for_predicate(results_ready, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each.")
+
+    results = db.retrieve_docs(
+        queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results, include_embedding=True
+    )
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
+    assert all(["embedding" in doc[0] for doc in results[0]])
 
-    # Empty list of queries returns empty list of results
-    results = db.retrieve_docs(queries=[], collection_name=MONGODB_COLLECTION, n_results=n_results)
-    assert results == []
 
-    # Empty list of queries returns empty list of results
+def test_retrieve_docs_multiple_queries(db_with_indexed_clxn, example_documents):
+    db, _ = db_with_indexed_clxn
+    # Insert example documents
+    db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
+    n_results = 2  # Number of closest docs to return
+
     queries = ["Some good pets", "What kind of Sandwich?"]
+
+    def results_ready():
+        results = db.retrieve_docs(queries=queries, collection_name=MONGODB_COLLECTION, n_results=n_results)
+        return all([len(res) == n_results for res in results])
+
+    _wait_for_predicate(results_ready, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each.")
+
     results = db.retrieve_docs(queries=queries, collection_name=MONGODB_COLLECTION, n_results=2)
+
     assert len(results) == len(queries)
     assert all([len(res) == n_results for res in results])
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
     assert {doc[0]["id"] for doc in results[1]} == {"1", "2"}
+
+
+def test_retrieve_docs_with_threshold(db_with_indexed_clxn, example_documents):
+    db, _ = db_with_indexed_clxn
+    # Insert example documents
+    db.insert_docs(example_documents, collection_name=MONGODB_COLLECTION)
+
+    n_results = 2  # Number of closest docs to return
+    queries = ["Cats"]
+
+    def results_ready():
+        results = db.retrieve_docs(queries=queries, collection_name=MONGODB_COLLECTION, n_results=n_results)
+        return len(results[0]) == n_results
+
+    _wait_for_predicate(results_ready, f"Failed to retrieve docs after waiting {TIMEOUT} seconds after each.")
+
+    # Distance Threshold of .3 means that the score must be .7 or greater
+    # only one result should be that value
+    results = db.retrieve_docs(
+        queries=queries, collection_name=MONGODB_COLLECTION, n_results=n_results, distance_threshold=0.3
+    )
+    assert len(results[0]) == 1
+    assert all([doc[1] >= 0.7 for doc in results[0]])
