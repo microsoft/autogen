@@ -6,7 +6,7 @@ Example:
         "config_list": [{
             "api_type": "google",
             "model": "gemini-pro",
-            "api_key": os.environ.get("GOOGLE_API_KEY"),
+            "api_key": os.environ.get("GOOGLE_GEMINI_API_KEY"),
             "safety_settings": [
                     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
                     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
@@ -84,8 +84,8 @@ class GeminiClient:
             # Path to JSON Keyfile
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params["google_application_credentials"]
         vertexai_init_args = {}
-        if "project" in params:
-            vertexai_init_args["project"] = params["project"]
+        if "project_id" in params:
+            vertexai_init_args["project"] = params["project_id"]
         if "location" in params:
             vertexai_init_args["location"] = params["location"]
         if "credentials" in params:
@@ -98,9 +98,9 @@ class GeminiClient:
 
     def __init__(self, **kwargs):
         """Uses either either api_key for authentication from the LLM config
-        (specifying the GOOGLE_API_KEY environment variable also works),
+        (specifying the GOOGLE_GEMINI_API_KEY environment variable also works),
         or follows the Google authentication mechanism for VertexAI in Google Cloud if no api_key is specified,
-        where project and location can also be passed as parameters. Previously created credentials object can be provided,
+        where project_id and location can also be passed as parameters. Previously created credentials object can be provided,
         or a Service account key file can also be used. If neither a service account key file, nor the api_key are passed,
         then the default credentials will be used, which could be a personal account if the user is already authenticated in,
         like in Google Cloud Shell.
@@ -112,13 +112,13 @@ class GeminiClient:
             Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
             can also be set instead of using this argument.
 
-            project (str): Google Cloud project, which is only valid in case no API key is specified.
+            project_id (str): Google Cloud project id, which is only valid in case no API key is specified.
             location (str): Compute region to be used, like 'us-west1'.
             This parameter is only valid in case no API key is specified.
         """
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
-            self.api_key = os.getenv("GOOGLE_API_KEY")
+            self.api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
             if self.api_key is None:
                 self.use_vertexai = True
                 self._initialize_vartexai(**kwargs)
@@ -127,7 +127,7 @@ class GeminiClient:
         else:
             self.use_vertexai = False
         if not self.use_vertexai:
-            assert ("project" not in kwargs) and (
+            assert ("project_id" not in kwargs) and (
                 "location" not in kwargs
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
 
@@ -159,7 +159,7 @@ class GeminiClient:
         if self.use_vertexai:
             self._initialize_vartexai(**params)
         else:
-            assert ("project" not in params) and (
+            assert ("project_id" not in params) and (
                 "location" not in params
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
         model_name = params.get("model", "gemini-pro")

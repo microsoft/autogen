@@ -75,7 +75,7 @@ def test_compute_location_initialization():
 def test_project_initialization():
     with pytest.raises(AssertionError):
         GeminiClient(
-            api_key="fake_api_key", project="fake-project-id"
+            api_key="fake_api_key", project_id="fake-project-id"
         )  # Should raise an AssertionError due to specifying API key and compute location
 
 
@@ -86,7 +86,7 @@ def test_valid_initialization(gemini_client):
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_google_application_credentials_initialization():
-    GeminiClient(google_application_credentials="credentials.json", project="fake-project-id")
+    GeminiClient(google_application_credentials="credentials.json", project_id="fake-project-id")
     assert (
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] == "credentials.json"
     ), "Incorrect Google Application Credentials initialization"
@@ -95,7 +95,7 @@ def test_google_application_credentials_initialization():
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_vertexai_initialization():
     mock_credentials = MagicMock(Credentials)
-    GeminiClient(credentials=mock_credentials, project="fake-project-id", location="us-west1")
+    GeminiClient(credentials=mock_credentials, project_id="fake-project-id", location="us-west1")
     assert vertexai_global_config.location == "us-west1", "Incorrect VertexAI location initialization"
     assert vertexai_global_config.project == "fake-project-id", "Incorrect VertexAI project initialization"
     assert vertexai_global_config.credentials == mock_credentials, "Incorrect VertexAI credentials initialization"
