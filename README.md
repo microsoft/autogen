@@ -42,4 +42,4 @@ We are admittedly in the early stages of development, but we are excited to shar
 - [Python Documentation](http://microsoft.github.io/agnext) for the core concepts and API reference.
 - [Python Examples](https://github.com/microsoft/agnext/tree/main/python/samples) for examples of how to use the Python package and multi-agent patterns.
 - [.NET](https://github.com/microsoft/agnext/tree/main/dotnet)
-- [.NET Examples](https://github.com/mircrosoft/agnext/tree/main/dotnet/samples)
+- [.NET Examples](https://github.com/microsoft/agnext/tree/main/dotnet/samples)
