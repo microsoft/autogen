@@ -22,7 +22,7 @@ from pymongo.collection import Collection
 
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:64684/?directConnection=true")
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
 MONGODB_DATABASE = os.environ.get("DATABASE", "autogen_test_db")
 MONGODB_COLLECTION = os.environ.get("MONGODB_COLLECTION", "autogen_test_vectorstore")
 MONGODB_INDEX = os.environ.get("MONGODB_INDEX", "vector_index")
