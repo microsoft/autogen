@@ -108,6 +108,7 @@ def test_create_collection(db):
     - Case 1. if the collection does not exist, create the collection.
     - Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
     - Case 3. the collection exists and overwrite is False return the existing collection.
+    - Case 4. the collection exists and overwrite is False and get_or_create is False, raise a ValueError
     """
     collection_name = "test_collection"
 
@@ -126,6 +127,13 @@ def test_create_collection(db):
         collection_name=collection_name,
     )
     assert collection_case_3.name == collection_name
+
+    with pytest.raises(ValueError):
+        db.create_collection(
+            collection_name=collection_name,
+            overwrite=False,
+            get_or_create=False
+        )
 
 
 def test_get_collection(db):

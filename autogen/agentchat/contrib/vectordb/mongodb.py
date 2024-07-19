@@ -1,5 +1,4 @@
 from copy import deepcopy
-from importlib.metadata import version
 from time import monotonic, sleep
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
 
@@ -117,28 +116,33 @@ class MongoDBAtlasVectorDB(VectorDB):
         self,
         collection_name: str,
         overwrite: bool = False,
+        get_or_create: bool = True,
     ) -> Collection:
         """
         Create a collection in the vector database and create a vector search index in the collection.
-        If collection already exists, return the existing collection.
 
         Args:
             collection_name: str | The name of the collection.
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
+            get_or_create: bool | Whether to get or create the collection. Default is True
         """
-        collection_exists = collection_name in self.db.list_collection_names()
+        if overwrite:
+            self.db.drop_collection(collection_name)
 
-        if collection_exists:
+        if collection_name not in self.db.list_collection_names():
             # Create a new collection
-            coll = self.db[collection_name]
-            if overwrite:
-                self.db.drop_collection(collection_name)
-                coll = self.db.create_collection(collection_name)
-        else:
             coll = self.db.create_collection(collection_name)
+            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+            return coll
 
-        self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
-        return coll
+        if get_or_create:
+            # The collection already exists, return it.
+            coll = self.db[collection_name]
+            self.create_index_if_not_exists(index_name=self.index_name, collection=coll)
+            return coll
+        else:
+            # get_or_create is False and the collection already exists, raise an error.
+            raise ValueError(f"Collection {collection_name} already exists.")
 
     def create_index_if_not_exists(self, index_name: str = "vector_index", collection: Collection = None) -> None:
         """

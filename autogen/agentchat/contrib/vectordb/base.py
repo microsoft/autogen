@@ -201,9 +201,7 @@ class VectorDBFactory:
     Factory class for creating vector databases.
     """
 
-
     PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "mongodb", "qdrant"]
-    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "qdrant"]
 
     @staticmethod
     def create_vector_db(db_type: str, **kwargs) -> VectorDB:
