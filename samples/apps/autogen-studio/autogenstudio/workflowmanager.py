@@ -20,9 +20,10 @@ from .utils import (
     clear_folder,
     find_key_value,
     get_modified_files,
-    get_skills_from_prompt,
+    get_skills_prompt,
     load_code_execution_config,
     sanitize_model,
+    save_skills_to_file,
     summarize_chat_history,
 )
 
@@ -64,6 +65,7 @@ class AutoWorkflowManager:
             raise ValueError("The 'workflow' parameter should be either a dictionary or a valid JSON file path")
 
         # TODO - improved typing for workflow
+        self.workflow_skills = []
         self.send_message_function = send_message_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
@@ -98,6 +100,8 @@ class AutoWorkflowManager:
             elif agent.get("link").get("agent_type") == "receiver":
                 self.receiver = self.load(agent.get("agent"))
         if self.sender and self.receiver:
+            # save all agent skills to skills.py
+            save_skills_to_file(self.workflow_skills, self.work_dir)
             if history:
                 self._populate_history(history)
             self.sender.initiate_chat(
@@ -246,7 +250,7 @@ class AutoWorkflowManager:
 
         if skills:
             skills_prompt = ""
-            skills_prompt = get_skills_from_prompt(skills, self.work_dir)
+            skills_prompt = get_skills_prompt(skills, self.work_dir)
             if agent.config.system_message:
                 agent.config.system_message = agent.config.system_message + "\n\n" + skills_prompt
             else:
