@@ -136,7 +136,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
-                     **Deprecated**: use `vector_db` instead.
+                     *[Deprecated]* use `vector_db` instead.
                 - `docs_path` (Optional, Union[str, List[str]]) - the path to the docs directory. It
                      can also be the path to a single file, the url to a single file or a list
                      of directories, files and urls. Default is None, which works only if the
@@ -150,7 +150,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     By default, "extra_docs" is set to false, starting document IDs from zero.
                     This poses a risk as new documents might overwrite existing ones, potentially
                     causing unintended loss or alteration of data in the collection.
-                    **Deprecated**: use `new_docs` when use `vector_db` instead of `client`.
+                    *[Deprecated]* use `new_docs` when use `vector_db` instead of `client`.
                 - `new_docs` (Optional, bool) - when True, only adds new documents to the collection;
                     when False, updates existing documents and adds new ones. Default is True.
                     Document id is used to determine if a document is new or existing. By default, the
@@ -173,7 +173,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     models can be found at `https://www.sbert.net/docs/pretrained_models.html`.
                     The default model is a fast model. If you want to use a high performance model,
                     `all-mpnet-base-v2` is recommended.
-                    **Deprecated**: no need when use `vector_db` instead of `client`.
+                    *[Deprecated]* no need when use `vector_db` instead of `client`.
                 - `embedding_function` (Optional, Callable) - the embedding function for creating the
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
@@ -220,7 +220,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Example of overriding retrieve_docs - If you have set up a customized vector db, and it's
         not compatible with chromadb, you can easily plug in it with below code.
-        **Deprecated**: Use `vector_db` instead. You can extend VectorDB and pass it to the agent.
+        *[Deprecated]* use `vector_db` instead. You can extend VectorDB and pass it to the agent.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
