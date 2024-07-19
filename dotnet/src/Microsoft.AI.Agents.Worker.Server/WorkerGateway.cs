@@ -1,13 +1,9 @@
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
-using Orleans.Runtime;
 using Agents;
-using Orleans.Streams;
-using Event = Microsoft.AI.Agents.Abstractions.Event;
 using RpcEvent = Agents.Event;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Text.Json;
 
 namespace Microsoft.AI.Agents.Worker;
 
@@ -42,8 +38,8 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     public async ValueTask BroadcastEvent(RpcEvent evt)
     {
-        var tasks = new List<Task>(_agentDirectory.Count);
-        foreach (var (_, connection) in _agentDirectory)
+        var tasks = new List<Task>(_workers.Count);
+        foreach (var (_, connection) in _workers)
         {
             tasks.Add(connection.SendMessage(new Message { Event = evt }));
         }
@@ -151,8 +147,11 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     async ValueTask DispatchEventAsync(RpcEvent evt)
     {
+        await BroadcastEvent(evt);
+        /*
         var topic = _clusterClient.GetStreamProvider("agents").GetStream<Event>(StreamId.Create(evt.Namespace, evt.Type));
         await topic.OnNextAsync(evt.ToEvent());
+        */
     }
 
     async ValueTask DispatchRequestAsync(WorkerProcessConnection connection, RpcRequest request)
@@ -163,6 +162,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
             throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
         }
 
+        /*
         if (string.Equals("runtime", request.Target.Name, StringComparison.Ordinal))
         {
             if (string.Equals("subscribe", request.Method))
@@ -178,6 +178,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         }
         else
         {
+        */
             await InvokeRequestDelegate(connection, request, async request =>
             {
                 var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
@@ -195,7 +196,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
                 // Forward the message to the gateway and return the result.
                 return await gateway.InvokeRequest(request);
             });
-        }
+        //}
     }
 
     private static async Task InvokeRequestDelegate(WorkerProcessConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
@@ -212,6 +213,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         }
     }
 
+    /*
     private async ValueTask SubscribeToTopic(WorkerProcessConnection connection, RpcRequest request)
     {
         // Subscribe to a topic
@@ -240,6 +242,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
             }
         }
     }
+    */
 
     internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {

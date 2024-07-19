@@ -1,5 +1,4 @@
 using Agents;
-using Event = Microsoft.AI.Agents.Abstractions.Event;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -78,7 +77,7 @@ public abstract class AgentBase
         switch (msg.MessageCase)
         {
             case Message.MessageOneofCase.Event:
-                await HandleEvent(msg.Event.ToEvent()).ConfigureAwait(false);
+                await HandleEvent(msg.Event).ConfigureAwait(false);
                 break;
             case Message.MessageOneofCase.Request:
                 await OnRequestCore(msg.Request).ConfigureAwait(false);
@@ -120,7 +119,7 @@ public abstract class AgentBase
         await _context.SendResponseAsync(request, response).ConfigureAwait(false);
     }
 
-    public async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
+    protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
     {
         var requestId = Guid.NewGuid().ToString();
         var request = new RpcRequest
@@ -141,13 +140,12 @@ public abstract class AgentBase
         return await completion.Task.ConfigureAwait(false);
     }
 
-    protected internal async ValueTask PublishEvent(Event @event)
+    protected async ValueTask PublishEvent(Event item)
     {
-        var rpcEvent = @event.ToRpcEvent();
-        await _context.PublishEventAsync(rpcEvent).ConfigureAwait(false);
+        await _context.PublishEventAsync(item).ConfigureAwait(false);
     }
 
-    protected internal virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
-    protected internal virtual Task HandleEvent(Event @event) => Task.CompletedTask;
+    protected virtual Task HandleEvent(Event item) => Task.CompletedTask;
 }

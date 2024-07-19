@@ -3,7 +3,7 @@ from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import CancellationToken, AgentId
 import logging
 import asyncio
-#import os
+import os
 
 from dataclasses import dataclass
 
@@ -25,7 +25,7 @@ class ExampleAgent(TypeRoutedAgent):
 async def main() -> None:
     logger = logging.getLogger("main")
     runtime = WorkerAgentRuntime()
-    await runtime.setup_channel("localhost:5438") #os.environ["AGENT_HOST"])
+    await runtime.setup_channel(os.environ["AGENT_HOST"])
 
     runtime.register("ExampleAgent", lambda: ExampleAgent())
     while True:

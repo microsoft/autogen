@@ -3,7 +3,6 @@ using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
-using Orleans.Runtime;
 
 namespace Microsoft.AI.DevTeam;
 

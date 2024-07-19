@@ -29,3 +29,6 @@ async def build_app(runtime: AgentRuntime) -> None:
 
     runtime.register("GraphicDesigner", lambda: GraphicDesignerAgent(client=image_client))
     runtime.register("Auditor", lambda: AuditAgent(model_client=chat_client))
+
+    runtime.get("GraphicDesigner")
+    runtime.get("Auditor")

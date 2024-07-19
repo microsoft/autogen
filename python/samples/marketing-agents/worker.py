@@ -1,24 +1,40 @@
 import asyncio
 import logging
-import os
 
+from agnext.core._serialization import MESSAGE_TYPE_REGISTRY
 from agnext.worker.worker_runtime import WorkerAgentRuntime
 from app import build_app
+from dotenv import load_dotenv
+from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
+
+agnext_logger = logging.getLogger("agnext")
 
 
 async def main() -> None:
+    load_dotenv()
     runtime = WorkerAgentRuntime()
-    await runtime.setup_channel(os.environ["AGENT_HOST"])
+    MESSAGE_TYPE_REGISTRY.add_type(ArticleCreated)
+    MESSAGE_TYPE_REGISTRY.add_type(GraphicDesignCreated)
+    MESSAGE_TYPE_REGISTRY.add_type(AuditText)
+    MESSAGE_TYPE_REGISTRY.add_type(AuditorAlert)
+    agnext_logger.info("1")
+    await runtime.setup_channel("localhost:5145")
+
+    agnext_logger.info("2")
 
     await build_app(runtime)
+    agnext_logger.info("3")
 
     # just to keep the runtime running
     try:
         await asyncio.sleep(1000000)
     except KeyboardInterrupt:
         pass
+    await runtime.close_channel()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    agnext_logger.setLevel(logging.DEBUG)
+    agnext_logger.log(logging.DEBUG, "Starting worker")
     asyncio.run(main())

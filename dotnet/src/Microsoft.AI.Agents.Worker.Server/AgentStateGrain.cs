@@ -1,5 +1,3 @@
-﻿using Orleans.Runtime;
-
 namespace Microsoft.AI.Agents.Worker;
 
 internal sealed class AgentStateGrain([PersistentState("state", "agent-state")] IPersistentState<Dictionary<string, object>> state) : Grain, IAgentStateGrain

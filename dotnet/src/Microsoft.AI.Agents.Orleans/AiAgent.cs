@@ -4,7 +4,6 @@ using Microsoft.AI.Agents.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
-using Orleans.Runtime;
 
 namespace Microsoft.AI.Agents.Orleans;
 

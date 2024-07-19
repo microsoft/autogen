@@ -28,7 +28,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY
+from agnext.core import MESSAGE_TYPE_REGISTRY, agent_instantiation_context
 
 from ..core import (
     Agent,
@@ -129,10 +129,13 @@ class RuntimeConnection:
     async def from_connection_string(
         cls, connection_string: str, grpc_config: Mapping[str, Any] = DEFAULT_GRPC_CONFIG
     ) -> Self:
+        logger.info("Connecting to %s", connection_string)
         channel = grpc.aio.insecure_channel(
             connection_string, options=[("grpc.service_config", json.dumps(grpc_config))]
         )
-        await channel.channel_ready()
+        # logger.info("awaiting channel_ready")
+        # await channel.channel_ready()
+        # logger.info("channel_ready")
         instance = cls(channel)
         instance._connection_task = asyncio.create_task(
             instance._connect(channel, instance._send_queue, instance._recv_queue)
@@ -155,6 +158,7 @@ class RuntimeConnection:
 
         while True:
             try:
+                logger.info("Waiting for message")
                 message = await recv_stream.read()  # type: ignore
                 if message == grpc.aio.EOF:  # type: ignore
                     logger.info("EOF")
@@ -162,15 +166,21 @@ class RuntimeConnection:
                 message = cast(Message, message)
                 logger.info("Received message: %s", message)
                 await receive_queue.put(message)
+                logger.info("Put message in queue")
             except Exception as e:
+                print("=========================================================================")
                 print(e)
+                print("=========================================================================")
+                del recv_stream
                 recv_stream = stub.OpenChannel(QueueAsyncIterable(send_queue))  # type: ignore
 
     async def send(self, message: Message) -> None:
         await self._send_queue.put(message)
 
     async def recv(self) -> Message:
+        logger.info("Getting message from queue")
         return await self._recv_queue.get()
+        logger.info("Got message from queue")
 
 
 class WorkerAgentRuntime(AgentRuntime):
@@ -191,7 +201,9 @@ class WorkerAgentRuntime(AgentRuntime):
         self._runtime_connection: RuntimeConnection | None = None
 
     async def setup_channel(self, connection_string: str) -> None:
+        logger.info(f"connecting to: {connection_string}")
         self._runtime_connection = await RuntimeConnection.from_connection_string(connection_string)
+        logger.info("connection")
         if self._read_task is None:
             self._read_task = asyncio.create_task(self.run_read_loop())
         self._running = True
@@ -203,42 +215,52 @@ class WorkerAgentRuntime(AgentRuntime):
         logger.info("Sent registerAgentType message for %s", agent_type)
 
     async def run_read_loop(self) -> None:
+        logger.info("Starting read loop")
         # TODO: catch exceptions and reconnect
         while self._running:
-            message = await self._runtime_connection.recv()  # type: ignore
-            logger.info("Got message: %s", message)
-            oneofcase = Message.WhichOneof(message, "message")
-            match oneofcase:
-                case "registerAgentType":
-                    logger.warn("Cant handle registerAgentType")
-                case "request":
-                    # request: RpcRequest = message.request
-                    # source = AgentId(request.source.name, request.source.namespace)
-                    # target = AgentId(request.target.name, request.target.namespace)
+            try:
+                message = await self._runtime_connection.recv()  # type: ignore
+                logger.info("Got message: %s", message)
+                oneofcase = Message.WhichOneof(message, "message")
+                match oneofcase:
+                    case "registerAgentType":
+                        logger.warn("Cant handle registerAgentType")
+                    case "request":
+                        # request: RpcRequest = message.request
+                        # source = AgentId(request.source.name, request.source.namespace)
+                        # target = AgentId(request.target.name, request.target.namespace)
 
-                    raise NotImplementedError("Sending messages is not yet implemented.")
-                case "response":
-                    response: RpcResponse = message.response
-                    future = self._pending_requests.pop(response.request_id)
-                    if len(response.error) > 0:
-                        future.set_exception(Exception(response.error))
-                        break
-                    future.set_result(response.result)
-                case "event":
-                    event: Event = message.event
-                    message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
-                    namespace = event.namespace
+                        raise NotImplementedError("Sending messages is not yet implemented.")
+                    case "response":
+                        response: RpcResponse = message.response
+                        future = self._pending_requests.pop(response.request_id)
+                        if len(response.error) > 0:
+                            future.set_exception(Exception(response.error))
+                            break
+                        future.set_result(response.result)
+                    case "event":
+                        event: Event = message.event
+                        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
+                        # namespace = event.namespace
+                        namespace = "default"
 
-                    for agent_id in self._per_type_subscribers[(namespace, MESSAGE_TYPE_REGISTRY.type_name(message))]:
-                        agent = self._get_agent(agent_id)
-                        try:
-                            await agent.on_message(message, CancellationToken())
-                        except Exception as e:
-                            event_logger.error("Error handling message", exc_info=e)
+                        logger.info("Got event: %s", message)
+                        for agent_id in self._per_type_subscribers[
+                            (namespace, MESSAGE_TYPE_REGISTRY.type_name(message))
+                        ]:
+                            logger.info("Sending message to %s", agent_id)
+                            agent = self._get_agent(agent_id)
+                            try:
+                                await agent.on_message(message, CancellationToken())
+                                logger.info("%s handled event %s", agent_id, message)
+                            except Exception as e:
+                                event_logger.error("Error handling message", exc_info=e)
 
-                    logger.warn("Cant handle event")
-                case None:
-                    logger.warn("No message")
+                        logger.warn("Cant handle event")
+                    case None:
+                        logger.warn("No message")
+            except Exception as e:
+                logger.error("Error in read loop", exc_info=e)
 
     async def close_channel(self) -> None:
         self._running = False
@@ -367,7 +389,10 @@ class WorkerAgentRuntime(AgentRuntime):
 
         agent_factory = self._agent_factories[agent_id.name]
 
+        token = agent_instantiation_context.set((self, agent_id))
         agent = self._invoke_agent_factory(agent_factory, agent_id)
+        agent_instantiation_context.reset(token)
+
         for message_type in agent.metadata["subscriptions"]:
             self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
 

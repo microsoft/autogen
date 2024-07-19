@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 
 import openai
@@ -21,11 +22,17 @@ class GraphicDesignerAgent(TypeRoutedAgent):
 
     @message_handler
     async def handle_user_chat_input(self, message: ArticleCreated, cancellation_token: CancellationToken) -> None:
-        response = await self._client.images.generate(
-            model=self._model, prompt=message.article, response_format="b64_json"
-        )
-        assert len(response.data) > 0 and response.data[0].b64_json is not None
-        image_base64 = response.data[0].b64_json
-        image_uri = f"data:image/png;base64,{image_base64}"
+        logger = logging.getLogger("graphic_designer")
+        try:
+            logger.info(f"Asking model to generate an image for the article '{message.article}'.")
+            response = await self._client.images.generate(
+                model=self._model, prompt=message.article, response_format="url"
+            )
+            logger.info(f"Image response: '{response.data[0]}'")
+            assert len(response.data) > 0 and response.data[0].url is not None
+            image_uri = response.data[0].url
+            logger.info(f"Generated image for article. Got response: '{image_uri}'")
 
-        await self.publish_message(GraphicDesignCreated(user_id=message.user_id, image_uri=image_uri))
+            await self.publish_message(GraphicDesignCreated(UserId=message.UserId, imageUri=image_uri))
+        except Exception as e:
+            logger.error(f"Failed to generate image for article. Error: {e}")

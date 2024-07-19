@@ -1,11 +1,14 @@
 using Grpc.Core;
 using Agents;
+using System.Threading.Channels;
 
 namespace Microsoft.AI.Agents.Worker;
 
 internal sealed class WorkerProcessConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
+    private readonly Task _readTask;
+    private readonly Task _writeTask;
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
@@ -18,12 +21,36 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
         RequestStream = requestStream;
         ResponseStream = responseStream;
         ServerCallContext = context;
-        Completion = Start();
+        _outboundMessages = Channel.CreateUnbounded<Message>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
+
+        var didSuppress = false;
+        if (!ExecutionContext.IsFlowSuppressed())
+        {
+            didSuppress = true;
+            ExecutionContext.SuppressFlow();
+        }
+
+        try
+        {
+            _readTask = Task.Run(RunReadPump);
+            _writeTask = Task.Run(RunWritePump);
+        }
+        finally
+        {
+            if (didSuppress)
+            {
+                ExecutionContext.RestoreFlow();
+            }
+        }
+
+        Completion = Task.WhenAll(_readTask, _writeTask);
     }
 
     public IAsyncStreamReader<Message> RequestStream { get; }
     public IServerStreamWriter<Message> ResponseStream { get; }
     public ServerCallContext ServerCallContext { get; }
+
+    private readonly Channel<Message> _outboundMessages;
 
     public void AddSupportedType(string type)
     {
@@ -43,34 +70,12 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
 
     public async Task SendMessage(Message message)
     {
-        await ResponseStream.WriteAsync(message);
+        await _outboundMessages.Writer.WriteAsync(message).ConfigureAwait(false);
     }
 
     public Task Completion { get; }
 
-    private Task Start()
-    {
-        var didSuppress = false;
-        if (!ExecutionContext.IsFlowSuppressed())
-        {
-            didSuppress = true;
-            ExecutionContext.SuppressFlow();
-        }
-
-        try
-        {
-            return Task.Run(Run);
-        }
-        finally
-        {
-            if (didSuppress)
-            {
-                ExecutionContext.RestoreFlow();
-            }
-        }
-    }
-
-    public async Task Run()
+    public async Task RunReadPump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         try
@@ -84,7 +89,24 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
         }
         finally
         {
+            _shutdownCancellationToken.Cancel();
             _gateway.OnRemoveWorkerProcess(this);
+        }
+    }
+
+    public async Task RunWritePump()
+    {
+        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        try
+        {
+            await foreach (var message in _outboundMessages.Reader.ReadAllAsync(_shutdownCancellationToken.Token))
+            {
+                await ResponseStream.WriteAsync(message);
+            }
+        }
+        finally
+        {
+            _shutdownCancellationToken.Cancel();
         }
     }
 

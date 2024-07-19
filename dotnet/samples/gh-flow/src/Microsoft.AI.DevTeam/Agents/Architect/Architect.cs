@@ -2,7 +2,6 @@ using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
-using Orleans.Runtime;
 
 namespace Microsoft.AI.DevTeam;
 

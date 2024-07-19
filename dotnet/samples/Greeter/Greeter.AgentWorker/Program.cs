@@ -11,7 +11,7 @@ builder.AddServiceDefaults();
 var agentBuilder = builder.AddAgentWorker("https://agenthost");
 agentBuilder.AddAgent<GreetingAgent>("greeter");
 builder.Services.AddHostedService<MyBackgroundService>();
-builder.Services.AddSingleton<Client>();
+builder.Services.AddSingleton<AgentClient>();
 
 var app = builder.Build();
 
@@ -21,7 +21,7 @@ app.Run();
 
 internal sealed class GreetingAgent(IAgentContext context, ILogger<GreetingAgent> logger) : AgentBase(context)
 {
-    protected override Task HandleEvent(Microsoft.AI.Agents.Abstractions.Event @event)
+    protected override Task HandleEvent(Event @event)
     {
         logger.LogInformation("[{Id}] Received event: '{Event}'.", AgentId, @event);
         return base.HandleEvent(@event);
@@ -34,7 +34,7 @@ internal sealed class GreetingAgent(IAgentContext context, ILogger<GreetingAgent
     }
 }
 
-internal sealed class MyBackgroundService(ILogger<MyBackgroundService> logger, Client client) : BackgroundService
+internal sealed class MyBackgroundService(ILogger<MyBackgroundService> logger, AgentClient client) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -44,7 +44,7 @@ internal sealed class MyBackgroundService(ILogger<MyBackgroundService> logger, C
             {
                 var generatedCodeId = Guid.NewGuid().ToString();
                 var instanceId = Guid.NewGuid().ToString();
-                var response = await client.RequestAsync(
+                var response = await client.SendRequestAsync(
                     new AgentId("greeter", "foo"),
                     "echo",
                     new Dictionary<string, string> { ["message"] = "Hello, agents!" }).ConfigureAwait(false);

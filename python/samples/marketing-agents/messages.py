@@ -2,20 +2,20 @@ from pydantic import BaseModel
 
 
 class ArticleCreated(BaseModel):
-    user_id: str
+    UserId: str
     article: str
 
 
 class GraphicDesignCreated(BaseModel):
-    user_id: str
-    image_uri: str
+    UserId: str
+    imageUri: str
 
 
 class AuditText(BaseModel):
-    user_id: str
+    UserId: str
     text: str
 
 
 class AuditorAlert(BaseModel):
-    user_id: str
-    auditor_alert_message: str
+    UserId: str
+    auditorAlertMessage: str

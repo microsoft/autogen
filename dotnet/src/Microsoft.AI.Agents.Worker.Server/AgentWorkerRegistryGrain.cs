@@ -12,7 +12,7 @@ public sealed class AgentWorkerRegistryGrain : Grain, IAgentWorkerRegistryGrain
 
     public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        RegisterTimer(static state => ((AgentWorkerRegistryGrain)state)!.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
     }
 

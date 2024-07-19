@@ -1,7 +1,6 @@
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
-using Orleans.Runtime;
 using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
