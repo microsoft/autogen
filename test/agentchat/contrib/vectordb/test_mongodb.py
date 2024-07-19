@@ -277,6 +277,7 @@ def test_retrieve_docs(db_with_indexed_clxn, example_documents):
 
     results = db.retrieve_docs(queries=["Cats"], collection_name=MONGODB_COLLECTION, n_results=n_results)
     assert {doc[0]["id"] for doc in results[0]} == {1, 2}
+    assert all(["embedding" not in doc[0] for doc in results[0]])
 
 
 def test_retrieve_docs_with_embedding(db_with_indexed_clxn, example_documents):
