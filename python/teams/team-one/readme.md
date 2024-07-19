@@ -1,7 +1,16 @@
 # Team-One
-Team-One is a multi-agent system that utilizes a combination of five agents, including LLM and tool-based agents, to tackle intricate tasks. These tasks often involve multi-step planning and actions. 
+Team-One is a generalist multi-agent softbot that utilizes a combination of five agents, including LLM and tool-based agents, to tackle intricate tasks. For example, it can be used to solve general tasks that involve multi-step planning and action in the real-world.
 
 > *Example*: Suppose a user requests to conduct a survey of AI safety papers published in the last month and create a concise presentation on the findings. Team-One will use the following process to handle this task. The orchestrator agent will break down the task into subtasks and assign them to the appropriate agents. Such as the web surfer agent to search for AI safety papers, the file surfer agent to extract information from the papers, the coder agent to create the presentation, and the computer terminal agent to execute the code. The orchestrator agent will coordinate the agents, monitor progress, and ensure the task is completed successfully.
+
+
+
+## Architecture
+
+<center>
+<img src="./imgs/team-one-landing.png" alt="drawing" style="width:350px;"/>
+</center
+
 
 
 Team-One uses agents with the following personas and capabilities:
@@ -12,9 +21,23 @@ Team-One uses agents with the following personas and capabilities:
 
 - Computer Terminal: The computer terminal agent acts as the interface that can execute code written by the coder agent.
 
+- Web Surfer: The web surfer agent is proficient is responsible for web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. It can handle interactive web pages, forms, and other web elements.
+
 - File Surfer: The file surfer agent specializes in navigating files such as pdfs, powerpoints, WAV files, and other file types. It can search, read, and extract information from files.
 
-- Web Surfer: The web surfer agent is proficient is responsible for web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. It can handle interactive web pages, forms, and other web elements.
+We created Team-One with one agent of each type because their combined abilities help tackle tough benchmarks. By splitting tasks among different agents, we keep the code simple and modular, like in object-oriented programming. This also makes each agent's job easier since they only need to focus on specific tasks. For example, the websurfer agent only needs to navigate webpages and doesn't worry about writing code, making the team more efficient and effective.
+
+
+### Planning and Tracking Task Progress
+<center>
+<img src="./imgs/team-one-arch.png" alt="drawing" style="width:600px;"/>
+</center>
+
+The figure illustrates the workflow of an orchestrator managing a multi-agent setup, starting with an initial prompt or task. The orchestrator creates or updates a ledger with gathered information, including verified facts, facts to look up, derived facts, and educated guesses. Using this ledger, a plan is derived, which consists of a sequence of steps and task assignments for the agents. Before execution, the orchestrator clears the agents' contexts to ensure they start fresh. The orchestrator then evaluates if the request is fully satisfied. If so, it reports the final answer or an educated guess.
+
+If the request is not fully satisfied, the orchestrator assesses whether the work is progressing or if there are significant barriers. If progress is being made, the orchestrator orchestrates the next step by selecting an agent and providing instructions. If the process stalls for more than two iterations, the ledger is updated with new information, and the plan is adjusted. This cycle continues, iterating through steps and evaluations, until the task is completed. The orchestrator ensures organized, effective tracking and iterative problem-solving to achieve the prompt's goal.
+
+Note that many parameters such as terminal logic and maximum number of stalled iterations are configurable. Also note that the orchestrator cannot instantiate new agents. This is possible but not implemented in Team-One.
 
 
 ## Table of Definitions:
@@ -54,10 +77,53 @@ Team-One uses agents with the following personas and capabilities:
 - Web Interaction: The Web Surfer agent in Team-One is proficient in web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. This capability allows Team-One to handle interactive web pages, forms, and other web elements.
 
 
-### Performance
-Team-One currently achieves the following performance on complex agent benchmarks:
+### What Team-One Cannot Do
 
-_GAIA_
+- **Video Scrubbing:** The agents are unable to navigate and process video content.
+- **User in the Loop Optimization:** The system does not currently incorporate ongoing user interaction beyond the initial task submission.
+- **Code Execution Beyond Python or Shell:** The agents are limited to executing code written in Python or shell scripts.
+- **Agent Instantiation:** The orchestrator agent cannot create new agents dynamically.
+- **Session-Based Learning:** The agents do not learn from previous sessions or retain information beyond the current session.
+- **Limited LLM Capacity:** The agents' abilities are constrained by the limitations of the underlying language model.
+- **Web Surfer Limitations:** The web surfer agent may struggle with certain types of web pages, such as those requiring complex interactions or extensive JavaScript handling.
+
+
+### Safety and Risks
+
+**Code Execution:**
+- **Risks:** Code execution carries inherent risks as it happens in the environment where the agents run using the command line executor. This means that the agents can execute arbitrary Python code.
+- **Mitigation:** Users are advised to run the system in isolated environments, such as Docker containers, to mitigate the risks associated with executing arbitrary code.
+
+**Web Browsing:**
+- **Capabilities:** The web surfer agent can operate on most websites, including performing tasks like booking flights.
+- **Risks:** Since the requests are sent online using GPT-4-based models, there are potential privacy and security concerns. It is crucial not to provide sensitive information such as keys or credit card data to the agents.
+
+**Safeguards:**
+- **Guardrails from LLM:** The agents inherit the guardrails from the underlying language model (e.g., GPT-4). This means they will refuse to generate toxic or stereotyping content, providing a layer of protection against generating harmful outputs.
+- **Limitations:** The agents' behavior is directly influenced by the capabilities and limitations of the underlying LLM. Consequently, any lack of guardrails in the language model will also affect the behavior of the agents.
+
+**General Recommendations:**
+- Always use isolated or controlled environments for running the agents to prevent unauthorized or harmful code execution.
+- Avoid sharing sensitive information with the agents to protect your privacy and security.
+- Regularly update and review the underlying LLM and system configurations to ensure they adhere to the latest safety and security standards.
+
+
+### Performance
+Team-One currently achieves the following performance on complex agent benchmarks.
+
+
+#### GAIA
+
+
+ GAIA is a benchmark from Meta that contains complex tasks that require multi-step reasoning and tool use. For example,
+
+> *Example*: If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary.
+
+In order to solve this task, the orchestrator begins by outlining the steps needed to solve the task of calculating how many thousand hours it would take Eliud Kipchoge to run the distance between the Earth and the Moon at its closest approach. The orchestrator instructs the web surfer agent to gather Eliud Kipchoge's marathon world record time (2:01:39) and the minimum perigee distance of the Moon from Wikipedia (356,400 kilometers).
+
+Next, the orchestrator assigns the assistant agent to use this data to perform the necessary calculations. The assistant converts Kipchoge's marathon time to hours (2.0275 hours) and calculates his speed (approximately 20.81 km/h). It then calculates the total time to run the distance to the Moon (17,130.13 hours), rounding it to the nearest thousand hours, resulting in approximately 17,000 thousand hours. The orchestrator then confirms and reports this final result.
+
+Here is the performance of Team-One on a GAIA development set.
 
 | Level | Task Completion Rate* |
 |-------|---------------------|
@@ -68,7 +134,13 @@ _GAIA_
 
 *Indicates the percentage of tasks completed successfully on the development set.
 
-_WebArena_
+#### WebArena
+
+> Example: Tell me the count of comments that have received more downvotes than upvotes for the user who made the latest post on the Showerthoughts forum.
+
+To solve this task, the agents began by logging into the Postmill platform using provided credentials and navigating to the Showerthoughts forum. They identified the latest post in this forum, which was made by a user named Waoonet. To proceed with the task, they then accessed Waoonet's profile to examine the comments section, where they could find all comments made by this user.
+
+Once on Waoonet's profile, the agents focused on counting the comments that had received more downvotes than upvotes. The web_surfer agent analyzed the available comments and found that Waoonet had made two comments, both of which had more upvotes than downvotes. Consequently, they concluded that none of Waoonet's comments had received more downvotes than upvotes. This information was summarized and reported back, completing the task successfully.
 
 | Site           | Task Completion Rate           |
 |----------------|----------------|
@@ -141,4 +213,11 @@ To configure for OpenAI, set the following environment variables:
   "api_key": "REPLACE_WITH_YOUR_API",
   "model": "gpt-4o-2024-05-13"
 }
+```
+
+### Other Keys
+Some functionalities, such as using web-search requires an API key for Bing.
+You can set it using:
+```bash
+export BING_API_KEY=xxxxxxx
 ```
