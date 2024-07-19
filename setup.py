@@ -73,10 +73,7 @@ extra_require = {
     "retrievechat": retrieve_chat,
     "retrievechat-pgvector": retrieve_chat_pgvector,
     "retrievechat-mongodb": [*retrieve_chat, "pymongo>=4.0.0"],
-    "retrievechat-qdrant": [
-        *retrieve_chat,
-        "qdrant_client[fastembed]<1.9.2",
-    ],
+    "retrievechat-qdrant": [*retrieve_chat, "qdrant_client", "fastembed>=0.3.1"],
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
@@ -93,6 +90,7 @@ extra_require = {
     "anthropic": ["anthropic>=0.23.1"],
     "mistral": ["mistralai>=0.2.0"],
     "groq": ["groq>=0.9.0"],
+    "cohere": ["cohere>=5.5.8"],
 }
 
 setuptools.setup(

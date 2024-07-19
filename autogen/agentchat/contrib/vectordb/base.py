@@ -1,4 +1,16 @@
-from typing import Any, List, Mapping, Optional, Protocol, Sequence, Tuple, TypedDict, Union, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
 
 Metadata = Union[Mapping[str, Any], None]
 Vector = Union[Sequence[float], Sequence[int]]
@@ -49,6 +61,9 @@ class VectorDB(Protocol):
 
     active_collection: Any = None
     type: str = ""
+    embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = (
+        None  # embeddings = embedding_function(sentences)
+    )
 
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """
@@ -186,7 +201,9 @@ class VectorDBFactory:
     Factory class for creating vector databases.
     """
 
-    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "mongodb"]
+
+    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "mongodb", "qdrant"]
+    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "qdrant"]
 
     @staticmethod
     def create_vector_db(db_type: str, **kwargs) -> VectorDB:
@@ -212,6 +229,10 @@ class VectorDBFactory:
             from .mongodb import MongoDBAtlasVectorDB
 
             return MongoDBAtlasVectorDB(**kwargs)
+        if db_type.lower() in ["qdrant", "qdrantdb"]:
+            from .qdrant import QdrantVectorDB
+
+            return QdrantVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."

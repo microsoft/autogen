@@ -17,14 +17,18 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         // setup dotnet interactive
         var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
         if (!Directory.Exists(workDir))
+        {
             Directory.CreateDirectory(workDir);
+        }
 
         using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
 
         var result = Path.Combine(workDir, "result.txt");
         if (File.Exists(result))
+        {
             File.Delete(result);
+        }
 
         await service.StartAsync(workDir, default);
 
