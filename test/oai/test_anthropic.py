@@ -60,9 +60,35 @@ def test_initialization_missing_api_key():
     AnthropicClient(api_key="dummy_api_key")
 
 
+@pytest.fixture()
+def anthropic_client_with_aws_credentials():
+    return AnthropicClient(
+        aws_access_key="dummy_access_key",
+        aws_secret_key="dummy_secret_key",
+        aws_session_token="dummy_session_token",
+        aws_region="us-west-2",
+    )
+
+
 @pytest.mark.skipif(skip, reason=reason)
 def test_intialization(anthropic_client):
     assert anthropic_client.api_key == "dummy_api_key", "`api_key` should be correctly set in the config"
+
+
+@pytest.mark.skipif(skip, reason=reason)
+def test_intialization_with_aws_credentials(anthropic_client_with_aws_credentials):
+    assert (
+        anthropic_client_with_aws_credentials.aws_access_key == "dummy_access_key"
+    ), "`aws_access_key` should be correctly set in the config"
+    assert (
+        anthropic_client_with_aws_credentials.aws_secret_key == "dummy_secret_key"
+    ), "`aws_secret_key` should be correctly set in the config"
+    assert (
+        anthropic_client_with_aws_credentials.aws_session_token == "dummy_session_token"
+    ), "`aws_session_token` should be correctly set in the config"
+    assert (
+        anthropic_client_with_aws_credentials.aws_region == "us-west-2"
+    ), "`aws_region` should be correctly set in the config"
 
 
 # Test cost calculation
