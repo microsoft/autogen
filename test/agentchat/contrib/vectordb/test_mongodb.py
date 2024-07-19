@@ -129,11 +129,7 @@ def test_create_collection(db):
     assert collection_case_3.name == collection_name
 
     with pytest.raises(ValueError):
-        db.create_collection(
-            collection_name=collection_name,
-            overwrite=False,
-            get_or_create=False
-        )
+        db.create_collection(collection_name=collection_name, overwrite=False, get_or_create=False)
 
 
 def test_get_collection(db):
