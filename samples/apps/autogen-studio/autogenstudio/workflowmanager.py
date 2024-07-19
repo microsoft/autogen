@@ -249,6 +249,8 @@ class AutoWorkflowManager:
         agent.config.code_execution_config = self.code_executor_pool.get(agent.config.code_execution_config, False)
 
         if skills:
+            for skill in skills:
+                self.workflow_skills.append(skill)
             skills_prompt = ""
             skills_prompt = get_skills_prompt(skills, self.work_dir)
             if agent.config.system_message:
