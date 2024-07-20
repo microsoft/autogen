@@ -1,4 +1,5 @@
 import inspect
+import json
 import logging
 import re
 import warnings
@@ -15,6 +16,7 @@ from typing import (
     cast,
 )
 
+import tiktoken
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -32,7 +34,7 @@ from openai.types.chat import (
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from typing_extensions import Unpack
 
-from ...application.logging import EVENT_LOGGER_NAME
+from ...application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...application.logging.events import LLMCallEvent
 from .. import (
     FunctionCall,
@@ -53,6 +55,7 @@ from ._types import (
 from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
+trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
 openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs)
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
@@ -517,6 +520,77 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     def total_usage(self) -> RequestUsage:
         return self._total_usage
+
+    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        model = self._create_args["model"]
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            trace_logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
+            encoding = tiktoken.get_encoding("cl100k_base")
+        tokens_per_message = 3
+        tokens_per_name = 1
+        num_tokens = 0
+
+        # Message tokens.
+        for message in messages:
+            num_tokens += tokens_per_message
+            oai_message = to_oai_type(message)
+            for oai_message_part in oai_message:
+                for key, value in oai_message_part.items():
+                    if value is None:
+                        continue
+                    if not isinstance(value, str):
+                        try:
+                            value = json.dumps(value)
+                        except TypeError:
+                            trace_logger.warning(f"Could not convert {value} to string, skipping.")
+                            continue
+                    num_tokens += len(encoding.encode(value))
+                    if key == "name":
+                        num_tokens += tokens_per_name
+        num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+
+        # Tool tokens.
+        oai_tools = convert_tools(tools)
+        for tool in oai_tools:
+            function = tool["function"]
+            tool_tokens = len(encoding.encode(function["name"]))
+            if "description" in function:
+                tool_tokens += len(encoding.encode(function["description"]))
+            tool_tokens -= 2
+            if "parameters" in function:
+                parameters = function["parameters"]
+                if "properties" in parameters:
+                    assert isinstance(parameters["properties"], dict)
+                    for propertiesKey in parameters["properties"]:  # pyright: ignore
+                        assert isinstance(propertiesKey, str)
+                        tool_tokens += len(encoding.encode(propertiesKey))
+                        v = parameters["properties"][propertiesKey]  # pyright: ignore
+                        for field in v:  # pyright: ignore
+                            if field == "type":
+                                tool_tokens += 2
+                                tool_tokens += len(encoding.encode(v["type"]))  # pyright: ignore
+                            elif field == "description":
+                                tool_tokens += 2
+                                tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
+                            elif field == "enum":
+                                tool_tokens -= 3
+                                for o in v["enum"]:  # pyright: ignore
+                                    tool_tokens += 3
+                                    tool_tokens += len(encoding.encode(o))  # pyright: ignore
+                            else:
+                                trace_logger.warning(f"Not supported field {field}")
+                    tool_tokens += 11
+                    if len(parameters["properties"]) == 0:  # pyright: ignore
+                        tool_tokens -= 2
+            num_tokens += tool_tokens
+        num_tokens += 12
+        return num_tokens
+
+    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        token_limit = _model_info.get_token_limit(self._create_args["model"])
+        return token_limit - self.count_tokens(messages, tools)
 
     @property
     def capabilities(self) -> ModelCapabilities:

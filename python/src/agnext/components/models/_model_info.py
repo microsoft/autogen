@@ -77,6 +77,21 @@ _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
     },
 }
 
+_MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "gpt-4o-2024-05-13": 128000,
+    "gpt-4-turbo-2024-04-09": 128000,
+    "gpt-4-0125-preview": 128000,
+    "gpt-4-1106-preview": 128000,
+    "gpt-4-1106-vision-preview": 128000,
+    "gpt-4-0613": 8192,
+    "gpt-4-32k-0613": 32768,
+    "gpt-3.5-turbo-0125": 16385,
+    "gpt-3.5-turbo-1106": 16385,
+    "gpt-3.5-turbo-instruct": 4096,
+    "gpt-3.5-turbo-0613": 4096,
+    "gpt-3.5-turbo-16k-0613": 16385,
+}
+
 
 def resolve_model(model: str) -> str:
     if model in _MODEL_POINTERS:
@@ -87,3 +102,8 @@ def resolve_model(model: str) -> str:
 def get_capabilties(model: str) -> ModelCapabilities:
     resolved_model = resolve_model(model)
     return _MODEL_CAPABILITIES[resolved_model]
+
+
+def get_token_limit(model: str) -> int:
+    resolved_model = resolve_model(model)
+    return _MODEL_TOKEN_LIMITS[resolved_model]

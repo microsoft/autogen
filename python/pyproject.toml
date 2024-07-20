@@ -21,7 +21,8 @@ dependencies = [
     "pydantic>=1.10,<3",
     "types-aiofiles",
     "grpcio",
-    "protobuf"
+    "protobuf",
+    "tiktoken"
 ]
 
 [tool.hatch.envs.default]
@@ -30,6 +31,7 @@ dependencies = [
     "pyright==1.1.368",
     "mypy==1.10.0",
     "ruff==0.4.8",
+    "tiktoken",
     "types-Pillow",
     "polars",
     "chess",
