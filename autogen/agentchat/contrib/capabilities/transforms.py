@@ -78,7 +78,13 @@ class MessageHistoryLimiter:
         if self._max_messages is None:
             return messages
 
-        return messages[-self._max_messages :]
+        truncated_messages = messages[-self._max_messages :]
+        # If the last message is a tool message, include its preceding message that must be a tool_calls message
+        if truncated_messages[0].get("role") == "tool":
+            start_index = max(-self._max_messages - 1, -len(messages))
+            truncated_messages = messages[start_index:]
+
+        return truncated_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_len = len(pre_transform_messages)
