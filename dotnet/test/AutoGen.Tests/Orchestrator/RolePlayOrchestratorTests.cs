@@ -228,6 +228,37 @@ public class RolePlayOrchestratorTests
         await CoderReviewerRunnerTestAsync(openAIChatAgent);
     }
 
+    [ApiKeyFact("OPENAI_API_KEY")]
+    public async Task GPT_4o_CoderReviewerRunnerTestAsync()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var model = "gpt-4o";
+        var openaiClient = new OpenAIClient(apiKey);
+        var openAIChatAgent = new OpenAIChatAgent(
+            openAIClient: openaiClient,
+            name: "assistant",
+            modelName: model)
+            .RegisterMessageConnector();
+
+        await CoderReviewerRunnerTestAsync(openAIChatAgent);
+    }
+
+    [ApiKeyFact("OPENAI_API_KEY")]
+    public async Task GPT_4o_mini_CoderReviewerRunnerTestAsync()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var model = "gpt-4o-mini";
+        var openaiClient = new OpenAIClient(apiKey);
+        var openAIChatAgent = new OpenAIChatAgent(
+            openAIClient: openaiClient,
+            name: "assistant",
+            modelName: model)
+            .RegisterMessageConnector();
+
+        await CoderReviewerRunnerTestAsync(openAIChatAgent);
+    }
+
+
     [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]
     public async Task GoogleGemini_1_5_flash_001_CoderReviewerRunnerTestAsync()
     {
