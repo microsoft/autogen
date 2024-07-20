@@ -40,6 +40,16 @@ def get_no_content_messages() -> List[Dict]:
     return [{"role": "user", "function_call": "example"}, {"role": "assistant", "content": None}]
 
 
+def get_tool_messages() -> List[Dict]:
+    return [
+        {"role": "user", "content": "hello"},
+        {"role": "tool_calls", "content": "calling_tool"},
+        {"role": "tool", "content": "tool_response"},
+        {"role": "user", "content": "how are you"},
+        {"role": "assistant", "content": [{"type": "text", "text": "are you doing?"}]},
+    ]
+
+
 def get_text_compressors() -> List[TextCompressor]:
     compressors: List[TextCompressor] = [_MockTextCompressor()]
     try:
@@ -96,11 +106,15 @@ def _filter_dict_test(
 
 @pytest.mark.parametrize(
     "messages, expected_messages_len",
-    [(get_long_messages(), 3), (get_short_messages(), 3), (get_no_content_messages(), 2)],
+    [(get_long_messages(), 3), (get_short_messages(), 3), (get_no_content_messages(), 2), (get_tool_messages(), 4)],
 )
 def test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_messages_len):
     transformed_messages = message_history_limiter.apply_transform(messages)
     assert len(transformed_messages) == expected_messages_len
+
+    if messages == get_tool_messages():
+        assert transformed_messages[0]["role"] == "tool_calls"
+        assert transformed_messages[1]["role"] == "tool"
 
 
 @pytest.mark.parametrize(
@@ -109,6 +123,7 @@ def test_message_history_limiter_apply_transform(message_history_limiter, messag
         (get_long_messages(), "Removed 2 messages. Number of messages reduced from 5 to 3.", True),
         (get_short_messages(), "No messages were removed.", False),
         (get_no_content_messages(), "No messages were removed.", False),
+        (get_tool_messages(), "Removed 1 messages. Number of messages reduced from 5 to 4.", True),
     ],
 )
 def test_message_history_limiter_get_logs(message_history_limiter, messages, expected_logs, expected_effect):
@@ -272,24 +287,26 @@ if __name__ == "__main__":
     long_messages = get_long_messages()
     short_messages = get_short_messages()
     no_content_messages = get_no_content_messages()
+    tool_messages = get_tool_messages()
     msg_history_limiter = MessageHistoryLimiter(max_messages=3)
     msg_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
     msg_token_limiter_with_threshold = MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
 
     # Test Parameters
     message_history_limiter_apply_transform_parameters = {
-        "messages": [long_messages, short_messages, no_content_messages],
-        "expected_messages_len": [3, 3, 2],
+        "messages": [long_messages, short_messages, no_content_messages, tool_messages],
+        "expected_messages_len": [3, 3, 2, 4],
     }
 
     message_history_limiter_get_logs_parameters = {
-        "messages": [long_messages, short_messages, no_content_messages],
+        "messages": [long_messages, short_messages, no_content_messages, tool_messages],
         "expected_logs": [
             "Removed 2 messages. Number of messages reduced from 5 to 3.",
             "No messages were removed.",
             "No messages were removed.",
+            "Removed 1 messages. Number of messages reduced from 5 to 4.",
         ],
-        "expected_effect": [True, False, False],
+        "expected_effect": [True, False, False, True],
     }
 
     message_token_limiter_apply_transform_parameters = {
