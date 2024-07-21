@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace AutoGen.Core;
 
-public abstract class MessageEnvelope : IMessage, IStreamingMessage
+public abstract class MessageEnvelope : IMessage
 {
     public MessageEnvelope(string? from = null, IDictionary<string, object>? metadata = null)
     {
@@ -23,7 +23,7 @@ public abstract class MessageEnvelope : IMessage, IStreamingMessage
     public IDictionary<string, object> Metadata { get; set; }
 }
 
-public class MessageEnvelope<T> : MessageEnvelope, IMessage<T>, IStreamingMessage<T>
+public class MessageEnvelope<T> : MessageEnvelope, IMessage<T>
 {
     public MessageEnvelope(T content, string? from = null, IDictionary<string, object>? metadata = null)
         : base(from, metadata)

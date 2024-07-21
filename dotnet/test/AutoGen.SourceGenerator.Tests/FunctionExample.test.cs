@@ -5,6 +5,7 @@ using System.Text.Json;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
@@ -29,7 +30,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.AddWrapper, args, 3);
-            this.VerifyFunctionDefinition(functionExamples.AddFunction);
+            this.VerifyFunctionDefinition(functionExamples.AddFunctionContract.ToOpenAIFunctionDefinition());
         }
 
         [Fact]
@@ -41,7 +42,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.SumWrapper, args, 6.0);
-            this.VerifyFunctionDefinition(functionExamples.SumFunction);
+            this.VerifyFunctionDefinition(functionExamples.SumFunctionContract.ToOpenAIFunctionDefinition());
         }
 
         [Fact]
@@ -57,7 +58,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             await this.VerifyAsyncFunction(functionExamples.DictionaryToStringAsyncWrapper, args, JsonSerializer.Serialize(args.xargs, jsonSerializerOptions));
-            this.VerifyFunctionDefinition(functionExamples.DictionaryToStringAsyncFunction);
+            this.VerifyFunctionDefinition(functionExamples.DictionaryToStringAsyncFunctionContract.ToOpenAIFunctionDefinition());
         }
 
         [Fact]
@@ -96,7 +97,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.QueryWrapper, args, new[] { "hello", "hello", "hello" });
-            this.VerifyFunctionDefinition(functionExamples.QueryFunction);
+            this.VerifyFunctionDefinition(functionExamples.QueryFunctionContract.ToOpenAIFunctionDefinition());
         }
 
         [UseReporter(typeof(DiffReporter))]

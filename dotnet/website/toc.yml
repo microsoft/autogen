@@ -1,11 +1,14 @@
 - name: Docs
   href: articles/
+
+- name: Tutorial
+  href: tutorial/
   
 - name: API Reference
   href: api/
 
-- name: Update Log
-  href: update.md
+- name: Release Notes
+  href: release_note/
 
 - name: Other Languages
   dropdown: true
