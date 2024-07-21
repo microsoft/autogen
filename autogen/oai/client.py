@@ -795,7 +795,7 @@ class OpenAIWrapper:
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         if n_output_tokens is None:
             n_output_tokens = 0
-        return n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]
+        return (n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]) / 1000
 
     @staticmethod
     def _update_dict_from_chunk(chunk: BaseModel, d: Dict[str, Any], field: str) -> int:
