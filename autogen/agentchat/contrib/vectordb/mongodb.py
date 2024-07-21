@@ -525,6 +525,6 @@ def _vector_search(
     if not include_embedding:
         pipeline.append({"$project": {"embedding": 0}})
 
-    logger.info("pipeline: %s", pipeline)
+    logger.debug("pipeline: %s", pipeline)
     agg = collection.aggregate(pipeline)
     return [(doc, doc.pop("score")) for doc in agg]
