@@ -243,6 +243,10 @@ def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
     docs = db.get_docs_by_ids(ids=[], include=["content"], collection_name=MONGODB_COLLECTION)
     assert len(docs) == 0
 
+    # Test with empty ids list
+    docs = db.get_docs_by_ids(ids=None, include=["content"], collection_name=MONGODB_COLLECTION)
+    assert len(docs) == 4
+
 
 def test_retrieve_docs_empty(db_with_indexed_clxn):
     db, _ = db_with_indexed_clxn
