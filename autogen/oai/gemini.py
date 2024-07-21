@@ -72,7 +72,7 @@ class GeminiClient:
         "max_output_tokens": "max_output_tokens",
     }
 
-    def _initialize_vartexai(self, **params):
+    def _initialize_vertexai(self, **params):
         if "google_application_credentials" in params:
             # Path to JSON Keyfile
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params["google_application_credentials"]
@@ -106,7 +106,7 @@ class GeminiClient:
             self.api_key = os.getenv("GOOGLE_API_KEY")
             if self.api_key is None:
                 self.use_vertexai = True
-                self._initialize_vartexai(**kwargs)
+                self._initialize_vertexai(**kwargs)
             else:
                 self.use_vertexai = False
         else:
@@ -142,7 +142,7 @@ class GeminiClient:
 
     def create(self, params: Dict) -> ChatCompletion:
         if self.use_vertexai:
-            self._initialize_vartexai(**params)
+            self._initialize_vertexai(**params)
         else:
             assert ("project_id" not in params) and (
                 "location" not in params
