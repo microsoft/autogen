@@ -54,6 +54,11 @@ public class InteractiveService : IDisposable
 
     public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
+        if (this.kernel != null)
+        {
+            return true;
+        }
+
         this.kernel = await this.CreateKernelAsync(workingDirectory, true, ct);
         return true;
     }
