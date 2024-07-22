@@ -19,7 +19,7 @@ public class InteractiveService : IDisposable
     private bool disposedValue;
     private const string DotnetInteractiveToolNotInstallMessage = "Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'.";
     //private readonly ProcessJobTracker jobTracker = new ProcessJobTracker();
-    private string installingDirectory;
+    private string? installingDirectory;
 
     public event EventHandler<DisplayEvent>? DisplayEvent;
 
@@ -30,7 +30,11 @@ public class InteractiveService : IDisposable
     public event EventHandler<HoverTextProduced>? HoverTextProduced;
 
     /// <summary>
-    /// Create an instance of InteractiveService
+    /// Install dotnet interactive tool to <paramref name="installingDirectory"/>
+    /// and create an instance of <see cref="InteractiveService"/>.
+    /// 
+    /// When using this constructor, you need to call <see cref="StartAsync(string, CancellationToken)"/> to install dotnet interactive tool
+    /// and start the kernel.
     /// </summary>
     /// <param name="installingDirectory">dotnet interactive installing directory</param>
     public InteractiveService(string installingDirectory)
@@ -38,8 +42,23 @@ public class InteractiveService : IDisposable
         this.installingDirectory = installingDirectory;
     }
 
+    /// <summary>
+    /// Create an instance of <see cref="InteractiveService"/> with a running kernel.
+    /// When using this constructor, you don't need to call <see cref="StartAsync(string, CancellationToken)"/> to start the kernel.
+    /// </summary>
+    /// <param name="kernel"></param>
+    public InteractiveService(Kernel kernel)
+    {
+        this.kernel = kernel;
+    }
+
     public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
+        if (this.kernel != null)
+        {
+            return true;
+        }
+
         this.kernel = await this.CreateKernelAsync(workingDirectory, true, ct);
         return true;
     }
