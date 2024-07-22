@@ -1,7 +1,7 @@
 [
   {
     "title": "AutoTx - Crypto Transactions Agent",
-    "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
+    "link": "https://www.agentcoin.org/blog/autotx",
     "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
     "image": "autotx.png",
     "tags": ["tools", "groupchat", "app", "blockchain"]
@@ -219,5 +219,14 @@
     "description": "Automatically creating linear tasks and assigning them to the right person, project, and team from GitHub commits using AutoGen Agents.",
     "image": "composio-autogen.png",
     "tags": ["tools"]
+  },
+  {
+    "title": "Agentok - Autogen Visualized",
+    "link": "https://github.com/hughlv/agentok",
+    "description": "Offering intuitive visual tools that streamline the creation and management of complex AutoGen workflows.",
+    "image": "agentok.png",
+    "tags": [
+      "tools", "ui", "app"
+    ]
   }
 ]

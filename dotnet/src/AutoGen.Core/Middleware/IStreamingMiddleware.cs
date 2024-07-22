@@ -14,7 +14,7 @@ public interface IStreamingMiddleware : IMiddleware
     /// <summary>
     /// The streaming version of <see cref="IMiddleware.InvokeAsync(MiddlewareContext, IAgent, CancellationToken)"/>.
     /// </summary>
-    public IAsyncEnumerable<IStreamingMessage> InvokeAsync(
+    public IAsyncEnumerable<IMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
         CancellationToken cancellationToken = default);

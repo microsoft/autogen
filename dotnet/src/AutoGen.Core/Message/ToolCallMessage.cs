@@ -109,7 +109,7 @@ public class ToolCallMessage : IMessage, ICanGetToolCalls, ICanGetTextContent
     }
 }
 
-public class ToolCallMessageUpdate : IStreamingMessage
+public class ToolCallMessageUpdate : IMessage
 {
     public ToolCallMessageUpdate(string functionName, string functionArgumentUpdate, string? from = null)
     {

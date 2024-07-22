@@ -77,6 +77,13 @@ try:
 except ImportError as e:
     groq_import_exception = e
 
+try:
+    from autogen.oai.cohere import CohereClient
+
+    cohere_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cohere_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -497,6 +504,11 @@ class OpenAIWrapper:
                     raise ImportError("Please install `groq` to use the Groq API.")
                 client = GroqClient(**openai_config)
                 self._clients.append(client)
+            elif api_type is not None and api_type.startswith("cohere"):
+                if cohere_import_exception:
+                    raise ImportError("Please install `cohere` to use the Groq API.")
+                client = CohereClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
@@ -783,7 +795,7 @@ class OpenAIWrapper:
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         if n_output_tokens is None:
             n_output_tokens = 0
-        return n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]
+        return (n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]) / 1000
 
     @staticmethod
     def _update_dict_from_chunk(chunk: BaseModel, d: Dict[str, Any], field: str) -> int:
