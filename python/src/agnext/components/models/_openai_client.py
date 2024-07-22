@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import json
 import logging
@@ -36,6 +37,7 @@ from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...application.logging.events import LLMCallEvent
+from ...core import CancellationToken
 from .. import (
     FunctionCall,
     Image,
@@ -298,6 +300,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -336,14 +339,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
-            result = await self._client.chat.completions.create(
-                messages=oai_messages,
-                stream=False,
-                tools=converted_tools,
-                **create_args,
+            future = asyncio.ensure_future(
+                self._client.chat.completions.create(
+                    messages=oai_messages, stream=False, tools=converted_tools, **create_args
+                )
             )
         else:
-            result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
+            future = asyncio.ensure_future(
+                self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
+            )
+        if cancellation_token is not None:
+            cancellation_token.link_future(future)
+        result = await future
 
         if result.usage is not None:
             logger.info(
@@ -362,7 +369,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self._resolved_model is not None:
             if self._resolved_model != result.model:
                 warnings.warn(
-                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. AutoGen model mapping may be incorrect.",
+                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. Model mapping may be incorrect.",
                     stacklevel=2,
                 )
 
@@ -404,6 +411,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -436,11 +444,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
-            stream = await self._client.chat.completions.create(
-                messages=oai_messages, stream=True, tools=converted_tools, **create_args
+            stream_future = asyncio.ensure_future(
+                self._client.chat.completions.create(
+                    messages=oai_messages, stream=True, tools=converted_tools, **create_args
+                )
             )
         else:
-            stream = await self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
+            stream_future = asyncio.ensure_future(
+                self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
+            )
+        if cancellation_token is not None:
+            cancellation_token.link_future(stream_future)
+        stream = await stream_future
 
         stop_reason = None
         maybe_model = None
@@ -448,33 +463,40 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
 
-        async for chunk in stream:
-            choice = chunk.choices[0]
-            stop_reason = choice.finish_reason
-            maybe_model = chunk.model
-            # First try get content
-            if choice.delta.content is not None:
-                content_deltas.append(choice.delta.content)
-                if len(choice.delta.content) > 0:
-                    yield choice.delta.content
-                continue
+        while True:
+            try:
+                chunk_future = asyncio.ensure_future(anext(stream))
+                if cancellation_token is not None:
+                    cancellation_token.link_future(chunk_future)
+                chunk = await chunk_future
+                choice = chunk.choices[0]
+                stop_reason = choice.finish_reason
+                maybe_model = chunk.model
+                # First try get content
+                if choice.delta.content is not None:
+                    content_deltas.append(choice.delta.content)
+                    if len(choice.delta.content) > 0:
+                        yield choice.delta.content
+                    continue
 
-            # Otherwise, get tool calls
-            if choice.delta.tool_calls is not None:
-                for tool_call_chunk in choice.delta.tool_calls:
-                    idx = tool_call_chunk.index
-                    if idx not in full_tool_calls:
-                        # We ignore the type hint here because we want to fill in type when the delta provides it
-                        full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
+                # Otherwise, get tool calls
+                if choice.delta.tool_calls is not None:
+                    for tool_call_chunk in choice.delta.tool_calls:
+                        idx = tool_call_chunk.index
+                        if idx not in full_tool_calls:
+                            # We ignore the type hint here because we want to fill in type when the delta provides it
+                            full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
-                    if tool_call_chunk.id is not None:
-                        full_tool_calls[idx].id += tool_call_chunk.id
+                        if tool_call_chunk.id is not None:
+                            full_tool_calls[idx].id += tool_call_chunk.id
 
-                    if tool_call_chunk.function is not None:
-                        if tool_call_chunk.function.name is not None:
-                            full_tool_calls[idx].name += tool_call_chunk.function.name
-                        if tool_call_chunk.function.arguments is not None:
-                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+                        if tool_call_chunk.function is not None:
+                            if tool_call_chunk.function.name is not None:
+                                full_tool_calls[idx].name += tool_call_chunk.function.name
+                            if tool_call_chunk.function.arguments is not None:
+                                full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+            except StopAsyncIteration:
+                break
 
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API

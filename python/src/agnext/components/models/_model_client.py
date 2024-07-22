@@ -11,6 +11,7 @@ from typing_extensions import (
     Union,
 )
 
+from ...core import CancellationToken
 from ..tools import Tool, ToolSchema
 from ._types import CreateResult, LLMMessage, RequestUsage
 
@@ -32,6 +33,7 @@ class ChatCompletionClient(Protocol):
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult: ...
 
     def create_stream(
@@ -42,6 +44,7 @@ class ChatCompletionClient(Protocol):
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]: ...
 
     def actual_usage(self) -> RequestUsage: ...
