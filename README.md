@@ -2,7 +2,7 @@
 
 Starfleet (*formerly AGNext - product name TBD*) is a OSS framework for developing intelligent applications using AI Agents patterns.
 
-Starfleet offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems. Agents are developed by using the [Actor model](https://en.wikipedia.org/wiki/Actor_model). Each agent has events that it cares about and can process. Each agent may also emit events.
+Starfleet offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems. Agents are developed by using the [Actor model](https://en.wikipedia.org/wiki/Actor_model).
 
 You can build and run your agent system locally and easily move to a distributed system in the cloud when you are ready.
 
@@ -10,7 +10,7 @@ The SDK comes with built-in agents that you can use as starting points. You can 
 
 ## Key Aspects of Starfleet
 
-- Event-driven: Agents act by handling & emitting events (chatrooms are just a special case of an event-driven system)
+- Asynchronous messaging: Agents communicate with each other through asynchronous messages, enabling event-driven and request/response communication models.
 - Scalable & Distributed: Enable complex scenarios with networks of agents across org boundaries
 - Modular, extensible & highly customizable: E.g. custom agents, memory as a service, tools registry, model library
 - x-lang support: Python & Dotnet interoperating agents today, others coming soon
