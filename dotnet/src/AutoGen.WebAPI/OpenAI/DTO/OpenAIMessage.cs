@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace AutoGen.Service.OpenAI.DTO;
+namespace AutoGen.WebAPI.OpenAI.DTO;
 
 [JsonConverter(typeof(OpenAIMessageConverter))]
 internal abstract class OpenAIMessage
