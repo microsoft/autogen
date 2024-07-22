@@ -9,5 +9,5 @@ like software development.
 
 You can implement any multi-agent pattern using AGNext agents, which
 communicate with each other using messages through the agent runtime.
-See [examples](https://github.com/microsoft/agnext/tree/main/python/examples#pattern-examples)
+See [samples](https://github.com/microsoft/agnext/tree/main/python/samples#pattern-examples)
 for how to implement patterns like reflection and group chat.

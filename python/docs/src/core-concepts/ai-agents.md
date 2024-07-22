@@ -2,7 +2,7 @@
 
 AGNext provides a suite of components to help developers build AI agents.
 This section is still under construction.
-The best place to start is the [examples](https://github.com/microsoft/agnext/tree/main/python/examples).
+The best place to start is the [samples](https://github.com/microsoft/agnext/tree/main/python/samples).
 
 ## Type-Routed Agent
 
@@ -21,7 +21,7 @@ Tools can be used together with agents powered by the OpenAI's ChatCompletion or
 AGNext provides the {py:mod}`agnext.components.tools` module with a suite of built-in
 tools and utilities for creating and running custom tools.
 
-See [examples](https://github.com/microsoft/agnext/tree/main/python/examples#tool-use-examples)
+See [samples](https://github.com/microsoft/agnext/tree/main/python/samples#tool-use-examples)
 for how to use the built-in code execution tool and creating custom tools.
 
 ## Memory

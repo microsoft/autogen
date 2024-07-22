@@ -1,7 +1,7 @@
 # AGNext
 
 - [Documentation](http://microsoft.github.io/agnext)
-- [Examples](https://github.com/microsoft/agnext/tree/main/python/examples)
+- [Examples](https://github.com/microsoft/agnext/tree/main/python/samples)
 
 ## Package layering
 

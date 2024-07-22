@@ -10,7 +10,7 @@ different programming languages and run them on different machines across organi
 You can also implement agents using other agent frameworks and run them in AGNext.
 
 To get you started quickly, we offers
-`a suite of examples <https://github.com/microsoft/agnext/tree/main/python/examples>`_.
+`a suite of samples <https://github.com/microsoft/agnext/tree/main/python/samples>`_.
 
 .. toctree::
     :caption: Getting started
