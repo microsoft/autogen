@@ -34,18 +34,18 @@ async def main() -> None:
     )
 
     # Register agents.
-    coder = runtime.register_and_get_proxy(
+    coder = await runtime.register_and_get_proxy(
         "Coder",
         lambda: Coder(model_client=client),
     )
-    executor = runtime.register_and_get_proxy(
+    executor = await runtime.register_and_get_proxy(
         "Executor",
         lambda: Executor(
             "A agent for executing code", executor=LocalCommandLineCodeExecutor()
         ),
     )
 
-    runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, executor]))
+    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, executor]))
 
     prompt = ""
     with open("prompt.txt", "rt") as fh:

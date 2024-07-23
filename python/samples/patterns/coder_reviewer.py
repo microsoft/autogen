@@ -251,14 +251,14 @@ Code: <Your code>
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    runtime.register(
+    await runtime.register(
         "ReviewerAgent",
         lambda: ReviewerAgent(
             description="Code Reviewer",
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
-    runtime.register(
+    await runtime.register(
         "CoderAgent",
         lambda: CoderAgent(
             description="Coder",

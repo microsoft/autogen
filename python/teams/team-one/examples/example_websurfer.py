@@ -21,17 +21,17 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    web_surfer = runtime.register_and_get_proxy(
+    web_surfer = await runtime.register_and_get_proxy(
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
 
-    user_proxy = runtime.register_and_get_proxy(
+    user_proxy = await runtime.register_and_get_proxy(
         "UserProxy",
         lambda: UserProxy(),
     )
 
-    runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
+    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
 
     run_context = runtime.start()
 

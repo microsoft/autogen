@@ -5,8 +5,8 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import BaseAgent, CancellationToken
 
 
-class StatefulAgent(BaseAgent): # type: ignore
-    def __init__(self) -> None: # type: ignore
+class StatefulAgent(BaseAgent):
+    def __init__(self) -> None:
         super().__init__("A stateful agent", [])
         self.state = 0
 
@@ -14,7 +14,7 @@ class StatefulAgent(BaseAgent): # type: ignore
     def subscriptions(self) -> Sequence[type]:
         return []
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: # type: ignore
+    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> None:
         raise NotImplementedError
 
     def save_state(self) -> Mapping[str, Any]:
@@ -28,8 +28,8 @@ class StatefulAgent(BaseAgent): # type: ignore
 async def test_agent_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    agent1_id = runtime.register_and_get("name1", StatefulAgent)
-    agent1: StatefulAgent = runtime._get_agent(agent1_id) # type: ignore
+    agent1_id = await runtime.register_and_get("name1", StatefulAgent)
+    agent1: StatefulAgent = await runtime._get_agent(agent1_id) # type: ignore
     assert agent1.state == 0
     agent1.state = 1
     assert agent1.state == 1
@@ -46,19 +46,19 @@ async def test_agent_can_save_state() -> None:
 async def test_runtime_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    agent1_id = runtime.register_and_get("name1", StatefulAgent)
-    agent1: StatefulAgent = runtime._get_agent(agent1_id) # type: ignore
+    agent1_id = await runtime.register_and_get("name1", StatefulAgent)
+    agent1: StatefulAgent = await runtime._get_agent(agent1_id) # type: ignore
     assert agent1.state == 0
     agent1.state = 1
     assert agent1.state == 1
 
-    runtime_state = runtime.save_state()
+    runtime_state = await runtime.save_state()
 
     runtime2 = SingleThreadedAgentRuntime()
-    agent2_id = runtime2.register_and_get("name1", StatefulAgent)
-    agent2: StatefulAgent = runtime2._get_agent(agent2_id) # type: ignore
+    agent2_id = await runtime2.register_and_get("name1", StatefulAgent)
+    agent2: StatefulAgent = await runtime2._get_agent(agent2_id) # type: ignore
 
-    runtime2.load_state(runtime_state)
+    await runtime2.load_state(runtime_state)
     assert agent2.state == 1
 
 

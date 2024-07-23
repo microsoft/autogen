@@ -32,7 +32,7 @@ dependencies = [
     "mypy==1.10.0",
     "ruff==0.4.8",
     "tiktoken",
-    "types-Pillow",
+    "types-pillow",
     "polars",
     "chess",
     "tavily-python",

@@ -27,8 +27,8 @@ async def build_app(runtime: AgentRuntime) -> None:
         api_version="2024-02-01",
     )
 
-    runtime.register("GraphicDesigner", lambda: GraphicDesignerAgent(client=image_client))
-    runtime.register("Auditor", lambda: AuditAgent(model_client=chat_client))
+    await runtime.register("GraphicDesigner", lambda: GraphicDesignerAgent(client=image_client))
+    await runtime.register("Auditor", lambda: AuditAgent(model_client=chat_client))
 
-    runtime.get("GraphicDesigner")
-    runtime.get("Auditor")
+    await runtime.get("GraphicDesigner")
+    await runtime.get("Auditor")

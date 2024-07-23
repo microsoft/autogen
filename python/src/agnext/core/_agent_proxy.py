@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Awaitable, Mapping
 
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
@@ -21,7 +21,7 @@ class AgentProxy:
         return self._agent
 
     @property
-    def metadata(self) -> AgentMetadata:
+    def metadata(self) -> Awaitable[AgentMetadata]:
         """Metadata of the agent."""
         return self._runtime.agent_metadata(self._agent)
 
@@ -39,14 +39,14 @@ class AgentProxy:
             cancellation_token=cancellation_token,
         )
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the agent. The result must be JSON serializable."""
-        return self._runtime.agent_save_state(self._agent)
+        return await self._runtime.agent_save_state(self._agent)
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load in the state of the agent obtained from `save_state`.
 
         Args:
             state (Mapping[str, Any]): State of the agent. Must be JSON serializable.
         """
-        self._runtime.agent_load_state(self._agent, state)
+        await self._runtime.agent_load_state(self._agent, state)

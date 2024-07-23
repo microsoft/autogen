@@ -112,7 +112,7 @@ class AggregatorAgent(TypeRoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     # TODO: use different models for each agent.
-    runtime.register(
+    await runtime.register(
         "ReferenceAgent1",
         lambda: ReferenceAgent(
             description="Reference Agent 1",
@@ -120,7 +120,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.1),
         ),
     )
-    runtime.register(
+    await runtime.register(
         "ReferenceAgent2",
         lambda: ReferenceAgent(
             description="Reference Agent 2",
@@ -128,7 +128,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.5),
         ),
     )
-    runtime.register(
+    await runtime.register(
         "ReferenceAgent3",
         lambda: ReferenceAgent(
             description="Reference Agent 3",
@@ -136,7 +136,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=1.0),
         ),
     )
-    runtime.register(
+    await runtime.register(
         "AggregatorAgent",
         lambda: AggregatorAgent(
             description="Aggregator Agent",

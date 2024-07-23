@@ -166,7 +166,7 @@ class EventHandler(AsyncAssistantEventHandler):
             print("\n".join(citations))
 
 
-def assistant_chat(runtime: AgentRuntime) -> AgentId:
+async def assistant_chat(runtime: AgentRuntime) -> AgentId:
     oai_assistant = openai.beta.assistants.create(
         model="gpt-4-turbo",
         description="An AI assistant that helps with everyday tasks.",
@@ -177,7 +177,7 @@ def assistant_chat(runtime: AgentRuntime) -> AgentId:
     thread = openai.beta.threads.create(
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
     )
-    assistant = runtime.register_and_get(
+    assistant = await runtime.register_and_get(
         "Assistant",
         lambda: OpenAIAssistantAgent(
             description="An AI assistant that helps with everyday tasks.",
@@ -188,7 +188,7 @@ def assistant_chat(runtime: AgentRuntime) -> AgentId:
         ),
     )
 
-    user = runtime.register_and_get(
+    user = await runtime.register_and_get(
         "User",
         lambda: UserProxyAgent(
             client=openai.AsyncClient(),
@@ -198,7 +198,7 @@ def assistant_chat(runtime: AgentRuntime) -> AgentId:
         ),
     )
     # Create a group chat manager to facilitate a turn-based conversation.
-    runtime.register(
+    await runtime.register(
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A group chat manager.",
@@ -225,7 +225,7 @@ This will upload data.csv to the assistant for use with the code interpreter too
 Type "exit" to exit the chat.
 """
     runtime = SingleThreadedAgentRuntime()
-    user = assistant_chat(runtime)
+    user = await assistant_chat(runtime)
     _run_context = runtime.start()
     print(usage)
     # Request the user to start the conversation.

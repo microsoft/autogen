@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar, get_typ
 from ..core._agent import Agent
 from ..core._agent_id import AgentId
 from ..core._agent_metadata import AgentMetadata
-from ..core._agent_runtime import AgentRuntime, agent_instantiation_context
+from ..core._agent_runtime import AGENT_INSTANTIATION_CONTEXT_VAR, AgentRuntime
 from ..core._cancellation_token import CancellationToken
 from ..core._serialization import MESSAGE_TYPE_REGISTRY
 from ..core.exceptions import CantHandleException
@@ -46,7 +46,7 @@ class ClosureAgent(Agent):
         self, description: str, closure: Callable[[AgentRuntime, AgentId, T, CancellationToken], Awaitable[Any]]
     ) -> None:
         try:
-            runtime, id = agent_instantiation_context.get()
+            runtime, id = AGENT_INSTANTIATION_CONTEXT_VAR.get()
         except LookupError as e:
             raise RuntimeError(
                 "ClosureAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."

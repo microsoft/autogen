@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, Mapping, Protocol, TypeVar, overload, runtime_checkable
+from typing import Any, Awaitable, Callable, Generator, Mapping, Protocol, TypeVar, overload, runtime_checkable
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -13,7 +14,18 @@ from ._cancellation_token import CancellationToken
 
 T = TypeVar("T", bound=Agent)
 
-agent_instantiation_context: ContextVar[tuple[AgentRuntime, AgentId]] = ContextVar("agent_instantiation_context")
+AGENT_INSTANTIATION_CONTEXT_VAR: ContextVar[tuple[AgentRuntime, AgentId]] = ContextVar(
+    "AGENT_INSTANTIATION_CONTEXT_VAR"
+)
+
+
+@contextmanager
+def agent_instantiation_context(ctx: tuple[AgentRuntime, AgentId]) -> Generator[None, Any, None]:
+    token = AGENT_INSTANTIATION_CONTEXT_VAR.set(ctx)
+    try:
+        yield
+    finally:
+        AGENT_INSTANTIATION_CONTEXT_VAR.reset(token)
 
 
 @runtime_checkable
@@ -68,23 +80,23 @@ class AgentRuntime(Protocol):
         """
 
     @overload
-    def register(
+    async def register(
         self,
         name: str,
-        agent_factory: Callable[[], T],
+        agent_factory: Callable[[], T | Awaitable[T]],
     ) -> None: ...
 
     @overload
-    def register(
+    async def register(
         self,
         name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None: ...
 
-    def register(
+    async def register(
         self,
         name: str,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
         """Register an agent factory with the runtime associated with a specific name. The name must be unique.
 
@@ -110,7 +122,7 @@ class AgentRuntime(Protocol):
 
         ...
 
-    def get(self, name: str, *, namespace: str = "default") -> AgentId:
+    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
         """Get an agent by name and namespace.
 
         Args:
@@ -122,7 +134,7 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
+    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
         """Get a proxy for an agent by name and namespace.
 
         Args:
@@ -135,27 +147,27 @@ class AgentRuntime(Protocol):
         ...
 
     @overload
-    def register_and_get(
+    async def register_and_get(
         self,
         name: str,
-        agent_factory: Callable[[], T],
+        agent_factory: Callable[[], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentId: ...
 
     @overload
-    def register_and_get(
+    async def register_and_get(
         self,
         name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentId: ...
 
-    def register_and_get(
+    async def register_and_get(
         self,
         name: str,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentId:
@@ -169,31 +181,31 @@ class AgentRuntime(Protocol):
         Returns:
             AgentId: The agent id.
         """
-        self.register(name, agent_factory)
-        return self.get(name, namespace=namespace)
+        await self.register(name, agent_factory)
+        return await self.get(name, namespace=namespace)
 
     @overload
-    def register_and_get_proxy(
+    async def register_and_get_proxy(
         self,
         name: str,
-        agent_factory: Callable[[], T],
+        agent_factory: Callable[[], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentProxy: ...
 
     @overload
-    def register_and_get_proxy(
+    async def register_and_get_proxy(
         self,
         name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentProxy: ...
 
-    def register_and_get_proxy(
+    async def register_and_get_proxy(
         self,
         name: str,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentProxy:
@@ -207,10 +219,10 @@ class AgentRuntime(Protocol):
         Returns:
             AgentProxy: The agent proxy.
         """
-        self.register(name, agent_factory)
-        return self.get_proxy(name, namespace=namespace)
+        await self.register(name, agent_factory)
+        return await self.get_proxy(name, namespace=namespace)
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the entire runtime, including all hosted agents. The only way to restore the state is to pass it to :meth:`load_state`.
 
         The structure of the state is implementation defined and can be any JSON serializable object.
@@ -220,7 +232,7 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load the state of the entire runtime, including all hosted agents. The state should be the same as the one returned by :meth:`save_state`.
 
         Args:
@@ -228,7 +240,7 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    def agent_metadata(self, agent: AgentId) -> AgentMetadata:
+    async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
         """Get the metadata for an agent.
 
         Args:
@@ -239,7 +251,7 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
+    async def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
         """Save the state of a single agent.
 
         The structure of the state is implementation defined and can be any JSON serializable object.
@@ -252,7 +264,7 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
+    async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         """Load the state of a single agent.
 
         Args:

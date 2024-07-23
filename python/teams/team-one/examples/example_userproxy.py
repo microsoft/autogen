@@ -19,16 +19,16 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    coder = runtime.register_and_get_proxy(
+    coder = await runtime.register_and_get_proxy(
         "Coder",
         lambda: Coder(model_client=client),
     )
-    user_proxy = runtime.register_and_get_proxy(
+    user_proxy = await runtime.register_and_get_proxy(
         "UserProxy",
         lambda: UserProxy(),
     )
 
-    runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, user_proxy]))
+    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, user_proxy]))
 
     run_context = runtime.start()
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)

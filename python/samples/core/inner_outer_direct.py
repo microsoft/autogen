@@ -45,8 +45,8 @@ class Outer(TypeRoutedAgent):
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    inner = runtime.register_and_get("inner", Inner)
-    outer = runtime.register_and_get("outer", lambda: Outer(inner))
+    inner = await runtime.register_and_get("inner", Inner)
+    outer = await runtime.register_and_get("outer", lambda: Outer(inner))
 
     run_context = runtime.start()
 

@@ -191,8 +191,8 @@ async def main() -> None:
         )
     ]
     # Register agents.
-    runtime.register("tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools))
-    runtime.register(
+    await runtime.register("tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools))
+    await runtime.register(
         "tool_use_agent",
         lambda: ToolUseAgent(
             description="Tool Use Agent",

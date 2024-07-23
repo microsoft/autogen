@@ -32,7 +32,7 @@ async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
     # Register agents.
-    tool_agent = runtime.register_and_get(
+    tool_agent = await runtime.register_and_get(
         "tool_enabled_agent",
         lambda: ToolEnabledAgent(
             description="Tool Use Agent",

@@ -88,7 +88,7 @@ def make_move(
     return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[newMove.from_square]} to {SQUARE_NAMES[newMove.to_square]}."
 
 
-def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
+async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
     """Create agents for a chess game and return the group chat."""
 
     # Create the board.
@@ -156,7 +156,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    black = runtime.register_and_get(
+    black = await runtime.register_and_get(
         "PlayerBlack",
         lambda: ChatCompletionAgent(
             description="Player playing black.",
@@ -173,7 +173,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             tools=black_tools,
         ),
     )
-    white = runtime.register_and_get(
+    white = await runtime.register_and_get(
         "PlayerWhite",
         lambda: ChatCompletionAgent(
             description="Player playing white.",
@@ -192,7 +192,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
     )
     # Create a group chat manager for the chess game to orchestrate a turn-based
     # conversation between the two agents.
-    runtime.register(
+    await runtime.register(
         "ChessGame",
         lambda: GroupChatManager(
             description="A chess game between two agents.",
@@ -204,7 +204,7 @@ def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    chess_game(runtime)
+    await chess_game(runtime)
     # Publish an initial message to trigger the group chat manager to start orchestration.
     await runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
     while True:

@@ -79,16 +79,16 @@ class LedgerOrchestrator(BaseOrchestrator):
     def _get_ledger_prompt(self, task: str, team: str, names: List[str]) -> str:
         return self._ledger_prompt.format(task=task, team=team, names=names)
 
-    def _get_team_description(self) -> str:
+    async def _get_team_description(self) -> str:
         team_description = ""
         for agent in self._agents:
-            name = agent.metadata["name"]
-            description = agent.metadata["description"]
+            name = (await agent.metadata)["name"]
+            description = (await agent.metadata)["description"]
             team_description += f"{name}: {description}\n"
         return team_description
 
-    def _get_team_names(self) -> List[str]:
-        return [agent.metadata["name"] for agent in self._agents]
+    async def _get_team_names(self) -> List[str]:
+        return [(await agent.metadata)["name"] for agent in self._agents]
 
     def _set_task_str(self, message: LLMMessage) -> None:
         if len(self._chat_history) == 1:
@@ -112,7 +112,7 @@ class LedgerOrchestrator(BaseOrchestrator):
         return False
 
     async def _plan(self) -> str:
-        team_description = self._get_team_description()
+        team_description = await self._get_team_description()
 
         # 1. GATHER FACTS
         # create a closed book task and generate a response and update the chat history
@@ -144,8 +144,8 @@ class LedgerOrchestrator(BaseOrchestrator):
     async def update_ledger(self) -> Dict[str, Any]:
         max_json_retries = 10
 
-        team_description = self._get_team_description()
-        names = self._get_team_names()
+        team_description = await self._get_team_description()
+        names = await self._get_team_names()
         ledger_prompt = self._get_ledger_prompt(self.task_str, team_description, names)
         ledger_user_message = UserMessage(content=ledger_prompt, source=self.metadata["name"])
 
@@ -234,7 +234,7 @@ class LedgerOrchestrator(BaseOrchestrator):
 
         next_agent_name = ledger_dict["next_speaker"]["answer"]
         for agent in self._agents:
-            if agent.metadata["name"] == next_agent_name:
+            if (await agent.metadata)["name"] == next_agent_name:
                 # broadcast a new message
                 instruction = ledger_dict["instruction_or_question"]["answer"]
                 user_message = UserMessage(content=instruction, source=self.metadata["name"])

@@ -1,9 +1,8 @@
 import asyncio
 import logging
-import json
 import os
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import List
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components.models import (
@@ -18,13 +17,17 @@ from agnext.application.logging import EVENT_LOGGER_NAME
 from team_one.markdown_browser import MarkdownConverter, UnsupportedFormatException
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import LedgerOrchestrator
-from team_one.messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
+from team_one.messages import BroadcastMessage
 from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from team_one.agents.file_surfer import FileSurfer
-from team_one.utils import LogHandler, message_content_to_str, create_completion_client_from_env
+from team_one.utils import LogHandler, message_content_to_str
+
+import re
+
+from agnext.components.models import AssistantMessage
 
 
-async def response_preparer(task: str, source: str, client: ChatCompletionClient, transcript: List[LLMMessage]):
+async def response_preparer(task: str, source: str, client: ChatCompletionClient, transcript: List[LLMMessage]) -> str:
     messages: List[LLMMessage] = [
         UserMessage(
             content=f"Earlier you were asked the following:\n\n{task}\n\nYour team then worked diligently to address that request. Here is a transcript of that conversation:",
@@ -37,7 +40,8 @@ async def response_preparer(task: str, source: str, client: ChatCompletionClient
         messages.append(
             UserMessage(
                 content = message_content_to_str(message.content),
-                source=message.source,
+                # TODO fix this -> remove type ignore
+                source=message.source, # type: ignore
             )
         )
 
@@ -68,7 +72,7 @@ If you are asked for a comma separated list, apply the above rules depending on 
     # No answer
     if "unable to determine" in response.content.lower():
         messages.append( AssistantMessage(content=response.content, source="self" ) )
-        messages.append( 
+        messages.append(
             UserMessage(
                 content= f"""
 I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
@@ -115,29 +119,29 @@ async def main() -> None:
     )
 
     # Register agents.
-    coder = runtime.register_and_get_proxy(
+    coder = await runtime.register_and_get_proxy(
         "Coder",
         lambda: Coder(model_client=client),
     )
 
-    executor = runtime.register_and_get_proxy(
+    executor = await runtime.register_and_get_proxy(
         "Executor",
         lambda: Executor(
             "A agent for executing code", executor=LocalCommandLineCodeExecutor()
         ),
     )
 
-    file_surfer = runtime.register_and_get_proxy(
+    file_surfer = await runtime.register_and_get_proxy(
         "file_surfer",
         lambda: FileSurfer(model_client=client),
     )
 
-    web_surfer = runtime.register_and_get_proxy(
+    web_surfer = await runtime.register_and_get_proxy(
         "WebSurfer",
         lambda: MultimodalWebSurfer(), # Configuration is set later by init()
     )
 
-    orchestrator = runtime.register_and_get_proxy("orchestrator", lambda: LedgerOrchestrator(
+    orchestrator = await runtime.register_and_get_proxy("orchestrator", lambda: LedgerOrchestrator(
         agents=[coder, executor, file_surfer, web_surfer],
         model_client=client,
     ))
@@ -185,7 +189,7 @@ async def main() -> None:
     actual_orchestrator = runtime._get_agent(orchestrator.id)  # type: ignore
     assert isinstance(actual_orchestrator, LedgerOrchestrator)
     transcript: List[LLMMessage] = actual_orchestrator._chat_history # type: ignore
-    print(await response_preparer(task=task, source=orchestrator.metadata["name"], client=client, transcript=transcript))
+    print(await response_preparer(task=task, source=(await orchestrator.metadata)["name"], client=client, transcript=transcript))
 
 
 

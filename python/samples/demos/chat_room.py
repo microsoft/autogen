@@ -87,15 +87,15 @@ class ChatRoomUserAgent(TextualUserAgent):
 
 
 # Define a chat room with participants -- the runtime is the chat room.
-def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
-    runtime.register(
+async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
+    await runtime.register(
         "User",
         lambda: ChatRoomUserAgent(
             description="The user in the chat room.",
             app=app,
         ),
     )
-    alice = runtime.register_and_get_proxy(
+    alice = await runtime.register_and_get_proxy(
         "Alice",
         lambda rt, id: ChatRoomAgent(
             name=id.name,
@@ -105,7 +105,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
-    bob = runtime.register_and_get_proxy(
+    bob = await runtime.register_and_get_proxy(
         "Bob",
         lambda rt, id: ChatRoomAgent(
             name=id.name,
@@ -115,7 +115,7 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
-    charlie = runtime.register_and_get_proxy(
+    charlie = await runtime.register_and_get_proxy(
         "Charlie",
         lambda rt, id: ChatRoomAgent(
             name=id.name,
@@ -126,9 +126,9 @@ def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
         ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:
-1. 👧 {alice.id.name}: {alice.metadata['description']}
-2. 👱🏼‍♂️ {bob.id.name}: {bob.metadata['description']}
-3. 👨🏾‍🦳 {charlie.id.name}: {charlie.metadata['description']}
+1. 👧 {alice.id.name}: {(await alice.metadata)['description']}
+2. 👱🏼‍♂️ {bob.id.name}: {(await bob.metadata)['description']}
+3. 👨🏾‍🦳 {charlie.id.name}: {(await charlie.metadata)['description']}
 
 Each participant decides on its own whether to respond to the latest message.
 
@@ -139,7 +139,7 @@ You can greet the chat room by typing your first message below.
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
-    chat_room(runtime, app)
+    await chat_room(runtime, app)
     _run_context = runtime.start()
     await app.run_async()
 

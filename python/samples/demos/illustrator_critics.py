@@ -19,15 +19,15 @@ from common.utils import get_chat_completion_client_from_envs
 from utils import TextualChatApp, TextualUserAgent
 
 
-def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
-    runtime.register(
+async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
+    await runtime.register(
         "User",
         lambda: TextualUserAgent(
             description="A user looking for illustration.",
             app=app,
         ),
     )
-    descriptor = runtime.register_and_get_proxy(
+    descriptor = await runtime.register_and_get_proxy(
         "Descriptor",
         lambda: ChatCompletionAgent(
             description="An AI agent that provides a description of the image.",
@@ -46,7 +46,7 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo", max_tokens=500),
         ),
     )
-    illustrator = runtime.register_and_get_proxy(
+    illustrator = await runtime.register_and_get_proxy(
         "Illustrator",
         lambda: ImageGenerationAgent(
             description="An AI agent that generates images.",
@@ -55,7 +55,7 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
             memory=BufferedChatMemory(buffer_size=1),
         ),
     )
-    critic = runtime.register_and_get_proxy(
+    critic = await runtime.register_and_get_proxy(
         "Critic",
         lambda: ChatCompletionAgent(
             description="An AI agent that provides feedback on images given user's requirements.",
@@ -74,7 +74,7 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
-    runtime.register(
+    await runtime.register(
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A chat manager that handles group chat.",
@@ -86,9 +86,9 @@ def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> None:
 
     app.welcoming_notice = f"""You are now in a group chat with the following agents:
 
-1. 🤖 {descriptor.metadata['name']}: {descriptor.metadata.get('description')}
-2. 🤖 {illustrator.metadata['name']}: {illustrator.metadata.get('description')}
-3. 🤖 {critic.metadata['name']}: {critic.metadata.get('description')}
+1. 🤖 {(await descriptor.metadata)['name']}: {(await descriptor.metadata).get('description')}
+2. 🤖 {(await illustrator.metadata)['name']}: {(await illustrator.metadata).get('description')}
+3. 🤖 {(await critic.metadata)['name']}: {(await critic.metadata).get('description')}
 
 Provide a prompt for the illustrator to generate an image.
 """
@@ -97,7 +97,7 @@ Provide a prompt for the illustrator to generate an image.
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
-    illustrator_critics(runtime, app)
+    await illustrator_critics(runtime, app)
     _run_context = runtime.start()
     await app.run_async()
 

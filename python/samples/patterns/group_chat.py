@@ -113,7 +113,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register the participants.
-    agent1 = runtime.register_and_get(
+    agent1 = await runtime.register_and_get(
         "DataScientist",
         lambda: GroupChatParticipant(
             description="A data scientist",
@@ -121,7 +121,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
-    agent2 = runtime.register_and_get(
+    agent2 = await runtime.register_and_get(
         "Engineer",
         lambda: GroupChatParticipant(
             description="An engineer",
@@ -129,7 +129,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
         ),
     )
-    agent3 = runtime.register_and_get(
+    agent3 = await runtime.register_and_get(
         "Artist",
         lambda: GroupChatParticipant(
             description="An artist",
@@ -139,7 +139,7 @@ async def main() -> None:
     )
 
     # Register the group chat manager.
-    runtime.register(
+    await runtime.register(
         "GroupChatManager",
         lambda: RoundRobinGroupChatManager(
             description="A group chat manager",

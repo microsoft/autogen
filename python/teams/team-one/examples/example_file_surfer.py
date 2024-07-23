@@ -18,16 +18,16 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    file_surfer = runtime.register_and_get_proxy(
+    file_surfer = await runtime.register_and_get_proxy(
         "file_surfer",
         lambda: FileSurfer(model_client=client),
     )
-    user_proxy = runtime.register_and_get_proxy(
+    user_proxy = await runtime.register_and_get_proxy(
         "UserProxy",
         lambda: UserProxy(),
     )
 
-    runtime.register("orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy]))
+    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy]))
 
     run_context = runtime.start()
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)

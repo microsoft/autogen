@@ -14,31 +14,31 @@ async def test_agent_names_must_be_unique() -> None:
         assert agent.id == id
         return agent
 
-    agent1 = runtime.register_and_get("name1", agent_factory)
+    agent1 = await runtime.register_and_get("name1", agent_factory)
     assert agent1 == AgentId("name1", "default")
 
     with pytest.raises(ValueError):
-        _agent1 = runtime.register_and_get("name1", NoopAgent)
+        _agent1 = await runtime.register_and_get("name1", NoopAgent)
 
-    _agent1 = runtime.register_and_get("name3", NoopAgent)
+    _agent1 = await runtime.register_and_get("name3", NoopAgent)
 
 
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    runtime.register("name", LoopbackAgent)
+    await runtime.register("name", LoopbackAgent)
     run_context = runtime.start()
     await runtime.publish_message(MessageType(), namespace="default")
 
     await run_context.stop_when_idle()
 
     # Agent in default namespace should have received the message
-    long_running_agent: LoopbackAgent = runtime._get_agent(runtime.get("name")) # type: ignore
+    long_running_agent: LoopbackAgent = await runtime._get_agent(await runtime.get("name")) # type: ignore
     assert long_running_agent.num_calls == 1
 
     # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = runtime._get_agent(runtime.get("name", namespace="other")) # type: ignore
+    other_long_running_agent: LoopbackAgent = await runtime._get_agent(await runtime.get("name", namespace="other")) # type: ignore
     assert other_long_running_agent.num_calls == 0
 
 
@@ -54,7 +54,7 @@ async def test_register_receives_publish_cascade() -> None:
 
     # Register agents
     for i in range(num_agents):
-        runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
+        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
 
     run_context = runtime.start()
 
@@ -67,5 +67,5 @@ async def test_register_receives_publish_cascade() -> None:
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):
-        agent: CascadingAgent = runtime._get_agent(runtime.get(f"name{i}")) # type: ignore
+        agent: CascadingAgent = await runtime._get_agent(await runtime.get(f"name{i}")) # type: ignore
         assert agent.num_calls == total_num_calls_expected

@@ -12,6 +12,7 @@ from typing import (
     Any,
     AsyncIterable,
     AsyncIterator,
+    Awaitable,
     Callable,
     ClassVar,
     DefaultDict,
@@ -188,7 +189,9 @@ class WorkerAgentRuntime(AgentRuntime):
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
-        self._agent_factories: Dict[str, Callable[[], Agent] | Callable[[AgentRuntime, AgentId], Agent]] = {}
+        self._agent_factories: Dict[
+            str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
+        ] = {}
         # If empty, then all namespaces are valid for that agent type
         self._valid_namespaces: Dict[str, Sequence[str]] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
@@ -249,7 +252,7 @@ class WorkerAgentRuntime(AgentRuntime):
                             (namespace, MESSAGE_TYPE_REGISTRY.type_name(message))
                         ]:
                             logger.info("Sending message to %s", agent_id)
-                            agent = self._get_agent(agent_id)
+                            agent = await self._get_agent(agent_id)
                             try:
                                 await agent.on_message(message, CancellationToken())
                                 logger.info("%s handled event %s", agent_id, message)
@@ -321,7 +324,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
         assert explicit_namespace is not None or sender_namespace is not None
         actual_namespace = cast(str, explicit_namespace or sender_namespace)
-        self._process_seen_namespace(actual_namespace)
+        await self._process_seen_namespace(actual_namespace)
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
         serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
         message = Message(event=Event(namespace=actual_namespace, type=message_type, data=serialized_message))
@@ -332,25 +335,25 @@ class WorkerAgentRuntime(AgentRuntime):
 
         await asyncio.create_task(write_message())
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         raise NotImplementedError("Saving state is not yet implemented.")
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         raise NotImplementedError("Loading state is not yet implemented.")
 
-    def agent_metadata(self, agent: AgentId) -> AgentMetadata:
+    async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
         raise NotImplementedError("Agent metadata is not yet implemented.")
 
-    def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
+    async def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
         raise NotImplementedError("Agent save_state is not yet implemented.")
 
-    def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
+    async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         raise NotImplementedError("Agent load_state is not yet implemented.")
 
-    def register(
+    async def register(
         self,
         name: str,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
         if name in self._agent_factories:
             raise ValueError(f"Agent with name {name} already exists.")
@@ -358,29 +361,32 @@ class WorkerAgentRuntime(AgentRuntime):
 
         # For all already prepared namespaces we need to prepare this agent
         for namespace in self._known_namespaces:
-            self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(name=name, namespace=namespace))
 
-        # TODO do we need to convert register to async?
-        asyncio.create_task(self.send_register_agent_type(name))
+        await self.send_register_agent_type(name)
 
-    def _invoke_agent_factory(
+    async def _invoke_agent_factory(
         self,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         agent_id: AgentId,
     ) -> T:
-        if len(inspect.signature(agent_factory).parameters) == 0:
-            factory_one = cast(Callable[[], T], agent_factory)
-            agent = factory_one()
-        elif len(inspect.signature(agent_factory).parameters) == 2:
-            factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
-            agent = factory_two(self, agent_id)
-        else:
-            raise ValueError("Agent factory must take 0 or 2 arguments.")
+        with agent_instantiation_context((self, agent_id)):
+            if len(inspect.signature(agent_factory).parameters) == 0:
+                factory_one = cast(Callable[[], T], agent_factory)
+                agent = factory_one()
+            elif len(inspect.signature(agent_factory).parameters) == 2:
+                factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
+                agent = factory_two(self, agent_id)
+            else:
+                raise ValueError("Agent factory must take 0 or 2 arguments.")
+
+            if inspect.isawaitable(agent):
+                return cast(T, await agent)
 
         return agent
 
-    def _get_agent(self, agent_id: AgentId) -> Agent:
-        self._process_seen_namespace(agent_id.namespace)
+    async def _get_agent(self, agent_id: AgentId) -> Agent:
+        await self._process_seen_namespace(agent_id.namespace)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
@@ -389,9 +395,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
         agent_factory = self._agent_factories[agent_id.name]
 
-        token = agent_instantiation_context.set((self, agent_id))
-        agent = self._invoke_agent_factory(agent_factory, agent_id)
-        agent_instantiation_context.reset(token)
+        agent = await self._invoke_agent_factory(agent_factory, agent_id)
 
         for message_type in agent.metadata["subscriptions"]:
             self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
@@ -399,19 +403,19 @@ class WorkerAgentRuntime(AgentRuntime):
         self._instantiated_agents[agent_id] = agent
         return agent
 
-    def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return self._get_agent(AgentId(name=name, namespace=namespace)).id
+    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
+        return (await self._get_agent(AgentId(name=name, namespace=namespace))).id
 
-    def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
-        id = self.get(name, namespace=namespace)
+    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
+        id = await self.get(name, namespace=namespace)
         return AgentProxy(id, self)
 
     # Hydrate the agent instances in a namespace. The primary reason for this is
     # to ensure message type subscriptions are set up.
-    def _process_seen_namespace(self, namespace: str) -> None:
+    async def _process_seen_namespace(self, namespace: str) -> None:
         if namespace in self._known_namespaces:
             return
 
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
-            self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(name=name, namespace=namespace))

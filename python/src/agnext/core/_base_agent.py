@@ -5,7 +5,7 @@ from typing import Any, Mapping, Sequence
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
-from ._agent_runtime import AgentRuntime, agent_instantiation_context
+from ._agent_runtime import AGENT_INSTANTIATION_CONTEXT_VAR, AgentRuntime
 from ._cancellation_token import CancellationToken
 
 
@@ -22,7 +22,7 @@ class BaseAgent(ABC, Agent):
 
     def __init__(self, description: str, subscriptions: Sequence[str]) -> None:
         try:
-            runtime, id = agent_instantiation_context.get()
+            runtime, id = AGENT_INSTANTIATION_CONTEXT_VAR.get()
         except LookupError as e:
             raise RuntimeError(
                 "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."

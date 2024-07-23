@@ -30,7 +30,7 @@ class Printer(TypeRoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     await build_app(runtime)
-    runtime.register("Printer", lambda: Printer())
+    await runtime.register("Printer", lambda: Printer())
 
     ctx = runtime.start()
 

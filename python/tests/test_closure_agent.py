@@ -28,7 +28,7 @@ async def test_register_receives_publish() -> None:
         namespace = id.namespace
         await queue.put((namespace, message.content))
 
-    runtime.register("name", lambda: ClosureAgent("My agent", log_message))
+    await runtime.register("name", lambda: ClosureAgent("My agent", log_message))
     run_context = runtime.start()
     await runtime.publish_message(Message("first message"), namespace="default")
     await runtime.publish_message(Message("second message"), namespace="default")

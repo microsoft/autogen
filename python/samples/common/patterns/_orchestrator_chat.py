@@ -170,7 +170,10 @@ Some additional points to consider:
 
         # A reusable description of the team.
         team = "\n".join(
-            [agent.name + ": " + self.runtime.agent_metadata(agent)["description"] for agent in self._specialists]
+            [
+                agent.name + ": " + (await self.runtime.agent_metadata(agent))["description"]
+                for agent in self._specialists
+            ]
         )
         names = ", ".join([agent.name for agent in self._specialists])
 

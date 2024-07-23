@@ -1,12 +1,11 @@
 import asyncio
-import json
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
+from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.code_executor import (
     CodeBlock,
     CodeExecutor,
@@ -16,16 +15,12 @@ from agnext.components.models import (
     AssistantMessage,
     AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
-from agnext.components.tools import CodeExecutionResult, PythonCodeExecutionTool
-from agnext.core import AgentId, CancellationToken
+from agnext.core import CancellationToken
 
 # from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
@@ -66,7 +61,7 @@ if __name__ == "__main__":
     main()
 ```
 
-The user cannot provide any feedback or perform any other action beyond executing the code you suggest. In particular, the user can't modify your code, and can't copy and paste anything, and can't fill in missing values. Thus, do not suggest incomplete code which requires users to perform any of these actions. 
+The user cannot provide any feedback or perform any other action beyond executing the code you suggest. In particular, the user can't modify your code, and can't copy and paste anything, and can't fill in missing values. Thus, do not suggest incomplete code which requires users to perform any of these actions.
 
 Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes -- code blocks must stand alone and be ready to execute without modification. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, and think of a different approach to try.
 
@@ -222,11 +217,11 @@ async def main() -> None:
     )
 
     # Register agents.
-    coder = runtime.register_and_get(
+    coder = await runtime.register_and_get(
         "Coder",
         lambda: Coder(model_client=client),
     )
-    runtime.register(
+    await runtime.register(
         "Executor",
         lambda: Executor(
             "A agent for executing code", executor=LocalCommandLineCodeExecutor()

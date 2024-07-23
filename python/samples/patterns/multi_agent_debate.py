@@ -211,7 +211,7 @@ async def main(question: str) -> None:
     # Register the solver agents.
     # Create a sparse connection: each solver agent has two neighbors.
     # NOTE: to create a dense connection, each solver agent should be connected to all other solver agents.
-    runtime.register(
+    await runtime.register(
         "MathSolver1",
         lambda: MathSolver(
             get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
@@ -219,7 +219,7 @@ async def main(question: str) -> None:
             max_round=3,
         ),
     )
-    runtime.register(
+    await runtime.register(
         "MathSolver2",
         lambda: MathSolver(
             get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
@@ -227,7 +227,7 @@ async def main(question: str) -> None:
             max_round=3,
         ),
     )
-    runtime.register(
+    await runtime.register(
         "MathSolver3",
         lambda: MathSolver(
             get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
@@ -235,7 +235,7 @@ async def main(question: str) -> None:
             max_round=3,
         ),
     )
-    runtime.register(
+    await runtime.register(
         "MathSolver4",
         lambda: MathSolver(
             get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
@@ -244,7 +244,7 @@ async def main(question: str) -> None:
         ),
     )
     # Register the aggregator agent.
-    runtime.register("MathAggregator", lambda: MathAggregator(num_solvers=4))
+    await runtime.register("MathAggregator", lambda: MathAggregator(num_solvers=4))
 
     run_context = runtime.start()
 

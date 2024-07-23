@@ -77,7 +77,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
-    jack = runtime.register_and_get(
+    jack = await runtime.register_and_get(
         "Jack",
         lambda: ChatCompletionAgent(
             description="Jack a comedian",
@@ -88,7 +88,7 @@ async def main() -> None:
             termination_word="TERMINATE",
         ),
     )
-    runtime.register_and_get(
+    await runtime.register_and_get(
         "Cathy",
         lambda: ChatCompletionAgent(
             description="Cathy a poet",

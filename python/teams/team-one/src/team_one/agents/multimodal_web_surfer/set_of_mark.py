@@ -68,7 +68,7 @@ def _draw_roi(
     luminance = color[0] * 0.3 + color[1] * 0.59 + color[2] * 0.11
     text_color = (0, 0, 0, 255) if luminance > 90 else (255, 255, 255, 255)
 
-    roi = [(rect["left"], rect["top"]), (rect["right"], rect["bottom"])]
+    roi = ((rect["left"], rect["top"]), (rect["right"], rect["bottom"]))
 
     label_location = (rect["right"], rect["top"])
     label_anchor = "rb"

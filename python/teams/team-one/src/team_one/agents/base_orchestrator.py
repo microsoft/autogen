@@ -69,7 +69,7 @@ class BaseOrchestrator(TypeRoutedAgent):
         logger.info(
             OrchestrationEvent(
                 source=f"{self.metadata['name']} (thought)",
-                message=f"Next speaker {next_agent.metadata['name']}" "",
+                message=f"Next speaker {(await next_agent.metadata)['name']}" "",
             )
         )
 

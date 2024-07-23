@@ -180,8 +180,10 @@ async def main(task: str, temp_dir: str) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
-    runtime.register("coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")))
-    runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
+    await runtime.register(
+        "coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"))
+    )
+    await runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
     run_context = runtime.start()
 
     # Publish the task message.

@@ -32,7 +32,7 @@ dependencies = [
     "youtube-transcript-api",
     "SpeechRecognition",
     "pathvalidate",
-    "playwright"
+    "playwright",
 ]
 
 [tool.hatch.envs.default]
@@ -45,7 +45,8 @@ dependencies = [
     "aiofiles",
     "types-aiofiles",
     "types-requests",
-    "azure-identity"
+    "types-pillow",
+    "azure-identity",
 ]
 
 [tool.hatch.envs.default.extra-scripts]
@@ -71,7 +72,13 @@ line-length = 120
 fix = true
 exclude = ["build", "dist", "page_script.js"]
 target-version = "py310"
-include = ["src/**", "examples/*.py"]
+include = [
+    "src/**",
+    "examples/*.py",
+    "../../benchmarks/HumanEval/Templates/TeamOne/scenario.py",
+    "../../benchmarks/HumanEval/Templates/TwoAgents/scenario.py",
+    "../../benchmarks/GAIA/TeamOne/TwoAgents/scenario.py",
+]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -81,7 +88,11 @@ select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
 ignore = ["F401", "E501"]
 
 [tool.mypy]
-files = ["src", "examples", "tests"]
+files = [
+    "src",
+    "tests",
+    "examples",
+]
 
 strict = true
 python_version = "3.10"
@@ -100,7 +111,14 @@ disallow_untyped_decorators = true
 disallow_any_unimported = true
 
 [tool.pyright]
-include = ["src", "tests", "examples"]
+include = [
+    "src",
+    "tests",
+    "examples",
+    "../../benchmarks/HumanEval/Templates/TeamOne/scenario.py",
+    "../../benchmarks/HumanEval/Templates/TwoAgents/scenario.py",
+    "../../benchmarks/GAIA/Templates/TeamOne/scenario.py",
+]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false

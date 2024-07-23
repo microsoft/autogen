@@ -105,15 +105,15 @@ async def create_image(
     return f"Image created and saved to {filename}."
 
 
-def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
-    user_agent = runtime.register_and_get(
+async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
+    user_agent = await runtime.register_and_get(
         "Customer",
         lambda: TextualUserAgent(
             description="A customer looking for help.",
             app=app,
         ),
     )
-    developer = runtime.register_and_get(
+    developer = await runtime.register_and_get(
         "Developer",
         lambda: ChatCompletionAgent(
             description="A Python software developer.",
@@ -153,7 +153,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
         ),
     )
 
-    product_manager = runtime.register_and_get(
+    product_manager = await runtime.register_and_get(
         "ProductManager",
         lambda: ChatCompletionAgent(
             description="A product manager. "
@@ -182,7 +182,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
             tool_approver=user_agent,
         ),
     )
-    ux_designer = runtime.register_and_get(
+    ux_designer = await runtime.register_and_get(
         "UserExperienceDesigner",
         lambda: ChatCompletionAgent(
             description="A user experience designer for creating user interfaces.",
@@ -215,7 +215,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
         ),
     )
 
-    illustrator = runtime.register_and_get(
+    illustrator = await runtime.register_and_get(
         "Illustrator",
         lambda: ChatCompletionAgent(
             description="An illustrator for creating images.",
@@ -240,7 +240,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
             tool_approver=user_agent,
         ),
     )
-    runtime.register(
+    await runtime.register(
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A group chat manager.",
@@ -279,7 +279,7 @@ def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  #
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
-    software_consultancy(runtime, app)
+    await software_consultancy(runtime, app)
     # Start the runtime.
     _run_context = runtime.start()
     # Start the app.

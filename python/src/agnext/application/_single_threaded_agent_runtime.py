@@ -123,7 +123,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
-        self._agent_factories: Dict[str, Callable[[], Agent] | Callable[[AgentRuntime, AgentId], Agent]] = {}
+        self._agent_factories: Dict[
+            str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
+        ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
         self._intervention_handler = intervention_handler
         self._known_namespaces: set[str] = set()
@@ -173,7 +175,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if sender is not None and sender.namespace != recipient.namespace:
             raise ValueError("Sender and recipient must be in the same namespace to communicate.")
 
-        self._process_seen_namespace(recipient.namespace)
+        await self._process_seen_namespace(recipient.namespace)
 
         content = message.__dict__ if hasattr(message, "__dict__") else message
         logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {content}")
@@ -227,7 +229,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         assert explicit_namespace is not None or sender_namespace is not None
         namespace = cast(str, explicit_namespace or sender_namespace)
-        self._process_seen_namespace(namespace)
+        await self._process_seen_namespace(namespace)
 
         self._message_queue.append(
             PublishMessageEnvelope(
@@ -238,17 +240,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             )
         )
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         state: Dict[str, Dict[str, Any]] = {}
         for agent_id in self._instantiated_agents:
-            state[str(agent_id)] = dict(self._get_agent(agent_id).save_state())
+            state[str(agent_id)] = dict((await self._get_agent(agent_id)).save_state())
         return state
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         for agent_id_str in state:
             agent_id = AgentId.from_str(agent_id_str)
             if agent_id.name in self._known_agent_names:
-                self._get_agent(agent_id).load_state(state[str(agent_id)])
+                (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
         recipient = message_envelope.recipient
@@ -269,7 +271,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #         delivery_stage=DeliveryStage.DELIVER,
             #     )
             # )
-            recipient_agent = self._get_agent(recipient)
+            recipient_agent = await self._get_agent(recipient)
             response = await recipient_agent.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
@@ -297,7 +299,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if message_envelope.sender is not None and agent_id.name == message_envelope.sender.name:
                 continue
 
-            sender_agent = self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
+            sender_agent = (
+                await self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
+            )
             sender_name = sender_agent.metadata["name"] if sender_agent is not None else "Unknown"
             logger.info(
                 f"Calling message handler for {agent_id.name} with message type {type(message_envelope.message).__name__} published by {sender_name}"
@@ -312,7 +316,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #     )
             # )
 
-            agent = self._get_agent(agent_id)
+            agent = await self._get_agent(agent_id)
             future = agent.on_message(
                 message_envelope.message,
                 cancellation_token=message_envelope.cancellation_token,
@@ -430,19 +434,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def start(self) -> RunContext:
         return RunContext(self)
 
-    def agent_metadata(self, agent: AgentId) -> AgentMetadata:
-        return self._get_agent(agent).metadata
+    async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
+        return (await self._get_agent(agent)).metadata
 
-    def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
-        return self._get_agent(agent).save_state()
+    async def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
+        return (await self._get_agent(agent)).save_state()
 
-    def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
-        self._get_agent(agent).load_state(state)
+    async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
+        (await self._get_agent(agent)).load_state(state)
 
-    def register(
+    async def register(
         self,
         name: str,
-        agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T],
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
         if name in self._agent_factories:
             raise ValueError(f"Agent with name {name} already exists.")
@@ -450,28 +454,30 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         # For all already prepared namespaces we need to prepare this agent
         for namespace in self._known_namespaces:
-            self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(name=name, namespace=namespace))
 
-    def _invoke_agent_factory(
-        self, agent_factory: Callable[[], T] | Callable[[AgentRuntime, AgentId], T], agent_id: AgentId
+    async def _invoke_agent_factory(
+        self,
+        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
+        agent_id: AgentId,
     ) -> T:
-        token = agent_instantiation_context.set((self, agent_id))
+        with agent_instantiation_context((self, agent_id)):
+            if len(inspect.signature(agent_factory).parameters) == 0:
+                factory_one = cast(Callable[[], T], agent_factory)
+                agent = factory_one()
+            elif len(inspect.signature(agent_factory).parameters) == 2:
+                factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
+                agent = factory_two(self, agent_id)
+            else:
+                raise ValueError("Agent factory must take 0 or 2 arguments.")
 
-        if len(inspect.signature(agent_factory).parameters) == 0:
-            factory_one = cast(Callable[[], T], agent_factory)
-            agent = factory_one()
-        elif len(inspect.signature(agent_factory).parameters) == 2:
-            factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
-            agent = factory_two(self, agent_id)
-        else:
-            raise ValueError("Agent factory must take 0 or 2 arguments.")
+            if inspect.isawaitable(agent):
+                return cast(T, await agent)
 
-        agent_instantiation_context.reset(token)
+            return agent
 
-        return agent
-
-    def _get_agent(self, agent_id: AgentId) -> Agent:
-        self._process_seen_namespace(agent_id.namespace)
+    async def _get_agent(self, agent_id: AgentId) -> Agent:
+        await self._process_seen_namespace(agent_id.namespace)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
@@ -480,25 +486,25 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         agent_factory = self._agent_factories[agent_id.name]
 
-        agent = self._invoke_agent_factory(agent_factory, agent_id)
+        agent = await self._invoke_agent_factory(agent_factory, agent_id)
         for message_type in agent.metadata["subscriptions"]:
             self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
         self._instantiated_agents[agent_id] = agent
         return agent
 
-    def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return self._get_agent(AgentId(name=name, namespace=namespace)).id
+    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
+        return (await self._get_agent(AgentId(name=name, namespace=namespace))).id
 
-    def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
-        id = self.get(name, namespace=namespace)
+    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
+        id = await self.get(name, namespace=namespace)
         return AgentProxy(id, self)
 
     # Hydrate the agent instances in a namespace. The primary reason for this is
     # to ensure message type subscriptions are set up.
-    def _process_seen_namespace(self, namespace: str) -> None:
+    async def _process_seen_namespace(self, namespace: str) -> None:
         if namespace in self._known_namespaces:
             return
 
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
-            self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(name=name, namespace=namespace))

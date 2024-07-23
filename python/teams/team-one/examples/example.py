@@ -15,19 +15,19 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register agents.
-    coder = runtime.register_and_get_proxy(
+    coder = await runtime.register_and_get_proxy(
         "Coder",
         lambda: Coder(model_client=create_completion_client_from_env()),
     )
 
-    executor = runtime.register_and_get_proxy("Executor", lambda: Executor("A agent for executing code"))
+    executor = await runtime.register_and_get_proxy("Executor", lambda: Executor("A agent for executing code"))
 
-    user_proxy = runtime.register_and_get_proxy(
+    user_proxy = await runtime.register_and_get_proxy(
         "UserProxy",
         lambda: UserProxy(description="The current user interacting with you."),
     )
 
-    runtime.register(
+    await runtime.register(
         "orchestrator",
         lambda: LedgerOrchestrator(
             model_client=create_completion_client_from_env(), agents=[coder, executor, user_proxy]
