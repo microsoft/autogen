@@ -29,7 +29,7 @@ public partial class OpenAIChatAgentTest
     public async Task BasicConversationTestAsync()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
@@ -59,7 +59,7 @@ public partial class OpenAIChatAgentTest
     public async Task OpenAIChatMessageContentConnectorTestAsync()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
@@ -104,7 +104,7 @@ public partial class OpenAIChatAgentTest
     public async Task OpenAIChatAgentToolCallTestAsync()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
@@ -171,7 +171,7 @@ public partial class OpenAIChatAgentTest
     public async Task OpenAIChatAgentToolCallInvokingTestAsync()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
@@ -233,7 +233,7 @@ public partial class OpenAIChatAgentTest
     public async Task ItCreateOpenAIChatAgentWithChatCompletionOptionAsync()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var options = new ChatCompletionsOptions(deployName, [])
         {
             Temperature = 0.7f,
@@ -254,7 +254,7 @@ public partial class OpenAIChatAgentTest
     public async Task ItThrowExceptionWhenChatCompletionOptionContainsMessages()
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI(deployName);
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var options = new ChatCompletionsOptions(deployName, [new ChatRequestUserMessage("hi")])
         {
             Temperature = 0.7f,
@@ -270,7 +270,7 @@ public partial class OpenAIChatAgentTest
         action.Should().ThrowExactly<ArgumentException>().WithMessage("Messages should not be provided in options");
     }
 
-    private OpenAIClient CreateOpenAIClientFromAzureOpenAI(string deployName)
+    private OpenAIClient CreateOpenAIClientFromAzureOpenAI()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
