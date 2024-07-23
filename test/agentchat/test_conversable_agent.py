@@ -1463,6 +1463,58 @@ def test_adding_duplicate_function_warning():
         )
 
 
+def test_process_gemini_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover_content = "How can I help you?"
+    gemini_kwargs = {"carryover": [{"content": carryover_content}]}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=gemini_kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover_content, "Incorrect carryover processing"
+
+
+def test_process_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover = "How can I help you?"
+    kwargs = {"carryover": carryover}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    carryover_l = ["How can I help you?"]
+    kwargs = {"carryover": carryover_l}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    proc_content_empty_carryover = dummy_agent_1._process_carryover(content=content, kwargs={"carryover": None})
+    assert proc_content_empty_carryover == content, "Incorrect carryover processing"
+
+
+def test_handle_gemini_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant"
+    carryover_content = "How can I help you?"
+    gemini_kwargs = {"carryover": [{"content": carryover_content}]}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=gemini_kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover_content, "Incorrect carryover processing"
+
+
+def test_handle_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover = "How can I help you?"
+    kwargs = {"carryover": carryover}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    carryover_l = ["How can I help you?"]
+    kwargs = {"carryover": carryover_l}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    proc_content_empty_carryover = dummy_agent_1._handle_carryover(message=content, kwargs={"carryover": None})
+    assert proc_content_empty_carryover == content, "Incorrect carryover processing"
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1473,6 +1525,10 @@ if __name__ == "__main__":
     # test_max_turn()
     # test_process_before_send()
     # test_message_func()
+
     test_summary()
     test_adding_duplicate_function_warning()
     # test_function_registration_e2e_sync()
+
+    test_process_gemini_carryover()
+    test_process_carryover()
