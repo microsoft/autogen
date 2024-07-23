@@ -33,7 +33,7 @@ MONGODB_INDEX = os.environ.get("MONGODB_INDEX", "vector_index")
 
 RETRIES = 10
 DELAY = 2
-TIMEOUT = 60.0
+TIMEOUT = 120.0
 
 
 def _wait_for_predicate(predicate, err, timeout=TIMEOUT, interval=DELAY):
@@ -55,7 +55,7 @@ def _wait_for_predicate(predicate, err, timeout=TIMEOUT, interval=DELAY):
         sleep(DELAY)
 
 
-def _delete_search_indexes(collection: Collection, wait=False):
+def _delete_search_indexes(collection: Collection, wait=True):
     """Deletes all indexes in a collection
 
     Args:
@@ -71,7 +71,7 @@ def _delete_search_indexes(collection: Collection, wait=False):
         _wait_for_predicate(lambda: not list(collection.list_search_indexes()), "Not all collections deleted")
 
 
-def _empty_collections_and_delete_indexes(database, collections=None, wait=False):
+def _empty_collections_and_delete_indexes(database, collections=None, wait=True):
     """Empty all collections within the database and remove indexes
 
     Args:
@@ -79,7 +79,7 @@ def _empty_collections_and_delete_indexes(database, collections=None, wait=False
     """
     for collection_name in collections or database.list_collection_names():
         _delete_search_indexes(database[collection_name], wait)
-        database[collection_name].delete_many({})
+        database[collection_name].drop()
 
 
 @pytest.fixture

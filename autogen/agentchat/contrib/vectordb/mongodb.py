@@ -46,10 +46,10 @@ class MongoDBAtlasVectorDB(VectorDB):
             connection_string: str | The MongoDB connection string to connect to. Default is ''.
             database_name: str | The name of the database. Default is 'vector_db'.
             embedding_function: The embedding function used to generate the vector representation.
-            overwrite: bool | Overwrite existing collection with new information from this object
+            overwrite: bool | Overwrite existing collection with new information from this object.
                 defaults to False
-            wait_until_ready: bool | Blocking call to wait until the database indexes are READY
-                will timeout after 20 seconds. Defaults to False
+            wait_until_ready: float | None | Blocking call to wait until the
+                database indexes are ready. None, the default, means no wait.
         """
         self.embedding_function = embedding_function
         self.index_name = index_name
@@ -89,14 +89,21 @@ class MongoDBAtlasVectorDB(VectorDB):
                 return True
         return False
 
-    def _wait_for_index(self, collection: Collection, index_name: str):
-        """Waits for the index to be created to be ready, otherwise
-        throws a TimeoutError. Timeout set on instantiation"""
+    def _wait_for_index(self, collection: Collection, index_name: str, action: str = "create"):
+        """Waits for the index action to be completed. Otherwise throws a TimeoutError.
+
+        Timeout set on instantiation.
+        action: "create" or "delete"
+        """
+        assert action in ["create", "delete"], f"{action=} must be create or delete."
         start = monotonic()
         while monotonic() - start < self._wait_until_ready:
-            if self._is_index_ready(collection, index_name):
+            if action == "create" and self._is_index_ready(collection, index_name):
+                return
+            elif action == "delete" and len(list(collection.list_search_indexes())) == 0:
                 return
             sleep(_DELAY)
+
         raise TimeoutError(f"Index {self.index_name} is not ready!")
 
     def _get_embedding_size(self):
@@ -126,7 +133,7 @@ class MongoDBAtlasVectorDB(VectorDB):
             get_or_create: bool | Whether to get or create the collection. Default is True
         """
         if overwrite:
-            self.db.drop_collection(collection_name)
+            self.delete_collection(collection_name)
 
         if collection_name not in self.db.list_collection_names():
             # Create a new collection
@@ -186,6 +193,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         """
         for index in self.db[collection_name].list_search_indexes():
             self.db[collection_name].drop_search_index(index["name"])
+            if self._wait_until_ready:
+                self._wait_for_index(self.db[collection_name], index["name"], "delete")
         return self.db[collection_name].drop()
 
     def create_vector_search_index(
@@ -223,7 +232,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         try:
             collection.create_search_index(model=search_index_model)
             if self._wait_until_ready:
-                self._wait_for_index(collection, index_name)
+                self._wait_for_index(collection, index_name, "create")
             logger.debug(f"Search index {index_name} created successfully.")
         except Exception as e:
             logger.error(
@@ -233,13 +242,6 @@ class MongoDBAtlasVectorDB(VectorDB):
                 f"if you are on a free/shared cluster."
             )
             raise e
-
-    def upsert_docs(self, docs, collection):
-        for doc in docs:
-            query = {"id": doc["id"]}
-            doc["embedding"] = np.array(self.embedding_function([doc["content"]])).tolist()[0]
-            new_values = {"$set": doc}
-            collection.update_one(query, new_values, upsert=True)
 
     def insert_docs(
         self,
@@ -265,7 +267,7 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         collection = self.get_collection(collection_name)
         if upsert:
-            self.upsert_docs(docs, collection)
+            self.update_docs(docs, collection.name, upsert=True)
         else:
             # Sanity checking the first document
             if docs[0].get("content") is None:
@@ -341,7 +343,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         ]
         # insert the documents in MongoDB Atlas
         insert_result = collection.insert_many(to_insert)  # type: ignore
-        return insert_result.inserted_ids
+        return insert_result.inserted_ids  # TODO Remove this. Replace by log like update_docs
 
     def update_docs(self, docs: List[Document], collection_name: str = None, **kwargs: Any) -> None:
         """Update documents, including their embeddings, in the Collection.
@@ -457,11 +459,11 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Check status of index!
         if self._wait_until_ready:
             self._wait_for_index(collection, self.index_name)
-        logger.info(f"Using index: {self.index_name}")
+        logger.debug(f"Using index: {self.index_name}")
         results = []
         for query_text in queries:
             # Compute embedding vector from semantic query
-            logger.info(f"Query: {query_text}")
+            logger.debug(f"Query: {query_text}")
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
             # Find documents with similar vectors using the specified index
             query_result = _vector_search(
