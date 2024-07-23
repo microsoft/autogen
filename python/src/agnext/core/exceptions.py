@@ -15,3 +15,7 @@ class UndeliverableException(Exception):
 
 class MessageDroppedException(Exception):
     """Raised when a message is dropped."""
+
+
+class NotAccessibleError(Exception):
+    """Tried to access a value that is not accessible. For example if it is remote cannot be accessed locally."""

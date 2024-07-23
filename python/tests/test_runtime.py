@@ -34,11 +34,11 @@ async def test_register_receives_publish() -> None:
     await run_context.stop_when_idle()
 
     # Agent in default namespace should have received the message
-    long_running_agent: LoopbackAgent = await runtime._get_agent(await runtime.get("name")) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(await runtime.get("name"), type=LoopbackAgent)
     assert long_running_agent.num_calls == 1
 
     # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime._get_agent(await runtime.get("name", namespace="other")) # type: ignore
+    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(await runtime.get("name", namespace="other"), type=LoopbackAgent)
     assert other_long_running_agent.num_calls == 0
 
 
@@ -67,5 +67,5 @@ async def test_register_receives_publish_cascade() -> None:
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):
-        agent: CascadingAgent = await runtime._get_agent(await runtime.get(f"name{i}")) # type: ignore
+        agent = await runtime.try_get_underlying_agent_instance(await runtime.get(f"name{i}"), CascadingAgent)
         assert agent.num_calls == total_num_calls_expected

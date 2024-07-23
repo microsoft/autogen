@@ -21,6 +21,7 @@ from typing import (
     Mapping,
     ParamSpec,
     Set,
+    Type,
     TypeVar,
     cast,
 )
@@ -409,6 +410,10 @@ class WorkerAgentRuntime(AgentRuntime):
     async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
         id = await self.get(name, namespace=namespace)
         return AgentProxy(id, self)
+
+    # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
+    async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
+        raise NotImplementedError("try_get_underlying_agent_instance is not yet implemented.")
 
     # Hydrate the agent instances in a namespace. The primary reason for this is
     # to ensure message type subscriptions are set up.

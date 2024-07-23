@@ -9,7 +9,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, TypeVar, cast
+from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from ..core import (
     MESSAGE_TYPE_REGISTRY,
@@ -482,7 +482,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             return self._instantiated_agents[agent_id]
 
         if agent_id.name not in self._agent_factories:
-            raise ValueError(f"Agent with name {agent_id.name} not found.")
+            raise LookupError(f"Agent with name {agent_id.name} not found.")
 
         agent_factory = self._agent_factories[agent_id.name]
 
@@ -498,6 +498,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
         id = await self.get(name, namespace=namespace)
         return AgentProxy(id, self)
+
+    # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
+    async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
+        if id.name not in self._agent_factories:
+            raise LookupError(f"Agent with name {id.name} not found.")
+
+        # TODO: check if remote
+        agent_instance = await self._get_agent(id)
+
+        if not isinstance(agent_instance, type):
+            raise TypeError(f"Agent with name {id.name} is not of type {type.__name__}")
+
+        return agent_instance
 
     # Hydrate the agent instances in a namespace. The primary reason for this is
     # to ensure message type subscriptions are set up.

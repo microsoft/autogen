@@ -29,7 +29,7 @@ async def test_agent_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     agent1_id = await runtime.register_and_get("name1", StatefulAgent)
-    agent1: StatefulAgent = await runtime._get_agent(agent1_id) # type: ignore
+    agent1: StatefulAgent = await runtime.try_get_underlying_agent_instance(agent1_id, type=StatefulAgent)
     assert agent1.state == 0
     agent1.state = 1
     assert agent1.state == 1
@@ -47,7 +47,7 @@ async def test_runtime_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     agent1_id = await runtime.register_and_get("name1", StatefulAgent)
-    agent1: StatefulAgent = await runtime._get_agent(agent1_id) # type: ignore
+    agent1: StatefulAgent = await runtime.try_get_underlying_agent_instance(agent1_id, type=StatefulAgent)
     assert agent1.state == 0
     agent1.state = 1
     assert agent1.state == 1
@@ -56,7 +56,7 @@ async def test_runtime_can_save_state() -> None:
 
     runtime2 = SingleThreadedAgentRuntime()
     agent2_id = await runtime2.register_and_get("name1", StatefulAgent)
-    agent2: StatefulAgent = await runtime2._get_agent(agent2_id) # type: ignore
+    agent2: StatefulAgent = await runtime2.try_get_underlying_agent_instance(agent2_id, type=StatefulAgent)
 
     await runtime2.load_state(runtime_state)
     assert agent2.state == 1

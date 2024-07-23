@@ -73,7 +73,7 @@ async def test_cancellation_with_token() -> None:
         await response
 
     assert response.done()
-    long_running_agent: LongRunningAgent = await runtime._get_agent(long_running) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(long_running, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled
 
@@ -100,10 +100,10 @@ async def test_nested_cancellation_only_outer_called() -> None:
         await response
 
     assert response.done()
-    nested_agent: NestingLongRunningAgent = await runtime._get_agent(nested) # type: ignore
+    nested_agent = await runtime.try_get_underlying_agent_instance(nested, type=NestingLongRunningAgent)
     assert nested_agent.called
     assert nested_agent.cancelled
-    long_running_agent: LongRunningAgent = await runtime._get_agent(long_running) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(long_running, type=LongRunningAgent)
     assert long_running_agent.called is False
     assert long_running_agent.cancelled is False
 
@@ -130,9 +130,9 @@ async def test_nested_cancellation_inner_called() -> None:
         await response
 
     assert response.done()
-    nested_agent: NestingLongRunningAgent = await runtime._get_agent(nested) # type: ignore
+    nested_agent = await runtime.try_get_underlying_agent_instance(nested, type=NestingLongRunningAgent)
     assert nested_agent.called
     assert nested_agent.cancelled
-    long_running_agent: LongRunningAgent = await runtime._get_agent(long_running) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(long_running, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled

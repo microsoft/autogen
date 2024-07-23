@@ -27,7 +27,7 @@ async def test_intervention_count_messages() -> None:
     await run_context.stop()
 
     assert handler.num_messages == 1
-    loopback_agent: LoopbackAgent = await runtime._get_agent(loopback) # type: ignore
+    loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 1
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_intervention_drop_send() -> None:
 
     await run_context.stop()
 
-    loopback_agent: LoopbackAgent = await runtime._get_agent(loopback) # type: ignore
+    loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 0
 
 
@@ -92,7 +92,7 @@ async def test_intervention_raise_exception_on_send() -> None:
 
     await run_context.stop()
 
-    long_running_agent: LoopbackAgent = await runtime._get_agent(long_running) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(long_running, type=LoopbackAgent)
     assert long_running_agent.num_calls == 0
 
 @pytest.mark.asyncio
@@ -115,5 +115,5 @@ async def test_intervention_raise_exception_on_respond() -> None:
 
     await run_context.stop()
 
-    long_running_agent: LoopbackAgent = await runtime._get_agent(long_running) # type: ignore
+    long_running_agent = await runtime.try_get_underlying_agent_instance(long_running, type=LoopbackAgent)
     assert long_running_agent.num_calls == 1

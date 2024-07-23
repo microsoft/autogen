@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Awaitable, Callable, Generator, Mapping, Protocol, TypeVar, overload, runtime_checkable
+from typing import Any, Awaitable, Callable, Generator, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -143,6 +143,26 @@ class AgentRuntime(Protocol):
 
         Returns:
             AgentProxy: The agent proxy.
+        """
+        ...
+
+    # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
+    async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
+        """Try to get the underlying agent instance by name and namespace. This is generally discouraged (hence the long name), but can be useful in some cases.
+
+        If the underlying agent is not accessible, this will raise an exception.
+
+        Args:
+            id (AgentId): The agent id.
+            type (Type[T], optional): The expected type of the agent. Defaults to Agent.
+
+        Returns:
+            T: The concrete agent instance.
+
+        Raises:
+            LookupError: If the agent is not found.
+            NotAccessibleError: If the agent is not accessible, for example if it is located remotely.
+            TypeError: If the agent is not of the expected type.
         """
         ...
 
