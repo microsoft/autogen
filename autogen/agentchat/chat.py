@@ -107,6 +107,15 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
     return chat_order
 
 
+def _post_process_carryover_item(carryover_item):
+    if isinstance(carryover_item, str):
+        return carryover_item
+    elif isinstance(carryover_item, dict) and "content" in carryover_item:
+        return str(carryover_item["content"])
+    else:
+        return str(carryover_item)
+
+
 def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
     iostream = IOStream.get_default()
 
@@ -116,7 +125,7 @@ def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
             UserWarning,
         )
     print_carryover = (
-        ("\n").join([t for t in chat_info["carryover"]])
+        ("\n").join([_post_process_carryover_item(t) for t in chat_info["carryover"]])
         if isinstance(chat_info["carryover"], list)
         else chat_info["carryover"]
     )
