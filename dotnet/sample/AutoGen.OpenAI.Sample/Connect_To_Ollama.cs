@@ -4,8 +4,7 @@
 #region using_statement
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
+using OpenAI;
 #endregion using_statement
 
 namespace AutoGen.OpenAI.Sample;
@@ -34,21 +33,20 @@ public class Connect_To_Ollama
     public static async Task RunAsync()
     {
         #region create_agent
-        using var client = new HttpClient(new CustomHttpClientHandler("http://localhost:11434"));
-        var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2024_04_01_Preview)
+        var option = new OpenAIClientOptions()
         {
-            Transport = new HttpClientTransport(client),
+            Endpoint = new Uri("http://localhost:11434"),
         };
 
         // api-key is not required for local server
         // so you can use any string here
         var openAIClient = new OpenAIClient("api-key", option);
         var model = "llama3";
+        var chatClient = openAIClient.GetChatClient(model);
 
         var agent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: chatClient,
             name: "assistant",
-            modelName: model,
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0)
             .RegisterMessageConnector()

@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
 using AutoGen.Tests;
-using Azure.AI.OpenAI;
 using FluentAssertions;
 
 namespace AutoGen.OpenAI.Tests;

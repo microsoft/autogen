@@ -7,8 +7,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
-using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
+using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen.LMStudio;
 
@@ -28,15 +28,15 @@ public class LMStudioAgent : IAgent
         string systemMessage = "You are a helpful AI assistant",
         float temperature = 0.7f,
         int maxTokens = 1024,
-        IEnumerable<FunctionDefinition>? functions = null,
+        IEnumerable<ChatTool>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
         var client = ConfigOpenAIClientForLMStudio(config);
+        var chatClient = client.GetChatClient("llm"); // model name doesn't matter for LM Studio
         innerAgent = new GPTAgent(
             name: name,
             systemMessage: systemMessage,
-            openAIClient: client,
-            modelName: "llm", // model name doesn't matter for LM Studio
+            chatClient: chatClient,
             temperature: temperature,
             maxTokens: maxTokens,
             functions: functions,
@@ -57,11 +57,9 @@ public class LMStudioAgent : IAgent
     {
         // create uri from host and port
         var uri = config.Uri;
-        var handler = new CustomHttpClientHandler(uri);
-        var httpClient = new HttpClient(handler);
-        var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2022_12_01)
+        var option = new OpenAIClientOptions()
         {
-            Transport = new HttpClientTransport(httpClient),
+            Endpoint = uri,
         };
 
         return new OpenAIClient("api-key", option);

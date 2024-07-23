@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
+using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen.OpenAI;
 
@@ -19,7 +21,7 @@ namespace AutoGen.OpenAI;
 /// <para>- <see cref="ToolCallMessage"/></para>
 /// <para>- <see cref="ToolCallResultMessage"/></para>
 /// <para>- <see cref="Message"/></para>
-/// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
+/// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// 
 /// <para><see cref="GPTAgent" /> returns the following message types:</para>
@@ -29,7 +31,6 @@ namespace AutoGen.OpenAI;
 /// </summary>
 public class GPTAgent : IStreamingAgent
 {
-    private readonly OpenAIClient openAIClient;
     private readonly IStreamingAgent _innerAgent;
 
     public GPTAgent(
@@ -39,13 +40,13 @@ public class GPTAgent : IStreamingAgent
         float temperature = 0.7f,
         int maxTokens = 1024,
         int? seed = null,
-        ChatCompletionsResponseFormat? responseFormat = null,
-        IEnumerable<FunctionDefinition>? functions = null,
+        ChatResponseFormat? responseFormat = null,
+        IEnumerable<ChatTool>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
-        openAIClient = config switch
+        var openAIClient = config switch
         {
-            AzureOpenAIConfig azureConfig => new OpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
+            AzureOpenAIConfig azureConfig => new AzureOpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
             OpenAIConfig openAIConfig => new OpenAIClient(openAIConfig.ApiKey),
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
@@ -57,7 +58,7 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
+        _innerAgent = new OpenAIChatAgent(openAIClient.GetChatClient(modelName), name, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
             .RegisterMessageConnector();
 
         if (functionMap is not null)
@@ -72,19 +73,16 @@ public class GPTAgent : IStreamingAgent
     public GPTAgent(
         string name,
         string systemMessage,
-        OpenAIClient openAIClient,
-        string modelName,
+        ChatClient chatClient,
         float temperature = 0.7f,
         int maxTokens = 1024,
         int? seed = null,
-        ChatCompletionsResponseFormat? responseFormat = null,
-        IEnumerable<FunctionDefinition>? functions = null,
+        ChatResponseFormat? responseFormat = null,
+        IEnumerable<ChatTool>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
-        this.openAIClient = openAIClient;
         Name = name;
-
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
+        _innerAgent = new OpenAIChatAgent(chatClient, name, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
             .RegisterMessageConnector();
 
         if (functionMap is not null)

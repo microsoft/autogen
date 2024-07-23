@@ -3,9 +3,9 @@
 
 using System.Text;
 using System.Text.Json;
-using Azure.AI.OpenAI;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Documents.Jupyter;
+using OpenAI.Chat;
 
 namespace AutoGen.DotnetInteractive;
 
@@ -190,15 +190,14 @@ public class DotnetInteractiveFunction : IDisposable
         return RunCode(schema!.code);
     }
 
-    public FunctionDefinition RunCodeFunction
+    public ChatTool RunCodeFunction
     {
-        get => new FunctionDefinition
-        {
-            Name = @"RunCode",
-            Description = """
+        get => ChatTool.CreateFunctionTool(
+            functionName: @"RunCode",
+            functionDescription: """
 Run existing dotnet code from message. Don't modify the code, run it as is.
 """,
-            Parameters = BinaryData.FromObjectAsJson(new
+            functionParameters: BinaryData.FromObjectAsJson(new
             {
                 Type = "object",
                 Properties = new
@@ -217,8 +216,7 @@ Run existing dotnet code from message. Don't modify the code, run it as is.
             new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
+            }));
     }
 
     private class InstallNugetPackagesSchema
@@ -238,15 +236,14 @@ Run existing dotnet code from message. Don't modify the code, run it as is.
         return InstallNugetPackages(schema!.nugetPackages);
     }
 
-    public FunctionDefinition InstallNugetPackagesFunction
+    public ChatTool InstallNugetPackagesFunction
     {
-        get => new FunctionDefinition
-        {
-            Name = @"InstallNugetPackages",
-            Description = """
+        get => ChatTool.CreateFunctionTool(
+            functionName: @"InstallNugetPackages",
+            functionDescription: """
 Install nuget packages.
 """,
-            Parameters = BinaryData.FromObjectAsJson(new
+            functionParameters: BinaryData.FromObjectAsJson(new
             {
                 Type = "object",
                 Properties = new
@@ -263,15 +260,15 @@ Install nuget packages.
                 },
                 Required = new[]
                 {
-                        "nugetPackages",
-                    },
+                    "nugetPackages",
+                },
             },
             new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
+            }));
     }
+
     public void Dispose()
     {
         this._interactiveService?.Dispose();
