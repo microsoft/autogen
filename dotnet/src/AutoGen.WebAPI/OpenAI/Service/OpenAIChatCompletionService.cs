@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.Core;
-using AutoGen.Service.OpenAI.DTO;
+using AutoGen.WebAPI.OpenAI.DTO;
 
 namespace AutoGen.Server;
 
