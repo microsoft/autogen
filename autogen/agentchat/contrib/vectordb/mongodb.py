@@ -16,7 +16,6 @@ logger = get_logger(__name__)
 
 DEFAULT_INSERT_BATCH_SIZE = 100_000
 _SAMPLE_SENTENCE = ["The weather is lovely today in paradise."]
-_TIMEOUT = 20.0
 _DELAY = 0.5
 
 
@@ -38,7 +37,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         index_name: str = "vector_index",
         overwrite: bool = False,
-        wait_until_ready: bool = False,
+        wait_until_ready: float | None = None,
     ):
         """
         Initialize the vector database.
@@ -90,11 +89,11 @@ class MongoDBAtlasVectorDB(VectorDB):
                 return True
         return False
 
-    def _wait_for_index(self, collection: Collection, index_name: str, timeout=_TIMEOUT):
-        """Waits up to 20 seconds for the index to be created to be ready, otherwise
-        throws a TimeoutError"""
+    def _wait_for_index(self, collection: Collection, index_name: str):
+        """Waits for the index to be created to be ready, otherwise
+        throws a TimeoutError. Timeout set on instantiation"""
         start = monotonic()
-        while monotonic() - start < timeout:
+        while monotonic() - start < self._wait_until_ready:
             if self._is_index_ready(collection, index_name):
                 return
             sleep(_DELAY)
@@ -185,6 +184,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         Args:
             collection_name: str | The name of the collection.
         """
+        for index in self.db[collection_name].list_search_indexes():
+            self.db[collection_name].drop_search_index(index["name"])
         return self.db[collection_name].drop()
 
     def create_vector_search_index(
