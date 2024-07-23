@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
@@ -32,13 +33,8 @@ namespace AutoGen.OpenAI;
 public class OpenAIChatAgent : IStreamingAgent
 {
     private readonly OpenAIClient openAIClient;
-    private readonly string modelName;
-    private readonly float _temperature;
-    private readonly int _maxTokens = 1024;
-    private readonly IEnumerable<FunctionDefinition>? _functions;
-    private readonly string _systemMessage;
-    private readonly ChatCompletionsResponseFormat? _responseFormat;
-    private readonly int? _seed;
+    private readonly ChatCompletionsOptions options;
+    private readonly string systemMessage;
 
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatAgent"/>.
@@ -62,16 +58,36 @@ public class OpenAIChatAgent : IStreamingAgent
         int? seed = null,
         ChatCompletionsResponseFormat? responseFormat = null,
         IEnumerable<FunctionDefinition>? functions = null)
+        : this(
+            openAIClient: openAIClient,
+            name: name,
+            options: CreateChatCompletionOptions(modelName, temperature, maxTokens, seed, responseFormat, functions),
+            systemMessage: systemMessage)
     {
+    }
+
+    /// <summary>
+    /// Create a new instance of <see cref="OpenAIChatAgent"/>.
+    /// </summary>
+    /// <param name="openAIClient">openai client</param>
+    /// <param name="name">agent name</param>
+    /// <param name="systemMessage">system message</param>
+    /// <param name="options">chat completion option. The option can't contain messages</param>
+    public OpenAIChatAgent(
+        OpenAIClient openAIClient,
+        string name,
+        ChatCompletionsOptions options,
+        string systemMessage = "You are a helpful AI assistant")
+    {
+        if (options.Messages is { Count: > 0 })
+        {
+            throw new ArgumentException("Messages should not be provided in options");
+        }
+
         this.openAIClient = openAIClient;
-        this.modelName = modelName;
         this.Name = name;
-        _temperature = temperature;
-        _maxTokens = maxTokens;
-        _functions = functions;
-        _systemMessage = systemMessage;
-        _responseFormat = responseFormat;
-        _seed = seed;
+        this.options = options;
+        this.systemMessage = systemMessage;
     }
 
     public string Name { get; }
@@ -116,22 +132,25 @@ public class OpenAIChatAgent : IStreamingAgent
         // add system message if there's no system message in messages
         if (!oaiMessages.Any(m => m is ChatRequestSystemMessage))
         {
-            oaiMessages = new[] { new ChatRequestSystemMessage(_systemMessage) }.Concat(oaiMessages);
+            oaiMessages = new[] { new ChatRequestSystemMessage(systemMessage) }.Concat(oaiMessages);
         }
 
-        var settings = new ChatCompletionsOptions(this.modelName, oaiMessages)
-        {
-            MaxTokens = options?.MaxToken ?? _maxTokens,
-            Temperature = options?.Temperature ?? _temperature,
-            ResponseFormat = _responseFormat,
-            Seed = _seed,
-        };
+        // clone the options by serializing and deserializing
+        var json = JsonSerializer.Serialize(this.options);
+        var settings = JsonSerializer.Deserialize<ChatCompletionsOptions>(json) ?? throw new InvalidOperationException("Failed to clone options");
 
-        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition());
-        var functions = openAIFunctionDefinitions ?? _functions;
-        if (functions is not null && functions.Count() > 0)
+        foreach (var m in oaiMessages)
         {
-            foreach (var f in functions)
+            settings.Messages.Add(m);
+        }
+
+        settings.Temperature = options?.Temperature ?? settings.Temperature;
+        settings.MaxTokens = options?.MaxToken ?? settings.MaxTokens;
+
+        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition()).ToList();
+        if (openAIFunctionDefinitions is { Count: > 0 })
+        {
+            foreach (var f in openAIFunctionDefinitions)
             {
                 settings.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
             }
@@ -146,5 +165,32 @@ public class OpenAIChatAgent : IStreamingAgent
         }
 
         return settings;
+    }
+
+    private static ChatCompletionsOptions CreateChatCompletionOptions(
+        string modelName,
+        float temperature = 0.7f,
+        int maxTokens = 1024,
+        int? seed = null,
+        ChatCompletionsResponseFormat? responseFormat = null,
+        IEnumerable<FunctionDefinition>? functions = null)
+    {
+        var options = new ChatCompletionsOptions(modelName, [])
+        {
+            Temperature = temperature,
+            MaxTokens = maxTokens,
+            Seed = seed,
+            ResponseFormat = responseFormat,
+        };
+
+        if (functions is not null)
+        {
+            foreach (var f in functions)
+            {
+                options.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
+            }
+        }
+
+        return options;
     }
 }
