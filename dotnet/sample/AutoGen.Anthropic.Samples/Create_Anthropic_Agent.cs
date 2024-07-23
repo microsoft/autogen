@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// AnthropicSamples.cs
+// Create_Anthropic_Agent.cs
 
 using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
@@ -7,7 +7,7 @@ using AutoGen.Core;
 
 namespace AutoGen.Anthropic.Samples;
 
-public static class AnthropicSamples
+public static class Create_Anthropic_Agent
 {
     public static async Task RunAsync()
     {

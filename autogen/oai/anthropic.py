@@ -16,6 +16,27 @@ config_list = [
 ]
 
 assistant = autogen.AssistantAgent("assistant", llm_config={"config_list": config_list})
+
+Example usage for Anthropic Bedrock:
+
+Install the `anthropic` package by running `pip install --upgrade anthropic`.
+- https://docs.anthropic.com/en/docs/quickstart-guide
+
+import autogen
+
+config_list = [
+    {
+        "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "aws_access_key":<accessKey>,
+        "aws_secret_key":<secretKey>,
+        "aws_session_token":<sessionTok>,
+        "aws_region":"us-east-1",
+        "api_type": "anthropic",
+    }
+]
+
+assistant = autogen.AssistantAgent("assistant", llm_config={"config_list": config_list})
+
 """
 
 from __future__ import annotations
@@ -28,7 +49,7 @@ import time
 import warnings
 from typing import Any, Dict, List, Tuple, Union
 
-from anthropic import Anthropic
+from anthropic import Anthropic, AnthropicBedrock
 from anthropic import __version__ as anthropic_version
 from anthropic.types import Completion, Message, TextBlock, ToolUseBlock
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
@@ -49,10 +70,10 @@ ANTHROPIC_PRICING_1k = {
     "claude-3-5-sonnet-20240620": (0.003, 0.015),
     "claude-3-sonnet-20240229": (0.003, 0.015),
     "claude-3-opus-20240229": (0.015, 0.075),
-    "claude-2.0": (0.008, 0.024),
+    "claude-3-haiku-20240307": (0.00025, 0.00125),
     "claude-2.1": (0.008, 0.024),
-    "claude-3.0-opus": (0.015, 0.075),
-    "claude-3.0-haiku": (0.00025, 0.00125),
+    "claude-2.0": (0.008, 0.024),
+    "claude-instant-1.2": (0.008, 0.024),
 }
 
 
@@ -64,14 +85,44 @@ class AnthropicClient:
             api_key (str): The API key for the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable.
         """
         self._api_key = kwargs.get("api_key", None)
+        self._aws_access_key = kwargs.get("aws_access_key", None)
+        self._aws_secret_key = kwargs.get("aws_secret_key", None)
+        self._aws_session_token = kwargs.get("aws_session_token", None)
+        self._aws_region = kwargs.get("aws_region", None)
 
         if not self._api_key:
             self._api_key = os.getenv("ANTHROPIC_API_KEY")
 
-        if self._api_key is None:
-            raise ValueError("API key is required to use the Anthropic API.")
+        if not self._aws_access_key:
+            self._aws_access_key = os.getenv("AWS_ACCESS_KEY")
 
-        self._client = Anthropic(api_key=self._api_key)
+        if not self._aws_secret_key:
+            self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
+
+        if not self._aws_session_token:
+            self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
+
+        if not self._aws_region:
+            self._aws_region = os.getenv("AWS_REGION")
+
+        if self._api_key is None and (
+            self._aws_access_key is None
+            or self._aws_secret_key is None
+            or self._aws_session_token is None
+            or self._aws_region is None
+        ):
+            raise ValueError("API key or AWS credentials are required to use the Anthropic API.")
+
+        if self._api_key is not None:
+            self._client = Anthropic(api_key=self._api_key)
+        else:
+            self._client = AnthropicBedrock(
+                aws_access_key=self._aws_access_key,
+                aws_secret_key=self._aws_secret_key,
+                aws_session_token=self._aws_session_token,
+                aws_region=self._aws_region,
+            )
+
         self._last_tooluse_status = {}
 
     def load_config(self, params: Dict[str, Any]):
@@ -106,6 +157,22 @@ class AnthropicClient:
     @property
     def api_key(self):
         return self._api_key
+
+    @property
+    def aws_access_key(self):
+        return self._aws_access_key
+
+    @property
+    def aws_secret_key(self):
+        return self._aws_secret_key
+
+    @property
+    def aws_session_token(self):
+        return self._aws_session_token
+
+    @property
+    def aws_region(self):
+        return self._aws_region
 
     def create(self, params: Dict[str, Any]) -> Completion:
         if "tools" in params:
@@ -250,6 +317,7 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
     tool_use_messages = 0
     tool_result_messages = 0
     last_tool_use_index = -1
+    last_tool_result_index = -1
     for message in params["messages"]:
         if message["role"] == "system":
             params["system"] = message["content"]
@@ -290,25 +358,26 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
                         }
                     )
             elif "tool_call_id" in message:
-
-                if expected_role == "assistant":
-                    # Insert an extra assistant message as we will append a user message
-                    processed_messages.append(assistant_continue_message)
-
                 if has_tools:
                     # Map the tool usage call to tool_result for Anthropic
-                    processed_messages.append(
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": message["tool_call_id"],
-                                    "content": message["content"],
-                                }
-                            ],
-                        }
-                    )
+                    tool_result = {
+                        "type": "tool_result",
+                        "tool_use_id": message["tool_call_id"],
+                        "content": message["content"],
+                    }
+
+                    # If the previous message also had a tool_result, add it to that
+                    # Otherwise append a new message
+                    if last_tool_result_index == len(processed_messages) - 1:
+                        processed_messages[-1]["content"].append(tool_result)
+                    else:
+                        if expected_role == "assistant":
+                            # Insert an extra assistant message as we will append a user message
+                            processed_messages.append(assistant_continue_message)
+
+                        processed_messages.append({"role": "user", "content": [tool_result]})
+                        last_tool_result_index = len(processed_messages) - 1
+
                     tool_result_messages += 1
                 else:
                     # Not using tools, so put in a plain text message
