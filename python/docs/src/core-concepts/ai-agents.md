@@ -163,6 +163,11 @@ from agnext.core import CancellationToken
 class MyMessage:
     content: str
 
+@dataclass
+class FunctionExecutionException(BaseException):
+    call_id: str
+    content: str
+
 class ToolAgent(TypeRoutedAgent):
     def __init__(self, model_client: ChatCompletionClient, tools: List[Tool]) -> None:
         super().__init__("An agent with tools")
@@ -184,12 +189,20 @@ class ToolAgent(TypeRoutedAgent):
         # Keep iterating until the model stops generating tool calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
             # Execute functions called by the model by sending messages to itself.
-            results: List[FunctionExecutionResult] = await asyncio.gather(
-                *[self.send_message(call, self.id, cancellation_token=cancellation_token) for call in response.content]
+            results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
+                *[self.send_message(call, self.id) for call in response.content],
+                return_exceptions=True,
             )
-            # Combine the results into a single response.
-            result = FunctionExecutionResultMessage(content=results)
-            session.append(result)
+            # Combine the results into a single response and handle exceptions.
+            function_results : List[FunctionExecutionResult] = []
+            for result in results:
+                if isinstance(result, FunctionExecutionResult):
+                    function_results.append(result)
+                elif isinstance(result, FunctionExecutionException):
+                    function_results.append(FunctionExecutionResult(content=f"Error: {result}", call_id=result.call_id))
+                elif isinstance(result, BaseException):
+                    raise result # Unexpected exception.
+            session.append(FunctionExecutionResultMessage(content=function_results))
             # Query the model again with the new response.
             response = await self._model_client.create(
                 self._system_messages + session, tools=self._tools, cancellation_token=cancellation_token
@@ -203,19 +216,18 @@ class ToolAgent(TypeRoutedAgent):
     async def handle_function_call(
         self, message: FunctionCall, cancellation_token: CancellationToken
     ) -> FunctionExecutionResult:
-        # Execute the function called by the model.
         tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
-            result_as_str = f"Error: Tool not found: {message.name}"
+            raise FunctionExecutionException(call_id=message.id, content=f"Error: Tool not found: {message.name}")
         else:
             try:
                 arguments = json.loads(message.arguments)
                 result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
-            except json.JSONDecodeError:
-                result_as_str = f"Error: Invalid arguments: {message.arguments}"
+            except json.JSONDecodeError as e:
+                raise FunctionExecutionException(call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}") from e
             except Exception as e:
-                result_as_str = f"Error: {e}"
+                raise FunctionExecutionException(call_id=message.id, content=f"Error: {e}") from e
         return FunctionExecutionResult(content=result_as_str, call_id=message.id)
 ```
 
@@ -270,7 +282,8 @@ The stock price of NVDA on June 1, 2024, was $26.49.
 
 See [samples](https://github.com/microsoft/agnext/tree/main/python/samples#tool-use-examples)
 for more examples of using tools with agents, including how to use
-broadcast communication model for tool execution.
+broadcast communication model for tool execution, and how to intercept tool
+execution for human-in-the-loop approval.
 
 ## Memory
 

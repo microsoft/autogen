@@ -42,6 +42,12 @@ class Message:
     content: str
 
 
+@dataclass
+class FunctionExecutionException(BaseException):
+    call_id: str
+    content: str
+
+
 class ToolEnabledAgent(TypeRoutedAgent):
     """An agent that uses tools to perform tasks. It executes the tools
     by itself by sending the tool execution task to itself."""
@@ -68,12 +74,20 @@ class ToolEnabledAgent(TypeRoutedAgent):
 
         # Keep executing the tools until the response is not a list of function calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            results: List[FunctionExecutionResult] = await asyncio.gather(
-                *[self.send_message(call, self.id) for call in response.content]
+            results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
+                *[self.send_message(call, self.id) for call in response.content],
+                return_exceptions=True,
             )
-            # Combine the results into a single response.
-            result = FunctionExecutionResultMessage(content=results)
-            session.append(result)
+            # Combine the results into a single response and handle exceptions.
+            function_results: List[FunctionExecutionResult] = []
+            for result in results:
+                if isinstance(result, FunctionExecutionResult):
+                    function_results.append(result)
+                elif isinstance(result, FunctionExecutionException):
+                    function_results.append(FunctionExecutionResult(content=f"Error: {result}", call_id=result.call_id))
+                elif isinstance(result, BaseException):
+                    raise result
+            session.append(FunctionExecutionResultMessage(content=function_results))
             # Execute the model again with the new response.
             response = await self._model_client.create(self._system_messages + session, tools=self._tools)
             session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
@@ -89,16 +103,18 @@ class ToolEnabledAgent(TypeRoutedAgent):
         # Find the tool
         tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
-            result_as_str = f"Error: Tool not found: {message.name}"
+            raise FunctionExecutionException(call_id=message.id, content=f"Error: Tool not found: {message.name}")
         else:
             try:
                 arguments = json.loads(message.arguments)
                 result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
-            except json.JSONDecodeError:
-                result_as_str = f"Error: Invalid arguments: {message.arguments}"
+            except json.JSONDecodeError as e:
+                raise FunctionExecutionException(
+                    call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}"
+                ) from e
             except Exception as e:
-                result_as_str = f"Error: {e}"
+                raise FunctionExecutionException(call_id=message.id, content=f"Error: {e}") from e
         return FunctionExecutionResult(content=result_as_str, call_id=message.id)
 
 
