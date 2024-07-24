@@ -51,6 +51,12 @@ We provide interactive demos that showcase applications that can be built using 
     the group chat pattern.
 - [`chest_game.py`](demos/chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 
+## Bring Your Own Agent
+
+We provide examples on how to integrate other agents with the platform:
+
+- [`llamaindex.py`](byoa/llamaIndex.py): An example that shows how to consume a llamaindex agent.
+
 ## Running the examples
 
 ### Prerequisites
