@@ -45,7 +45,6 @@ exclude = [
     "math_utils\\.py$",
     "**/cap/py/autogencap/proto/*",
 ]
-ignore-init-module-imports = true
 unfixable = ["F401"]
 
 [tool.ruff.lint.mccabe]

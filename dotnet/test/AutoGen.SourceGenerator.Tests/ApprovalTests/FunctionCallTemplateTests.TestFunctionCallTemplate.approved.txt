@@ -61,11 +61,6 @@ namespace AutoGen.SourceGenerator.Tests
                 },
             };
         }
-
-        public global::Azure.AI.OpenAI.FunctionDefinition AddAsyncFunction
-        {
-            get => this.AddAsyncFunctionContract.ToOpenAIFunctionDefinition();
-        }
     }
 }
 

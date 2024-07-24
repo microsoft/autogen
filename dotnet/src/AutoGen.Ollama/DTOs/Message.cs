@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// ChatResponseUpdate.cs
+// Message.cs
 
 using System.Collections.Generic;
 using System.Text.Json.Serialization;

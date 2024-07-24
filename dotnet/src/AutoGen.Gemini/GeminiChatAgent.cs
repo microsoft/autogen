@@ -143,7 +143,7 @@ public class GeminiChatAgent : IStreamingAgent
         return MessageEnvelope.Create(response, this.Name);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var request = BuildChatRequest(messages, options);
         var response = this.client.GenerateContentStreamAsync(request);
