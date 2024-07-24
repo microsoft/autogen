@@ -4,7 +4,7 @@
 using AutoGen.Core;
 using Microsoft.AspNetCore.Builder;
 
-namespace AutoGen.Service;
+namespace AutoGen.WebAPI;
 
 public static class Extension
 {
