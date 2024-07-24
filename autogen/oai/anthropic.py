@@ -106,9 +106,7 @@ class AnthropicClient:
             self._aws_region = os.getenv("AWS_REGION")
 
         if self._api_key is None and (
-            self._aws_access_key is None
-            or self._aws_secret_key is None
-            or self._aws_region is None
+            self._aws_access_key is None or self._aws_secret_key is None or self._aws_region is None
         ):
             raise ValueError("API key or AWS credentials are required to use the Anthropic API.")
 
