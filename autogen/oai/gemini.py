@@ -134,6 +134,7 @@ class GeminiClient:
                 "location" not in kwargs
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
             genai.configure(api_key=self.api_key)
+        self.context_cache = None
 
     def message_retrieval(self, response) -> List:
         """
@@ -180,6 +181,8 @@ class GeminiClient:
         n_response = params.get("n", 1)
         system_instruction = params.get("system_instruction", None)
         response_validation = params.get("response_validation", True)
+        context_cache = params.get('context_cache', None)
+        self.context_cache = context_cache  # Keep the cache reference used at the creation time
 
         generation_config = {
             gemini_term: params[autogen_term]
@@ -203,16 +206,22 @@ class GeminiClient:
                 "Gemini only supports `n=1` for now. We only generate one response.",
                 UserWarning)
 
+        gen_model_cls = GenerativeModel if self.use_vertexai else genai.GenerativeModel
+        if context_cache:
+            model = gen_model_cls(
+                model_name,
+                generation_config=generation_config,
+                safety_settings=safety_settings,
+                system_instruction=system_instruction,
+            )
+        else:
+            # Context prefix caching can help reduce the cost.
+            model = gen_model_cls.from_cached_content(cached_content=context_cache)
+
         if "vision" not in model_name:
             # A. create and call the chat model.
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
             if self.use_vertexai:
-                model = GenerativeModel(
-                    model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=system_instruction,
-                )
                 # `response_validation=True` (default) sanitizes the chat history by logging
                 # only valid and complete messages. Blocked messages should be excluded to keep
                 # the chat session state usable. This is only available in Vertex AI SDK.
@@ -220,12 +229,6 @@ class GeminiClient:
                     history=gemini_messages[:-1],
                     response_validation=response_validation)
             else:
-                model = genai.GenerativeModel(
-                    model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=system_instruction,
-                )
                 chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
             for attempt in range(max_retries):
@@ -259,21 +262,7 @@ class GeminiClient:
             prompt_tokens = model.count_tokens(chat.history[:-1]).total_tokens
             completion_tokens = model.count_tokens(ans).total_tokens
         elif model_name == "gemini-pro-vision":
-            # B. handle the vision model
-            if self.use_vertexai:
-                model = GenerativeModel(
-                    model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=system_instruction,
-                )
-            else:
-                model = genai.GenerativeModel(
-                    model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=system_instruction,
-                )
+            # B. handle the vision model.
             # Gemini's vision model does not support chat history yet
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1].parts)
@@ -302,6 +291,9 @@ class GeminiClient:
                                         function_call=None,
                                         tool_calls=None)
         choices = [Choice(finish_reason="stop", index=0, message=message)]
+        context_cache_tokens = int(
+            self.context_cache.usage_metadata.total_token_count if self.
+            context_cache else 0)
 
         response_oai = ChatCompletion(
             id=str(random.randint(0, 1000)),
@@ -314,7 +306,8 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
-            cost=calculate_gemini_cost(prompt_tokens, completion_tokens,
+            cost=calculate_gemini_cost(prompt_tokens - context_cache_tokens,
+                                       completion_tokens, context_cache_tokens,
                                        model_name),
         )
 
@@ -476,8 +469,11 @@ class GeminiClient:
 
 class GeminiContextCache:
     """
-    Context cache for Gemini models. Context cache helps reduce the cost by caching
-    the same input tokens that are used repeatedly. A cache instance is created using
+    Context cache for Gemini models. The semantics of this cache operation is different
+    from the generic autogen.cache, where the input prompt and the agent outputs are cached.
+    Here, context cache stores the common prefix tokens to Gemini models.
+
+    Context cache helps reduce the cost by caching the same input tokens that are used repeatedly. A cache instance is created using
     a publisher model and the model name is immutable once the cache is created.
     The created cache has TTL (1 hour by default) and this can be updated after the creation.
     The cost for caching depends on the input token size and how long you want the tokens to persist.
@@ -518,15 +514,19 @@ class GeminiContextCache:
 
     @property
     def model(self) -> str:
-        return self.cache._proto.model
+        return self.cache.model()
+
+    @property
+    def name(self) -> str:
+        return self.cache.name()
 
     @property
     def display_name(self) -> str:
-        return self.cache._proto.display_name
+        return self.cache.display_name()
 
     @property
     def usage_metadata(self) -> protos.CachedContent.UsageMetadata:
-        return self.cache._proto.usage_metadata
+        return self.cache.usage_metadata()
 
     @property
     def expire_time(self) -> datetime.datetime:
@@ -571,11 +571,12 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
 
 
 def calculate_gemini_cost(input_tokens: int, output_tokens: int,
-                          model_name: str) -> float:
+                          context_cache_tokens: int, model_name: str) -> float:
+    # TODO(yeounoh) - update the pricing model to reflect the prompt size
     if "1.5" in model_name or "gemini-experimental" in model_name:
         # "gemini-1.5-pro-preview-0409"
         # Cost is $7 per million input tokens and $21 per million output tokens
-        return 7.0 * input_tokens / 1e6 + 21.0 * output_tokens / 1e6
+        return 7.0 * input_tokens / 1e6 + 21.0 * output_tokens / 1e6 + 1.75 * context_cache_tokens / 1e6
 
     if "gemini-pro" not in model_name and "gemini-1.0-pro" not in model_name:
         warnings.warn(
