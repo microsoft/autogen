@@ -146,6 +146,7 @@ class GeminiClient:
         return [choice.message for choice in response.choices]
 
     def cost(self, response) -> float:
+        # TODO(yeounoh) should use cost calculation function.
         return response.cost
 
     @staticmethod

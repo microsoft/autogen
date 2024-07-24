@@ -268,14 +268,35 @@ def test_internal_server_error_retry(mock_genai, gemini_client):
 # Test cost calculation
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_cost_calculation(gemini_client, mock_response):
+    # TODO(yeounoh) - update the test case so that it is more meaningful.
     response = mock_response(
         text="Example response",
         choices=[{"message": "Test message 1"}],
         usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-        cost=0.01,
+        cost=0.000175,
         model="gemini-pro",
     )
     assert gemini_client.cost(response) > 0, "Cost should be correctly calculated as zero"
+
+    response_with_cache = mock_response(
+        text="Example response",
+        choices=[{
+            "message": "Test message 1"
+        }],
+        usage={
+            # openai usage stats do not reflect gemini context caching.
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15,
+            # context_cache_tokens should offset prompt_tokens and reduce the
+            # total cost durign the cost calculation.
+            "context_cache_tokens": 3
+        },
+        cost=0.00015925,
+        model="gemini-pro",
+    )
+    assert gemini_client.cost(response) > gemini_client.cost(response_with_cache), \
+            "Context caching should reduce the cost."
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
