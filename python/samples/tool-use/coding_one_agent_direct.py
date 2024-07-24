@@ -38,22 +38,7 @@ from common.utils import get_chat_completion_client_from_envs
 
 
 @dataclass
-class ToolExecutionTask:
-    function_call: FunctionCall
-
-
-@dataclass
-class ToolExecutionTaskResult:
-    result: FunctionExecutionResult
-
-
-@dataclass
-class UserRequest:
-    content: str
-
-
-@dataclass
-class AIResponse:
+class Message:
     content: str
 
 
@@ -74,7 +59,7 @@ class ToolEnabledAgent(TypeRoutedAgent):
         self._tools = tools
 
     @message_handler
-    async def handle_user_message(self, message: UserRequest, cancellation_token: CancellationToken) -> AIResponse:
+    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
         """Handle a user message, execute the model and tools, and returns the response."""
         session: List[LLMMessage] = []
         session.append(UserMessage(content=message.content, source="User"))
@@ -83,40 +68,38 @@ class ToolEnabledAgent(TypeRoutedAgent):
 
         # Keep executing the tools until the response is not a list of function calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            results: List[ToolExecutionTaskResult] = await asyncio.gather(
-                *[self.send_message(ToolExecutionTask(function_call=call), self.id) for call in response.content]
+            results: List[FunctionExecutionResult] = await asyncio.gather(
+                *[self.send_message(call, self.id) for call in response.content]
             )
             # Combine the results into a single response.
-            result = FunctionExecutionResultMessage(content=[result.result for result in results])
+            result = FunctionExecutionResultMessage(content=results)
             session.append(result)
             # Execute the model again with the new response.
             response = await self._model_client.create(self._system_messages + session, tools=self._tools)
             session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
 
         assert isinstance(response.content, str)
-        return AIResponse(content=response.content)
+        return Message(content=response.content)
 
     @message_handler
     async def handle_tool_call(
-        self, message: ToolExecutionTask, cancellation_token: CancellationToken
-    ) -> ToolExecutionTaskResult:
+        self, message: FunctionCall, cancellation_token: CancellationToken
+    ) -> FunctionExecutionResult:
         """Handle a tool execution task. This method executes the tool and publishes the result."""
         # Find the tool
-        tool = next((tool for tool in self._tools if tool.name == message.function_call.name), None)
+        tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
-            result_as_str = f"Error: Tool not found: {message.function_call.name}"
+            result_as_str = f"Error: Tool not found: {message.name}"
         else:
             try:
-                arguments = json.loads(message.function_call.arguments)
+                arguments = json.loads(message.arguments)
                 result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError:
-                result_as_str = f"Error: Invalid arguments: {message.function_call.arguments}"
+                result_as_str = f"Error: Invalid arguments: {message.arguments}"
             except Exception as e:
                 result_as_str = f"Error: {e}"
-        return ToolExecutionTaskResult(
-            result=FunctionExecutionResult(content=result_as_str, call_id=message.function_call.id),
-        )
+        return FunctionExecutionResult(content=result_as_str, call_id=message.id)
 
 
 async def main() -> None:
@@ -143,17 +126,11 @@ async def main() -> None:
     run_context = runtime.start()
 
     # Send a task to the tool user.
-    result = await runtime.send_message(
-        UserRequest("Run the following Python code: print('Hello, World!')"), tool_agent
-    )
+    response = await runtime.send_message(Message("Run the following Python code: print('Hello, World!')"), tool_agent)
+    print(response.content)
 
     # Run the runtime until the task is completed.
     await run_context.stop()
-
-    # Print the result.
-    ai_response = result.result()
-    assert isinstance(ai_response, AIResponse)
-    print(ai_response.content)
 
 
 if __name__ == "__main__":

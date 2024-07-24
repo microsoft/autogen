@@ -18,7 +18,7 @@ from typing_extensions import Annotated
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from coding_one_agent_direct import AIResponse, ToolEnabledAgent, UserRequest
+from coding_one_agent_direct import Message, ToolEnabledAgent
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -52,15 +52,13 @@ async def main() -> None:
     run_context = runtime.start()
 
     # Send a task to the tool user.
-    result = await runtime.send_message(UserRequest("What is the stock price of NVDA on 2024/06/01"), tool_agent)
+    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01"), tool_agent)
+    # Print the result.
+    assert isinstance(response, Message)
+    print(response.content)
 
     # Run the runtime until the task is completed.
     await run_context.stop()
-
-    # Print the result.
-    ai_response = result.result()
-    assert isinstance(ai_response, AIResponse)
-    print(ai_response.content)
 
 
 if __name__ == "__main__":

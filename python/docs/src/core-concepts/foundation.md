@@ -30,17 +30,22 @@ To implement an agent, developer must subclass the {py:class}`~agnext.core.BaseA
 declare the message types it can handle in the {py:attr}`~agnext.core.AgentMetadata.subscriptions` metadata,
 and implement the {py:meth}`~agnext.core.BaseAgent.on_message` method.
 This method is invoked when the agent receives a message. For example,
-the following agent handles string messages and simply prints message it receives:
+the following agent handles a simple message type and simply prints message it receives:
 
 ```python
+from dataclasses import dataclass
 from agnext.core import BaseAgent, CancellationToken
+
+@dataclass
+class MyMessage:
+    content: str
 
 class MyAgent(BaseAgent):
     def __init__(self):
-        super().__init__("MyAgent", subscriptions=[str])
+        super().__init__("MyAgent", subscriptions=[MyMessage])
 
-    async def on_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        print(f"Received message: {message}")
+    async def on_message(self, message: MyMessage, cancellation_token: CancellationToken) -> None:
+        print(f"Received message: {message.content}")
 ```
 
 For convenience, developers can subclass the {py:class}`~agnext.components.TypeRoutedAgent` class
@@ -73,7 +78,7 @@ send a message to the agent we just registered:
 ```python
 agent = runtime.get("my_agent")
 run_context = runtime.start() # Start processing messages in the background.
-await runtime.send_message("Hello, World!", agent)
+await runtime.send_message(MyMessage(content="Hello, World!"), agent)
 ```
 
 There is a convenience method
@@ -129,9 +134,8 @@ Other runtime implementations will have their own ways of running the runtime.
 Agents communicate with each other via messages.
 Messages are serializable objects, they can be defined using:
 
-- A subclass of Pydantic's {py:class}`pydantic.BaseModel`,
-- A dataclass, or
-- A built-in serializable Python type (e.g., `str`).
+- A subclass of Pydantic's {py:class}`pydantic.BaseModel`, or
+- A dataclass
 
 For example:
 
@@ -184,7 +188,7 @@ class MyAgent(TypeRoutedAgent):
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    agent = runtime.register_and_get("my_agent", lambda: MyAgent("My Agent"))
+    agent = await runtime.register_and_get("my_agent", lambda: MyAgent("My Agent"))
     run_context = runtime.start()
     await runtime.send_message(TextMessage(content="Hello, World!", source="User"), agent)
     await runtime.send_message(ImageMessage(url="https://example.com/image.jpg", source="User"), agent)
@@ -224,14 +228,19 @@ You can think of this as a function call between agents.
 For example, consider the following type-routed agents:
 
 ```python
+from dataclasses import dataclass
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import CancellationToken, AgentId
 
+@dataclass
+class MyMessage:
+    content: str
+
 class InnerAgent(TypeRoutedAgent):
     @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> str:
-        return f"Hello from inner, {message}"
+    async def on_my_message(self, message: MyMessage, cancellation_token: CancellationToken) -> str:
+        return MyMessage(content=f"Hello from inner, {message}")
 
 class OuterAgent(TypeRoutedAgent):
     def __init__(self, description: str, inner_agent_id: AgentId):
@@ -239,18 +248,18 @@ class OuterAgent(TypeRoutedAgent):
         self.inner_agent_id = inner_agent_id
 
     @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        print(f"Received message: {message}")
+    async def on_my_message(self, message: MyMessage, cancellation_token: CancellationToken) -> None:
+        print(f"Received message: {message.content}")
         # Send a direct message to the inner agent and receves a response.
-        response = await self.send_message(f"Hello from outer, {message}", self.inner_agent_id)
-        print(f"Received inner response: {response}")
+        response = await self.send_message(MyMessage(f"Hello from outer, {message.content}", self.inner_agent_id))
+        print(f"Received inner response: {response.content}")
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    inner = runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
-    outer = runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
+    inner = await runtime.register_and_get("inner_agent", lambda: InnerAgent("InnerAgent"))
+    outer = await runtime.register_and_get("outer_agent", lambda: OuterAgent("OuterAgent", inner))
     run_context = runtime.start()
-    await runtime.send_message("Hello, World!", outer)
+    await runtime.send_message(MyMessage("Hello, World!"), outer)
     await run_context.stop_when_idle()
 
 import asyncio
@@ -258,8 +267,8 @@ asyncio.run(main())
 ```
 
 In the above example, upone receving a message,
-the `OuterAgent` sends a direct string message to the `InnerAgent` and receives
-a string message in response. The following output will be produced:
+the `OuterAgent` sends a direct message to the `InnerAgent` and receives
+a message in response. The following output will be produced:
 
 ```text
 Received message: Hello, World!
@@ -277,8 +286,8 @@ For example, the `InnerAgent` can be modified to just print the message it recei
 ```python
 class InnerAgent(TypeRoutedAgent):
     @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        print(f"Hello from inner, {message}")
+    async def on_my_message(self, message: MyMessage, cancellation_token: CancellationToken) -> None:
+        print(f"Hello from inner, {message.content}")
 ```
 
 ### Broadcast Communication
@@ -307,7 +316,7 @@ If an agent raises an exception while handling a published message,
 this will be logged but will not be propagated back to the publishing agent.
 
 The following example shows a `BroadcastingAgent` that publishes a message
-upong receiving a string message. A `ReceivingAgent` that prints the message
+upong receiving a message. A `ReceivingAgent` that prints the message
 it receives.
 
 ```python
@@ -317,21 +326,21 @@ from agnext.core import CancellationToken
 
 class BroadcastingAgent(TypeRoutedAgent):
     @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
+    async def on_my_message(self, message: MyMessage, cancellation_token: CancellationToken) -> None:
         # Publish a message to all agents in the same namespace.
-        await self.publish_message(f"Publishing a message: {message}!")
+        await self.publish_message(MyMessage(f"Publishing a message: {message.content}!"))
 
 class ReceivingAgent(TypeRoutedAgent):
     @message_handler
-    async def on_str_message(self, message: str, cancellation_token: CancellationToken) -> None:
-        print(f"Received a message: {message}")
+    async def on_my_message(self, message: MyMessage, cancellation_token: CancellationToken) -> None:
+        print(f"Received a message: {message.content}")
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    broadcaster = runtime.register_and_get("broadcasting_agent", lambda: BroadcastingAgent("Broadcasting Agent"))
-    runtime.register("receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
+    broadcaster = await runtime.register_and_get("broadcasting_agent", lambda: BroadcastingAgent("Broadcasting Agent"))
+    await runtime.register("receiving_agent", lambda: ReceivingAgent("Receiving Agent"))
     run_context = runtime.start()
-    await runtime.send_message("Hello, World!", broadcaster)
+    await runtime.send_message(MyMessage("Hello, World!"), broadcaster)
     await run_context.stop_when_idle()
 
 import asyncio
@@ -350,7 +359,7 @@ the message should be published via the runtime with the
 
 ```python
 # ... Replace send_message with publish_message in the above example.
-await runtime.publish_message("Hello, World! From the runtime!", namespace="default")
+await runtime.publish_message(MyMessage("Hello, World! From the runtime!"), namespace="default")
 # ...
 ```
 

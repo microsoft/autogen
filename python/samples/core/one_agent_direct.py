@@ -52,12 +52,9 @@ async def main() -> None:
 
     run_context = runtime.start()
 
-    # Send a message to the agent.
-    message = Message(content="Can you tell me something fun about SF?")
-    result = await runtime.send_message(message, agent)
-
-    # Get the response from the agent.
-    response = await result
+    # Send a message to the agent and get the response.
+    message = Message(content="Hello, what are some fun things to do in Seattle?")
+    response = await runtime.send_message(message, agent)
     assert isinstance(response, Message)
     print(response.content)
 
