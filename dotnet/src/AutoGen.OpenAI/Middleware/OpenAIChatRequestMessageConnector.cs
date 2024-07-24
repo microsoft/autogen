@@ -61,7 +61,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             if (reply is IMessage<StreamingChatCompletionUpdate> update)
             {
-                if (update.Content.ContentUpdate[0].Kind == ChatMessageContentPartKind.Text)
+                if (update.Content.ContentUpdate.Count == 1 && update.Content.ContentUpdate[0].Kind == ChatMessageContentPartKind.Text)
                 {
                     yield return new TextMessageUpdate(Role.Assistant, update.Content.ContentUpdate[0].Text, from: update.From);
                 }
@@ -111,6 +111,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 currentToolName += toolCall.FunctionName;
                 currentToolArguments += toolCall.FunctionArgumentsUpdate;
                 currentToolId += toolCall.Id;
+
+                yield return new ToolCallMessageUpdate(currentToolName, currentToolArguments, from: agent.Name);
             }
             else
             {
@@ -118,10 +120,12 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 currentToolName = toolCall.FunctionName;
                 currentToolArguments = toolCall.FunctionArgumentsUpdate;
                 currentToolId = toolCall.Id;
+
+                yield return new ToolCallMessageUpdate(currentToolName, currentToolArguments, from: agent.Name);
             }
         }
 
-        if (currentToolName is not null)
+        if (string.IsNullOrEmpty(currentToolName) is false)
         {
             toolCalls.Add(new ToolCall(currentToolName, currentToolArguments) { ToolCallId = currentToolId });
         }
@@ -175,7 +179,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             throw new InvalidOperationException("The content has more than one choice. Please try another input.");
         }
-        var textContent = chatCompletion.Content.First();
+        var textContent = chatCompletion.Content.FirstOrDefault();
 
         // if tool calls is not empty, return ToolCallMessage
         if (chatCompletion.ToolCalls is { Count: > 0 })
@@ -183,9 +187,9 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             var toolCalls = chatCompletion.ToolCalls.Select(tc => new ToolCall(tc.FunctionName, tc.FunctionArguments) { ToolCallId = tc.Id });
             return new ToolCallMessage(toolCalls, from)
             {
-                Content = textContent.Kind switch
+                Content = textContent?.Kind switch
                 {
-                    _ when textContent.Kind == ChatMessageContentPartKind.Text => textContent.Text,
+                    _ when textContent?.Kind == ChatMessageContentPartKind.Text => textContent.Text,
                     _ => null,
                 },
             };
@@ -197,16 +201,16 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             return new ToolCallMessage(fc.FunctionName, fc.FunctionArguments, from)
             {
-                Content = textContent.Kind switch
+                Content = textContent?.Kind switch
                 {
-                    _ when textContent.Kind == ChatMessageContentPartKind.Text => textContent.Text,
+                    _ when textContent?.Kind == ChatMessageContentPartKind.Text => textContent.Text,
                     _ => null,
                 },
             };
         }
 
         // if the content is text, return TextMessage
-        if (textContent.Kind == ChatMessageContentPartKind.Text)
+        if (textContent?.Kind == ChatMessageContentPartKind.Text)
         {
             return new TextMessage(Role.Assistant, textContent.Text, from);
         }
@@ -316,12 +320,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
 
         var toolCallParts = message.ToolCalls.Select((tc, i) => ChatToolCall.CreateFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
-        var textContent = message.GetContent() ?? string.Empty;
-        var chatRequestMessage = new AssistantChatMessage(textContent) { ParticipantName = message.From };
-        foreach (var tc in toolCallParts)
-        {
-            chatRequestMessage.ToolCalls.Add(tc);
-        }
+        var textContent = message.GetContent() ?? null;
+        var chatRequestMessage = new AssistantChatMessage(toolCallParts, textContent) { ParticipantName = message.From };
 
         return [chatRequestMessage];
     }

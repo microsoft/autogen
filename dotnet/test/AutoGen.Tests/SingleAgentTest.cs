@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using AutoGen.LMStudio;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI.Chat;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -72,9 +72,9 @@ namespace AutoGen.Tests
                 });
 
             var imageUri = new Uri(@"https://microsoft.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
-            var oaiMessage = new ChatRequestUserMessage(
-                new ChatMessageTextContentItem("which label has the highest inference cost"),
-                new ChatMessageImageContentItem(imageUri));
+            var oaiMessage = new UserChatMessage(
+                ChatMessageContentPart.CreateTextMessageContentPart("which label has the highest inference cost"),
+                ChatMessageContentPart.CreateImageMessageContentPart(imageUri));
             var multiModalMessage = new MultiModalMessage(Role.User,
                 [
                     new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),

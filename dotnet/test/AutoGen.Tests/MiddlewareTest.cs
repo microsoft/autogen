@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI.Chat;
 using Xunit;
 
 namespace AutoGen.Tests;
@@ -73,7 +73,7 @@ public partial class MiddlewareTest
         var agent = new EchoAgent("echo");
         var args = new EchoSchema { message = "hello" };
         var argsJson = JsonSerializer.Serialize(args) ?? throw new InvalidOperationException("Failed to serialize args");
-        var functionCall = new FunctionCall("echo", argsJson);
+        var functionCall = new ChatFunctionCall("echo", argsJson);
         var functionCallAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
             if (options?.Functions is null)
@@ -81,7 +81,7 @@ public partial class MiddlewareTest
                 return await agent.GenerateReplyAsync(messages, options, ct);
             }
 
-            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from: agent.Name);
+            return new ToolCallMessage(functionCall.FunctionName, functionCall.FunctionArguments, from: agent.Name);
         });
 
         // test 1
@@ -90,7 +90,7 @@ public partial class MiddlewareTest
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
 
         var testAgent = agent.RegisterMiddleware(mw);
-        var functionCallMessage = new ToolCallMessage(functionCall.Name, functionCall.Arguments, from: "user");
+        var functionCallMessage = new ToolCallMessage(functionCall.FunctionName, functionCall.FunctionArguments, from: "user");
         var reply = await testAgent.SendAsync(functionCallMessage);
         reply.Should().BeOfType<ToolCallResultMessage>();
         reply.GetContent()!.Should().Be("[FUNC] hello");

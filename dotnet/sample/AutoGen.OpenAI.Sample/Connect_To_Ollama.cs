@@ -5,9 +5,10 @@
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
 using OpenAI;
+using OpenAI.Chat;
 #endregion using_statement
 
-namespace AutoGen.OpenAI.Sample;
+namespace AutoGen.OpenAI;
 
 #region CustomHttpClientHandler
 public sealed class CustomHttpClientHandler : HttpClientHandler
@@ -38,6 +39,14 @@ public class Connect_To_Ollama
             Endpoint = new Uri("http://localhost:11434"),
         };
 
+        float? temperature = null;
+        var chatOption = new ChatCompletionOptions()
+        {
+            Temperature = 0.7f,
+            MaxTokens = 100,
+            TopP = 1,
+        };
+
         // api-key is not required for local server
         // so you can use any string here
         var openAIClient = new OpenAIClient("api-key", option);
@@ -48,7 +57,7 @@ public class Connect_To_Ollama
             chatClient: chatClient,
             name: "assistant",
             systemMessage: "You are a helpful assistant designed to output JSON.",
-            seed: 0)
+            options: chatOption)
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent

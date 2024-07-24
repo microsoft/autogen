@@ -9,8 +9,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
-using OpenAI;
-using OpenAI.Chat;
+using global::OpenAI;
+using global::OpenAI.Chat;
 
 namespace AutoGen.OpenAI;
 
@@ -107,7 +107,7 @@ public class OpenAIChatAgent : IStreamingAgent
         var response = this.chatClient.CompleteChatStreamingAsync(chatHistory, settings, cancellationToken);
         await foreach (var update in response.WithCancellation(cancellationToken))
         {
-            if (update.ContentUpdate.Count > 0)
+            if (update.ContentUpdate.Count > 1)
             {
                 throw new InvalidOperationException("Only one choice is supported in streaming response");
             }

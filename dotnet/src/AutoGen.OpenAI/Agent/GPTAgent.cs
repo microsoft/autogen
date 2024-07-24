@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -46,7 +45,7 @@ public class GPTAgent : IStreamingAgent
     {
         var openAIClient = config switch
         {
-            AzureOpenAIConfig azureConfig => new AzureOpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
+            //AzureOpenAIConfig azureConfig => new AzureOpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
             OpenAIConfig openAIConfig => new OpenAIClient(openAIConfig.ApiKey),
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
