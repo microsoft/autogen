@@ -317,6 +317,7 @@ install via pip and use --quiet option.
         prompt += f"""
 
 ##### Begin of {skill.name} #####
+from skills import {skill.name} # Import the function from skills.py
 
 {skill.content}
 
