@@ -9,6 +9,8 @@ on:
     paths:
       - "autogen/**"
       - "test/agentchat/contrib/**"
+      - "test/test_browser_utils.py"
+      - "test/test_retrieve_utils.py"
       - ".github/workflows/contrib-tests.yml"
       - "setup.py"
 

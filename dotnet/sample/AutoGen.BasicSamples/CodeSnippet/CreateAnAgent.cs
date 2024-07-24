@@ -129,7 +129,7 @@ public partial class AssistantCodeSnippet
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.UpperCaseFunction.Name, this.UpperCaseWrapper }, // The wrapper function for the UpperCase function
+                { this.UpperCaseFunctionContract.Name, this.UpperCaseWrapper }, // The wrapper function for the UpperCase function
             });
 
         var response = await assistantAgent.SendAsync("hello");
