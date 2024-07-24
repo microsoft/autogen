@@ -57,6 +57,7 @@ from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockTh
 from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
 from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import SafetySetting as VertexAISafetySetting
+from vertexai.preview import caching
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,11 @@ class GeminiClient:
             assert ("project_id" not in kwargs) and (
                 "location" not in kwargs
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
+            genai.configure(api_key=self.api_key)
+            # Update the following aliases so that it calls generative AI SDK.
+            # Vertex AI SDK offers extra features that should be gated by `use_vertexai`.
+            GenerativeModel = genai.GenerativeModel
+            caching = genai.caching
 
     def message_retrieval(self, response) -> List:
         """
@@ -198,23 +204,18 @@ class GeminiClient:
         if "vision" not in model_name:
             # A. create and call the chat model.
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
-            if self.use_vertexai:
-                model = GenerativeModel(
+            model = GenerativeModel(
                     model_name,
                     generation_config=generation_config,
                     safety_settings=safety_settings,
                     system_instruction=system_instruction,
                 )
+            if self.use_vertexai:
+                # `response_validation=True` (default) sanitizes the chat history by logging
+                # only valid and complete messages. Blocked messages should be excluded to keep
+                # the chat session state usable. This is only available in Vertex AI SDK.
                 chat = model.start_chat(history=gemini_messages[:-1], response_validation=response_validation)
             else:
-                # we use chat model by default
-                model = genai.GenerativeModel(
-                    model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    system_instruction=system_instruction,
-                )
-                genai.configure(api_key=self.api_key)
                 chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
             for attempt in range(max_retries):
@@ -258,7 +259,6 @@ class GeminiClient:
                     safety_settings=safety_settings,
                     system_instruction=system_instruction,
                 )
-                genai.configure(api_key=self.api_key)
             # Gemini's vision model does not support chat history yet
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1].parts)
