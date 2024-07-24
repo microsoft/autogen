@@ -55,7 +55,7 @@ JSON_SAMPLE = """
     {
         "model": "gpt-35-turbo-v0301",
         "tags": ["gpt-3.5-turbo", "gpt35_turbo"],
-        "api_key": "testkey111111111",
+        "api_key": "keyhere",
         "base_url": "https://1111.openai.azure.com",
         "api_type": "azure",
         "api_version": "2024-02-01"
