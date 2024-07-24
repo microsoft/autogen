@@ -32,6 +32,7 @@ Resources:
 from __future__ import annotations
 
 import base64
+import datetime
 import logging
 import os
 import random
@@ -42,6 +43,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
 import google.generativeai as genai
+from google.generativeai import protos
 import requests
 import vertexai
 from google.ai.generativelanguage import Content, Part
@@ -83,7 +85,8 @@ class GeminiClient:
     def _initialize_vertexai(self, **params):
         if "google_application_credentials" in params:
             # Path to JSON Keyfile
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params["google_application_credentials"]
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = params[
+                "google_application_credentials"]
         vertexai_init_args = {}
         if "project_id" in params:
             vertexai_init_args["project"] = params["project_id"]
@@ -131,10 +134,6 @@ class GeminiClient:
                 "location" not in kwargs
             ), "Google Cloud project and compute location cannot be set when using an API Key!"
             genai.configure(api_key=self.api_key)
-            # Update the following aliases so that it calls generative AI SDK.
-            # Vertex AI SDK offers extra features that should be gated by `use_vertexai`.
-            GenerativeModel = genai.GenerativeModel
-            caching = genai.caching
 
     def message_retrieval(self, response) -> List:
         """
@@ -188,7 +187,8 @@ class GeminiClient:
             if autogen_term in params
         }
         if self.use_vertexai:
-            safety_settings = GeminiClient._to_vertexai_safety_settings(params.get("safety_settings", {}))
+            safety_settings = GeminiClient._to_vertexai_safety_settings(
+                params.get("safety_settings", {}))
         else:
             safety_settings = params.get("safety_settings", {})
 
@@ -199,31 +199,42 @@ class GeminiClient:
             )
 
         if n_response > 1:
-            warnings.warn("Gemini only supports `n=1` for now. We only generate one response.", UserWarning)
+            warnings.warn(
+                "Gemini only supports `n=1` for now. We only generate one response.",
+                UserWarning)
 
         if "vision" not in model_name:
             # A. create and call the chat model.
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
-            model = GenerativeModel(
+            if self.use_vertexai:
+                model = GenerativeModel(
                     model_name,
                     generation_config=generation_config,
                     safety_settings=safety_settings,
                     system_instruction=system_instruction,
                 )
-            if self.use_vertexai:
                 # `response_validation=True` (default) sanitizes the chat history by logging
                 # only valid and complete messages. Blocked messages should be excluded to keep
                 # the chat session state usable. This is only available in Vertex AI SDK.
-                chat = model.start_chat(history=gemini_messages[:-1], response_validation=response_validation)
+                chat = model.start_chat(
+                    history=gemini_messages[:-1],
+                    response_validation=response_validation)
             else:
+                model = genai.GenerativeModel(
+                    model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    system_instruction=system_instruction,
+                )
                 chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
             for attempt in range(max_retries):
                 ans = None
                 try:
                     response = chat.send_message(
-                        gemini_messages[-1].parts, stream=stream, safety_settings=safety_settings
-                    )
+                        gemini_messages[-1].parts,
+                        stream=stream,
+                        safety_settings=safety_settings)
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
@@ -232,14 +243,18 @@ class GeminiClient:
                     )
                     time.sleep(delay)
                 except Exception as e:
-                    raise RuntimeError(f"Google GenAI exception occurred while calling Gemini API: {e}")
+                    raise RuntimeError(
+                        f"Google GenAI exception occurred while calling Gemini API: {e}"
+                    )
                 else:
                     # `ans = response.text` is unstable. Use the following code instead.
                     ans: str = chat.history[-1].parts[0].text
                     break
 
             if ans is None:
-                raise RuntimeError(f"Fail to get response from Google AI after retrying {attempt + 1} times.")
+                raise RuntimeError(
+                    f"Fail to get response from Google AI after retrying {attempt + 1} times."
+                )
 
             prompt_tokens = model.count_tokens(chat.history[:-1]).total_tokens
             completion_tokens = model.count_tokens(ans).total_tokens
@@ -262,7 +277,8 @@ class GeminiClient:
             # Gemini's vision model does not support chat history yet
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1].parts)
-            user_message = self._oai_content_to_gemini_content(messages[-1]["content"])
+            user_message = self._oai_content_to_gemini_content(
+                messages[-1]["content"])
             if len(messages) > 2:
                 warnings.warn(
                     "Warning: Gemini's vision model does not support chat history yet.",
@@ -281,7 +297,10 @@ class GeminiClient:
             completion_tokens = model.count_tokens(ans).total_tokens
 
         # 3. convert output
-        message = ChatCompletionMessage(role="assistant", content=ans, function_call=None, tool_calls=None)
+        message = ChatCompletionMessage(role="assistant",
+                                        content=ans,
+                                        function_call=None,
+                                        tool_calls=None)
         choices = [Choice(finish_reason="stop", index=0, message=message)]
 
         response_oai = ChatCompletion(
@@ -295,12 +314,14 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
-            cost=calculate_gemini_cost(prompt_tokens, completion_tokens, model_name),
+            cost=calculate_gemini_cost(prompt_tokens, completion_tokens,
+                                       model_name),
         )
 
         return response_oai
 
-    def _oai_content_to_gemini_content(self, content: Union[str, List]) -> List:
+    def _oai_content_to_gemini_content(self, content: Union[str,
+                                                            List]) -> List:
         """Convert content from OAI format to Gemini format"""
         rst = []
         if isinstance(content, str):
@@ -328,14 +349,16 @@ class GeminiClient:
                         re.match(r"data:image/(?:png|jpeg);base64,", img_url)
                         img = get_image_data(img_url, use_b64=False)
                         # image/png works with jpeg as well
-                        img_part = VertexAIPart.from_data(img, mime_type="image/png")
+                        img_part = VertexAIPart.from_data(
+                            img, mime_type="image/png")
                         rst.append(img_part)
                     else:
                         b64_img = get_image_data(msg["image_url"]["url"])
                         img = _to_pil(b64_img)
                         rst.append(img)
                 else:
-                    raise ValueError(f"Unsupported message type: {msg['type']}")
+                    raise ValueError(
+                        f"Unsupported message type: {msg['type']}")
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
         return rst
@@ -353,7 +376,8 @@ class GeminiClient:
         for current_part in parts[1:]:
             if previous_part.text != "":
                 if self.use_vertexai:
-                    previous_part = VertexAIPart.from_text(previous_part.text + current_part.text)
+                    previous_part = VertexAIPart.from_text(previous_part.text +
+                                                           current_part.text)
                 else:
                     previous_part.text += current_part.text
             else:
@@ -369,7 +393,8 @@ class GeminiClient:
 
         return concatenated_parts
 
-    def _oai_messages_to_gemini_messages(self, messages: list[Dict[str, Any]]) -> list[dict[str, Any]]:
+    def _oai_messages_to_gemini_messages(
+            self, messages: list[Dict[str, Any]]) -> list[dict[str, Any]]:
         """Convert messages from OAI format to Gemini format.
         Make sure the "user" role and "model" role are interleaved.
         Also, make sure the last item is from the "user" role.
@@ -384,7 +409,8 @@ class GeminiClient:
                 curr_parts += parts
             elif role != prev_role:
                 if self.use_vertexai:
-                    rst.append(VertexAIContent(parts=curr_parts, role=prev_role))
+                    rst.append(
+                        VertexAIContent(parts=curr_parts, role=prev_role))
                 else:
                     rst.append(Content(parts=curr_parts, role=prev_role))
                 curr_parts = parts
@@ -402,9 +428,15 @@ class GeminiClient:
         # We add a dummy message "continue" if the last role is not the user.
         if rst[-1].role != "user":
             if self.use_vertexai:
-                rst.append(VertexAIContent(parts=self._oai_content_to_gemini_content("continue"), role="user"))
+                rst.append(
+                    VertexAIContent(
+                        parts=self._oai_content_to_gemini_content("continue"),
+                        role="user"))
             else:
-                rst.append(Content(parts=self._oai_content_to_gemini_content("continue"), role="user"))
+                rst.append(
+                    Content(
+                        parts=self._oai_content_to_gemini_content("continue"),
+                        role="user"))
 
         return rst
 
@@ -413,20 +445,24 @@ class GeminiClient:
         """Convert safety settings to VertexAI format if needed,
         like when specifying them in the OAI_CONFIG_LIST
         """
-        if isinstance(safety_settings, list) and all(
-            [
-                isinstance(safety_setting, dict) and not isinstance(safety_setting, VertexAISafetySetting)
+        if isinstance(safety_settings, list) and all([
+                isinstance(safety_setting, dict)
+                and not isinstance(safety_setting, VertexAISafetySetting)
                 for safety_setting in safety_settings
-            ]
-        ):
+        ]):
             vertexai_safety_settings = []
             for safety_setting in safety_settings:
-                if safety_setting["category"] not in VertexAIHarmCategory.__members__:
+                if safety_setting[
+                        "category"] not in VertexAIHarmCategory.__members__:
                     invalid_category = safety_setting["category"]
-                    logger.error(f"Safety setting category {invalid_category} is invalid")
-                elif safety_setting["threshold"] not in VertexAIHarmBlockThreshold.__members__:
+                    logger.error(
+                        f"Safety setting category {invalid_category} is invalid"
+                    )
+                elif safety_setting[
+                        "threshold"] not in VertexAIHarmBlockThreshold.__members__:
                     invalid_threshold = safety_setting["threshold"]
-                    logger.error(f"Safety threshold {invalid_threshold} is invalid")
+                    logger.error(
+                        f"Safety threshold {invalid_threshold} is invalid")
                 else:
                     vertexai_safety_setting = VertexAISafetySetting(
                         category=safety_setting["category"],
@@ -436,6 +472,68 @@ class GeminiClient:
             return vertexai_safety_settings
         else:
             return safety_settings
+
+
+class GeminiContextCache:
+    """
+    Context cache for Gemini models. Context cache helps reduce the cost by caching
+    the same input tokens that are used repeatedly. A cache instance is created using
+    a publisher model and the model name is immutable once the cache is created.
+    The created cache has TTL (1 hour by default) and this can be updated after the creation.
+    The cost for caching depends on the input token size and how long you want the tokens to persist.
+    Context cache is available in Gemini 1.5.
+    """
+
+    def __init__(self, model: str, display_name: str, system_instruction: str,
+                 contents: list[str], ttl: datetime.timedelta, use_vertexai=True):
+        self.use_vertexai = use_vertexai
+        _caching = caching if use_vertexai else genai.caching
+        self.cache = _caching.CachedContent.create(
+            model=model,
+            display_name=display_name,
+            system_instruction=system_instruction,
+            contents=contents,
+            ttl=ttl)
+
+    def is_compatible(self, model: Union[GenerativeModel, genai.GenerativeModel]) -> bool:
+        """
+        Verify if this cache is compatible with a given model.
+        """
+        # Context cache is available in gemini 1.5 stable versions.
+        if re.match(r"^gemini-1\.5-(pro|flash)-\d{3}$", model._model_name):
+            if ((self.use_vertexai and isinstance(model, GenerativeModel))
+                    or (not self.use_vertexai
+                        and isinstance(model, genai.GenerativeModel))):
+                return True
+            warnings.warn(
+                "Cache was created using a different SDK than the model: "
+                f"use_vertexai={self.use_vertexai}, type(model)={type(model)}")
+        return False
+
+    def update_ttl(self, ttl: datetime.timedelta):
+        self.cache.update(ttl=ttl)
+
+    def delete(self):
+        self.cache.delete()
+
+    @property
+    def model(self) -> str:
+        return self.cache._proto.model
+
+    @property
+    def display_name(self) -> str:
+        return self.cache._proto.display_name
+
+    @property
+    def usage_metadata(self) -> protos.CachedContent.UsageMetadata:
+        return self.cache._proto.usage_metadata
+
+    @property
+    def expire_time(self) -> datetime.datetime:
+        return self.cache.expire_time()
+
+    def __str__(self):
+        return self.cache.__str__()
 
 
 def _to_pil(data: str) -> Image.Image:
@@ -472,14 +570,17 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
         return content
 
 
-def calculate_gemini_cost(input_tokens: int, output_tokens: int, model_name: str) -> float:
+def calculate_gemini_cost(input_tokens: int, output_tokens: int,
+                          model_name: str) -> float:
     if "1.5" in model_name or "gemini-experimental" in model_name:
         # "gemini-1.5-pro-preview-0409"
         # Cost is $7 per million input tokens and $21 per million output tokens
         return 7.0 * input_tokens / 1e6 + 21.0 * output_tokens / 1e6
 
     if "gemini-pro" not in model_name and "gemini-1.0-pro" not in model_name:
-        warnings.warn(f"Cost calculation is not implemented for model {model_name}. Using Gemini-1.0-Pro.", UserWarning)
+        warnings.warn(
+            f"Cost calculation is not implemented for model {model_name}. Using Gemini-1.0-Pro.",
+            UserWarning)
 
     # Cost is $0.5 per million input tokens and $1.5 per million output tokens
     return 0.5 * input_tokens / 1e6 + 1.5 * output_tokens / 1e6
