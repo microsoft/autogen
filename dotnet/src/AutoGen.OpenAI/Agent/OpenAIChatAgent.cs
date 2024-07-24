@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
@@ -135,33 +134,41 @@ public class OpenAIChatAgent : IStreamingAgent
 
     private ChatCompletionOptions CreateChatCompletionsOptions(GenerateReplyOptions? options)
     {
-        // clone the options by serializing and deserializing
-        var json = JsonSerializer.Serialize(this.options);
-        var settings = JsonSerializer.Deserialize<ChatCompletionOptions>(json) ?? throw new InvalidOperationException("Failed to clone options");
-
         var option = new ChatCompletionOptions()
         {
-            Seed = settings.Seed,
-            Temperature = options?.Temperature ?? settings.Temperature,
-            MaxTokens = options?.MaxToken ?? settings.MaxTokens,
-            ResponseFormat = settings.ResponseFormat,
-            FrequencyPenalty = settings.FrequencyPenalty,
-            FunctionChoice = settings.FunctionChoice,
-            IncludeLogProbabilities = settings.IncludeLogProbabilities,
-            ParallelToolCallsEnabled = settings.ParallelToolCallsEnabled,
-            PresencePenalty = settings.PresencePenalty,
-            ToolChoice = settings.ToolChoice,
-            TopLogProbabilityCount = settings.TopLogProbabilityCount,
-            TopP = settings.TopP,
-            User = settings.User,
+            Seed = this.options.Seed,
+            Temperature = options?.Temperature ?? this.options.Temperature,
+            MaxTokens = options?.MaxToken ?? this.options.MaxTokens,
+            ResponseFormat = this.options.ResponseFormat,
+            FrequencyPenalty = this.options.FrequencyPenalty,
+            FunctionChoice = this.options.FunctionChoice,
+            IncludeLogProbabilities = this.options.IncludeLogProbabilities,
+            ParallelToolCallsEnabled = this.options.ParallelToolCallsEnabled,
+            PresencePenalty = this.options.PresencePenalty,
+            ToolChoice = this.options.ToolChoice,
+            TopLogProbabilityCount = this.options.TopLogProbabilityCount,
+            TopP = this.options.TopP,
+            User = this.options.User,
         };
+
+        // add tools from this.options to option
+        foreach (var tool in this.options.Tools)
+        {
+            option.Tools.Add(tool);
+        }
+
+        // add stop sequences from this.options to option
+        foreach (var seq in this.options.StopSequences)
+        {
+            option.StopSequences.Add(seq);
+        }
 
         var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition()).ToList();
         if (openAIFunctionDefinitions is { Count: > 0 })
         {
             foreach (var f in openAIFunctionDefinitions)
             {
-                settings.Tools.Add(f);
+                option.Tools.Add(f);
             }
         }
 
@@ -169,11 +176,11 @@ public class OpenAIChatAgent : IStreamingAgent
         {
             foreach (var seq in sequence)
             {
-                settings.StopSequences.Add(seq);
+                option.StopSequences.Add(seq);
             }
         }
 
-        return settings;
+        return option;
     }
 
     private static ChatCompletionOptions CreateChatCompletionOptions(
