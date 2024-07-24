@@ -59,7 +59,7 @@ pprint.pprint(processed_messages)
 {'content': 'very very very very very very long string', 'role': 'user'}]
 ```
 
-By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is inbetween of a "tool_calls" and "tool" pair, the complete pair will be included to obey the OpenAI API call constraints.
+By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the OpenAI API call constraints.
 
 ```python
 max_msg_transfrom = transforms.MessageHistoryLimiter(max_messages=3)
