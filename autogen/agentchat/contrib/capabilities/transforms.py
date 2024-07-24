@@ -53,13 +53,16 @@ class MessageHistoryLimiter:
     It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
-    def __init__(self, max_messages: Optional[int] = None):
+    def __init__(self, max_messages: Optional[int] = None, keep_first_message: Optional[bool] = False):
         """
         Args:
             max_messages Optional[int]: Maximum number of messages to keep in the context. Must be greater than 0 if not None.
+            keep_first_message Optional[bool]: Whether to keep the original first message in the conversation history.
+                Defaults to False. Does not count towards truncation.
         """
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages
+        self._keep_first_message = keep_first_message
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Truncates the conversation history to the specified maximum number of messages.
@@ -83,6 +86,10 @@ class MessageHistoryLimiter:
         if truncated_messages[0].get("role") == "tool":
             start_index = max(-self._max_messages - 1, -len(messages))
             truncated_messages = messages[start_index:]
+
+        # Keep the first message if required
+        if self._keep_first_message and messages[0] != truncated_messages[0]:
+            truncated_messages = [messages[0]] + truncated_messages
 
         return truncated_messages
 
