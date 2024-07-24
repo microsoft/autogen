@@ -33,7 +33,6 @@ gpt4_config_list = [
     {"model": "gpt-4o-mini"},
 ]
 
-
 @pytest.fixture
 def conversable_agent():
     return ConversableAgent(
