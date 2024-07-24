@@ -223,6 +223,7 @@ def test_update_docs(db_with_indexed_clxn, example_documents):
     found = list(collection.find({}))
     # Check that documents have correct fields, including "_id" and "embedding" but not "id"
     assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
+    assert all([len(doc["embedding"]) == db.dimensions for doc in found])
     # Check ids
     assert {doc["_id"] for doc in found} == {1, "1", 2, "2"}
 

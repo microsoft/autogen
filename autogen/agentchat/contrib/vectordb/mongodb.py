@@ -361,12 +361,12 @@ class MongoDBAtlasVectorDB(VectorDB):
         n_docs = len(docs)
         logger.info(f"Preparing to embed and update {n_docs=}")
         # Compute the embeddings
-        embeddings = self.embedding_function([doc["content"] for doc in docs]).tolist()
+        embeddings: list[list[float]] = self.embedding_function([doc["content"] for doc in docs]).tolist()
         # Prepare the updates
         all_updates = []
         for i in range(n_docs):
             doc = deepcopy(docs[i])
-            doc["embedding"] = embeddings
+            doc["embedding"] = embeddings[i]
             doc["_id"] = doc.pop("id")
 
             all_updates.append(UpdateOne({"_id": doc["_id"]}, {"$set": doc}, upsert=kwargs.get("upsert", False)))
