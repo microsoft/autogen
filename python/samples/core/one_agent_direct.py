@@ -47,7 +47,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     agent = await runtime.register_and_get(
         "chat_agent",
-        lambda: ChatCompletionAgent("Chat agent", get_chat_completion_client_from_envs(model="gpt-3.5-turbo")),
+        lambda: ChatCompletionAgent("Chat agent", get_chat_completion_client_from_envs(model="gpt-4o-mini")),
     )
 
     run_context = runtime.start()

@@ -81,7 +81,7 @@ async def main() -> None:
         "Jack",
         lambda: ChatCompletionAgent(
             description="Jack a comedian",
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             system_messages=[
                 SystemMessage("You are a comedian likes to make jokes. " "When you are done talking, say 'TERMINATE'.")
             ],
@@ -92,7 +92,7 @@ async def main() -> None:
         "Cathy",
         lambda: ChatCompletionAgent(
             description="Cathy a poet",
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             system_messages=[
                 SystemMessage("You are a poet likes to write poems. " "When you are done talking, say 'TERMINATE'.")
             ],

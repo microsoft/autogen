@@ -6,6 +6,7 @@ from ._model_client import ModelCapabilities
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
     "gpt-4o": "gpt-4o-2024-05-13",
+    "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
     "gpt-4-turbo-preview": "gpt-4-0125-preview",
     "gpt-4": "gpt-4-0613",
@@ -16,6 +17,11 @@ _MODEL_POINTERS = {
 
 _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
     "gpt-4o-2024-05-13": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+    },
+    "gpt-4o-mini-2024-07-18": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
@@ -79,6 +85,7 @@ _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gpt-4o-2024-05-13": 128000,
+    "gpt-4o-mini-2024-07-18": 128000,
     "gpt-4-turbo-2024-04-09": 128000,
     "gpt-4-0125-preview": 128000,
     "gpt-4-1106-preview": 128000,

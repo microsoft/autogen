@@ -117,7 +117,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 1",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.1),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=0.1),
         ),
     )
     await runtime.register(
@@ -125,7 +125,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 2",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=0.5),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=0.5),
         ),
     )
     await runtime.register(
@@ -133,7 +133,7 @@ async def main() -> None:
         lambda: ReferenceAgent(
             description="Reference Agent 3",
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo", temperature=1.0),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=1.0),
         ),
     )
     await runtime.register(
@@ -145,7 +145,7 @@ async def main() -> None:
                     "...synthesize these responses into a single, high-quality response... Responses from models:"
                 )
             ],
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             num_references=3,
         ),
     )

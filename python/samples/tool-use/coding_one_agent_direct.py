@@ -134,7 +134,7 @@ async def main() -> None:
         lambda: ToolEnabledAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             tools=tools,
         ),
     )

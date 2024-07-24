@@ -214,7 +214,7 @@ async def main(question: str) -> None:
     await runtime.register(
         "MathSolver1",
         lambda: MathSolver(
-            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
@@ -222,7 +222,7 @@ async def main(question: str) -> None:
     await runtime.register(
         "MathSolver2",
         lambda: MathSolver(
-            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),
@@ -230,7 +230,7 @@ async def main(question: str) -> None:
     await runtime.register(
         "MathSolver3",
         lambda: MathSolver(
-            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
@@ -238,7 +238,7 @@ async def main(question: str) -> None:
     await runtime.register(
         "MathSolver4",
         lambda: MathSolver(
-            get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),

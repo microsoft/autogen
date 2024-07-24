@@ -255,14 +255,14 @@ async def main() -> None:
         "ReviewerAgent",
         lambda: ReviewerAgent(
             description="Code Reviewer",
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
     )
     await runtime.register(
         "CoderAgent",
         lambda: CoderAgent(
             description="Coder",
-            model_client=get_chat_completion_client_from_envs(model="gpt-3.5-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
     )
     run_context = runtime.start()

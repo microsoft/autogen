@@ -71,7 +71,7 @@ async def main():
     runtime = SingleThreadedAgentRuntime()
     agent = await runtime.register_and_get(
         "simple-agent",
-        lambda: SimpleAgent(OpenAIChatCompletionClient(model="gpt-3.5-turbo", api_key="YOUR_API_KEY")), 
+        lambda: SimpleAgent(OpenAIChatCompletionClient(model="gpt-4o-mini", api_key="YOUR_API_KEY")), 
         # Leave out the api_key field if you have the API key in the environment variable OPENAI_API_KEY
     )
     # Start the runtime processing messages.
@@ -257,7 +257,7 @@ async def main() -> None:
     agent = await runtime.register_and_get(
         "tool-agent",
         lambda: ToolAgent(
-            OpenAIChatCompletionClient(model="gpt-3.5-turbo", api_key="YOUR_API_KEY"),
+            OpenAIChatCompletionClient(model="gpt-4o-mini", api_key="YOUR_API_KEY"),
             tools=[
                 FunctionTool(get_stock_price, description="Get the stock price."),
             ],
