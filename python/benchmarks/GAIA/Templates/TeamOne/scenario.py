@@ -148,8 +148,7 @@ async def main() -> None:
 
     run_context = runtime.start()
 
-    actual_surfer = runtime._get_agent(web_surfer.id)  # type: ignore
-    assert isinstance(actual_surfer, MultimodalWebSurfer)
+    actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, type=MultimodalWebSurfer)  
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
 
     #await runtime.send_message(RequestReplyMessage(), user_proxy.id)
@@ -186,8 +185,7 @@ async def main() -> None:
     await run_context.stop_when_idle()
 
     # Output the final answer
-    actual_orchestrator = runtime._get_agent(orchestrator.id)  # type: ignore
-    assert isinstance(actual_orchestrator, LedgerOrchestrator)
+    actual_orchestrator = await runtime.try_get_underlying_agent_instance(orchestrator.id, type=LedgerOrchestrator)
     transcript: List[LLMMessage] = actual_orchestrator._chat_history # type: ignore
     print(await response_preparer(task=task, source=(await orchestrator.metadata)["name"], client=client, transcript=transcript))
 
