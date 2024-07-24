@@ -8,7 +8,7 @@ import {
 } from "../../../utils";
 import { Button, Checkbox, Drawer, Input, Modal, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
-import { UserIcon, LightBulbIcon } from "@heroicons/react/24/outline";
+import { UserIcon, LightBulbIcon, ArrowDownIcon } from "@heroicons/react/24/outline";
 
 
 export const JsonCriteriaViewConfig = ({
@@ -28,8 +28,8 @@ export const JsonCriteriaViewConfig = ({
   const [error, setError] = React.useState<IStatus | null>(null);
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
-  const createCriteriaUrl = `${serverUrl}/agenteval/criteria/create?criteria&task`;
-  const validateCriteriaUrl = `${serverUrl}/agenteval/criteria/validate/${criteria.criteria}`;
+  const createCriteriaUrl = `${serverUrl}/agenteval/criteria/create`;
+  const validateCriteriaUrl = `${serverUrl}/agenteval/criteria/validate`;
 
   const [controlChanged, setControlChanged] = React.useState<boolean>(false);
   const [localCriteria, setLocalCriteria] = React.useState<IAgentEvalCriteria>(criteria);
@@ -45,21 +45,21 @@ export const JsonCriteriaViewConfig = ({
   const createCriteria = (criteria: IAgentEvalCriteria) => {
     setError(null);
     setLoading(true);
-
     const payLoad = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: {"criteria": criteria.criteria, 
+      body: JSON.stringify({
+             "criteria": JSON.parse(criteria.criteria), 
              "task": {
                 "name": criteria.task_name, 
                 "description": criteria.task_description, 
                 "successful_response": "",
                 "failed_response": ""
             }
-          },
+          }),
     };
 
     const onSuccess = (data: any) => {
@@ -70,6 +70,7 @@ export const JsonCriteriaViewConfig = ({
         message.error(data.message);
       }
       setLoading(false);
+      close();
     };
     const onError = (err: any) => {
       setError(err);
@@ -88,10 +89,11 @@ export const JsonCriteriaViewConfig = ({
     setLoading(true);
 
     const payLoad = {
-      method: "GET",
+      method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
       },
+      body: JSON.stringify(criteria.criteria)
     };
 
     const onSuccess = (data: any) => {
@@ -116,7 +118,6 @@ export const JsonCriteriaViewConfig = ({
   };
 
   const hasChanged = !controlChanged && criteria.id !== undefined;
-
   const editorRef = React.useRef<any | null>(null);
   const [showQuantifyModal, setShowQuantifyModal] = React.useState(false);
   const [editorText, setEditorText] = React.useState(!criteria.id ? "Paste your criteria here..." : criteria.criteria);
@@ -221,7 +222,7 @@ export const JsonCriteriaViewConfig = ({
                 onClick={() => setShowQuantifyModal(true)}
                 loading={loading}
               >
-                {"Quantify Criteria"}
+                Quantify Criteria
               </Button>
             )}
           <Button
@@ -278,7 +279,7 @@ export const CriteriaGenerateConfig = ({
   const [selectedSuccessSession, setSelectedSuccessSession] = React.useState("");
   const [selectedFailureSession, setSelectedFailureSession] = React.useState("");
   const serverUrl = getServerUrl();
-  const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate?user_id=${user_id}&model_id=${generateParams.model_id}&success_session_id=${generateParams.success_session_id}&failure_session_id=${generateParams.model_id}&additional_instructions=${generateParams.additional_instructions}&max_round=${generateParams.max_round}&use_subcritic=${generateParams.use_subcritic}`;
+  const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate`;
   
   const generateCriteria = (generateParams: IAgentEvalGenerate) => {
     setError(null);
@@ -290,17 +291,13 @@ export const CriteriaGenerateConfig = ({
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-              "name": generateParams.task_name, 
-              "description": generateParams.task_description, 
-              "successful_response": "",
-              "failed_response": ""
-            }),
+      body: JSON.stringify(generateParams),
     };
 
     const onSuccess = (data: any) => {
       message.success("New criteria successfully generated.")
       setLoading(false);
+      close();
     };
     const onError = (err: any) => {
       setError(err);
@@ -317,7 +314,6 @@ export const CriteriaGenerateConfig = ({
 
   return (
     <>
-      {/* <div className="mb-2">{flowConfig.name}</div> */}
       <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between'}}>
         <div style={{flex: 1, marginRight: '20px'}}>
           <ControlRowView
@@ -420,14 +416,18 @@ export const CriteriaGenerateConfig = ({
             }
           />
           <div>
-            <button onClick={() => setIsExpanded(!isExpanded)}>
+            <Button
+              type="text"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
               {isExpanded ? 'Hide' : 'Show'} Advanced Options
-            </button>
+              <ArrowDownIcon className="h-4 w-4 inline-block mr-1"/>
+            </Button>
             {isExpanded && (
               <>
                 <ControlRowView
                   title="Additional Instructions"
-                  description="Additional instrcutions to pass along to the criteria agent."
+                  description="Additional instructions to pass along to the criteria agent."
                   value={truncateText(generateParams.additional_instructions, 20)}
                   control={
                     <Input
@@ -441,7 +441,7 @@ export const CriteriaGenerateConfig = ({
                 />
                 <ControlRowView
                   title="Max Rounds"
-                  description="The maximum number of rounds of conversation for the Critic agents to use when coming up with the criteria. (Default: 5)"
+                  description="The maximum number of rounds of conversation for the CriticAgents to use when coming up with the criteria. (Default: 5)"
                   value={5}
                   control={
                     <Input
@@ -454,8 +454,8 @@ export const CriteriaGenerateConfig = ({
                   }
                 />
                 <ControlRowView
-                  title="Use subcritic"
-                  description="Checkbox for if the use the SubCritic Agent to create sub criteria."
+                  title="Generate subcriteria"
+                  description="Check if subcriteria should be generated."
                   value={generateParams.use_subcritic}
                   control={
                     <Checkbox
@@ -517,7 +517,6 @@ export const CriteriaViewer = ({
     {
       label: (
         <div className="w-full  ">
-          {" "}
           <UserIcon className="h-4 w-4 inline-block mr-1" />
           User-Defined Criteria
         </div>
@@ -540,7 +539,6 @@ export const CriteriaViewer = ({
     items.push({
       label: (
         <div className="w-full  ">
-          {" "}
           <LightBulbIcon className="h-4 w-4 inline-block mr-1" />
           Generate Criteria
         </div>

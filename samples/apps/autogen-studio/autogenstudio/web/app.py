@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from autogenstudio.utils.utils import sanitize_model
+from pydantic import BaseModel
 
 from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.task import Task
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -21,7 +22,7 @@ from openai import OpenAIError
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
-from ..datamodel import Agent, Criteria, CriterionModel, Message, Model, Response, Session, Skill, Workflow
+from ..datamodel import Agent, Criteria, Message, Model, Response, Session, Skill, Workflow
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
 
@@ -410,25 +411,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
 
 @api.get("/agenteval/criteria")
 async def criteria():
-    criteria_entries = list_entity(Criteria, return_json=True)
-    criteria_list = []
-    for entry in criteria_entries.data:
-        filters = {"criteria_list_id": entry["id"]}
-        models = list_entity(CriterionModel, filters=filters, return_json=True).data
-        models = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in models]
-        criteria_list.append({"id": entry["id"], "task_name": entry["task_name"], "task_description": entry["task_description"], "criteria": Criterion.write_json(models)})
-    return criteria_list
-
-
-# @api.get("/agenteval/criteria/{criteria_id}")
-# async def get_agenteval_criteria(criteria_id: int):
-#     filters = {"id": criteria_id}
-#     criteria_entry = list_entity(Criteria, return_json=True).data
-#     filters = {"criteria_list_id": criteria_id}
-
-#     entities = list_entity(CriterionModel, filters=filters, return_json=True).data
-#     entities = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in entities]
-#     return {"id": criteria_entry["id"], "criteria": Criterion.write_json(entities)}
+    return list_entity(Criteria, return_json=True)
 
 
 @api.delete("/agenteval/criteria/delete/{criteria_id}")
@@ -437,45 +420,52 @@ async def delete_agenteval_criteria(criteria_id: int):
     return delete_entity(Criteria, filters=filters)
 
 
-@api.post("/agenteval/criteria/generate") # TODO: figure out a better way to pass all of these in
-async def generate_agenteval_criteria(user_id: str, model_id: int, task: Task, success_session_id: int = None, failure_session_id: int = None, 
-                                    additonal_instructions: str = "", max_round: int = 5, use_subcritic: bool = False):
-    if(not success_session_id and not failure_session_id):
+class AgentEvalGenerate(BaseModel):
+    user_id: str
+    model_id: int
+    task_name: str
+    task_description : str
+    success_session_id: int = None,
+    failure_session_id: int = None,
+    additonal_instructions: str = ""
+    max_round: int = 5
+    use_subcritic: bool = False
+
+
+@api.post("/agenteval/criteria/generate")
+async def generate_agenteval_criteria(params: AgentEvalGenerate):
+    if(not params.success_session_id and not params.failure_session_id):
         return {
             "status": False,
             "message": "At least one session is required to be selected."
         }
-    
-    if(success_session_id):
-        task.successful_response = get_session(user_id, success_session_id)
-    if(failure_session_id):
-        task.failed_response = get_session(user_id, failure_session_id)
+    task = Task(name=params.task_name, description=params.task_description, successful_response="", failed_response="")
+    if(params.success_session_id):
+        task.successful_response = get_session(params.user_id, params.success_session_id)
+    if(params.failure_session_id):
+        task.failed_response = get_session(params.user_id, params.failure_session_id)
 
-    model = get_model(model_id)
+    model = get_model(params.model_id)
 
-    criteria = generate_criteria(llm_config=model, task=task, additional_instructions=additonal_instructions,
-                                 max_round=max_round, use_subcritic=use_subcritic)
+    criteria = generate_criteria(llm_config=model, task=task, additional_instructions=params.additonal_instructions,
+                                 max_round=params.max_round, use_subcritic=params.use_subcritic)
 
-    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=[])
+    criteria = Criterion.write_json(criteria)
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
     create_entity(criteria_entry, Criteria)
-    for criterion in criteria:
-        create_entity(CriterionModel(criteria_list_id=criteria_entry.id, **criterion.model_dump()), CriterionModel)
-    
-    return Criterion.write_json(criteria)
+    return criteria
 
 
 @api.post("/agenteval/criteria/create")
 async def create_agenteval_criteria(criteria: list[Criterion], task: Task):
-    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=[])
+    criteria = Criterion.write_json(criteria)
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
     create_entity(criteria_entry, Criteria)
-    for criterion in criteria:
-        create_entity(CriterionModel(criteria_list_id=criteria_entry.id, **criterion.model_dump()), CriterionModel)
-    return Criterion.write_json(criteria)
+    return criteria
 
 
-@api.get("/agenteval/criteria/validate/{criteria}")
-async def validate_agenteval_criteria(criteria: str):
-    # TODO: Can we pass in through the body somehow instead of a super long string, does it need to be a POST?
+@api.post("/agenteval/criteria/validate")
+async def validate_agenteval_criteria(criteria: str = Body(...)):
     try:
         criteria = Criterion.parse_json_str(criteria)
     except ValueError as ex:
@@ -495,9 +485,9 @@ async def validate_agenteval_criteria(criteria: str):
 
 @api.post("/agenteval/quantify")
 async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task, test_session_id: int, user_id: str):
-    filters = {"criteria_list_id": criteria_id}
-    criteria = list_entity(CriterionModel, filters=filters, return_json=True).data
-    criteria = [Criterion(name=item['name'], description=item['description'], accepted_values=item['accepted_values']) for item in criteria]
+    filters = {"id": criteria_id}
+    criteria = list_entity(Criteria, filters=filters, return_json=True).data
+    criteria = Criterion.parse_json_str(criteria.criteria)
 
     model = get_model(model_id)
     test_case = get_session(user_id=user_id, session_id=test_session_id)
@@ -531,6 +521,7 @@ async def get_version():
         "message": "Version retrieved successfully",
         "data": {"version": VERSION},
     }
+
 
 # websockets
 

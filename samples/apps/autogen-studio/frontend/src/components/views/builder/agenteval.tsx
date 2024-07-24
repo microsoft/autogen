@@ -1,23 +1,24 @@
+
 import {
   ArrowDownTrayIcon,
+  ArrowLeftIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Dropdown, Modal, message } from "antd";
+import { Button, Modal, message } from "antd";
 import * as React from "react";
 import { IAgentEvalCriteria as IAgentEvalCriteria, IChatSession, IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
-  sampleWorkflowConfig,
   truncateText,
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { CriteriaViewer } from "./utils/agentevalconfig";
   
-const AgentEvalView = ({}: any) => {
+const AgentEvalView = ({ onBack }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
     status: true,
@@ -31,10 +32,7 @@ const AgentEvalView = ({}: any) => {
   const [selectedCriteria, setSelectedCriteria] =
     React.useState<IAgentEvalCriteria | null>(null);
 
-  const defaultConfig = sampleWorkflowConfig();
-
   const [showCriteriaModal, setShowCriteriaModal] = React.useState(false);
-  const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);
 
   const fetchCriteria = () => {
     setError(null);
@@ -49,7 +47,7 @@ const AgentEvalView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data) {
         console.log(data)
-        setCriteria(data);
+        setCriteria(data.data);
       } else {
         message.error(data.message);
       }
@@ -114,7 +112,7 @@ const AgentEvalView = ({}: any) => {
           icon: ArrowDownTrayIcon,
           onClick: (e: any) => {
             e.stopPropagation();
-            // download workflow as workflow.name.json
+            // download workflow as criteria.json
             const element = document.createElement("a");
             const criteria_json = criteria.criteria;
             const file = new Blob([criteria_json], {
@@ -139,7 +137,7 @@ const AgentEvalView = ({}: any) => {
       ];
       return (
         <li
-          key={"workflowrow" + i}
+          key={"criteriarow" + i}
           className="block   h-full"
           style={{ width: "200px" }}
         >
@@ -175,7 +173,7 @@ const AgentEvalView = ({}: any) => {
     setCriteria?: (criteria: IAgentEvalCriteria | null) => void;
     showModal: boolean;
     setShowModal: (show: boolean) => void;
-    handler?: (workflow: IAgentEvalCriteria) => void;
+    handler?: (criteria: IAgentEvalCriteria) => void;
   }) => {
     const [localCriteria, setLocalCriteria] = React.useState<IAgentEvalCriteria | null>(criteria);
 
@@ -186,7 +184,6 @@ const AgentEvalView = ({}: any) => {
       }
     };
 
-    
     const [models, setModels] = React.useState<IModelConfig[]>([]);
     const [sessions, setSessions] = React.useState<IChatSession[]>([]);
     const { user } = React.useContext(appContext);
@@ -254,38 +251,45 @@ const AgentEvalView = ({}: any) => {
     }, []);
 
     return (
-      <Modal
-        title={
+      <div>
+        <Button
+          onClick={onBack}>
+          <ArrowLeftIcon className="w-5 h-5 inline-block mr-1"/>
+          Back
+        </Button>
+        <Modal
+          title={
+            <>
+              Criteria Details{" "}
+              <span className="text-accent font-normal">
+                {localCriteria?.task_name}
+              </span>{" "}
+            </>
+          }
+          width={800}
+          open={showModal}
+          onOk={() => {
+            closeModal();
+          }}
+          onCancel={() => {
+            closeModal();
+          }}
+          footer={[]}
+        >
           <>
-            Criteria Details{" "}
-            <span className="text-accent font-normal">
-              {localCriteria?.task_name}
-            </span>{" "}
+            {localCriteria && (
+              <CriteriaViewer
+                criteria={localCriteria}
+                setCriteria={setLocalCriteria}
+                models={models}
+                sessions={sessions}
+                user_id={user?.email}
+                close={closeModal}
+              />
+            )}
           </>
-        }
-        width={800}
-        open={showModal}
-        onOk={() => {
-          closeModal();
-        }}
-        onCancel={() => {
-          closeModal();
-        }}
-        footer={[]}
-      >
-        <>
-          {localCriteria && (
-            <CriteriaViewer
-              criteria={localCriteria}
-              setCriteria={setLocalCriteria}
-              models={models}
-              sessions={sessions}
-              user_id={user?.email}
-              close={closeModal}
-            />
-          )}
-        </>
-      </Modal>
+        </Modal>
+      </div>
     );
   };
 
@@ -309,25 +313,23 @@ const AgentEvalView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="     rounded  ">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1 font-semibold  mb-2 ">
+            <div className="flex-1 font-semibold  mb-2">
               {" "}
               Criteria ({criteriaRows.length}){" "}
             </div>
             <div className=" ">
-              <Dropdown.Button
+              <Button
                 type="primary"
-                placement="bottomRight"
-                trigger={["click"]}
                 onClick={() => {
                   showCriteria({});
                 }}
               >
-                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                <PlusIcon className="w-5 h-5 inline-block mr-1"/>
                 Create Criteria
-              </Dropdown.Button>
+              </Button>
             </div>
           </div>
-          <div className="text-xs mb-2 pb-1  ">
+          <div className="text-xs mb-2 pb-1">
             {" "}
             Configure set of criteria for scoring workflow sessions.
           </div>
@@ -341,7 +343,7 @@ const AgentEvalView = ({}: any) => {
           )}
           {criteria_list && criteria_list.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
-              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              <InformationCircleIcon className="h-4 w-4 inline mr-1"/>
               No criteria found. Please create a new set of criteria.
             </div>
           )}

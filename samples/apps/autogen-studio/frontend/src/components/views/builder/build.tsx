@@ -3,7 +3,7 @@ import SkillsView from "./skills";
 import ModelsView from "./models";
 import AgentsView from "./agents";
 import WorkflowView from "./workflow";
-import AgentEvalView from "./agenteval";
+import LabsView from "./labs";
 import { Tabs } from "antd";
 import {
   BugAntIcon,
@@ -75,11 +75,11 @@ const BuildView = () => {
               label: (
                 <>
                   <Square3Stack3DIcon className="h-4 w-4 inline-block mr-1" />
-                  AgentEval
+                  Labs
                 </>
               ),
               key: "5",
-              children: <AgentEvalView />,
+              children: <LabsView />,
             },
           ]}
         />
