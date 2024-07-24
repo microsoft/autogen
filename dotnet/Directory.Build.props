@@ -5,7 +5,7 @@
   <Import Project="./eng/Sign.props" />
   <PropertyGroup>
     <PackageTargetFrameworks>netstandard2.0;net6.0;net8.0</PackageTargetFrameworks>
-    <TestTargetFramework>net8.0</TestTargetFramework>
+    <TestTargetFrameworks>net8.0</TestTargetFrameworks>
     <LangVersion>preview</LangVersion>
 	  <Nullable>enable</Nullable>
     <SignAssembly>True</SignAssembly>
