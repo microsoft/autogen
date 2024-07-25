@@ -49,7 +49,7 @@ public class MistralClient : IDisposable
         var response = await HttpRequestRaw(HttpMethod.Post, chatCompletionRequest, streaming: true);
         using var stream = await response.Content.ReadAsStreamAsync();
         using StreamReader reader = new StreamReader(stream);
-        string line;
+        string? line = null;
 
         SseEvent currentEvent = new SseEvent();
         while ((line = await reader.ReadLineAsync()) != null)
@@ -67,13 +67,13 @@ public class MistralClient : IDisposable
                 else if (currentEvent.EventType == null)
                 {
                     var res = await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
-                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data))) ?? throw new Exception("Failed to deserialize response");
+                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data ?? string.Empty))) ?? throw new Exception("Failed to deserialize response");
                     yield return res;
                 }
                 else if (currentEvent.EventType != null)
                 {
                     var res = await JsonSerializer.DeserializeAsync<ErrorResponse>(
-                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)));
+                        new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data ?? string.Empty)));
                     throw new Exception(res?.Error.Message);
                 }
 
