@@ -43,15 +43,6 @@ else:
     ERROR = None
 
 try:
-    import anthropic
-except ImportError:
-    ERROR: Optional[ImportError] = ImportError("Please install anthropic.")
-    AnthropicBedrock = object
-else:
-    # raises exception if anthropic not installed and something is wrong with imports
-    from anthropic import AnthropicBedrock
-
-try:
     from autogen.oai.gemini import GeminiClient
 
     gemini_import_exception: Optional[ImportError] = None
@@ -379,7 +370,7 @@ class OpenAIWrapper:
 
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     aopenai_kwargs = set(inspect.getfullargspec(AzureOpenAI.__init__).kwonlyargs)
-    anthropic_kwargs = set(inspect.getfullargspec(AnthropicBedrock.__init__).args)
+    anthropic_kwargs = set(inspect.getfullargspec(AnthropicClient.__init__).args)
     openai_kwargs = openai_kwargs | aopenai_kwargs | anthropic_kwargs
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None

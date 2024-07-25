@@ -19,7 +19,6 @@ current_os = platform.system()
 
 install_requires = [
     "openai>=1.3",
-    "anthropic>=0.23.1",
     "diskcache",
     "termcolor",
     "flaml",
@@ -87,6 +86,7 @@ extra_require = {
     "jupyter-executor": jupyter_executor,
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
+    "anthropic": ["anthropic>=0.23.1"],
     "mistral": ["mistralai>=0.2.0"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
