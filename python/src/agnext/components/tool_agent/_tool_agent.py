@@ -55,6 +55,10 @@ class ToolAgent(TypeRoutedAgent):
         super().__init__(description)
         self._tools = tools
 
+    @property
+    def tools(self) -> List[Tool]:
+        return self._tools
+
     @message_handler
     async def handle_function_call(
         self, message: FunctionCall, cancellation_token: CancellationToken

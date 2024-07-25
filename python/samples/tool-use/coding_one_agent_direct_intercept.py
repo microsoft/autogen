@@ -14,13 +14,14 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import FunctionCall
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import SystemMessage
+from agnext.components.tool_agent import ToolException
 from agnext.components.tools import PythonCodeExecutionTool, Tool
 from agnext.core import AgentId
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from coding_one_agent_direct import FunctionExecutionException, Message, ToolEnabledAgent
+from coding_one_agent_direct import Message, ToolEnabledAgent
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -32,7 +33,7 @@ class ToolInterventionHandler(DefaultInterventionHandler):
                 f"Function call: {message.name}\nArguments: {message.arguments}\nDo you want to execute the tool? (y/n): "
             )
             if user_input.strip().lower() != "y":
-                raise FunctionExecutionException(content="User denied tool execution.", call_id=message.id)
+                raise ToolException(content="User denied tool execution.", call_id=message.id)
         return message
 
 
