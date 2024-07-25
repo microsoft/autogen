@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "autogencap_rajan.jedi"
-version = "0.0.10"
+name = "autogencap"
+version = "0.0.11"
 authors = [
   { name="Rajan Chari", email="rajan.jedi@gmail.com" },
 ]

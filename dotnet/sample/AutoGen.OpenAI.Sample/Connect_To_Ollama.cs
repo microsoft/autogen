@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.cs
+// Connect_To_Ollama.cs
+
 #region using_statement
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
