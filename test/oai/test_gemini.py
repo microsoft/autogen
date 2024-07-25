@@ -1,8 +1,9 @@
 import os
 from unittest.mock import MagicMock, patch
 
-from autogen.oai.gemini import calculate_gemini_cost
 import pytest
+
+from autogen.oai.gemini import calculate_gemini_cost
 
 try:
     import google.auth
@@ -13,8 +14,7 @@ try:
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
-    from autogen.oai.gemini import GeminiClient
-    from autogen.oai.gemini import GeminiContextCacheß
+    from autogen.oai.gemini import GeminiClient, GeminiContextCacheß
 
     skip = False
 except ImportError:
@@ -282,9 +282,7 @@ def test_cost_calculation(gemini_client, mock_response):
 
     response_with_cache = mock_response(
         text="Example response",
-        choices=[{
-            "message": "Test message 1"
-        }],
+        choices=[{"message": "Test message 1"}],
         usage={
             # openai usage stats do not reflect gemini context caching.
             "prompt_tokens": 10,
@@ -292,13 +290,14 @@ def test_cost_calculation(gemini_client, mock_response):
             "total_tokens": 15,
             # context_cache_tokens should offset prompt_tokens and reduce the
             # total cost durign the cost calculation.
-            "context_cache_tokens": 3
+            "context_cache_tokens": 3,
         },
         cost=0.00015925,
         model="gemini-pro",
     )
-    assert gemini_client.cost(response) > gemini_client.cost(response_with_cache), \
-            "Context caching should reduce the cost."
+    assert gemini_client.cost(response) > gemini_client.cost(
+        response_with_cache
+    ), "Context caching should reduce the cost."
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
@@ -384,10 +383,13 @@ def test_vertexai_default_auth_create_response(mock_init, mock_generative_model,
     # Assertions to check if response is structured as expected
     assert response.choices[0].message.content == "Example response", "Response content should match expected output"
 
+
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 @patch("autogen.oai.gemini.GenerativeModel")
 @patch("autogen.oai.gemini.vertexai.init")
-def test_vertexai_default_auth_create_response_with_context_cache(mock_init, mock_generative_model, gemini_google_auth_default_client):
+def test_vertexai_default_auth_create_response_with_context_cache(
+    mock_init, mock_generative_model, gemini_google_auth_default_client
+):
     # Mock the genai model configuration and creation process
     mock_chat = MagicMock()
     mock_model = MagicMock()
@@ -404,32 +406,28 @@ def test_vertexai_default_auth_create_response_with_context_cache(mock_init, moc
     mock_chat.send_message.return_value = MagicMock(history=[MagicMock(parts=[MagicMock(text="Example response")])])
 
     # Setup the mock to return a mocked cache usage
-    mock_context_cache = MagicMock(usage_metadata=MagicMock(total_token_count = 10))
+    mock_context_cache = MagicMock(usage_metadata=MagicMock(total_token_count=10))
 
     # Call the create method
     response = gemini_google_auth_default_client.create(
         {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
     )
-    response_with_cache = gemini_google_auth_default_client.create({
-        "model":
-        "gemini-1.5-pro-001",
-        "context_cache":
-        mock_context_cache,
-        "messages": [{
-            "content": "Hello",
-            "role": "user"
-        }],
-        "stream":
-        False
-    })
+    response_with_cache = gemini_google_auth_default_client.create(
+        {
+            "model": "gemini-1.5-pro-001",
+            "context_cache": mock_context_cache,
+            "messages": [{"content": "Hello", "role": "user"}],
+            "stream": False,
+        }
+    )
 
     # Assertions to check if response is structured as expected
-    assert response_with_cache.choices[
-        0].message.content == "Example response", "Response content should match expected output"
-    assert gemini_google_auth_default_client.cost(
-        response) > gemini_google_auth_default_client.cost(
-            response_with_cache
-        ), "Context caching should result in reduced cost."
+    assert (
+        response_with_cache.choices[0].message.content == "Example response"
+    ), "Response content should match expected output"
+    assert gemini_google_auth_default_client.cost(response) > gemini_google_auth_default_client.cost(
+        response_with_cache
+    ), "Context caching should result in reduced cost."
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
