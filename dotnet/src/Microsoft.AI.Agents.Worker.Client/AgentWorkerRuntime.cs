@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Channels;
 using Grpc.Net.Client.Configuration;
+using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.AI.Agents.Worker.Client;
 
@@ -45,6 +47,7 @@ public static class HostBuilderExtensions
                 channelOptions.ThrowOperationCanceledOnCancellation = true;
             });
         });
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.Services.AddSingleton<AgentWorkerRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AgentWorkerRuntime>());
         return new AgentApplicationBuilder(builder);
@@ -77,6 +80,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
     private readonly ILogger<AgentWorkerRuntime> _logger;
+    private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCts;
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
@@ -87,12 +91,14 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable
         IHostApplicationLifetime hostApplicationLifetime,
         IServiceProvider serviceProvider,
         [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<AgentWorkerRuntime> logger)
+        ILogger<AgentWorkerRuntime> logger,
+        DistributedContextPropagator distributedContextPropagator)
     {
         _client = client;
         _serviceProvider = serviceProvider;
         _configuredAgentTypes = configuredAgentTypes;
         _logger = logger;
+        _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     }
 
@@ -195,7 +201,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable
         {
             if (_agentTypes.TryGetValue(agentId.Name, out var agentType))
             {
-                var context = new AgentContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>());
+                var context = new AgentContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
                 agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Name, agentId.Namespace), agent);
             }

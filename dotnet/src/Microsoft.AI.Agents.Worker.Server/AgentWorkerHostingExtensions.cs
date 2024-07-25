@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Serialization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Diagnostics;
 
 namespace Microsoft.AI.Agents.Worker;
 
@@ -14,6 +16,7 @@ public static class AgentWorkerHostingExtensions
 
         // Ensure Orleans is added before the hosted service to guarantee that it starts first.
         builder.UseOrleans();
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.Services.AddSingleton<WorkerGateway>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WorkerGateway>());
 

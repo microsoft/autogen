@@ -1,19 +1,21 @@
+using System.Diagnostics;
 using Agents;
 using Microsoft.AI.Agents.Worker.Client;
 using AgentId = Microsoft.AI.Agents.Worker.Client.AgentId;
 
 namespace Greeter.AgentWorker;
 
-public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime) : AgentBase(new ClientContext(logger, runtime))
+public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator) : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator))
 {
     public async ValueTask PublishEventAsync(Event @event) => await PublishEvent(@event);
     public async ValueTask<RpcResponse> SendRequestAsync(AgentId target, string method, Dictionary<string, string> parameters) => await RequestAsync(target, method, parameters);
 
-    private sealed class ClientContext(ILogger<AgentClient> logger, AgentWorkerRuntime runtime) : IAgentContext
+    private sealed class ClientContext(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator) : IAgentContext
     {
         public AgentId AgentId { get; } = new AgentId("client", Guid.NewGuid().ToString());
         public AgentBase? AgentInstance { get; set; }
         public ILogger Logger { get; } = logger;
+        public DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
 
         public async ValueTask PublishEventAsync(Event @event)
         {

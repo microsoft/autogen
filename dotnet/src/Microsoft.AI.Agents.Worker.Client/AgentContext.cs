@@ -1,16 +1,18 @@
-﻿using Agents;
+using Agents;
 using RpcEvent = Agents.Event;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Microsoft.AI.Agents.Worker.Client;
 
-internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, ILogger<AgentBase> logger) : IAgentContext
+internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
 {
     private readonly AgentWorkerRuntime _runtime = runtime;
 
     public AgentId AgentId { get; } = agentId;
     public ILogger Logger { get; } = logger;
     public AgentBase? AgentInstance { get; set; }
+    public DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
 
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response)
     {
