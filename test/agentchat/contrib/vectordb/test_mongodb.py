@@ -4,7 +4,6 @@ import random
 from time import monotonic, sleep
 from typing import List
 
-import pymongo.database
 import pymongo.errors
 import pytest
 
@@ -90,7 +89,7 @@ def db():
     vectorstore = MongoDBAtlasVectorDB(
         connection_string=MONGODB_URI,
         database_name=MONGODB_DATABASE,
-        wait_until_ready=TIMEOUT,
+        wait_until_index_ready=TIMEOUT,
         overwrite=True,
     )
     yield vectorstore
@@ -116,7 +115,7 @@ def db_with_indexed_clxn(collection_name):
     vectorstore = MongoDBAtlasVectorDB(
         connection_string=MONGODB_URI,
         database_name=MONGODB_DATABASE,
-        wait_until_ready=TIMEOUT,
+        wait_until_index_ready=TIMEOUT,
         collection_name=collection_name,
         overwrite=True,
     )
@@ -223,6 +222,7 @@ def test_update_docs(db_with_indexed_clxn, example_documents):
     found = list(collection.find({}))
     # Check that documents have correct fields, including "_id" and "embedding" but not "id"
     assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
+    assert all([isinstance(doc["embedding"][0], float) for doc in found])
     assert all([len(doc["embedding"]) == db.dimensions for doc in found])
     # Check ids
     assert {doc["_id"] for doc in found} == {1, "1", 2, "2"}
@@ -298,7 +298,7 @@ def test_retrieve_docs_populated_db_empty_query(db_with_indexed_clxn, example_do
 def test_retrieve_docs(db_with_indexed_clxn, example_documents):
     """Begin testing Atlas Vector Search
     NOTE: Indexing may take some time, so we must be patient on the first query.
-    We have the wait_until_ready flag to ensure index is created and ready
+    We have the wait_until_index_ready flag to ensure index is created and ready
     Immediately adding documents and then querying is only standard for testing
     """
     db, clxn = db_with_indexed_clxn
@@ -321,7 +321,7 @@ def test_retrieve_docs(db_with_indexed_clxn, example_documents):
 def test_retrieve_docs_with_embedding(db_with_indexed_clxn, example_documents):
     """Begin testing Atlas Vector Search
     NOTE: Indexing may take some time, so we must be patient on the first query.
-    We have the wait_until_ready flag to ensure index is created and ready
+    We have the wait_until_index_ready flag to ensure index is created and ready
     Immediately adding documents and then querying is only standard for testing
     """
     db, clxn = db_with_indexed_clxn
@@ -382,3 +382,21 @@ def test_retrieve_docs_with_threshold(db_with_indexed_clxn, example_documents):
     results = db.retrieve_docs(queries=queries, collection_name=clxn.name, n_results=n_results, distance_threshold=0.3)
     assert len(results[0]) == 1
     assert all([doc[1] >= 0.7 for doc in results[0]])
+
+
+def test_wait_until_document_ready(collection_name, example_documents):
+    database = MongoClient(MONGODB_URI)[MONGODB_DATABASE]
+    _empty_collections_and_delete_indexes(database, [collection_name], wait=True)
+    try:
+        vectorstore = MongoDBAtlasVectorDB(
+            connection_string=MONGODB_URI,
+            database_name=MONGODB_DATABASE,
+            wait_until_index_ready=TIMEOUT,
+            collection_name=collection_name,
+            overwrite=True,
+            wait_until_document_ready=TIMEOUT,
+        )
+        vectorstore.insert_docs(example_documents)
+        assert vectorstore.retrieve_docs(queries=["Cats"], n_results=4)
+    finally:
+        _empty_collections_and_delete_indexes(database, [collection_name])

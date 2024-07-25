@@ -37,7 +37,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         index_name: str = "vector_index",
         overwrite: bool = False,
-        wait_until_ready: float | None = None,
+        wait_until_index_ready: float | None = None,
+        wait_until_document_ready: float | None = None,
     ):
         """
         Initialize the vector database.
@@ -48,13 +49,16 @@ class MongoDBAtlasVectorDB(VectorDB):
             embedding_function: The embedding function used to generate the vector representation.
             overwrite: bool | Overwrite existing collection with new information from this object.
                 defaults to False
-            wait_until_ready: float | None | Blocking call to wait until the
+            wait_until_index_ready: float | None | Blocking call to wait until the
+                database indexes are ready. None, the default, means no wait.
+            wait_until_document_ready: float | None | Blocking call to wait until the
                 database indexes are ready. None, the default, means no wait.
         """
         self.embedding_function = embedding_function
         self.index_name = index_name
         self.overwrite = overwrite
-        self._wait_until_ready = wait_until_ready
+        self._wait_until_index_ready = wait_until_index_ready
+        self._wait_until_document_ready = wait_until_document_ready
 
         # This will get the model dimension size by computing the embeddings dimensions
         self.dimensions = self._get_embedding_size()
@@ -97,7 +101,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         """
         assert action in ["create", "delete"], f"{action=} must be create or delete."
         start = monotonic()
-        while monotonic() - start < self._wait_until_ready:
+        while monotonic() - start < self._wait_until_index_ready:
             if action == "create" and self._is_index_ready(collection, index_name):
                 return
             elif action == "delete" and len(list(collection.list_search_indexes())) == 0:
@@ -105,6 +109,21 @@ class MongoDBAtlasVectorDB(VectorDB):
             sleep(_DELAY)
 
         raise TimeoutError(f"Index {self.index_name} is not ready!")
+
+    def _wait_for_document(self, collection: Collection, index_name: str, doc: Document):
+        start = monotonic()
+        while monotonic() - start < self._wait_until_document_ready:
+            query_result = _vector_search(
+                embedding_vector=np.array(self.embedding_function(doc["content"])).tolist(),
+                n_results=1,
+                collection=collection,
+                index_name=index_name,
+            )
+            if query_result and query_result[0][0]["_id"] == doc["id"]:
+                return
+            sleep(_DELAY)
+
+        raise TimeoutError(f"Document {self.index_name} is not ready!")
 
     def _get_embedding_size(self):
         return len(self.embedding_function(_SAMPLE_SENTENCE)[0])
@@ -193,7 +212,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         """
         for index in self.db[collection_name].list_search_indexes():
             self.db[collection_name].drop_search_index(index["name"])
-            if self._wait_until_ready:
+            if self._wait_until_index_ready:
                 self._wait_for_index(self.db[collection_name], index["name"], "delete")
         return self.db[collection_name].drop()
 
@@ -231,7 +250,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Create the search index
         try:
             collection.create_search_index(model=search_index_model)
-            if self._wait_until_ready:
+            if self._wait_until_index_ready:
                 self._wait_for_index(collection, index_name, "create")
             logger.debug(f"Search index {index_name} created successfully.")
         except Exception as e:
@@ -311,6 +330,8 @@ class MongoDBAtlasVectorDB(VectorDB):
                         in_diff=input_ids.difference(result_ids), out_diff=result_ids.difference(input_ids)
                     )
                 )
+            if self._wait_until_document_ready and docs:
+                self._wait_for_document(collection, self.index_name, docs[-1])
 
     def _insert_batch(
         self, collection: Collection, texts: List[str], metadatas: List[Mapping[str, Any]], ids: List[ItemID]
@@ -373,6 +394,9 @@ class MongoDBAtlasVectorDB(VectorDB):
         # Perform update in bulk
         collection = self.get_collection(collection_name)
         result = collection.bulk_write(all_updates)
+
+        if self._wait_until_document_ready and docs:
+            self._wait_for_document(collection, self.index_name, docs[-1])
 
         # Log a result summary
         logger.info(
@@ -441,8 +465,6 @@ class MongoDBAtlasVectorDB(VectorDB):
             n_results: int | The number of relevant documents to return. Default is 10.
             distance_threshold: float | The threshold for the distance score, only distance smaller than it will be
                 returned. Don't filter with it if < 0. Default is -1.
-            wait_until_ready: bool | Will not execute the retrieval operation until the specified vector index is
-                ready to be queried. Defaults is false.
             kwargs: Dict | Additional keyword arguments. Ones of importance follow:
                 oversampling_factor: int | This times n_results is 'ef' in the HNSW algorithm.
                 It determines the number of nearest neighbor candidates to consider during the search phase.
@@ -456,9 +478,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         if collection.count_documents({}) == 0:
             return []
 
-        # Check status of index!
-        if self._wait_until_ready:
-            self._wait_for_index(collection, self.index_name)
         logger.debug(f"Using index: {self.index_name}")
         results = []
         for query_text in queries:
