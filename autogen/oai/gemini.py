@@ -209,15 +209,16 @@ class GeminiClient:
 
         gen_model_cls = GenerativeModel if self.use_vertexai else genai.GenerativeModel
         if context_cache:
+            # Context prefix caching can help reduce the cost.
+            model = gen_model_cls.from_cached_content(cached_content=context_cache)
+        else:
             model = gen_model_cls(
                 model_name,
                 generation_config=generation_config,
                 safety_settings=safety_settings,
                 system_instruction=system_instruction,
             )
-        else:
-            # Context prefix caching can help reduce the cost.
-            model = gen_model_cls.from_cached_content(cached_content=context_cache)
+
 
         if "vision" not in model_name:
             # A. create and call the chat model.
