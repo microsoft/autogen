@@ -10,7 +10,7 @@ import pytest
 import requests
 from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 
-from autogen.browser_utils.google_broswer import GoogleTextBrowser
+from autogen.browser_utils.google_browser import GoogleTextBrowser
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -36,7 +36,7 @@ skip_google = None
 
 
 try:
-    from autogen.browser_utils.google_broswer import GoogleTextBrowser
+    from autogen.browser_utils.google_browser import GoogleTextBrowser
 except ImportError:
     skip_all = True
 else:

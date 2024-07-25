@@ -3,10 +3,10 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
-from .base_browser import SimpleTextBrowser
+from .base_browser import TextBrowserBase
 
 
-class GoogleTextBrowser(SimpleTextBrowser):
+class GoogleTextBrowser(TextBrowserBase):
     """(In preview) An extremely simple text-based web browser comparable to Lynx. Suitable for Agentic use."""
 
     def __init__(
@@ -22,6 +22,7 @@ class GoogleTextBrowser(SimpleTextBrowser):
     ):
         super().__init__(start_page, viewport_size, downloads_folder, base_url, api_key, request_kwargs)
         self.cx = cx
+        self.name = 'google'
 
     def set_address(self, uri_or_path: str) -> None:
         self.history.append(uri_or_path)

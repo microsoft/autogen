@@ -9,15 +9,12 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from ... import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper, UserProxyAgent
-from ...browser_utils.bing_browser import BingTextBrowser
-from ...browser_utils.google_broswer import GoogleTextBrowser
+from ...browser_utils.browser_creator import TextBrowserCreator
 from ...code_utils import content_str
 from ...oai.openai_utils import filter_config
 from ...token_count_utils import count_token, get_max_token_limit
 
 logger = logging.getLogger(__name__)
-
-BROWSERS = {"google": GoogleTextBrowser, "bing": BingTextBrowser}
 
 
 class WebSurferAgent(ConversableAgent):
@@ -43,7 +40,7 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser_name: str = "bing",
+        browser_name: Literal['bing', 'google'] = "bing",
         browser_config: Optional[Union[Dict, None]] = None,
     ):
         super().__init__(
@@ -63,8 +60,7 @@ class WebSurferAgent(ConversableAgent):
 
         # Create the browser
         self.browser_name = browser_name
-        chosen_browser = BROWSERS[self.browser_name]
-        self.browser = chosen_browser(**(browser_config if browser_config else {}))
+        self.browser = TextBrowserCreator.create_browser(self.browser_name)
 
         inner_llm_config = copy.deepcopy(llm_config)
 

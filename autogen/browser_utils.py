@@ -28,7 +28,7 @@ except ModuleNotFoundError:
     pass
 
 
-class SimpleTextBrowser:
+class TextBrowserBase:
     """(In preview) An extremely simple text-based web browser comparable to Lynx. Suitable for Agentic use."""
 
     def __init__(
