@@ -80,21 +80,21 @@ ANTHROPIC_PRICING_1k = {
 class AnthropicClient:
     def __init__(
         self,
+        api_key: str | None = None,
         aws_access_key: str | None = None,
         aws_secret_key: str | None = None,
         aws_session_token: str | None = None,
         aws_region: str | None = None,
-        api_key: str | None = None,
         **kwargs: Any,
     ):
         """
         Initialize the Anthropic API client.
         Args:
+            api_key (str): The API key for the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable.
             aws_access_key (str, optional): AWS Access Key. If not provided, it will try to get it from the `AWS_ACCESS_KEY` environment variable.
             aws_secret_key (str, optional): AWS Secret Key. If not provided, it will try to get it from the `AWS_SECRET_KEY` environment variable.
             aws_session_token (str, optional): AWS Session Token. If not provided, it will try to get it from the `AWS_SESSION_TOKEN` environment variable.
             aws_region (str, optional): AWS Region. If not provided, it will try to get it from the `AWS_REGION` environment variable.
-            api_key (str): The API key for the Anthropic API or set the `ANTHROPIC_API_KEY` environment variable.
             **kwargs: Other parameters.
         """
         self._api_key = api_key
