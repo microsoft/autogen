@@ -1,4 +1,4 @@
-from autogencap.ZMQRuntime import ZMQRuntime
+from autogencap.zmq_runtime import ZMQRuntime
 from autogencap.DebugLog import Error
 from autogencap.actor_runtime import IRuntime
 
