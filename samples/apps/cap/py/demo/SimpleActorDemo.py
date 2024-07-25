@@ -1,5 +1,4 @@
 from AppAgents import GreeterAgent
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.runtime_factory import RuntimeFactory
 
 def simple_actor_demo():

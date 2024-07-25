@@ -4,7 +4,7 @@ from typing import Optional
 
 from autogen import ConversableAgent
 
-from ..ComponentEnsemble import ComponentEnsemble
+from ..actor_runtime import IRuntime
 from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 from .AG2CAP import AG2CAP
@@ -27,10 +27,10 @@ class CAP2AG(AGActor):
         self.STATE = self.States.INIT
         self._can2ag_name: str = self.actor_name + ".can2ag"
         self._self_recursive: bool = self_recursive
-        self._ensemble: ComponentEnsemble = None
+        self._ensemble: IRuntime = None
         self._connectors = {}
 
-    def on_connect(self, ensemble: ComponentEnsemble):
+    def on_connect(self, ensemble: IRuntime):
         """
         Connect to the AutoGen system.
         """
@@ -38,7 +38,7 @@ class CAP2AG(AGActor):
         self._ag2can_other_agent = AG2CAP(self._ensemble, self._other_agent_name)
         Debug(self._can2ag_name, "connected to {ensemble}")
 
-    def disconnect_network(self, ensemble: ComponentEnsemble):
+    def disconnect_network(self, ensemble: IRuntime):
         """
         Disconnect from the AutoGen system.
         """

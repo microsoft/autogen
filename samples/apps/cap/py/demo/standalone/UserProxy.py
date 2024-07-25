@@ -2,7 +2,7 @@ import time
 
 import _paths
 from autogencap.ag_adapter.CAP2AG import CAP2AG
-from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.runtime_factory import RuntimeFactory
 from autogencap.Config import IGNORED_LOG_CONTEXTS
 from autogencap.DebugLog import Info
 
@@ -23,7 +23,7 @@ class StandaloneUserProxy:
             is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
         )
         # Composable Agent Network adapter
-        ensemble = ComponentEnsemble()
+        ensemble = RuntimeFactory.get_runtime("ZMQ")
         user_proxy_adptr = CAP2AG(ag_agent=user_proxy, the_other_name="assistant", init_chat=True, self_recursive=True)
         ensemble.register(user_proxy_adptr)
         ensemble.connect()

@@ -1,4 +1,4 @@
-from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.ZMQRuntime import ZMQRuntime
 from autogencap.DebugLog import Error
 from autogencap.actor_runtime import IRuntime
 
@@ -37,7 +37,7 @@ class RuntimeFactory:
         """
         Static initialization method.
         """
-        cls.register_runtime("ZMQ",ComponentEnsemble())
+        cls.register_runtime("ZMQ",ZMQRuntime())
 
 # Static initialization
 RuntimeFactory._initialize()
