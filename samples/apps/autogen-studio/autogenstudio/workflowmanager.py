@@ -1,8 +1,9 @@
 import json
-import os
+import os, copy
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
+from distutils.util import strtobool
 
 import autogen
 
@@ -81,6 +82,8 @@ class AutoWorkflowManager:
         self.history = history or []
         self.sender = None
         self.receiver = None
+        self.secrets = list(map(str, os.environ['ALL_SECRETS'].split("|"))) if 'ALL_SECRETS' in os.environ else None
+        
 
     def _run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
         """
@@ -253,6 +256,38 @@ class AutoWorkflowManager:
                 agent.config.system_message = get_default_system_message(agent.type) + "\n\n" + skills_prompt
         return agent
 
+    def transform_generated_response(self, message: Union[Dict, str], sender: Optional[Agent] = None, recipient: Agent = None, silent: bool = None) -> Union[Dict, str]:
+        """
+            Transforms the generated response by redacting secrets.
+            Args:  
+                message: The message to be transformed.
+                sender: The sender of the message.
+                recipient: The recipient of the message.
+                silent: determining verbosity.
+            
+            Returns:
+                The transformed message.
+        """
+        replacementString = os.environ['REDACTION_REPLACEMENT_STRING']
+        temp_message = copy.deepcopy(message)
+
+        if isinstance(temp_message, Dict):
+            for secret in self.secrets:
+                if secret == '': continue
+                if isinstance(temp_message["content"], str):
+                    temp_message["content"] = temp_message["content"].replace(secret, replacementString)
+                elif isinstance(temp_message["content"], list):
+                    for item in temp_message["content"]:
+                        if item["type"] == "text":
+                            item["text"] = item["text"].replace(secret, replacementString)
+
+        if isinstance(temp_message, str):
+            for secret in self.secrets:
+                if secret != '' and secret in temp_message:
+                    temp_message = temp_message.replace(secret, replacementString)
+        
+        return temp_message
+
     def load(self, agent: Any) -> autogen.Agent:
         """
         Loads an agent based on the provided agent specification.
@@ -280,6 +315,10 @@ class AutoWorkflowManager:
                 message_processor=self.process_message,
                 llm_config=agent.config.llm_config.model_dump(),
             )
+
+            if strtobool(os.environ['ENABLE_SECRET_REDACTION']):
+                agent.register_hook(hookable_method="process_message_before_send", hook=self.transform_generated_response)
+            
             return agent
 
         else:
@@ -295,6 +334,10 @@ class AutoWorkflowManager:
                 )
             else:
                 raise ValueError(f"Unknown agent type: {agent.type}")
+            
+            if strtobool(os.environ['ENABLE_SECRET_REDACTION']):
+                agent.register_hook(hookable_method="process_message_before_send", hook=self.transform_generated_response)
+            
             return agent
 
     def _generate_output(
