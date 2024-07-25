@@ -99,9 +99,6 @@ class AnthropicClient:
         if not self._aws_secret_key:
             self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
 
-        if not self._aws_session_token:
-            self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
-
         if not self._aws_region:
             self._aws_region = os.getenv("AWS_REGION")
 
