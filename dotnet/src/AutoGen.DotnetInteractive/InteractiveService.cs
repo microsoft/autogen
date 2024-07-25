@@ -104,6 +104,11 @@ public class InteractiveService : IDisposable
 
     public bool RestoreDotnetInteractive()
     {
+        if (this.installingDirectory is null)
+        {
+            throw new Exception("Installing directory is not set");
+        }
+
         this.WriteLine("Restore dotnet interactive tool");
         // write RestoreInteractive.config from embedded resource to this.workingDirectory
         var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
