@@ -4,7 +4,6 @@ import random
 from time import monotonic, sleep
 from typing import List
 
-import pymongo.errors
 import pytest
 
 from autogen.agentchat.contrib.vectordb.base import Document
@@ -22,6 +21,7 @@ except ImportError:
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def _delete_search_indexes(collection: Collection, wait=True):
     for index in collection.list_search_indexes():
         try:
             collection.drop_search_index(index["name"])
-        except pymongo.errors.OperationFailure:
+        except OperationFailure:
             # Delete already issued
             pass
     if wait:
