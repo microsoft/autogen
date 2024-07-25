@@ -454,12 +454,20 @@ class OpenAIWrapper:
                 azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
             )
 
+    def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
+        """Update openai_config with AWS credentials from config."""
+        required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
+
+        for key in required_keys:
+            if key in config:
+                openai_config[key] = config[key]
+
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
         For Azure models/deployment names there's a convenience modification of model removing dots in
-        the it's value (Azure deploment names can't have dots). I.e. if you have Azure deployment name
+        the it's value (Azure deployment names can't have dots). I.e. if you have Azure deployment name
         "gpt-35-turbo" and define model "gpt-3.5-turbo" in the config the function will remove the dot
         from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
@@ -485,6 +493,8 @@ class OpenAIWrapper:
                 client = GeminiClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("anthropic"):
+                if "api_key" not in config:
+                    self._configure_openai_config_for_bedrock(config, openai_config)
                 if anthropic_import_exception:
                     raise ImportError("Please install `anthropic` to use Anthropic API.")
                 client = AnthropicClient(**openai_config)
