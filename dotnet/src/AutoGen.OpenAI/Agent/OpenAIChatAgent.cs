@@ -147,6 +147,16 @@ public class OpenAIChatAgent : IStreamingAgent
         settings.Temperature = options?.Temperature ?? settings.Temperature;
         settings.MaxTokens = options?.MaxToken ?? settings.MaxTokens;
 
+        foreach (var functions in this.options.Tools)
+        {
+            settings.Tools.Add(functions);
+        }
+
+        foreach (var stopSequence in this.options.StopSequences)
+        {
+            settings.StopSequences.Add(stopSequence);
+        }
+
         var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition()).ToList();
         if (openAIFunctionDefinitions is { Count: > 0 })
         {
