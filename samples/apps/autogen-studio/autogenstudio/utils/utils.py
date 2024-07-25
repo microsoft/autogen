@@ -289,7 +289,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     return folders
 
 
-def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
+def get_skills_prompt(skills: List[Skill], work_dir: str) -> str:
     """
     Create a prompt with the content of all skills and write the skills to a file named skills.py in the work_dir.
 
@@ -308,16 +308,16 @@ install via pip and use --quiet option.
     prompt = ""  # filename:  skills.py
 
     for skill in skills:
-        if not isinstance(skill, Skill): 
+        if not isinstance(skill, Skill):
             skill = Skill(**skill)
-        if(skill.secrets): 
+        if skill.secrets:
             for secret in skill.secrets:
-                if secret.get("value") != None:
+                if secret.get("value") is not None:
                     os.environ[secret["secret"]] = secret["value"]
         prompt += f"""
 
 ##### Begin of {skill.name} #####
-# from skills import {skill.name} # Import the function from skills.py
+from skills import {skill.name} # Import the function from skills.py
 
 {skill.content}
 
@@ -325,15 +325,40 @@ install via pip and use --quiet option.
 
         """
 
+    return instruction + prompt
+
+
+def save_skills_to_file(skills: List[Skill], work_dir: str) -> None:
+    """
+    Write the skills to a file named skills.py in the work_dir.
+
+    :param skills: A dictionary skills
+    """
+
+    # TBD: Double check for duplicate skills?
+
     # check if work_dir exists
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
+    skills_content = ""
+    for skill in skills:
+        if not isinstance(skill, Skill):
+            skill = Skill(**skill)
+
+        skills_content += f"""
+
+##### Begin of {skill.name} #####
+
+{skill.content}
+
+#### End of {skill.name} ####
+
+        """
+
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
-
-    return instruction + prompt
+        f.write(skills_content)
 
 
 def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
