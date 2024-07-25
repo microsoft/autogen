@@ -66,7 +66,7 @@ class RoundRobinGroupChatManager(TypeRoutedAgent):
         # Select the next speaker in a round-robin fashion
         speaker = self._participants[self._round_count % len(self._participants)]
         self._round_count += 1
-        if self._round_count == self._num_rounds * len(self._participants):
+        if self._round_count > self._num_rounds * len(self._participants):
             # End the conversation after the specified number of rounds.
             await self.publish_message(Termination())
             return

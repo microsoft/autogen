@@ -37,7 +37,7 @@ import re
 import sys
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -81,6 +81,7 @@ class IntermediateSolverResponse:
     content: str
     solver_name: str
     answer: str
+    round: int
 
 
 @dataclass
@@ -97,16 +98,18 @@ class MathSolver(TypeRoutedAgent):
             raise ValueError("The agent's name cannot be in the list of neighbor names.")
         self._neighbor_names = neighbor_names
         self._memory: Dict[str, List[LLMMessage]] = {}
-        self._buffer: Dict[str, List[IntermediateSolverResponse]] = {}
+        self._buffer: Dict[Tuple[str, int], List[IntermediateSolverResponse]] = {}
         self._questions: Dict[str, str] = {}
         self._system_messages = [
             SystemMessage(
-                "You are a helpful assistant with expertise in mathematics and reasoning. "
-                "Your task is to assist in solving a math reasoning problem by providing "
-                "a clear and detailed solution. Limit your output within 100 words, "
-                "and your final answer should be a single numerical number, "
-                "in the form of {{answer}}, at the end of your response. "
-                "For example, 'The answer is {{42}}.'"
+                (
+                    "You are a helpful assistant with expertise in mathematics and reasoning. "
+                    "Your task is to assist in solving a math reasoning problem by providing "
+                    "a clear and detailed solution. Limit your output within 100 words, "
+                    "and your final answer should be a single numerical number, "
+                    "in the form of {{answer}}, at the end of your response. "
+                    "For example, 'The answer is {{42}}.'"
+                )
             )
         ]
         self._counters: Dict[str, int] = {}
@@ -117,27 +120,27 @@ class MathSolver(TypeRoutedAgent):
         if message.solver_name not in self._neighbor_names:
             return
         # Add only neighbor's response to the buffer.
-        self._buffer.setdefault(message.session_id, []).append(message)
+        self._buffer.setdefault((message.session_id, message.round), []).append(message)
         # Check if all neighbors have responded.
-        if len(self._buffer[message.session_id]) == len(self._neighbor_names):
+        if len(self._buffer[(message.session_id, message.round)]) == len(self._neighbor_names):
             question = self._questions[message.session_id]
             # Prepare the prompt for the next question.
             prompt = "These are the solutions to the problem from other agents:\n"
-            for resp in self._buffer[message.session_id]:
+            for resp in self._buffer[(message.session_id, message.round)]:
                 prompt += f"One agent solution: {resp.content}\n"
-            prompt += "Using the solutions from other agents as additional information, "
-            "can you provide your answer to the math problem? "
-            f"The original math problem is {question}. "
-            "Your final answer should be a single numerical number, "
-            "in the form of {{answer}}, at the end of your response."
+            prompt += (
+                "Using the solutions from other agents as additional information, "
+                "can you provide your answer to the math problem? "
+                f"The original math problem is {question}. "
+                "Your final answer should be a single numerical number, "
+                "in the form of {{answer}}, at the end of your response."
+            )
             # Send the question to the agent itself.
-            await (
-                await self.send_message(
-                    SolverRequest(content=prompt, session_id=message.session_id, question=question), self.id
-                )
+            await self.send_message(
+                SolverRequest(content=prompt, session_id=message.session_id, question=question), self.id
             )
             # Clear the buffer.
-            self._buffer.clear()
+            self._buffer.pop((message.session_id, message.round))
 
     @message_handler
     async def handle_request(self, message: SolverRequest, cancellation_token: CancellationToken) -> None:
@@ -171,6 +174,7 @@ class MathSolver(TypeRoutedAgent):
                     solver_name=self.metadata["name"],
                     answer=answer,
                     session_id=message.session_id,
+                    round=self._counters[message.session_id],
                 )
             )
 
@@ -183,9 +187,11 @@ class MathAggregator(TypeRoutedAgent):
 
     @message_handler
     async def handle_question(self, message: Question, cancellation_token: CancellationToken) -> None:
-        prompt = f"Can you solve the following math problem?\n{message.content}\n"
-        "Explain your reasoning. Your final answer should be a single numerical number, "
-        "in the form of {{answer}}, at the end of your response."
+        prompt = (
+            f"Can you solve the following math problem?\n{message.content}\n"
+            "Explain your reasoning. Your final answer should be a single numerical number, "
+            "in the form of {{answer}}, at the end of your response."
+        )
         session_id = str(uuid.uuid4())
         await self.publish_message(SolverRequest(content=prompt, session_id=session_id, question=message.content))
 
