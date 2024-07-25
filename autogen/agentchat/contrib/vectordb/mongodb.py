@@ -37,8 +37,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         collection_name: str = None,
         index_name: str = "vector_index",
         overwrite: bool = False,
-        wait_until_index_ready: float | None = None,
-        wait_until_document_ready: float | None = None,
+        wait_until_index_ready: float = None,
+        wait_until_document_ready: float = None,
     ):
         """
         Initialize the vector database.
@@ -46,9 +46,11 @@ class MongoDBAtlasVectorDB(VectorDB):
         Args:
             connection_string: str | The MongoDB connection string to connect to. Default is ''.
             database_name: str | The name of the database. Default is 'vector_db'.
-            embedding_function: The embedding function used to generate the vector representation.
-            overwrite: bool | Overwrite existing collection with new information from this object.
-                defaults to False
+            embedding_function: Callable | The embedding function used to generate the vector representation.
+            collection_name: str | The name of the collection to create for this vector database
+                Defaults to None
+            index_name: str | Index name for the vector database, defaults to 'vector_index'
+            overwrite: bool = False
             wait_until_index_ready: float | None | Blocking call to wait until the
                 database indexes are ready. None, the default, means no wait.
             wait_until_document_ready: float | None | Blocking call to wait until the
@@ -56,7 +58,6 @@ class MongoDBAtlasVectorDB(VectorDB):
         """
         self.embedding_function = embedding_function
         self.index_name = index_name
-        self.overwrite = overwrite
         self._wait_until_index_ready = wait_until_index_ready
         self._wait_until_document_ready = wait_until_document_ready
 
@@ -73,7 +74,7 @@ class MongoDBAtlasVectorDB(VectorDB):
         self.db = self.client[database_name]
         logger.debug(f"Atlas Database name: {self.db.name}")
         if collection_name:
-            self.active_collection = self.create_collection(collection_name, overwrite=self.overwrite)
+            self.active_collection = self.create_collection(collection_name, overwrite)
         else:
             self.active_collection = None
 
