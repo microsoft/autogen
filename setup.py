@@ -90,7 +90,7 @@ extra_require = {
     "mistral": ["mistralai>=0.2.0"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
-    "ollama": ["ollama>=0.2.1", "fix_busted_json"],
+    "ollama": ["ollama>=0.3.0", "fix_busted_json>=0.0.18"],
 }
 
 setuptools.setup(
