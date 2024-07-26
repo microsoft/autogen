@@ -1048,14 +1048,14 @@ def test_custom_speaker_selection():
         speaker_selection_method=custom_speaker_selection_func,
     )
     original_auto_select_speaker = groupchat._auto_select_speaker
-    
+
     def mock_auto_select_speaker(_cls, *args, **kwargs): 
         last_speaker = kwargs.get("last_speaker")
         print(last_speaker)
         if kwargs.get("last_speaker") == a2:
             return a3
         return original_auto_select_speaker(_cls, *args, **kwargs)
-    
+
     groupchat._auto_select_speaker = mock_auto_select_speaker
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
