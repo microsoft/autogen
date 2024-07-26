@@ -138,7 +138,7 @@ stock_price_tool = FunctionTool(get_stock_price, description="Get the stock pric
 
 To use tools with an agent, you can use {py:class}`agnext.components.tool_agent.ToolAgent`,
 either by subclassing it or by using it in a composition pattern.
-Here is an example tool-equipped agent that subclasses {py:class}~`agnext.components.tool_agent.ToolAgent`
+Here is an example tool-equipped agent that subclasses {py:class}`~agnext.components.tool_agent.ToolAgent`
 and executes its tools by sending direct messages to itself.
 
 ```python
@@ -217,7 +217,7 @@ the core idea can be described using a simple control flow graph:
 The `ToolEquippedAgent`'s `handle_user_message` handler handles messages from the user,
 and determines whether the model has generated a tool call.
 If the model has generated tool calls, then the handler sends a function call
-message to itself to execute the tools -- implemented by the parent {py:class}~`agnext.components.tool_agent.ToolAgent` class,
+message to itself to execute the tools -- implemented by the parent {py:class}`~agnext.components.tool_agent.ToolAgent` class,
 and then queries the model again
 with the results of the tool calls.
 This process continues until the model stops generating tool calls,
