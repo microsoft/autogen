@@ -11,6 +11,8 @@ from ._agent_runtime import AGENT_INSTANTIATION_CONTEXT_VAR, AgentRuntime, agent
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._serialization import MESSAGE_TYPE_REGISTRY, TypeDeserializer, TypeSerializer
+from ._subscription import Subscription
+from ._topic import TopicId
 
 __all__ = [
     "Agent",
@@ -26,4 +28,6 @@ __all__ = [
     "MESSAGE_TYPE_REGISTRY",
     "TypeSerializer",
     "TypeDeserializer",
+    "TopicId",
+    "Subscription",
 ]
