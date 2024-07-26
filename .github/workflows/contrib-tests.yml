@@ -87,6 +87,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mongodb:
+        image: mongodb/mongodb-atlas-local:latest
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -104,6 +108,9 @@ jobs:
       - name: Install pgvector when on linux
         run: |
           pip install -e .[retrievechat-pgvector]
+      - name: Install mongodb when on linux
+        run: |
+          pip install -e .[retrievechat-mongodb]
       - name: Install unstructured when python-version is 3.9 and on linux
         if: matrix.python-version == '3.9'
         run: |
