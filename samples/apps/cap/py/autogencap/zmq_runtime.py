@@ -4,13 +4,14 @@ from typing import List
 import zmq
 
 from .Actor import Actor
+from .actor_runtime import IRuntime
 from .ActorConnector import ActorConnector
 from .Broker import Broker
 from .Constants import Termination_Topic
 from .DebugLog import Debug, Warn
 from .DirectorySvc import DirectorySvc
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
-from .actor_runtime import IRuntime
+
 
 class ZMQRuntime(IRuntime):
     def __init__(self, name: str = "Local Actor Network", start_broker: bool = True):

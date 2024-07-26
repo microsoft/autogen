@@ -1,7 +1,7 @@
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
 from autogencap.ag_adapter.CAPGroupChatManager import CAPGroupChatManager
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.DebugLog import Info
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 

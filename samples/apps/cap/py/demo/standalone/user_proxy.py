@@ -2,8 +2,8 @@ import time
 
 import _paths
 from autogencap.ag_adapter.agent import Agent
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.Config import IGNORED_LOG_CONTEXTS
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import UserProxyAgent
 

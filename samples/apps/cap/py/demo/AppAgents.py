@@ -5,10 +5,10 @@ to retrieve information.
 """
 
 from autogencap.Actor import Actor
-from autogencap.ActorConnector import ActorConnector
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.actor_runtime import IRuntime
+from autogencap.ActorConnector import ActorConnector
 from autogencap.DebugLog import Debug, Info, shorten
+from autogencap.runtime_factory import RuntimeFactory
 
 
 class GreeterAgent(Actor):

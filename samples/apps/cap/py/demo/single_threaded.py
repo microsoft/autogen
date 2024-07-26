@@ -1,8 +1,8 @@
 import _paths
 from AppAgents import GreeterAgent
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.DebugLog import Error
 from autogencap.proto.CAP_pb2 import Ping
+from autogencap.runtime_factory import RuntimeFactory
 
 
 def single_threaded_demo():

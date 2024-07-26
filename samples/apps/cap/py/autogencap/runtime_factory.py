@@ -1,6 +1,7 @@
-from autogencap.zmq_runtime import ZMQRuntime
-from autogencap.DebugLog import Error
 from autogencap.actor_runtime import IRuntime
+from autogencap.DebugLog import Error
+from autogencap.zmq_runtime import ZMQRuntime
+
 
 class RuntimeFactory:
     _supported_runtimes = {}
@@ -22,7 +23,7 @@ class RuntimeFactory:
             not_found = f"Runtime type not found: {runtime_type}"
             Error("RuntimeFactory", not_found)
             raise ValueError(not_found)
-        
+
     @staticmethod
     def register_runtime(runtime_type: str, runtime: IRuntime):
         """

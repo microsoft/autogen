@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import List
+
 from .Actor import Actor
 from .ActorConnector import ActorConnector
-from typing import List
 from .proto.CAP_pb2 import ActorInfo
 
 
@@ -9,7 +10,7 @@ class IRuntime(ABC):
     @abstractmethod
     def register(self, actor: Actor):
         pass
-    
+
     @abstractmethod
     def connect(self):
         pass
@@ -17,7 +18,7 @@ class IRuntime(ABC):
     @abstractmethod
     def disconnect(self):
         pass
-    
+
     @abstractmethod
     def find_by_topic(self, topic: str) -> ActorConnector:
         pass

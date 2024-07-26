@@ -2,8 +2,8 @@ import time
 
 import autogencap.DebugLog as DebugLog
 from autogencap.ag_adapter.CAPPair import CAPPair
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.DebugLog import ConsoleLogger, Info
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 

@@ -2,8 +2,8 @@ import time
 
 import _paths
 from autogencap.ag_adapter.CAP2AG import CAP2AG
-from autogencap.runtime_factory import RuntimeFactory
 from autogencap.DebugLog import Info
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, config_list_from_json
 
