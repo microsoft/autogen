@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace AutoGen.Service.Tests;
+namespace AutoGen.WebAPI.Tests;
 
 public class OpenAIChatCompletionMiddlewareTests
 {

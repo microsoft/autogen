@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using AutoGen.Core;
 
-namespace AutoGen.Service.Tests;
+namespace AutoGen.WebAPI.Tests;
 
 public class EchoAgent : IStreamingAgent
 {

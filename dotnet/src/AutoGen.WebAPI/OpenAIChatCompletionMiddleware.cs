@@ -5,10 +5,10 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using AutoGen.Core;
 using AutoGen.Server;
-using AutoGen.Service.OpenAI.DTO;
+using AutoGen.WebAPI.OpenAI.DTO;
 using Microsoft.AspNetCore.Http;
 
-namespace AutoGen.Service;
+namespace AutoGen.WebAPI;
 
 public class OpenAIChatCompletionMiddleware : Microsoft.AspNetCore.Http.IMiddleware
 {

@@ -1,15 +1,26 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 try:
+    import google.auth
     from google.api_core.exceptions import InternalServerError
+    from google.auth.credentials import Credentials
+    from google.cloud.aiplatform.initializer import global_config as vertexai_global_config
+    from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
+    from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
+    from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 
     from autogen.oai.gemini import GeminiClient
 
     skip = False
 except ImportError:
     GeminiClient = object
+    VertexAIHarmBlockThreshold = object
+    VertexAIHarmCategory = object
+    VertexAISafetySetting = object
+    vertexai_global_config = object
     InternalServerError = object
     skip = True
 
@@ -30,7 +41,24 @@ def mock_response():
 
 @pytest.fixture
 def gemini_client():
-    return GeminiClient(api_key="fake_api_key")
+    system_message = [
+        "You are a helpful AI assistant.",
+    ]
+    return GeminiClient(api_key="fake_api_key", system_message=system_message)
+
+
+@pytest.fixture
+def gemini_google_auth_default_client():
+    system_message = [
+        "You are a helpful AI assistant.",
+    ]
+    return GeminiClient(system_message=system_message)
+
+
+@pytest.fixture
+def gemini_client_with_credentials():
+    mock_credentials = MagicMock(Credentials)
+    return GeminiClient(credentials=mock_credentials)
 
 
 # Test compute location initialization and configuration
@@ -42,14 +70,35 @@ def test_compute_location_initialization():
         )  # Should raise an AssertionError due to specifying API key and compute location
 
 
-@pytest.fixture
-def gemini_google_auth_default_client():
-    return GeminiClient()
+# Test project initialization and configuration
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_project_initialization():
+    with pytest.raises(AssertionError):
+        GeminiClient(
+            api_key="fake_api_key", project_id="fake-project-id"
+        )  # Should raise an AssertionError due to specifying API key and compute location
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def test_valid_initialization(gemini_client):
     assert gemini_client.api_key == "fake_api_key", "API Key should be correctly set"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_google_application_credentials_initialization():
+    GeminiClient(google_application_credentials="credentials.json", project_id="fake-project-id")
+    assert (
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] == "credentials.json"
+    ), "Incorrect Google Application Credentials initialization"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_initialization():
+    mock_credentials = MagicMock(Credentials)
+    GeminiClient(credentials=mock_credentials, project_id="fake-project-id", location="us-west1")
+    assert vertexai_global_config.location == "us-west1", "Incorrect VertexAI location initialization"
+    assert vertexai_global_config.project == "fake-project-id", "Incorrect VertexAI project initialization"
+    assert vertexai_global_config.credentials == mock_credentials, "Incorrect VertexAI credentials initialization"
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
@@ -92,6 +141,113 @@ def test_gemini_message_handling(gemini_client):
         assert expected_msg["role"] == converted_messages[i].role, "Incorrect mapped message role"
         for j, part in enumerate(expected_msg["parts"]):
             assert converted_messages[i].parts[j].text == part, "Incorrect mapped message text"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_gemini_empty_message_handling(gemini_client):
+    messages = [
+        {"role": "system", "content": "You are my personal assistant."},
+        {"role": "model", "content": "How can I help you?"},
+        {"role": "user", "content": ""},
+        {
+            "role": "model",
+            "content": "Please provide me with some context or a request! I need more information to assist you.",
+        },
+        {"role": "user", "content": ""},
+    ]
+
+    converted_messages = gemini_client._oai_messages_to_gemini_messages(messages)
+    assert converted_messages[-3].parts[0].text == "empty", "Empty message is not converted to 'empty' correctly"
+    assert converted_messages[-1].parts[0].text == "empty", "Empty message is not converted to 'empty' correctly"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_safety_setting_conversion(gemini_client):
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+    ]
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+    harm_categories = [
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    ]
+    expected_safety_settings = [
+        VertexAISafetySetting(category=category, threshold=VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH)
+        for category in harm_categories
+    ]
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for i, expected_setting in enumerate(expected_safety_settings):
+            converted_setting = converted_safety_settings[i]
+            yield expected_setting.to_dict() == converted_setting.to_dict()
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_default_safety_settings_dict(gemini_client):
+    safety_settings = {
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH,
+    }
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+
+    expected_safety_settings = {
+        category: VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH for category in safety_settings.keys()
+    }
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for expected_setting_key in expected_safety_settings.keys():
+            expected_setting = expected_safety_settings[expected_setting_key]
+            converted_setting = converted_safety_settings[expected_setting_key]
+            yield expected_setting == converted_setting
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_safety_setting_list(gemini_client):
+    harm_categories = [
+        VertexAIHarmCategory.HARM_CATEGORY_HARASSMENT,
+        VertexAIHarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        VertexAIHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        VertexAIHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    ]
+
+    expected_safety_settings = safety_settings = [
+        VertexAISafetySetting(category=category, threshold=VertexAIHarmBlockThreshold.BLOCK_ONLY_HIGH)
+        for category in harm_categories
+    ]
+
+    print(safety_settings)
+
+    converted_safety_settings = GeminiClient._to_vertexai_safety_settings(safety_settings)
+
+    def compare_safety_settings(converted_safety_settings, expected_safety_settings):
+        for i, expected_setting in enumerate(expected_safety_settings):
+            converted_setting = converted_safety_settings[i]
+            yield expected_setting.to_dict() == converted_setting.to_dict()
+
+    assert len(converted_safety_settings) == len(
+        expected_safety_settings
+    ), "The length of the safety settings is incorrect"
+    settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
+    assert all(settings_comparison), "Converted safety settings are incorrect"
 
 
 # Test error handling
@@ -151,6 +307,62 @@ def test_create_response(mock_configure, mock_generative_model, gemini_client):
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_create_response(mock_init, mock_generative_model, gemini_client_with_credentials):
+    # Mock the genai model configuration and creation process
+    mock_chat = MagicMock()
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+    mock_model.start_chat.return_value = mock_chat
+
+    # Set up a mock for the chat history item access and the text attribute return
+    mock_history_part = MagicMock()
+    mock_history_part.text = "Example response"
+    mock_chat.history.__getitem__.return_value.parts.__getitem__.return_value = mock_history_part
+
+    # Setup the mock to return a mocked chat response
+    mock_chat.send_message.return_value = MagicMock(history=[MagicMock(parts=[MagicMock(text="Example response")])])
+
+    # Call the create method
+    response = gemini_client_with_credentials.create(
+        {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
+    )
+
+    # Assertions to check if response is structured as expected
+    assert response.choices[0].message.content == "Example response", "Response content should match expected output"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_default_auth_create_response(mock_init, mock_generative_model, gemini_google_auth_default_client):
+    # Mock the genai model configuration and creation process
+    mock_chat = MagicMock()
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+    mock_model.start_chat.return_value = mock_chat
+
+    # Set up a mock for the chat history item access and the text attribute return
+    mock_history_part = MagicMock()
+    mock_history_part.text = "Example response"
+    mock_chat.history.__getitem__.return_value.parts.__getitem__.return_value = mock_history_part
+
+    # Setup the mock to return a mocked chat response
+    mock_chat.send_message.return_value = MagicMock(history=[MagicMock(parts=[MagicMock(text="Example response")])])
+
+    # Call the create method
+    response = gemini_google_auth_default_client.create(
+        {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
+    )
+
+    # Assertions to check if response is structured as expected
+    assert response.choices[0].message.content == "Example response", "Response content should match expected output"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 @patch("autogen.oai.gemini.genai.GenerativeModel")
 @patch("autogen.oai.gemini.genai.configure")
 def test_create_vision_model_response(mock_configure, mock_generative_model, gemini_client):
@@ -171,6 +383,52 @@ def test_create_vision_model_response(mock_configure, mock_generative_model, gem
 
     # Call the create method with vision model parameters
     response = gemini_client.create(
+        {
+            "model": "gemini-pro-vision",  # Vision model name
+            "messages": [
+                {
+                    "content": [
+                        {"type": "text", "text": "Let's play a game."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+                            },
+                        },
+                    ],
+                    "role": "user",
+                }
+            ],  # Assuming a simple content input for vision
+            "stream": False,
+        }
+    )
+
+    # Assertions to check if response is structured as expected
+    assert (
+        response.choices[0].message.content == "Vision model output"
+    ), "Response content should match expected output from vision model"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_create_vision_model_response(mock_init, mock_generative_model, gemini_google_auth_default_client):
+    # Mock the genai model configuration and creation process
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+
+    # Set up a mock to simulate the vision model behavior
+    mock_vision_response = MagicMock()
+    mock_vision_part = MagicMock(text="Vision model output")
+
+    # Setting up the chain of return values for vision model response
+    mock_vision_response.candidates.__getitem__.return_value.content.parts.__getitem__.return_value = mock_vision_part
+
+    mock_model.generate_content.return_value = mock_vision_response
+
+    # Call the create method with vision model parameters
+    response = gemini_google_auth_default_client.create(
         {
             "model": "gemini-pro-vision",  # Vision model name
             "messages": [
