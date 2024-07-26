@@ -69,6 +69,20 @@ jobs:
       - run: hatch run +python=${{ matrix.python-version }} test-matrix:pytest -n auto
         working-directory: ./python
 
+  team-one-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: |
+          hatch run +python=${{ matrix.python-version }} teamone-test-matrix:playwright install
+          hatch run +python=${{ matrix.python-version }} teamone-test-matrix:pytest -n auto
+        working-directory: ./python/teams/team-one
+
   docs:
     runs-on: ubuntu-latest
     steps:

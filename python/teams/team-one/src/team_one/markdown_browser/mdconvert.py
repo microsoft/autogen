@@ -162,7 +162,6 @@ class PlainTextConverter(DocumentConverter):
         text_content = ""
         with open(local_path, "rt") as fh:
             text_content = fh.read()
-
         return DocumentConverterResult(
             title=None,
             text_content=text_content,
@@ -893,7 +892,8 @@ class MarkdownConverter:
         # Convert
         return self._convert(path, extensions, **kwargs)
 
-    def convert_stream(self, stream, **kwargs: Any) -> DocumentConverterResult:  # TODO: deal with kwargs
+    # TODO what should stream's type be?
+    def convert_stream(self, stream: Any, **kwargs: Any) -> DocumentConverterResult:  # TODO: deal with kwargs
         # Prepare a list of extensions to try (in order of priority)
         ext = kwargs.get("file_extension")
         extensions = [ext] if ext is not None else []
@@ -969,7 +969,6 @@ class MarkdownConverter:
 
             # Convert
             result = self._convert(temp_path, extensions, url=response.url)
-
         # Clean up
         finally:
             try:

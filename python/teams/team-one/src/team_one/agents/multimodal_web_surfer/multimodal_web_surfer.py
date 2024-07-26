@@ -12,6 +12,7 @@ from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlun
 
 import aiofiles
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.components import FunctionCall
 from agnext.components import Image as AGImage
 from agnext.components.models import (
     AssistantMessage,
@@ -155,6 +156,7 @@ class MultimodalWebSurfer(BaseAgent):
         # Create the page
         self._context.set_default_timeout(60000)  # One minute
         self._page = await self._context.new_page()
+        assert self._page is not None
         # self._page.route(lambda x: True, self._route_handler)
         self._page.on("download", self._download_handler)
         await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
@@ -251,6 +253,162 @@ setInterval(function() {{
             return request_halt, content
         except Exception:
             return False, f"Web surfing error:\n\n{traceback.format_exc()}"
+
+    async def _execute_tool(
+        self, message: List[FunctionCall], rects: Dict[str, InteractiveRegion], tool_names: str, use_ocr: bool = True
+    ) -> Tuple[bool, UserContent]:
+        name = message[0].name
+        args = json.loads(message[0].arguments)
+        action_description = ""
+        assert self._page is not None
+        logger.info(
+            WebSurferEvent(
+                source=self.metadata["name"],
+                url=self._page.url,
+                action=name,
+                arguments=args,
+                message=f"{name}( {json.dumps(args)} )",
+            )
+        )
+
+        if name == "visit_url":
+            url = args.get("url")
+            action_description = f"I typed '{url}' into the browser address bar."
+            # Check if the argument starts with a known protocol
+            if url.startswith(("https://", "http://", "file://", "about:")):
+                await self._visit_page(url)
+            # If the argument contains a space, treat it as a search query
+            elif " " in url:
+                await self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
+            # Otherwise, prefix with https://
+            else:
+                await self._visit_page("https://" + url)
+
+        elif name == "history_back":
+            action_description = "I clicked the browser back button."
+            await self._back()
+
+        elif name == "web_search":
+            query = args.get("query")
+            action_description = f"I typed '{query}' into the browser search bar."
+            await self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+
+        elif name == "page_up":
+            action_description = "I scrolled up one page in the browser."
+            await self._page_up()
+
+        elif name == "page_down":
+            action_description = "I scrolled down one page in the browser."
+            await self._page_down()
+
+        elif name == "click":
+            target_id = str(args.get("target_id"))
+            target_name = self._target_name(target_id, rects)
+            if target_name:
+                action_description = f"I clicked '{target_name}'."
+            else:
+                action_description = "I clicked the control."
+            await self._click_id(target_id)
+
+        elif name == "input_text":
+            input_field_id = str(args.get("input_field_id"))
+            text_value = str(args.get("text_value"))
+            input_field_name = self._target_name(input_field_id, rects)
+            if input_field_name:
+                action_description = f"I typed '{text_value}' into '{input_field_name}'."
+            else:
+                action_description = f"I input '{text_value}'."
+            await self._fill_id(input_field_id, text_value)
+
+        elif name == "scroll_element_up":
+            target_id = str(args.get("target_id"))
+            target_name = self._target_name(target_id, rects)
+
+            if target_name:
+                action_description = f"I scrolled '{target_name}' up."
+            else:
+                action_description = "I scrolled the control up."
+
+            await self._scroll_id(target_id, "up")
+
+        elif name == "scroll_element_down":
+            target_id = str(args.get("target_id"))
+            target_name = self._target_name(target_id, rects)
+
+            if target_name:
+                action_description = f"I scrolled '{target_name}' down."
+            else:
+                action_description = "I scrolled the control down."
+
+            await self._scroll_id(target_id, "down")
+
+        elif name == "answer_question":
+            question = str(args.get("question"))
+            # Do Q&A on the DOM. No need to take further action. Browser state does not change.
+            return False, await self._summarize_page(question=question)
+
+        elif name == "summarize_page":
+            # Summarize the DOM. No need to take further action. Browser state does not change.
+            return False, await self._summarize_page()
+
+        elif name == "sleep":
+            action_description = "I am waiting a short period of time before taking further action."
+            await self._sleep(3)  # There's a 2s sleep below too
+
+        else:
+            raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
+
+        await self._page.wait_for_load_state()
+        await self._sleep(3)
+
+        # Handle downloads
+        if self._last_download is not None and self.downloads_folder is not None:
+            fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
+            # TODO: Fix this type
+            await self._last_download.save_as(fname)  # type: ignore
+            page_body = f"<html><head><title>Download Successful</title></head><body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body></html>"
+            await self._page.goto(
+                "data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8")
+            )
+            await self._page.wait_for_load_state()
+
+        # Handle metadata
+        page_metadata = json.dumps(await self._get_page_metadata(), indent=4)
+        metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
+        if metadata_hash != self._prior_metadata_hash:
+            page_metadata = (
+                "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
+            )
+        else:
+            page_metadata = ""
+        self._prior_metadata_hash = metadata_hash
+
+        # Describe the viewport of the new page in words
+        viewport = await self._get_visual_viewport()
+        percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
+        percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
+        if percent_scrolled < 1:  # Allow some rounding error
+            position_text = "at the top of the page"
+        elif percent_scrolled + percent_visible >= 99:  # Allow some rounding error
+            position_text = "at the bottom of the page"
+        else:
+            position_text = str(percent_scrolled) + "% down from the top of the page"
+
+        new_screenshot = await self._page.screenshot()
+        if self.debug_dir:
+            async with aiofiles.open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as file:
+                await file.write(new_screenshot)
+
+        ocr_text = await self._get_ocr_text(new_screenshot) if use_ocr is True else ""
+
+        # Return the complete observation
+        message_content = ""  # message.content or ""
+        page_title = await self._page.title()
+
+        return False, [
+            f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{page_title}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.{page_metadata}\nAutomatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}".strip(),
+            AGImage.from_pil(Image.open(io.BytesIO(new_screenshot))),
+        ]
 
     async def __generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         assert self._page is not None
@@ -369,170 +527,17 @@ When deciding between tools, consider if the request can be best addressed by:
         )  # , "parallel_tool_calls": False})
         message = response.content
 
-        action_description = ""
         self._last_download = None
 
         if isinstance(message, str):
             # Answer directly
             return False, message
-
         elif isinstance(message, list):
             # Take an action
-
-            name = message[0].name
-            args = json.loads(message[0].arguments)
-
-            logger.info(
-                WebSurferEvent(
-                    source=self.metadata["name"],
-                    url=self._page.url,
-                    action=name,
-                    arguments=args,
-                    message=f"{name}( {json.dumps(args)} )",
-                )
-            )
-
-            if name == "visit_url":
-                url = args.get("url")
-                action_description = f"I typed '{url}' into the browser address bar."
-                # Check if the argument starts with a known protocol
-                if url.startswith(("https://", "http://", "file://", "about:")):
-                    await self._visit_page(url)
-                # If the argument contains a space, treat it as a search query
-                elif " " in url:
-                    await self._visit_page(f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
-                # Otherwise, prefix with https://
-                else:
-                    await self._visit_page("https://" + url)
-
-            elif name == "history_back":
-                action_description = "I clicked the browser back button."
-                await self._back()
-
-            elif name == "web_search":
-                query = args.get("query")
-                action_description = f"I typed '{query}' into the browser search bar."
-                await self._visit_page(f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
-
-            elif name == "page_up":
-                action_description = "I scrolled up one page in the browser."
-                await self._page_up()
-
-            elif name == "page_down":
-                action_description = "I scrolled down one page in the browser."
-                await self._page_down()
-
-            elif name == "click":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-                if target_name:
-                    action_description = f"I clicked '{target_name}'."
-                else:
-                    action_description = "I clicked the control."
-                await self._click_id(target_id)
-
-            elif name == "input_text":
-                input_field_id = str(args.get("input_field_id"))
-                text_value = str(args.get("text_value"))
-                input_field_name = self._target_name(input_field_id, rects)
-                if input_field_name:
-                    action_description = f"I typed '{text_value}' into '{input_field_name}'."
-                else:
-                    action_description = f"I input '{text_value}'."
-                await self._fill_id(input_field_id, text_value)
-
-            elif name == "scroll_element_up":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' up."
-                else:
-                    action_description = "I scrolled the control up."
-
-                await self._scroll_id(target_id, "up")
-
-            elif name == "scroll_element_down":
-                target_id = str(args.get("target_id"))
-                target_name = self._target_name(target_id, rects)
-
-                if target_name:
-                    action_description = f"I scrolled '{target_name}' down."
-                else:
-                    action_description = "I scrolled the control down."
-
-                await self._scroll_id(target_id, "down")
-
-            elif name == "answer_question":
-                question = str(args.get("question"))
-                # Do Q&A on the DOM. No need to take further action. Browser state does not change.
-                return False, await self._summarize_page(question=question)
-
-            elif name == "summarize_page":
-                # Summarize the DOM. No need to take further action. Browser state does not change.
-                return False, await self._summarize_page()
-
-            elif name == "sleep":
-                action_description = "I am waiting a short period of time before taking further action."
-                await self._sleep(3)  # There's a 2s sleep below too
-
-            else:
-                raise ValueError(f"Unknown tool '{name}'. Please choose from:\n\n{tool_names}")
+            return await self._execute_tool(message, rects, tool_names)
         else:
             # Not sure what happened here
             raise AssertionError(f"Unknown response format '{message}'")
-
-        await self._page.wait_for_load_state()
-        await self._sleep(3)
-
-        # Handle downloads
-        if self._last_download is not None and self.downloads_folder is not None:
-            fname = os.path.join(self.downloads_folder, self._last_download.suggested_filename)
-            # TODO: Fix this type
-            await self._last_download.save_as(fname)  # type: ignore
-            page_body = f"<html><head><title>Download Successful</title></head><body style=\"margin: 20px;\"><h1>Successfully downloaded '{self._last_download.suggested_filename}' to local path:<br><br>{fname}</h1></body></html>"
-            await self._page.goto(
-                "data:text/html;base64," + base64.b64encode(page_body.encode("utf-8")).decode("utf-8")
-            )
-            await self._page.wait_for_load_state()
-
-        # Handle metadata
-        page_metadata = json.dumps(await self._get_page_metadata(), indent=4)
-        metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
-        if metadata_hash != self._prior_metadata_hash:
-            page_metadata = (
-                "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
-            )
-        else:
-            page_metadata = ""
-        self._prior_metadata_hash = metadata_hash
-
-        # Describe the viewport of the new page in words
-        viewport = await self._get_visual_viewport()
-        percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
-        percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
-        if percent_scrolled < 1:  # Allow some rounding error
-            position_text = "at the top of the page"
-        elif percent_scrolled + percent_visible >= 99:  # Allow some rounding error
-            position_text = "at the bottom of the page"
-        else:
-            position_text = str(percent_scrolled) + "% down from the top of the page"
-
-        new_screenshot = await self._page.screenshot()
-        if self.debug_dir:
-            async with aiofiles.open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as file:
-                await file.write(new_screenshot)
-
-        ocr_text = await self._get_ocr_text(new_screenshot)
-
-        # Return the complete observation
-        message_content = ""  # message.content or ""
-        page_title = await self._page.title()
-
-        return False, [
-            f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{page_title}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.{page_metadata}\nAutomatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}".strip(),
-            AGImage.from_pil(Image.open(io.BytesIO(new_screenshot))),
-        ]
 
     async def _get_interactive_rects(self) -> Dict[str, InteractiveRegion]:
         assert self._page is not None
@@ -591,6 +596,7 @@ When deciding between tools, consider if the request can be best addressed by:
 
     async def _on_new_page(self, page: Page) -> None:
         self._page = page
+        assert self._page is not None
         # self._page.route(lambda x: True, self._route_handler)
         self._page.on("download", self._download_handler)
         await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})

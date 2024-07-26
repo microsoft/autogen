@@ -42,11 +42,14 @@ dependencies = [
     "mypy==1.10.0",
     "ruff==0.4.8",
     "pytest",
+    "pytest-asyncio",
+    "pytest-xdist",
     "aiofiles",
     "types-aiofiles",
     "types-requests",
     "types-pillow",
     "azure-identity",
+    "openpyxl",
 ]
 
 [tool.hatch.envs.default.extra-scripts]
@@ -55,14 +58,24 @@ pip = "{env:HATCH_UV} pip {args}"
 [tool.hatch.envs.default.scripts]
 fmt = "ruff format"
 lint = "ruff check"
-test = "pytest -n auto"
+test = [
+    "playwright install",
+    "pytest -n auto",
+]
 check = [
     "ruff format",
     "ruff check --fix",
     "pyright",
     "mypy --non-interactive --install-types",
+    "playwright install",
     "pytest",
 ]
+
+[tool.hatch.envs.teamone-test-matrix]
+template = "default"
+
+[[tool.hatch.envs.teamone-test-matrix.matrix]]
+python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
