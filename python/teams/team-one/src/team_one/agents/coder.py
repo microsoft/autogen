@@ -10,6 +10,7 @@ from agnext.components.models import (
 )
 from agnext.core import CancellationToken
 
+from ..utils import message_content_to_str
 from ..messages import UserContent
 from .base_agent import BaseAgent
 
@@ -77,8 +78,7 @@ class Executor(BaseAgent):
                 continue
 
             # Extract code block from the message.
-            assert isinstance(message.content, str)
-            code = self._extract_execution_request(message.content)
+            code = self._extract_execution_request(message_content_to_str(message.content))
             if code is not None:
                 execution_requests = [CodeBlock(code=code, language="python")]
                 future = asyncio.get_event_loop().run_in_executor(
