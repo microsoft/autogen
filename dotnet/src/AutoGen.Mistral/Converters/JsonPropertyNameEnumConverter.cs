@@ -29,7 +29,7 @@ internal class JsonPropertyNameEnumConverter<T> : JsonConverter<T> where T : str
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
         var field = value.GetType().GetField(value.ToString());
-        var attribute = field.GetCustomAttribute<JsonPropertyNameAttribute>();
+        var attribute = field?.GetCustomAttribute<JsonPropertyNameAttribute>();
 
         if (attribute != null)
         {
