@@ -95,7 +95,7 @@ The following diagram shows the AGNext application stack.
 At the bottom of the stack is the base messaging and routing facilities that
 enable agents to communicate with each other. These are managed by the
 agent runtime, and for most applications, developers only need to interact
-with the high-level APIs provided by the runtime (see [Foundation](/core-concepts/foundation.html)).
+with the high-level APIs provided by the runtime (see [Foundation](foundation.md)).
 
 On top of the communication stack, developers need to define the
 types of the messages that agents exchange. A set of message types
@@ -103,10 +103,10 @@ forms a behavior contract that agents must adhere to, and the
 implementation of the contracts determines how agents handle messages.
 The behavior contract is sometimes referred to as the message protocol.
 It is the developer's responsibility to implement the behavior contract.
-See [AI Agents](/core-concepts/ai-agents.html) for how to build AI agents
+See [AI Agents](ai-agents.md) for how to build AI agents
 that implement behavior contract.
 Multi-agent patterns are design patterns that emerge from behavior contracts
-(see [Multi-Agent Patterns](/core-concepts/patterns.html)).
+(see [Multi-Agent Patterns](patterns.md)).
 
 ### An Example Application
 
