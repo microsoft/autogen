@@ -426,7 +426,7 @@ class GroupChat:
                     speaker_selection_method = "auto"
                 else:
                     raise ValueError(
-                        f"Custom speaker selection function returned a list of objects that are not all Agents."
+                        "Custom speaker selection function returned a list of objects that are not all Agents."
                     )
             else:
                 raise ValueError(
@@ -507,7 +507,7 @@ class GroupChat:
             graph_eligible_agents = [
                 agent for agent in agents if agent in self.allowed_speaker_transitions_dict[last_speaker]
             ]
-        
+
         if len(allowed_agent_list) > 0:
             # all agents in allowed_agent_list should be in graph_eligible_agents
             if not set(allowed_agent_list).issubset(set(graph_eligible_agents)):
