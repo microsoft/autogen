@@ -38,7 +38,7 @@ class RuntimeFactory:
         """
         Static initialization method.
         """
-        cls.register_runtime("ZMQ",ZMQRuntime())
+        cls.register_runtime("ZMQ", ZMQRuntime())
 
 # Static initialization
 RuntimeFactory._initialize()
