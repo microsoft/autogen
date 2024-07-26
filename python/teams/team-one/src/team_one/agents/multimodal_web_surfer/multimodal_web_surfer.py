@@ -70,6 +70,8 @@ VIEWPORT_WIDTH = 1440
 MLM_HEIGHT = 765
 MLM_WIDTH = 1224
 
+SCREENSHOT_TOKENS = 1105
+
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".MultimodalWebSurfer")
 
 
@@ -718,20 +720,6 @@ When deciding between tools, consider if the request can be best addressed by:
 
         page_markdown: str = await self._get_page_markdown()
 
-        # TODO: Get token count working
-
-        buffer = page_markdown
-        # buffer: str = ""
-        # for line in re.split(r"([\r\n]+)", page_markdown):
-        #    tokens = count_token(buffer + line)
-        #    if tokens + 1024 > token_limit:  # Leave room for our summary
-        #        break
-        #    buffer += line
-
-        buffer = buffer.strip()
-        if len(buffer) == 0:
-            return "Nothing to summarize."
-
         title: str = self._page.url
         try:
             title = await self._page.title()
@@ -742,29 +730,55 @@ When deciding between tools, consider if the request can be best addressed by:
         screenshot = Image.open(io.BytesIO(await self._page.screenshot()))
         scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
         screenshot.close()
+        ag_image = AGImage.from_pil(scaled_screenshot)
 
-        prompt = f"We are visiting the webpage '{title}'. Its full-text contents are pasted below, along with a screenshot of the page's current viewport."
-        if question is not None:
-            prompt += (
-                f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n{buffer}"
-            )
-        else:
-            prompt += f" Please summarize the webpage into one or two paragraphs:\n\n{buffer}"
-
-        # Add the multimodal message and make the request
+        # Prepare the system prompt
         messages: List[LLMMessage] = []
         messages.append(
             SystemMessage(content="You are a helpful assistant that can summarize long documents to answer question.")
         )
+
+        # Prepare the main prompt
+        prompt = f"We are visiting the webpage '{title}'. Its full-text content are pasted below, along with a screenshot of the page's current viewport."
+        if question is not None:
+            prompt += f" Please summarize the webpage into one or two paragraphs with respect to '{question}':\n\n"
+        else:
+            prompt += " Please summarize the webpage into one or two paragraphs:\n\n"
+
+        # Grow the buffer (which is added to the prompt) until we overflow the context window or run out of lines
+        buffer = ""
+        for line in re.split(r"([\r\n]+)", page_markdown):
+            message = UserMessage(
+                # content=[
+                prompt + buffer + line,
+                #    ag_image,
+                # ],
+                source=self.metadata["name"],
+            )
+
+            remaining = self._model_client.remaining_tokens(messages + [message])
+            if remaining > SCREENSHOT_TOKENS:
+                buffer += line
+            else:
+                break
+
+        # Nothing to do
+        buffer = buffer.strip()
+        if len(buffer) == 0:
+            return "Nothing to summarize."
+
+        # Append the message
         messages.append(
             UserMessage(
                 content=[
-                    prompt,
-                    AGImage.from_pil(scaled_screenshot),
+                    prompt + buffer,
+                    ag_image,
                 ],
                 source=self.metadata["name"],
             )
         )
+
+        # Generate the response
         response = await self._model_client.create(messages)
         scaled_screenshot.close()
         assert isinstance(response.content, str)

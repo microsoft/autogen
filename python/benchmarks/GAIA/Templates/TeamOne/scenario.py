@@ -23,19 +23,22 @@ from team_one.agents.file_surfer import FileSurfer
 from team_one.utils import LogHandler, message_content_to_str
 
 import re
+import tiktoken
 
 from agnext.components.models import AssistantMessage
 
+encoding = None 
+def count_token(value: str) -> int:
+    # TODO:: Migrate to model_client.count_tokens
+    global encoding
+    if encoding is None:
+        encoding = tiktoken.encoding_for_model("gpt-4o-2024-05-13")
+    return len(encoding.encode(value))
 
 async def response_preparer(task: str, source: str, client: ChatCompletionClient, transcript: List[LLMMessage]) -> str:
-    messages: List[LLMMessage] = [
-        UserMessage(
-            content=f"Earlier you were asked the following:\n\n{task}\n\nYour team then worked diligently to address that request. Here is a transcript of that conversation:",
-            source=source,
-        )
-    ]
+    messages: List[LLMMessage] = []
 
-    # copy them to this context
+    # copy them to this context 
     for message in transcript:
         messages.append(
             UserMessage(
@@ -44,6 +47,18 @@ async def response_preparer(task: str, source: str, client: ChatCompletionClient
                 source=message.source, # type: ignore
             )
         )
+
+    # Remove messages until we are within 2k of the context window limit
+    while len(messages) and client.remaining_tokens( messages ) < 2000:
+        messages.pop(0)
+
+    # Add the preamble
+    messages.insert(0,
+        UserMessage(
+            content=f"Earlier you were asked the following:\n\n{task}\n\nYour team then worked diligently to address that request. Here is a transcript of that conversation:",
+            source=source,
+        )
+    )
 
     # ask for the final answer
     messages.append(
@@ -164,8 +179,8 @@ async def main() -> None:
             mdconverter = MarkdownConverter()
             res = mdconverter.convert(filename)
             if res.text_content:
-                #if count_token(res.text_content) < 8000:  # Don't put overly-large documents into the prompt
-                filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
+                if count_token(res.text_content) < 8000:  # Don't put overly-large documents into the prompt
+                    filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
         except UnsupportedFormatException:
             pass
 
