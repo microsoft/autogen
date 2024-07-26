@@ -1040,7 +1040,7 @@ def test_custom_speaker_selection():
             return [a3, a4]
         elif last_speaker is a3:
             return a4
-    
+
     groupchat = autogen.GroupChat(
         agents=[a1, a2, a3, a4],
         messages=[],
@@ -1049,7 +1049,7 @@ def test_custom_speaker_selection():
     )
     original_auto_select_speaker = groupchat._auto_select_speaker
 
-    def mock_auto_select_speaker(_cls, *args, **kwargs): 
+    def mock_auto_select_speaker(_cls, *args, **kwargs):
         last_speaker = kwargs.get("last_speaker")
         print(last_speaker)
         if kwargs.get("last_speaker") == a2:
