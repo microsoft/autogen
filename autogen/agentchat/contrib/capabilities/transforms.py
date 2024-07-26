@@ -53,12 +53,12 @@ class MessageHistoryLimiter:
     It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
-    def __init__(self, max_messages: Optional[int] = None, keep_first_message: Optional[bool] = False):
+    def __init__(self, max_messages: Optional[int] = None, keep_first_message: bool = False):
         """
         Args:
             max_messages Optional[int]: Maximum number of messages to keep in the context. Must be greater than 0 if not None.
-            keep_first_message Optional[bool]: Whether to keep the original first message in the conversation history.
-                Defaults to False. Does not count towards truncation.
+            keep_first_message bool: Whether to keep the original first message in the conversation history.
+                Defaults to False.
         """
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages
@@ -78,18 +78,29 @@ class MessageHistoryLimiter:
             List[Dict]: A new list containing the most recent messages up to the specified maximum.
         """
 
-        if self._max_messages is None:
+        if self._max_messages is None or len(messages) <= self._max_messages:
             return messages
 
-        truncated_messages = messages[-self._max_messages :]
-        # If the last message is a tool message, include its preceding message that must be a tool_calls message
-        if truncated_messages[0].get("role") == "tool":
-            start_index = max(-self._max_messages - 1, -len(messages))
-            truncated_messages = messages[start_index:]
+        truncated_messages = []
+        remaining_count = self._max_messages
 
-        # Keep the first message if required
-        if self._keep_first_message and messages[0] != truncated_messages[0]:
-            truncated_messages = [messages[0]] + truncated_messages
+        # Start with the first message if we need to keep it
+        if self._keep_first_message:
+            truncated_messages = [messages[0]]
+            remaining_count -= 1
+
+        # Loop through messages in reverse
+        for i in range(len(messages) - 1, 0, -1):
+            if remaining_count > 1:
+                truncated_messages.insert(1, messages[i])
+            if remaining_count == 1:
+                # If there's only 1 slot left and it's a 'tools' message, ignore it.
+                if messages[i].get("role") != "tool":
+                    truncated_messages.insert(1, messages[i])
+
+            remaining_count -= 1
+            if remaining_count == 0:
+                break
 
         return truncated_messages
 
