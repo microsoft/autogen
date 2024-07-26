@@ -420,11 +420,17 @@ class GroupChat:
                 # If returned a string, assume it is a speaker selection method
                 speaker_selection_method = selected_agent
             elif isinstance(selected_agent, list):
-                allowed_agent_list = selected_agent
-                speaker_selection_method = 'auto'
+                # make sure all values in the list are Agents
+                if all(isinstance(agent, Agent) for agent in selected_agent):
+                    allowed_agent_list = selected_agent
+                    speaker_selection_method = 'auto'
+                else:
+                    raise ValueError(
+                        f"Custom speaker selection function returned a list of objects that are not all Agents."
+                    )
             else:
                 raise ValueError(
-                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or list[Agent] or str."
                 )
 
         if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:

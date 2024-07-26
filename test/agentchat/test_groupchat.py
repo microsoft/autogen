@@ -1018,6 +1018,13 @@ def test_custom_speaker_selection():
 
     a3 = autogen.UserProxyAgent(
         name="a3",
+        default_auto_reply="This is a3 speaking",
+        human_input_mode="NEVER",
+        code_execution_config={},
+    )
+    
+    a4 = autogen.UserProxyAgent(
+        name="a4",
         default_auto_reply="TERMINATE",
         human_input_mode="NEVER",
         code_execution_config={},
@@ -1030,18 +1037,32 @@ def test_custom_speaker_selection():
         if last_speaker is a1:
             return a2
         elif last_speaker is a2:
-            return a3
-
+            return [a3, a4]
+        elif last_speaker is a3:
+            return a4
+    
+    # with mock.patch.object(autogen.GroupChat, '_auto_select_speaker', new=mock_auto_select_speaker):
     groupchat = autogen.GroupChat(
-        agents=[a1, a2, a3],
+        agents=[a1, a2, a3, a4],
         messages=[],
         max_round=20,
         speaker_selection_method=custom_speaker_selection_func,
     )
+    original_auto_select_speaker = groupchat._auto_select_speaker
+    def mock_auto_select_speaker(_cls, *args, **kwargs): 
+        last_speaker = kwargs.get("last_speaker")
+        print(last_speaker)
+        if kwargs.get("last_speaker") == a2:
+            return a3
+        return original_auto_select_speaker(_cls, *args, **kwargs)
+    groupchat._auto_select_speaker = mock_auto_select_speaker
+    
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
     result = a1.initiate_chat(manager, message="Hello, this is a1 speaking.")
-    assert len(result.chat_history) == 3
+    print(result.chat_history)
+    users_in_order = map(lambda x: x.get("name"), result.chat_history)
+    assert list(users_in_order) == [None, "a2", "a3", "a4"] # a1 is not in the list because it is the first speaker
 
 
 def test_custom_speaker_selection_with_transition_graph():
