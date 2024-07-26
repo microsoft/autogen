@@ -47,7 +47,8 @@ def function_missing_reqs() -> "polars.DataFrame":
     return polars.DataFrame()
 
 
-def test_can_load_function_with_reqs() -> None:
+@pytest.mark.asyncio
+async def test_can_load_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[load_data]
@@ -59,7 +60,7 @@ import polars
 data = load_data()
 print(data['name'][0])"""
 
-        result = executor.execute_code_blocks(
+        result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ]
@@ -68,7 +69,8 @@ print(data['name'][0])"""
         assert result.exit_code == 0
 
 
-def test_can_load_function() -> None:
+@pytest.mark.asyncio
+async def test_can_load_function() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[add_two_numbers]
@@ -76,7 +78,7 @@ def test_can_load_function() -> None:
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
-        result = executor.execute_code_blocks(
+        result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ]
@@ -85,7 +87,8 @@ print(add_two_numbers(1, 2))"""
         assert result.exit_code == 0
 
 
-def test_fails_for_function_incorrect_import() -> None:
+@pytest.mark.asyncio
+async def test_fails_for_function_incorrect_import() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[function_incorrect_import]
@@ -94,14 +97,15 @@ def test_fails_for_function_incorrect_import() -> None:
 function_incorrect_import()"""
 
         with pytest.raises(ValueError):
-            executor.execute_code_blocks(
+            await executor.execute_code_blocks(
                 code_blocks=[
                     CodeBlock(language="python", code=code),
                 ]
             )
 
 
-def test_fails_for_function_incorrect_dep() -> None:
+@pytest.mark.asyncio
+async def test_fails_for_function_incorrect_dep() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[function_incorrect_dep]
@@ -110,7 +114,7 @@ def test_fails_for_function_incorrect_dep() -> None:
 function_incorrect_dep()"""
 
         with pytest.raises(ValueError):
-            executor.execute_code_blocks(
+            await executor.execute_code_blocks(
                 code_blocks=[
                     CodeBlock(language="python", code=code),
                 ]
@@ -152,7 +156,8 @@ def add_two_numbers(a: int, b: int) -> int:
         )
 
 
-def test_can_load_str_function_with_reqs() -> None:
+@pytest.mark.asyncio
+async def test_can_load_str_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         func = FunctionWithRequirements.from_str(
             '''
@@ -166,7 +171,7 @@ def add_two_numbers(a: int, b: int) -> int:
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
-        result = executor.execute_code_blocks(
+        result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ]
@@ -187,7 +192,8 @@ invaliddef add_two_numbers(a: int, b: int) -> int:
         )
 
 
-def test_cant_run_broken_str_function_with_reqs() -> None:
+@pytest.mark.asyncio
+async def test_cant_run_broken_str_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         func = FunctionWithRequirements.from_str(
             '''
@@ -201,7 +207,7 @@ def add_two_numbers(a: int, b: int) -> int:
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(object(), False))"""
 
-        result = executor.execute_code_blocks(
+        result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ]

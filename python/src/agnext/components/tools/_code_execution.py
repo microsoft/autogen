@@ -1,6 +1,3 @@
-import asyncio
-import functools
-
 from pydantic import BaseModel, Field, model_serializer
 
 from ...core import CancellationToken
@@ -28,10 +25,6 @@ class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult])
 
     async def run(self, args: CodeExecutionInput, cancellation_token: CancellationToken) -> CodeExecutionResult:
         code_blocks = [CodeBlock(code=args.code, language="python")]
-        future = asyncio.get_event_loop().run_in_executor(
-            None, functools.partial(self._executor.execute_code_blocks, code_blocks=code_blocks)
-        )
-        cancellation_token.link_future(future)
-        result = await future
+        result = await self._executor.execute_code_blocks(code_blocks=code_blocks)
 
         return CodeExecutionResult(success=result.exit_code == 0, output=result.output)

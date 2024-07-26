@@ -1,17 +1,18 @@
 # File based from: https://github.com/microsoft/autogen/blob/main/autogen/coding/local_commandline_code_executor.py
 # Credit to original authors
 
+import asyncio
 import logging
-import subprocess
 import sys
 import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, Sequence, Union
+from typing import Any, Callable, ClassVar, List, Sequence, Union, Optional
 
 from typing_extensions import ParamSpec
 
+from ....core import CancellationToken
 from .._base import CodeBlock, CodeExecutor
 from .._func_with_reqs import (
     FunctionWithRequirements,
@@ -21,6 +22,7 @@ from .._func_with_reqs import (
 )
 from .command_line_code_result import CommandLineCodeResult
 from .utils import PYTHON_VARIANTS, get_file_name_from_content, lang_to_cmd, silence_pip  # type: ignore
+from ....core import CancellationToken
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
@@ -75,7 +77,7 @@ $functions"""
         block.
 
         Args:
-            timeout (int): The timeout for code execution. Default is 60.
+            timeout (int): The timeout for the execution of any single code block. Default is 60.
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
@@ -144,7 +146,7 @@ $functions"""
         """(Experimental) The working directory for the code execution."""
         return self._work_dir
 
-    def _setup_functions(self) -> None:
+    async def _setup_functions(self, cancellation_token: Optional[CancellationToken]) -> None:
         func_file_content = build_python_functions_file(self._functions)
         func_file = self._work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
@@ -156,46 +158,61 @@ $functions"""
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
 
-            cmd = [sys.executable, "-m", "pip", "install"]
-            cmd.extend(required_packages)
+            cmd_args = ["-m", "pip", "install"]
+            cmd_args.extend(required_packages)
 
-            try:
-                result = subprocess.run(
-                    cmd,
+            task = asyncio.create_task(
+                asyncio.create_subprocess_exec(
+                    sys.executable,
+                    *cmd_args,
                     cwd=self._work_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=float(self._timeout),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
                 )
-            except subprocess.TimeoutExpired as e:
+            )
+            if cancellation_token:
+                cancellation_token.link_future(task)
+            try:
+                proc = await task
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)
+            except asyncio.TimeoutError as e:
                 raise ValueError("Pip install timed out") from e
+            except asyncio.CancelledError as e:
+                raise ValueError("Pip install was cancelled") from e
 
-            if result.returncode != 0:
-                raise ValueError(f"Pip install failed. {result.stdout}, {result.stderr}")
+            if proc.returncode is not None and proc.returncode != 0:
+                raise ValueError(f"Pip install failed. {stdout.decode()}, {stderr.decode()}")
 
         # Attempt to load the function file to check for syntax errors, imports etc.
-        exec_result = self._execute_code_dont_check_setup([CodeBlock(code=func_file_content, language="python")])
+        exec_result = await self._execute_code_dont_check_setup(
+            [CodeBlock(code=func_file_content, language="python")], cancellation_token
+        )
 
         if exec_result.exit_code != 0:
             raise ValueError(f"Functions failed to load: {exec_result.output}")
 
         self._setup_functions_complete = True
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
+    async def execute_code_blocks(
+        self, code_blocks: List[CodeBlock], cancellation_token: Optional[CancellationToken] = None
+    ) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
+            cancellation_token (CancellationToken|None): an optional token to cancel the operation
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
 
         if not self._setup_functions_complete:
-            self._setup_functions()
+            await self._setup_functions(cancellation_token)
 
-        return self._execute_code_dont_check_setup(code_blocks)
+        return await self._execute_code_dont_check_setup(code_blocks, cancellation_token)
 
-    def _execute_code_dont_check_setup(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
+    async def _execute_code_dont_check_setup(
+        self, code_blocks: List[CodeBlock], cancellation_token: Optional[CancellationToken]
+    ) -> CommandLineCodeResult:
         logs_all: str = ""
         file_names: List[Path] = []
         exitcode = 0
@@ -235,25 +252,38 @@ $functions"""
             file_names.append(written_file)
 
             program = sys.executable if lang.startswith("python") else lang_to_cmd(lang)
-            cmd = [program, str(written_file.absolute())]
-
-            try:
-                result = subprocess.run(
-                    cmd,
+            # Wrap in a task to make it cancellable
+            task = asyncio.create_task(
+                asyncio.create_subprocess_exec(
+                    program,
+                    str(written_file.absolute()),
                     cwd=self._work_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=float(self._timeout),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
                 )
-            except subprocess.TimeoutExpired:
+            )
+            if cancellation_token:
+                cancellation_token.link_future(task)
+            try:
+                proc = await task
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)
+                exitcode = proc.returncode or 0
+
+            except asyncio.TimeoutError:
                 logs_all += "\n Timeout"
                 # Same exit code as the timeout command on linux.
                 exitcode = 124
                 break
+            except asyncio.CancelledError:
+                logs_all += "\n Cancelled"
+                # TODO: which exit code? 125 is Operation Canceled
+                exitcode = 125
+                break
 
-            logs_all += result.stderr
-            logs_all += result.stdout
-            exitcode = result.returncode
+            self._running_cmd_task = None
+
+            logs_all += stderr.decode()
+            logs_all += stdout.decode()
 
             if exitcode != 0:
                 break

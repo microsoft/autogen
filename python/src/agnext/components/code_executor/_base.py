@@ -27,7 +27,7 @@ class CodeResult:
 class CodeExecutor(Protocol):
     """Executes code blocks and returns the result."""
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+    async def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
         """Execute code blocks and return the result.
 
         This method should be implemented by the code executor.

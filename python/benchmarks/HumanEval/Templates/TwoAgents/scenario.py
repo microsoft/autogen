@@ -169,11 +169,7 @@ class Executor(TypeRoutedAgent):
         code = self._extract_execution_request(message.execution_request)
         if code is not None:
             execution_requests = [CodeBlock(code=code, language="python")]
-            future = asyncio.get_event_loop().run_in_executor(
-                None, self._executor.execute_code_blocks, execution_requests
-            )
-            cancellation_token.link_future(future)
-            result = await future
+            result = await self._executor.execute_code_blocks(execution_requests)
             await self.publish_message(
                 CodeExecutionResultMessage(
                     output=result.output,

@@ -1,4 +1,3 @@
-import asyncio
 import re
 from typing import List, Optional, Tuple, Union
 
@@ -81,11 +80,7 @@ class Executor(BaseAgent):
             code = self._extract_execution_request(message_content_to_str(message.content))
             if code is not None:
                 execution_requests = [CodeBlock(code=code, language="python")]
-                future = asyncio.get_event_loop().run_in_executor(
-                    None, self._executor.execute_code_blocks, execution_requests
-                )
-                cancellation_token.link_future(future)
-                result = await future
+                result = await self._executor.execute_code_blocks(execution_requests)
 
                 if result.output.strip() == "":
                     # Sometimes agents forget to print(). Remind the to print something
