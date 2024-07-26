@@ -423,7 +423,7 @@ class GroupChat:
                 # make sure all values in the list are Agents
                 if all(isinstance(agent, Agent) for agent in selected_agent):
                     allowed_agent_list = selected_agent
-                    speaker_selection_method = 'auto'
+                    speaker_selection_method = "auto"
                 else:
                     raise ValueError(
                         f"Custom speaker selection function returned a list of objects that are not all Agents."
@@ -511,7 +511,7 @@ class GroupChat:
         if len(allowed_agent_list) > 0:
             # all agents in allowed_agent_list should be in graph_eligible_agents
             if not set(allowed_agent_list).issubset(set(graph_eligible_agents)):
-                raise NoEligibleSpeaker(f"Allowed agents are not in the eligible agents list.")
+                raise NoEligibleSpeaker("Allowed agents are not in the eligible agents list.")
             graph_eligible_agents = allowed_agent_list
 
         # If there is only one eligible agent, just return it to avoid the speaker selection prompt
