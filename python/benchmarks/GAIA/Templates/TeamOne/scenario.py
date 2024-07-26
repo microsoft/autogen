@@ -59,8 +59,8 @@ ADDITIONALLY, your FINAL ANSWER MUST adhere to any formatting instructions speci
 If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and don't include units such as $ or percent signs unless specified otherwise.
 If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
+If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine'
 """,
-#If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine'
             source=source,
         )
     )

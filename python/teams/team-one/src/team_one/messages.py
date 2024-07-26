@@ -28,7 +28,18 @@ class ResetMessage:
 
 
 @dataclass
+class DeactivateMessage:
+    pass
+
+
+@dataclass
 class OrchestrationEvent:
+    source: str
+    message: str
+
+
+@dataclass
+class AgentEvent:
     source: str
     message: str
 

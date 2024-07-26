@@ -6,7 +6,7 @@ from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import AssistantMessage, LLMMessage, UserMessage
 from agnext.core import AgentProxy, CancellationToken
 
-from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
+from ..messages import BroadcastMessage, DeactivateMessage, OrchestrationEvent, RequestReplyMessage
 from ..utils import message_content_to_str
 
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
@@ -23,10 +23,15 @@ class BaseOrchestrator(TypeRoutedAgent):
         self._agents = agents
         self._max_rounds = max_rounds
         self._num_rounds = 0
+        self._enabled = True
 
     @message_handler
     async def handle_incoming_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
         """Handle an incoming message."""
+
+        if not self._enabled:
+            return
+
         source = "Unknown"
         if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
             source = message.content.source
@@ -75,6 +80,19 @@ class BaseOrchestrator(TypeRoutedAgent):
 
         self._num_rounds += 1  # Call before sending the message
         await self.send_message(request_reply_message, next_agent.id)
+
+    @message_handler
+    async def handle_deactivate_message(
+        self, message: DeactivateMessage, cancellation_token: CancellationToken
+    ) -> None:
+        """Handle a deactivate message."""
+        self._enabled = False
+        logger.info(
+            OrchestrationEvent(
+                f"{self.metadata['name']} (deactivated)",
+                "",
+            )
+        )
 
     async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
         raise NotImplementedError()

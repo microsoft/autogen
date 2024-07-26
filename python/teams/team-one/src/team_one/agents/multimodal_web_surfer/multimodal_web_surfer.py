@@ -204,7 +204,6 @@ setInterval(function() {{
         future = super()._reset(cancellation_token)
         await future
         await self._visit_page(self.start_page)
-        await self._page.wait_for_load_state()
         if self.debug_dir:
             await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
         logger.info(
@@ -609,6 +608,7 @@ When deciding between tools, consider if the request can be best addressed by:
         try:
             # Regular webpage
             await self._page.goto(url)
+            await self._page.wait_for_load_state()
             self._prior_metadata_hash = None
         except Exception as e_outer:
             # Downloaded file
