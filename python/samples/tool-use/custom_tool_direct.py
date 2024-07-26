@@ -7,18 +7,20 @@ import asyncio
 import os
 import random
 import sys
+from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import (
     SystemMessage,
 )
-from agnext.components.tools import FunctionTool
+from agnext.components.tool_agent import ToolAgent
+from agnext.components.tools import FunctionTool, Tool
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from coding_one_agent_direct import Message, ToolEnabledAgent
+from coding_direct import Message, ToolUseAgent
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -31,28 +33,37 @@ async def get_stock_price(ticker: str, date: Annotated[str, "The date in YYYY/MM
 async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
+    tools: List[Tool] = [
+        # A tool that gets the stock price.
+        FunctionTool(
+            get_stock_price,
+            description="Get the stock price of a company given the ticker and date.",
+            name="get_stock_price",
+        )
+    ]
     # Register agents.
-    tool_agent = await runtime.register_and_get(
+    tool_executor_agent = await runtime.register_and_get(
+        "tool_executor_agent",
+        lambda: ToolAgent(
+            description="Tool Executor Agent",
+            tools=tools,
+        ),
+    )
+    tool_use_agent = await runtime.register_and_get(
         "tool_enabled_agent",
-        lambda: ToolEnabledAgent(
+        lambda: ToolUseAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
-            tools=[
-                # Define a tool that gets the stock price.
-                FunctionTool(
-                    get_stock_price,
-                    description="Get the stock price of a company given the ticker and date.",
-                    name="get_stock_price",
-                )
-            ],
+            tool_schema=[tool.schema for tool in tools],
+            tool_agent=tool_executor_agent,
         ),
     )
 
     run_context = runtime.start()
 
     # Send a task to the tool user.
-    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01"), tool_agent)
+    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01"), tool_use_agent)
     # Print the result.
     assert isinstance(response, Message)
     print(response.content)

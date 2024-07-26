@@ -39,7 +39,7 @@ from agnext.components.models import ChatCompletionClient, SystemMessage, UserMe
 from agnext.core import CancellationToken
 
 @dataclass
-class MyMessage:
+class Message:
     content: str
 
 class SimpleAgent(TypeRoutedAgent):
@@ -50,12 +50,12 @@ class SimpleAgent(TypeRoutedAgent):
         self._model_client = model_client
     
     @message_handler
-    async def handle_user_message(self, message: MyMessage, cancellation_token: CancellationToken) -> MyMessage:
+    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> MyMessage:
         # Prepare input to the chat completion model.
         user_message = UserMessage(content=message.content, source="user")
         response = await self._model_client.create(self._system_messages + [user_message], cancellation_token=cancellation_token)
         # Return with the model's response.
-        return MyMessage(content=response.content)
+        return Message(content=response.content)
 ```
 
 The `SimpleAgent` class is a subclass of the
@@ -77,7 +77,7 @@ async def main():
     # Start the runtime processing messages.
     run_context = runtime.start()
     # Send a message to the agent and get the response.
-    message = MyMessage("Hello, what are some fun things to do in Seattle?")
+    message = Message("Hello, what are some fun things to do in Seattle?")
     response = await runtime.send_message(message, agent)
     print(response)
     # Stop the runtime processing messages.
@@ -109,13 +109,59 @@ There's so much to see and do in Seattle, and these are just a few options to ge
 Tools are code that can be executed by an agent to perform actions. A tool
 can be a simple function such as a calculator, or an API call to a third-party service
 such as stock price lookup and weather forecast.
-In the context of AI agents, tools are designed to be executed by agents in response to model-generated function calls.
+In the context of AI agents, tools are designed to be executed by agents in
+response to model-generated function calls.
 
 AGNext provides the {py:mod}`agnext.components.tools` module with a suite of built-in
 tools and utilities for creating and running custom tools.
 
+### Built-in Tools
+
+One of the built-in tools is the {py:class}`agnext.components.tools.PythonCodeExecutionTool`,
+which allows agents to execute Python code snippets.
+
+Here is how you create the tool and use it.
+
+```python
+import asyncio
+
+from agnext.components.code_executor import LocalCommandLineCodeExecutor
+from agnext.components.tools import PythonCodeExecutionTool
+from agnext.core import CancellationToken
+
+
+async def main() -> None:
+    # Create the tool.
+    code_executor = LocalCommandLineCodeExecutor()
+    code_execution_tool = PythonCodeExecutionTool(code_executor)
+    cancellation_token = CancellationToken()
+
+    # Use the tool directly without an agent.
+    code = "print('Hello, world!')"
+    result = await code_execution_tool.run_json({"code": code}, cancellation_token)
+    print(code_execution_tool.return_value_as_string(result))
+
+asyncio.run(main())
+```
+
+The {py:class}`~agnext.components.code_executor.LocalCommandLineCodeExecutor`
+class is a built-in code executor that runs Python code snippets in a subprocess
+in the local command line environment.
+The {py:class}`~agnext.components.tools.PythonCodeExecutionTool` class wraps the code executor
+and provides a simple interface to execute Python code snippets.
+
+The code above should print the following output:
+
+```text
+Hello, world!
+
+```
+
+Other built-in tools will be added in the future.
+
 ### Custom Function Tools
 
+A tool can also be a simple Python function that performs a specific action.
 To create a custom function tool, you just need to create a Python function
 and use the {py:class}`agnext.components.tools.FunctionTool` class to wrap it.
 
@@ -130,54 +176,58 @@ async def get_stock_price(ticker: str, date: Annotated[str, "Date in YYYY/MM/DD"
     # Returns a random stock price for demonstration purposes.
     return random.uniform(10, 200)
 
-# Create a tool.
+# Create a function tool.
 stock_price_tool = FunctionTool(get_stock_price, description="Get the stock price.")
 ```
 
 ### Tool-Equipped Agent
 
 To use tools with an agent, you can use {py:class}`agnext.components.tool_agent.ToolAgent`,
-either by subclassing it or by using it in a composition pattern.
-Here is an example tool-equipped agent that subclasses {py:class}`~agnext.components.tool_agent.ToolAgent`
-and executes its tools by sending direct messages to itself.
+by using it in a composition pattern.
+Here is an example tool-use agent that uses {py:class}`~agnext.components.tool_agent.ToolAgent`
+as an inner agent for executing tools.
 
 ```python
-import json
 import asyncio
-from typing import List
 from dataclasses import dataclass
+from typing import List
+
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler, FunctionCall
-from agnext.components.tool_agent import ToolAgent, ToolException
+from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
 from agnext.components.models import (
-    ChatCompletionClient,
-    SystemMessage,
-    UserMessage,
     AssistantMessage,
+    ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     OpenAIChatCompletionClient,
+    SystemMessage,
+    UserMessage,
 )
-from agnext.components.tools import Tool, FunctionTool
-from agnext.core import CancellationToken
+from agnext.components.tool_agent import ToolAgent, ToolException
+from agnext.components.tools import FunctionTool, Tool, ToolSchema
+from agnext.core import AgentId, CancellationToken
+
 
 @dataclass
-class MyMessage:
+class Message:
     content: str
 
-class ToolEquippedAgent(ToolAgent):
-    def __init__(self, model_client: ChatCompletionClient, tools: List[Tool]) -> None:
-        super().__init__("An agent with tools", tools)
+
+class ToolUseAgent(TypeRoutedAgent):
+    def __init__(self, model_client: ChatCompletionClient, tool_schema: List[ToolSchema], tool_agent: AgentId) -> None:
+        super().__init__("An agent with tools")
         self._system_messages = [SystemMessage("You are a helpful AI assistant.")]
         self._model_client = model_client
+        self._tool_schema = tool_schema
+        self._tool_agent = tool_agent
 
     @message_handler
-    async def handle_user_message(self, message: MyMessage, cancellation_token: CancellationToken) -> MyMessage:
+    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
         # Create a session of messages.
         session = [UserMessage(content=message.content, source="user")]
         # Get a response from the model.
         response = await self._model_client.create(
-            self._system_messages + session, tools=self.tools, cancellation_token=cancellation_token
+            self._system_messages + session, tools=self._tool_schema, cancellation_token=cancellation_token
         )
         # Add the response to the session.
         session.append(AssistantMessage(content=response.content, source="assistant"))
@@ -186,44 +236,44 @@ class ToolEquippedAgent(ToolAgent):
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
             # Execute functions called by the model by sending messages to itself.
             results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
-                *[self.send_message(call, self.id) for call in response.content],
+                *[self.send_message(call, self._tool_agent) for call in response.content],
                 return_exceptions=True,
             )
             # Combine the results into a single response and handle exceptions.
-            function_results : List[FunctionExecutionResult] = []
+            function_results: List[FunctionExecutionResult] = []
             for result in results:
                 if isinstance(result, FunctionExecutionResult):
                     function_results.append(result)
                 elif isinstance(result, ToolException):
                     function_results.append(FunctionExecutionResult(content=f"Error: {result}", call_id=result.call_id))
                 elif isinstance(result, BaseException):
-                    raise result # Unexpected exception.
+                    raise result  # Unexpected exception.
             session.append(FunctionExecutionResultMessage(content=function_results))
             # Query the model again with the new response.
             response = await self._model_client.create(
-                self._system_messages + session, tools=self.tools, cancellation_token=cancellation_token
+                self._system_messages + session, tools=self._tool_schema, cancellation_token=cancellation_token
             )
             session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
 
         # Return the final response.
-        return MyMessage(content=response.content)
+        return Message(content=response.content)
 ```
 
-The `ToolEquippedAgent` class is much more involved than the `SimpleAgent` class, however,
+The `ToolUseAgent` class is much more involved than the `SimpleAgent` class, however,
 the core idea can be described using a simple control flow graph:
 
-![ToolEquippedAgent control flow graph](tool-equipped-agent-cfg.svg)
+![ToolUseAgent control flow graph](tool-use-agent-cfg.svg)
 
-The `ToolEquippedAgent`'s `handle_user_message` handler handles messages from the user,
+The `ToolUseAgent`'s `handle_user_message` handler handles messages from the user,
 and determines whether the model has generated a tool call.
 If the model has generated tool calls, then the handler sends a function call
-message to itself to execute the tools -- implemented by the parent {py:class}`~agnext.components.tool_agent.ToolAgent` class,
-and then queries the model again
-with the results of the tool calls.
+message to the {py:class}`~agnext.components.tool_agent.ToolAgent` agent
+to execute the tools,
+and then queries the model again with the results of the tool calls.
 This process continues until the model stops generating tool calls,
 at which point the final response is returned to the user.
 
-By having the tool execution logic in a separate handler in the base class,
+By having the tool execution logic in a separate agent,
 we expose the model-tool interactions to the agent runtime as messages, so the tool executions
 can be observed externally and intercepted if necessary.
 
@@ -231,29 +281,38 @@ To run the agent, we need to create a runtime and register the agent.
 
 ```python
 async def main() -> None:
-    # Create a runtime and register the agent.
+    # Create a runtime.
     runtime = SingleThreadedAgentRuntime()
-    agent = await runtime.register_and_get(
-        "tool-agent",
-        lambda: ToolEquippedAgent(
-            OpenAIChatCompletionClient(model="gpt-4o-mini", api_key="YOUR_API_KEY"),
-            tools=[
-                FunctionTool(get_stock_price, description="Get the stock price."),
-            ],
+    # Create the tools.
+    tools: List[Tool] = [FunctionTool(get_stock_price, description="Get the stock price.")]
+    # Register the agents.
+    tool_executor_agent = await runtime.register_and_get(
+        "tool-executor-agent",
+        lambda: ToolAgent(
+            description="Tool Executor Agent",
+            tools=tools,
+        ),
+    )
+    tool_use_agent = await runtime.register_and_get(
+        "tool-use-agent",
+        lambda: ToolUseAgent(
+            # OPENAI_API_KEY environment variable must be set.
+            OpenAIChatCompletionClient(model="gpt-4o-mini"),
+            tool_schema=[tool.schema for tool in tools],
+            tool_agent=tool_executor_agent,
         ),
     )
     # Start processing messages.
     run_context = runtime.start()
     # Send a direct message to the tool agent.
-    response = await runtime.send_message(MyMessage("What is the stock price of NVDA on 2024/06/01?"), agent)
+    response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01?"), tool_use_agent)
     print(response.content)
     # Stop processing messages.
     await run_context.stop()
-
-asyncio.run(main())
 ```
 
-In the example above, we use the direct communication to send a message to the tool agent. The agent's response might look like this:
+In the example above, we use the direct communication to send a message to
+the tool use agent. The agent's response might look like this:
 
 ```text
 The stock price of NVDA on June 1, 2024, was $26.49.
