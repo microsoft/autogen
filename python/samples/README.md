@@ -22,10 +22,10 @@ We provide examples to illustrate the core concepts of AGNext: agents, runtime, 
 
 We provide examples to illustrate how to use tools in AGNext:
 
-- [`coding_one_agent_direct.py`](tool-use/coding_one_agent_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
-- [`coding_two_agent_pub_sub.py`](tool-use/coding_two_agent_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses broadcast communication.
-- [`custom_function_tool_one_agent_direct.py`](tool-use/custom_function_tool_one_agent_direct.py): a custom function tool example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
-- [`coding_one_agent_direct_intercept.py`](tool-use/coding_one_agent_direct_intercept.py): an example showing human-in-the-loop for approving or denying tool execution.
+- [`coding_direct.py`](tool-use/coding_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
+- [`coding_pub_sub.py`](tool-use/coding_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses broadcast communication.
+- [`custom_tool_direct.py`](tool-use/custom_tool_direct.py): a custom function tool example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
+- [`coding_direct_with_intercept.py`](tool-use/coding_direct_with_intercept.py): an example showing human-in-the-loop for approving or denying tool execution.
 
 ## Pattern examples
 
