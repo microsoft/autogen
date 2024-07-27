@@ -1,11 +1,5 @@
 # AI Agents
 
-AGNext provides a suite of components to help developers build AI agents:
-
-- {py:mod}`agnext.components.models` for using ChatCompletion API.
-- {py:mod}`agnext.components.tools` for built-in and custom tools.
-- {py:mod}`agnext.components.memory` for built-in and custom memory implementations.
-
 This section is still under construction.
 A good place to start is the [samples](https://github.com/microsoft/agnext/tree/main/python/samples).
 
@@ -16,11 +10,7 @@ in response to messages. Actions can be anything from generating a response
 to a message, to executing code and making API calls.
 AGNext does not prescribe a specific architecture for AI agents, but provides
 a set of components to make it easier to build them.
-
-In this section, we will introduce the following components: models, memory, and tools,
-by incrementally build an AI agent that can respond to
-messages using OpenAI's ChatCompletion API, store conversation history in memory,
-and execute code snippets.
+You can also bring your own agent and integrate it with AGNext.
 
 ## Model Client
 
@@ -333,3 +323,10 @@ Memory can be used in agents to provide context to the model, and make sure
 the context is within the limits of the model's context window.
 AGNext provides the {py:mod}`agnext.components.memory` module with a suite of built-in
 memory implementations.
+
+## Bring Your Own Agent
+
+AGNext is designed to be extensible, and you can bring your own agent implemented
+by any framework or directly using the ChatCompletion API.
+See [samples](https://github.com/microsoft/agnext/tree/main/python/samples#bring-your-own-agent)
+for bring your own agent examples.

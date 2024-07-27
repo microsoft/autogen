@@ -32,6 +32,8 @@ dependencies = [
     "chess",
     "colorama",
     "grpcio-tools",
+    "langgraph",
+    "langchain-openai",
     "llama-index-readers-web",
     "llama-index-readers-wikipedia",
     "llama-index-tools-wikipedia",

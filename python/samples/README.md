@@ -55,7 +55,8 @@ We provide interactive demos that showcase applications that can be built using 
 
 We provide examples on how to integrate other agents with the platform:
 
-- [`llamaindex.py`](byoa/llamaIndex.py): An example that shows how to consume a llamaindex agent.
+- [`llamaindex_agent.py`](byoa/llamaindex_agent.py): An example that shows how to consume a LlamaIndex agent.
+- [`langgraph_agent.py`](byoa/langgraph_agent.py): An example that shows how to consume a LangGraph agent.
 
 ## Running the examples
 
