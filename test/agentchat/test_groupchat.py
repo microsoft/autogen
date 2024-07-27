@@ -1034,7 +1034,7 @@ def test_custom_speaker_selection():
         if last_speaker is a1:
             return a2
         elif last_speaker is a2:
-            return [a3, 'a4']
+            return [a3, "a4"]
         elif last_speaker is a3:
             return a4
 
@@ -1077,11 +1077,11 @@ def test_custom_speaker_selection():
 
     with pytest.raises(ValueError) as e:
         run_scenario(custom_speaker_selection_func_invalid_list)
-    assert 'not all Agents' in str(e.value)
+    assert "not all Agents" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         run_scenario(custom_speaker_selection_func_invalid_return_type)
-    assert 'instead of Agent or list[Agent] or str' in str(e.value)
+    assert "instead of Agent or list[Agent] or str" in str(e.value)
 
     result = run_scenario(valid_custom_speaker_selection_func)
     users_in_order = map(lambda x: x.get("name"), result.chat_history)
