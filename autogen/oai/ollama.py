@@ -23,6 +23,7 @@ import json
 import random
 import re
 import time
+import warnings
 from typing import Any, Dict, List, Tuple
 
 import ollama
@@ -146,6 +147,23 @@ class OllamaClient:
         if "top_p" in params:
             ollama_params["top_p"] = validate_parameter(params, "top_p", (int, float), False, 0.9, None, None)
 
+        if self._native_tool_calls and self._tools_in_conversation and not self._should_hide_tools:
+            ollama_params["tools"] = params["tools"]
+
+            # Ollama doesn't support streaming with tools natively
+            if ollama_params["stream"] and self._native_tool_calls:
+                warnings.warn(
+                    "Streaming is not supported when using tools and 'Native' tool calling, streaming will be disabled.",
+                    UserWarning,
+                )
+
+                ollama_params["stream"] = False
+
+        if not self._native_tool_calls and self._tools_in_conversation:
+            # For manual tool calling we have injected the available tools into the prompt
+            # and we don't want to force JSON mode
+            ollama_params["format"] = ""  # Don't force JSON for manual tool calling mode
+
         if len(options_dict) != 0:
             ollama_params["options"] = options_dict
 
@@ -158,13 +176,22 @@ class OllamaClient:
         # Are tools involved in this conversation?
         self._tools_in_conversation = "tools" in params
 
-        # Function/Tool calling options
-        # For the time-being Ollama does not support tool calling, so we will handle this
-        # manually by providing guidance to the LLM and parsing responses to look for tool calls
-        # This variable could be omitted but I think it is useful to keep in for now.
-        self._tool_calling_mode = "manual"
+        # We provide second-level filtering out of tools to avoid LLMs re-calling tools continuously
+        if self._tools_in_conversation:
+            hide_tools = validate_parameter(
+                params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
+            )
+            self._should_hide_tools = should_hide_tools(messages, params["tools"], hide_tools)
+        else:
+            self._should_hide_tools = False
 
-        if self._tool_calling_mode == "manual":
+        # Are we using native Ollama tool calling, otherwise we're doing manual tool calling
+        # We allow the user to decide if they want to use Ollama's tool calling
+        # or for tool calling to be handled manually through text messages
+        # Default is True = Ollama's tool calling
+        self._native_tool_calls = validate_parameter(params, "native_tool_calls", bool, False, True, None, None)
+
+        if not self._native_tool_calls:
             # Load defaults
             self._manual_tool_call_instruction = validate_parameter(
                 params, "manual_tool_call_instruction", str, False, self.TOOL_CALL_MANUAL_INSTRUCTION, None, None
@@ -178,16 +205,16 @@ class OllamaClient:
 
         # Convert AutoGen messages to Ollama messages
         ollama_messages = self.oai_messages_to_ollama_messages(
-            messages, params["tools"] if self._tools_in_conversation else None
+            messages,
+            (
+                params["tools"]
+                if (not self._native_tool_calls and self._tools_in_conversation) and not self._should_hide_tools
+                else None
+            ),
         )
 
         # Parse parameters to the Ollama API's parameters
         ollama_params = self.parse_params(params)
-
-        # Add tools to the call if we have them and aren't hiding them
-        if self._tools_in_conversation:
-            # For Ollama we will inject the available tools into the prompt
-            ollama_params["format"] = ""  # Don't force JSON for manual tool calling mode
 
         ollama_params["messages"] = ollama_messages
 
@@ -228,55 +255,81 @@ class OllamaClient:
 
         if response is not None:
 
+            # Defaults
+            ollama_finish = "stop"
+            tool_calls = None
+
+            # Id and streaming text into response
             if ollama_params["stream"]:
                 response_content = ans
                 response_id = chunk["created_at"]
             else:
+                response_content = response["message"]["content"]
                 response_id = response["created_at"]
 
-            # Are we doing a manual tool call
-            is_manual_tool_calling = False
+            # Process tools in the response
+            if self._tools_in_conversation:
 
-            if self._tools_in_conversation and self._tool_calling_mode == "manual":
-                # Try to convert the response to a tool call object
-                response_toolcalls = response_to_tool_call(ans)
+                if self._native_tool_calls:
 
-                # If we can, then it's a manual tool call
-                if response_toolcalls is not None:
-                    ollama_finish = "tool_calls"
-                    tool_calls = []
-                    random_id = random.randint(0, 10000)
+                    if not ollama_params["stream"]:
+                        response_content = response["message"]["content"]
 
-                    for json_function in response_toolcalls:
-                        tool_calls.append(
-                            ChatCompletionMessageToolCall(
-                                id="ollama_func_{}".format(random_id),
-                                function={
-                                    "name": json_function["name"],
-                                    "arguments": (
-                                        json.dumps(json_function["arguments"]) if "arguments" in json_function else "{}"
-                                    ),
-                                },
-                                type="function",
+                        # Native tool calling
+                        if "tool_calls" in response["message"]:
+                            ollama_finish = "tool_calls"
+                            tool_calls = []
+                            random_id = random.randint(0, 10000)
+                            for tool_call in response["message"]["tool_calls"]:
+                                tool_calls.append(
+                                    ChatCompletionMessageToolCall(
+                                        id="ollama_func_{}".format(random_id),
+                                        function={
+                                            "name": tool_call["function"]["name"],
+                                            "arguments": json.dumps(tool_call["function"]["arguments"]),
+                                        },
+                                        type="function",
+                                    )
+                                )
+
+                                random_id += 1
+
+                elif not self._native_tool_calls:
+
+                    # Try to convert the response to a tool call object
+                    response_toolcalls = response_to_tool_call(ans)
+
+                    # If we can, then we've got tool call(s)
+                    if response_toolcalls is not None:
+                        ollama_finish = "tool_calls"
+                        tool_calls = []
+                        random_id = random.randint(0, 10000)
+
+                        for json_function in response_toolcalls:
+                            tool_calls.append(
+                                ChatCompletionMessageToolCall(
+                                    id="ollama_manual_func_{}".format(random_id),
+                                    function={
+                                        "name": json_function["name"],
+                                        "arguments": (
+                                            json.dumps(json_function["arguments"])
+                                            if "arguments" in json_function
+                                            else "{}"
+                                        ),
+                                    },
+                                    type="function",
+                                )
                             )
-                        )
 
-                        random_id += 1
+                            random_id += 1
 
-                    is_manual_tool_calling = True
+                        # Blank the message content
+                        response_content = ""
 
-                    # Blank the message content
-                    response_content = ""
-
-            if not is_manual_tool_calling:
-                if not ollama_params["stream"]:
-                    response_content = response["message"]["content"]
-                ollama_finish = "stop"
-                tool_calls = None
         else:
-            raise RuntimeError("Failed to get response from Ollama after retrying 5 times.")
+            raise RuntimeError("Failed to get response from Ollama.")
 
-        # 3. convert output
+        # Convert response to AutoGen response
         message = ChatCompletionMessage(
             role="assistant",
             content=response_content,
@@ -319,7 +372,7 @@ class OllamaClient:
             ollama_messages[-1]["role"] = "user"
 
         # Process messages for tool calling manually
-        if self._tools_in_conversation and self._tool_calling_mode == "manual":
+        if tools is not None and not self._native_tool_calls:
             # 1. We need to append instructions to the starting system message on function calling
             # 2. If we have not yet called tools we append "step 1 instruction" to the latest user message
             # 3. If we have already called tools we append "step 2 instruction" to the latest user message
@@ -389,6 +442,7 @@ class OllamaClient:
         # As we are changing messages, let's merge if they have two user messages on the end and the last one is tool call step instructions
         if (
             len(ollama_messages) >= 2
+            and not self._native_tool_calls
             and ollama_messages[-2]["role"] == "user"
             and ollama_messages[-1]["role"] == "user"
             and (
