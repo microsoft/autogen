@@ -91,6 +91,7 @@ extra_require = {
     "mistral": ["mistralai>=0.2.0"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
+    "boto3": ["boto3>=1.34.149"],
 }
 
 setuptools.setup(
