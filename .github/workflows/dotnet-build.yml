@@ -56,17 +56,47 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
+        dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
+  aot-test: # this make sure the AutoGen.Core is aot compatible
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        os: [ ubuntu-latest ]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetching all
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: dotnet/global.json
+
+    - name: publish AOT testApp, assert static analysis warning count, and run the app
+      shell: pwsh
+      run: ./.tools/test-aot-compatibility.ps1 ${{ matrix.version }}
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
@@ -75,7 +105,7 @@ jobs:
       run:
         working-directory: dotnet
     if: success() && (github.ref == 'refs/heads/main')
-    needs: build
+    needs: aot-test
     steps:
     - uses: actions/checkout@v4
       with:

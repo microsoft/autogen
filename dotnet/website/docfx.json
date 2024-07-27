@@ -30,6 +30,10 @@
         "files": [
           "articles/**.md",
           "articles/**/toc.yml",
+          "tutorial/**.md",
+          "tutorial/**/toc.yml",
+          "release_note/**.md",
+          "release_note/**/toc.yml",
           "toc.yml",
           "*.md"
         ]
