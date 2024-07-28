@@ -90,13 +90,12 @@ def test_json_extraction():
 
     jstr = '{"code": "a=\\"hello\\""}'
     assert user._format_json_str(jstr) == '{"code": "a=\\"hello\\""}'
-    
-    jstr = '{\n"tool": "python",\n"query": "print(\'hello\')\n\tprint(\'world\')"\n}' # mixed newlines and tabs
+
+    jstr = '{\n"tool": "python",\n"query": "print(\'hello\')\n\tprint(\'world\')"\n}'  # mixed newlines and tabs
     assert user._format_json_str(jstr) == '{"tool": "python","query": "print(\'hello\')\\n\\tprint(\'world\')"}'
 
-    jstr = '{}' # empty json
-    assert user._format_json_str(jstr) == '{}'
-
+    jstr = "{}"  # empty json
+    assert user._format_json_str(jstr) == "{}"
 
 
 def test_execute_function():
