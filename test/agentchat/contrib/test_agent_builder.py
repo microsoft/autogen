@@ -1,7 +1,5 @@
 #!/usr/bin/env python3 -m pytest
 
-#!/usr/bin/env python3 -m pytest
-
 import json
 import os
 import sys
@@ -137,7 +135,7 @@ def test_build_assistant_with_function_calling():
 
 
 @pytest.mark.skipif(
-    skip,
+    skip_openai or skip,
     reason="requested to skip",
 )
 def test_build_gpt_assistant_with_function_calling():
@@ -195,8 +193,8 @@ def test_build_gpt_assistant_with_function_calling():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai or skip,
+    reason=reason + "OR dependency not installed",
 )
 def test_build_from_library():
     builder = AgentBuilder(
