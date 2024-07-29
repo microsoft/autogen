@@ -123,7 +123,7 @@ def test_build_assistant_with_function_calling():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # Mock the 'ask_ossinsight' function in the '_main_' module using a context manager.
-    with patch("test.agentchat.contrib.test_agent_builder.ask_ossinsight") as mocked_function:
+    with patch("_main_.ask_ossinsight") as mocked_function:
         # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
         start_task(
             execution_task="How many stars microsoft/autogen has on GitHub?",
