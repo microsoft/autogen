@@ -7,7 +7,7 @@ from .Actor import Actor
 from .actor_runtime import IRuntime
 from .ActorConnector import ActorConnector
 from .Broker import Broker
-from .Constants_ import Termination_Topic
+from .constants import Termination_Topic
 from .DebugLog import Debug, Warn
 from .DirectorySvc import DirectorySvc
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
