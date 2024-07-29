@@ -274,7 +274,7 @@ class OpenAIClient:
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
             try:
                 prompt_tokens = count_token(params["messages"], model)
-            except Exception as e:
+            except NotImplementedError as e:
                 # Catch token calculation error if streaming with customized models.
                 logger.warning(str(e))
                 prompt_tokens = 0
