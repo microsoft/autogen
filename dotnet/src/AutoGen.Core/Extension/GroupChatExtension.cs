@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace AutoGen.Core;
 
@@ -21,6 +23,36 @@ public static class GroupChatExtension
         };
 
         groupChat.SendIntroduction(msg);
+    }
+
+    /// <summary>
+    /// Send messages to a <see cref="IGroupChat"/> and return new messages from the group chat.
+    /// </summary>
+    /// <param name="groupChat"></param>
+    /// <param name="chatHistory"></param>
+    /// <param name="maxRound"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async IAsyncEnumerable<IMessage> SendAsync(
+        this IGroupChat groupChat,
+        IEnumerable<IMessage> chatHistory,
+        int maxRound = 10,
+        [EnumeratorCancellation]
+        CancellationToken cancellationToken = default)
+    {
+        while (maxRound-- > 0)
+        {
+            var messages = await groupChat.CallAsync(chatHistory, maxRound: 1, cancellationToken);
+            var lastMessage = messages.Last();
+
+            yield return lastMessage;
+            if (lastMessage.IsGroupChatTerminateMessage())
+            {
+                yield break;
+            }
+
+            chatHistory = messages;
+        }
     }
 
     /// <summary>
@@ -78,6 +110,7 @@ public static class GroupChatExtension
         return message.GetContent()?.Contains(CLEAR_MESSAGES) ?? false;
     }
 
+    [Obsolete]
     public static IEnumerable<IMessage> ProcessConversationForAgent(
         this IGroupChat groupChat,
         IEnumerable<IMessage> initialMessages,

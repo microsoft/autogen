@@ -84,7 +84,7 @@ public class RoundRobinOrchestratorTests
     }
 
     [Fact]
-    public async Task ItReturnEmptyListIfNoChatHistory()
+    public async Task ItReturnTheFirstAgentInTheListIfNoChatHistory()
     {
         var orchestrator = new RoundRobinOrchestrator();
         var context = new OrchestrationContext
@@ -98,6 +98,6 @@ public class RoundRobinOrchestratorTests
         };
 
         var result = await orchestrator.GetNextSpeakerAsync(context);
-        result.Should().BeNull();
+        result!.Name.Should().Be("Alice");
     }
 }
