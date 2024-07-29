@@ -1,6 +1,7 @@
 from autogencap.actor_runtime import IRuntime
 from autogencap.DebugLog import Error
 from autogencap.zmq_runtime import ZMQRuntime
+from autogencap.Constants import ZMQ_Runtime
 
 
 class RuntimeFactory:
@@ -9,8 +10,9 @@ class RuntimeFactory:
     """
     Factory class for creating a runtime instance.
     """
+
     @staticmethod
-    def get_runtime(runtime_type) -> IRuntime:
+    def get_runtime(runtime_type: str = ZMQ_Runtime) -> IRuntime:
         """
         Creates a runtime instance based on the runtime type.
 
@@ -38,7 +40,8 @@ class RuntimeFactory:
         """
         Static initialization method.
         """
-        cls.register_runtime("ZMQ", ZMQRuntime())
+        cls.register_runtime(ZMQ_Runtime, ZMQRuntime())
+
 
 # Static initialization
 RuntimeFactory._initialize()
