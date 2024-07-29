@@ -78,6 +78,7 @@ class ConversableAgent(LLMAgent):
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
         chat_messages: Optional[Dict[Agent, List[Dict]]] = None,
+        is_silent: Optional[bool] = None,
     ):
         """
         Args:
@@ -126,6 +127,8 @@ class ConversableAgent(LLMAgent):
             chat_messages (dict or None): the previous chat messages that this agent had in the past with other agents.
                 Can be used to give the agent a memory by providing the chat history. This will allow the agent to
                 resume previous had conversations. Defaults to an empty chat history.
+            is_silent (bool or None): (Experimental) whether to print the message sent. If None, will use the value of
+                is_silent in each function.
         """
         # we change code_execution_config below and we have to make sure we don't change the input
         # in case of UserProxyAgent, without this we could even change the default value {}
@@ -147,6 +150,7 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+        self.is_silent = is_silent
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
             try:
@@ -262,6 +266,9 @@ class ConversableAgent(LLMAgent):
                 "When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
             )
         self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
+
+    def _is_silent(self, silent: Optional[bool] = False) -> bool:
+        return self.is_silent if self.is_silent is not None else silent
 
     @property
     def name(self) -> str:
@@ -604,6 +611,8 @@ class ConversableAgent(LLMAgent):
         self, message: Union[Dict, str], recipient: Agent, silent: bool
     ) -> Union[Dict, str]:
         """Process the message before sending it to the recipient."""
+        silent = self._is_silent(silent)
+
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
             message = hook(sender=self, message=message, recipient=recipient, silent=silent)
@@ -648,6 +657,8 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        silent = self._is_silent(silent)
+
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -698,6 +709,8 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        silent = self._is_silent(silent)
+
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -771,6 +784,8 @@ class ConversableAgent(LLMAgent):
         iostream.print("\n", "-" * 80, flush=True, sep="")
 
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
+        silent = self._is_silent(silent)
+
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if logging_enabled():
@@ -813,6 +828,8 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        silent = self._is_silent(silent)
+
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
@@ -850,6 +867,8 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        silent = self._is_silent(silent)
+
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
@@ -990,6 +1009,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        silent = self._is_silent(silent)
         _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
@@ -1057,6 +1077,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        silent = self._is_silent(silent)
         _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
