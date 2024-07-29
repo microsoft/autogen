@@ -25,7 +25,13 @@ from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-gpt4_config_list = [{"model": "gpt-4"}, {"model": "gpt-4-turbo"}, {"model": "gpt-4-32k"}, {"model": "gpt-4o"}]
+gpt4_config_list = [
+    {"model": "gpt-4"},
+    {"model": "gpt-4-turbo"},
+    {"model": "gpt-4-32k"},
+    {"model": "gpt-4o"},
+    {"model": "gpt-4o-mini"},
+]
 
 
 @pytest.fixture
