@@ -728,46 +728,47 @@ Match roles in the role set to each expert in expert set.
             for agent in agent_list[:-1]:
                 agent_details.append({"name": agent.name, "description": agent.description})
 
-            for func in list_of_functions:
-                resp = (
-                    self.builder_model.create(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
-                                    function_name=func["name"],
-                                    function_description=func["description"],
-                                    format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
-                                    agent_details=str(json.dumps(agent_details)),
-                                ),
-                            }
-                        ]
+            if list_of_functions:
+                for func in list_of_functions:
+                    resp = (
+                        self.builder_model.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
+                                        function_name=func["name"],
+                                        function_description=func["description"],
+                                        format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
+                                        agent_details=str(json.dumps(agent_details)),
+                                    ),
+                                }
+                            ]
+                        )
+                        .choices[0]
+                        .message.content
                     )
-                    .choices[0]
-                    .message.content
-                )
 
-                autogen.agentchat.register_function(
-                    func["function"],
-                    caller=self.agent_procs_assign[resp][0],
-                    executor=agent_list[0],
-                    name=func["name"],
-                    description=func["description"],
-                )
-
-                agents_current_system_message = [
-                    agent["system_message"] for agent in agent_configs if agent["name"] == resp
-                ][0]
-
-                self.agent_procs_assign[resp][0].update_system_message(
-                    self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
-                        agent_system_message=agents_current_system_message,
-                        function_name=func["name"],
-                        function_description=func["description"],
+                    autogen.agentchat.register_function(
+                        func["function"],
+                        caller=self.agent_procs_assign[resp][0],
+                        executor=agent_list[0],
+                        name=func["name"],
+                        description=func["description"],
                     )
-                )
 
-                print(f"Function {func['name']} is registered to agent {resp}.")
+                    agents_current_system_message = [
+                        agent["system_message"] for agent in agent_configs if agent["name"] == resp
+                    ][0]
+
+                    self.agent_procs_assign[resp][0].update_system_message(
+                        self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
+                            agent_system_message=agents_current_system_message,
+                            function_name=func["name"],
+                            function_description=func["description"],
+                        )
+                    )
+
+                    print(f"Function {func['name']} is registered to agent {resp}.")
 
         return agent_list, self.cached_configs.copy()
 
