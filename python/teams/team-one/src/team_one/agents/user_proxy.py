@@ -4,10 +4,10 @@ from typing import Tuple
 from agnext.core import CancellationToken
 
 from ..messages import UserContent
-from .base_agent import BaseAgent
+from .base_worker import BaseWorker
 
 
-class UserProxy(BaseAgent):
+class UserProxy(BaseWorker):
     """An agent that allows the user to play the role of an agent in the conversation."""
 
     DEFAULT_DESCRIPTION = "A human user."

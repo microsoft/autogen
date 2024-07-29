@@ -29,10 +29,6 @@ from playwright._impl._errors import TimeoutError
 # from playwright._impl._async_base.AsyncEventInfo
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
-from team_one.agents.base_agent import BaseAgent
-from team_one.messages import UserContent, WebSurferEvent
-from team_one.utils import SentinelMeta, message_content_to_str
-
 # TODO: Fix mdconvert
 from ...markdown_browser import (  # type: ignore
     DocumentConverterResult,  # type: ignore
@@ -40,6 +36,9 @@ from ...markdown_browser import (  # type: ignore
     MarkdownConverter,  # type: ignore
     UnsupportedFormatException,  # type: ignore
 )
+from ...messages import UserContent, WebSurferEvent
+from ...utils import SentinelMeta, message_content_to_str
+from ..base_worker import BaseWorker
 from .set_of_mark import add_set_of_mark
 from .tool_definitions import (
     TOOL_CLICK,
@@ -81,7 +80,7 @@ class DEFAULT_CHANNEL(metaclass=SentinelMeta):
     pass
 
 
-class MultimodalWebSurfer(BaseAgent):
+class MultimodalWebSurfer(BaseWorker):
     """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
     DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page. It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load."

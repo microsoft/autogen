@@ -9,12 +9,12 @@ from agnext.components.models import (
 )
 from agnext.core import CancellationToken
 
-from ..utils import message_content_to_str
 from ..messages import UserContent
-from .base_agent import BaseAgent
+from ..utils import message_content_to_str
+from .base_worker import BaseWorker
 
 
-class Coder(BaseAgent):
+class Coder(BaseWorker):
     """An agent that uses tools to write, execute, and debug Python code."""
 
     DEFAULT_DESCRIPTION = "A Python coder assistant."
@@ -58,7 +58,7 @@ If the code was executed, and the output appears to indicate that the original p
         return "TERMINATE" in response.content, response.content
 
 
-class Executor(BaseAgent):
+class Executor(BaseWorker):
     def __init__(
         self, description: str, executor: Optional[CodeExecutor] = None, check_last_n_message: int = 5
     ) -> None:

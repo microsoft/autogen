@@ -2,35 +2,31 @@ import logging
 from typing import List, Optional
 
 from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import AssistantMessage, LLMMessage, UserMessage
 from agnext.core import AgentProxy, CancellationToken
 
-from ..messages import BroadcastMessage, DeactivateMessage, OrchestrationEvent, RequestReplyMessage
+from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
 from ..utils import message_content_to_str
+from .base_agent import TeamOneBaseAgent
 
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
 
 
-class BaseOrchestrator(TypeRoutedAgent):
+class BaseOrchestrator(TeamOneBaseAgent):
     def __init__(
         self,
         agents: List[AgentProxy],
         description: str = "Base orchestrator",
         max_rounds: int = 20,
+        handle_messages_concurrently: bool = False,
     ) -> None:
-        super().__init__(description)
+        super().__init__(description, handle_messages_concurrently=handle_messages_concurrently)
         self._agents = agents
         self._max_rounds = max_rounds
         self._num_rounds = 0
-        self._enabled = True
 
-    @message_handler
-    async def handle_incoming_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
         """Handle an incoming message."""
-
-        if not self._enabled:
-            return
 
         source = "Unknown"
         if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
@@ -80,19 +76,6 @@ class BaseOrchestrator(TypeRoutedAgent):
 
         self._num_rounds += 1  # Call before sending the message
         await self.send_message(request_reply_message, next_agent.id)
-
-    @message_handler
-    async def handle_deactivate_message(
-        self, message: DeactivateMessage, cancellation_token: CancellationToken
-    ) -> None:
-        """Handle a deactivate message."""
-        self._enabled = False
-        logger.info(
-            OrchestrationEvent(
-                f"{self.metadata['name']} (deactivated)",
-                "",
-            )
-        )
 
     async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
         raise NotImplementedError()

@@ -38,6 +38,9 @@ class OrchestrationEvent:
     message: str
 
 
+TeamOneMessages = RequestReplyMessage | BroadcastMessage | ResetMessage | DeactivateMessage
+
+
 @dataclass
 class AgentEvent:
     source: str

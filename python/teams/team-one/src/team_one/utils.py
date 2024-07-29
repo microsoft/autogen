@@ -107,59 +107,58 @@ class LogHandler(logging.FileHandler):
         super().__init__(filename)
 
     def emit(self, record: logging.LogRecord) -> None:
-        # try:
-        ts = datetime.fromtimestamp(record.created).isoformat()
-        if isinstance(record.msg, OrchestrationEvent):
-            console_message = (
-                f"\n{'-'*75} \n" f"\033[91m[{ts}], {record.msg.source}:\033[0m\n" f"\n{record.msg.message}"
-            )
-            print(console_message, flush=True)
-            record.msg = json.dumps(
-                {
+        try:
+            ts = datetime.fromtimestamp(record.created).isoformat()
+            if isinstance(record.msg, OrchestrationEvent):
+                console_message = (
+                    f"\n{'-'*75} \n" f"\033[91m[{ts}], {record.msg.source}:\033[0m\n" f"\n{record.msg.message}"
+                )
+                print(console_message, flush=True)
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "source": record.msg.source,
+                        "message": record.msg.message,
+                        "type": "OrchestrationEvent",
+                    }
+                )
+                super().emit(record)
+            elif isinstance(record.msg, AgentEvent):
+                console_message = (
+                    f"\n{'-'*75} \n" f"\033[91m[{ts}], {record.msg.source}:\033[0m\n" f"\n{record.msg.message}"
+                )
+                print(console_message, flush=True)
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "source": record.msg.source,
+                        "message": record.msg.message,
+                        "type": "AgentEvent",
+                    }
+                )
+                super().emit(record)
+            elif isinstance(record.msg, WebSurferEvent):
+                console_message = f"\033[96m[{ts}], {record.msg.source}: {record.msg.message}\033[0m"
+                print(console_message, flush=True)
+                payload: Dict[str, Any] = {
                     "timestamp": ts,
-                    "source": record.msg.source,
-                    "message": record.msg.message,
-                    "type": "OrchestrationEvent",
+                    "type": "WebSurferEvent",
                 }
-            )
-            super().emit(record)
-        elif isinstance(record.msg, AgentEvent):
-            console_message = (
-                f"\n{'-'*75} \n" f"\033[91m[{ts}], {record.msg.source}:\033[0m\n" f"\n{record.msg.message}"
-            )
-            print(console_message, flush=True)
-            record.msg = json.dumps(
-                {
-                    "timestamp": ts,
-                    "source": record.msg.source,
-                    "message": record.msg.message,
-                    "type": "AgentEvent",
-                }
-            )
-            super().emit(record)
-        elif isinstance(record.msg, WebSurferEvent):
-            console_message = f"\033[96m[{ts}], {record.msg.source}: {record.msg.message}\033[0m"
-            print(console_message, flush=True)
-            payload: Dict[str, Any] = {
-                "timestamp": ts,
-                "type": "WebSurferEvent",
-            }
-            payload.update(asdict(record.msg))
-            record.msg = json.dumps(payload)
-            super().emit(record)
-        elif isinstance(record.msg, LLMCallEvent):
-            record.msg = json.dumps(
-                {
-                    "timestamp": ts,
-                    "prompt_tokens": record.msg.prompt_tokens,
-                    "completion_tokens": record.msg.completion_tokens,
-                    "type": "LLMCallEvent",
-                }
-            )
-            super().emit(record)
-
-    # except Exception:
-    #    self.handleError(record)
+                payload.update(asdict(record.msg))
+                record.msg = json.dumps(payload)
+                super().emit(record)
+            elif isinstance(record.msg, LLMCallEvent):
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "prompt_tokens": record.msg.prompt_tokens,
+                        "completion_tokens": record.msg.completion_tokens,
+                        "type": "LLMCallEvent",
+                    }
+                )
+                super().emit(record)
+        except Exception:
+            self.handleError(record)
 
 
 class SentinelMeta(type):

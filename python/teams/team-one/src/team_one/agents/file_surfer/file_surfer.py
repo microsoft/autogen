@@ -13,7 +13,7 @@ from agnext.components.models import (
 from agnext.core import CancellationToken
 
 from ...markdown_browser import RequestsMarkdownBrowser
-from ..base_agent import BaseAgent
+from ..base_worker import BaseWorker
 
 # from typing_extensions import Annotated
 from ._tools import TOOL_FIND_NEXT, TOOL_FIND_ON_PAGE_CTRL_F, TOOL_OPEN_LOCAL_FILE, TOOL_PAGE_DOWN, TOOL_PAGE_UP
@@ -49,7 +49,7 @@ from ._tools import TOOL_FIND_NEXT, TOOL_FIND_ON_PAGE_CTRL_F, TOOL_OPEN_LOCAL_FI
 #     return "\n".join(items)
 
 
-class FileSurfer(BaseAgent):
+class FileSurfer(BaseWorker):
     """An agent that uses tools to read and navigate local files."""
 
     DEFAULT_DESCRIPTION = "An agent that can handle local files."

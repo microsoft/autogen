@@ -1,14 +1,9 @@
 import asyncio
 import logging
-from typing import Any, List, Tuple
+from typing import Any
 
 from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.components.models import (
-    AssistantMessage,
-    LLMMessage,
-    UserMessage,
-)
 from agnext.core import CancellationToken
 
 from team_one.messages import (
@@ -17,18 +12,14 @@ from team_one.messages import (
     DeactivateMessage,
     RequestReplyMessage,
     ResetMessage,
-    UserContent,
+    TeamOneMessages,
 )
-from team_one.utils import message_content_to_str
 
-logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
-
-
-PossibleMessages = RequestReplyMessage | BroadcastMessage | ResetMessage | DeactivateMessage
+logger = logging.getLogger(EVENT_LOGGER_NAME + ".agent")
 
 
-class BaseAgent(TypeRoutedAgent):
-    """An agent that handles the RequestReply and Broadcast messages"""
+class TeamOneBaseAgent(TypeRoutedAgent):
+    """An agent that optionally ensures messages are handled non-concurrently in the order they arrive."""
 
     def __init__(
         self,
@@ -36,14 +27,12 @@ class BaseAgent(TypeRoutedAgent):
         handle_messages_concurrently: bool = False,
     ) -> None:
         super().__init__(description)
-        self._chat_history: List[LLMMessage] = []
-        self._enabled: bool = True
-
         self._handle_messages_concurrently = handle_messages_concurrently
+        self._enabled = True
 
         if not self._handle_messages_concurrently:
             # TODO: make it possible to stop
-            self._message_queue = asyncio.Queue[tuple[PossibleMessages, CancellationToken, asyncio.Future[Any]]]()
+            self._message_queue = asyncio.Queue[tuple[TeamOneMessages, CancellationToken, asyncio.Future[Any]]]()
             self._processing_task = asyncio.create_task(self._process())
 
     async def _process(self) -> None:
@@ -54,13 +43,13 @@ class BaseAgent(TypeRoutedAgent):
                 continue
 
             if isinstance(message, RequestReplyMessage):
-                await self.handle_request_reply(message, cancellation_token)
+                await self._handle_request_reply(message, cancellation_token)
             elif isinstance(message, BroadcastMessage):
-                await self.handle_broadcast(message, cancellation_token)
+                await self._handle_broadcast(message, cancellation_token)
             elif isinstance(message, ResetMessage):
-                await self.handle_reset(message, cancellation_token)
+                await self._handle_reset(message, cancellation_token)
             elif isinstance(message, DeactivateMessage):
-                await self.handle_deactivate(message, cancellation_token)
+                await self._handle_deactivate(message, cancellation_token)
             else:
                 raise ValueError("Unknown message type.")
 
@@ -77,27 +66,28 @@ class BaseAgent(TypeRoutedAgent):
 
         if self._handle_messages_concurrently:
             if isinstance(message, RequestReplyMessage):
-                await self.handle_request_reply(message, cancellation_token)
+                await self._handle_request_reply(message, cancellation_token)
             elif isinstance(message, BroadcastMessage):
-                await self.handle_broadcast(message, cancellation_token)
+                await self._handle_broadcast(message, cancellation_token)
             elif isinstance(message, ResetMessage):
-                await self.handle_reset(message, cancellation_token)
+                await self._handle_reset(message, cancellation_token)
             elif isinstance(message, DeactivateMessage):
-                await self.handle_deactivate(message, cancellation_token)
+                await self._handle_deactivate(message, cancellation_token)
         else:
             future = asyncio.Future[Any]()
             await self._message_queue.put((message, cancellation_token, future))
             await future
 
-    async def handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
-        assert isinstance(message.content, UserMessage)
-        self._chat_history.append(message.content)
+    async def _handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+        raise NotImplementedError()
 
-    async def handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
-        """Handle a reset message."""
-        await self._reset(cancellation_token)
+    async def _handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
+        raise NotImplementedError()
 
-    async def handle_deactivate(self, message: DeactivateMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+        raise NotImplementedError()
+
+    async def _handle_deactivate(self, message: DeactivateMessage, cancellation_token: CancellationToken) -> None:
         """Handle a deactivate message."""
         self._enabled = False
         logger.info(
@@ -106,20 +96,3 @@ class BaseAgent(TypeRoutedAgent):
                 "",
             )
         )
-
-    async def handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
-        """Respond to a reply request."""
-        request_halt, response = await self._generate_reply(cancellation_token)
-
-        assistant_message = AssistantMessage(content=message_content_to_str(response), source=self.metadata["name"])
-        self._chat_history.append(assistant_message)
-
-        user_message = UserMessage(content=response, source=self.metadata["name"])
-        await self.publish_message(BroadcastMessage(content=user_message, request_halt=request_halt))
-
-    async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
-        """Returns (request_halt, response_message)"""
-        raise NotImplementedError()
-
-    async def _reset(self, cancellation_token: CancellationToken) -> None:
-        self._chat_history = []
