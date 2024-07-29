@@ -90,7 +90,7 @@ def test_build():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
 
-@pytest.mark.skipif(skip_openai or skip, reason=reason + "OR dependency not installed")
+@pytest.mark.skipif(skip_openai, reason=reason + "OR dependency not installed")
 def test_build_assistant_with_function_calling():
     list_of_functions = [
         {
@@ -123,7 +123,7 @@ def test_build_assistant_with_function_calling():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # Mock the 'ask_ossinsight' function in the '_main_' module using a context manager.
-    with patch("_main_.ask_ossinsight") as mocked_function:
+    with patch(f"{__name__}.ask_ossinsight") as mocked_function:
         # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
         start_task(
             execution_task="How many stars microsoft/autogen has on GitHub?",
@@ -135,26 +135,17 @@ def test_build_assistant_with_function_calling():
 
 
 @pytest.mark.skipif(
-    skip_openai or skip,
+    skip_openai,
     reason="requested to skip",
 )
 def test_build_gpt_assistant_with_function_calling():
-    ossinsight_api_schema = {
-        "name": "ossinsight_data_api",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "question": {
-                    "type": "string",
-                    "description": "Enter your GitHub data question in the form of a clear and specific question to ensure the returned data is accurate and valuable. For optimal results, specify the desired format for the data table in your request.",
-                }
-            },
-            "required": ["question"],
-        },
-        "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
-    }
-
-    list_of_functions = [{"function_schema": ossinsight_api_schema, "function": ask_ossinsight}]
+    list_of_functions = [
+        {
+            "name": "ossinsight_data_api",
+            "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
+            "function": ask_ossinsight,
+        }
+    ]
 
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
@@ -181,7 +172,7 @@ def test_build_gpt_assistant_with_function_calling():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # Mock the 'ask_ossinsight' function in the '_main_' module using a context manager.
-    with patch("_main_.ask_ossinsight") as mocked_function:
+    with patch(f"{__name__}.ask_ossinsight") as mocked_function:
         # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
         start_task(
             execution_task="How many stars microsoft/autogen has on GitHub?",
