@@ -2255,7 +2255,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
@@ -2312,7 +2312,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
