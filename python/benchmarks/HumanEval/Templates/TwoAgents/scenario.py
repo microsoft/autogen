@@ -169,7 +169,7 @@ class Executor(TypeRoutedAgent):
         code = self._extract_execution_request(message.execution_request)
         if code is not None:
             execution_requests = [CodeBlock(code=code, language="python")]
-            result = await self._executor.execute_code_blocks(execution_requests)
+            result = await self._executor.execute_code_blocks(execution_requests, cancellation_token)
             await self.publish_message(
                 CodeExecutionResultMessage(
                     output=result.output,

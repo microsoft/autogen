@@ -8,7 +8,7 @@ import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, Sequence, Union, Optional
+from typing import Any, Callable, ClassVar, List, Sequence, Union
 
 from typing_extensions import ParamSpec
 
@@ -22,7 +22,6 @@ from .._func_with_reqs import (
 )
 from .command_line_code_result import CommandLineCodeResult
 from .utils import PYTHON_VARIANTS, get_file_name_from_content, lang_to_cmd, silence_pip  # type: ignore
-from ....core import CancellationToken
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
@@ -146,7 +145,7 @@ $functions"""
         """(Experimental) The working directory for the code execution."""
         return self._work_dir
 
-    async def _setup_functions(self, cancellation_token: Optional[CancellationToken]) -> None:
+    async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
         func_file = self._work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
@@ -170,8 +169,7 @@ $functions"""
                     stderr=asyncio.subprocess.PIPE,
                 )
             )
-            if cancellation_token:
-                cancellation_token.link_future(task)
+            cancellation_token.link_future(task)
             try:
                 proc = await task
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)
@@ -194,13 +192,13 @@ $functions"""
         self._setup_functions_complete = True
 
     async def execute_code_blocks(
-        self, code_blocks: List[CodeBlock], cancellation_token: Optional[CancellationToken] = None
+        self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
-            cancellation_token (CancellationToken|None): an optional token to cancel the operation
+            cancellation_token (CancellationToken): a token to cancel the operation
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
@@ -211,7 +209,7 @@ $functions"""
         return await self._execute_code_dont_check_setup(code_blocks, cancellation_token)
 
     async def _execute_code_dont_check_setup(
-        self, code_blocks: List[CodeBlock], cancellation_token: Optional[CancellationToken]
+        self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CommandLineCodeResult:
         logs_all: str = ""
         file_names: List[Path] = []
@@ -262,8 +260,7 @@ $functions"""
                     stderr=asyncio.subprocess.PIPE,
                 )
             )
-            if cancellation_token:
-                cancellation_token.link_future(task)
+            cancellation_token.link_future(task)
             try:
                 proc = await task
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)

@@ -11,7 +11,7 @@ from agnext.components.code_executor import (
     LocalCommandLineCodeExecutor,
     with_requirements,
 )
-
+from agnext.core import CancellationToken
 
 def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
@@ -50,6 +50,7 @@ def function_missing_reqs() -> "polars.DataFrame":
 @pytest.mark.asyncio
 async def test_can_load_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[load_data]
         )
@@ -63,7 +64,8 @@ print(data['name'][0])"""
         result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
-            ]
+            ],
+            cancellation_token=cancellation_token
         )
         assert result.output == "John\n"
         assert result.exit_code == 0
@@ -72,6 +74,7 @@ print(data['name'][0])"""
 @pytest.mark.asyncio
 async def test_can_load_function() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[add_two_numbers]
         )
@@ -81,7 +84,8 @@ print(add_two_numbers(1, 2))"""
         result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
-            ]
+            ],
+            cancellation_token=cancellation_token
         )
         assert result.output == "3\n"
         assert result.exit_code == 0
@@ -90,6 +94,7 @@ print(add_two_numbers(1, 2))"""
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_import() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[function_incorrect_import]
         )
@@ -100,13 +105,15 @@ function_incorrect_import()"""
             await executor.execute_code_blocks(
                 code_blocks=[
                     CodeBlock(language="python", code=code),
-                ]
+                ],
+                cancellation_token=cancellation_token
             )
 
 
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_dep() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir, functions=[function_incorrect_dep]
         )
@@ -117,7 +124,8 @@ function_incorrect_dep()"""
             await executor.execute_code_blocks(
                 code_blocks=[
                     CodeBlock(language="python", code=code),
-                ]
+                ],
+                cancellation_token=cancellation_token
             )
 
 
@@ -159,6 +167,7 @@ def add_two_numbers(a: int, b: int) -> int:
 @pytest.mark.asyncio
 async def test_can_load_str_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         func = FunctionWithRequirements.from_str(
             '''
 def add_two_numbers(a: int, b: int) -> int:
@@ -174,7 +183,8 @@ print(add_two_numbers(1, 2))"""
         result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
-            ]
+            ],
+            cancellation_token=cancellation_token
         )
         assert result.output == "3\n"
         assert result.exit_code == 0
@@ -195,6 +205,7 @@ invaliddef add_two_numbers(a: int, b: int) -> int:
 @pytest.mark.asyncio
 async def test_cant_run_broken_str_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        cancellation_token = CancellationToken()
         func = FunctionWithRequirements.from_str(
             '''
 def add_two_numbers(a: int, b: int) -> int:
@@ -210,7 +221,8 @@ print(add_two_numbers(object(), False))"""
         result = await executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
-            ]
+            ],
+            cancellation_token=cancellation_token
         )
         assert "TypeError: unsupported operand type(s) for +:" in result.output
         assert result.exit_code == 1

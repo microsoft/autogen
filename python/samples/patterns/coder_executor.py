@@ -155,7 +155,9 @@ class Executor(TypeRoutedAgent):
             )
             return
         # Execute code blocks.
-        result = await self._executor.execute_code_blocks(code_blocks=code_blocks)
+        result = await self._executor.execute_code_blocks(
+            code_blocks=code_blocks, cancellation_token=cancellation_token
+        )
         # Publish the code execution result.
         await self.publish_message(
             CodeExecutionTaskResult(output=result.output, exit_code=result.exit_code, session_id=message.session_id),

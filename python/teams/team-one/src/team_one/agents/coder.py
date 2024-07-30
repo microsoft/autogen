@@ -80,7 +80,7 @@ class Executor(BaseWorker):
             code = self._extract_execution_request(message_content_to_str(message.content))
             if code is not None:
                 execution_requests = [CodeBlock(code=code, language="python")]
-                result = await self._executor.execute_code_blocks(execution_requests)
+                result = await self._executor.execute_code_blocks(execution_requests, cancellation_token)
 
                 if result.output.strip() == "":
                     # Sometimes agents forget to print(). Remind the to print something
