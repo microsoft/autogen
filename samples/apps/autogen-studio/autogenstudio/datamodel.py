@@ -1,8 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Literal, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
-from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from sqlalchemy import ForeignKey, Integer, orm
 from sqlmodel import (
     JSON,

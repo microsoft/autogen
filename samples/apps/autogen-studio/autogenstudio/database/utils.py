@@ -23,6 +23,7 @@ from ..datamodel import (
     Skill,
     Workflow,
     WorkflowAgentLink,
+    WorkFlowType,
     Criteria
 )
 

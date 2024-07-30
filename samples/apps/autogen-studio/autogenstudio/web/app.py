@@ -553,7 +553,6 @@ async def validate_agenteval_criteria(criteria: str = Body(...)):
 async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task, test_session_id: int, user_id: str):
     filters = {"id": criteria_id}
     criteria = list_entity(Criteria, filters=filters).data[0]
-    print(criteria)
     criteria = Criterion.parse_json_str(criteria["criteria"])
 
     model = get_model(model_id)

@@ -22,6 +22,7 @@ import {
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { ExportWorkflowModal } from "./utils/export";
+import { WorkflowViewer } from "./utils/workflowconfig";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
