@@ -54,6 +54,7 @@ class OllamaClient:
         "or more functions based on the request given and return only JSON with the functions and "
         "arguments to use. The second step is to analyse the given output of the function and summarise "
         "it returning only TEXT and not Python or JSON. "
+        "For argument values, be sure numbers aren't strings, they should not have double quotes around them. "
         "In terms of your response format, for step 1 return only JSON and NO OTHER text, "
         "for step 2 return only text and NO JSON/Python/Markdown. "
         'The format for running a function is [{"name": "function_name1", "arguments":{"argument_name": "argument_value"}},{"name": "function_name2", "arguments":{"argument_name": "argument_value"}}] '
