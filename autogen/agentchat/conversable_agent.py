@@ -611,11 +611,9 @@ class ConversableAgent(LLMAgent):
         self, message: Union[Dict, str], recipient: Agent, silent: bool
     ) -> Union[Dict, str]:
         """Process the message before sending it to the recipient."""
-        silent = self._is_silent(silent)
-
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            message = hook(sender=self, message=message, recipient=recipient, silent=silent)
+            message = hook(sender=self, message=message, recipient=recipient, silent=self._is_silent(silent))
         return message
 
     def send(
@@ -657,9 +655,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        silent = self._is_silent(silent)
-
-        message = self._process_message_before_send(message, recipient, silent)
+        message = self._process_message_before_send(message, recipient, self._is_silent(silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -709,9 +705,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        silent = self._is_silent(silent)
-
-        message = self._process_message_before_send(message, recipient, silent)
+        message = self._process_message_before_send(message, recipient, self._is_silent(silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -784,8 +778,6 @@ class ConversableAgent(LLMAgent):
         iostream.print("\n", "-" * 80, flush=True, sep="")
 
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
-        silent = self._is_silent(silent)
-
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if logging_enabled():
@@ -795,7 +787,7 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-        if not silent:
+        if not self._is_silent(silent):
             self._print_received_message(message, sender)
 
     def receive(
@@ -828,9 +820,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        silent = self._is_silent(silent)
-
-        self._process_received_message(message, sender, silent)
+        self._process_received_message(message, sender, self._is_silent(silent))
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
@@ -867,9 +857,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        silent = self._is_silent(silent)
-
-        self._process_received_message(message, sender, silent)
+        self._process_received_message(message, sender, self._is_silent(silent))
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = await self.a_generate_reply(sender=sender)
@@ -1009,7 +997,6 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
-        silent = self._is_silent(silent)
         _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
@@ -1077,7 +1064,6 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
-        silent = self._is_silent(silent)
         _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
