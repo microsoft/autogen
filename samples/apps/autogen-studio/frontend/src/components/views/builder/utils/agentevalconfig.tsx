@@ -1,5 +1,5 @@
 import React from "react";
-import { IStatus, IAgentEvalCriteria, IModelConfig, IChatSession } from "../../../types";
+import { IStatus, IAgentEvalCriteria, IModelConfig, IChatSession, IAgentEvalGenerate } from "../../../types";
 import { ControlRowView, MonacoEditor } from "../../../atoms";
 import {
   fetchJSON,
@@ -8,7 +8,7 @@ import {
 } from "../../../utils";
 import { Button, Checkbox, Drawer, Input, Modal, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
-import { UserIcon, LightBulbIcon, ArrowDownIcon } from "@heroicons/react/24/outline";
+import { UserIcon, LightBulbIcon, ArrowDownIcon, ArrowUpIcon } from "@heroicons/react/24/outline";
 
 
 export const JsonCriteriaViewConfig = ({
@@ -93,7 +93,7 @@ export const JsonCriteriaViewConfig = ({
       headers: {
         "Content-Type": "text/plain",
       },
-      body: JSON.stringify(criteria.criteria)
+      body: criteria.criteria
     };
 
     const onSuccess = (data: any) => {
@@ -254,12 +254,10 @@ export const JsonCriteriaViewConfig = ({
 export const CriteriaGenerateConfig = ({
   models,
   sessions,
-  user_id,
   close,
 }: {
   models: IModelConfig[];
   sessions: IChatSession[];
-  user_id: string;
   close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -377,7 +375,7 @@ export const CriteriaGenerateConfig = ({
             <Select
               className="mt-2 w-full"
               onChange={(selectedValue: any) => {
-                setGenerateParams({...generateParams, failure_session_id: selectedValue}); // TODO: This doesn't get updated
+                setGenerateParams({...generateParams, failure_session_id: selectedValue});
                 const selectedSession = sessions.find(session => session.id === selectedValue);
                 setSelectedFailureSession(selectedSession ? selectedSession.name : "");
               }}
@@ -421,7 +419,7 @@ export const CriteriaGenerateConfig = ({
               onClick={() => setIsExpanded(!isExpanded)}
             >
               {isExpanded ? 'Hide' : 'Show'} Advanced Options
-              <ArrowDownIcon className="h-4 w-4 inline-block mr-1"/>
+              {isExpanded ? <ArrowUpIcon className="h-4 w-4 inline-block mr-1"/> : <ArrowDownIcon className="h-4 w-4 inline-block mr-1"/>}
             </Button>
             {isExpanded && (
               <>
@@ -503,14 +501,12 @@ export const CriteriaViewer = ({
   setCriteria,
   models,
   sessions,
-  user_id,
   close,
 }: {
   criteria: IAgentEvalCriteria;
   setCriteria: (criteria: IAgentEvalCriteria) => void;
   models: IModelConfig[];
   sessions: IChatSession[];
-  user_id: string;
   close: () => void;
 }) => {
   let items = [
@@ -550,7 +546,6 @@ export const CriteriaViewer = ({
           <CriteriaGenerateConfig
             models={models}
             sessions={sessions}
-            user_id={user_id}
             close={close}
           />
         </div>

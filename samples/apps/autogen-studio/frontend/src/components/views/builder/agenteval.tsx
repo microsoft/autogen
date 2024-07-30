@@ -1,4 +1,3 @@
-
 import {
   ArrowDownTrayIcon,
   ArrowLeftIcon,
@@ -283,7 +282,6 @@ const AgentEvalView = ({ onBack }: any) => {
                 setCriteria={setLocalCriteria}
                 models={models}
                 sessions={sessions}
-                user_id={user?.email}
                 close={closeModal}
               />
             )}

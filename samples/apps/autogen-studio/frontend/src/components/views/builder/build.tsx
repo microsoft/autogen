@@ -6,6 +6,7 @@ import WorkflowView from "./workflow";
 import LabsView from "./labs";
 import { Tabs } from "antd";
 import {
+  BeakerIcon,
   BugAntIcon,
   CpuChipIcon,
   Square2StackIcon,
@@ -26,7 +27,7 @@ const BuildView = () => {
         {" "}
         <Tabs
           tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
-          defaultActiveKey="5" // TODO: revert back to 4
+          defaultActiveKey="4"
           tabPosition="left"
           items={[
             {
@@ -74,7 +75,7 @@ const BuildView = () => {
             {
               label: (
                 <>
-                  <Square3Stack3DIcon className="h-4 w-4 inline-block mr-1" />
+                  <BeakerIcon className="h-4 w-4 inline-block mr-1" />
                   Labs
                 </>
               ),

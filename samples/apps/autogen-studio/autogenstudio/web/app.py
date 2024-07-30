@@ -486,8 +486,9 @@ async def validate_agenteval_criteria(criteria: str = Body(...)):
 @api.post("/agenteval/quantify")
 async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task, test_session_id: int, user_id: str):
     filters = {"id": criteria_id}
-    criteria = list_entity(Criteria, filters=filters, return_json=True).data
-    criteria = Criterion.parse_json_str(criteria.criteria)
+    criteria = list_entity(Criteria, filters=filters).data[0]
+    print(criteria)
+    criteria = Criterion.parse_json_str(criteria["criteria"])
 
     model = get_model(model_id)
     test_case = get_session(user_id=user_id, session_id=test_session_id)
@@ -497,7 +498,7 @@ async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task
 def get_session(user_id:int, session_id:int):
     filters = {"user_id": user_id, "session_id": session_id}
     session = list_entity(Message, filters=filters, order="asc", return_json=True).data
-    return str(session)  
+    return str(session)
 
 
 def get_model(model_id: int):
