@@ -169,7 +169,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=black_tools,
         ),
     )
@@ -186,7 +186,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 ),
             ],
             memory=BufferedChatMemory(buffer_size=10),
-            model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
+            model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=white_tools,
         ),
     )
@@ -205,11 +205,10 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     await chess_game(runtime)
+    run_context = runtime.start()
     # Publish an initial message to trigger the group chat manager to start orchestration.
     await runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
-    while True:
-        await runtime.process_next()
-        await asyncio.sleep(1)
+    await run_context.stop_when_idle()
 
 
 if __name__ == "__main__":

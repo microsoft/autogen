@@ -53,6 +53,7 @@ class PublishNow:
     response_format: ResponseFormat = field(default=ResponseFormat.text)
 
 
+@dataclass
 class Reset: ...
 
 

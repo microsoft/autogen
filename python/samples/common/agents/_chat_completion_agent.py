@@ -189,12 +189,10 @@ class ChatCompletionAgent(TypeRoutedAgent):
             and all(isinstance(x, FunctionCall) for x in response.content)
         ):
             # Send a function call message to itself.
-            response = await (
-                await self.send_message(
-                    message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
-                    recipient=self.id,
-                    cancellation_token=cancellation_token,
-                )
+            response = await self.send_message(
+                message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
+                recipient=self.id,
+                cancellation_token=cancellation_token,
             )
             # Make an assistant message from the response.
             hisorical_messages = await self._memory.get_messages()
