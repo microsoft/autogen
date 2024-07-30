@@ -78,7 +78,7 @@ class ConversableAgent(LLMAgent):
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
         chat_messages: Optional[Dict[Agent, List[Dict]]] = None,
-        is_silent: Optional[bool] = None,
+        silent: Optional[bool] = None,
     ):
         """
         Args:
@@ -127,7 +127,7 @@ class ConversableAgent(LLMAgent):
             chat_messages (dict or None): the previous chat messages that this agent had in the past with other agents.
                 Can be used to give the agent a memory by providing the chat history. This will allow the agent to
                 resume previous had conversations. Defaults to an empty chat history.
-            is_silent (bool or None): (Experimental) whether to print the message sent. If None, will use the value of
+            silent (bool or None): (Experimental) whether to print the message sent. If None, will use the value of
                 is_silent in each function.
         """
         # we change code_execution_config below and we have to make sure we don't change the input
@@ -150,7 +150,7 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
-        self.is_silent = is_silent
+        self.silent = silent
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
             try:
@@ -268,7 +268,7 @@ class ConversableAgent(LLMAgent):
         self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
 
     def _is_silent(self, silent: Optional[bool] = False) -> bool:
-        return self.is_silent if self.is_silent is not None else silent
+        return self.silent if self.silent is not None else silent
 
     @property
     def name(self) -> str:
