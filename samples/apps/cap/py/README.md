@@ -3,7 +3,7 @@
 ## I just want to run the remote AutoGen agents!
 *Python Instructions (Windows, Linux, MacOS):*
 
-pip install autogencap-rajan.jedi
+pip install autogencap
 
 1) AutoGen require OAI_CONFIG_LIST.
    AutoGen python requirements: 3.8 <= python <= 3.11

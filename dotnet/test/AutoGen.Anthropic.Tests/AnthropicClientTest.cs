@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// AnthropicClientTest.cs
+
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -59,7 +62,9 @@ public class AnthropicClientTests
         foreach (ChatCompletionResponse result in results)
         {
             if (result.Delta is not null && !string.IsNullOrEmpty(result.Delta.Text))
+            {
                 sb.Append(result.Delta.Text);
+            }
         }
 
         string resultContent = sb.ToString();

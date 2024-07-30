@@ -56,7 +56,7 @@ public partial class TwoAgentTest
             name: "user",
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.GetWeatherFunction.Name, this.GetWeatherWrapper },
+                { this.GetWeatherFunctionContract.Name, this.GetWeatherWrapper },
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {

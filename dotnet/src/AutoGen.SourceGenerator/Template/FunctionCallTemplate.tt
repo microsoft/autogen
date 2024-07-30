@@ -96,11 +96,6 @@ namespace <#=NameSpace#>
 <#}#>
             };
         }
-
-        public global::Azure.AI.OpenAI.FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
-        {
-            get => this.<#=functionContract.GetFunctionContractName()#>.ToOpenAIFunctionDefinition();
-        }
 <#}#>
     }
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>

@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example13_OpenAIAgent_JsonMode.cs
+// Use_Json_Mode.cs
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
