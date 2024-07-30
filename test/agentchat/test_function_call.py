@@ -121,7 +121,7 @@ def test_execute_function():
         "name": "add_num",
         "arguments": '{ "num_to_be_added": 5, given_num: 10 }',
     }  # should be "given_num" with quotes
-    assert "You argument should follow json format." in user.execute_function(func_call=wrong_json_format)[1]["content"]
+    assert "The argument must be in JSON format." in user.execute_function(func_call=wrong_json_format)[1]["content"]
 
     # function execution error with extra arguments
     wrong_args = {"name": "add_num", "arguments": '{ "num_to_be_added": 5, "given_num": 10 }'}
@@ -193,7 +193,7 @@ async def test_a_execute_function():
         "arguments": '{ "num_to_be_added": 5, given_num: 10 }',
     }  # should be "given_num" with quotes
     assert (
-        "You argument should follow json format."
+        "The argument must be in JSON format."
         in (await user.a_execute_function(func_call=wrong_json_format))[1]["content"]
     )
 
