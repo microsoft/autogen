@@ -128,7 +128,7 @@ class ConversableAgent(LLMAgent):
                 Can be used to give the agent a memory by providing the chat history. This will allow the agent to
                 resume previous had conversations. Defaults to an empty chat history.
             silent (bool or None): (Experimental) whether to print the message sent. If None, will use the value of
-                is_silent in each function.
+                silent in each function.
         """
         # we change code_execution_config below and we have to make sure we don't change the input
         # in case of UserProxyAgent, without this we could even change the default value {}
