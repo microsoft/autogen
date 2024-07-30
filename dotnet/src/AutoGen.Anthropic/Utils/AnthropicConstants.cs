@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Constants.cs
+// AnthropicConstants.cs
 
 namespace AutoGen.Anthropic.Utils;
 

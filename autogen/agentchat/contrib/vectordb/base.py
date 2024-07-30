@@ -1,4 +1,16 @@
-from typing import Any, List, Mapping, Optional, Protocol, Sequence, Tuple, TypedDict, Union, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
 
 Metadata = Union[Mapping[str, Any], None]
 Vector = Union[Sequence[float], Sequence[int]]
@@ -49,6 +61,9 @@ class VectorDB(Protocol):
 
     active_collection: Any = None
     type: str = ""
+    embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = (
+        None  # embeddings = embedding_function(sentences)
+    )
 
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """
@@ -171,7 +186,8 @@ class VectorDB(Protocol):
             ids: List[ItemID] | A list of document ids. If None, will return all the documents. Default is None.
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"], ids will always be included.
+                If None, will include ["metadatas", "documents"], ids will always be included. This may differ
+                depending on the implementation.
             kwargs: dict | Additional keyword arguments.
 
         Returns:
@@ -185,7 +201,7 @@ class VectorDBFactory:
     Factory class for creating vector databases.
     """
 
-    PREDEFINED_VECTOR_DB = ["chroma", "pgvector"]
+    PREDEFINED_VECTOR_DB = ["chroma", "pgvector", "mongodb", "qdrant"]
 
     @staticmethod
     def create_vector_db(db_type: str, **kwargs) -> VectorDB:
@@ -207,6 +223,14 @@ class VectorDBFactory:
             from .pgvectordb import PGVectorDB
 
             return PGVectorDB(**kwargs)
+        if db_type.lower() in ["mdb", "mongodb", "atlas"]:
+            from .mongodb import MongoDBAtlasVectorDB
+
+            return MongoDBAtlasVectorDB(**kwargs)
+        if db_type.lower() in ["qdrant", "qdrantdb"]:
+            from .qdrant import QdrantVectorDB
+
+            return QdrantVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."

@@ -13,8 +13,16 @@ from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 from packaging.version import parse
 
-NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
+NON_CACHE_KEY = [
+    "api_key",
+    "base_url",
+    "api_type",
+    "api_version",
+    "azure_ad_token",
+    "azure_ad_token_provider",
+    "credentials",
+]
+DEFAULT_AZURE_API_VERSION = "2024-02-01"
 OAI_PRICE1K = {
     # https://openai.com/api/pricing/
     # gpt-4o
@@ -25,6 +33,9 @@ OAI_PRICE1K = {
     # gpt-4
     "gpt-4": (0.03, 0.06),
     "gpt-4-32k": (0.06, 0.12),
+    # gpt-4o-mini
+    "gpt-4o-mini": (0.000150, 0.000600),
+    "gpt-4o-mini-2024-07-18": (0.000150, 0.000600),
     # gpt-3.5 turbo
     "gpt-3.5-turbo": (0.0005, 0.0015),  # default is 0125
     "gpt-3.5-turbo-0125": (0.0005, 0.0015),  # 16k
@@ -96,7 +107,7 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-(proj-)?[A-Za-z0-9]{32,}$")
+    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
     return bool(re.fullmatch(api_key_re, api_key))
 
 
@@ -127,7 +138,7 @@ def get_config_list(
 
     # Optionally, define the API type and version if they are common for all keys
     api_type = 'azure'
-    api_version = '2024-02-15-preview'
+    api_version = '2024-02-01'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)

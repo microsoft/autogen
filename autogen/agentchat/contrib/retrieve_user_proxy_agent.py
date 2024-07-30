@@ -1,7 +1,8 @@
 import hashlib
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import uuid
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from IPython import get_ipython
 
@@ -81,6 +82,7 @@ Context is: {input_context}
 """
 
 HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
+UPDATE_CONTEXT_IN_PROMPT = "you should reply exactly `UPDATE CONTEXT`"
 
 
 class RetrieveUserProxyAgent(UserProxyAgent):
@@ -91,7 +93,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def __init__(
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "ALWAYS",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
@@ -134,7 +136,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
-                     **Deprecated**: use `vector_db` instead.
+                     *[Deprecated]* use `vector_db` instead.
                 - `docs_path` (Optional, Union[str, List[str]]) - the path to the docs directory. It
                      can also be the path to a single file, the url to a single file or a list
                      of directories, files and urls. Default is None, which works only if the
@@ -148,7 +150,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     By default, "extra_docs" is set to false, starting document IDs from zero.
                     This poses a risk as new documents might overwrite existing ones, potentially
                     causing unintended loss or alteration of data in the collection.
-                    **Deprecated**: use `new_docs` when use `vector_db` instead of `client`.
+                    *[Deprecated]* use `new_docs` when use `vector_db` instead of `client`.
                 - `new_docs` (Optional, bool) - when True, only adds new documents to the collection;
                     when False, updates existing documents and adds new ones. Default is True.
                     Document id is used to determine if a document is new or existing. By default, the
@@ -171,7 +173,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     models can be found at `https://www.sbert.net/docs/pretrained_models.html`.
                     The default model is a fast model. If you want to use a high performance model,
                     `all-mpnet-base-v2` is recommended.
-                    **Deprecated**: no need when use `vector_db` instead of `client`.
+                    *[Deprecated]* no need when use `vector_db` instead of `client`.
                 - `embedding_function` (Optional, Callable) - the embedding function for creating the
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
@@ -218,7 +220,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Example of overriding retrieve_docs - If you have set up a customized vector db, and it's
         not compatible with chromadb, you can easily plug in it with below code.
-        **Deprecated**: Use `vector_db` instead. You can extend VectorDB and pass it to the agent.
+        *[Deprecated]* use `vector_db` instead. You can extend VectorDB and pass it to the agent.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -348,7 +350,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    self._max_tokens,
+                    self._chunk_token_size,
                     self._chunk_mode,
                     self._must_break_at_empty_line,
                 )
@@ -364,7 +366,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 all_docs_ids = set()
 
-            chunk_ids = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            chunk_ids = (
+                [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+                if not self._vector_db.type == "qdrant"
+                else [str(uuid.UUID(hex=hashlib.md5(chunk.encode("utf-8")).hexdigest())) for chunk in chunks]
+            )
             chunk_ids_set = set(chunk_ids)
             chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
             docs = [
@@ -471,7 +477,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
+        update_context_case1 = "UPDATE CONTEXT" in message.upper() and UPDATE_CONTEXT_IN_PROMPT not in message
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
 
