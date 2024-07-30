@@ -80,6 +80,26 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
   docker run -it -v $(pwd)/data:/data autogen_base_img:latest python /myapp/process_data.py
   ```
 
+## Docker Compose
+
+For docker-compose.yml file, the following example can be used as a reference:
+```yaml
+version: '3.8'
+
+services:
+  autogen:
+    build: 
+      context: https://github.com/microsoft/autogen.git#main
+      # use `dockerfile: .devcontainer/full/Dockerfile` for the full image
+      dockerfile: .devcontainer/Dockerfile
+      volumes:
+        - ./:/app
+      ports:
+        - 8080:3000
+      command: ['python', '/app/main.py']
+
+```
+
 ## Additional Resources
 
 - Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
