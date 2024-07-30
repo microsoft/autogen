@@ -13,10 +13,9 @@ namespace AutoGen.Core;
 /// If the last message is from one of the candidates, the next agent will be the next candidate in the list.
 /// </para>
 /// <para>
-/// Otherwise, no agent will be selected. In this case, the orchestrator will return an empty list.
+/// Otherwise, the first agent in <see cref="OrchestrationContext.Candidates"/> will be returned.
 /// </para>
 /// <para>
-/// This orchestrator always return a single agent.
 /// </para>
 /// </summary>
 public class RoundRobinOrchestrator : IOrchestrator
@@ -29,7 +28,7 @@ public class RoundRobinOrchestrator : IOrchestrator
 
         if (lastMessage == null)
         {
-            return null;
+            return context.Candidates.FirstOrDefault();
         }
 
         var candidates = context.Candidates.ToList();
