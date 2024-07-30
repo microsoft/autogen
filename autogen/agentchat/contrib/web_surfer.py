@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from ... import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper, UserProxyAgent
-from ...browser_utils.browser_creator import TextBrowserCreator
+from ...browser_utils.browser_creator import TextBrowserEnum
 from ...code_utils import content_str
 from ...oai.openai_utils import filter_config
 from ...token_count_utils import count_token, get_max_token_limit
@@ -60,7 +60,7 @@ class WebSurferAgent(ConversableAgent):
 
         # Create the browser
         self.browser_name = browser_name
-        self.browser = TextBrowserCreator.create_browser(self.browser_name)
+        self.browser = TextBrowserEnum.get_browser(browser_name)
 
         inner_llm_config = copy.deepcopy(llm_config)
 
