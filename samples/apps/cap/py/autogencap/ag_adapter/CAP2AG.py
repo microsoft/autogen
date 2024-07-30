@@ -1,10 +1,11 @@
+import json
 from enum import Enum
 from typing import Optional
 
 from autogen import ConversableAgent
 
+from ..ComponentEnsemble import ComponentEnsemble
 from ..DebugLog import Debug, Error, Info, Warn, shorten
-from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 from .AG2CAP import AG2CAP
 from .AGActor import AGActor
@@ -26,26 +27,26 @@ class CAP2AG(AGActor):
         self.STATE = self.States.INIT
         self._can2ag_name: str = self.actor_name + ".can2ag"
         self._self_recursive: bool = self_recursive
-        self._network: LocalActorNetwork = None
+        self._ensemble: ComponentEnsemble = None
         self._connectors = {}
 
-    def connect_network(self, network: LocalActorNetwork):
+    def on_connect(self, ensemble: ComponentEnsemble):
         """
         Connect to the AutoGen system.
         """
-        self._network = network
-        self._ag2can_other_agent = AG2CAP(self._network, self._other_agent_name)
-        Debug(self._can2ag_name, "connected to {network}")
+        self._ensemble = ensemble
+        self._ag2can_other_agent = AG2CAP(self._ensemble, self._other_agent_name)
+        Debug(self._can2ag_name, "connected to {ensemble}")
 
-    def disconnect_network(self, network: LocalActorNetwork):
+    def disconnect_network(self, ensemble: ComponentEnsemble):
         """
         Disconnect from the AutoGen system.
         """
-        super().disconnect_network(network)
+        super().disconnect_network(ensemble)
         #        self._the_other.close()
         Debug(self.actor_name, "disconnected")
 
-    def _process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
+    def on_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
         """
         Process a text message received from the AutoGen system.
         """
@@ -72,13 +73,17 @@ class CAP2AG(AGActor):
         save_name = self._ag2can_other_agent.name
         self._ag2can_other_agent.set_name(receive_params.sender)
         if receive_params.HasField("data_map"):
-            data = dict(receive_params.data_map.data)
+            json_data = dict(receive_params.data_map.data)
+            data = {}
+            for key, json_value in json_data.items():
+                value = json.loads(json_value)
+                data[key] = value
         else:
             data = receive_params.data
         self._the_ag_agent.receive(data, self._ag2can_other_agent, request_reply, silent)
         self._ag2can_other_agent.set_name(save_name)
 
-    def receive_msgproc(self, msg: bytes):
+    def on_receive_msg(self, msg: bytes):
         """
         Process a ReceiveReq message received from the AutoGen system.
         """
@@ -112,11 +117,11 @@ class CAP2AG(AGActor):
         if topic in self._connectors:
             return self._connectors[topic]
         else:
-            connector = self._network.actor_connector_by_topic(topic)
+            connector = self._ensemble.find_by_topic(topic)
             self._connectors[topic] = connector
             return connector
 
-    def generate_reply_msgproc(self, msg: GenReplyReq, sender_topic: str):
+    def on_generate_reply_msg(self, msg: GenReplyReq, sender_topic: str):
         """
         Process a GenReplyReq message received from the AutoGen system and generate a reply.
         """
@@ -132,23 +137,23 @@ class CAP2AG(AGActor):
         connector.send_bin_msg(type(reply_msg).__name__, serialized_msg)
         return True
 
-    def prepchat_msgproc(self, msg, sender_topic):
+    def on_prepchat_msg(self, msg, sender_topic):
         prep_chat = PrepChat()
         prep_chat.ParseFromString(msg)
         self._the_ag_agent._prepare_chat(self._ag2can_other_agent, prep_chat.clear_history, prep_chat.prepare_recipient)
         return True
 
-    def _process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str):
+    def on_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str):
         """
         Process a binary message received from the AutoGen system.
         """
         Info(self._can2ag_name, f"proc_bin_msg: topic=[{topic}], msg_type=[{msg_type}]")
         if msg_type == ReceiveReq.__name__:
-            return self.receive_msgproc(msg)
+            return self.on_receive_msg(msg)
         elif msg_type == GenReplyReq.__name__:
-            return self.generate_reply_msgproc(msg, sender)
+            return self.on_generate_reply_msg(msg, sender)
         elif msg_type == PrepChat.__name__:
-            return self.prepchat_msgproc(msg, sender)
+            return self.on_prepchat_msg(msg, sender)
         elif msg_type == Terminate.__name__:
             Warn(self._can2ag_name, f"TERMINATE received: topic=[{topic}], msg_type=[{msg_type}]")
             return False

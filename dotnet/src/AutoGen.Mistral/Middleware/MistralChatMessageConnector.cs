@@ -15,14 +15,14 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
 {
     public string? Name => nameof(MistralChatMessageConnector);
 
-    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<IMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = context.Messages;
         var chatMessages = ProcessMessage(messages, agent);
         var chunks = new List<ChatCompletionResponse>();
         await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
         {
-            if (reply is IStreamingMessage<ChatCompletionResponse> chatMessage)
+            if (reply is IMessage<ChatCompletionResponse> chatMessage)
             {
                 chunks.Add(chatMessage.Content);
                 var response = ProcessChatCompletionResponse(chatMessage, agent);
@@ -158,7 +158,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         else if (finishReason == Choice.FinishReasonEnum.ToolCalls)
         {
             var functionContents = choice.Message?.ToolCalls ?? throw new ArgumentNullException("choice.Message.ToolCalls");
-            var toolCalls = functionContents.Select(f => new ToolCall(f.Function.Name, f.Function.Arguments)).ToList();
+            var toolCalls = functionContents.Select(f => new ToolCall(f.Function.Name, f.Function.Arguments) { ToolCallId = f.Id }).ToList();
             return new ToolCallMessage(toolCalls, from: from.Name);
         }
         else
@@ -167,7 +167,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         }
     }
 
-    private IStreamingMessage? ProcessChatCompletionResponse(IStreamingMessage<ChatCompletionResponse> message, IAgent agent)
+    private IMessage? ProcessChatCompletionResponse(IMessage<ChatCompletionResponse> message, IAgent agent)
     {
         var response = message.Content;
         if (response.VarObject != "chat.completion.chunk")
@@ -257,6 +257,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
             var message = new ChatMessage(ChatMessage.RoleEnum.Tool, content: toolCall.Result)
             {
                 Name = toolCall.FunctionName,
+                ToolCallId = toolCall.ToolCallId,
             };
 
             messages.Add(message);
@@ -305,10 +306,12 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         // convert tool call message to chat message
         var chatMessage = new ChatMessage(ChatMessage.RoleEnum.Assistant);
         chatMessage.ToolCalls = new List<FunctionContent>();
-        foreach (var toolCall in toolCallMessage.ToolCalls)
+        for (var i = 0; i < toolCallMessage.ToolCalls.Count; i++)
         {
+            var toolCall = toolCallMessage.ToolCalls[i];
+            var toolCallId = toolCall.ToolCallId ?? $"{toolCall.FunctionName}_{i}";
             var functionCall = new FunctionContent.FunctionCall(toolCall.FunctionName, toolCall.FunctionArguments);
-            var functionContent = new FunctionContent(functionCall);
+            var functionContent = new FunctionContent(toolCallId, functionCall);
             chatMessage.ToolCalls.Add(functionContent);
         }
 

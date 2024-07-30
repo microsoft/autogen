@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - dotnet/release/**
+      - release/dotnet/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -32,7 +32,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
     - name: Restore dependencies
       run: |
         dotnet restore -bl

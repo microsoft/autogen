@@ -29,10 +29,8 @@ namespace AutoGen.OpenAI;
 /// </summary>
 public class GPTAgent : IStreamingAgent
 {
-    private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
     private readonly OpenAIClient openAIClient;
-    private readonly string? modelName;
-    private readonly OpenAIChatAgent _innerAgent;
+    private readonly IStreamingAgent _innerAgent;
 
     public GPTAgent(
         string name,
@@ -52,16 +50,23 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        modelName = config switch
+        var modelName = config switch
         {
             AzureOpenAIConfig azureConfig => azureConfig.DeploymentName,
             OpenAIConfig openAIConfig => openAIConfig.ModelId,
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
+            .RegisterMessageConnector();
+
+        if (functionMap is not null)
+        {
+            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: functionMap);
+            _innerAgent = _innerAgent.RegisterStreamingMiddleware(functionMapMiddleware);
+        }
+
         Name = name;
-        this.functionMap = functionMap;
     }
 
     public GPTAgent(
@@ -77,10 +82,16 @@ public class GPTAgent : IStreamingAgent
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
         this.openAIClient = openAIClient;
-        this.modelName = modelName;
         Name = name;
-        this.functionMap = functionMap;
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions);
+
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions)
+            .RegisterMessageConnector();
+
+        if (functionMap is not null)
+        {
+            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: functionMap);
+            _innerAgent = _innerAgent.RegisterStreamingMiddleware(functionMapMiddleware);
+        }
     }
 
     public string Name { get; }
@@ -90,28 +101,14 @@ public class GPTAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var agent = this._innerAgent.RegisterMessageConnector();
-        if (this.functionMap is not null)
-        {
-            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
-            agent = agent.RegisterStreamingMiddleware(functionMapMiddleware);
-        }
-
-        return await agent.GenerateReplyAsync(messages, options, cancellationToken);
+        return await _innerAgent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
-    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var agent = this._innerAgent.RegisterMessageConnector();
-        if (this.functionMap is not null)
-        {
-            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
-            agent = agent.RegisterStreamingMiddleware(functionMapMiddleware);
-        }
-
-        return agent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
+        return _innerAgent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
     }
 }

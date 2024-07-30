@@ -5,12 +5,11 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import openai
-
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
 from autogen.oai.openai_utils import create_gpt_assistant, retrieve_assistants_by_name, update_gpt_assistant
+from autogen.runtime_logging import log_new_agent, logging_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +64,8 @@ class GPTAssistantAgent(ConversableAgent):
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
@@ -169,10 +170,11 @@ class GPTAssistantAgent(ConversableAgent):
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
+        self.update_system_message(self._openai_assistant.instructions)
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
-        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant, position=2)
+        self.register_reply([Agent, None], GPTAssistantAgent._invoke_assistant, position=2)
 
     def _invoke_assistant(
         self,

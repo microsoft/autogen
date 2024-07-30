@@ -17,6 +17,8 @@ Then you can start with the following code snippet to create a conversable agent
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/GetStartCodeSnippet.cs?name=snippet_GetStartCodeSnippet)]
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/GetStartCodeSnippet.cs?name=code_snippet_1)]
 
+### Tutorial
+Getting started with AutoGen.Net by following the [tutorial](../tutorial/Chat-with-an-agent.md) series.
 ### Examples
 You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
 

@@ -19,12 +19,6 @@ For example, in data analysis scenario, agent can resolve tasks like "What is th
 ## How to run dotnet code snippet?
 The built-in feature of running dotnet code snippet is provided by [dotnet-interactive](https://github.com/dotnet/interactive). To run dotnet code snippet, you need to install the following package to your project, which provides the intergraion with dotnet-interactive:
 
-> [!Note]
-> The `AutoGen.DotnetInteractive` has a dependency on `Microsoft.DotNet.Interactive.VisualStudio` which is not available on nuget.org. To restore the dependency, you need to add the following package source to your project:
-> ```bash
-> https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
-> ```
-
 ```xml
 <PackageReference Include="AutoGen.DotnetInteractive" />
 ```

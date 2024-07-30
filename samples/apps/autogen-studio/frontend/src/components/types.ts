@@ -12,6 +12,8 @@ export interface IMessage {
   session_id?: number;
   connection_id?: string;
   workflow_id?: number;
+  meta?: any;
+  id?: number;
 }
 
 export interface IStatus {
@@ -24,7 +26,7 @@ export interface IChatMessage {
   text: string;
   sender: "user" | "bot";
   meta?: any;
-  msg_id: string;
+  id?: number;
 }
 
 export interface ILLMConfig {
@@ -66,9 +68,9 @@ export interface IAgent {
 export interface IWorkflow {
   name: string;
   description: string;
-  sender: IAgent;
-  receiver: IAgent;
-  type: "twoagents" | "groupchat";
+  sender?: IAgent;
+  receiver?: IAgent;
+  type?: "autonomous" | "sequential";
   created_at?: string;
   updated_at?: string;
   summary_method?: "none" | "last" | "llm";
@@ -139,6 +141,8 @@ export interface IGalleryItem {
 export interface ISkill {
   name: string;
   content: string;
+  secrets?: any[];
+  libraries?: string[];
   id?: number;
   description?: string;
   user_id?: string;

@@ -5,9 +5,10 @@ import io
 import json
 import logging
 from typing import Any, Dict, List, Optional
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 from autogen import Agent, AssistantAgent, GroupChat, GroupChatManager
@@ -1320,15 +1321,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template="",
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template="",
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
     # Test with None
     with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
@@ -1341,15 +1344,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template=None,
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template=None,
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
 
 def test_speaker_selection_agent_name_match():
@@ -1444,6 +1449,46 @@ def test_speaker_selection_agent_name_match():
         agents=all_agents, message_content="Story Writer will follow the product\\_manager."
     )
     assert result == {}
+
+
+def test_role_for_reflection_summary():
+    llm_config = {"config_list": [{"model": "mock", "api_key": "mock"}]}
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    role_name = "user"
+    with mock.patch.object(
+        autogen.ConversableAgent, "_generate_oai_reply_from_client"
+    ) as mock_generate_oai_reply_from_client:
+        mock_generate_oai_reply_from_client.return_value = "Mocked summary"
+
+        agent1.initiate_chat(
+            group_chat_manager,
+            max_turns=2,
+            message="hello",
+            summary_method="reflection_with_llm",
+            summary_args={"summary_role": role_name},
+        )
+
+        mock_generate_oai_reply_from_client.assert_called_once()
+        args, kwargs = mock_generate_oai_reply_from_client.call_args
+        assert kwargs["messages"][-1]["role"] == role_name
 
 
 def test_speaker_selection_auto_process_result():
@@ -1871,6 +1916,51 @@ def test_manager_resume_functions():
     # TERMINATE should be removed
     assert messages[-1]["content"] == final_msg.replace("TERMINATE", "")
 
+    # Tests termination message replacement with function
+    def termination_func(x: str) -> str:
+        if "APPROVED" in x:
+            x = x.replace("APPROVED", "")
+        else:
+            x = x.replace("TERMINATE", "")
+        return x
+
+    final_msg1 = "Product_Manager has created 3 new product ideas. APPROVED"
+    messages1 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg1,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages1)
+
+    # APPROVED should be removed
+    assert messages1[-1]["content"] == final_msg1.replace("APPROVED", "")
+
+    final_msg2 = "Idea has been approved. TERMINATE"
+    messages2 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg2,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages2)
+
+    # TERMINATE should be removed, "approved" should still be present as the termination_func only replaces upper-cased "APPROVED".
+    assert messages2[-1]["content"] == final_msg2.replace("TERMINATE", "")
+    assert "approved" in messages2[-1]["content"]
+
     # Check if the termination string doesn't exist there's no replacing of content
     final_msg = (
         "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
@@ -1984,12 +2074,14 @@ if __name__ == "__main__":
     # test_role_for_select_speaker_messages()
     # test_select_speaker_message_and_prompt_templates()
     # test_speaker_selection_agent_name_match()
+    # test_role_for_reflection_summary()
     # test_speaker_selection_auto_process_result()
     # test_speaker_selection_validate_speaker_name()
     # test_select_speaker_auto_messages()
-    test_manager_messages_to_string()
-    test_manager_messages_from_string()
+    # test_select_speaker_auto_messages()
+    # test_manager_messages_to_string()
+    # test_manager_messages_from_string()
     test_manager_resume_functions()
-    test_manager_resume_returns()
-    test_manager_resume_messages()
-    # pass
+    # test_manager_resume_returns()
+    # test_manager_resume_messages()
+    pass

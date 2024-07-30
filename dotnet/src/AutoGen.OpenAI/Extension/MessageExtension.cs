@@ -12,6 +12,8 @@ public static class MessageExtension
 {
     public static string TEXT_CONTENT_TYPE = "text";
     public static string IMAGE_CONTENT_TYPE = "image";
+
+    [Obsolete("This method is deprecated, please replace Message with one of the built-in message types.")]
     public static ChatRequestUserMessage ToChatRequestUserMessage(this Message message)
     {
         if (message.Value is ChatRequestUserMessage message1)
@@ -50,6 +52,7 @@ public static class MessageExtension
         throw new ArgumentException("Content is null and metadata is null");
     }
 
+    [Obsolete("This method is deprecated")]
     public static IEnumerable<ChatRequestMessage> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
     {
         if (message is IMessage<ChatRequestMessage> oaiMessage)

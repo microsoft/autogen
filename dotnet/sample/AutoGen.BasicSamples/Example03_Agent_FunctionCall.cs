@@ -77,20 +77,30 @@ public partial class Example03_Agent_FunctionCall
         // talk to the assistant agent
         var upperCase = await agent.SendAsync("convert to upper case: hello world");
         upperCase.GetContent()?.Should().Be("HELLO WORLD");
-        upperCase.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        upperCase.Should().BeOfType<ToolCallAggregateMessage>();
         upperCase.GetToolCalls().Should().HaveCount(1);
         upperCase.GetToolCalls().First().FunctionName.Should().Be(nameof(UpperCase));
 
         var concatString = await agent.SendAsync("concatenate strings: a, b, c, d, e");
         concatString.GetContent()?.Should().Be("a b c d e");
-        concatString.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        concatString.Should().BeOfType<ToolCallAggregateMessage>();
         concatString.GetToolCalls().Should().HaveCount(1);
         concatString.GetToolCalls().First().FunctionName.Should().Be(nameof(ConcatString));
 
         var calculateTax = await agent.SendAsync("calculate tax: 100, 0.1");
         calculateTax.GetContent().Should().Be("tax is 10");
-        calculateTax.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        calculateTax.Should().BeOfType<ToolCallAggregateMessage>();
         calculateTax.GetToolCalls().Should().HaveCount(1);
         calculateTax.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
+
+        // parallel function calls
+        var calculateTaxes = await agent.SendAsync("calculate tax: 100, 0.1; calculate tax: 200, 0.2");
+        calculateTaxes.GetContent().Should().Be("tax is 10\ntax is 40"); // "tax is 10\n tax is 40
+        calculateTaxes.Should().BeOfType<ToolCallAggregateMessage>();
+        calculateTaxes.GetToolCalls().Should().HaveCount(2);
+        calculateTaxes.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
+
+        // send aggregate message back to llm to get the final result
+        var finalResult = await agent.SendAsync(calculateTaxes);
     }
 }

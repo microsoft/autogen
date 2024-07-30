@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reflection;
 using Microsoft.DotNet.Interactive;
-using Microsoft.DotNet.Interactive.App.Connection;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.Events;
@@ -20,7 +19,7 @@ public class InteractiveService : IDisposable
     private bool disposedValue;
     private const string DotnetInteractiveToolNotInstallMessage = "Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'.";
     //private readonly ProcessJobTracker jobTracker = new ProcessJobTracker();
-    private string installingDirectory;
+    private string? installingDirectory;
 
     public event EventHandler<DisplayEvent>? DisplayEvent;
 
@@ -31,7 +30,11 @@ public class InteractiveService : IDisposable
     public event EventHandler<HoverTextProduced>? HoverTextProduced;
 
     /// <summary>
-    /// Create an instance of InteractiveService
+    /// Install dotnet interactive tool to <paramref name="installingDirectory"/>
+    /// and create an instance of <see cref="InteractiveService"/>.
+    /// 
+    /// When using this constructor, you need to call <see cref="StartAsync(string, CancellationToken)"/> to install dotnet interactive tool
+    /// and start the kernel.
     /// </summary>
     /// <param name="installingDirectory">dotnet interactive installing directory</param>
     public InteractiveService(string installingDirectory)
@@ -39,9 +42,24 @@ public class InteractiveService : IDisposable
         this.installingDirectory = installingDirectory;
     }
 
+    /// <summary>
+    /// Create an instance of <see cref="InteractiveService"/> with a running kernel.
+    /// When using this constructor, you don't need to call <see cref="StartAsync(string, CancellationToken)"/> to start the kernel.
+    /// </summary>
+    /// <param name="kernel"></param>
+    public InteractiveService(Kernel kernel)
+    {
+        this.kernel = kernel;
+    }
+
     public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
-        this.kernel = await this.CreateKernelAsync(workingDirectory, ct);
+        if (this.kernel != null)
+        {
+            return true;
+        }
+
+        this.kernel = await this.CreateKernelAsync(workingDirectory, true, ct);
         return true;
     }
 
@@ -84,7 +102,56 @@ public class InteractiveService : IDisposable
         return await this.SubmitCommandAsync(command, ct);
     }
 
-    private async Task<Kernel> CreateKernelAsync(string workingDirectory, CancellationToken ct = default)
+    public bool RestoreDotnetInteractive()
+    {
+        if (this.installingDirectory is null)
+        {
+            throw new Exception("Installing directory is not set");
+        }
+
+        this.WriteLine("Restore dotnet interactive tool");
+        // write RestoreInteractive.config from embedded resource to this.workingDirectory
+        var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
+        var resourceName = "AutoGen.DotnetInteractive.RestoreInteractive.config";
+        using (var stream = assembly.GetManifestResourceStream(resourceName)!)
+        using (var fileStream = File.Create(Path.Combine(this.installingDirectory, "RestoreInteractive.config")))
+        {
+            stream.CopyTo(fileStream);
+        }
+
+        // write dotnet-tool.json from embedded resource to this.workingDirectory
+
+        resourceName = "AutoGen.DotnetInteractive.dotnet-tools.json";
+        using (var stream2 = assembly.GetManifestResourceStream(resourceName)!)
+        using (var fileStream2 = File.Create(Path.Combine(this.installingDirectory, "dotnet-tools.json")))
+        {
+            stream2.CopyTo(fileStream2);
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"tool restore --configfile RestoreInteractive.config",
+            WorkingDirectory = this.installingDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var process = new Process { StartInfo = psi };
+        process.OutputDataReceived += this.PrintProcessOutput;
+        process.ErrorDataReceived += this.PrintProcessOutput;
+        process.Start();
+        process.BeginErrorReadLine();
+        process.BeginOutputReadLine();
+        process.WaitForExit();
+
+        return process.ExitCode == 0;
+    }
+
+    private async Task<Kernel> CreateKernelAsync(string workingDirectory, bool restoreWhenFail = true, CancellationToken ct = default)
     {
         try
         {
@@ -139,13 +206,13 @@ public class InteractiveService : IDisposable
 
             return compositeKernel;
         }
-        catch (CommandLineInvocationException ex) when (ex.Message.Contains("Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'"))
+        catch (CommandLineInvocationException) when (restoreWhenFail)
         {
             var success = this.RestoreDotnetInteractive();
 
             if (success)
             {
-                return await this.CreateKernelAsync(workingDirectory, ct);
+                return await this.CreateKernelAsync(workingDirectory, false, ct);
             }
 
             throw;
@@ -174,50 +241,6 @@ public class InteractiveService : IDisposable
     private void WriteLine(string data)
     {
         this.Output?.Invoke(this, data);
-    }
-
-    private bool RestoreDotnetInteractive()
-    {
-        this.WriteLine("Restore dotnet interactive tool");
-        // write RestoreInteractive.config from embedded resource to this.workingDirectory
-        var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
-        var resourceName = "AutoGen.DotnetInteractive.RestoreInteractive.config";
-        using (var stream = assembly.GetManifestResourceStream(resourceName)!)
-        using (var fileStream = File.Create(Path.Combine(this.installingDirectory, "RestoreInteractive.config")))
-        {
-            stream.CopyTo(fileStream);
-        }
-
-        // write dotnet-tool.json from embedded resource to this.workingDirectory
-
-        resourceName = "AutoGen.DotnetInteractive.dotnet-tools.json";
-        using (var stream2 = assembly.GetManifestResourceStream(resourceName)!)
-        using (var fileStream2 = File.Create(Path.Combine(this.installingDirectory, "dotnet-tools.json")))
-        {
-            stream2.CopyTo(fileStream2);
-        }
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"tool restore --configfile RestoreInteractive.config",
-            WorkingDirectory = this.installingDirectory,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-
-        using var process = new Process { StartInfo = psi };
-        process.OutputDataReceived += this.PrintProcessOutput;
-        process.ErrorDataReceived += this.PrintProcessOutput;
-        process.Start();
-        process.BeginErrorReadLine();
-        process.BeginOutputReadLine();
-        process.WaitForExit();
-
-        return process.ExitCode == 0;
     }
 
     private void PrintProcessOutput(object sender, DataReceivedEventArgs e)
