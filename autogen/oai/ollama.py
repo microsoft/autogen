@@ -116,7 +116,7 @@ class OllamaClient:
         ollama_params["model"] = params.get("model", None)
         assert ollama_params[
             "model"
-        ], "Please specify the 'model' in your config list entry to nominate the Ollama model to use. The model must start with 'ollama/' or 'ollama_chat/'."
+        ], "Please specify the 'model' in your config list entry to nominate the Ollama model to use."
 
         ollama_params["stream"] = validate_parameter(params, "stream", bool, True, False, None, None)
 
