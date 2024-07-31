@@ -206,7 +206,7 @@ export const WorkflowViewConfig = ({
   );
 };
 
-export const WorflowViewer = ({
+export const WorkflowViewer = ({
   workflow,
   setWorkflow,
   close,

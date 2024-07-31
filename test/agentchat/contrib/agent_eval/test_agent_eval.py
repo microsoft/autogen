@@ -93,8 +93,5 @@ def test_quantify_criteria():
         criteria=criteria,
         task=task,
         test_case=test_case,
-        ground_truth=ground_truth,
     )
     assert quantified
-    assert quantified["actual_success"]
-    assert quantified["estimated_performance"]

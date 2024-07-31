@@ -11,6 +11,7 @@ from ..datamodel import (
     AgentLink,
     AgentModelLink,
     AgentSkillLink,
+    Criteria,
     Model,
     Response,
     Skill,
