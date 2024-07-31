@@ -267,8 +267,9 @@ class ConversableAgent(LLMAgent):
             )
         self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
 
-    def _is_silent(self, silent: Optional[bool] = False) -> bool:
-        return self.silent if self.silent is not None else silent
+    @staticmethod
+    def _is_silent(agent: Agent, silent: Optional[bool] = False) -> bool:
+        return agent.silent if agent.silent is not None else silent
 
     @property
     def name(self) -> str:
@@ -613,7 +614,9 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            message = hook(sender=self, message=message, recipient=recipient, silent=self._is_silent(silent))
+            message = hook(
+                sender=self, message=message, recipient=recipient, silent=ConversableAgent._is_silent(self, silent)
+            )
         return message
 
     def send(
@@ -655,7 +658,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        message = self._process_message_before_send(message, recipient, self._is_silent(silent))
+        message = self._process_message_before_send(message, recipient, ConversableAgent._is_silent(self, silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -705,7 +708,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        message = self._process_message_before_send(message, recipient, self._is_silent(silent))
+        message = self._process_message_before_send(message, recipient, ConversableAgent._is_silent(self, silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -787,7 +790,8 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-        if not self._is_silent(silent):
+
+        if not ConversableAgent._is_silent(sender, silent):
             self._print_received_message(message, sender)
 
     def receive(
@@ -820,7 +824,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        self._process_received_message(message, sender, self._is_silent(silent))
+        self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
@@ -857,7 +861,7 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        self._process_received_message(message, sender, self._is_silent(silent))
+        self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = await self.a_generate_reply(sender=sender)
