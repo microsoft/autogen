@@ -16,7 +16,7 @@ import {
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { CriteriaViewer } from "./utils/agentevalconfig";
-  
+
 const AgentEvalView = ({ onBack }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
@@ -214,7 +214,7 @@ const AgentEvalView = ({ onBack }: any) => {
 
         fetchJSON(listModelsUrl, payLoad, onSuccess, onError);
       };
-  
+
       fetchModels();
     }, []);
 
@@ -245,7 +245,7 @@ const AgentEvalView = ({ onBack }: any) => {
 
         fetchJSON(listSessionsUrl, payload, onSuccess, onError);
       };
-  
+
       fetchSessions();
     }, []);
 
@@ -357,6 +357,5 @@ const AgentEvalView = ({ onBack }: any) => {
     </div>
   );
 };
-  
+
 export default AgentEvalView;
-  

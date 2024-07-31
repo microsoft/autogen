@@ -269,7 +269,7 @@ class Workflow(SQLModel, table=True):
 
 
 class Criteria(SQLModel, table=True):
-    __tablename__ = "criteria" 
+    __tablename__ = "criteria"
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     task_name: Optional[str]

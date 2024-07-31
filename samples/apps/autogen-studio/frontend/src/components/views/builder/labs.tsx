@@ -15,7 +15,7 @@ const LabsView = ({}: any) => {
 
   const labRows = (labList).map(
     (lab, i: number) => {
-      const IconComponent = lab.symbol; 
+      const IconComponent = lab.symbol;
       return (
         <li key={"labrow" + i} className="block" >
           <Card

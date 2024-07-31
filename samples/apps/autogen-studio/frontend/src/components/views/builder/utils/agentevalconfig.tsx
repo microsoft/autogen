@@ -52,10 +52,10 @@ export const JsonCriteriaViewConfig = ({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-             "criteria": JSON.parse(criteria.criteria), 
+             "criteria": JSON.parse(criteria.criteria),
              "task": {
-                "name": criteria.task_name, 
-                "description": criteria.task_description, 
+                "name": criteria.task_name,
+                "description": criteria.task_description,
                 "successful_response": "",
                 "failed_response": ""
             }
@@ -263,14 +263,14 @@ export const CriteriaGenerateConfig = ({
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<IStatus | null>(null);
   const [generateParams, setGenerateParams] = React.useState<IAgentEvalGenerate>({
-      user_id: '', 
+      user_id: '',
       model_id: 0,
       task_name: '',
       task_description: '',
       success_session_id: 0,
       failure_session_id: 0,
       additional_instructions: '',
-      max_round: 5, 
+      max_round: 5,
       use_subcritic: false
     });
   const [selectedModel, setSelectedModel] = React.useState("");
@@ -278,7 +278,7 @@ export const CriteriaGenerateConfig = ({
   const [selectedFailureSession, setSelectedFailureSession] = React.useState("");
   const serverUrl = getServerUrl();
   const generateCriteriaUrl = `${serverUrl}/agenteval/criteria/generate`;
-  
+
   const generateCriteria = (generateParams: IAgentEvalGenerate) => {
     setError(null);
     setLoading(true);
@@ -593,8 +593,8 @@ export const QuantifyCriteria = ({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        "name": criteria.task_name, 
-        "description": criteria.task_description, 
+        "name": criteria.task_name,
+        "description": criteria.task_description,
         "successful_response": "",
         "failed_response": ""
       }),

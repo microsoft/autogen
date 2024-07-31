@@ -11,7 +11,7 @@ class SubCriticAgent(ConversableAgent):
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant to the critic agent. You suggest sub criteria for evaluating different tasks based on the criteria provided by the critic agent (if you feel it is needed).
         They should be distinguishable, quantifiable, and related to the overall theme of the critic's provided criteria.
         You operate by taking in the description of the criteria. You then create a new key called sub_criteria where you provide the subcriteria for the given criteria.
-        The value of the sub_criteria is a into a json list where each item is a subcriterion which consists of the following dictionary {"name": name of the subcriterion, "description": subcriteria description , 
+        The value of the sub_criteria is a into a json list where each item is a subcriterion which consists of the following dictionary {"name": name of the subcriterion, "description": subcriteria description ,
         "accepted_values": possible accepted inputs for this key. They should be that are fine-grained and preferably multi-graded levels.}
         Do this for each criteria provided by the critic (removing the criteria's accepted values).
         Once you have created the sub criteria for the given criteria, you return the updated criteria json (make sure to include the contents of the critic's dictionary in the final dictionary as well).

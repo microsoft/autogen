@@ -11,13 +11,13 @@ from ..datamodel import (
     AgentLink,
     AgentModelLink,
     AgentSkillLink,
+    Criteria,
     Model,
     Response,
     Skill,
     Workflow,
     WorkflowAgentLink,
     WorkflowAgentType,
-    Criteria
 )
 from .utils import init_db_samples
 

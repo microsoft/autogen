@@ -27,13 +27,14 @@ class Criterion(BaseModel):
         returns:
             [Criterion]: A list of Criterion objects that represents the json criteria information.
         """
-        def parse_dict(crit: dict):  
-            if 'sub_criteria' in crit:  
-                crit['sub_criteria'] = [parse_dict(c) for c in crit['sub_criteria']]
-            return Criterion(**crit)  
-  
-        criteria_list = json.loads(criteria)  
-        return [parse_dict(crit) for crit in criteria_list] 
+
+        def parse_dict(crit: dict):
+            if "sub_criteria" in crit:
+                crit["sub_criteria"] = [parse_dict(c) for c in crit["sub_criteria"]]
+            return Criterion(**crit)
+
+        criteria_list = json.loads(criteria)
+        return [parse_dict(crit) for crit in criteria_list]
 
     @staticmethod
     def write_json(criteria):
@@ -44,4 +45,4 @@ class Criterion(BaseModel):
         Returns:
             str: A json string that represents the list of Criterion objects.
         """
-        return json.dumps([crit.dict(exclude_unset=True) for crit in criteria], indent=2, default=str)  
+        return json.dumps([crit.dict(exclude_unset=True) for crit in criteria], indent=2, default=str)

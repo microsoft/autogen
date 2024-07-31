@@ -7,17 +7,17 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any, Union
 
-from autogenstudio.utils.utils import sanitize_model
+from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from loguru import logger
+from openai import OpenAIError
 from pydantic import BaseModel
 
 from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.task import Task
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from loguru import logger
-from openai import OpenAIError
+from autogenstudio.utils.utils import sanitize_model
 
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
@@ -490,9 +490,9 @@ class AgentEvalGenerate(BaseModel):
     user_id: str
     model_id: int
     task_name: str
-    task_description : str
-    success_session_id: int = None,
-    failure_session_id: int = None,
+    task_description: str
+    success_session_id: int = (None,)
+    failure_session_id: int = (None,)
     additonal_instructions: str = ""
     max_round: int = 5
     use_subcritic: bool = False
@@ -500,21 +500,23 @@ class AgentEvalGenerate(BaseModel):
 
 @api.post("/agenteval/criteria/generate")
 async def generate_agenteval_criteria(params: AgentEvalGenerate):
-    if(not params.success_session_id and not params.failure_session_id):
-        return {
-            "status": False,
-            "message": "At least one session is required to be selected."
-        }
+    if not params.success_session_id and not params.failure_session_id:
+        return {"status": False, "message": "At least one session is required to be selected."}
     task = Task(name=params.task_name, description=params.task_description, successful_response="", failed_response="")
-    if(params.success_session_id):
+    if params.success_session_id:
         task.successful_response = get_session(params.user_id, params.success_session_id)
-    if(params.failure_session_id):
+    if params.failure_session_id:
         task.failed_response = get_session(params.user_id, params.failure_session_id)
 
     model = get_model(params.model_id)
 
-    criteria = generate_criteria(llm_config=model, task=task, additional_instructions=params.additonal_instructions,
-                                 max_round=params.max_round, use_subcritic=params.use_subcritic)
+    criteria = generate_criteria(
+        llm_config=model,
+        task=task,
+        additional_instructions=params.additonal_instructions,
+        max_round=params.max_round,
+        use_subcritic=params.use_subcritic,
+    )
 
     criteria = Criterion.write_json(criteria)
     criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
@@ -537,20 +539,15 @@ async def validate_agenteval_criteria(criteria: str = Body(...)):
     except ValueError as ex:
         return {
             "status": False,
-            "message": f"Invalid json: " + str(ex),
+            "message": "Invalid json: " + str(ex),
         }
     except Exception as ex:
-        return {
-            "status": False,
-            "message": str(ex)
-        }
-    return {
-        "status": True
-    }
+        return {"status": False, "message": str(ex)}
+    return {"status": True}
 
 
 @api.post("/agenteval/quantify")
-async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task, test_session_id: int, user_id: str):
+async def quantify_agenteval_criteria(criteria_id: int, model_id: int, task: Task, test_session_id: int, user_id: str):
     filters = {"id": criteria_id}
     criteria = list_entity(Criteria, filters=filters).data[0]
     criteria = Criterion.parse_json_str(criteria["criteria"])
@@ -560,7 +557,7 @@ async def quantify_agenteval_criteria(criteria_id: int, model_id:int, task: Task
     return quantify_criteria(llm_config=model, criteria=criteria, task=task, test_case=test_case)
 
 
-def get_session(user_id:int, session_id:int):
+def get_session(user_id: int, session_id: int):
     filters = {"user_id": user_id, "session_id": session_id}
     session = list_entity(Message, filters=filters, order="asc", return_json=True).data
     return str(session)
@@ -569,13 +566,10 @@ def get_session(user_id:int, session_id:int):
 def get_model(model_id: int):
     filters = {"id": model_id}
     model = list_entity(Model, filters=filters).data
-    if(model and len(model) > 0):
+    if model and len(model) > 0:
         model = model[0]
     else:
-        return {
-            "status": False,
-            "message": "Invalid model id"
-        }
+        return {"status": False, "message": "Invalid model id"}
 
     return sanitize_model(model)
 

@@ -19,12 +19,12 @@ from ..datamodel import (
     AgentConfig,
     AgentType,
     CodeExecutionConfigTypes,
+    Criteria,
     Model,
     Skill,
     Workflow,
     WorkflowAgentLink,
     WorkFlowType,
-    Criteria
 )
 
 

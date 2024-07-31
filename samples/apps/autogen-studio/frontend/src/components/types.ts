@@ -115,14 +115,14 @@ export interface IAgentEvalCriteria {
 }
 
 export interface IAgentEvalGenerate {
-  user_id: string; 
+  user_id: string;
   model_id: number;
   task_name: string;
   task_description: string;
   success_session_id: number;
   failure_session_id: number;
   additional_instructions: string;
-  max_round: number; 
+  max_round: number;
   use_subcritic: boolean;
 }
 
