@@ -1471,9 +1471,9 @@ class ConversableAgent(LLMAgent):
             code_result = self._code_executor.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
             return (
-               True,
-               f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode file: {code_result.code_file}\nCode output: {code_result.output}",
-           )
+                True,
+                f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode file: {code_result.code_file}\nCode output: {code_result.output}",
+            )
 
         return False, None
 
