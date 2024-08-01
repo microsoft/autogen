@@ -120,6 +120,7 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 
 
 def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
+    assert_valid_name(message.source)
     if isinstance(message.content, str):
         return ChatCompletionUserMessageParam(
             content=message.content,
@@ -177,6 +178,7 @@ def tool_message_to_oai(
 def assistant_message_to_oai(
     message: AssistantMessage,
 ) -> ChatCompletionAssistantMessageParam:
+    assert_valid_name(message.source)
     if isinstance(message.content, list):
         return ChatCompletionAssistantMessageParam(
             tool_calls=[func_call_to_oai(x) for x in message.content],
