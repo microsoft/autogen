@@ -4,6 +4,7 @@ import asyncio
 import copy
 import inspect
 import os
+import re
 import sys
 import time
 import unittest
@@ -226,71 +227,39 @@ def test_context():
     )
     # expect hello there to be printed
 
-# @patch('autogen.coding.factory.CodeExecutorFactory')
-@patch('autogen.agentchat.conversable_agent.CodeExecutorFactory')
-def test_generate_code_execution_reply_using_executor(mock_factory):
-    user_proxy = UserProxyAgent(name="user_proxy", llm_config=False, human_input_mode="NEVER")
-
-    # Create a mock for code_extractor
-    code_extractor_mock = MagicMock()
-    def extract_code_blocks():
-        [
-            {
-                "language": "bash"
-            }
-        ]
-
-    code_extractor_mock.return_value = extract_code_blocks
-
-    # Create a mock for code_executor
-    code_executor_mock = MagicMock()
-    def execute_code_blocks():
-        return {
-            "exitcode": 0,
-            "output": "hello world",
-            "code_file": "tmp1234.sh"
-        }
-    code_executor_mock.execute_code_blocks.return_value = execute_code_blocks
-    
-    # Create the main mock instance and assign code_extractor and code_executor to it
-    mock_create = MagicMock()
-    def create():
-        return {
-            "code_extractor": code_extractor_mock,
-            "code_executor": code_executor_mock
-        }
-    
-    
-    mock_create.return_value = create
-    # Set the return value of CodeExecutorFactory.create to the main mock instance
-    mock_factory.create.return_value = mock_create
-
-
+def test_generate_code_execution_reply_using_executor():
     code_executor_agent = ConversableAgent(
         "code_executor_agent", 
         max_consecutive_auto_reply=10, 
         code_execution_config={
-            "executor": {
-                "test": True
-            }
+            "executor": "commandline-local"
         }, 
         llm_config=False, 
         human_input_mode="NEVER"
     )
 
-    from pprint import pprint
-    pprint(code_executor_agent._reply_func_list)
+    user_proxy = UserProxyAgent(name="user_proxy", llm_config=False, human_input_mode="NEVER")
 
+    # Code file should be returned
+    code_execution_result = user_proxy.initiate_chat(
+        code_executor_agent, 
+        message="""```sh
+        ls
+        ```""", max_turns=1
+            )
+    match = re.search(r"Code file: (.*)", code_execution_result.chat_history[-1]["content"])
+    assert match, "Expected 'Code File' to be in the code execution result"
 
-    code_execution_result = code_executor_agent.initiate_chat(
-        user_proxy, message="""```sh
-ls
-```""", max_turns=2
-    )
-
-    mock_factory.create.assert_called_once()
-    print(mock_factory.create.call_args_list)
-    raise Exception(code_execution_result)
+    # An out of workspace error should result in no code_file
+    code_execution_result = user_proxy.initiate_chat(
+    code_executor_agent, 
+    message=f"""```sh
+    # filename:/out/of/workspace.sh
+    ```
+    """, max_turns=1
+        )
+    assert "Code file: None" in code_execution_result.chat_history[-1]["content"], "Expected 'Code File: None' to be in the code execution result"
+    
 
 
 def test_generate_code_execution_reply():
