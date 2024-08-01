@@ -43,3 +43,19 @@ hatch shell
 
 > [!NOTE]
 > These don't need to be run in a virtual environment, `hatch` will automatically manage it for you.
+
+
+#### IntelliJ Support
+To enable the `hatch` virtual environment in IntelliJ, follow these steps:
+Under the `[tool.hatch.envs.default]` heading in `pyproject.toml`, add this:
+
+```toml
+[tool.hatch.envs.default]
+type = "virtual"
+path = ".venv"
+```
+Run `hatch shell` in the terminal to create the virtual environment.
+
+Then, in IntelliJ, go to `File` -> `Project Structure` -> `Project Settings` -> `Project` -> `Project SDK` and select the Python interpreter in the `.venv` directory.
+
+Once complete, your IDE should be able to resolve, run, and debug code.
