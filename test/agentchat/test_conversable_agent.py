@@ -9,7 +9,7 @@ import sys
 import time
 import unittest
 from typing import Any, Callable, Dict, Literal
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import BaseModel, Field
@@ -227,29 +227,29 @@ def test_context():
     )
     # expect hello there to be printed
 
+
 def test_generate_code_execution_reply_using_executor():
     code_executor_agent = ConversableAgent(
-        "code_executor_agent", 
-        max_consecutive_auto_reply=10, 
-        code_execution_config={
-            "executor": "commandline-local"
-        }, 
-        llm_config=False, 
-        human_input_mode="NEVER"
+        "code_executor_agent",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"executor": "commandline-local"},
+        llm_config=False,
+        human_input_mode="NEVER",
     )
 
     user_proxy = UserProxyAgent(name="user_proxy", llm_config=False, human_input_mode="NEVER")
 
     # Code file should be returned
     code_execution_result = user_proxy.initiate_chat(
-        code_executor_agent, 
+        code_executor_agent,
         message="""```sh
         ls
-        ```""", max_turns=1
-            )
+        ```""",
+        max_turns=1,
+    )
     match = re.search(r"Code file: (.*)", code_execution_result.chat_history[-1]["content"])
     assert match, "Expected 'Code File' to be in the code execution result"
-    
+
     # Cleanup code_file saved to system so as not to pollute test runners
     code_file = match.group(1)
     try:
@@ -258,17 +258,19 @@ def test_generate_code_execution_reply_using_executor():
             print(f"Temporary file {code_file} deleted successfully.")
     except Exception as e:
         print(f"An error occurred while deleting the file {code_file}: {e}")
-    
+
     # An out of workspace error should result in no code_file
     code_execution_result = user_proxy.initiate_chat(
-    code_executor_agent, 
-    message=f"""```sh
+        code_executor_agent,
+        message="""```sh
     # filename:/out/of/workspace.sh
     ```
-    """, max_turns=1
-        )
-    assert "Code file: None" in code_execution_result.chat_history[-1]["content"], "Expected 'Code File: None' to be in the code execution result"
-    
+    """,
+        max_turns=1,
+    )
+    assert (
+        "Code file: None" in code_execution_result.chat_history[-1]["content"]
+    ), "Expected 'Code File: None' to be in the code execution result"
 
 
 def test_generate_code_execution_reply():
