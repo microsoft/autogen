@@ -2185,7 +2185,7 @@ class ConversableAgent(LLMAgent):
             Ex 2:
             "{\n  \"location\": \"Boston, MA\"\n}" -> "{"location": "Boston, MA"}"
 
-        2. this function also handles JSON escape sequences inside quotes,
+        2. this function also handles JSON escape sequences inside quotes.
             Ex 1:
             '{"args": "a\na\na\ta"}' -> '{"args": "a\\na\\na\\ta"}'
         """
@@ -2234,7 +2234,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
@@ -2291,7 +2291,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
