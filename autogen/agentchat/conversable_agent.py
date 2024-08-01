@@ -1470,9 +1470,16 @@ class ConversableAgent(LLMAgent):
             # found code blocks, execute code.
             code_result = self._code_executor.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
+
+            # create resulting string
+            result_str = f"exitcode: {code_result.exit_code} ({exitcode2str})\n"
+            if hasattr(code_result, "code_file"):
+                result_str += f"Code file: {code_result.code_file}\n"
+            result_str += f"Code output: {code_result.output}"
+
             return (
                 True,
-                f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode file: {code_result.code_file}\nCode output: {code_result.output}",
+                result_str,
             )
 
         return False, None
