@@ -9,7 +9,7 @@ import sys
 import time
 import unittest
 from typing import Any, Callable, Dict, Literal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel, Field
