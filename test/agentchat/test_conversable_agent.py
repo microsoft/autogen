@@ -1520,6 +1520,52 @@ def test_handle_carryover():
     proc_content_empty_carryover = dummy_agent_1._handle_carryover(message=content, kwargs={"carryover": None})
     assert proc_content_empty_carryover == content, "Incorrect carryover processing"
 
+def test_valid_llm_config():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+
+        valid_config = {
+            "config_list": [
+                {"model": "gpt-4"},
+                {"model": "gpt-4", "api_key": MOCK_OPEN_AI_API_KEY, "tags": ["gpt4", "openai"]},
+            ],
+        }
+        assistant = ConversableAgent(
+            name="assistant",
+            llm_config=valid_config,
+        )
+        assert assistant is not None
+
+def test_invalid_llm_configs():
+    invalid_configs = [
+        {
+            "config_list": [
+                {"model": "gpt-4"},  # this is valid...
+                {"tags": ["gpt4", "openai"]},  # ...but this is invalid: missing model
+            ],
+        },
+        {
+            "config_list": [
+                {"model": "gpt-4", "tags": "invalid_tags"},  # invalid: tags is not list of strings
+            ],
+        },
+        {
+            "config_list": [
+                {"model": "gpt-4", "api_key": 1234},  # invalid api_key
+            ],
+        }
+    ]
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+
+        for invalid_config in invalid_configs:
+            with pytest.raises(ValueError):
+                ConversableAgent(
+                    name="assistant",
+                    llm_config=invalid_config,
+                )
+
 
 if __name__ == "__main__":
     # test_trigger()
