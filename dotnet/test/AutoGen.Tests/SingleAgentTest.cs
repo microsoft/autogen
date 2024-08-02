@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.LMStudio;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
@@ -64,7 +65,7 @@ namespace AutoGen.Tests
                 systemMessage: "You are a helpful AI assistant, return highest label from conversation",
                 config: gpt3Config,
                 temperature: 0,
-                functions: new[] { this.GetHighestLabelFunction },
+                functions: new[] { this.GetHighestLabelFunctionContract.ToOpenAIFunctionDefinition() },
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
                     { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
@@ -116,7 +117,7 @@ namespace AutoGen.Tests
         public async Task GPTFunctionCallAgentTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
-            var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
+            var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunctionContract.ToOpenAIFunctionDefinition() });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
         }
@@ -233,7 +234,7 @@ namespace AutoGen.Tests
                 systemMessage: "You are a helpful AI assistant",
                 config: config,
                 temperature: 0,
-                functions: new[] { this.EchoAsyncFunction },
+                functions: new[] { this.EchoAsyncFunctionContract.ToOpenAIFunctionDefinition() },
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
                     { nameof(EchoAsync), this.EchoAsyncWrapper },

@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 
 from openai import BadRequestError
 
+from autogen.agentchat.chat import _post_process_carryover_item
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from .._pydantic import model_dump
@@ -1722,7 +1723,7 @@ class ConversableAgent(LLMAgent):
         sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
-                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Replying as {self.name}. Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1835,7 +1836,7 @@ class ConversableAgent(LLMAgent):
         sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
-                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Replying as {self.name}. Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -2184,7 +2185,7 @@ class ConversableAgent(LLMAgent):
             Ex 2:
             "{\n  \"location\": \"Boston, MA\"\n}" -> "{"location": "Boston, MA"}"
 
-        2. this function also handles JSON escape sequences inside quotes,
+        2. this function also handles JSON escape sequences inside quotes.
             Ex 1:
             '{"args": "a\na\na\ta"}' -> '{"args": "a\\na\\na\\ta"}'
         """
@@ -2233,7 +2234,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
@@ -2290,7 +2291,7 @@ class ConversableAgent(LLMAgent):
                 arguments = json.loads(input_string)
             except json.JSONDecodeError as e:
                 arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
+                content = f"Error: {e}\n The argument must be in JSON format."
 
             # Try to execute the function
             if arguments is not None:
@@ -2364,7 +2365,7 @@ class ConversableAgent(LLMAgent):
         if isinstance(kwargs["carryover"], str):
             content += "\nContext: \n" + kwargs["carryover"]
         elif isinstance(kwargs["carryover"], list):
-            content += "\nContext: \n" + ("\n").join([t for t in kwargs["carryover"]])
+            content += "\nContext: \n" + ("\n").join([_post_process_carryover_item(t) for t in kwargs["carryover"]])
         else:
             raise InvalidCarryOverType(
                 "Carryover should be a string or a list of strings. Not adding carryover to the message."

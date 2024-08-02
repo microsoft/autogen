@@ -97,6 +97,7 @@ public class MistralClientAgent : IStreamingAgent
         var chatHistory = BuildChatHistory(messages);
         var chatRequest = new ChatCompletionRequest(model: _model, messages: chatHistory.ToList(), temperature: options?.Temperature, randomSeed: _randomSeed)
         {
+            Stop = options?.StopSequence,
             MaxTokens = options?.MaxToken,
             ResponseFormat = _jsonOutput ? new ResponseFormat() { ResponseFormatType = "json_object" } : null,
         };
