@@ -1447,7 +1447,7 @@ def test_http_client():
 
 def test_adding_duplicate_function_warning():
 
-    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL", "model": "na"}]
 
     agent = autogen.ConversableAgent(
         "jtoy",
