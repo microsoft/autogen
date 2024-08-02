@@ -28,6 +28,7 @@ dependencies = [
 [tool.hatch.envs.default]
 installer = "uv"
 dependencies = [
+    "azure-identity",
     "aiofiles",
     "chess",
     "colorama",
