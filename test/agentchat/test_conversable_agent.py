@@ -831,10 +831,28 @@ def test_register_for_llm_without_LLM():
             return f"{s} done"
 
 
+def test_register_for_llm_with_valid_configuration():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+
+        valid_config = {
+            "config_list": [
+                {"model": "gpt-4"},
+                {"model": "gpt-4", "api_key": MOCK_OPEN_AI_API_KEY, "tags": ["gpt4", "openai"]},
+            ],
+        }
+        assistant = ConversableAgent(
+            name="assistant",
+            llm_config=valid_config,
+        )
+        assert assistant is not None
+        assert assistant.llm_config == valid_config
+
+
 def test_register_for_llm_without_configuration():
     with pytest.raises(
         ValueError,
-        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="llm_config: 'config_list' must not be empty and must contain at least one config.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
 
@@ -842,9 +860,25 @@ def test_register_for_llm_without_configuration():
 def test_register_for_llm_without_model_name():
     with pytest.raises(
         ValueError,
-        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="llm_config: 'model' field is required for each config and must not be empty.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
+
+
+def test_register_for_llm_with_invalid_tags():
+    with pytest.raises(
+        ValueError,
+        match="llm_config: 'tags' must be a list of strings.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "tags": "invalid_tags"}]})
+
+
+def test_register_for_llm_with_invalid_api_key():
+    with pytest.raises(
+        ValueError,
+        match="llm_config: 'api_key' must be a string.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": 1234}]})
 
 
 def test_register_for_execution():
@@ -1519,54 +1553,6 @@ def test_handle_carryover():
 
     proc_content_empty_carryover = dummy_agent_1._handle_carryover(message=content, kwargs={"carryover": None})
     assert proc_content_empty_carryover == content, "Incorrect carryover processing"
-
-
-def test_valid_llm_config():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-
-        valid_config = {
-            "config_list": [
-                {"model": "gpt-4"},
-                {"model": "gpt-4", "api_key": MOCK_OPEN_AI_API_KEY, "tags": ["gpt4", "openai"]},
-            ],
-        }
-        assistant = ConversableAgent(
-            name="assistant",
-            llm_config=valid_config,
-        )
-        assert assistant is not None
-
-
-def test_invalid_llm_configs():
-    invalid_configs = [
-        {
-            "config_list": [
-                {"model": "gpt-4"},  # this is valid...
-                {"tags": ["gpt4", "openai"]},  # ...but this is invalid: missing model
-            ],
-        },
-        {
-            "config_list": [
-                {"model": "gpt-4", "tags": "invalid_tags"},  # invalid: tags is not list of strings
-            ],
-        },
-        {
-            "config_list": [
-                {"model": "gpt-4", "api_key": 1234},  # invalid api_key
-            ],
-        },
-    ]
-
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-
-        for invalid_config in invalid_configs:
-            with pytest.raises(ValueError):
-                ConversableAgent(
-                    name="assistant",
-                    llm_config=invalid_config,
-                )
 
 
 if __name__ == "__main__":

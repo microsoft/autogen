@@ -257,21 +257,25 @@ class ConversableAgent(LLMAgent):
 
         self.llm_config = llm_config
 
+        print(f"llm_config: {llm_config}")
+
         if isinstance(self.llm_config, dict):
             config_list = self.llm_config.get("config_list", [])
             if not isinstance(config_list, list):
-                raise ValueError("config_list must be a list.")
+                raise ValueError("llm_config: 'config_list' must be a list.")
+            if not config_list:
+                raise ValueError("llm_config: 'config_list' must not be empty and must contain at least one config.")
 
             for config in config_list:
                 if not isinstance(config, dict):
-                    raise ValueError("Each item in 'config_list' must be a dict.")
+                    raise ValueError("llm_config: 'config_list' must be a list of dictionaries.")
                 if "model" not in config or not config["model"]:
-                    raise ValueError("Each config in 'config_list' must have a non-empty 'model' field.")
+                    raise ValueError("llm_config: 'model' field is required for each config and must not be empty.")
                 if "api_key" in config and not isinstance(config["api_key"], str):
-                    raise ValueError("Invalid 'api_key': must be a string.")
+                    raise ValueError("llm_config: 'api_key' must be a string.")
                 if "tags" in config:
                     if not isinstance(config["tags"], list) or not all(isinstance(tag, str) for tag in config["tags"]):
-                        raise ValueError("Invalid tags: must be a list of strings.")
+                        raise ValueError("llm_config: 'tags' must be a list of strings.")
         self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
 
     @property
