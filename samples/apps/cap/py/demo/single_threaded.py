@@ -1,8 +1,8 @@
 import _paths
 from AppAgents import GreeterAgent
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Error
 from autogencap.proto.CAP_pb2 import Ping
+from autogencap.runtime_factory import RuntimeFactory
 
 
 def single_threaded_demo():
@@ -11,7 +11,7 @@ def single_threaded_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
-    ensemble = ComponentEnsemble()
+    ensemble = RuntimeFactory.get_runtime("ZMQ")
     agent = GreeterAgent(start_thread=False)
     ensemble.register(agent)
     ensemble.connect()

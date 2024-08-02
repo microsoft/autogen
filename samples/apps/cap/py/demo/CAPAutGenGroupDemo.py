@@ -1,7 +1,7 @@
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
 from autogencap.ag_adapter.CAPGroupChatManager import CAPGroupChatManager
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Info
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
@@ -31,7 +31,7 @@ def cap_ag_group_demo():
         system_message="Creative in software product ideas.",
         llm_config=gpt4_config,
     )
-    ensemble = ComponentEnsemble()
+    ensemble = RuntimeFactory.get_runtime("ZMQ")
     cap_groupchat = CAPGroupChat(
         agents=[user_proxy, coder, pm], messages=[], max_round=12, ensemble=ensemble, chat_initiator=user_proxy.name
     )
