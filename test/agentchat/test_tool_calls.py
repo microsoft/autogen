@@ -208,6 +208,7 @@ def test_multi_tool_call():
         def __init__(self, name):
             self._name = name
             self.received = []
+            self.silent = False
 
         @property
         def name(self):
@@ -303,6 +304,7 @@ async def test_async_multi_tool_call():
         def __init__(self, name):
             self._name = name
             self.received = []
+            self.silent = False
 
         @property
         def name(self):
