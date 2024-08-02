@@ -8,7 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Channels;
 using Grpc.Net.Client.Configuration;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using static System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 
 namespace Microsoft.AI.Agents.Worker.Client;
 
@@ -56,7 +58,8 @@ public static class HostBuilderExtensions
 
 public sealed class AgentApplicationBuilder(IHostApplicationBuilder builder)
 {
-    public AgentApplicationBuilder AddAgent<TAgent>(string typeName) where TAgent : AgentBase
+    public AgentApplicationBuilder AddAgent<
+        [DynamicallyAccessedMembers(PublicConstructors)] TAgent>(string typeName) where TAgent : AgentBase
     {
         builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
         return this;
