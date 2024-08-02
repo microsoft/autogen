@@ -27,12 +27,9 @@
 	  <EmbeddedResource Include="RestoreInteractive.config" />
 	</ItemGroup>
 
-  <ItemGroup>
-		<PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
-	</ItemGroup>
-
 	<ItemGroup>
 	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
 	</ItemGroup>
 
 </Project>
