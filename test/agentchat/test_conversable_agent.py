@@ -1520,6 +1520,7 @@ def test_handle_carryover():
     proc_content_empty_carryover = dummy_agent_1._handle_carryover(message=content, kwargs={"carryover": None})
     assert proc_content_empty_carryover == content, "Incorrect carryover processing"
 
+
 def test_valid_llm_config():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
@@ -1535,6 +1536,7 @@ def test_valid_llm_config():
             llm_config=valid_config,
         )
         assert assistant is not None
+
 
 def test_invalid_llm_configs():
     invalid_configs = [
@@ -1553,7 +1555,7 @@ def test_invalid_llm_configs():
             "config_list": [
                 {"model": "gpt-4", "api_key": 1234},  # invalid api_key
             ],
-        }
+        },
     ]
 
     with pytest.MonkeyPatch.context() as mp:

@@ -261,7 +261,7 @@ class ConversableAgent(LLMAgent):
             config_list = self.llm_config.get("config_list", [])
             if not isinstance(config_list, list):
                 raise ValueError("config_list must be a list.")
-        
+
             for config in config_list:
                 if not isinstance(config, dict):
                     raise ValueError("Each item in 'config_list' must be a dict.")
@@ -273,7 +273,7 @@ class ConversableAgent(LLMAgent):
                     if not isinstance(config["tags"], list) or not all(isinstance(tag, str) for tag in config["tags"]):
                         raise ValueError("Invalid tags: must be a list of strings.")
         self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
-        
+
     @property
     def name(self) -> str:
         """Get the name of the agent."""
