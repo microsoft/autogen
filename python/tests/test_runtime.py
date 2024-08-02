@@ -1,6 +1,6 @@
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import AgentId, AgentRuntime
+from agnext.core import AgentId, AgentInstantiationContext
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
 
 
@@ -8,7 +8,8 @@ from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, Mess
 async def test_agent_names_must_be_unique() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    def agent_factory(runtime: AgentRuntime, id: AgentId) -> NoopAgent:
+    def agent_factory() -> NoopAgent:
+        id = AgentInstantiationContext.current_agent_id()
         assert id == AgentId("name1", "default")
         agent = NoopAgent()
         assert agent.id == id

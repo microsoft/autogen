@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import threading
+import warnings
 from asyncio import Future, Task
 from collections import defaultdict
 from collections.abc import Sequence
@@ -30,16 +31,9 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY, agent_instantiation_context
+from agnext.core import MESSAGE_TYPE_REGISTRY
 
-from ..core import (
-    Agent,
-    AgentId,
-    AgentMetadata,
-    AgentProxy,
-    AgentRuntime,
-    CancellationToken,
-)
+from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentProxy, AgentRuntime, CancellationToken
 from .protos import AgentId as AgentIdProto
 from .protos import (
     AgentRpcStub,
@@ -371,11 +365,15 @@ class WorkerAgentRuntime(AgentRuntime):
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         agent_id: AgentId,
     ) -> T:
-        with agent_instantiation_context((self, agent_id)):
+        with AgentInstantiationContext.populate_context((self, agent_id)):
             if len(inspect.signature(agent_factory).parameters) == 0:
                 factory_one = cast(Callable[[], T], agent_factory)
                 agent = factory_one()
             elif len(inspect.signature(agent_factory).parameters) == 2:
+                warnings.warn(
+                    "Agent factories that take two arguments are deprecated. Use AgentInstantiationContext instead. Two arg factories will be removed in a future version.",
+                    stacklevel=2,
+                )
                 factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
                 agent = factory_two(self, agent_id)
             else:

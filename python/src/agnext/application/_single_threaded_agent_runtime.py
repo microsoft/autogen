@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import threading
+import warnings
 from asyncio import CancelledError, Future, Task
 from collections import defaultdict
 from collections.abc import Sequence
@@ -15,11 +16,11 @@ from ..core import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
     AgentId,
+    AgentInstantiationContext,
     AgentMetadata,
     AgentProxy,
     AgentRuntime,
     CancellationToken,
-    agent_instantiation_context,
 )
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
@@ -461,11 +462,15 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         agent_id: AgentId,
     ) -> T:
-        with agent_instantiation_context((self, agent_id)):
+        with AgentInstantiationContext.populate_context((self, agent_id)):
             if len(inspect.signature(agent_factory).parameters) == 0:
                 factory_one = cast(Callable[[], T], agent_factory)
                 agent = factory_one()
             elif len(inspect.signature(agent_factory).parameters) == 2:
+                warnings.warn(
+                    "Agent factories that take two arguments are deprecated. Use AgentInstantiationContext instead. Two arg factories will be removed in a future version.",
+                    stacklevel=2,
+                )
                 factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
                 agent = factory_two(self, agent_id)
             else:

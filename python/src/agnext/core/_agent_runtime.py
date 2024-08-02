@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from contextvars import ContextVar
-from typing import Any, Awaitable, Callable, Generator, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
+from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, runtime_checkable
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -13,19 +11,6 @@ from ._cancellation_token import CancellationToken
 # Undeliverable - error
 
 T = TypeVar("T", bound=Agent)
-
-AGENT_INSTANTIATION_CONTEXT_VAR: ContextVar[tuple[AgentRuntime, AgentId]] = ContextVar(
-    "AGENT_INSTANTIATION_CONTEXT_VAR"
-)
-
-
-@contextmanager
-def agent_instantiation_context(ctx: tuple[AgentRuntime, AgentId]) -> Generator[None, Any, None]:
-    token = AGENT_INSTANTIATION_CONTEXT_VAR.set(ctx)
-    try:
-        yield
-    finally:
-        AGENT_INSTANTIATION_CONTEXT_VAR.reset(token)
 
 
 @runtime_checkable
@@ -79,30 +64,16 @@ class AgentRuntime(Protocol):
             UndeliverableException: If the message cannot be delivered.
         """
 
-    @overload
     async def register(
         self,
         name: str,
         agent_factory: Callable[[], T | Awaitable[T]],
-    ) -> None: ...
-
-    @overload
-    async def register(
-        self,
-        name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-    ) -> None: ...
-
-    async def register(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
         """Register an agent factory with the runtime associated with a specific name. The name must be unique.
 
         Args:
             name (str): The name of the type agent this factory creates.
-            agent_factory (Callable[[], T] | Callable[[AgentRuntime, AgentId], T]): The factory that creates the agent, where T is a concrete Agent type.
+            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `agnext.core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
 
 
         Example:
@@ -166,28 +137,10 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    @overload
     async def register_and_get(
         self,
         name: str,
         agent_factory: Callable[[], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentId: ...
-
-    @overload
-    async def register_and_get(
-        self,
-        name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentId: ...
-
-    async def register_and_get(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentId:
@@ -195,7 +148,7 @@ class AgentRuntime(Protocol):
 
         Args:
             name (str): The name of the type agent this factory creates.
-            agent_factory (Callable[[], T] | Callable[[AgentRuntime, AgentId], T]): The factory that creates the agent, where T is a concrete Agent type.
+            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `agnext.core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
             namespace (str, optional): The namespace of the agent. Defaults to "default".
 
         Returns:
@@ -204,28 +157,10 @@ class AgentRuntime(Protocol):
         await self.register(name, agent_factory)
         return await self.get(name, namespace=namespace)
 
-    @overload
     async def register_and_get_proxy(
         self,
         name: str,
         agent_factory: Callable[[], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentProxy: ...
-
-    @overload
-    async def register_and_get_proxy(
-        self,
-        name: str,
-        agent_factory: Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentProxy: ...
-
-    async def register_and_get_proxy(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
         *,
         namespace: str = "default",
     ) -> AgentProxy:
@@ -233,7 +168,7 @@ class AgentRuntime(Protocol):
 
         Args:
             name (str): The name of the type agent this factory creates.
-            agent_factory (Callable[[], T] | Callable[[AgentRuntime, AgentId], T]): The factory that creates the agent, where T is a concrete Agent type.
+            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type.
             namespace (str, optional): The namespace of the agent. Defaults to "default".
 
         Returns:

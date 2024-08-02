@@ -9,7 +9,7 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, SystemMessage
-from agnext.core import AgentRuntime, CancellationToken
+from agnext.core import AgentInstantiationContext, AgentRuntime, CancellationToken
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -97,8 +97,8 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     )
     alice = await runtime.register_and_get_proxy(
         "Alice",
-        lambda rt, id: ChatRoomAgent(
-            name=id.name,
+        lambda: ChatRoomAgent(
+            name=AgentInstantiationContext.current_agent_id().name,
             description="Alice in the chat room.",
             background_story="Alice is a software engineer who loves to code.",
             memory=BufferedChatMemory(buffer_size=10),
@@ -107,8 +107,8 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     )
     bob = await runtime.register_and_get_proxy(
         "Bob",
-        lambda rt, id: ChatRoomAgent(
-            name=id.name,
+        lambda: ChatRoomAgent(
+            name=AgentInstantiationContext.current_agent_id().name,
             description="Bob in the chat room.",
             background_story="Bob is a data scientist who loves to analyze data.",
             memory=BufferedChatMemory(buffer_size=10),
@@ -117,8 +117,8 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     )
     charlie = await runtime.register_and_get_proxy(
         "Charlie",
-        lambda rt, id: ChatRoomAgent(
-            name=id.name,
+        lambda: ChatRoomAgent(
+            name=AgentInstantiationContext.current_agent_id().name,
             description="Charlie in the chat room.",
             background_story="Charlie is a designer who loves to create art.",
             memory=BufferedChatMemory(buffer_size=10),

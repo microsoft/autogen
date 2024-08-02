@@ -4,10 +4,11 @@ The :mod:`agnext.core` module provides the foundational generic interfaces upon 
 
 from ._agent import Agent
 from ._agent_id import AgentId
+from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_props import AgentChildren
 from ._agent_proxy import AgentProxy
-from ._agent_runtime import AGENT_INSTANTIATION_CONTEXT_VAR, AgentRuntime, agent_instantiation_context
+from ._agent_runtime import AgentRuntime
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._serialization import MESSAGE_TYPE_REGISTRY, TypeDeserializer, TypeSerializer
@@ -23,8 +24,7 @@ __all__ = [
     "BaseAgent",
     "CancellationToken",
     "AgentChildren",
-    "agent_instantiation_context",
-    "AGENT_INSTANTIATION_CONTEXT_VAR",
+    "AgentInstantiationContext",
     "MESSAGE_TYPE_REGISTRY",
     "TypeSerializer",
     "TypeDeserializer",
