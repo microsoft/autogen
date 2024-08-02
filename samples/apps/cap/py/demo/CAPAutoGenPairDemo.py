@@ -2,8 +2,8 @@ import time
 
 import autogencap.DebugLog as DebugLog
 from autogencap.ag_adapter.CAPPair import CAPPair
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import ConsoleLogger, Info
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
@@ -20,7 +20,7 @@ def cap_ag_pair_demo():
     )
 
     # Composable Agent Platform AutoGen Pair adapter
-    ensemble = ComponentEnsemble()
+    ensemble = RuntimeFactory.get_runtime("ZMQ")
 
     pair = CAPPair(ensemble, user_proxy, assistant)
     user_cmd = "Plot a chart of MSFT daily closing prices for last 1 Month"
