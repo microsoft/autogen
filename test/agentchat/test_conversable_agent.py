@@ -852,7 +852,7 @@ def test_register_for_llm_with_valid_configuration():
 def test_register_for_llm_without_configuration():
     with pytest.raises(
         ValueError,
-        match="llm_config: 'config_list' must not be empty and must contain at least one config.",
+        match="llm_config: 'model' field is required in 'llm_config' or each 'config_list' entry.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
 
@@ -860,7 +860,7 @@ def test_register_for_llm_without_configuration():
 def test_register_for_llm_without_model_name():
     with pytest.raises(
         ValueError,
-        match="llm_config: 'model' field is required for each config and must not be empty.",
+        match="llm_config: 'model' field is required for each item in 'config_list' and must not be empty.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
