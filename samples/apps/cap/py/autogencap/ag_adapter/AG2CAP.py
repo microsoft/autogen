@@ -3,7 +3,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 from autogen import Agent, ConversableAgent
 
-from ..ComponentEnsemble import ComponentEnsemble
+from ..actor_runtime import IRuntime
 from .AutoGenConnector import AutoGenConnector
 
 
@@ -14,13 +14,13 @@ class AG2CAP(ConversableAgent):
 
     def __init__(
         self,
-        ensemble: ComponentEnsemble,
+        ensemble: IRuntime,
         agent_name: str,
         agent_description: Optional[str] = None,
     ):
         super().__init__(name=agent_name, description=agent_description, llm_config=False)
         self._agent_connector: AutoGenConnector = None
-        self._ensemble: ComponentEnsemble = ensemble
+        self._ensemble: IRuntime = ensemble
         self._recv_called = False
 
     def reset_receive_called(self):
