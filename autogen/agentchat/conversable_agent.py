@@ -250,19 +250,30 @@ class ConversableAgent(LLMAgent):
         }
 
     def _validate_llm_config(self, llm_config):
-        assert llm_config in (None, False) or isinstance(
-            llm_config, dict
-        ), "llm_config must be a dict or False or None."
+        assert llm_config in (None, False) or isinstance(llm_config, dict), "llm_config must be a dict, False, or None."
+
         if llm_config is None:
             llm_config = self.DEFAULT_CONFIG
-        self.llm_config = self.DEFAULT_CONFIG if llm_config is None else llm_config
-        # TODO: more complete validity check
-        if self.llm_config in [{}, {"config_list": []}, {"config_list": [{"model": ""}]}]:
-            raise ValueError(
-                "When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
-            )
-        self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
 
+        self.llm_config = llm_config
+
+        if isinstance(self.llm_config, dict):
+            config_list = self.llm_config.get("config_list", [])
+            if not isinstance(config_list, list):
+                raise ValueError("config_list must be a list.")
+        
+            for config in config_list:
+                if not isinstance(config, dict):
+                    raise ValueError("Each item in 'config_list' must be a dict.")
+                if "model" not in config or not config["model"]:
+                    raise ValueError("Each config in 'config_list' must have a non-empty 'model' field.")
+                if "api_key" in config and not isinstance(config["api_key"], str):
+                    raise ValueError("Invalid 'api_key': must be a string.")
+                if "tags" in config:
+                    if not isinstance(config["tags"], list) or not all(isinstance(tag, str) for tag in config["tags"]):
+                        raise ValueError("Invalid tags: must be a list of strings.")
+        self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
+        
     @property
     def name(self) -> str:
         """Get the name of the agent."""
