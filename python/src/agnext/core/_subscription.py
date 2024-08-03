@@ -8,6 +8,17 @@ from ._topic import TopicId
 class Subscription(Protocol):
     """Subscriptions define the topics that an agent is interested in."""
 
+    @property
+    def id(self) -> str:
+        """Get the ID of the subscription.
+
+        Implementations should return a unique ID for the subscription. Usually this is a UUID.
+
+        Returns:
+            str: ID of the subscription.
+        """
+        ...
+
     def is_match(self, topic_id: TopicId) -> bool:
         """Check if a given topic_id matches the subscription.
 

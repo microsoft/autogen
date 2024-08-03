@@ -1,3 +1,5 @@
+import uuid
+
 from agnext.core.exceptions import CantHandleException
 
 from ..core import AgentId, Subscription, TopicId
@@ -27,6 +29,11 @@ class TypeSubscription(Subscription):
 
         self._topic_type = topic_type
         self._agent_type = agent_type
+        self._id = str(uuid.uuid4())
+
+    @property
+    def id(self) -> str:
+        return self._id
 
     def is_match(self, topic_id: TopicId) -> bool:
         return topic_id.type == self._topic_type
