@@ -13,7 +13,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>
 namespace <#=NameSpace#>
