@@ -444,7 +444,8 @@ class ConversableAgent(LLMAgent):
         if not chat_to_run:
             return True, None
         res = await a_initiate_chats(chat_to_run)
-        return True, res[-1].summary
+        index_of_last_chat = chat_to_run[-1]["chat_id"]
+        return True, res[index_of_last_chat].summary
 
     def register_nested_chats(
         self,
@@ -492,7 +493,7 @@ class ConversableAgent(LLMAgent):
             ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
         )
 
-    async def a_register_nested_chats(
+    def a_register_nested_chats(
         self,
         chat_queue: List[Dict[str, Any]],
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
@@ -525,7 +526,7 @@ class ConversableAgent(LLMAgent):
             raise ValueError("reply_func_from_nested_chats must be a callable")
 
         async def a_wrapped_reply_func(recipient, messages=None, sender=None, config=None):
-            return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+            return await reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
 
         functools.update_wrapper(a_wrapped_reply_func, reply_func_from_nested_chats)
 
@@ -535,7 +536,7 @@ class ConversableAgent(LLMAgent):
             position,
             kwargs.get("config"),
             kwargs.get("reset_config"),
-            ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat", True),
+            ignore_async_in_sync_chat=True,
         )
 
     @property

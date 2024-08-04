@@ -8,7 +8,7 @@ These configurations can be used with Codespaces and locally.
 
 ### base
 
-- **Purpose**: This Dockerfile, i.e., `./Dockerfile`, is designed for basic setups. It includes common Python libraries and essential dependencies required for general usage of AutoGen.
+- **Purpose**: This fwfile, i.e., `./fwfile`, is designed for basic setups. It includes common Python libraries and essential dependencies required for general usage of AutoGen.
 - **Usage**: Ideal for those just starting with AutoGen or for general-purpose applications.
 - **Building the Image**: Run `docker build -f ./Dockerfile -t autogen_base_img .` in this directory.
 - **Using with Codespaces**: `Code > Codespaces > Click on +` By default + creates a Codespace on the current branch.
