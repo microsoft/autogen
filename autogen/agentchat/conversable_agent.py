@@ -410,7 +410,7 @@ class ConversableAgent(LLMAgent):
             return True, None
         res = initiate_chats(chat_to_run)
         return True, res[-1].summary
-    
+
     @staticmethod
     async def _a_summary_from_nested_chats(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any

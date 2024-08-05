@@ -14,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import reason, skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
+
 class MockAgentReplies(AgentCapability):
     def __init__(self, mock_messages: List[str]):
         self.mock_messages = mock_messages
@@ -27,7 +28,9 @@ class MockAgentReplies(AgentCapability):
                 return [True, reply_msg]
             else:
                 raise ValueError(f"No more mock messages available for {sender.name} to reply to {recipient.name}")
+
         agent.register_reply([autogen.Agent, None], mock_reply, position=2)
+
 
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_nested():
@@ -157,6 +160,7 @@ def test_nested():
         ]
     )
 
+
 def test_sync_nested_chat():
     def is_termination(msg):
         if isinstance(msg, str) and msg == "FINAL_RESULT":
@@ -164,17 +168,20 @@ def test_sync_nested_chat():
         elif isinstance(msg, dict) and msg.get("content") == "FINAL_RESULT":
             return True
         return False
+
     inner_assistant = autogen.AssistantAgent(
         "Inner-assistant",
         is_termination_msg=is_termination,
     )
     MockAgentReplies(["Inner-assistant message 1", "Inner-assistant message 2"]).add_to_agent(inner_assistant)
-    
+
     inner_assistant_2 = autogen.AssistantAgent(
         "Inner-assistant-2",
     )
-    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(inner_assistant_2)
-    
+    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(
+        inner_assistant_2
+    )
+
     assistant = autogen.AssistantAgent(
         "Assistant",
     )
@@ -182,17 +189,16 @@ def test_sync_nested_chat():
         "User",
         human_input_mode="NEVER",
         is_termination_msg=is_termination,
-        
     )
     assistant.register_nested_chats(
-        [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg"}],
-        trigger=user
+        [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg"}], trigger=user
     )
     chat_result = user.initiate_chat(assistant, message="Start chat")
-    assert(len(chat_result.chat_history) == 2)
+    assert len(chat_result.chat_history) == 2
     chat_messages = [msg["content"] for msg in chat_result.chat_history]
-    assert(chat_messages == ["Start chat", "FINAL_RESULT"])
-    
+    assert chat_messages == ["Start chat", "FINAL_RESULT"]
+
+
 @pytest.mark.asyncio
 async def test_async_nested_chat():
     def is_termination(msg):
@@ -201,17 +207,20 @@ async def test_async_nested_chat():
         elif isinstance(msg, dict) and msg.get("content") == "FINAL_RESULT":
             return True
         return False
+
     inner_assistant = autogen.AssistantAgent(
         "Inner-assistant",
         is_termination_msg=is_termination,
     )
     MockAgentReplies(["Inner-assistant message 1", "Inner-assistant message 2"]).add_to_agent(inner_assistant)
-    
+
     inner_assistant_2 = autogen.AssistantAgent(
         "Inner-assistant-2",
     )
-    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(inner_assistant_2)
-    
+    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(
+        inner_assistant_2
+    )
+
     assistant = autogen.AssistantAgent(
         "Assistant",
     )
@@ -219,16 +228,16 @@ async def test_async_nested_chat():
         "User",
         human_input_mode="NEVER",
         is_termination_msg=is_termination,
-        
     )
     assistant.a_register_nested_chats(
         [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg", "chat_id": 1}],
-        trigger=user
+        trigger=user,
     )
     chat_result = await user.a_initiate_chat(assistant, message="Start chat")
-    assert(len(chat_result.chat_history) == 2)
+    assert len(chat_result.chat_history) == 2
     chat_messages = [msg["content"] for msg in chat_result.chat_history]
-    assert(chat_messages == ["Start chat", "FINAL_RESULT"])
+    assert chat_messages == ["Start chat", "FINAL_RESULT"]
+
 
 def test_sync_nested_chat_in_group():
     def is_termination(msg):
@@ -237,17 +246,20 @@ def test_sync_nested_chat_in_group():
         elif isinstance(msg, dict) and msg.get("content") == "FINAL_RESULT":
             return True
         return False
+
     inner_assistant = autogen.AssistantAgent(
         "Inner-assistant",
         is_termination_msg=is_termination,
     )
     MockAgentReplies(["Inner-assistant message 1", "Inner-assistant message 2"]).add_to_agent(inner_assistant)
-    
+
     inner_assistant_2 = autogen.AssistantAgent(
         "Inner-assistant-2",
     )
-    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(inner_assistant_2)
-    
+    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(
+        inner_assistant_2
+    )
+
     assistant = autogen.AssistantAgent(
         "Assistant_In_Group_1",
     )
@@ -255,11 +267,7 @@ def test_sync_nested_chat_in_group():
     assistant2 = autogen.AssistantAgent(
         "Assistant_In_Group_2",
     )
-    user = autogen.UserProxyAgent(
-        "User",
-        human_input_mode="NEVER",
-        is_termination_msg=is_termination
-    )
+    user = autogen.UserProxyAgent("User", human_input_mode="NEVER", is_termination_msg=is_termination)
     group = autogen.GroupChat(
         agents=[assistant, assistant2, user],
         messages=[],
@@ -268,13 +276,14 @@ def test_sync_nested_chat_in_group():
     group_manager = autogen.GroupChatManager(groupchat=group)
     assistant2.register_nested_chats(
         [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg"}],
-        trigger=group_manager
+        trigger=group_manager,
     )
-    
+
     chat_result = user.initiate_chat(group_manager, message="Start chat", summary_method="last_msg")
-    assert(len(chat_result.chat_history) == 3)
+    assert len(chat_result.chat_history) == 3
     chat_messages = [msg["content"] for msg in chat_result.chat_history]
-    assert(chat_messages == ["Start chat", "Assistant_In_Group_1 message 1", "FINAL_RESULT"])
+    assert chat_messages == ["Start chat", "Assistant_In_Group_1 message 1", "FINAL_RESULT"]
+
 
 @pytest.mark.asyncio
 async def test_async_nested_chat_in_group():
@@ -284,17 +293,20 @@ async def test_async_nested_chat_in_group():
         elif isinstance(msg, dict) and msg.get("content") == "FINAL_RESULT":
             return True
         return False
+
     inner_assistant = autogen.AssistantAgent(
         "Inner-assistant",
         is_termination_msg=is_termination,
     )
     MockAgentReplies(["Inner-assistant message 1", "Inner-assistant message 2"]).add_to_agent(inner_assistant)
-    
+
     inner_assistant_2 = autogen.AssistantAgent(
         "Inner-assistant-2",
     )
-    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(inner_assistant_2)
-    
+    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(
+        inner_assistant_2
+    )
+
     assistant = autogen.AssistantAgent(
         "Assistant_In_Group_1",
     )
@@ -302,11 +314,7 @@ async def test_async_nested_chat_in_group():
     assistant2 = autogen.AssistantAgent(
         "Assistant_In_Group_2",
     )
-    user = autogen.UserProxyAgent(
-        "User",
-        human_input_mode="NEVER",
-        is_termination_msg=is_termination
-    )
+    user = autogen.UserProxyAgent("User", human_input_mode="NEVER", is_termination_msg=is_termination)
     group = autogen.GroupChat(
         agents=[assistant, assistant2, user],
         messages=[],
@@ -315,13 +323,14 @@ async def test_async_nested_chat_in_group():
     group_manager = autogen.GroupChatManager(groupchat=group)
     assistant2.a_register_nested_chats(
         [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg", "chat_id": 1}],
-        trigger=group_manager
+        trigger=group_manager,
     )
-    
+
     chat_result = await user.a_initiate_chat(group_manager, message="Start chat", summary_method="last_msg")
-    assert(len(chat_result.chat_history) == 3)
+    assert len(chat_result.chat_history) == 3
     chat_messages = [msg["content"] for msg in chat_result.chat_history]
-    assert(chat_messages == ["Start chat", "Assistant_In_Group_1 message 1", "FINAL_RESULT"])
+    assert chat_messages == ["Start chat", "Assistant_In_Group_1 message 1", "FINAL_RESULT"]
+
 
 if __name__ == "__main__":
     test_nested()
