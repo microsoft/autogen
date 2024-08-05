@@ -239,6 +239,43 @@ async def test_async_nested_chat():
     assert chat_messages == ["Start chat", "FINAL_RESULT"]
 
 
+@pytest.mark.asyncio
+async def test_async_nested_chat_chat_id_validation():
+    def is_termination(msg):
+        if isinstance(msg, str) and msg == "FINAL_RESULT":
+            return True
+        elif isinstance(msg, dict) and msg.get("content") == "FINAL_RESULT":
+            return True
+        return False
+
+    inner_assistant = autogen.AssistantAgent(
+        "Inner-assistant",
+        is_termination_msg=is_termination,
+    )
+    MockAgentReplies(["Inner-assistant message 1", "Inner-assistant message 2"]).add_to_agent(inner_assistant)
+
+    inner_assistant_2 = autogen.AssistantAgent(
+        "Inner-assistant-2",
+    )
+    MockAgentReplies(["Inner-assistant-2 message 1", "Inner-assistant-2 message 2", "FINAL_RESULT"]).add_to_agent(
+        inner_assistant_2
+    )
+
+    assistant = autogen.AssistantAgent(
+        "Assistant",
+    )
+    user = autogen.UserProxyAgent(
+        "User",
+        human_input_mode="NEVER",
+        is_termination_msg=is_termination,
+    )
+    with pytest.raises(ValueError, match="chat_id is required for async nested chats"):
+        assistant.a_register_nested_chats(
+            [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg"}],
+            trigger=user,
+        )
+
+
 def test_sync_nested_chat_in_group():
     def is_termination(msg):
         if isinstance(msg, str) and msg == "FINAL_RESULT":

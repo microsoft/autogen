@@ -503,7 +503,7 @@ class ConversableAgent(LLMAgent):
     ) -> None:
         """Register a nested chat reply function.
         Args:
-            chat_queue (list): a list of chat objects to be initiated.
+            chat_queue (list): a list of chat objects to be initiated. For async messages in the chat_queue, please include a chat_id in the chat object.
             trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
@@ -520,6 +520,10 @@ class ConversableAgent(LLMAgent):
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
             kwargs: Ref to `register_reply` for details.
         """
+        for chat in chat_queue:
+            if chat.get("chat_id") is None:
+                raise ValueError("chat_id is required for async nested chats")
+
         if reply_func_from_nested_chats == "summary_from_nested_chats":
             reply_func_from_nested_chats = self._a_summary_from_nested_chats
         if not callable(reply_func_from_nested_chats):
