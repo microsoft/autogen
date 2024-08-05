@@ -42,18 +42,20 @@ class TeamOneBaseAgent(TypeRoutedAgent):
                 # TODO: Do we need to resolve the future here?
                 continue
 
-            if isinstance(message, RequestReplyMessage):
-                await self._handle_request_reply(message, cancellation_token)
-            elif isinstance(message, BroadcastMessage):
-                await self._handle_broadcast(message, cancellation_token)
-            elif isinstance(message, ResetMessage):
-                await self._handle_reset(message, cancellation_token)
-            elif isinstance(message, DeactivateMessage):
-                await self._handle_deactivate(message, cancellation_token)
-            else:
-                raise ValueError("Unknown message type.")
-
-            future.set_result(None)
+            try:
+                if isinstance(message, RequestReplyMessage):
+                    await self._handle_request_reply(message, cancellation_token)
+                elif isinstance(message, BroadcastMessage):
+                    await self._handle_broadcast(message, cancellation_token)
+                elif isinstance(message, ResetMessage):
+                    await self._handle_reset(message, cancellation_token)
+                elif isinstance(message, DeactivateMessage):
+                    await self._handle_deactivate(message, cancellation_token)
+                else:
+                    raise ValueError("Unknown message type.")
+                future.set_result(None)
+            except Exception as e:
+                future.set_exception(e)
 
     @message_handler
     async def handle_incoming_message(
