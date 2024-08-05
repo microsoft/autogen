@@ -458,7 +458,7 @@ class ConversableAgent(LLMAgent):
     ) -> None:
         """Register a nested chat reply function.
         Args:
-            chat_queue (list): a list of chat objects to be initiated. If use_async is messages in the chat_queue, please include a chat_id in the chat object.
+            chat_queue (list): a list of chat objects to be initiated. If use_async is used, then all messages in chat_queue must have a chat-id associated with them.
             trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
