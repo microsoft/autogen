@@ -453,11 +453,12 @@ class ConversableAgent(LLMAgent):
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
         position: int = 2,
+        use_async: Union[bool, None] = None,
         **kwargs,
     ) -> None:
         """Register a nested chat reply function.
         Args:
-            chat_queue (list): a list of chat objects to be initiated.
+            chat_queue (list): a list of chat objects to be initiated. If use_async is messages in the chat_queue, please include a chat_id in the chat object.
             trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
@@ -472,17 +473,36 @@ class ConversableAgent(LLMAgent):
             ) -> Tuple[bool, Union[str, Dict, None]]:
             ```
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
+            use_async: Uses a_initiate_chats internally to start nested chats. If the original chat is initiated with a_initiate_chats, set this to true so nested chats do not run in sync.
             kwargs: Ref to `register_reply` for details.
         """
-        if reply_func_from_nested_chats == "summary_from_nested_chats":
-            reply_func_from_nested_chats = self._summary_from_nested_chats
-        if not callable(reply_func_from_nested_chats):
-            raise ValueError("reply_func_from_nested_chats must be a callable")
+        if use_async:
+            for chat in chat_queue:
+                if chat.get("chat_id") is None:
+                    raise ValueError("chat_id is required for async nested chats")
 
-        def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
-            return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+        if use_async:
+            if reply_func_from_nested_chats == "summary_from_nested_chats":
+                reply_func_from_nested_chats = self._a_summary_from_nested_chats
+            if not callable(reply_func_from_nested_chats) or not inspect.iscoroutinefunction(
+                reply_func_from_nested_chats
+            ):
+                raise ValueError("reply_func_from_nested_chats must be a callable and a coroutine")
 
-        functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
+            async def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
+                return await reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+
+            functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
+        else:
+            if reply_func_from_nested_chats == "summary_from_nested_chats":
+                reply_func_from_nested_chats = self._summary_from_nested_chats
+            if not callable(reply_func_from_nested_chats):
+                raise ValueError("reply_func_from_nested_chats must be a callable")
+
+            def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
+                return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+
+            functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
 
         self.register_reply(
             trigger,
@@ -490,57 +510,9 @@ class ConversableAgent(LLMAgent):
             position,
             kwargs.get("config"),
             kwargs.get("reset_config"),
-            ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
-        )
-
-    def a_register_nested_chats(
-        self,
-        chat_queue: List[Dict[str, Any]],
-        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
-        reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
-        position: int = 2,
-        **kwargs,
-    ) -> None:
-        """Register a nested chat reply function.
-        Args:
-            chat_queue (list): a list of chat objects to be initiated. For async messages in the chat_queue, please include a chat_id in the chat object.
-            trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
-            reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
-                The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
-                Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
-            ```python
-            def reply_func_from_nested_chats(
-                chat_queue: List[Dict],
-                recipient: ConversableAgent,
-                messages: Optional[List[Dict]] = None,
-                sender: Optional[Agent] = None,
-                config: Optional[Any] = None,
-            ) -> Tuple[bool, Union[str, Dict, None]]:
-            ```
-            position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
-            kwargs: Ref to `register_reply` for details.
-        """
-        for chat in chat_queue:
-            if chat.get("chat_id") is None:
-                raise ValueError("chat_id is required for async nested chats")
-
-        if reply_func_from_nested_chats == "summary_from_nested_chats":
-            reply_func_from_nested_chats = self._a_summary_from_nested_chats
-        if not callable(reply_func_from_nested_chats):
-            raise ValueError("reply_func_from_nested_chats must be a callable")
-
-        async def a_wrapped_reply_func(recipient, messages=None, sender=None, config=None):
-            return await reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
-
-        functools.update_wrapper(a_wrapped_reply_func, reply_func_from_nested_chats)
-
-        self.register_reply(
-            trigger,
-            a_wrapped_reply_func,
-            position,
-            kwargs.get("config"),
-            kwargs.get("reset_config"),
-            ignore_async_in_sync_chat=True,
+            ignore_async_in_sync_chat=(
+                not use_async if use_async is not None else kwargs.get("ignore_async_in_sync_chat")
+            ),
         )
 
     @property

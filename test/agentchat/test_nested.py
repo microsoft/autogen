@@ -229,9 +229,10 @@ async def test_async_nested_chat():
         human_input_mode="NEVER",
         is_termination_msg=is_termination,
     )
-    assistant.a_register_nested_chats(
+    assistant.register_nested_chats(
         [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg", "chat_id": 1}],
         trigger=user,
+        use_async=True,
     )
     chat_result = await user.a_initiate_chat(assistant, message="Start chat")
     assert len(chat_result.chat_history) == 2
@@ -270,9 +271,10 @@ async def test_async_nested_chat_chat_id_validation():
         is_termination_msg=is_termination,
     )
     with pytest.raises(ValueError, match="chat_id is required for async nested chats"):
-        assistant.a_register_nested_chats(
+        assistant.register_nested_chats(
             [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg"}],
             trigger=user,
+            use_async=True,
         )
 
 
@@ -358,9 +360,10 @@ async def test_async_nested_chat_in_group():
         speaker_selection_method="round_robin",
     )
     group_manager = autogen.GroupChatManager(groupchat=group)
-    assistant2.a_register_nested_chats(
+    assistant2.register_nested_chats(
         [{"sender": inner_assistant, "recipient": inner_assistant_2, "summary_method": "last_msg", "chat_id": 1}],
         trigger=group_manager,
+        use_async=True,
     )
 
     chat_result = await user.a_initiate_chat(group_manager, message="Start chat", summary_method="last_msg")
