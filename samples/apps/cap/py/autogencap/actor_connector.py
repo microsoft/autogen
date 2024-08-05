@@ -4,7 +4,6 @@
 from abc import ABC, abstractmethod
 
 
-
 class IActorSender(ABC):
     @abstractmethod
     def send_txt_msg(self, msg):

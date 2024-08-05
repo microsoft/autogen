@@ -1,5 +1,5 @@
-from autogencap.ag_adapter.cap_group_chat_manager import CAPGroupChatManager
 from autogencap.ag_adapter.cap_group_chat import CAPGroupChat
+from autogencap.ag_adapter.cap_group_chat_manager import CAPGroupChatManager
 from autogencap.DebugLog import Info
 from autogencap.runtime_factory import RuntimeFactory
 
