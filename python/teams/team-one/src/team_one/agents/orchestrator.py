@@ -82,8 +82,9 @@ class LedgerOrchestrator(BaseOrchestrator):
     async def _get_team_description(self) -> str:
         team_description = ""
         for agent in self._agents:
-            name = (await agent.metadata)["name"]
-            description = (await agent.metadata)["description"]
+            metadata = await agent.metadata
+            name = metadata["name"]
+            description = metadata["description"]
             team_description += f"{name}: {description}\n"
         return team_description
 

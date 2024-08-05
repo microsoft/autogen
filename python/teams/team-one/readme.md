@@ -9,7 +9,7 @@ Team-One is a generalist multi-agent softbot that utilizes a combination of five
 
 <center>
 <img src="./imgs/team-one-landing.png" alt="drawing" style="width:350px;"/>
-</center
+</center>
 
 
 

@@ -32,6 +32,8 @@ class BaseAgent(ABC, Agent):
 
         self._runtime: AgentRuntime = runtime
         self._id: AgentId = id
+        if not isinstance(description, str):
+            raise ValueError("Agent description must be a string")
         self._description = description
         self._subscriptions = subscriptions
 
