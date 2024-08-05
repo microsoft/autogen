@@ -473,7 +473,7 @@ class ConversableAgent(LLMAgent):
             ) -> Tuple[bool, Union[str, Dict, None]]:
             ```
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
-            use_async: Uses a_initiate_chats internally to start nested chats. If the original chat is initiated with a_initiate_chats, set this to true so nested chats do not run in sync.
+            use_async: Uses a_initiate_chats internally to start nested chats. If the original chat is initiated with a_initiate_chats, you may set this to true so nested chats do not run in sync.
             kwargs: Ref to `register_reply` for details.
         """
         if use_async:
