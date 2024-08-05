@@ -32,12 +32,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Hatch
         uses: pypa/hatch@install
+      - name: Install Pandoc
+        run: sudo apt-get install pandoc
       - run: hatch run docs:build
         working-directory: ./python
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'python/docs/build'
+          path: "python/docs/build"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

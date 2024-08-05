@@ -91,6 +91,8 @@ dependencies = [
     "sphinxcontrib-apidoc",
     "myst-parser",
     "sphinx-autobuild",
+    "nbsphinx",
+    "Ipython",
 ]
 
 [tool.hatch.envs.docs.scripts]

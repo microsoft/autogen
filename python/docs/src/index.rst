@@ -50,6 +50,8 @@ To learn about the core concepts of AGNext, read the following sections:
     cookbook/termination-with-intervention
     cookbook/buffered-memory
     cookbook/extracting-results-with-an-agent
+    cookbook/langgraph-agent
+    cookbook/llamaindex-agent
 
 
 .. toctree::

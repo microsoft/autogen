@@ -13,31 +13,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+        working-directory:
+          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Install Hatch
-      uses: pypa/hatch@install
-    - run: hatch run ruff format --check
-      working-directory: ${{ matrix.working-directory }}
+      - uses: actions/checkout@v4
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run ruff format --check
+        working-directory: ${{ matrix.working-directory }}
 
   lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+        working-directory:
+          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Install Hatch
-      uses: pypa/hatch@install
-    - run: hatch run ruff check
-      working-directory: ${{ matrix.working-directory }}
+      - uses: actions/checkout@v4
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run ruff check
+        working-directory: ${{ matrix.working-directory }}
 
   mypy:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+        working-directory:
+          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -49,7 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        working-directory: ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+        working-directory:
+          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -89,5 +93,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Hatch
         uses: pypa/hatch@install
+      - name: Install Pandoc
+        run: sudo apt-get install pandoc
       - run: hatch run docs:check
         working-directory: ./python

@@ -19,15 +19,17 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinxcontrib.apidoc",
     "myst_parser",
-    "sphinx.ext.intersphinx"
+    "sphinx.ext.intersphinx",
+    "nbsphinx",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
-apidoc_module_dir = '../../src/agnext'
-apidoc_output_dir = 'reference'
-apidoc_template_dir = '_apidoc_templates'
+apidoc_module_dir = "../../src/agnext"
+apidoc_output_dir = "reference"
+apidoc_template_dir = "_apidoc_templates"
 apidoc_separate_modules = True
 apidoc_extra_args = ["--no-toc"]
-napoleon_custom_sections = [('Returns', 'params_style')]
+napoleon_custom_sections = [("Returns", "params_style")]
 apidoc_excluded_paths = ["./worker/protos/"]
 
 templates_path = []
@@ -45,7 +47,7 @@ nb_execution_timeout = 60
 html_title = "AGNext"
 
 html_theme = "furo"
-html_static_path = []
+html_static_path = ["_static"]
 
 html_theme_options = {
     "source_repository": "https://github.com/microsoft/agnext",
@@ -58,4 +60,4 @@ autodoc_default_options = {
     "undoc-members": True,
 }
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
