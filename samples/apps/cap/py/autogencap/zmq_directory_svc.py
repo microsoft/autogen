@@ -2,10 +2,11 @@ import re
 import threading
 import time
 
+from autogencap.zmq_runtime import ZMQActorConnector
 import zmq
 
 from autogencap.Actor import Actor
-from autogencap.ActorConnector import ActorConnector, ActorSender
+from autogencap.zmq_runtime import ZMQActorSender
 from autogencap.Broker import Broker
 from autogencap.Config import router_url, xpub_url, xsub_url
 from autogencap.constants import Directory_Svc_Topic
@@ -29,7 +30,7 @@ from autogencap.utility import report_error_msg
 # service more generic and powerful
 
 
-class DirectoryActor(Actor):
+class ZMQDirectoryActor(Actor):
     def __init__(self, topic: str, name: str):
         super().__init__(topic, name)
         self._registered_actors = {}
@@ -50,7 +51,7 @@ class DirectoryActor(Actor):
         Info("DirectorySvc", f"Ping received: {sender_topic}")
         pong = Pong()
         serialized_msg = pong.SerializeToString()
-        sender_connection = ActorSender(self._context, sender_topic)
+        sender_connection = ZMQActorSender(self._context, sender_topic)
         sender_connection.send_bin_msg(Pong.__name__, serialized_msg)
 
     def _on_actor_registration_msg(self, topic: str, msg_type: str, msg: bytes, sender_topic: str):
@@ -67,7 +68,7 @@ class DirectoryActor(Actor):
         else:
             self._registered_actors[name] = actor_reg.actor_info
 
-        sender_connection = ActorSender(self._context, sender_topic)
+        sender_connection = ZMQActorSender(self._context, sender_topic)
         serialized_msg = err.SerializeToString()
         sender_connection.send_bin_msg(ErrorMsg.__name__, serialized_msg)
 
@@ -96,16 +97,16 @@ class DirectoryActor(Actor):
         else:
             Error("DirectorySvc", f"Actor not found: {actor_lookup.actor_info.name}")
 
-        sender_connection = ActorSender(self._context, sender_topic)
+        sender_connection = ZMQActorSender(self._context, sender_topic)
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
 
 
-class DirectorySvc:
+class ZMQDirectorySvc:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
-        self._directory_connector: ActorConnector = None
-        self._directory_actor: DirectoryActor = None
+        self._directory_connector: ZMQActorConnector = None
+        self._directory_actor: ZMQDirectoryActor = None
 
     def _no_other_directory(self) -> bool:
         Debug("DirectorySvc", "Pinging existing DirectorySvc")
@@ -118,9 +119,9 @@ class DirectorySvc:
 
     def start(self):
         Debug("DirectorySvc", "Starting.")
-        self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
+        self._directory_connector = ZMQActorConnector(self._context, Directory_Svc_Topic)
         if self._no_other_directory():
-            self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
+            self._directory_actor = ZMQDirectoryActor(Directory_Svc_Topic, "Directory Service")
             self._directory_actor.on_start(self._context)
             Info("DirectorySvc", "Directory service started.")
         else:
@@ -176,7 +177,7 @@ def main():
     proxy: Broker = Broker(context)
     proxy.start()
     # Start the directory service
-    directory_svc = DirectorySvc(context)
+    directory_svc = ZMQDirectorySvc(context)
     directory_svc.start()
     # # How do you register an actor?
     # directory_svc.register_actor_by_name("my_actor")

@@ -1,7 +1,7 @@
 import time
 
 from autogen import GroupChatManager
-from autogencap.ActorConnector import ActorConnector
+from autogencap.actor_runtime import IActorConnector
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
 
@@ -25,7 +25,7 @@ class CAPGroupChatManager:
 
     def initiate_chat(self, txt_msg: str) -> None:
         self._ensemble.connect()
-        user_proxy_conn: ActorConnector = self._ensemble.find_by_name(self._cap_group_chat.chat_initiator)
+        user_proxy_conn: IActorConnector = self._ensemble.find_by_name(self._cap_group_chat.chat_initiator)
         user_proxy_conn.send_txt_msg(txt_msg)
         self._wait_for_user_exit()
 

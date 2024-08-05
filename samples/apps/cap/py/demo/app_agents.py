@@ -6,10 +6,8 @@ to retrieve information.
 
 from autogencap.Actor import Actor
 from autogencap.actor_runtime import IRuntime
-from autogencap.ActorConnector import ActorConnector
+from autogencap.actor_connector import IActorConnector
 from autogencap.DebugLog import Debug, Info, shorten
-from autogencap.runtime_factory import RuntimeFactory
-
 
 class GreeterAgent(Actor):
     """
@@ -132,10 +130,10 @@ class PersonalAssistant(Actor):
         description="This is the personal assistant, who knows how to connect to the other agents and get information from them.",
     ):
         super().__init__(agent_name, description)
-        self.fidelity: ActorConnector = None
-        self.financial_planner: ActorConnector = None
-        self.quant: ActorConnector = None
-        self.risk_manager: ActorConnector = None
+        self.fidelity: IActorConnector = None
+        self.financial_planner: IActorConnector = None
+        self.quant: IActorConnector = None
+        self.risk_manager: IActorConnector = None
 
     def on_connect(self, network: IRuntime):
         """
