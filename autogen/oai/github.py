@@ -1,4 +1,4 @@
-'''Create a Github LLM Client with Azure Fallback.
+"""Create a Github LLM Client with Azure Fallback.
 
 # Usage example:
 if __name__ == "__main__":
@@ -7,9 +7,9 @@ if __name__ == "__main__":
         "system_prompt": "You are a knowledgeable history teacher.",
         "use_azure_fallback": True
     }
-    
+
     wrapper = GithubWrapper(config_list=[config])
-    
+
     response = wrapper.create(messages=[{"role": "user", "content": "What is the capital of France?"}])
     print(wrapper.message_retrieval(response)[0])
 
@@ -18,28 +18,28 @@ if __name__ == "__main__":
         {"role": "assistant", "content": "The French Revolution was a period of major social and political upheaval in France that began in 1789 with the Storming of the Bastille and ended in the late 1790s with the ascent of Napoleon Bonaparte."},
         {"role": "user", "content": "What were the main causes?"}
     ]
-    
+
     response = wrapper.create(messages=conversation)
     print(wrapper.message_retrieval(response)[0])
-'''
+"""
 
 from __future__ import annotations
-
-import os
-import logging
-import time
 import json
-from typing import Any, Dict, List, Optional, Union, Tuple
+import logging
+import os
+import time
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 from openai.types.completion_usage import CompletionUsage
 
-from autogen.oai.client_utils import should_hide_tools, validate_parameter
 from autogen.cache import Cache
+from autogen.oai.client_utils import should_hide_tools, validate_parameter
 
 logger = logging.getLogger(__name__)
+
 
 class GithubClient:
     """GitHub LLM Client with Azure Fallback"""
@@ -66,7 +66,7 @@ class GithubClient:
         "phi-3-mini-instruct-128k",
         "phi-3-mini-instruct-4k",
         "phi-3-small-instruct-128k",
-        "phi-3-small-instruct-8k"
+        "phi-3-small-instruct-8k",
     ]
 
     def __init__(self, **kwargs):
@@ -97,22 +97,15 @@ class GithubClient:
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config."""
         messages = params.get("messages", [])
-        
+
         if "system" not in [m["role"] for m in messages]:
             messages.insert(0, {"role": "system", "content": self.system_prompt})
 
-        data = {
-            "messages": messages,
-            "model": self.model,
-            **params
-        }
+        data = {"messages": messages, "model": self.model, **params}
 
         if self._check_rate_limit():
             try:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {self.github_token}"
-                }
+                headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.github_token}"}
 
                 response = self._call_api(self.github_endpoint_url, headers, data)
                 self._increment_request_count()
@@ -121,10 +114,7 @@ class GithubClient:
                 logger.warning(f"GitHub API call failed: {str(e)}. Falling back to Azure.")
 
         if self.use_azure_fallback:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.azure_api_key}"
-            }
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.azure_api_key}"}
 
             response = self._call_api(self.github_endpoint_url, headers, data)
             return self._process_response(response)
@@ -157,11 +147,8 @@ class GithubClient:
         choices = [
             Choice(
                 index=i,
-                message=ChatCompletionMessage(
-                    role="assistant",
-                    content=choice["message"]["content"]
-                ),
-                finish_reason=choice.get("finish_reason")
+                message=ChatCompletionMessage(role="assistant", content=choice["message"]["content"]),
+                finish_reason=choice.get("finish_reason"),
             )
             for i, choice in enumerate(response_data["choices"])
         ]
@@ -169,7 +156,7 @@ class GithubClient:
         usage = CompletionUsage(
             prompt_tokens=response_data["usage"]["prompt_tokens"],
             completion_tokens=response_data["usage"]["completion_tokens"],
-            total_tokens=response_data["usage"]["total_tokens"]
+            total_tokens=response_data["usage"]["total_tokens"],
         )
 
         return ChatCompletion(
@@ -178,7 +165,7 @@ class GithubClient:
             created=response_data["created"],
             object="chat.completion",
             choices=choices,
-            usage=usage
+            usage=usage,
         )
 
     def cost(self, response: ChatCompletion) -> float:
