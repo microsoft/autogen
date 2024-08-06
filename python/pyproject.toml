@@ -89,9 +89,8 @@ dependencies = [
     "sphinx",
     "furo",
     "sphinxcontrib-apidoc",
-    "myst-parser",
+    "myst-nb",
     "sphinx-autobuild",
-    "nbsphinx",
     "Ipython",
 ]
 

@@ -4,7 +4,7 @@ import openai
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import CancellationToken
 from openai import AsyncAssistantEventHandler
-from openai.types.beta import AssistantResponseFormatParam
+from openai.types import ResponseFormatJSONObject, ResponseFormatText  # type: ignore
 
 from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
@@ -30,7 +30,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
         client: openai.AsyncClient,
         assistant_id: str,
         thread_id: str,
-        assistant_event_handler_factory: Callable[[], AsyncAssistantEventHandler] | None = None,
+        assistant_event_handler_factory: (Callable[[], AsyncAssistantEventHandler] | None) = None,
     ) -> None:
         super().__init__(description)
         self._client = client
@@ -80,13 +80,15 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
         await self.publish_message(response)
 
     async def _generate_response(
-        self, requested_response_format: ResponseFormat, cancellation_token: CancellationToken
+        self,
+        requested_response_format: ResponseFormat,
+        cancellation_token: CancellationToken,
     ) -> TextMessage:
         # Handle response format.
         if requested_response_format == ResponseFormat.json_object:
-            response_format = AssistantResponseFormatParam(type="json_object")
+            response_format = ResponseFormatJSONObject(type="json_object")  # type: ignore
         else:
-            response_format = AssistantResponseFormatParam(type="text")
+            response_format = ResponseFormatText(type="text")  # type: ignore
 
         if self._assistant_event_handler_factory is not None:
             # Use event handler and streaming mode if available.
@@ -94,7 +96,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
                 thread_id=self._thread_id,
                 assistant_id=self._assistant_id,
                 event_handler=self._assistant_event_handler_factory(),
-                response_format=response_format,
+                response_format=response_format,  # type: ignore
             ) as stream:
                 run = await stream.get_final_run()
         else:
@@ -102,7 +104,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
             run = await self._client.beta.threads.runs.create(
                 thread_id=self._thread_id,
                 assistant_id=self._assistant_id,
-                response_format=response_format,
+                response_format=response_format,  # type: ignore
             )
 
         if run.status != "completed":

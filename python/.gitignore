@@ -169,3 +169,9 @@ src/agnext/worker/protos/agent*
 
 # Generated log files
 log.jsonl
+
+# Jupyter notebooks executions in docs.
+docs/**/jupyter_execute
+
+# Temporary files
+tmp_code_*.py

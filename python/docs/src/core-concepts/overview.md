@@ -2,10 +2,17 @@
 
 This section provides the background and overview of AGNext.
 
-## Multi-Agent Application
+## Agent and Multi-Agent Application
+
+An agent is a software entity that
+communicates via messages, maintains a state,
+and performs actions in response to messages or a change in its state.
+Actions can result in changes to the agent's state and external effects,
+for example, updating message history, sending a message, executing code,
+or making external API calls.
 
 A wide variety of software applications can be modeled as a collection of independent
-agents that communicate with each other through messages:
+agents that communicate with each other:
 sensors on a factory floor,
 distributed services powering web applications,
 business workflows involving multiple stakeholders,
@@ -13,6 +20,11 @@ and more recently, artificial intelligence (AI) agents powered by language model
 (e.g., GPT-4) that can write code and interact with
 other software systems.
 We refer to them as multi-agent applications.
+
+```{note}
+AI agents make use of language models as part of
+their software stacks to perform actions. 
+```
 
 In a multi-agent application, agents can live in the same process, on the same machine,
 or on different machines and across organizational boundaries.
@@ -95,7 +107,7 @@ The following diagram shows the AGNext application stack.
 At the bottom of the stack is the base messaging and routing facilities that
 enable agents to communicate with each other. These are managed by the
 agent runtime, and for most applications, developers only need to interact
-with the high-level APIs provided by the runtime (see [Foundation](foundation.md)).
+with the high-level APIs provided by the runtime (see [Agent and Agent Runtime](../getting-started/agent-and-agent-runtime.ipynb)).
 
 On top of the communication stack, developers need to define the
 types of the messages that agents exchange. A set of message types
@@ -103,10 +115,8 @@ forms a behavior contract that agents must adhere to, and the
 implementation of the contracts determines how agents handle messages.
 The behavior contract is sometimes referred to as the message protocol.
 It is the developer's responsibility to implement the behavior contract.
-See [AI Agents](ai-agents.md) for how to build AI agents
-that implement behavior contract.
 Multi-agent patterns are design patterns that emerge from behavior contracts
-(see [Multi-Agent Patterns](patterns.md)).
+(see [Multi-Agent Design Patterns](../getting-started/multi-agent-design-patterns.ipynb)).
 
 ### An Example Application
 

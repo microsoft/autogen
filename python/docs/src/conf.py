@@ -18,9 +18,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinxcontrib.apidoc",
-    "myst_parser",
+    "myst_nb",
     "sphinx.ext.intersphinx",
-    "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
@@ -36,6 +35,9 @@ templates_path = []
 exclude_patterns = ["reference/agnext.rst"]
 
 autoclass_content = "init"
+
+# TODO: incldue all notebooks excluding those requiring remote API access.
+nb_execution_mode = "off"
 
 # Guides and tutorials must succeed.
 nb_execution_raise_on_error = True

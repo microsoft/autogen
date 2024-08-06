@@ -12,27 +12,24 @@ You can also implement agents using other agent frameworks and run them in AGNex
 To get you started quickly, we offers
 `a suite of samples <https://github.com/microsoft/agnext/tree/main/python/samples>`_.
 
-To learn about the core concepts of AGNext, read the following sections:
-
-- `Overview <core-concepts/overview>`_ on the architecture design.
-- `Foundation <core-concepts/foundation>`_ on agent runtime and inter-agent communication.
-- `AI Agents <core-concepts/ai-agents>`_ on how to build AI agents.
-- `Multi-Agent Patterns <core-concepts/patterns>`_ on multi-agent collaboration patterns.
-
-.. toctree::
-    :caption: Getting started
-    :hidden:
-
-    getting-started/installation
+To learn about the core concepts of AGNext, read the `overview <core-concepts/overview.html>`_.
 
 .. toctree::
     :caption: Core Concepts
     :hidden:
 
     core-concepts/overview
-    core-concepts/foundation
-    core-concepts/ai-agents
-    core-concepts/patterns
+
+.. toctree::
+    :caption: Getting started
+    :hidden:
+
+    getting-started/installation
+    getting-started/agent-and-agent-runtime
+    getting-started/message-and-communication
+    getting-started/model-clients
+    getting-started/tools
+    getting-started/multi-agent-design-patterns
 
 .. toctree::
     :caption: Guides
