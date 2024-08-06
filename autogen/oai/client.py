@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import sys
 import uuid
@@ -398,6 +399,21 @@ class OpenAIWrapper:
             {
                 "model": "llama-7B",
                 "base_url": "http://127.0.0.1:8080",
+            },
+            {
+                "model": "gpt-4",
+                "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
+                "api_type": "azure",
+                "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
+                "api_version": "2024-02-15-preview",
+                "default_headers": {"Authorization": f"Bearer {os.environ.get('AZURE_OPENAI_API_TOKEN')}"},
+            },
+            {
+                "model": "gpt-3.5-turbo",
+                "api_key": os.environ.get("OPENAI_API_KEY"),
+                "api_type": "openai",
+                "base_url": "https://api.openai.com/v1",
+                "default_headers": "{\"Authorization\": \"Bearer AZURE_OPENAI_API_TOKEN\"}",
             }
         ]
         ```
@@ -473,6 +489,10 @@ class OpenAIWrapper:
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         api_type = config.get("api_type")
+        default_headers = config.get("default_headers")
+        if isinstance(default_headers, str):
+            openai_config["default_headers"] = json.loads(default_headers)
+
         model_client_cls_name = config.get("model_client_cls")
         if model_client_cls_name is not None:
             # a config for a custom client is set
