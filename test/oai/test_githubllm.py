@@ -1,7 +1,9 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from autogen.oai.github import GithubClient, GithubWrapper
+
 
 @pytest.fixture
 def github_client():
@@ -19,7 +21,7 @@ def github_wrapper():
 def test_github_client_initialization(github_client):
     assert github_client.model == "gpt-4o"
     assert github_client.system_prompt == "Test prompt"
-    assert github_client.use_azure_fallback == True
+    assert github_client.use_azure_fallback
 
 
 def test_github_client_unsupported_model():
@@ -92,16 +94,17 @@ def test_github_wrapper_create(mock_create, github_wrapper):
     assert hasattr(response, "config_id")
     mock_create.assert_called_once_with(params)
 
+
 def test_github_wrapper_message_retrieval(github_wrapper):
     mock_response = MagicMock()
     mock_response.config_id = 0
-
 
     with patch.object(github_wrapper._clients[0], "message_retrieval") as mock_retrieval:
         mock_retrieval.return_value = ["Test message"]
         messages = github_wrapper.message_retrieval(mock_response)
 
     assert messages == ["Test message"]
+
 
 def test_github_wrapper_cost(github_wrapper):
     mock_response = MagicMock()

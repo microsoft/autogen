@@ -24,6 +24,7 @@ if __name__ == "__main__":
 """
 
 from __future__ import annotations
+
 import json
 import logging
 import os
@@ -183,6 +184,7 @@ class GithubClient:
             "model": response.model,
         }
 
+
 class GithubWrapper:
     """Wrapper for GitHub LLM Client"""
 
@@ -226,4 +228,3 @@ class GithubWrapper:
     def get_usage(response: ChatCompletion) -> Dict:
         """Get usage information from the response."""
         return GithubClient.get_usage(response)
-
