@@ -85,4 +85,29 @@ public class GroupChatTests
 
         chatHistory.Count().Should().Be(2);
     }
+
+    [Fact]
+    public async Task ItTerminateConversationWhenNoSpeakerAvailable()
+    {
+        // fix #3306
+        var alice = new DefaultReplyAgent("Alice", "I am alice");
+        var bob = new DefaultReplyAgent("Bob", "I am bob");
+        var cathy = new DefaultReplyAgent("Cathy", $"I am cathy, {GroupChatExtension.TERMINATE}");
+
+        var orchestrator = Mock.Of<IOrchestrator>();
+        Mock.Get(orchestrator).Setup(x => x.GetNextSpeakerAsync(It.IsAny<OrchestrationContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IAgent?)null);
+
+        var groupChat = new GroupChat([alice, bob, cathy], orchestrator);
+
+        var chatHistory = new List<IMessage>();
+
+        var maxRound = 10;
+        await foreach (var message in groupChat.SendAsync(chatHistory, maxRound))
+        {
+            chatHistory.Add(message);
+        }
+
+        chatHistory.Count().Should().Be(0);
+    }
 }
