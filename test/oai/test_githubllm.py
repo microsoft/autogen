@@ -19,7 +19,7 @@ def github_wrapper():
 def test_github_client_initialization(github_client):
     assert github_client.model == "gpt-4o"
     assert github_client.system_prompt == "Test prompt"
-    assert github_client.use_azure_fallback == True
+    assert github_client.use_azure_fallback
 
 
 def test_github_client_unsupported_model():
