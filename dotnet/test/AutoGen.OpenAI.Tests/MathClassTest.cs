@@ -110,7 +110,7 @@ teacher, please create the next math question";
                 functions: [this.UpdateProgressFunctionContract],
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
-                    { this.UpdateProgressFunction.Name!, this.UpdateProgressWrapper },
+                    { this.UpdateProgressFunctionContract.Name, this.UpdateProgressWrapper },
                 });
             var admin = new OpenAIChatAgent(
                 openAIClient: openaiClient,
