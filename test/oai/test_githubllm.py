@@ -75,7 +75,7 @@ def test_github_client_get_usage(github_client):
     assert usage["total_tokens"] == 30
     assert usage["model"] == "gpt-4o"
 
-@patch('your_module.GithubClient.create')
+@patch('autogen.oai.github.GithubClient.create')
 def test_github_wrapper_create(mock_create, github_wrapper):
     mock_response = MagicMock()
     mock_create.return_value = mock_response
