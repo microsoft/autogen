@@ -5,7 +5,7 @@ from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components.models import AssistantMessage, LLMMessage, UserMessage
 from agnext.core import AgentProxy, CancellationToken
 
-from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
+from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage, ResetMessage
 from ..utils import message_content_to_str
 from .base_agent import TeamOneBaseAgent
 
@@ -82,3 +82,10 @@ class BaseOrchestrator(TeamOneBaseAgent):
 
     def get_max_rounds(self) -> int:
         return self._max_rounds
+
+    async def _handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
+        """Handle a reset message."""
+        await self._reset(cancellation_token)
+
+    async def _reset(self, cancellation_token: CancellationToken) -> None:
+        pass

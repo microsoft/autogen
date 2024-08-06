@@ -5,7 +5,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from playwright.sync_api import CDPSession, Page
+from playwright.async_api import Page
 
 from .env_config import (
     ACCOUNTS,
@@ -110,10 +110,10 @@ def reddit_get_post_url(url: str) -> str:
     return post_url
 
 
-def gitlab_get_project_memeber_role(page: Page, account_name: str) -> str:
+async def gitlab_get_project_memeber_role(page: Page, account_name: str) -> str:
     # get the account index
     try:
-        account_idx = page.evaluate(
+        account_idx = await page.evaluate(
             f"""(() => {{
                 const elements = document.querySelectorAll("td[data-label='Account'] span.gl-avatar-labeled-sublabel");
                 let index = -1;  // Default value if not found
@@ -130,7 +130,7 @@ def gitlab_get_project_memeber_role(page: Page, account_name: str) -> str:
         )
 
         # get the role
-        role: str = page.evaluate(
+        role: str = await page.evaluate(
             f"""(() => {{
                 return document.querySelectorAll("td.col-max-role span")[{account_idx}].outerText;
             }})()"""

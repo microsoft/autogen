@@ -120,7 +120,6 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create the AzureOpenAI client, with AAD auth
-    # token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     client = AzureOpenAIChatCompletionClient(
         api_version="2024-02-15-preview",
         azure_endpoint="https://aif-complex-tasks-west-us-3.openai.azure.com/",
@@ -236,18 +235,17 @@ Once the user has taken the final necessary action to complete the task, and you
     ########## EVALUATION ##########
     context = actual_surfer._context
     page = actual_surfer._page
-    cdp_session = context.new_cdp_session(page)
+    cdp_session = await context.new_cdp_session(page)
     config_file = "full_task.json"
     
     evaluator = evaluation_harness.evaluator_router(config_file)
-    score = "N/A"
-    #score = evaluator(
-    #    trajectory=evaluation_harness.make_answer_trajecotry(final_answer),
-    #    config_file=config_file,
-    #    page=page,
-    #    client=cdp_session,
+    score = await evaluator(
+        trajectory=evaluation_harness.make_answer_trajecotry(final_answer),
+        config_file=config_file,
+        page=page,
+        client=cdp_session,
     #    azure_config=llm_config,
-    #)
+    )
     
     print("FINAL SCORE: " + str(score))
 

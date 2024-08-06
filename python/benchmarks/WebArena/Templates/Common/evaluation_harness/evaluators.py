@@ -7,12 +7,13 @@ import importlib
 import json
 import time
 import urllib
+import inspect
 from pathlib import Path
 from typing import Any, Tuple, Union, TypedDict, Dict
 
 from beartype import beartype
 from nltk.tokenize import word_tokenize  # type: ignore
-from playwright.sync_api import CDPSession, Page
+from playwright.async_api import CDPSession, Page
 
 import numpy as np
 import numpy.typing as npt
@@ -58,7 +59,7 @@ class Evaluator(object):
         self.eval_tag = eval_tag
 
     @beartype
-    def __call__(
+    async def __call__(
         self,
         trajectory: Trajectory,
         config_file: Path | str,
@@ -136,7 +137,7 @@ class StringEvaluator(Evaluator):
     def ua_match(ref: str, pred: str, intent: str, azure_config: dict[str, Any] | None) -> float:
         return llm_ua_match(pred, ref, intent, azure_config)
 
-    def __call__(
+    async def __call__(
         self,
         trajectory: Trajectory,
         config_file: Path | str,
@@ -192,7 +193,7 @@ class URLEvaluator(Evaluator):
     """Check URL matching"""
 
     @beartype
-    def __call__(
+    async def __call__(
         self,
         trajectory: Trajectory,
         config_file: Path | str,
@@ -256,7 +257,7 @@ class HTMLContentEvaluator(Evaluator):
     """Check whether the contents appear in the page"""
 
     @beartype
-    def __call__(
+    async def __call__(
         self,
         trajectory: Trajectory,
         config_file: Path | str,
@@ -276,12 +277,14 @@ class HTMLContentEvaluator(Evaluator):
                 func = target_url.split("func:")[1]
                 func = func.replace("__last_url__", page.url)
                 target_url = eval(func)
+                if inspect.isawaitable(target_url):
+                    target_url = await target_url
 
             locator: str = target["locator"]  # js element locator
 
             # navigate to that url
             if target_url != "last":
-                page.goto(target_url)
+                await page.goto(target_url)
                 time.sleep(3)  # TODO [shuyanzh]: fix this hard-coded sleep
 
             # empty, use the full page
@@ -292,11 +295,11 @@ class HTMLContentEvaluator(Evaluator):
                 if "prep_actions" in target:
                     try:
                         for prep_action in target["prep_actions"]:
-                            page.evaluate(f"() => {prep_action}")
+                            await page.evaluate(f"() => {prep_action}")
                     except Exception:
                         pass
                 try:
-                    selected_element = str(page.evaluate(f"() => {locator}"))
+                    selected_element = str(await page.evaluate(f"() => {locator}"))
                     if not selected_element:
                         selected_element = ""
                 except Exception:
@@ -307,6 +310,8 @@ class HTMLContentEvaluator(Evaluator):
                 func = locator.split("func:")[1]
                 func = func.replace("__page__", "page")
                 selected_element = eval(func)
+                if inspect.isawaitable(selected_element):
+                    selected_element = await selected_element
             else:
                 raise ValueError(f"Unknown locator: {locator}")
 
@@ -344,7 +349,7 @@ class EvaluatorComb:
         self.evaluators = evaluators
 
     @beartype
-    def __call__(
+    async def __call__(
         self,
         trajectory: Trajectory,
         config_file: Path | str,
@@ -354,7 +359,7 @@ class EvaluatorComb:
     ) -> float:
         score = 1.0
         for evaluator in self.evaluators:
-            cur_score = evaluator(trajectory, config_file, page, client, azure_config)
+            cur_score = await evaluator(trajectory, config_file, page, client, azure_config)
             score *= cur_score
         return score
 
