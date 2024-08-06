@@ -68,12 +68,13 @@ database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
 async def get_all_secrets(interval_time: int):
+        
     while True:
-        os.environ['ALL_SECRETS'] = "|".join(map(str, (get_secrets_from_cloud(secret_providers=os.environ['CLOUD_SECRET_PROVIDERS'].split(',')) if os.environ['CLOUD_SECRET_PROVIDERS'] else "") + 
-                                                      (get_secrets_from_file(os.environ['BLACKLIST_PATH']) if os.environ['BLACKLIST_PATH'] else "") +
-                                                      (get_secrets_from_skills(dbmanager))))
+        os.environ['ALL_SECRETS'] = "|".join(map(str, (get_secrets_from_cloud(secret_providers=os.environ.get('CLOUD_SECRET_PROVIDERS').split(',')) if 'CLOUD_SECRET_PROVIDERS' in os.environ else []) + 
+                                                    (get_secrets_from_file(os.environ.get('BLACKLIST_PATH')) if 'BLACKLIST_PATH' in os.environ else []) +
+                                                    (get_secrets_from_skills(dbmanager))))
 
-        print("Secrets updated")
+        logger.info("Secrets updated")
         await asyncio.sleep(interval_time)
 
 @asynccontextmanager

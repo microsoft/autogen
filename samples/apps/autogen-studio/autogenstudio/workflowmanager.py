@@ -82,7 +82,7 @@ class AutoWorkflowManager:
         self.history = history or []
         self.sender = None
         self.receiver = None
-        self.secrets = list(map(str, os.environ['ALL_SECRETS'].split("|"))) if 'ALL_SECRETS' in os.environ else None
+        self.secrets = list(map(str, os.environ.get('ALL_SECRETS').split("|"))) if 'ALL_SECRETS' in os.environ else None
         
 
     def _run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
@@ -268,7 +268,7 @@ class AutoWorkflowManager:
             Returns:
                 The transformed message.
         """
-        replacementString = os.environ['REDACTION_REPLACEMENT_STRING']
+        replacementString = os.environ.get('REDACTION_REPLACEMENT_STRING')
         temp_message = copy.deepcopy(message)
 
         if isinstance(temp_message, Dict):
@@ -316,7 +316,7 @@ class AutoWorkflowManager:
                 llm_config=agent.config.llm_config.model_dump(),
             )
 
-            if strtobool(os.environ['ENABLE_SECRET_REDACTION']):
+            if 'ENABLE_SECRET_REDACTION' in os.environ and strtobool(os.environ.get('ENABLE_SECRET_REDACTION')):
                 agent.register_hook(hookable_method="process_message_before_send", hook=self.transform_generated_response)
             
             return agent
@@ -335,7 +335,7 @@ class AutoWorkflowManager:
             else:
                 raise ValueError(f"Unknown agent type: {agent.type}")
             
-            if strtobool(os.environ['ENABLE_SECRET_REDACTION']):
+            if 'ENABLE_SECRET_REDACTION' in os.environ and strtobool(os.environ.get('ENABLE_SECRET_REDACTION')):
                 agent.register_hook(hookable_method="process_message_before_send", hook=self.transform_generated_response)
             
             return agent
