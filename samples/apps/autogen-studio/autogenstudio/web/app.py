@@ -1,11 +1,12 @@
 import asyncio
+import json
 import os
 import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
+from distutils.util import strtobool
 from typing import Any, Union
-import json
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,9 +20,8 @@ from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
-from ..version import VERSION
 from ..utils.secretmanager import *
-from distutils.util import strtobool
+from ..version import VERSION
 
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
@@ -67,15 +67,26 @@ ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
+
 async def get_all_secrets(interval_time: int):
-        
+
     while True:
-        os.environ['ALL_SECRETS'] = "|".join(map(str, (get_secrets_from_cloud(secret_providers=os.environ.get('CLOUD_SECRET_PROVIDERS').split(',')) if 'CLOUD_SECRET_PROVIDERS' in os.environ else []) + 
-                                                    (get_secrets_from_file(os.environ.get('BLACKLIST_PATH')) if 'BLACKLIST_PATH' in os.environ else []) +
-                                                    (get_secrets_from_skills(dbmanager))))
+        os.environ["ALL_SECRETS"] = "|".join(
+            map(
+                str,
+                (
+                    get_secrets_from_cloud(secret_providers=os.environ.get("CLOUD_SECRET_PROVIDERS").split(","))
+                    if "CLOUD_SECRET_PROVIDERS" in os.environ
+                    else []
+                )
+                + (get_secrets_from_file(os.environ.get("BLACKLIST_PATH")) if "BLACKLIST_PATH" in os.environ else [])
+                + (get_secrets_from_skills(dbmanager)),
+            )
+        )
 
         logger.info("Secrets updated")
         await asyncio.sleep(interval_time)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,8 +94,8 @@ async def lifespan(app: FastAPI):
     managers["chat"] = AutoGenChatManager(message_queue=message_queue)
     dbmanager.create_db_and_tables()
 
-    if strtobool(os.environ['ENABLE_SECRET_REDACTION']):
-        asyncio.create_task(get_all_secrets(int(os.environ['SECRET_FETCH_TIMEOUT'])))
+    if strtobool(os.environ["ENABLE_SECRET_REDACTION"]):
+        asyncio.create_task(get_all_secrets(int(os.environ["SECRET_FETCH_TIMEOUT"])))
 
     yield
     # Close all active connections
