@@ -91,6 +91,12 @@ def test_json_extraction():
     jstr = '{"code": "a=\\"hello\\""}'
     assert user._format_json_str(jstr) == '{"code": "a=\\"hello\\""}'
 
+    jstr = '{\n"tool": "python",\n"query": "print(\'hello\')\n\tprint(\'world\')"\n}'  # mixed newlines and tabs
+    assert user._format_json_str(jstr) == '{"tool": "python","query": "print(\'hello\')\\n\\tprint(\'world\')"}'
+
+    jstr = "{}"  # empty json
+    assert user._format_json_str(jstr) == "{}"
+
 
 def test_execute_function():
     from autogen.agentchat import UserProxyAgent
@@ -117,7 +123,7 @@ def test_execute_function():
     }  # should be "given_num" with quotes
     assert "The argument must be in JSON format." in user.execute_function(func_call=wrong_json_format)[1]["content"]
 
-    # function execution error with wrong arguments passed
+    # function execution error with extra arguments
     wrong_args = {"name": "add_num", "arguments": '{ "num_to_be_added": 5, "given_num": 10 }'}
     assert "Error: " in user.execute_function(func_call=wrong_args)[1]["content"]
 
@@ -142,6 +148,19 @@ def test_execute_function():
     user = UserProxyAgent("user", function_map={"get_number": get_number})
     func_call = {"name": "get_number", "arguments": "{}"}
     assert user.execute_function(func_call)[1]["content"] == "42"
+
+    # 4. test with a non-existent function
+    user = UserProxyAgent(name="test", function_map={})
+    func_call = {"name": "nonexistent_function", "arguments": "{}"}
+    assert "Error: Function" in user.execute_function(func_call=func_call)[1]["content"]
+
+    # 5. test calling a function that raises an exception
+    def raise_exception():
+        raise ValueError("This is an error")
+
+    user = UserProxyAgent(name="test", function_map={"raise_exception": raise_exception})
+    func_call = {"name": "raise_exception", "arguments": "{}"}
+    assert "Error: " in user.execute_function(func_call=func_call)[1]["content"]
 
 
 @pytest.mark.asyncio
