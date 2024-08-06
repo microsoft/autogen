@@ -491,8 +491,6 @@ class ConversableAgent(LLMAgent):
 
             async def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
                 return await reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
-
-            functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
         else:
             if reply_func_from_nested_chats == "summary_from_nested_chats":
                 reply_func_from_nested_chats = self._summary_from_nested_chats
@@ -502,7 +500,7 @@ class ConversableAgent(LLMAgent):
             def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
                 return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
 
-            functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
+        functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
 
         self.register_reply(
             trigger,
