@@ -43,15 +43,19 @@ def get_secrets_from_file(filepath):
     """
         Get secrets from a file
         Args: 
-            filepath: Path to the file containing secrets
+            filepath: Path to the file containing secret keys in env variable
 
         Returns:
             List of secrets from the file.
     """
     secrets=[]
+    env_keys=[]
     with open(filepath, "r") as f:
-        secrets = f.read().split()
+        env_keys = f.read().split()
     
+    for key in env_keys:
+        secrets.append(os.environ[key])
+
     return secrets
     
 def get_secrets_from_skills(dbmanager):
