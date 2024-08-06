@@ -1509,9 +1509,9 @@ class ConversableAgent(LLMAgent):
             for i in range(len(messages)):
                 message = messages[-(i + 1)]
                 if "role" not in message:
-                    break
+                    continue
                 elif message["role"] != "user":
-                    break
+                    continue
                 else:
                     messages_to_scan += 1
 
