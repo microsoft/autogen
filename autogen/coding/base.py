@@ -4,7 +4,6 @@ from typing import Any, List, Literal, Mapping, Optional, Protocol, TypedDict, U
 
 from pydantic import BaseModel, Field
 
-from ..agentchat.agent import LLMAgent
 from ..types import UserMessageImageContentPart, UserMessageTextContentPart
 
 __all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor", "CodeExecutionConfig")
