@@ -16,6 +16,11 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
+    "gpt-4o-2024-08-06": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+    },
     "gpt-4o-2024-05-13": {
         "vision": True,
         "function_calling": True,
@@ -84,6 +89,7 @@ _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "gpt-4o-2024-08-06": 128000,
     "gpt-4o-2024-05-13": 128000,
     "gpt-4o-mini-2024-07-18": 128000,
     "gpt-4-turbo-2024-04-09": 128000,
