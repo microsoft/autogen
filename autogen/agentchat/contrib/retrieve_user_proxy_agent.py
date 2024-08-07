@@ -424,7 +424,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                         self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
                     )
                     doc_contents = self._get_context(self._results)
-                    if doc_contents:
+                    if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
                         break
             msg_text = self._generate_message(doc_contents, task=self._task)
 
