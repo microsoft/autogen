@@ -72,21 +72,6 @@ class BedrockClient:
         self.aws_session_token = params.get("aws_session_token", None)
         self.aws_profile_name = params.get("aws_profile_name", None)
 
-        if not self.aws_access_key_id:
-            self.aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-
-        if not self.aws_secret_access_key:
-            self.aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
-        if not self.aws_region_name:
-            self.aws_region_name = os.getenv("AWS_REGION_NAME")
-
-        assert self.aws_access_key_id, "AWS Access Key ID is required, set the environment variable AWS_ACCESS_KEY_ID"
-        assert (
-            self.aws_secret_access_key
-        ), "AWS Secret Access Key is required, set the environment variable AWS_SECRET_ACCESS_KEY"
-        assert self.aws_region_name, "AWS Region is required, set the environment variable AWS_REGION_NAME"
-
         # Initialize Bedrock client, session, and runtime
         bedrock_config = Config(
             region_name=self.aws_region_name,
@@ -281,9 +266,18 @@ def extract_system_messages(messages: List[dict]) -> List:
     Returns:
         List[SystemMessage]: List of System messages.
     """
+
+    """
+    system_messages = [message.get("content")[0]["text"] for message in messages if message.get("role") == "system"]
+    return system_messages # ''.join(system_messages)
+    """
+
     for message in messages:
         if message.get("role") == "system":
-            return [{"text": message.get("content")}]
+            if isinstance(message["content"], str):
+                return [{"text": message.get("content")}]
+            else:
+                return [{"text": message.get("content")[0]["text"]}]
     return []
 
 
@@ -443,14 +437,14 @@ def parse_content_parts(
         ]
     content_parts = []
     for part in content:
-        part_content: Dict = part.get("content")
-        if "text" in part_content:
+        # part_content: Dict = part.get("content")
+        if "text" in part:  # part_content:
             content_parts.append(
                 {
-                    "text": part_content.get("text"),
+                    "text": part.get("text"),
                 }
             )
-        elif "image_url" in part_content:
+        elif "image_url" in part:  # part_content:
             image_data, content_type = parse_image(part.get("image_url").get("url"))
             content_parts.append(
                 {
