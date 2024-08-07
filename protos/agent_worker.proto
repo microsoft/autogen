@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package agents;
 
+// TODO: update
 message AgentId {
     string name = 1;
     string namespace = 2;

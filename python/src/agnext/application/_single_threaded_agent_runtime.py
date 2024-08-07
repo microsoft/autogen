@@ -170,16 +170,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         # )
 
         future = asyncio.get_event_loop().create_future()
-        if recipient.name not in self._known_agent_names:
+        if recipient.type not in self._known_agent_names:
             future.set_exception(Exception("Recipient not found"))
 
-        if sender is not None and sender.namespace != recipient.namespace:
+        if sender is not None and sender.key != recipient.key:
             raise ValueError("Sender and recipient must be in the same namespace to communicate.")
 
-        await self._process_seen_namespace(recipient.namespace)
+        await self._process_seen_namespace(recipient.key)
 
         content = message.__dict__ if hasattr(message, "__dict__") else message
-        logger.info(f"Sending message of type {type(message).__name__} to {recipient.name}: {content}")
+        logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
         self._message_queue.append(
             SendMessageEnvelope(
@@ -221,7 +221,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if sender is None and namespace is None:
             raise ValueError("Namespace must be provided if sender is not provided.")
 
-        sender_namespace = sender.namespace if sender is not None else None
+        sender_namespace = sender.key if sender is not None else None
         explicit_namespace = namespace
         if explicit_namespace is not None and sender_namespace is not None and explicit_namespace != sender_namespace:
             raise ValueError(
@@ -250,7 +250,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         for agent_id_str in state:
             agent_id = AgentId.from_str(agent_id_str)
-            if agent_id.name in self._known_agent_names:
+            if agent_id.type in self._known_agent_names:
                 (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
@@ -259,7 +259,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         # assert recipient in self._agents
 
         try:
-            sender_name = message_envelope.sender.name if message_envelope.sender is not None else "Unknown"
+            # TODO use id
+            sender_name = message_envelope.sender.type if message_envelope.sender is not None else "Unknown"
             logger.info(
                 f"Calling message handler for {recipient} with message type {type(message_envelope.message).__name__} sent by {sender_name}"
             )
@@ -297,15 +298,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         for agent_id in self._per_type_subscribers[
             (target_namespace, MESSAGE_TYPE_REGISTRY.type_name(message_envelope.message))
         ]:
-            if message_envelope.sender is not None and agent_id.name == message_envelope.sender.name:
+            if message_envelope.sender is not None and agent_id.type == message_envelope.sender.type:
                 continue
 
             sender_agent = (
                 await self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
             )
+            # TODO use id
             sender_name = sender_agent.metadata["name"] if sender_agent is not None else "Unknown"
             logger.info(
-                f"Calling message handler for {agent_id.name} with message type {type(message_envelope.message).__name__} published by {sender_name}"
+                f"Calling message handler for {agent_id.type} with message type {type(message_envelope.message).__name__} published by {sender_name}"
             )
             # event_logger.info(
             #     MessageEvent(
@@ -342,7 +344,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             else message_envelope.message
         )
         logger.info(
-            f"Resolving response with message type {type(message_envelope.message).__name__} for recipient {message_envelope.recipient} from {message_envelope.sender.name}: {content}"
+            f"Resolving response with message type {type(message_envelope.message).__name__} for recipient {message_envelope.recipient} from {message_envelope.sender.type}: {content}"
         )
         # event_logger.info(
         #     MessageEvent(
@@ -455,7 +457,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         # For all already prepared namespaces we need to prepare this agent
         for namespace in self._known_namespaces:
-            await self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(type=name, key=namespace))
 
     async def _invoke_agent_factory(
         self,
@@ -482,23 +484,23 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             return agent
 
     async def _get_agent(self, agent_id: AgentId) -> Agent:
-        await self._process_seen_namespace(agent_id.namespace)
+        await self._process_seen_namespace(agent_id.key)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
-        if agent_id.name not in self._agent_factories:
-            raise LookupError(f"Agent with name {agent_id.name} not found.")
+        if agent_id.type not in self._agent_factories:
+            raise LookupError(f"Agent with name {agent_id.type} not found.")
 
-        agent_factory = self._agent_factories[agent_id.name]
+        agent_factory = self._agent_factories[agent_id.type]
 
         agent = await self._invoke_agent_factory(agent_factory, agent_id)
         for message_type in agent.metadata["subscriptions"]:
-            self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
+            self._per_type_subscribers[(agent_id.key, message_type)].add(agent_id)
         self._instantiated_agents[agent_id] = agent
         return agent
 
     async def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return (await self._get_agent(AgentId(name=name, namespace=namespace))).id
+        return (await self._get_agent(AgentId(type=name, key=namespace))).id
 
     async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
         id = await self.get(name, namespace=namespace)
@@ -506,14 +508,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
-        if id.name not in self._agent_factories:
-            raise LookupError(f"Agent with name {id.name} not found.")
+        if id.type not in self._agent_factories:
+            raise LookupError(f"Agent with name {id.type} not found.")
 
         # TODO: check if remote
         agent_instance = await self._get_agent(id)
 
         if not isinstance(agent_instance, type):
-            raise TypeError(f"Agent with name {id.name} is not of type {type.__name__}")
+            raise TypeError(f"Agent with name {id.type} is not of type {type.__name__}")
 
         return agent_instance
 
@@ -525,4 +527,4 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
-            await self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(type=name, key=namespace))

@@ -292,8 +292,8 @@ class WorkerAgentRuntime(AgentRuntime):
             runtime_message = Message(
                 request=RpcRequest(
                     request_id=request_id_str,
-                    target=AgentIdProto(name=recipient.name, namespace=recipient.namespace),
-                    source=AgentIdProto(name=sender.name, namespace=sender.namespace),
+                    target=AgentIdProto(name=recipient.type, namespace=recipient.key),
+                    source=AgentIdProto(name=sender.type, namespace=sender.key),
                     data=message,
                 )
             )
@@ -310,7 +310,7 @@ class WorkerAgentRuntime(AgentRuntime):
         cancellation_token: CancellationToken | None = None,
     ) -> None:
         assert self._runtime_connection is not None
-        sender_namespace = sender.namespace if sender is not None else None
+        sender_namespace = sender.key if sender is not None else None
         explicit_namespace = namespace
         if explicit_namespace is not None and sender_namespace is not None and explicit_namespace != sender_namespace:
             raise ValueError(
@@ -356,7 +356,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
         # For all already prepared namespaces we need to prepare this agent
         for namespace in self._known_namespaces:
-            await self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(type=name, key=namespace))
 
         await self.send_register_agent_type(name)
 
@@ -385,25 +385,25 @@ class WorkerAgentRuntime(AgentRuntime):
         return agent
 
     async def _get_agent(self, agent_id: AgentId) -> Agent:
-        await self._process_seen_namespace(agent_id.namespace)
+        await self._process_seen_namespace(agent_id.key)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
-        if agent_id.name not in self._agent_factories:
-            raise ValueError(f"Agent with name {agent_id.name} not found.")
+        if agent_id.type not in self._agent_factories:
+            raise ValueError(f"Agent with name {agent_id.type} not found.")
 
-        agent_factory = self._agent_factories[agent_id.name]
+        agent_factory = self._agent_factories[agent_id.type]
 
         agent = await self._invoke_agent_factory(agent_factory, agent_id)
 
         for message_type in agent.metadata["subscriptions"]:
-            self._per_type_subscribers[(agent_id.namespace, message_type)].add(agent_id)
+            self._per_type_subscribers[(agent_id.key, message_type)].add(agent_id)
 
         self._instantiated_agents[agent_id] = agent
         return agent
 
     async def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return (await self._get_agent(AgentId(name=name, namespace=namespace))).id
+        return (await self._get_agent(AgentId(type=name, key=namespace))).id
 
     async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
         id = await self.get(name, namespace=namespace)
@@ -421,4 +421,4 @@ class WorkerAgentRuntime(AgentRuntime):
 
         self._known_namespaces.add(namespace)
         for name in self._known_agent_names:
-            await self._get_agent(AgentId(name=name, namespace=namespace))
+            await self._get_agent(AgentId(type=name, key=namespace))

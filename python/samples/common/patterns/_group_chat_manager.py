@@ -60,18 +60,18 @@ class GroupChatManager(TypeRoutedAgent):
         for key, value in transitions.items():
             if not value:
                 # Make sure no empty transitions are provided.
-                raise ValueError(f"Empty transition list provided for {key.name}.")
+                raise ValueError(f"Empty transition list provided for {key.type}.")
             if key not in participants:
                 # Make sure all keys are in the list of participants.
-                raise ValueError(f"Transition key {key.name} not found in participants.")
+                raise ValueError(f"Transition key {key.type} not found in participants.")
             for v in value:
                 if v not in participants:
                     # Make sure all values are in the list of participants.
-                    raise ValueError(f"Transition value {v.name} not found in participants.")
+                    raise ValueError(f"Transition value {v.type} not found in participants.")
             if self._client is None:
                 # Make sure there is only one transition for each key if no model client is provided.
                 if len(value) > 1:
-                    raise ValueError(f"Multiple transitions provided for {key.name} but no model client is provided.")
+                    raise ValueError(f"Multiple transitions provided for {key.type} but no model client is provided.")
         self._tranistions = transitions
         self._on_message_received = on_message_received
 
@@ -100,7 +100,7 @@ class GroupChatManager(TypeRoutedAgent):
 
         # Get the last speaker.
         last_speaker_name = message.source
-        last_speaker_index = next((i for i, p in enumerate(self._participants) if p.name == last_speaker_name), None)
+        last_speaker_index = next((i for i, p in enumerate(self._participants) if p.type == last_speaker_name), None)
 
         # Get the candidates for the next speaker.
         if last_speaker_index is not None:
@@ -112,7 +112,7 @@ class GroupChatManager(TypeRoutedAgent):
                 candidates = self._participants
         else:
             candidates = self._participants
-        logger.debug(f"Group chat manager next speaker candidates: {[c.name for c in candidates]}")
+        logger.debug(f"Group chat manager next speaker candidates: {[c.type for c in candidates]}")
 
         # Select speaker.
         if len(candidates) == 0:
@@ -138,7 +138,7 @@ class GroupChatManager(TypeRoutedAgent):
                 )
                 speaker = candidates[speaker_index]
 
-        logger.debug(f"Group chat manager selected speaker: {speaker.name if speaker is not None else None}")
+        logger.debug(f"Group chat manager selected speaker: {speaker.type if speaker is not None else None}")
 
         if speaker is not None:
             # Send the message to the selected speaker to ask it to publish a response.

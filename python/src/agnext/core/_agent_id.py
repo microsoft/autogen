@@ -2,33 +2,39 @@ from typing_extensions import Self
 
 
 class AgentId:
-    def __init__(self, name: str, namespace: str) -> None:
-        self._name = name
-        self._namespace = namespace
+    def __init__(self, type: str, key: str) -> None:
+        if type.isidentifier() is False:
+            raise ValueError(f"Invalid type: {type}")
 
-    def __str__(self) -> str:
-        return f"{self._namespace}/{self._name}"
+        self._type = type
+        self._key = key
 
     def __hash__(self) -> int:
-        return hash((self._namespace, self._name))
+        return hash((self._type, self._key))
+
+    def __str__(self) -> str:
+        return f"{self._type}:{self._key}"
 
     def __repr__(self) -> str:
-        return f"AgentId({self._name}, {self._namespace})"
+        return f'AgentId(type="{self._type}", key="{self._key}")'
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, AgentId):
             return False
-        return self._name == value.name and self._namespace == value.namespace
+        return self._type == value.type and self._key == value.key
 
     @classmethod
     def from_str(cls, agent_id: str) -> Self:
-        namespace, name = agent_id.split("/")
-        return cls(name, namespace)
+        items = agent_id.split(":", maxsplit=1)
+        if len(items) != 2:
+            raise ValueError(f"Invalid agent id: {agent_id}")
+        type, key = items[0], items[1]
+        return cls(type, key)
 
     @property
-    def namespace(self) -> str:
-        return self._namespace
+    def type(self) -> str:
+        return self._type
 
     @property
-    def name(self) -> str:
-        return self._name
+    def key(self) -> str:
+        return self._key

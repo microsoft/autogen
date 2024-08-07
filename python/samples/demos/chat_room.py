@@ -98,7 +98,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     alice = await runtime.register_and_get_proxy(
         "Alice",
         lambda: ChatRoomAgent(
-            name=AgentInstantiationContext.current_agent_id().name,
+            name=AgentInstantiationContext.current_agent_id().type,
             description="Alice in the chat room.",
             background_story="Alice is a software engineer who loves to code.",
             memory=BufferedChatMemory(buffer_size=10),
@@ -108,7 +108,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     bob = await runtime.register_and_get_proxy(
         "Bob",
         lambda: ChatRoomAgent(
-            name=AgentInstantiationContext.current_agent_id().name,
+            name=AgentInstantiationContext.current_agent_id().type,
             description="Bob in the chat room.",
             background_story="Bob is a data scientist who loves to analyze data.",
             memory=BufferedChatMemory(buffer_size=10),
@@ -118,7 +118,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
     charlie = await runtime.register_and_get_proxy(
         "Charlie",
         lambda: ChatRoomAgent(
-            name=AgentInstantiationContext.current_agent_id().name,
+            name=AgentInstantiationContext.current_agent_id().type,
             description="Charlie in the chat room.",
             background_story="Charlie is a designer who loves to create art.",
             memory=BufferedChatMemory(buffer_size=10),
@@ -126,9 +126,9 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
         ),
     )
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:
-1. 👧 {alice.id.name}: {(await alice.metadata)['description']}
-2. 👱🏼‍♂️ {bob.id.name}: {(await bob.metadata)['description']}
-3. 👨🏾‍🦳 {charlie.id.name}: {(await charlie.metadata)['description']}
+1. 👧 {alice.id.type}: {(await alice.metadata)['description']}
+2. 👱🏼‍♂️ {bob.id.type}: {(await bob.metadata)['description']}
+3. 👨🏾‍🦳 {charlie.id.type}: {(await charlie.metadata)['description']}
 
 Each participant decides on its own whether to respond to the latest message.
 

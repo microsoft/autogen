@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import Any, cast
 
-from ...core import Agent
+from agnext.core import AgentId
 
 
 class LLMCallEvent:
@@ -57,16 +57,16 @@ class MessageEvent:
         self,
         *,
         payload: Any,
-        sender: Agent | None,
-        receiver: Agent | None,
+        sender: AgentId | None,
+        receiver: AgentId | None,
         kind: MessageKind,
         delivery_stage: DeliveryStage,
         **kwargs: Any,
     ) -> None:
         self.kwargs = kwargs
         self.kwargs["payload"] = payload
-        self.kwargs["sender"] = None if sender is None else sender.metadata["name"]
-        self.kwargs["receiver"] = None if receiver is None else receiver.metadata["name"]
+        self.kwargs["sender"] = None if sender is None else str(sender)
+        self.kwargs["receiver"] = None if receiver is None else str(receiver)
         self.kwargs["kind"] = kind
         self.kwargs["delivery_stage"] = delivery_stage
         self.kwargs["type"] = "Message"

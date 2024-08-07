@@ -43,4 +43,4 @@ class TypeSubscription(Subscription):
             raise CantHandleException("TopicId does not match the subscription")
 
         # TODO: Update agentid to reflect agent type and key
-        return AgentId(name=self._agent_type, namespace=topic_id.source)
+        return AgentId(type=self._agent_type, key=topic_id.source)

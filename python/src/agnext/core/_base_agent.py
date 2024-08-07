@@ -15,8 +15,8 @@ class BaseAgent(ABC, Agent):
     def metadata(self) -> AgentMetadata:
         assert self._id is not None
         return AgentMetadata(
-            namespace=self._id.namespace,
-            name=self._id.name,
+            namespace=self._id.key,
+            name=self._id.type,
             description=self._description,
             subscriptions=self._subscriptions,
         )
@@ -38,8 +38,8 @@ class BaseAgent(ABC, Agent):
         self._subscriptions = subscriptions
 
     @property
-    def name(self) -> str:
-        return self.id.name
+    def type(self) -> str:
+        return self.id.type
 
     @property
     def id(self) -> AgentId:

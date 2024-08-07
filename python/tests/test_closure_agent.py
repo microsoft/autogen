@@ -25,8 +25,8 @@ async def test_register_receives_publish() -> None:
     queue = asyncio.Queue[tuple[str, str]]()
 
     async def log_message(_runtime: AgentRuntime, id: AgentId, message: Message, cancellation_token: CancellationToken) -> None:
-        namespace = id.namespace
-        await queue.put((namespace, message.content))
+        key = id.key
+        await queue.put((key, message.content))
 
     await runtime.register("name", lambda: ClosureAgent("My agent", log_message))
     run_context = runtime.start()

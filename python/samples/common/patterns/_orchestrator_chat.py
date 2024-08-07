@@ -136,7 +136,7 @@ Some additional points to consider:
 
                 # Find the speaker.
                 try:
-                    speaker = next(agent for agent in self._specialists if agent.name == data["next_speaker"]["answer"])
+                    speaker = next(agent for agent in self._specialists if agent.type == data["next_speaker"]["answer"])
                 except StopIteration as e:
                     raise ValueError(f"Invalid next speaker: {data['next_speaker']['answer']}") from e
 
@@ -171,11 +171,11 @@ Some additional points to consider:
         # A reusable description of the team.
         team = "\n".join(
             [
-                agent.name + ": " + (await self.runtime.agent_metadata(agent))["description"]
+                agent.type + ": " + (await self.runtime.agent_metadata(agent))["description"]
                 for agent in self._specialists
             ]
         )
-        names = ", ".join([agent.name for agent in self._specialists])
+        names = ", ".join([agent.type for agent in self._specialists])
 
         # A place to store relevant facts.
         facts = ""
