@@ -93,7 +93,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Hatch
         uses: pypa/hatch@install
-      - name: Install Pandoc
-        run: sudo apt-get install pandoc
       - run: hatch run docs:check
         working-directory: ./python

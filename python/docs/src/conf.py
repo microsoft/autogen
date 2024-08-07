@@ -20,7 +20,6 @@ extensions = [
     "sphinxcontrib.apidoc",
     "myst_nb",
     "sphinx.ext.intersphinx",
-    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 apidoc_module_dir = "../../src/agnext"
@@ -51,7 +50,7 @@ myst_heading_anchors = 5
 html_title = "AGNext"
 
 html_theme = "furo"
-html_static_path = ["_static"]
+html_static_path = []
 
 html_theme_options = {
     "source_repository": "https://github.com/microsoft/agnext",

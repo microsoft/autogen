@@ -90,8 +90,7 @@ dependencies = [
     "furo",
     "sphinxcontrib-apidoc",
     "myst-nb",
-    "sphinx-autobuild",
-    "Ipython",
+    "sphinx-autobuild"
 ]
 
 [tool.hatch.envs.docs.scripts]
