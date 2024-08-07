@@ -964,6 +964,7 @@ class GroupChatManager(ConversableAgent):
             log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
+        self.last_speaker = None
 
         self._silent = silent
 
@@ -1034,6 +1035,7 @@ class GroupChatManager(ConversableAgent):
                 a.previous_cache = a.client_cache
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
+            self.last_speaker = speaker
             groupchat.append(message, speaker)
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
