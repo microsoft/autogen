@@ -2,6 +2,8 @@ import asyncio
 import logging
 import os
 
+from openai import AzureOpenAI
+
 from typing import List
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
@@ -122,7 +124,6 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create the AzureOpenAI client, with AAD auth
-    # token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     client = AzureOpenAIChatCompletionClient(
         api_version="2024-02-15-preview",
         azure_endpoint="https://aif-complex-tasks-west-us-3.openai.azure.com/",
@@ -130,7 +131,11 @@ async def main() -> None:
         model_capabilities=ModelCapabilities(
             function_calling=True, json_output=True, vision=True
         ),
-        # azure_ad_token_provider=token_provider
+    )
+
+    mlm_client = AzureOpenAI(
+        api_version="2024-02-15-preview",
+        azure_endpoint="https://aif-complex-tasks-west-us-3.openai.azure.com/",
     )
 
     # Register agents.
@@ -175,20 +180,19 @@ async def main() -> None:
 
         filename_prompt = f"The question is about a file, document or image, which can be accessed by the filename '{filename}' in the current working directory."
 
+        mlm_prompt = f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
+
+{prompt}
+""".strip()
+
         try:
-            mdconverter = MarkdownConverter()
-            res = mdconverter.convert(filename)
+            mdconverter = MarkdownConverter(mlm_client=mlm_client, mlm_model="gpt-4o-2024-05-13")
+            res = mdconverter.convert(filename, mlm_prompt=mlm_prompt)
             if res.text_content:
                 if count_token(res.text_content) < 8000:  # Don't put overly-large documents into the prompt
                     filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
         except UnsupportedFormatException:
             pass
-
-        #mdconverter = MarkdownConverter(mlm_client=client)
-        #mlm_prompt = f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
-
-#{PROMPT}
-#""".strip()
 
     task = f"{prompt}\n\n{filename_prompt}"
 

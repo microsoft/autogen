@@ -754,10 +754,13 @@ class ImageConverter(MediaConverter):
 
         # Try describing the image with GPTV
         mlm_client = kwargs.get("mlm_client")
-        if mlm_client is not None:
+        mlm_model = kwargs.get("mlm_model")
+        if mlm_client is not None and mlm_model is not None:
             md_content += (
                 "\n# Description:\n"
-                + self._get_mlm_description(local_path, extension, mlm_client, prompt=kwargs.get("mlm_prompt")).strip()
+                + self._get_mlm_description(
+                    local_path, extension, mlm_client, mlm_model, prompt=kwargs.get("mlm_prompt")
+                ).strip()
                 + "\n"
             )
 
@@ -785,7 +788,7 @@ class ImageConverter(MediaConverter):
             text_content=md_content,
         )
 
-    def _get_mlm_description(self, local_path, extension, client, prompt=None):
+    def _get_mlm_description(self, local_path, extension, client, model, prompt=None):
         if prompt is None or prompt.strip() == "":
             prompt = "Write a detailed caption for this image."
 
@@ -799,23 +802,23 @@ class ImageConverter(MediaConverter):
             image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
             data_uri = f"data:{content_type};base64,{image_base64}"
 
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": data_uri,
-                            },
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": data_uri,
                         },
-                    ],
-                }
-            ]
+                    },
+                ],
+            }
+        ]
 
-            response = client.create(messages=messages)
-            return client.extract_text_or_completion_object(response)[0]
+        response = client.chat.completions.create(model=model, messages=messages)
+        return response.choices[0].message.content
 
 
 class FileConversionException(BaseException):
@@ -834,6 +837,7 @@ class MarkdownConverter:
         self,
         requests_session: Optional[requests.Session] = None,
         mlm_client: Optional[Any] = None,
+        mlm_model: Optional[Any] = None,
     ):
         if requests_session is None:
             self._requests_session = requests.Session()
@@ -841,6 +845,7 @@ class MarkdownConverter:
             self._requests_session = requests_session
 
         self._mlm_client = mlm_client
+        self._mlm_model = mlm_model
 
         self._page_converters: List[DocumentConverter] = []
 
@@ -995,6 +1000,9 @@ class MarkdownConverter:
                 # Copy any additional global options
                 if "mlm_client" not in _kwargs and self._mlm_client is not None:
                     _kwargs["mlm_client"] = self._mlm_client
+
+                if "mlm_model" not in _kwargs and self._mlm_model is not None:
+                    _kwargs["mlm_model"] = self._mlm_model
 
                 # If we hit an error log it and keep trying
                 # try:
