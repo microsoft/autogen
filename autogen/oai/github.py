@@ -49,8 +49,6 @@ class GithubClient:
         "AI21-Jamba-Instruct",
         "cohere-command-r",
         "cohere-command-r-plus",
-        "cohere-embed-v3-english",
-        "cohere-embed-v3-multilingual",
         "meta-llama-3-70b-instruct",
         "meta-llama-3-8b-instruct",
         "meta-llama-3.1-405b-instruct",
