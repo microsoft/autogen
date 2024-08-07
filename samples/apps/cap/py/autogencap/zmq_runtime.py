@@ -9,10 +9,10 @@ from autogencap.actor_connector import IActorSender
 from autogencap.config import router_url, xpub_url, xsub_url
 from autogencap.debug_log import Debug, Error, Warn
 
-from ._actor import Actor
+from .actor import Actor
 from .actor_connector import IActorConnector
 from .actor_runtime import IRuntime
-from ._broker import Broker
+from .broker import Broker
 from .constants import Termination_Topic
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
 from .zmq_directory_svc import ZMQDirectorySvc

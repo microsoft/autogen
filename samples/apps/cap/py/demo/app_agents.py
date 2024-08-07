@@ -4,7 +4,7 @@ Each agent represents a different role and knows how to connect to external syst
 to retrieve information.
 """
 
-from autogencap._actor import Actor
+from autogencap.actor import Actor
 from autogencap.actor_connector import IActorConnector
 from autogencap.actor_runtime import IRuntime
 from autogencap.debug_log import Debug, Info, shorten
