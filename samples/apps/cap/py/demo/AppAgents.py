@@ -5,9 +5,10 @@ to retrieve information.
 """
 
 from autogencap.Actor import Actor
+from autogencap.actor_runtime import IRuntime
 from autogencap.ActorConnector import ActorConnector
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Debug, Info, shorten
+from autogencap.runtime_factory import RuntimeFactory
 
 
 class GreeterAgent(Actor):
@@ -136,7 +137,7 @@ class PersonalAssistant(Actor):
         self.quant: ActorConnector = None
         self.risk_manager: ActorConnector = None
 
-    def on_connect(self, network: ComponentEnsemble):
+    def on_connect(self, network: IRuntime):
         """
         Connects the personal assistant to the specified local actor network.
 
@@ -150,7 +151,7 @@ class PersonalAssistant(Actor):
         self.risk_manager = network.find_by_name("Risk Manager")
         Debug(self.actor_name, "connected")
 
-    def disconnect_network(self, network: ComponentEnsemble):
+    def disconnect_network(self, network: IRuntime):
         """
         Disconnects the personal assistant from the specified local actor network.
 

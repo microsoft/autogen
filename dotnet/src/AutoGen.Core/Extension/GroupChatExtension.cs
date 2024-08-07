@@ -43,6 +43,13 @@ public static class GroupChatExtension
         while (maxRound-- > 0)
         {
             var messages = await groupChat.CallAsync(chatHistory, maxRound: 1, cancellationToken);
+
+            // if no new messages, break the loop
+            if (messages.Count() == chatHistory.Count())
+            {
+                yield break;
+            }
+
             var lastMessage = messages.Last();
 
             yield return lastMessage;
@@ -51,7 +58,10 @@ public static class GroupChatExtension
                 yield break;
             }
 
-            chatHistory = messages;
+            // messages will contain the complete chat history, include initalize messages
+            // but we only need to add the last message to the chat history
+            // fix #3268
+            chatHistory = chatHistory.Append(lastMessage);
         }
     }
 
