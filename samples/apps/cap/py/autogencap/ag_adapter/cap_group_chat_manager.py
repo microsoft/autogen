@@ -2,7 +2,7 @@ import time
 
 from autogen import GroupChatManager
 from autogencap.actor_runtime import IActorConnector
-from autogencap.ag_adapter.CAP2AG import CAP2AG
+from autogencap.ag_adapter.cap_to_ag import CAP2AG
 from autogencap.ag_adapter.cap_group_chat import CAPGroupChat
 
 from ..actor_runtime import IRuntime

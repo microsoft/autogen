@@ -1,8 +1,8 @@
 import zmq
 
-from autogencap.Actor import Actor
+from autogencap.actor import Actor
 from autogencap.constants import Termination_Topic
-from autogencap.DebugLog import Debug
+from autogencap.debug_log import Debug
 
 
 class AGActor(Actor):

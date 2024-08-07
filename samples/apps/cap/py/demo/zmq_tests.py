@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import _paths
 import zmq
-from autogencap.Config import dealer_url, router_url, xpub_url, xsub_url
+from autogencap.config import dealer_url, router_url, xpub_url, xsub_url
 from zmq.utils.monitor import recv_monitor_message
 
 

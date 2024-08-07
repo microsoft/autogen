@@ -4,11 +4,11 @@ import time
 
 import zmq
 
-from autogencap.Actor import Actor
-from autogencap.Broker import Broker
-from autogencap.Config import router_url, xpub_url, xsub_url
+from autogencap.actor import Actor
+from autogencap.broker import Broker
+from autogencap.config import router_url, xpub_url, xsub_url
 from autogencap.constants import Directory_Svc_Topic
-from autogencap.DebugLog import Debug, Error, Info
+from autogencap.debug_log import Debug, Error, Info
 from autogencap.proto.CAP_pb2 import (
     ActorInfo,
     ActorInfoCollection,

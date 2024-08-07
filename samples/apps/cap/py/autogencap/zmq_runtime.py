@@ -6,13 +6,13 @@ import zmq
 from zmq.utils.monitor import recv_monitor_message
 
 from autogencap.actor_connector import IActorSender
-from autogencap.Config import router_url, xpub_url, xsub_url
-from autogencap.DebugLog import Debug, Error, Warn
+from autogencap.config import router_url, xpub_url, xsub_url
+from autogencap.debug_log import Debug, Error, Warn
 
-from .Actor import Actor
+from .actor import Actor
 from .actor_connector import IActorConnector
 from .actor_runtime import IRuntime
-from .Broker import Broker
+from .broker import Broker
 from .constants import Termination_Topic
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
 from .zmq_directory_svc import ZMQDirectorySvc
