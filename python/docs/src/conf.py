@@ -43,6 +43,8 @@ nb_execution_mode = "off"
 nb_execution_raise_on_error = True
 nb_execution_timeout = 60
 
+myst_heading_anchors = 5
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

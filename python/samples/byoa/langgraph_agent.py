@@ -14,7 +14,6 @@ from agnext.core import CancellationToken
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint import MemorySaver
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
@@ -83,14 +82,11 @@ class LangGraphToolUseAgent(TypeRoutedAgent):
         # This means that after `tools` is called, `agent` node is called next.
         self._workflow.add_edge("tools", "agent")
 
-        # Initialize memory to persist state between graph runs
-        self._checkpointer = MemorySaver()
-
         # Finally, we compile it!
         # This compiles it into a LangChain Runnable,
         # meaning you can use it as you would any other runnable.
         # Note that we're (optionally) passing the memory when compiling the graph
-        self._app = self._workflow.compile(checkpointer=self._checkpointer)
+        self._app = self._workflow.compile()
 
     @message_handler
     async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
