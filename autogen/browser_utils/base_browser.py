@@ -1,10 +1,9 @@
 import io
-import json
 import mimetypes
 import os
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, overload
 from urllib.parse import urljoin, urlparse
 
 import markdownify
@@ -36,8 +35,8 @@ class TextBrowserBase:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
-        bing_base_url: str = "https://api.bing.microsoft.com/v7.0/search",
-        bing_api_key: Optional[Union[str, None]] = None,
+        base_url: str = None,
+        api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
@@ -48,8 +47,8 @@ class TextBrowserBase:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self.set_address(self.start_page)
-        self.bing_base_url = bing_base_url
-        self.bing_api_key = bing_api_key
+        self.base_url = base_url
+        self.api_key = api_key
         self.request_kwargs = request_kwargs
 
         self._page_content = ""
@@ -59,19 +58,9 @@ class TextBrowserBase:
         """Return the address of the current page."""
         return self.history[-1]
 
+    @overload
     def set_address(self, uri_or_path: str) -> None:
         self.history.append(uri_or_path)
-
-        # Handle special URIs
-        if uri_or_path == "about:blank":
-            self._set_page_content("")
-        elif uri_or_path.startswith("bing:"):
-            self._bing_search(uri_or_path[len("bing:") :].strip())
-        else:
-            if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
-                uri_or_path = urljoin(self.address, uri_or_path)
-                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
-            self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
 
@@ -125,64 +114,6 @@ class TextBrowserBase:
                 end_idx += 1
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
-
-    def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
-        # Make sure the key was set
-        if self.bing_api_key is None:
-            raise ValueError("Missing Bing API key.")
-
-        # Prepare the request parameters
-        request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
-
-        if "headers" not in request_kwargs:
-            request_kwargs["headers"] = {}
-        request_kwargs["headers"]["Ocp-Apim-Subscription-Key"] = self.bing_api_key
-
-        if "params" not in request_kwargs:
-            request_kwargs["params"] = {}
-        request_kwargs["params"]["q"] = query
-        request_kwargs["params"]["textDecorations"] = False
-        request_kwargs["params"]["textFormat"] = "raw"
-
-        request_kwargs["stream"] = False
-
-        # Make the request
-        response = requests.get(self.bing_base_url, **request_kwargs)
-        response.raise_for_status()
-        results = response.json()
-
-        return results  # type: ignore[no-any-return]
-
-    def _bing_search(self, query: str) -> None:
-        results = self._bing_api_call(query)
-
-        web_snippets: List[str] = list()
-        idx = 0
-        for page in results["webPages"]["value"]:
-            idx += 1
-            web_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['snippet']}")
-            if "deepLinks" in page:
-                for dl in page["deepLinks"]:
-                    idx += 1
-                    web_snippets.append(
-                        f"{idx}. [{dl['name']}]({dl['url']})\n{dl['snippet'] if 'snippet' in dl else ''}"  # type: ignore[index]
-                    )
-
-        news_snippets = list()
-        if "news" in results:
-            for page in results["news"]["value"]:
-                idx += 1
-                news_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['description']}")
-
-        self.page_title = f"{query} - Search"
-
-        content = (
-            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets)} results:\n\n## Web Results\n"
-            + "\n\n".join(web_snippets)
-        )
-        if len(news_snippets) > 0:
-            content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
-        self._set_page_content(content)
 
     def _fetch_page(self, url: str) -> None:
         try:
