@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // DotnetInteractiveKernelBuilder.cs
 
+#if NET8_0_OR_GREATER
 using AutoGen.DotnetInteractive.Extension;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
@@ -123,3 +124,4 @@ public class DotnetInteractiveKernelBuilder
         return this;
     }
 }
+#endif
