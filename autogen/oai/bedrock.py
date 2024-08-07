@@ -140,8 +140,10 @@ class BedrockClient:
 
         # Here are the possible "model-specific" parameters and their suitable types, known as additional parameters
         additional_parameters = [
+            ["top_p", (float, int)],
             ["top_k", (int)],
             ["k", (int)],
+            ["seed", (int)],
         ]
 
         for param_name, suitable_types in additional_parameters:
