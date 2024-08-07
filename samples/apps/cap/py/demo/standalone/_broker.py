@@ -1,5 +1,5 @@
 import _paths
-from autogencap.broker import main
+from autogencap._broker import main
 
 if __name__ == "__main__":
     main()

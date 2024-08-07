@@ -4,8 +4,8 @@ import time
 
 import zmq
 
-from autogencap.actor import Actor
-from autogencap.broker import Broker
+from autogencap._actor import Actor
+from autogencap._broker import Broker
 from autogencap.config import router_url, xpub_url, xsub_url
 from autogencap.constants import Directory_Svc_Topic
 from autogencap.debug_log import Debug, Error, Info
