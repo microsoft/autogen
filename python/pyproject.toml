@@ -60,7 +60,8 @@ dependencies = [
     "types-aiofiles",
     "types-pillow",
     "types-protobuf",
-    "wikipedia"
+    "wikipedia",
+    "nbqa"
 ]
 
 [tool.hatch.envs.default.extra-scripts]
@@ -76,6 +77,8 @@ check = [
     "pyright",
     "mypy --non-interactive --install-types",
     "pytest -n auto",
+    # Only checking notebooks with mypy for now due to the fact pyright doesn't seem to be able to ignore the top level await
+    "nbqa mypy docs/src",
 ]
 
 [tool.hatch.envs.test-matrix]
@@ -85,6 +88,7 @@ template = "default"
 python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.docs]
+template = "default"
 dependencies = [
     "sphinx",
     "furo",
@@ -96,7 +100,9 @@ dependencies = [
 [tool.hatch.envs.docs.scripts]
 build = "sphinx-build docs/src docs/build"
 serve = "sphinx-autobuild --watch src docs/src docs/build"
-check = "sphinx-build --fail-on-warning docs/src docs/build"
+check = [
+    "sphinx-build --fail-on-warning docs/src docs/build"
+]
 
 # Benchmark environments
 [tool.hatch.envs.bench-humaneval-teamone]
@@ -121,7 +127,7 @@ line-length = 120
 fix = true
 exclude = ["build", "dist", "src/agnext/worker/protos"]
 target-version = "py310"
-include = ["src/**", "samples/*.py"]
+include = ["src/**", "samples/*.py", "docs/**/*.ipynb"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -179,3 +185,8 @@ outputs = ["{proto_path}/{proto_name}_pb2.pyi"]
 [[tool.hatch.build.hooks.protobuf.generators]]
 name = "mypy_grpc"
 outputs = ["{proto_path}/{proto_name}_pb2_grpc.pyi"]
+
+[tool.nbqa.addopts]
+mypy = [
+    "--disable-error-code=top-level-await"
+]

@@ -87,6 +87,15 @@ jobs:
           hatch run +python=${{ matrix.python-version }} teamone-test-matrix:pytest -n auto
         working-directory: ./python/teams/team-one
 
+  mypy-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch run nbqa mypy docs/src
+        working-directory: ./python
+
   docs:
     runs-on: ubuntu-latest
     steps:
