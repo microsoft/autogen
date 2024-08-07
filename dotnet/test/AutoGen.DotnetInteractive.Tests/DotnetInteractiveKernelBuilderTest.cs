@@ -27,6 +27,22 @@ public class DotnetInteractiveKernelBuilderTest
     }
 
     [Fact]
+    public async Task ItAddPowershellKernelTestAsync()
+    {
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateEmptyBuilder()
+            .AddPowershellKernel()
+            .Build();
+
+        var powershellCode = @"
+            Write-Host 'Hello, World!'
+            ";
+
+        var result = await kernel.RunSubmitCodeCommandAsync(powershellCode, "pwsh");
+        result.Should().Contain("Hello, World!");
+    }
+
+    [Fact]
     public async Task ItAddFSharpKernelTestAsync()
     {
         var kernel = DotnetInteractiveKernelBuilder
