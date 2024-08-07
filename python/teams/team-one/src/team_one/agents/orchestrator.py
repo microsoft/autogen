@@ -83,13 +83,13 @@ class LedgerOrchestrator(BaseOrchestrator):
         team_description = ""
         for agent in self._agents:
             metadata = await agent.metadata
-            name = metadata["name"]
+            name = metadata["type"]
             description = metadata["description"]
             team_description += f"{name}: {description}\n"
         return team_description
 
     async def _get_team_names(self) -> List[str]:
-        return [(await agent.metadata)["name"] for agent in self._agents]
+        return [(await agent.metadata)["type"] for agent in self._agents]
 
     def _set_task_str(self, message: LLMMessage) -> None:
         if len(self._chat_history) == 1:
@@ -119,18 +119,18 @@ class LedgerOrchestrator(BaseOrchestrator):
         # create a closed book task and generate a response and update the chat history
         cb_task = self._get_closed_book_prompt(self.task_str)
         cb_user_message = UserMessage(
-            content=cb_task, source=self.metadata["name"]
+            content=cb_task, source=self.metadata["type"]
         )  # TODO: allow images in this message.
         cb_response = await self._model_client.create(self._system_messages + self._chat_history + [cb_user_message])
         facts = cb_response.content
         assert isinstance(facts, str)
-        cb_assistant_message = AssistantMessage(content=facts, source=self.metadata["name"])
+        cb_assistant_message = AssistantMessage(content=facts, source=self.metadata["type"])
 
         # 2. CREATE A PLAN
         ## plan based on available information
         plan_task = self._get_plan_prompt(self.task_str, team_description)
         plan_user_message = UserMessage(
-            content=plan_task, source=self.metadata["name"]
+            content=plan_task, source=self.metadata["type"]
         )  # TODO: allow images in this message.
         plan_response = await self._model_client.create(
             self._system_messages + self._chat_history + [cb_assistant_message, plan_user_message]
@@ -148,7 +148,7 @@ class LedgerOrchestrator(BaseOrchestrator):
         team_description = await self._get_team_description()
         names = await self._get_team_names()
         ledger_prompt = self._get_ledger_prompt(self.task_str, team_description, names)
-        ledger_user_message = UserMessage(content=ledger_prompt, source=self.metadata["name"])
+        ledger_user_message = UserMessage(content=ledger_prompt, source=self.metadata["type"])
 
         assert max_json_retries > 0
         for _ in range(max_json_retries):
@@ -165,7 +165,7 @@ class LedgerOrchestrator(BaseOrchestrator):
             except json.JSONDecodeError as e:
                 logger.info(
                     OrchestrationEvent(
-                        f"{self.metadata['name']} (error)",
+                        f"{self.metadata['type']} (error)",
                         f"Failed to parse ledger information: {ledger_str}",
                     )
                 )
@@ -180,10 +180,10 @@ class LedgerOrchestrator(BaseOrchestrator):
 
         if self._should_replan:
             plan_str = await self._plan()
-            plan_user_message = UserMessage(content=plan_str, source=self.metadata["name"])
+            plan_user_message = UserMessage(content=plan_str, source=self.metadata["type"])
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (thought)",
+                    f"{self.metadata['type']} (thought)",
                     f"New plan:\n{plan_str}",
                 )
             )
@@ -196,7 +196,7 @@ class LedgerOrchestrator(BaseOrchestrator):
         ledger_dict = await self.update_ledger()
         logger.info(
             OrchestrationEvent(
-                f"{self.metadata['name']} (thought)",
+                f"{self.metadata['type']} (thought)",
                 f"Updated Ledger:\n{json.dumps(ledger_dict, indent=2)}",
             )
         )
@@ -204,7 +204,7 @@ class LedgerOrchestrator(BaseOrchestrator):
         if ledger_dict["is_request_satisfied"]["answer"] is True:
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (thought)",
+                    f"{self.metadata['type']} (thought)",
                     "Request satisfied.",
                 )
             )
@@ -219,7 +219,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                 if self._replan_counter < self._max_replans:
                     logger.info(
                         OrchestrationEvent(
-                            f"{self.metadata['name']} (thought)",
+                            f"{self.metadata['type']} (thought)",
                             "Stalled.... Replanning...",
                         )
                     )
@@ -227,7 +227,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                 else:
                     logger.info(
                         OrchestrationEvent(
-                            f"{self.metadata['name']} (thought)",
+                            f"{self.metadata['type']} (thought)",
                             "Replan counter exceeded... Terminating.",
                         )
                     )
@@ -235,11 +235,11 @@ class LedgerOrchestrator(BaseOrchestrator):
 
         next_agent_name = ledger_dict["next_speaker"]["answer"]
         for agent in self._agents:
-            if (await agent.metadata)["name"] == next_agent_name:
+            if (await agent.metadata)["type"] == next_agent_name:
                 # broadcast a new message
                 instruction = ledger_dict["instruction_or_question"]["answer"]
-                user_message = UserMessage(content=instruction, source=self.metadata["name"])
-                logger.info(OrchestrationEvent(f"{self.metadata['name']} (-> {next_agent_name})", instruction))
+                user_message = UserMessage(content=instruction, source=self.metadata["type"])
+                logger.info(OrchestrationEvent(f"{self.metadata['type']} (-> {next_agent_name})", instruction))
                 await self.publish_message(BroadcastMessage(content=user_message, request_halt=False))
                 return agent
 

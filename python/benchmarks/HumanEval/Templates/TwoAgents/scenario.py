@@ -100,7 +100,7 @@ If the code has executed successfully, and the problem is stolved, reply "TERMIN
         )
         assert isinstance(response.content, str)
         self._session_memory[session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
         await self.publish_message(
@@ -138,7 +138,7 @@ If the code has executed successfully, and the problem is stolved, reply "TERMIN
         )
         assert isinstance(response.content, str)
         self._session_memory[message.session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
         if "TERMINATE" in response.content:

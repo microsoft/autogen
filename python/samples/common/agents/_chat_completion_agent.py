@@ -175,7 +175,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         # Get a response from the model.
         hisorical_messages = await self._memory.get_messages()
         response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["name"]),
+            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["type"]),
             tools=self._tools,
             json_output=response_format == ResponseFormat.json_object,
         )
@@ -190,14 +190,14 @@ class ChatCompletionAgent(TypeRoutedAgent):
         ):
             # Send a function call message to itself.
             response = await self.send_message(
-                message=FunctionCallMessage(content=response.content, source=self.metadata["name"]),
+                message=FunctionCallMessage(content=response.content, source=self.metadata["type"]),
                 recipient=self.id,
                 cancellation_token=cancellation_token,
             )
             # Make an assistant message from the response.
             hisorical_messages = await self._memory.get_messages()
             response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["name"]),
+                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["type"]),
                 tools=self._tools,
                 json_output=response_format == ResponseFormat.json_object,
             )
@@ -205,10 +205,10 @@ class ChatCompletionAgent(TypeRoutedAgent):
         final_response: Message
         if isinstance(response.content, str):
             # If the response is a string, return a text message.
-            final_response = TextMessage(content=response.content, source=self.metadata["name"])
+            final_response = TextMessage(content=response.content, source=self.metadata["type"])
         elif isinstance(response.content, list) and all(isinstance(x, FunctionCall) for x in response.content):
             # If the response is a list of function calls, return a function call message.
-            final_response = FunctionCallMessage(content=response.content, source=self.metadata["name"])
+            final_response = FunctionCallMessage(content=response.content, source=self.metadata["type"])
         else:
             raise ValueError(f"Unexpected response: {response.content}")
 

@@ -23,11 +23,11 @@ async def select_speaker(memory: ChatMemory[Message], client: ChatCompletionClie
 
     # Construct agent roles.
     roles = "\n".join(
-        [f"{(await agent.metadata)['name']}: {(await agent.metadata)['description']}".strip() for agent in agents]
+        [f"{(await agent.metadata)['type']}: {(await agent.metadata)['description']}".strip() for agent in agents]
     )
 
     # Construct agent list.
-    participants = str([(await agent.metadata)["name"] for agent in agents])
+    participants = str([(await agent.metadata)["type"] for agent in agents])
 
     # Select the next speaker.
     select_speaker_prompt = f"""You are in a role play game. The following roles are available:
@@ -48,7 +48,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     # Get the index of the selected agent by name
     agent_index = 0
     for i, agent in enumerate(agents):
-        if (await agent.metadata)["name"] == agent_name:
+        if (await agent.metadata)["type"] == agent_name:
             agent_index = i
             break
 
@@ -74,7 +74,7 @@ async def mentioned_agents(message_content: str, agents: List[AgentProxy]) -> Di
     for agent in agents:
         # Finds agent mentions, taking word boundaries into account,
         # accommodates escaping underscores and underscores as spaces
-        name = (await agent.metadata)["name"]
+        name = (await agent.metadata)["type"]
         regex = (
             r"(?<=\W)("
             + re.escape(name)

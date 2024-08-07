@@ -97,7 +97,7 @@ Reply "TERMINATE" in the end when everything is done."""
         response = await self._model_client.create(self._system_messages + self._session_memory[session_id])
         assert isinstance(response.content, str)
         self._session_memory[session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
         # Publish the code execution task.
@@ -116,7 +116,7 @@ Reply "TERMINATE" in the end when everything is done."""
         response = await self._model_client.create(self._system_messages + self._session_memory[message.session_id])
         assert isinstance(response.content, str)
         self._session_memory[message.session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
         if "TERMINATE" in response.content:

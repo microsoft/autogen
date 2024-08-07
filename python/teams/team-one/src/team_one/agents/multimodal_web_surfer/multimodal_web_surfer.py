@@ -211,7 +211,7 @@ setInterval(function() {{
             await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
         logger.info(
             WebSurferEvent(
-                source=self.metadata["name"],
+                source=self.metadata["type"],
                 url=self._page.url,
                 message="Resetting browser.",
             )
@@ -262,7 +262,7 @@ setInterval(function() {{
         assert self._page is not None
         logger.info(
             WebSurferEvent(
-                source=self.metadata["name"],
+                source=self.metadata["type"],
                 url=self._page.url,
                 action=name,
                 arguments=args,
@@ -519,7 +519,7 @@ When deciding between tools, consider if the request can be best addressed by:
 
         # Add the multimodal message and make the request
         history.append(
-            UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.metadata["name"])
+            UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.metadata["type"])
         )
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}
@@ -674,7 +674,7 @@ When deciding between tools, consider if the request can be best addressed by:
 
                 logger.info(
                     WebSurferEvent(
-                        source=self.metadata["name"],
+                        source=self.metadata["type"],
                         url=self._page.url,
                         message="New tab or window.",
                     )
@@ -758,7 +758,7 @@ When deciding between tools, consider if the request can be best addressed by:
                 prompt + buffer + line,
                 #    ag_image,
                 # ],
-                source=self.metadata["name"],
+                source=self.metadata["type"],
             )
 
             remaining = self._model_client.remaining_tokens(messages + [message])
@@ -779,7 +779,7 @@ When deciding between tools, consider if the request can be best addressed by:
                     prompt + buffer,
                     ag_image,
                 ],
-                source=self.metadata["name"],
+                source=self.metadata["type"],
             )
         )
 
@@ -811,7 +811,7 @@ When deciding between tools, consider if the request can be best addressed by:
                     "Please transcribe all visible text on this page, including both main content and the labels of UI elements.",
                     AGImage.from_pil(scaled_screenshot),
                 ],
-                source=self.metadata["name"],
+                source=self.metadata["type"],
             )
         )
         response = await self._model_client.create(messages)

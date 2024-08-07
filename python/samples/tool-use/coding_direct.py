@@ -66,7 +66,7 @@ class ToolUseAgent(TypeRoutedAgent):
         session: List[LLMMessage] = []
         session.append(UserMessage(content=message.content, source="User"))
         response = await self._model_client.create(self._system_messages + session, tools=self._tool_schema)
-        session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+        session.append(AssistantMessage(content=response.content, source=self.metadata["type"]))
 
         # Keep executing the tools until the response is not a list of function calls.
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
@@ -89,7 +89,7 @@ class ToolUseAgent(TypeRoutedAgent):
             session.append(FunctionExecutionResultMessage(content=function_results))
             # Execute the model again with the new response.
             response = await self._model_client.create(self._system_messages + session, tools=self._tool_schema)
-            session.append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+            session.append(AssistantMessage(content=response.content, source=self.metadata["type"]))
 
         assert isinstance(response.content, str)
         return Message(content=response.content)

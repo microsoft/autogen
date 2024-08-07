@@ -63,7 +63,7 @@ class ImageGenerationAgent(TypeRoutedAgent):
         messages = await self._memory.get_messages()
         if len(messages) == 0:
             return MultiModalMessage(
-                content=["I need more information to generate an image."], source=self.metadata["name"]
+                content=["I need more information to generate an image."], source=self.metadata["type"]
             )
         prompt = ""
         for m in messages:
@@ -74,5 +74,5 @@ class ImageGenerationAgent(TypeRoutedAgent):
         assert len(response.data) > 0 and response.data[0].b64_json is not None
         # Create a MultiModalMessage with the image.
         image = Image.from_base64(response.data[0].b64_json)
-        multi_modal_message = MultiModalMessage(content=[image], source=self.metadata["name"])
+        multi_modal_message = MultiModalMessage(content=[image], source=self.metadata["type"])
         return multi_modal_message

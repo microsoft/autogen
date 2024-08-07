@@ -27,7 +27,7 @@ class Inner(TypeRoutedAgent):
 
     @message_handler()
     async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
-        return MessageType(body=f"Inner: {message.body}", sender=self.metadata["name"])
+        return MessageType(body=f"Inner: {message.body}", sender=self.metadata["type"])
 
 
 class Outer(TypeRoutedAgent):
@@ -40,7 +40,7 @@ class Outer(TypeRoutedAgent):
         inner_response = self.send_message(message, self._inner)
         inner_message = await inner_response
         assert isinstance(inner_message, MessageType)
-        return MessageType(body=f"Outer: {inner_message.body}", sender=self.metadata["name"])
+        return MessageType(body=f"Outer: {inner_message.body}", sender=self.metadata["type"])
 
 
 async def main() -> None:

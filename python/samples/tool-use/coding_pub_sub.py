@@ -121,7 +121,7 @@ class ToolUseAgent(TypeRoutedAgent):
         response = await self._model_client.create(
             self._system_messages + self._sessions[session_id], tools=self._tools
         )
-        self._sessions[session_id].append(AssistantMessage(content=response.content, source=self.metadata["name"]))
+        self._sessions[session_id].append(AssistantMessage(content=response.content, source=self.metadata["type"]))
 
         if isinstance(response.content, str):
             # If the response is a string, just publish the response.
@@ -163,7 +163,7 @@ class ToolUseAgent(TypeRoutedAgent):
             self._system_messages + self._sessions[message.session_id], tools=self._tools
         )
         self._sessions[message.session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
         # If the response is a string, just publish the response.
         if isinstance(response.content, str):

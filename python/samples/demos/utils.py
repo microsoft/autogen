@@ -171,7 +171,7 @@ class TextualUserAgent(TypeRoutedAgent):  # type: ignore
         # Generate a ramdom file name.
         for content in message.content:
             if isinstance(content, Image):
-                filename = f"{self.metadata['name']}_{message.source}_{random.randbytes(16).hex()}.png"
+                filename = f"{self.metadata['type']}_{message.source}_{random.randbytes(16).hex()}.png"
                 content.image.save(filename)
         await self._app.post_runtime_message(message)
 

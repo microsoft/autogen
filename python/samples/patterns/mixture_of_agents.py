@@ -62,7 +62,7 @@ class ReferenceAgent(TypeRoutedAgent):
     @message_handler
     async def handle_task(self, message: ReferenceAgentTask, cancellation_token: CancellationToken) -> None:
         """Handle a task message. This method sends the task to the model and publishes the result."""
-        task_message = UserMessage(content=message.task, source=self.metadata["name"])
+        task_message = UserMessage(content=message.task, source=self.metadata["type"])
         response = await self._model_client.create(self._system_messages + [task_message])
         assert isinstance(response.content, str)
         task_result = ReferenceAgentTaskResult(session_id=message.session_id, result=response.content)
@@ -100,7 +100,7 @@ class AggregatorAgent(TypeRoutedAgent):
         if len(self._session_results[message.session_id]) == self._num_references:
             result = "\n\n".join([r.result for r in self._session_results[message.session_id]])
             response = await self._model_client.create(
-                self._system_messages + [UserMessage(content=result, source=self.metadata["name"])]
+                self._system_messages + [UserMessage(content=result, source=self.metadata["type"])]
             )
             assert isinstance(response.content, str)
             task_result = AggregatorTaskResult(result=response.content)

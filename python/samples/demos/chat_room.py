@@ -60,13 +60,13 @@ Use the following JSON format to provide your thought on the latest message and 
         # Get a response from the model.
         raw_response = await self._client.create(
             self._system_messages
-            + convert_messages_to_llm_messages(await self._memory.get_messages(), self_name=self.metadata["name"]),
+            + convert_messages_to_llm_messages(await self._memory.get_messages(), self_name=self.metadata["type"]),
             json_output=True,
         )
         assert isinstance(raw_response.content, str)
 
         # Save the response to memory.
-        await self._memory.add_message(TextMessage(source=self.metadata["name"], content=raw_response.content))
+        await self._memory.add_message(TextMessage(source=self.metadata["type"], content=raw_response.content))
 
         # Parse the response.
         data = json.loads(raw_response.content)
@@ -75,7 +75,7 @@ Use the following JSON format to provide your thought on the latest message and 
 
         # Publish the response if needed.
         if respond is True or str(respond).lower().strip() == "true":
-            await self.publish_message(TextMessage(source=self.metadata["name"], content=str(response)))
+            await self.publish_message(TextMessage(source=self.metadata["type"], content=str(response)))
 
 
 class ChatRoomUserAgent(TextualUserAgent):

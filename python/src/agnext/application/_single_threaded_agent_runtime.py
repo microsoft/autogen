@@ -304,8 +304,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             sender_agent = (
                 await self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
             )
-            # TODO use id
-            sender_name = sender_agent.metadata["name"] if sender_agent is not None else "Unknown"
+            sender_name = str(sender_agent.id) if sender_agent is not None else "Unknown"
             logger.info(
                 f"Calling message handler for {agent_id.type} with message type {type(message_envelope.message).__name__} published by {sender_name}"
             )

@@ -40,7 +40,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         if self._num_rounds >= self._max_rounds:
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (termination condition)",
+                    f"{self.metadata['type']} (termination condition)",
                     f"Max rounds ({self._max_rounds}) reached.",
                 )
             )
@@ -49,7 +49,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         if message.request_halt:
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (termination condition)",
+                    f"{self.metadata['type']} (termination condition)",
                     f"{source} requested halt.",
                 )
             )
@@ -59,7 +59,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         if next_agent is None:
             logger.info(
                 OrchestrationEvent(
-                    f"{self.metadata['name']} (termination condition)",
+                    f"{self.metadata['type']} (termination condition)",
                     "No agent selected.",
                 )
             )
@@ -69,8 +69,8 @@ class BaseOrchestrator(TeamOneBaseAgent):
 
         logger.info(
             OrchestrationEvent(
-                source=f"{self.metadata['name']} (thought)",
-                message=f"Next speaker {(await next_agent.metadata)['name']}" "",
+                source=f"{self.metadata['type']} (thought)",
+                message=f"Next speaker {(await next_agent.metadata)['type']}" "",
             )
         )
 

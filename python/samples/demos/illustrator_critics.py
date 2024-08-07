@@ -86,9 +86,9 @@ async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> Non
 
     app.welcoming_notice = f"""You are now in a group chat with the following agents:
 
-1. 🤖 {(await descriptor.metadata)['name']}: {(await descriptor.metadata).get('description')}
-2. 🤖 {(await illustrator.metadata)['name']}: {(await illustrator.metadata).get('description')}
-3. 🤖 {(await critic.metadata)['name']}: {(await critic.metadata).get('description')}
+1. 🤖 {(await descriptor.metadata)['type']}: {(await descriptor.metadata).get('description')}
+2. 🤖 {(await illustrator.metadata)['type']}: {(await illustrator.metadata).get('description')}
+3. 🤖 {(await critic.metadata)['type']}: {(await critic.metadata).get('description')}
 
 Provide a prompt for the illustrator to generate an image.
 """

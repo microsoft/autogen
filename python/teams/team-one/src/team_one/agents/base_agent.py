@@ -94,7 +94,7 @@ class TeamOneBaseAgent(TypeRoutedAgent):
         self._enabled = False
         logger.info(
             AgentEvent(
-                f"{self.metadata['name']} (deactivated)",
+                f"{self.metadata['type']} (deactivated)",
                 "",
             )
         )

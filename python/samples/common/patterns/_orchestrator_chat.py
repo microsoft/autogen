@@ -73,7 +73,7 @@ Some additional points to consider:
 
             # Send the task specs to the orchestrator and specialists.
             for agent in [*self._specialists, self._orchestrator]:
-                await (await self.send_message(TextMessage(content=task_specs, source=self.metadata["name"]), agent))
+                await (await self.send_message(TextMessage(content=task_specs, source=self.metadata["type"]), agent))
 
             # Inner loop.
             stalled_turns = 0
@@ -85,7 +85,7 @@ Some additional points to consider:
                 if data["is_request_satisfied"]["answer"]:
                     return TextMessage(
                         content=f"The task has been successfully addressed. {data['is_request_satisfied']['reason']}",
-                        source=self.metadata["name"],
+                        source=self.metadata["type"],
                     )
 
                 # Update stalled turns.
@@ -111,7 +111,7 @@ Some additional points to consider:
                         if educated_guess["has_educated_guesses"]["answer"]:
                             return TextMessage(
                                 content=f"The task is addressed with an educated guess. {educated_guess['has_educated_guesses']['reason']}",
-                                source=self.metadata["name"],
+                                source=self.metadata["type"],
                             )
 
                     # Come up with a new plan.
@@ -129,7 +129,7 @@ Some additional points to consider:
                 for agent in [*self._specialists, self._orchestrator]:
                     _ = await (
                         await self.send_message(
-                            TextMessage(content=subtask, source=self.metadata["name"]),
+                            TextMessage(content=subtask, source=self.metadata["type"]),
                             agent,
                         )
                     )
@@ -161,7 +161,7 @@ Some additional points to consider:
 
         return TextMessage(
             content="The task was not addressed. The maximum number of turns was reached.",
-            source=self.metadata["name"],
+            source=self.metadata["type"],
         )
 
     async def _prepare_task(self, task: str, sender: str) -> Tuple[str, str, str, str]:

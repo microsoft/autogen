@@ -94,7 +94,7 @@ class MathSolver(TypeRoutedAgent):
     def __init__(self, model_client: ChatCompletionClient, neighbor_names: List[str], max_round: int) -> None:
         super().__init__("A debator.")
         self._model_client = model_client
-        if self.metadata["name"] in neighbor_names:
+        if self.metadata["type"] in neighbor_names:
             raise ValueError("The agent's name cannot be in the list of neighbor names.")
         self._neighbor_names = neighbor_names
         self._memory: Dict[str, List[LLMMessage]] = {}
@@ -153,9 +153,9 @@ class MathSolver(TypeRoutedAgent):
         assert isinstance(response.content, str)
         # Add the response to the memory.
         self._memory[message.session_id].append(
-            AssistantMessage(content=response.content, source=self.metadata["name"])
+            AssistantMessage(content=response.content, source=self.metadata["type"])
         )
-        logger.debug(f"Solver {self.metadata['name']} response: {response.content}")
+        logger.debug(f"Solver {self.metadata['type']} response: {response.content}")
         # Extract the answer from the response.
         match = re.search(r"\{\{(\-?\d+(\.\d+)?)\}\}", response.content)
         if match is None:
@@ -171,7 +171,7 @@ class MathSolver(TypeRoutedAgent):
             await self.publish_message(
                 IntermediateSolverResponse(
                     content=response.content,
-                    solver_name=self.metadata["name"],
+                    solver_name=self.metadata["type"],
                     answer=answer,
                     session_id=message.session_id,
                     round=self._counters[message.session_id],

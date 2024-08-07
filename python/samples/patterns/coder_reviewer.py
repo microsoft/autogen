@@ -100,7 +100,7 @@ Please review the code and provide feedback.
 """
         # Generate a response using the chat completion API.
         response = await self._model_client.create(
-            self._system_messages + [UserMessage(content=prompt, source=self.metadata["name"])]
+            self._system_messages + [UserMessage(content=prompt, source=self.metadata["type"])]
         )
         assert isinstance(response.content, str)
         # TODO: use structured generation library e.g. guidance to ensure the response is in the expected format.
@@ -162,7 +162,7 @@ Code: <Your code>
         self._session_memory.setdefault(session_id, []).append(message)
         # Generate a response using the chat completion API.
         response = await self._model_client.create(
-            self._system_messages + [UserMessage(content=message.task, source=self.metadata["name"])]
+            self._system_messages + [UserMessage(content=message.task, source=self.metadata["type"])]
         )
         assert isinstance(response.content, str)
         # Extract the code block from the response.

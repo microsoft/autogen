@@ -29,7 +29,7 @@ import tiktoken
 
 from agnext.components.models import AssistantMessage
 
-encoding = None 
+encoding = None
 def count_token(value: str) -> int:
     # TODO:: Migrate to model_client.count_tokens
     global encoding
@@ -40,7 +40,7 @@ def count_token(value: str) -> int:
 async def response_preparer(task: str, source: str, client: ChatCompletionClient, transcript: List[LLMMessage]) -> str:
     messages: List[LLMMessage] = []
 
-    # copy them to this context 
+    # copy them to this context
     for message in transcript:
         messages.append(
             UserMessage(
@@ -168,7 +168,7 @@ async def main() -> None:
 
     run_context = runtime.start()
 
-    actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, type=MultimodalWebSurfer)  
+    actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, type=MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
 
     #await runtime.send_message(RequestReplyMessage(), user_proxy.id)
@@ -206,7 +206,7 @@ async def main() -> None:
     # Output the final answer
     actual_orchestrator = await runtime.try_get_underlying_agent_instance(orchestrator.id, type=LedgerOrchestrator)
     transcript: List[LLMMessage] = actual_orchestrator._chat_history # type: ignore
-    print(await response_preparer(task=task, source=(await orchestrator.metadata)["name"], client=client, transcript=transcript))
+    print(await response_preparer(task=task, source=(await orchestrator.metadata)["type"], client=client, transcript=transcript))
 
 
 

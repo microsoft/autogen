@@ -68,8 +68,8 @@ class ClosureAgent(Agent):
     def metadata(self) -> AgentMetadata:
         assert self._id is not None
         return AgentMetadata(
-            namespace=self._id.key,
-            name=self._id.type,
+            key=self._id.key,
+            type=self._id.type,
             description=self._description,
             subscriptions=self._subscriptions,
         )

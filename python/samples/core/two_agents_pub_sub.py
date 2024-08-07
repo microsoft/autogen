@@ -63,13 +63,13 @@ class ChatCompletionAgent(TypeRoutedAgent):
             return
         llm_messages: List[LLMMessage] = []
         for m in self._memory[-10:]:
-            if m.source == self.metadata["name"]:
-                llm_messages.append(AssistantMessage(content=m.content, source=self.metadata["name"]))
+            if m.source == self.metadata["type"]:
+                llm_messages.append(AssistantMessage(content=m.content, source=self.metadata["type"]))
             else:
                 llm_messages.append(UserMessage(content=m.content, source=m.source))
         response = await self._model_client.create(self._system_messages + llm_messages)
         assert isinstance(response.content, str)
-        await self.publish_message(Message(content=response.content, source=self.metadata["name"]))
+        await self.publish_message(Message(content=response.content, source=self.metadata["type"]))
 
 
 async def main() -> None:

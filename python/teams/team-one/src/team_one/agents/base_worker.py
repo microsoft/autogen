@@ -41,10 +41,10 @@ class BaseWorker(TeamOneBaseAgent):
         """Respond to a reply request."""
         request_halt, response = await self._generate_reply(cancellation_token)
 
-        assistant_message = AssistantMessage(content=message_content_to_str(response), source=self.metadata["name"])
+        assistant_message = AssistantMessage(content=message_content_to_str(response), source=self.metadata["type"])
         self._chat_history.append(assistant_message)
 
-        user_message = UserMessage(content=response, source=self.metadata["name"])
+        user_message = UserMessage(content=response, source=self.metadata["type"])
         await self.publish_message(BroadcastMessage(content=user_message, request_halt=request_halt))
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:

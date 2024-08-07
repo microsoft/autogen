@@ -18,7 +18,7 @@ class ReflexAgent(TypeRoutedAgent):
     async def handle_request_reply_message(
         self, message: RequestReplyMessage, cancellation_token: CancellationToken
     ) -> None:
-        name = self.metadata["name"]
+        name = self.metadata["type"]
 
         response_message = UserMessage(
             content=f"Hello, world from {name}!",
