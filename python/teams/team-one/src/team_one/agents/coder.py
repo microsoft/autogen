@@ -17,26 +17,20 @@ from .base_worker import BaseWorker
 class Coder(BaseWorker):
     """An agent that uses tools to write, execute, and debug Python code."""
 
-    DEFAULT_DESCRIPTION = "A Python coder assistant."
+    DEFAULT_DESCRIPTION = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""You are a helpful AI assistant. Solve tasks using your Python coding skills. The code you output must be formatted in Markdown code blocks demarcated by triple backticks (```), and must print their final output to console. As an example:
-
-```python
-
-def main():
-    print("Hello world.")
-
-if __name__ == "__main__":
-    main()
-```
-
-The user cannot provide any feedback or perform any other action beyond executing the code you suggest. In particular, the user can't modify your code, and can't copy and paste anything, and can't fill in missing values. Thus, do not suggest incomplete code which requires users to perform any of these actions.
-
-The user will run all code that you provide, and will report back the results. When receiving the results, check if the output indicates an error. Fix the error. When fixing the error, output the full code, as before, instead of partial code or code changes -- code blocks must stand alone and be ready to execute without modification. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, and think of a different approach to try.
-
-If the code was executed, and the output appears to indicate that the original prolem was solved successful, reply "TERMINATE". UNDER NO OTHER CONDITIONS SHOULD "TERMINATE" BE USED.
-""")
+        SystemMessage("""You are a helpful AI assistant.
+Solve tasks using your coding and language skills.
+In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
+    1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
+    2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
+Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
+When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
+If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
+If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
+When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
+Reply "TERMINATE" in the end when everything is done.""")
     ]
 
     def __init__(
@@ -59,8 +53,13 @@ If the code was executed, and the output appears to indicate that the original p
 
 
 class Executor(BaseWorker):
+    DEFAULT_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)"
+
     def __init__(
-        self, description: str, executor: Optional[CodeExecutor] = None, check_last_n_message: int = 5
+        self,
+        description: str = DEFAULT_DESCRIPTION,
+        executor: Optional[CodeExecutor] = None,
+        check_last_n_message: int = 5,
     ) -> None:
         super().__init__(description)
         self._executor = executor or LocalCommandLineCodeExecutor()
@@ -78,8 +77,13 @@ class Executor(BaseWorker):
 
             # Extract code block from the message.
             code = self._extract_execution_request(message_content_to_str(message.content))
+
             if code is not None:
-                execution_requests = [CodeBlock(code=code, language="python")]
+                code_lang = code[0]
+                code_block = code[1]
+                if code_lang == "py":
+                    code_lang = "python"
+                execution_requests = [CodeBlock(code=code_block, language=code_lang)]
                 result = await self._executor.execute_code_blocks(execution_requests, cancellation_token)
 
                 if result.output.strip() == "":
@@ -103,11 +107,11 @@ class Executor(BaseWorker):
             "No code block detected in the messages. Please provide a markdown-encoded code block to execute for the original task.",
         )
 
-    def _extract_execution_request(self, markdown_text: str) -> Union[str, None]:
+    def _extract_execution_request(self, markdown_text: str) -> Union[Tuple[str, str], None]:
         pattern = r"```(\w+)\n(.*?)\n```"
         # Search for the pattern in the markdown text
         match = re.search(pattern, markdown_text, re.DOTALL)
         # Extract the language and code block if a match is found
         if match:
-            return match.group(2)
+            return (match.group(1), match.group(2))
         return None

@@ -128,6 +128,7 @@ async def main() -> None:
         api_version="2024-02-15-preview",
         azure_endpoint="https://aif-complex-tasks-west-us-3.openai.azure.com/",
         model="gpt-4o-2024-05-13",
+        temperature=0.1,
         model_capabilities=ModelCapabilities(
             function_calling=True, json_output=True, vision=True
         ),
@@ -140,19 +141,17 @@ async def main() -> None:
 
     # Register agents.
     coder = await runtime.register_and_get_proxy(
-        "Coder",
+        "Assistant",
         lambda: Coder(model_client=client),
     )
 
     executor = await runtime.register_and_get_proxy(
-        "Executor",
-        lambda: Executor(
-            "A agent for executing code", executor=LocalCommandLineCodeExecutor()
-        ),
+        "ComputerTerminal",
+        lambda: Executor(executor=LocalCommandLineCodeExecutor()),
     )
 
     file_surfer = await runtime.register_and_get_proxy(
-        "file_surfer",
+        "FileSurfer",
         lambda: FileSurfer(model_client=client),
     )
 
@@ -161,7 +160,7 @@ async def main() -> None:
         lambda: MultimodalWebSurfer(), # Configuration is set later by init()
     )
 
-    orchestrator = await runtime.register_and_get_proxy("orchestrator", lambda: LedgerOrchestrator(
+    orchestrator = await runtime.register_and_get_proxy("Orchestrator", lambda: LedgerOrchestrator(
         agents=[coder, executor, file_surfer, web_surfer],
         model_client=client,
     ))
@@ -170,8 +169,6 @@ async def main() -> None:
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, type=MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
-
-    #await runtime.send_message(RequestReplyMessage(), user_proxy.id)
 
     filename_prompt = ""
     if len(filename) > 0:

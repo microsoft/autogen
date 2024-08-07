@@ -67,15 +67,7 @@ To make progress on the request, please answer the following questions, includin
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
     {{
-        "next_speaker": {{
-            "reason": string,
-            "answer": string (select from: {names})
-        }},
-        "instruction_or_question": {{
-            "reason": string,
-            "answer": string
-        }},
-        "is_request_satisfied": {{
+       "is_request_satisfied": {{
             "reason": string,
             "answer": boolean
         }},
@@ -86,6 +78,14 @@ Please output an answer in pure JSON format according to the following schema. T
         "is_progress_being_made": {{
             "reason": string,
             "answer": boolean
+        }},
+        "next_speaker": {{
+            "reason": string,
+            "answer": string (select from: {names})
+        }},
+        "instruction_or_question": {{
+            "reason": string,
+            "answer": string
         }}
     }}
 """
