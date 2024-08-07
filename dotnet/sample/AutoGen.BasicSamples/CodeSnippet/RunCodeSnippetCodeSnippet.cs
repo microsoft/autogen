@@ -4,6 +4,7 @@
 #region code_snippet_0_1
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
+using AutoGen.DotnetInteractive.Extension;
 #endregion code_snippet_0_1
 
 namespace AutoGen.BasicSample.CodeSnippet;
@@ -11,18 +12,36 @@ public class RunCodeSnippetCodeSnippet
 {
     public async Task CodeSnippet1()
     {
-        IAgent agent = default;
+        IAgent agent = new DefaultReplyAgent("agent", "Hello World");
 
         #region code_snippet_1_1
-        var workingDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(workingDirectory);
-        var interactiveService = new InteractiveService(installingDirectory: workingDirectory);
-        await interactiveService.StartAsync(workingDirectory: workingDirectory);
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultBuilder() // add C# and F# kernels
+            .Build();
         #endregion code_snippet_1_1
 
         #region code_snippet_1_2
-        // register dotnet code block execution hook to an arbitrary agent
-        var dotnetCodeAgent = agent.RegisterDotnetCodeBlockExectionHook(interactiveService: interactiveService);
+        // register middleware to execute code block
+        var dotnetCodeAgent = agent
+            .RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
+            {
+                var lastMessage = msgs.LastOrDefault();
+                if (lastMessage == null || lastMessage.GetContent() is null)
+                {
+                    return await innerAgent.GenerateReplyAsync(msgs, option, ct);
+                }
+
+                var content = lastMessage.GetContent();
+                var codeBlockPrefix = "```csharp";
+                var codeBlockSuffix = "```";
+                var prefixIndex = content.IndexOf(codeBlockPrefix);
+                var suffixIndex = content.IndexOf(codeBlockSuffix, prefixIndex + codeBlockPrefix.Length);
+                var codeSnippet = content.Substring(prefixIndex, suffixIndex - prefixIndex + codeBlockSuffix.Length);
+
+                // execute code snippet
+                var result = await kernel.RunSubmitCodeCommandAsync(codeSnippet, "csharp");
+                return new TextMessage(Role.Assistant, result, from: agent.Name);
+            });
 
         var codeSnippet = @"
         ```csharp
@@ -44,5 +63,17 @@ public class RunCodeSnippetCodeSnippet
         ```
         ";
         #endregion code_snippet_1_3
+
+        #region code_snippet_1_4
+        var pythonKernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultBuilder()
+            .AddPythonKernel(venv: "python3")
+            .Build();
+
+        var pythonCode = """
+        print('Hello from Python!')
+        """;
+        var result = await pythonKernel.RunSubmitCodeCommandAsync(pythonCode, "python3");
+        #endregion code_snippet_1_4
     }
 }
