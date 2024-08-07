@@ -519,7 +519,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                             self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
                         )
                         doc_contents = self._get_context(self._results)
-                        if doc_contents:
+                        if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
                             break
             elif update_context_case2:
                 # Use the current intermediate info as the query text to retrieve docs, and each time we append the top similar
@@ -531,7 +531,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     )
                     self._get_context(self._results)
                     doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
-                    if doc_contents:
+                    if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
                         break
 
             self.clear_history()
