@@ -8,11 +8,9 @@ from autogen.agentchat.contrib.capabilities.text_compressors import TextCompress
 from autogen.agentchat.contrib.capabilities.transforms import (
     MessageHistoryLimiter,
     MessageTokenLimiter,
-    TextMessageCompressor
+    TextMessageCompressor,
 )
-from autogen.agentchat.contrib.capabilities.transforms_util import (
-    count_text_tokens
-)
+from autogen.agentchat.contrib.capabilities.transforms_util import count_text_tokens
 
 
 class _MockTextCompressor:
@@ -51,6 +49,7 @@ def get_tool_messages() -> List[Dict]:
         {"role": "assistant", "content": [{"type": "text", "text": "are you doing?"}]},
     ]
 
+
 def get_tool_messages_kept() -> List[Dict]:
     return [
         {"role": "user", "content": "hello"},
@@ -76,6 +75,7 @@ def get_text_compressors() -> List[TextCompressor]:
 @pytest.fixture
 def message_history_limiter() -> MessageHistoryLimiter:
     return MessageHistoryLimiter(max_messages=3)
+
 
 @pytest.fixture
 def message_history_limiter_keep_first() -> MessageHistoryLimiter:
@@ -121,7 +121,13 @@ def _filter_dict_test(
 
 @pytest.mark.parametrize(
     "messages, expected_messages_len",
-    [(get_long_messages(), 3), (get_short_messages(), 3), (get_no_content_messages(), 2), (get_tool_messages(), 2), (get_tool_messages_kept(), 2)],
+    [
+        (get_long_messages(), 3),
+        (get_short_messages(), 3),
+        (get_no_content_messages(), 2),
+        (get_tool_messages(), 2),
+        (get_tool_messages_kept(), 2),
+    ],
 )
 def test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_messages_len):
     transformed_messages = message_history_limiter.apply_transform(messages)
@@ -134,9 +140,17 @@ def test_message_history_limiter_apply_transform(message_history_limiter, messag
 
 @pytest.mark.parametrize(
     "messages, expected_messages_len",
-    [(get_long_messages(), 3), (get_short_messages(), 3), (get_no_content_messages(), 2), (get_tool_messages(), 3), (get_tool_messages_kept(), 3)],
+    [
+        (get_long_messages(), 3),
+        (get_short_messages(), 3),
+        (get_no_content_messages(), 2),
+        (get_tool_messages(), 3),
+        (get_tool_messages_kept(), 3),
+    ],
 )
-def test_message_history_limiter_apply_transform_keep_first(message_history_limiter_keep_first, messages, expected_messages_len):
+def test_message_history_limiter_apply_transform_keep_first(
+    message_history_limiter_keep_first, messages, expected_messages_len
+):
     transformed_messages = message_history_limiter_keep_first.apply_transform(messages)
     assert len(transformed_messages) == expected_messages_len
 
@@ -175,7 +189,8 @@ def test_message_token_limiter_apply_transform(
 ):
     transformed_messages = message_token_limiter.apply_transform(copy.deepcopy(messages))
     assert (
-        sum(count_text_tokens(msg["content"]) for msg in transformed_messages if "content" in msg) == expected_token_count
+        sum(count_text_tokens(msg["content"]) for msg in transformed_messages if "content" in msg)
+        == expected_token_count
     )
     assert len(transformed_messages) == expected_messages_len
 
@@ -211,7 +226,8 @@ def test_message_token_limiter_with_threshold_apply_transform(
 ):
     transformed_messages = message_token_limiter_with_threshold.apply_transform(messages)
     assert (
-        sum(count_text_tokens(msg["content"]) for msg in transformed_messages if "content" in msg) == expected_token_count
+        sum(count_text_tokens(msg["content"]) for msg in transformed_messages if "content" in msg)
+        == expected_token_count
     )
     assert len(transformed_messages) == expected_messages_len
 
@@ -345,7 +361,9 @@ if __name__ == "__main__":
         message_history_limiter_apply_transform_parameters["messages"],
         message_history_limiter_apply_transform_parameters["expected_messages_len"],
     ):
-        test_message_history_limiter_apply_transform_keep_first(msg_history_limiter_keep_first, messages, expected_messages_len)
+        test_message_history_limiter_apply_transform_keep_first(
+            msg_history_limiter_keep_first, messages, expected_messages_len
+        )
 
     for messages, expected_logs, expected_effect in zip(
         message_history_limiter_get_logs_parameters["messages"],
