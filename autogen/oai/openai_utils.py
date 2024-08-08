@@ -107,8 +107,8 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
-    return bool(re.fullmatch(api_key_re, api_key))
+    api_key_re = re.compile(r'^sk-(?!.*--)([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)$')
+    return bool(re.match(api_key_re, api_key))
 
 
 def get_config_list(
