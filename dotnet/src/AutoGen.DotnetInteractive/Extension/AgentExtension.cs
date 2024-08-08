@@ -21,6 +21,7 @@ public static class AgentExtension
     /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]
     /// ]]>
     /// </example>
+    [Obsolete]
     public static IAgent RegisterDotnetCodeBlockExectionHook(
         this IAgent agent,
         InteractiveService interactiveService,
