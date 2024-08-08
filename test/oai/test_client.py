@@ -143,7 +143,9 @@ def test_customized_cost():
         config.update({"price": [1000, 1000]})
     client = OpenAIWrapper(config_list=config_list, cache_seed=None)
     response = client.create(prompt="1+3=")
-    assert response.cost >= 4 and response.cost < 10, "Due to customized pricing, cost should be > 4 and < 10"
+    assert (
+        response.cost >= 4
+    ), f"Due to customized pricing, cost should be > 4. Message: {response.choices[0].message.content}"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")

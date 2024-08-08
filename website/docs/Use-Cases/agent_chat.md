@@ -18,7 +18,7 @@ designed to solve tasks through inter-agent conversations. Specifically, the age
 The figure below shows the built-in agents in AutoGen.
 ![Agent Chat Example](images/autogen_agents.png)
 
-We have designed a generic [`ConversableAgent`](../reference/agentchat/conversable_agent#conversableagent-objects)
+We have designed a generic [`ConversableAgent`](../reference/agentchat/conversable_agent.md#conversableagent-objects)
  class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects) and [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects)
 
 - The [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects) is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest corrections or bug fixes. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via [`llm_config`].
