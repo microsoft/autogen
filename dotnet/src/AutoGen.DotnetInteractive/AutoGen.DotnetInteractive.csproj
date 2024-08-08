@@ -27,9 +27,14 @@
 	  <EmbeddedResource Include="RestoreInteractive.config" />
 	</ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotnetInteractive)" />
+    <PackageReference Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotnetInteractive)" />
+  </ItemGroup>
+
 	<ItemGroup>
 	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>
