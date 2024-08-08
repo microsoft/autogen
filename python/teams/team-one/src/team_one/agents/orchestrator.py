@@ -148,12 +148,13 @@ class LedgerOrchestrator(BaseOrchestrator):
         team_description = await self._get_team_description()
         names = await self._get_team_names()
         ledger_prompt = self._get_ledger_prompt(self.task_str, team_description, names)
-        ledger_user_message = UserMessage(content=ledger_prompt, source=self.metadata["type"])
+
+        ledger_user_messages: List[LLMMessage] = [UserMessage(content=ledger_prompt, source=self.metadata["type"])]
 
         assert max_json_retries > 0
         for _ in range(max_json_retries):
             ledger_response = await self._model_client.create(
-                self._system_messages + self._chat_history + [ledger_user_message],
+                self._system_messages + self._chat_history + ledger_user_messages,
                 json_output=True,
             )
             ledger_str = ledger_response.content
@@ -161,6 +162,31 @@ class LedgerOrchestrator(BaseOrchestrator):
             try:
                 assert isinstance(ledger_str, str)
                 ledger_dict: Dict[str, Any] = json.loads(ledger_str)
+                required_keys = [
+                    "next_speaker",
+                    "instruction_or_question",
+                    "is_request_satisfied",
+                    "is_in_loop",
+                    "is_progress_being_made",
+                ]
+                key_error = False
+                for key in required_keys:
+                    if key not in ledger_dict:
+                        ledger_user_messages.append(AssistantMessage(content=ledger_str, source="self"))
+                        ledger_user_messages.append(
+                            UserMessage(content=f"KeyError: '{key}'", source=self.metadata["type"])
+                        )
+                        key_error = True
+                        break
+                    if "answer" not in ledger_dict[key]:
+                        ledger_user_messages.append(AssistantMessage(content=ledger_str, source="self"))
+                        ledger_user_messages.append(
+                            UserMessage(content=f"KeyError: '{key}.answer'", source=self.metadata["type"])
+                        )
+                        key_error = True
+                        break
+                if key_error:
+                    continue
                 return ledger_dict
             except json.JSONDecodeError as e:
                 logger.info(
