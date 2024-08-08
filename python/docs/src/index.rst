@@ -47,6 +47,7 @@ To learn about the core concepts of AGNext, read the `overview <core-concepts/ov
     cookbook/termination-with-intervention
     cookbook/buffered-memory
     cookbook/extracting-results-with-an-agent
+    cookbook/openai-assistant-agent
     cookbook/langgraph-agent
     cookbook/llamaindex-agent
 

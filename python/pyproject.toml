@@ -51,6 +51,7 @@ dependencies = [
     "pytest-xdist",
     "pytest",
     "python-dotenv",
+    "requests",
     "ruff==0.4.8",
     "tavily-python",
     "textual-dev",
@@ -60,6 +61,7 @@ dependencies = [
     "types-aiofiles",
     "types-pillow",
     "types-protobuf",
+    "types-requests",
     "wikipedia",
     "nbqa"
 ]
@@ -94,7 +96,7 @@ dependencies = [
     "furo",
     "sphinxcontrib-apidoc",
     "myst-nb",
-    "sphinx-autobuild"
+    "sphinx-autobuild",
 ]
 
 [tool.hatch.envs.docs.scripts]

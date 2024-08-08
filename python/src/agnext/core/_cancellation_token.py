@@ -27,7 +27,7 @@ class CancellationToken:
             else:
                 self._callbacks.append(callback)
 
-    def link_future(self, future: Future[Any]) -> None:
+    def link_future(self, future: Future[Any]) -> Future[Any]:
         with self._lock:
             if self._cancelled:
                 future.cancel()
@@ -37,3 +37,4 @@ class CancellationToken:
                     future.cancel()
 
                 self._callbacks.append(_cancel)
+        return future
