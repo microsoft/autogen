@@ -8,21 +8,21 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.AzureAIInference.Extension;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 using Azure.AI.Inference;
 
 namespace AutoGen.AzureAIInference;
 
 /// <summary>
 /// ChatCompletions client agent. This agent is a thin wrapper around <see cref="ChatCompletionsClient"/> to provide a simple interface for chat completions.
-/// <para><see cref="ChatCompletionClientAgent" /> supports the following message types:</para>
+/// <para><see cref="ChatCompletionsClientAgent" /> supports the following message types:</para>
 /// <list type="bullet">
 /// <item>
 /// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatRequestMessage"/>: chat request message.
 /// </item>
 /// </list>
-/// <para><see cref="ChatCompletionClientAgent" /> returns the following message types:</para>
+/// <para><see cref="ChatCompletionsClientAgent" /> returns the following message types:</para>
 /// <list type="bullet">
 /// <item>
 /// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatResponseMessage"/>: chat response message.
@@ -30,16 +30,16 @@ namespace AutoGen.AzureAIInference;
 /// </item>
 /// </list>
 /// </summary>
-public class ChatCompletionClientAgent : IStreamingAgent
+public class ChatCompletionsClientAgent : IStreamingAgent
 {
-    private readonly ChatCompletionsClient openAIClient;
+    private readonly ChatCompletionsClient chatCompletionsClient;
     private readonly ChatCompletionsOptions options;
     private readonly string systemMessage;
 
     /// <summary>
-    /// Create a new instance of <see cref="ChatCompletionClientAgent"/>.
+    /// Create a new instance of <see cref="ChatCompletionsClientAgent"/>.
     /// </summary>
-    /// <param name="openAIClient">openai client</param>
+    /// <param name="chatCompletionsClient">chat completions client</param>
     /// <param name="name">agent name</param>
     /// <param name="modelName">model name. e.g. gpt-turbo-3.5</param>
     /// <param name="systemMessage">system message</param>
@@ -48,8 +48,8 @@ public class ChatCompletionClientAgent : IStreamingAgent
     /// <param name="responseFormat">response format, set it to <see cref="ChatCompletionsResponseFormatJSON"/> to enable json mode.</param>
     /// <param name="seed">seed to use, set it to enable deterministic output</param>
     /// <param name="functions">functions</param>
-    public ChatCompletionClientAgent(
-        ChatCompletionsClient openAIClient,
+    public ChatCompletionsClientAgent(
+        ChatCompletionsClient chatCompletionsClient,
         string name,
         string modelName,
         string systemMessage = "You are a helpful AI assistant",
@@ -59,7 +59,7 @@ public class ChatCompletionClientAgent : IStreamingAgent
         ChatCompletionsResponseFormat? responseFormat = null,
         IEnumerable<FunctionDefinition>? functions = null)
         : this(
-            openAIClient: openAIClient,
+            chatCompletionsClient: chatCompletionsClient,
             name: name,
             options: CreateChatCompletionOptions(modelName, temperature, maxTokens, seed, responseFormat, functions),
             systemMessage: systemMessage)
@@ -67,14 +67,14 @@ public class ChatCompletionClientAgent : IStreamingAgent
     }
 
     /// <summary>
-    /// Create a new instance of <see cref="ChatCompletionClientAgent"/>.
+    /// Create a new instance of <see cref="ChatCompletionsClientAgent"/>.
     /// </summary>
-    /// <param name="openAIClient">openai client</param>
+    /// <param name="chatCompletionsClient">chat completions client</param>
     /// <param name="name">agent name</param>
     /// <param name="systemMessage">system message</param>
     /// <param name="options">chat completion option. The option can't contain messages</param>
-    public ChatCompletionClientAgent(
-        ChatCompletionsClient openAIClient,
+    public ChatCompletionsClientAgent(
+        ChatCompletionsClient chatCompletionsClient,
         string name,
         ChatCompletionsOptions options,
         string systemMessage = "You are a helpful AI assistant")
@@ -84,7 +84,7 @@ public class ChatCompletionClientAgent : IStreamingAgent
             throw new ArgumentException("Messages should not be provided in options");
         }
 
-        this.openAIClient = openAIClient;
+        this.chatCompletionsClient = chatCompletionsClient;
         this.Name = name;
         this.options = options;
         this.systemMessage = systemMessage;
@@ -98,7 +98,7 @@ public class ChatCompletionClientAgent : IStreamingAgent
         CancellationToken cancellationToken = default)
     {
         var settings = this.CreateChatCompletionsOptions(options, messages);
-        var reply = await this.openAIClient.CompleteAsync(settings, cancellationToken: cancellationToken);
+        var reply = await this.chatCompletionsClient.CompleteAsync(settings, cancellationToken: cancellationToken);
 
         return new MessageEnvelope<ChatCompletions>(reply, from: this.Name);
     }
@@ -109,7 +109,7 @@ public class ChatCompletionClientAgent : IStreamingAgent
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var settings = this.CreateChatCompletionsOptions(options, messages);
-        var response = await this.openAIClient.CompleteStreamingAsync(settings, cancellationToken);
+        var response = await this.chatCompletionsClient.CompleteStreamingAsync(settings, cancellationToken);
         await foreach (var update in response.WithCancellation(cancellationToken))
         {
             yield return new MessageEnvelope<StreamingChatCompletionsUpdate>(update, from: this.Name);

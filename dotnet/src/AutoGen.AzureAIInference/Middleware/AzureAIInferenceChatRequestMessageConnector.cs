@@ -101,7 +101,7 @@ public class AzureAIInferenceChatRequestMessageConnector : IStreamingMiddleware
 
     public IMessage? PostProcessStreamingMessage(IMessage<StreamingChatCompletionsUpdate> update, string? currentToolName)
     {
-        if (update.Content.ContentUpdate is string contentUpdate)
+        if (update.Content.ContentUpdate is string contentUpdate && string.IsNullOrEmpty(contentUpdate) == false)
         {
             // text message
             return new TextMessageUpdate(Role.Assistant, contentUpdate, from: update.From);
