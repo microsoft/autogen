@@ -15,5 +15,6 @@
         <MicrosoftASPNETCoreVersion>8.0.4</MicrosoftASPNETCoreVersion>
         <GoogleCloudAPIPlatformVersion>3.0.0</GoogleCloudAPIPlatformVersion>
         <JsonSchemaVersion>4.3.0.2</JsonSchemaVersion>
+        <PowershellSDKVersion>7.4.4</PowershellSDKVersion>
     </PropertyGroup>
 </Project>
