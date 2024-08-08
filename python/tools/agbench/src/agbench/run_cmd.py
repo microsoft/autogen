@@ -61,7 +61,7 @@ def run_scenarios(
     subsample: Union[None, int, float] = None,
 ) -> None:
     """
-    Run a set autogenbench scenarios a given number of times.
+    Run a set agbench scenarios a given number of times.
 
     Args:
         scenario (path):    The file or folder containing the scenario JSONL instances. If given a folder, then
@@ -306,13 +306,13 @@ def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = 
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
-export AUTOGEN_TESTBED_SETTING="Native"
-echo "autogenbench version: {__version__}" > timestamp.txt
+export AGNEXT_TESTBED_SETTING="Native"
+echo "agbench version: {__version__}" > timestamp.txt
 
 # Create and activate the virtual environment
 # This is called in a subprocess, and will not impact the parent
-{sys.executable} -m venv .autogenbench_venv
-. .autogenbench_venv/bin/activate
+{sys.executable} -m venv .agbench_venv
+. .agbench_venv/bin/activate
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -356,8 +356,8 @@ fi
 
 # We don't need to deactivate the venv because it's
 # contained in the subprocess; but we should clean it up
-if [ -d .autogenbench_venv ] ; then
-    rm -Rf .autogenbench_venv
+if [ -d .agbench_venv ] ; then
+    rm -Rf .agbench_venv
 fi
 
 echo RUN.SH COMPLETE !#!#
@@ -426,10 +426,10 @@ def run_scenario_in_docker(
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
-export AUTOGEN_TESTBED_SETTING="Docker"
+export AGNEXT_TESTBED_SETTING="Docker"
 
 umask 000
-echo "autogenbench version: {__version__}" > timestamp.txt
+echo "agbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -478,15 +478,20 @@ echo RUN.SH COMPLETE !#!#
     # Figure out what folders to mount
     volumes = {str(pathlib.Path(work_dir).absolute()): {"bind": "/workspace", "mode": "rw"}}
 
-    # Add the autogen repo if we can find it
-    autogen_repo_base = os.environ.get("AUTOGENBENCH_REPO_BASE")
-    if autogen_repo_base is None:
-        autogen_repo_base = find_autogen_repo(os.getcwd())
-    elif not os.path.isdir(autogen_repo_base):
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), autogen_repo_base)
+    # Add the agnext repo if we can find it
+    agnext_repo_base = os.environ.get("AGNEXT_REPO_BASE")
+    if agnext_repo_base is None:
+        agnext_repo_base = find_agnext_repo(os.getcwd())
+    elif not os.path.isdir(agnext_repo_base):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), agnext_repo_base)
 
-    if autogen_repo_base is not None:
-        volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/agnext", "mode": "rw"}
+    if agnext_repo_base is None:
+        raise ValueError(
+            "Could not find AGNext repo base. Please set the environment variable AGNEXT_REPO_BASE to the correct value."
+        )
+
+    agnext_repo_base = os.path.join(agnext_repo_base, "python")
+    volumes[str(pathlib.Path(agnext_repo_base).absolute())] = {"bind": "/agnext", "mode": "rw"}
 
     print("Mounting:")
     for k in volumes:
@@ -582,11 +587,11 @@ def build_default_docker_image(docker_client: docker.DockerClient, image_tag: st
             sys.stdout.write(segment["stream"])
 
 
-def find_autogen_repo(path: str) -> Optional[str]:
+def find_agnext_repo(path: str) -> Optional[str]:
     """
-    Utility for identifying if the path is a subdirectory of the autogen repo.
+    Utility for identifying if the path is a subdirectory of the agnext repo.
 
-    Returns: the path to the root of the autogen repo if one is found, otherwise None
+    Returns: the path to the root of the agnext repo if one is found, otherwise None
     """
 
     # Normalize the path (we expect a directory)
@@ -597,7 +602,7 @@ def find_autogen_repo(path: str) -> Optional[str]:
     while True:
         test_path = os.path.join(path, "python", "src", "agnext")  # We found agnext
         if os.path.isdir(test_path):
-            return os.path.join(path, "python")
+            return path
 
         # Stop if we hit the root
         parent_dir = os.path.abspath(os.path.join(path, os.pardir))
@@ -672,7 +677,7 @@ def run_cli(args: Sequence[str]) -> None:
         )
 
         # Does an environment variable override the prompt?
-        allow_native = os.environ.get("AUTOGENBENCH_ALLOW_NATIVE")
+        allow_native = os.environ.get("AGBENCH_ALLOW_NATIVE")
         if allow_native is None or allow_native == "":
             choice = input(
                 'Are you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
@@ -680,9 +685,9 @@ def run_cli(args: Sequence[str]) -> None:
             if choice.strip().lower() != "yes":
                 sys.exit("Received '" + choice + "'. Exiting.")
         elif allow_native.strip().lower() != "yes":
-            sys.exit(f"Exiting because AUTOGENBENCH_ALLOW_NATIVE is '{allow_native}'\n")
+            sys.exit(f"Exiting because AGBENCH_ALLOW_NATIVE is '{allow_native}'\n")
         else:
-            sys.stderr.write(f"Continuing because AUTOGENBENCH_ALLOW_NATIVE is '{allow_native}'\n")
+            sys.stderr.write(f"Continuing because AGBENCH_ALLOW_NATIVE is '{allow_native}'\n")
             time.sleep(0.75)  # Pause very briefly so the message isn't lost in the noise
 
     # Parse the subsample
