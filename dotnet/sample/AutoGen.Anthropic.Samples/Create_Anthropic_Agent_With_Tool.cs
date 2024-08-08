@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Single_Anthropic_Tool.cs
+// Create_Anthropic_Agent_With_Tool.cs
 
 using AutoGen.Anthropic.DTO;
 using AutoGen.Anthropic.Extensions;

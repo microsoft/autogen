@@ -43,12 +43,16 @@ jobs:
         if: steps.filter.outputs.workflows == 'true'
   build:
     name: Dotnet Build
-    runs-on: ubuntu-latest
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
       run:
         working-directory: dotnet
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -56,11 +60,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
+        dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
         echo "Build AutoGen"
@@ -87,7 +96,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
 
     - name: publish AOT testApp, assert static analysis warning count, and run the app
       shell: pwsh
@@ -176,12 +185,14 @@ jobs:
       env:
         AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+      continue-on-error: true
     - name: Publish nightly package to github package
       run: |
         echo "Publish nightly package to github package"
         echo "ls output directory"
         ls -R ./output/nightly
         dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/microsoft/index.json" ./output/nightly/*.nupkg --skip-duplicate
+      continue-on-error: true
     - name: Publish nightly package to agentchat myget feed
       run: |
         echo "Publish nightly package to agentchat myget feed"
@@ -190,3 +201,5 @@ jobs:
         dotnet nuget push --api-key ${{ secrets.MYGET_TOKEN }} --source "https://www.myget.org/F/agentchat/api/v3/index.json" ./output/nightly/*.nupkg --skip-duplicate
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
+      continue-on-error: true
+      

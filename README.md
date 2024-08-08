@@ -293,6 +293,16 @@ In addition, you can find:
 }
 ```
 
+[StateFlow](https://arxiv.org/abs/2403.11322)
+```
+@article{wu2024stateflow,
+  title={StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows},
+  author={Wu, Yiran and Yue, Tianwei and Zhang, Shaokun and Wang, Chi and Wu, Qingyun},
+  journal={arXiv preprint arXiv:2403.11322},
+  year={2024}
+}
+```
+
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑

@@ -13,7 +13,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>
 namespace <#=NameSpace#>
@@ -95,11 +94,6 @@ namespace <#=NameSpace#>
                 },
 <#}#>
             };
-        }
-
-        public global::Azure.AI.OpenAI.FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
-        {
-            get => this.<#=functionContract.GetFunctionContractName()#>.ToOpenAIFunctionDefinition();
         }
 <#}#>
     }

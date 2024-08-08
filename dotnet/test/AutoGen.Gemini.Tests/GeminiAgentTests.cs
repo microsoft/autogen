@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // GeminiAgentTests.cs
 
-using AutoGen.Tests;
-using Google.Cloud.AIPlatform.V1;
 using AutoGen.Core;
-using FluentAssertions;
 using AutoGen.Gemini.Extension;
-using static Google.Cloud.AIPlatform.V1.Part;
+using AutoGen.Tests;
+using FluentAssertions;
+using Google.Cloud.AIPlatform.V1;
 using Xunit.Abstractions;
+using static Google.Cloud.AIPlatform.V1.Part;
 namespace AutoGen.Gemini.Tests;
 
 public class GeminiAgentTests
