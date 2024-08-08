@@ -379,7 +379,7 @@ class ConversableAgent(LLMAgent):
     @staticmethod
     def _get_chats_to_run(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
-    ) -> list[dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         """A simple chat reply function.
         This function initiate one or a sequence of chats between the "recipient" and the agents in the
         chat_queue.
