@@ -12,6 +12,8 @@ from .orchestrator_prompts import (
     ORCHESTRATOR_PLAN_PROMPT,
     ORCHESTRATOR_SYNTHESIZE_PROMPT,
     ORCHESTRATOR_SYSTEM_MESSAGE,
+    ORCHESTRATOR_UPDATE_FACTS_PROMPT,
+    ORCHESTRATOR_UPDATE_PLAN_PROMPT,
 )
 
 
@@ -44,11 +46,14 @@ class LedgerOrchestrator(BaseOrchestrator):
         plan_prompt: str = ORCHESTRATOR_PLAN_PROMPT,
         synthesize_prompt: str = ORCHESTRATOR_SYNTHESIZE_PROMPT,
         ledger_prompt: str = ORCHESTRATOR_LEDGER_PROMPT,
+        update_facts_prompt: str = ORCHESTRATOR_UPDATE_FACTS_PROMPT,
+        update_plan_prompt: str = ORCHESTRATOR_UPDATE_PLAN_PROMPT,
         max_rounds: int = 20,
+        max_time: float = float("inf"),
         max_stalls_before_replan: int = 3,
-        max_replans: int = 4,
+        max_replans: int = 3,
     ) -> None:
-        super().__init__(agents=agents, description=description, max_rounds=max_rounds)
+        super().__init__(agents=agents, description=description, max_rounds=max_rounds, max_time=max_time)
 
         self._model_client = model_client
 
@@ -58,6 +63,8 @@ class LedgerOrchestrator(BaseOrchestrator):
         self._plan_prompt = plan_prompt
         self._synthesize_prompt = synthesize_prompt
         self._ledger_prompt = ledger_prompt
+        self._update_facts_prompt = update_facts_prompt
+        self._update_plan_prompt = update_plan_prompt
 
         self._chat_history: List[LLMMessage] = []
         self._should_replan = True
@@ -65,19 +72,29 @@ class LedgerOrchestrator(BaseOrchestrator):
         self._stall_counter = 0
         self._max_replans = max_replans
         self._replan_counter = 0
-        self.task_str = ""
+
+        self._team_description = ""
+        self._task = ""
+        self._facts = ""
+        self._plan = ""
 
     def _get_closed_book_prompt(self, task: str) -> str:
         return self._closed_book_prompt.format(task=task)
 
-    def _get_plan_prompt(self, task: str, team: str) -> str:
-        return self._plan_prompt.format(task=task, team=team)
+    def _get_plan_prompt(self, team: str) -> str:
+        return self._plan_prompt.format(team=team)
 
     def _get_synthesize_prompt(self, task: str, team: str, facts: str, plan: str) -> str:
         return self._synthesize_prompt.format(task=task, team=team, facts=facts, plan=plan)
 
     def _get_ledger_prompt(self, task: str, team: str, names: List[str]) -> str:
         return self._ledger_prompt.format(task=task, team=team, names=names)
+
+    def _get_update_facts_prompt(self, task: str, facts: str) -> str:
+        return self._update_facts_prompt.format(task=task, facts=facts)
+
+    def _get_update_plan_prompt(self, team: str) -> str:
+        return self._update_plan_prompt.format(team=team)
 
     async def _get_team_description(self) -> str:
         team_description = ""
@@ -91,63 +108,78 @@ class LedgerOrchestrator(BaseOrchestrator):
     async def _get_team_names(self) -> List[str]:
         return [(await agent.metadata)["type"] for agent in self._agents]
 
-    def _set_task_str(self, message: LLMMessage) -> None:
-        if len(self._chat_history) == 1:
-            if isinstance(message.content, str):
-                self.task_str = message.content
-            else:
-                for content in message.content:
-                    if isinstance(content, str):
-                        self.task_str += content + "\n"
-                        break
-        assert len(self.task_str) > 0
+    def _get_message_str(self, message: LLMMessage) -> str:
+        if isinstance(message.content, str):
+            return message.content
+        else:
+            result = ""
+            for content in message.content:
+                if isinstance(content, str):
+                    result += content + "\n"
+            assert len(result) > 0
+        return result
 
-    def _needs_replan(self) -> bool:
-        if len(self._chat_history) == 1:
-            self._set_task_str(self._chat_history[0])
-            return True
+    async def _initialize_task(self, task: str) -> None:
+        self._task = task
+        self._team_description = await self._get_team_description()
 
-        if self._stall_counter > self._max_stalls_before_replan:
-            return True
-
-        return False
-
-    async def _plan(self) -> str:
-        team_description = await self._get_team_description()
+        # Shallow-copy the conversation
+        planning_conversation = [m for m in self._chat_history]
 
         # 1. GATHER FACTS
         # create a closed book task and generate a response and update the chat history
-        cb_task = self._get_closed_book_prompt(self.task_str)
-        cb_user_message = UserMessage(
-            content=cb_task, source=self.metadata["type"]
-        )  # TODO: allow images in this message.
-        cb_response = await self._model_client.create(self._system_messages + self._chat_history + [cb_user_message])
-        facts = cb_response.content
-        assert isinstance(facts, str)
-        cb_assistant_message = AssistantMessage(content=facts, source=self.metadata["type"])
+        planning_conversation.append(
+            UserMessage(content=self._get_closed_book_prompt(self._task), source=self.metadata["type"])
+        )
+        response = await self._model_client.create(self._system_messages + planning_conversation)
+
+        assert isinstance(response.content, str)
+        self._facts = response.content
+        planning_conversation.append(AssistantMessage(content=self._facts, source=self.metadata["type"]))
 
         # 2. CREATE A PLAN
         ## plan based on available information
-        plan_task = self._get_plan_prompt(self.task_str, team_description)
-        plan_user_message = UserMessage(
-            content=plan_task, source=self.metadata["type"]
-        )  # TODO: allow images in this message.
-        plan_response = await self._model_client.create(
-            self._system_messages + self._chat_history + [cb_assistant_message, plan_user_message]
+        planning_conversation.append(
+            UserMessage(content=self._get_plan_prompt(self._team_description), source=self.metadata["type"])
         )
-        plan = plan_response.content
-        assert isinstance(plan, str)
+        response = await self._model_client.create(self._system_messages + planning_conversation)
 
-        # SYNTHESIZE FACTS AND PLAN
-        plan_str = self._get_synthesize_prompt(self.task_str, team_description, facts, plan)
-        return plan_str
+        assert isinstance(response.content, str)
+        self._plan = response.content
+
+        # At this point, the planning conversation is dropped.
+
+    async def _update_facts_and_plan(self) -> None:
+        # Shallow-copy the conversation
+        planning_conversation = [m for m in self._chat_history]
+
+        # Update the facts
+        planning_conversation.append(
+            UserMessage(content=self._get_update_facts_prompt(self._task, self._facts), source=self.metadata["type"])
+        )
+        response = await self._model_client.create(self._system_messages + planning_conversation)
+
+        assert isinstance(response.content, str)
+        self._facts = response.content
+        planning_conversation.append(AssistantMessage(content=self._facts, source=self.metadata["type"]))
+
+        # Update the plan
+        planning_conversation.append(
+            UserMessage(content=self._get_update_plan_prompt(self._team_description), source=self.metadata["type"])
+        )
+        response = await self._model_client.create(self._system_messages + planning_conversation)
+
+        assert isinstance(response.content, str)
+        self._plan = response.content
+
+        # At this point, the planning conversation is dropped.
 
     async def update_ledger(self) -> Dict[str, Any]:
         max_json_retries = 10
 
         team_description = await self._get_team_description()
         names = await self._get_team_names()
-        ledger_prompt = self._get_ledger_prompt(self.task_str, team_description, names)
+        ledger_prompt = self._get_ledger_prompt(self._task, team_description, names)
 
         ledger_user_messages: List[LLMMessage] = [UserMessage(content=ledger_prompt, source=self.metadata["type"])]
 
@@ -163,11 +195,11 @@ class LedgerOrchestrator(BaseOrchestrator):
                 assert isinstance(ledger_str, str)
                 ledger_dict: Dict[str, Any] = json.loads(ledger_str)
                 required_keys = [
-                    "next_speaker",
-                    "instruction_or_question",
                     "is_request_satisfied",
                     "is_in_loop",
                     "is_progress_being_made",
+                    "next_speaker",
+                    "instruction_or_question",
                 ]
                 key_error = False
                 for key in required_keys:
@@ -202,23 +234,40 @@ class LedgerOrchestrator(BaseOrchestrator):
     async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
         self._chat_history.append(message)
 
-        self._should_replan = self._needs_replan()
+        # Check if the task is still unset, in which case this message contains the task string
+        if len(self._task) == 0:
+            await self._initialize_task(self._get_message_str(message))
 
-        if self._should_replan:
-            plan_str = await self._plan()
-            plan_user_message = UserMessage(content=plan_str, source=self.metadata["type"])
+            # At this point the task, plan and facts shouls all be set
+            assert len(self._task) > 0
+            assert len(self._facts) > 0
+            assert len(self._plan) > 0
+            assert len(self._team_description) > 0
+
+            # Send everyone the plan
+            synthesized_prompt = self._get_synthesize_prompt(
+                self._task, self._team_description, self._facts, self._plan
+            )
+            await self.publish_message(
+                BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"]))
+            )
+
             logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (thought)",
-                    f"New plan:\n{plan_str}",
+                    f"Initial plan:\n{synthesized_prompt}",
                 )
             )
 
-            # Reset
-            self._chat_history = [self._chat_history[0]]
-            await self.publish_message(ResetMessage())
-            self._chat_history.append(plan_user_message)
+            self._replan_counter = 0
+            self._stall_counter = 0
 
+            # Answer from this synthesized message
+            return await self._select_next_agent(
+                AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
+            )
+
+        # Orchestrate the next step
         ledger_dict = await self.update_ledger()
         logger.info(
             OrchestrationEvent(
@@ -227,6 +276,7 @@ class LedgerOrchestrator(BaseOrchestrator):
             )
         )
 
+        # Task is complete
         if ledger_dict["is_request_satisfied"]["answer"] is True:
             logger.info(
                 OrchestrationEvent(
@@ -236,21 +286,18 @@ class LedgerOrchestrator(BaseOrchestrator):
             )
             return None
 
-        if ledger_dict["is_in_loop"]["answer"]:
+        # Stalled or stuck in a loop
+        stalled = ledger_dict["is_in_loop"]["answer"] or not ledger_dict["is_progress_being_made"]["answer"]
+        if stalled:
             self._stall_counter += 1
 
+            # We exceeded our stall counter, so we need to replan, or exit
             if self._stall_counter > self._max_stalls_before_replan:
                 self._replan_counter += 1
                 self._stall_counter = 0
-                if self._replan_counter < self._max_replans:
-                    logger.info(
-                        OrchestrationEvent(
-                            f"{self.metadata['type']} (thought)",
-                            "Stalled.... Replanning...",
-                        )
-                    )
-                    return await self._select_next_agent(message)
-                else:
+
+                # We exceeded our replan counter
+                if self._replan_counter > self._max_replans:
                     logger.info(
                         OrchestrationEvent(
                             f"{self.metadata['type']} (thought)",
@@ -258,15 +305,55 @@ class LedgerOrchestrator(BaseOrchestrator):
                         )
                     )
                     return None
+                # Let's create a new plan
+                else:
+                    logger.info(
+                        OrchestrationEvent(
+                            f"{self.metadata['type']} (thought)",
+                            "Stalled.... Replanning...",
+                        )
+                    )
 
+                    # Update our plan.
+                    await self._update_facts_and_plan()
+
+                    # Reset everyone, then rebroadcast the new plan
+                    self._chat_history = [self._chat_history[0]]
+                    await self.publish_message(ResetMessage())
+
+                    # Send everyone the NEW plan
+                    synthesized_prompt = self._get_synthesize_prompt(
+                        self._task, self._team_description, self._facts, self._plan
+                    )
+                    await self.publish_message(
+                        BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"]))
+                    )
+
+                    logger.info(
+                        OrchestrationEvent(
+                            f"{self.metadata['type']} (thought)",
+                            f"New plan:\n{synthesized_prompt}",
+                        )
+                    )
+
+                    # Answer from this synthesized message
+                    return await self._select_next_agent(
+                        AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
+                    )
+
+        # If we goit this far, we were not starting, done, or stuck
         next_agent_name = ledger_dict["next_speaker"]["answer"]
         for agent in self._agents:
             if (await agent.metadata)["type"] == next_agent_name:
                 # broadcast a new message
                 instruction = ledger_dict["instruction_or_question"]["answer"]
                 user_message = UserMessage(content=instruction, source=self.metadata["type"])
+                assistant_message = AssistantMessage(content=instruction, source=self.metadata["type"])
                 logger.info(OrchestrationEvent(f"{self.metadata['type']} (-> {next_agent_name})", instruction))
-                await self.publish_message(BroadcastMessage(content=user_message, request_halt=False))
+                self._chat_history.append(assistant_message)  # My copy
+                await self.publish_message(
+                    BroadcastMessage(content=user_message, request_halt=False)
+                )  # Send to everyone else
                 return agent
 
         return None

@@ -199,6 +199,8 @@ Once the user has taken the final necessary action to complete the task, and you
     orchestrator = await runtime.register_and_get_proxy("orchestrator", lambda: LedgerOrchestrator(
         agents=[coder, executor, file_surfer, web_surfer],
         model_client=client,
+        max_rounds=30,
+        max_time=25*60,
     ))
 
     # The main event

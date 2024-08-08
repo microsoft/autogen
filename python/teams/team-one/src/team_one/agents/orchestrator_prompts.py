@@ -20,6 +20,8 @@ When answering this survey, keep in mind that "facts" will typically be specific
     2. FACTS TO LOOK UP
     3. FACTS TO DERIVE
     4. EDUCATED GUESSES
+
+DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
 """
 
 
@@ -40,9 +42,13 @@ To answer this request we have assembled the following team:
 
 {team}
 
-Some additional points to consider:
+
+Here is an initial fact sheet to consider:
 
 {facts}
+
+
+Here is the plan to follow as best as possible:
 
 {plan}
 """
@@ -88,4 +94,21 @@ Please output an answer in pure JSON format according to the following schema. T
             "answer": string
         }}
     }}
+"""
+
+
+ORCHESTRATOR_UPDATE_FACTS_PROMPT = """As a reminder, we are working to solve the following task:
+
+{task}
+
+It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful. Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc. Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited. This is an especially good time to update educated guesses, so please at least add or update one educated guess or hunch, and explain your reasoning.
+
+Here is the old fact sheet:
+
+{facts}
+"""
+
+ORCHESTRATOR_UPDATE_PLAN_PROMPT = """Please briefly explain what went wrong on this last run (the root cause of the failure), and then come up with a new plan that takes steps and/or includes hints to overcome prior challenges and especially avoids repeating the same mistakes. As before, the new plan should be concise, be expressed in bullet-point form, and consider the following team composition (do not involve any other outside people since we cannot contact anyone else):
+
+{team}
 """

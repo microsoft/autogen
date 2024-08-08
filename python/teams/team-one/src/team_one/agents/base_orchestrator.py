@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import List, Optional
 
 from agnext.application.logging import EVENT_LOGGER_NAME
@@ -18,15 +19,22 @@ class BaseOrchestrator(TeamOneBaseAgent):
         agents: List[AgentProxy],
         description: str = "Base orchestrator",
         max_rounds: int = 20,
+        max_time: float = float("inf"),
         handle_messages_concurrently: bool = False,
     ) -> None:
         super().__init__(description, handle_messages_concurrently=handle_messages_concurrently)
         self._agents = agents
         self._max_rounds = max_rounds
+        self._max_time = max_time
         self._num_rounds = 0
+        self._start_time: float = -1.0
 
     async def _handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
         """Handle an incoming message."""
+
+        # First broadcast sets the timer
+        if self._start_time < 0:
+            self._start_time = time.time()
 
         source = "Unknown"
         if isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage):
@@ -42,6 +50,15 @@ class BaseOrchestrator(TeamOneBaseAgent):
                 OrchestrationEvent(
                     f"{self.metadata['type']} (termination condition)",
                     f"Max rounds ({self._max_rounds}) reached.",
+                )
+            )
+            return
+
+        if time.time() - self._start_time >= self._max_time:
+            logger.info(
+                OrchestrationEvent(
+                    f"{self.metadata['type']} (termination condition)",
+                    f"Max time ({self._max_time}s) reached.",
                 )
             )
             return

@@ -163,6 +163,8 @@ async def main() -> None:
     orchestrator = await runtime.register_and_get_proxy("Orchestrator", lambda: LedgerOrchestrator(
         agents=[coder, executor, file_surfer, web_surfer],
         model_client=client,
+        max_rounds=30,
+        max_time=25*60,
     ))
 
     run_context = runtime.start()
