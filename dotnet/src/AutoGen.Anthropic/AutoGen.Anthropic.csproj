@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-      <TargetFramework>netstandard2.0</TargetFramework>
-      <RootNamespace>AutoGen.Anthropic</RootNamespace>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
+    <RootNamespace>AutoGen.Anthropic</RootNamespace>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/nuget/nuget-package.props" />

@@ -415,8 +415,9 @@ def oai_messages_to_cohere_messages(
 
         # If we're adding tool_results, like we are, the last message can't be a USER message
         # So, we add a CHATBOT 'continue' message, if so.
+        # Changed key from "content" to "message" (jaygdesai/autogen_Jay)
         if cohere_messages[-1]["role"] == "USER":
-            cohere_messages.append({"role": "CHATBOT", "content": "Please continue."})
+            cohere_messages.append({"role": "CHATBOT", "message": "Please continue."})
 
         # We return a blank message when we have tool results
         # TODO: Check what happens if tool_results aren't the latest message
