@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIChatAgentTest.cs
+// ChatCompletionClientAgentTests.cs
 
 using System;
 using System.Collections.Generic;
@@ -309,7 +309,7 @@ public partial class ChatCompletionClientAgentTests
             new TextMessage(Role.Assistant, "Hello", from: "user2"),
             new TextMessage(Role.Assistant, "Hello", from: "user3"),
             new TextMessage(Role.Assistant, "Hello", from: agent.Name),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -325,7 +325,7 @@ public partial class ChatCompletionClientAgentTests
             new TextMessage(Role.Assistant, "Hello", from: agent.Name),
             new TextMessage(Role.Assistant, "Hello", from: "user"),
             new TextMessage(Role.Assistant, "Hello", from: "user1"),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -340,7 +340,7 @@ public partial class ChatCompletionClientAgentTests
             new TextMessage(Role.Assistant, "Hello", from: "user"),
             new TextMessage(Role.Assistant, "Hello", from: agent.Name),
             new TextMessage(Role.Assistant, "Hello", from: agent.Name),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -359,7 +359,7 @@ public partial class ChatCompletionClientAgentTests
         IMessage[] chatHistory = [
             imageMessage,
             new TextMessage(Role.Assistant, "What's in the picture", from: "user"),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -382,7 +382,7 @@ public partial class ChatCompletionClientAgentTests
             imageMessage1,
             imageMessage2,
             new TextMessage(Role.Assistant, "What's in the picture", from: "user"),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -402,7 +402,7 @@ public partial class ChatCompletionClientAgentTests
 
         IMessage[] chatHistory = [
             new MultiModalMessage(Role.Assistant, [imageMessage, textMessage], from: "user"),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }
@@ -526,7 +526,7 @@ public partial class ChatCompletionClientAgentTests
 
         IMessage[] chatHistory = [
             new MultiModalMessage(Role.Assistant, [imageMessage, textMessage], from: agent.Name),
-            ];
+        ];
 
         return await agent.GenerateReplyAsync(chatHistory);
     }

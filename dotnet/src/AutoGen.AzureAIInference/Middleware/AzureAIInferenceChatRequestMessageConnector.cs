@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIChatRequestMessageConnector.cs
+// AzureAIInferenceChatRequestMessageConnector.cs
 
 using System;
 using System.Collections.Generic;

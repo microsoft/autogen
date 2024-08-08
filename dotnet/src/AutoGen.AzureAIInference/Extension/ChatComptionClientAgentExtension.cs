@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIAgentExtension.cs
+// ChatComptionClientAgentExtension.cs
 
 using AutoGen.Core;
 
