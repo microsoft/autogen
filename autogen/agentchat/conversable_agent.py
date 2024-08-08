@@ -377,9 +377,9 @@ class ConversableAgent(LLMAgent):
                 f["reply_func"] = new_reply_func
 
     @staticmethod
-    def _summary_from_nested_chats(
+    def _get_chats_to_run(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
-    ) -> Tuple[bool, str]:
+    ) -> list[dict[str, Any]]:
         """A simple chat reply function.
         This function initiate one or a sequence of chats between the "recipient" and the agents in the
         chat_queue.
@@ -406,8 +406,22 @@ class ConversableAgent(LLMAgent):
             if message:
                 current_c["message"] = message
                 chat_to_run.append(current_c)
-        if not chat_to_run:
-            return True, None
+        return chat_to_run
+
+    @staticmethod
+    def _summary_from_nested_chats(
+        chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
+    ) -> Tuple[bool, str]:
+        """A simple chat reply function.
+        This function initiate one or a sequence of chats between the "recipient" and the agents in the
+        chat_queue.
+
+        It extracts and returns a summary from the nested chat based on the "summary_method" in each chat in chat_queue.
+
+        Returns:
+            Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
+        """
+        chat_to_run = ConversableAgent._get_chats_to_run(chat_queue, recipient, messages, sender, config)
         res = initiate_chats(chat_to_run)
         return True, res[-1].summary
 
@@ -424,25 +438,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
         """
-        last_msg = messages[-1].get("content")
-        chat_to_run = []
-        for i, c in enumerate(chat_queue):
-            current_c = c.copy()
-            if current_c.get("sender") is None:
-                current_c["sender"] = recipient
-            message = current_c.get("message")
-            # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
-            # NOTE: This setting is prone to change.
-            if message is None and i == 0:
-                message = last_msg
-            if callable(message):
-                message = message(recipient, messages, sender, config)
-            # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
-            if message:
-                current_c["message"] = message
-                chat_to_run.append(current_c)
-        if not chat_to_run:
-            return True, None
+        chat_to_run = ConversableAgent._get_chats_to_run(chat_queue, recipient, messages, sender, config)
         res = await a_initiate_chats(chat_to_run)
         index_of_last_chat = chat_to_run[-1]["chat_id"]
         return True, res[index_of_last_chat].summary
