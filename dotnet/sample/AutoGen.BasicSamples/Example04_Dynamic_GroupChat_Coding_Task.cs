@@ -149,36 +149,25 @@ Here's some externel information
             {
                 var mostRecentCoderMessage = msgs.LastOrDefault(x => x.From == "coder") ?? throw new Exception("No coder message found");
 
-                var codeBlockPrefix = "```python";
-                var codeBlockSuffix = "```";
-                var content = mostRecentCoderMessage.GetContent() ?? string.Empty;
-                var startIndex = content.IndexOf(codeBlockPrefix);
-                if (startIndex == -1)
+                if (mostRecentCoderMessage.ExtractCodeBlock("```python", "```") is string code)
+                {
+                    var result = await kernel.RunSubmitCodeCommandAsync(code, "python");
+                    // only keep the first 500 characters
+                    if (result.Length > 500)
+                    {
+                        result = result.Substring(0, 500);
+                    }
+                    result = $"""
+                    # [CODE_BLOCK_EXECUTION_RESULT]
+                    {result}
+                    """;
+
+                    return new TextMessage(Role.Assistant, result, from: agent.Name);
+                }
+                else
                 {
                     return await agent.GenerateReplyAsync(msgs, option, ct);
                 }
-
-                var endIndex = content.IndexOf(codeBlockSuffix, startIndex + codeBlockPrefix.Length);
-                if (endIndex == -1)
-                {
-                    return await agent.GenerateReplyAsync(msgs, option, ct);
-                }
-
-                var code = content.Substring(startIndex + codeBlockPrefix.Length, endIndex - startIndex - codeBlockPrefix.Length).Trim();
-
-                var result = await kernel.RunSubmitCodeCommandAsync(code, "python");
-
-                // only keep the first 500 characters
-                if (result.Length > 500)
-                {
-                    result = result.Substring(0, 500);
-                }
-                result = $"""
-                # [CODE_BLOCK_EXECUTION_RESULT]
-                {result}
-                """;
-
-                return new TextMessage(Role.Assistant, result, from: agent.Name);
             })
             .RegisterPrintMessage();
 

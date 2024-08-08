@@ -31,16 +31,17 @@ public class RunCodeSnippetCodeSnippet
                     return await innerAgent.GenerateReplyAsync(msgs, option, ct);
                 }
 
-                var content = lastMessage.GetContent();
-                var codeBlockPrefix = "```csharp";
-                var codeBlockSuffix = "```";
-                var prefixIndex = content.IndexOf(codeBlockPrefix);
-                var suffixIndex = content.IndexOf(codeBlockSuffix, prefixIndex + codeBlockPrefix.Length);
-                var codeSnippet = content.Substring(prefixIndex, suffixIndex - prefixIndex + codeBlockSuffix.Length);
-
-                // execute code snippet
-                var result = await kernel.RunSubmitCodeCommandAsync(codeSnippet, "csharp");
-                return new TextMessage(Role.Assistant, result, from: agent.Name);
+                if (lastMessage.ExtractCodeBlock("```csharp", "```") is string codeSnippet)
+                {
+                    // execute code snippet
+                    var result = await kernel.RunSubmitCodeCommandAsync(codeSnippet, "csharp");
+                    return new TextMessage(Role.Assistant, result, from: agent.Name);
+                }
+                else
+                {
+                    // no code block found, invoke next agent
+                    return await innerAgent.GenerateReplyAsync(msgs, option, ct);
+                }
             });
 
         var codeSnippet = @"

@@ -45,6 +45,8 @@ public class InteractiveService : IDisposable
         this.kernel = kernel;
     }
 
+    public Kernel? Kernel => this.kernel;
+
     public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
         if (this.kernel != null)

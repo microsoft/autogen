@@ -95,24 +95,24 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 else
                 {
                     var coderMsg = msgs.Last(msg => msg.From == "coder");
-                    var codeContent = coderMsg.GetContent();
-                    var codePrefix = "```csharp";
-                    var codeSuffix = "```";
-                    var codePrefixIndex = codeContent.IndexOf(codePrefix);
-                    var codeSuffixIndex = codeContent.Substring(codePrefixIndex + codePrefix.Length).IndexOf(codeSuffix);
-                    var code = codeContent.Substring(codePrefixIndex + codePrefix.Length, codeSuffixIndex).Trim();
-
-                    var codeResult = await kernel.RunSubmitCodeCommandAsync(code, "csharp");
-
-                    codeResult = $"""
-                    [RUNNER_RESULT]
-                    {codeResult}
-                    """;
-
-                    return new TextMessage(Role.Assistant, codeResult)
+                    if (coderMsg.ExtractCodeBlock("```csharp", "```") is string code)
                     {
-                        From = "runner",
-                    };
+                        var codeResult = await kernel.RunSubmitCodeCommandAsync(code, "csharp");
+
+                        codeResult = $"""
+                        [RUNNER_RESULT]
+                        {codeResult}
+                        """;
+
+                        return new TextMessage(Role.Assistant, codeResult)
+                        {
+                            From = "runner",
+                        };
+                    }
+                    else
+                    {
+                        return new TextMessage(Role.Assistant, "No code available. Coder please write code");
+                    }
                 }
             })
             .RegisterPrintMessage();
