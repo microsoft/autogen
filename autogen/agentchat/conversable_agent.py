@@ -411,7 +411,7 @@ class ConversableAgent(LLMAgent):
     @staticmethod
     def _summary_from_nested_chats(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
-    ) -> Tuple[bool, str]:
+    ) -> Tuple[bool, Union[str, None]]:
         """A simple chat reply function.
         This function initiate one or a sequence of chats between the "recipient" and the agents in the
         chat_queue.
@@ -422,13 +422,15 @@ class ConversableAgent(LLMAgent):
             Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
         """
         chat_to_run = ConversableAgent._get_chats_to_run(chat_queue, recipient, messages, sender, config)
+        if not chat_to_run:
+            return True, None
         res = initiate_chats(chat_to_run)
         return True, res[-1].summary
 
     @staticmethod
     async def _a_summary_from_nested_chats(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
-    ) -> Tuple[bool, str]:
+    ) -> Tuple[bool, Union[str, None]]:
         """A simple chat reply function.
         This function initiate one or a sequence of chats between the "recipient" and the agents in the
         chat_queue.
@@ -439,6 +441,8 @@ class ConversableAgent(LLMAgent):
             Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
         """
         chat_to_run = ConversableAgent._get_chats_to_run(chat_queue, recipient, messages, sender, config)
+        if not chat_to_run:
+            return True, None
         res = await a_initiate_chats(chat_to_run)
         index_of_last_chat = chat_to_run[-1]["chat_id"]
         return True, res[index_of_last_chat].summary
