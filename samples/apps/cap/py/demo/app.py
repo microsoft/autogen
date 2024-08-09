@@ -5,16 +5,15 @@ Demo App
 import argparse
 
 import _paths
-import autogencap.Config as Config
-import autogencap.DebugLog as DebugLog
-from AGDemo import ag_demo
-from AGGroupChatDemo import ag_groupchat_demo
-from CAPAutGenGroupDemo import cap_ag_group_demo
-from CAPAutoGenPairDemo import cap_ag_pair_demo
-from ComplexActorDemo import complex_actor_demo
+import autogencap.config as config
+import autogencap.debug_log as debug_log
+from ag_demo import ag_demo
+from ag_group_chat_demo import ag_groupchat_demo
+from cap_autogen_group_demo import cap_ag_group_demo
+from cap_autogen_pair_demo import cap_ag_pair_demo
+from complex_actor_demo import complex_actor_demo
 from list_agents import list_agents
-from RemoteAGDemo import remote_ag_demo
-from SimpleActorDemo import simple_actor_demo
+from simple_actor_demo import simple_actor_demo
 from single_threaded import single_threaded_demo
 
 ####################################################################################################
@@ -28,8 +27,8 @@ def parse_args():
     args = parser.parse_args()
     # Set the log level
     # Print log level string based on names in debug_log.py
-    print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
-    Config.LOG_LEVEL = args.log_level
+    print(f"Log level: {debug_log.LEVEL_NAMES[args.log_level]}")
+    config.LOG_LEVEL = args.log_level
     # Config.IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
 

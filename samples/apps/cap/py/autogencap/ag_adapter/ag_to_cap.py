@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Union
 from autogen import Agent, ConversableAgent
 
 from ..actor_runtime import IRuntime
-from .AutoGenConnector import AutoGenConnector
+from .autogen_connector import AutoGenConnector
 
 
 class AG2CAP(ConversableAgent):
