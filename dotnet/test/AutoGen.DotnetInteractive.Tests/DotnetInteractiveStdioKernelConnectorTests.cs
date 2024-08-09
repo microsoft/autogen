@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace AutoGen.DotnetInteractive.Tests;
 
+[Collection("Sequential")]
 public class DotnetInteractiveStdioKernelConnectorTests
 {
     private string _workingDir;
