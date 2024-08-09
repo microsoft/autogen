@@ -83,7 +83,7 @@ With the pluggable auto-reply function, one can choose to invoke conversations w
 - Hierarchical chat like in [OptiGuide](https://github.com/microsoft/optiguide).
 - [Dynamic Group Chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb) which is a special form of hierarchical chat. In the system, we register a reply function in the group chat manager, which broadcasts messages and decides who the next speaker will be in a group chat setting.
 - [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine) which is a special form of dynamic group chat. In this approach, a directed transition matrix is fed into group chat. Users can specify legal transitions or specify disallowed transitions.
-- Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb).
+- Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nested_chats_chess.ipynb).
 
 2. LLM-Based Function Call
 
