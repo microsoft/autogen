@@ -965,6 +965,7 @@ class GroupChatManager(ConversableAgent):
         # Store groupchat
         self._groupchat = groupchat
 
+        self._last_speaker = None
         self._silent = silent
 
         # Order of register_reply is important.
@@ -1006,6 +1007,52 @@ class GroupChatManager(ConversableAgent):
             if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
                 agent._prepare_chat(self, clear_history, False, reply_at_receive)
 
+    @property
+    def last_speaker(self) -> Agent:
+        """Return the agent who sent the last message to group chat manager.
+
+        In a group chat, an agent will always send a message to the group chat manager, and the group chat manager will
+        send the message to all other agents in the group chat. So, when an agent receives a message, it will always be
+        from the group chat manager. With this property, the agent receiving the message can know who actually sent the
+        message.
+
+        Example:
+        ```python
+        from autogen import ConversableAgent
+        from autogen import GroupChat, GroupChatManager
+
+
+        def print_messages(recipient, messages, sender, config):
+            # Print the message immediately
+            print(
+                f"Sender: {sender.name} | Recipient: {recipient.name} | Message: {messages[-1].get('content')}"
+            )
+            print(f"Real Sender: {sender.last_speaker.name}")
+            assert sender.last_speaker.name in messages[-1].get("content")
+            return False, None  # Required to ensure the agent communication flow continues
+
+
+        agent_a = ConversableAgent("agent A", default_auto_reply="I'm agent A.")
+        agent_b = ConversableAgent("agent B", default_auto_reply="I'm agent B.")
+        agent_c = ConversableAgent("agent C", default_auto_reply="I'm agent C.")
+        for agent in [agent_a, agent_b, agent_c]:
+            agent.register_reply(
+                [ConversableAgent, None], reply_func=print_messages, config=None
+            )
+        group_chat = GroupChat(
+            [agent_a, agent_b, agent_c],
+            messages=[],
+            max_round=6,
+            speaker_selection_method="random",
+            allow_repeat_speaker=True,
+        )
+        chat_manager = GroupChatManager(group_chat)
+        groupchat_result = agent_a.initiate_chat(
+            chat_manager, message="Hi, there, I'm agent A."
+        )
+        """
+        return self._last_speaker
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
@@ -1034,6 +1081,7 @@ class GroupChatManager(ConversableAgent):
                 a.previous_cache = a.client_cache
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
+            self._last_speaker = speaker
             groupchat.append(message, speaker)
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
