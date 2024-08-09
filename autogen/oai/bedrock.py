@@ -12,8 +12,8 @@ config_list = [
         "api_type": "bedrock",
         "model": "meta.llama3-1-8b-instruct-v1:0",
         "aws_region_name": "us-west-2",
-        "aws_access_key_id": "",
-        "aws_secret_access_key": "",
+        "aws_access_key": "",
+        "aws_secret_key": "",
         "price" : [0.003, 0.015]
     }
 ]
@@ -50,9 +50,6 @@ class BedrockClient:
     def __init__(self, **kwargs: Any):
         """
         Initialises BedrockClient for Amazon's Bedrock Converse API
-
-        All parameters to establish the Bedrock config, session, and runtime objects will be handled in the create the function using the config parameters.
-        See the parse_config_params for parsing.
         """
         self._aws_access_key = kwargs.get("aws_access_key", None)
         self._aws_secret_key = kwargs.get("aws_secret_key", None)
@@ -210,10 +207,6 @@ class BedrockClient:
         try:
             response = self.bedrock_runtime.converse(
                 **request_args,
-                # messages=messages,
-                # modelId=model_id,
-                # system=system_messages,
-                # toolConfig=tool_config,
             )
         except Exception as e:
             raise RuntimeError(f"Failed to get response from Bedrock: {e}")
@@ -234,7 +227,7 @@ class BedrockClient:
         for content in response_message["content"]:
             if "text" in content:
                 text = content["text"]
-                # NOTE: other type of output may be dealt with here
+                # NOTE: other types of output may be dealt with here
 
         message = ChatCompletionMessage(role="assistant", content=text, tool_calls=tool_calls)
 
