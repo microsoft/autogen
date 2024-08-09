@@ -1,0 +1,34 @@
+docid	document_content
+1	math complex_numbers_product Calculates the product of a list of complex numbers.
+2	math calculate_matrix_power Calculate the power of a given matrix.
+3	math calculate_day_of_the_week Calculates the day of the week after a given number of days starting from a specified day.
+4	math modular_inverse_sum Calculates the sum of modular inverses of the given expressions modulo the specified modulus.
+5	math sum_of_digit_factorials Calculates the sum of the factorial of each digit in a number, often used in problems involving curious numbers like 145.
+6	math sum_of_primes_below Calculates the sum of all prime numbers below a given threshold.
+7	math evaluate_expression Evaluates a mathematical expression with support for floor function notation and power notation.
+8	math compute_currency_conversion Compute the currency conversion of the given amount using the provided exchange rate.
+9	math find_continuity_point Find the value 'a' that ensures the continuity of a piecewise function at a given point.
+10	math simplify_mixed_numbers Simplifies the sum of two mixed numbers and returns the result as a string in the format 'a b/c'.
+11	math fraction_to_mixed_numbers Simplifies a fraction to its lowest terms and returns it as a mixed number.
+12	math calculate_fraction_sum Calculates the sum of two fractions and returns the result as a mixed number.
+13	math count_distinct_permutations Counts the number of distinct permutations of a sequence where items may be indistinguishable.
+14	math calculate_circle_area_from_diameter Calculate the area of a circle given its diameter.
+15	math calculate_reflected_point Calculates the reflection point of a given point about the line y=x.
+16	data_analysis explore_csv Reads a CSV file and prints the column names, shape, data types, and the first few lines of data.
+17	data_analysis calculate_correlation Calculate the correlation between two columns in a CSV file.
+18	data_analysis detect_outlier_zscore Detect outliers in a CSV file based on a specified column. The outliers are determined by calculating the z-score of the data points in the column.
+19	data_analysis detect_outlier_iqr Detect outliers in a specified column of a CSV file using the IQR method.
+20	data_analysis shapiro_wilk_test Perform the Shapiro-Wilk test on a specified column of a CSV file.
+21	data_analysis calculate_skewness_and_kurtosis Calculate the skewness and kurtosis of a specified column in a CSV file. The kurtosis is calculated using the Fisher definition. The two metrics are computed using scipy.stats functions.
+22	information_retrieval perform_web_search Perform a web search using Bing API.
+23	information_retrieval transcribe_audio_file Transcribes the audio file located at the given file path.
+24	information_retrieval arxiv_search Search for articles on arXiv based on the given query.
+25	information_retrieval arxiv_download Downloads PDF files from ArXiv based on a list of arxiv paper IDs.
+26	information_retrieval scrape_wikipedia_tables Scrapes Wikipedia tables based on a given URL and header keyword.
+27	information_retrieval extract_pdf_text Extracts text from a specified page or the entire PDF file.
+28	information_retrieval extract_pdf_image Extracts images from a PDF file and saves them to the specified output directory.
+29	information_retrieval image_qa Perform question answering on an image using a pre-trained VQA model.
+30	information_retrieval optical_character_recognition Perform optical character recognition (OCR) on the given image.
+31	information_retrieval get_youtube_caption Retrieves the captions for a YouTube video.
+32	information_retrieval youtube_download Downloads a YouTube video and returns the download link.
+33	information_retrieval get_wikipedia_text Retrieves the text content of a Wikipedia page. It does not support tables and other complex formatting.

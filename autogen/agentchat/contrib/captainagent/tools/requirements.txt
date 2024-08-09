@@ -1,0 +1,10 @@
+markdownify
+arxiv
+pymupdf
+wikipedia-api
+easyocr
+python-pptx
+openai-whisper
+pandas
+scipy
+sentence-transformers
