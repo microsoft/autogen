@@ -9,6 +9,8 @@ on:
     paths:
       - "autogen/**"
       - "test/agentchat/contrib/**"
+      - "test/test_browser_utils.py"
+      - "test/test_retrieve_utils.py"
       - ".github/workflows/contrib-tests.yml"
       - "setup.py"
 
@@ -85,6 +87,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mongodb:
+        image: mongodb/mongodb-atlas-local:latest
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -102,6 +108,9 @@ jobs:
       - name: Install pgvector when on linux
         run: |
           pip install -e .[retrievechat-pgvector]
+      - name: Install mongodb when on linux
+        run: |
+          pip install -e .[retrievechat-mongodb]
       - name: Install unstructured when python-version is 3.9 and on linux
         if: matrix.python-version == '3.9'
         run: |
@@ -593,6 +602,82 @@ jobs:
       - name: Coverage
         run: |
           pytest test/oai/test_together.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  GroqTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for Groq
+        run: |
+          pip install -e .[groq,test]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pytest test/oai/test_groq.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  CohereTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for Cohere
+        run: |
+          pip install -e .[cohere,test]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pytest test/oai/test_cohere.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

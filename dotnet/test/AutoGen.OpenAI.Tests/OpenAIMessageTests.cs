@@ -278,9 +278,9 @@ public class OpenAIMessageTests
                 var innerMessage = msgs.Last();
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
                 var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().BeNullOrEmpty();
                 chatRequestMessage.Name.Should().Be("assistant");
                 chatRequestMessage.ToolCalls.Count().Should().Be(1);
+                chatRequestMessage.Content.Should().Be("textContent");
                 chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
                 var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
                 functionToolCall.Name.Should().Be("test");
@@ -291,7 +291,10 @@ public class OpenAIMessageTests
             .RegisterMiddleware(middleware);
 
         // user message
-        IMessage message = new ToolCallMessage("test", "test", "assistant");
+        IMessage message = new ToolCallMessage("test", "test", "assistant")
+        {
+            Content = "textContent",
+        };
         await agent.GenerateReplyAsync([message]);
     }
 
@@ -526,13 +529,14 @@ public class OpenAIMessageTests
             .RegisterMiddleware(middleware);
 
         // tool call message
-        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
+        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "textContent", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
         var chatRequestMessage = MessageEnvelope.Create(toolCallMessage);
         var message = await agent.GenerateReplyAsync([chatRequestMessage]);
         message.Should().BeOfType<ToolCallMessage>();
         message.GetToolCalls()!.Count().Should().Be(1);
         message.GetToolCalls()!.First().FunctionName.Should().Be("test");
         message.GetToolCalls()!.First().FunctionArguments.Should().Be("test");
+        message.GetContent().Should().Be("textContent");
     }
 
     [Fact]
