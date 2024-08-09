@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -29,6 +30,40 @@ else:
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
+
+class _MockClient:
+    def __init__(self, config, **kwargs):
+        pass
+
+    def create(self, params):
+        # can create my own data response class
+        # here using SimpleNamespace for simplicity
+        # as long as it adheres to the ModelClientResponseProtocol
+
+        response = SimpleNamespace()
+        response.choices = []
+        response.model = "mock_model"
+
+        text = "this is a dummy text response"
+        choice = SimpleNamespace()
+        choice.message = SimpleNamespace()
+        choice.message.content = text
+        choice.message.function_call = None
+        response.choices.append(choice)
+        return response
+
+    def message_retrieval(self, response):
+        choices = response.choices
+        return [choice.message.content for choice in choices]
+
+    def cost(self, response) -> float:
+        response.cost = 0
+        return 0
+
+    @staticmethod
+    def get_usage(response):
+        return {}
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -322,6 +357,32 @@ def test_cache():
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
+def test_throttled_api_calls():
+    # Api calling limited at 0.2 request per second, or 1 request per 5 seconds
+    rate = 1 / 5.0
+
+    config_list = [
+        {
+            "model": "mock_model",
+            "model_client_cls": "_MockClient",
+            # Adding a timeout to catch false positives
+            "timeout": 1 / rate,
+            "api_rate_limit": rate,
+        }
+    ]
+
+    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+    client.register_model_client(_MockClient)
+
+    n_loops = 2
+    current_time = time.time()
+    for _ in range(n_loops):
+        client.create(messages=[{"role": "user", "content": "hello"}])
+
+    min_expected_time = (n_loops - 1) / rate
+    assert time.time() - current_time > min_expected_time
+
+
 if __name__ == "__main__":
     # test_aoai_chat_completion()
     # test_oai_tool_calling_extraction()
@@ -329,5 +390,6 @@ if __name__ == "__main__":
     test_completion()
     # # test_cost()
     # test_usage_summary()
-    # test_legacy_cache()
-    # test_cache()
+    test_legacy_cache()
+    test_cache()
+    test_throttled_api_calls()
