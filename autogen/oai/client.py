@@ -464,8 +464,11 @@ class OpenAIWrapper:
     def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Update openai_config with AWS credentials from config."""
         required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
-
+        optional_keys = ["aws_session_token", "aws_profile_name"]
         for key in required_keys:
+            if key in config:
+                openai_config[key] = config[key]
+        for key in optional_keys:
             if key in config:
                 openai_config[key] = config[key]
 
@@ -527,6 +530,7 @@ class OpenAIWrapper:
                 client = CohereClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
+                self._configure_openai_config_for_bedrock(config, openai_config)
                 if bedrock_import_exception:
                     raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
                 client = BedrockClient(**openai_config)

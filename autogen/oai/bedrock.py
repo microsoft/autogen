@@ -25,14 +25,12 @@ assistant = autogen.AssistantAgent("assistant", llm_config={"config_list": confi
 from __future__ import annotations
 
 import base64
-import copy
-import inspect
 import json
 import os
 import re
 import time
 import warnings
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, List, Literal, Tuple
 
 import boto3
 import requests
@@ -56,37 +54,46 @@ class BedrockClient:
         All parameters to establish the Bedrock config, session, and runtime objects will be handled in the create the function using the config parameters.
         See the parse_config_params for parsing.
         """
+        self._aws_access_key = kwargs.get("aws_access_key", None)
+        self._aws_secret_key = kwargs.get("aws_secret_key", None)
+        self._aws_session_token = kwargs.get("aws_session_token", None)
+        self._aws_region = kwargs.get("aws_region", None)
+        self._aws_profile_name = kwargs.get("aws_profile_name", None)
 
-    def message_retrieval(self, response):
-        """Retrieve the messages from the response."""
-        return [choice.message for choice in response.choices]
+        if not self._aws_access_key:
+            self._aws_access_key = os.getenv("AWS_ACCESS_KEY")
 
-    def parse_config_params(self, params: Dict[str, Any]):
-        """
-        Parse the Config specific parameters and establish the Bedrock config, session, and runtime objects
-        """
+        if not self._aws_secret_key:
+            self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
 
-        self.aws_region_name = params.get("aws_region_name", None)
-        self.aws_access_key_id = params.get("aws_access_key_id", None)
-        self.aws_secret_access_key = params.get("aws_secret_access_key", None)
-        self.aws_session_token = params.get("aws_session_token", None)
-        self.aws_profile_name = params.get("aws_profile_name", None)
+        if not self._aws_session_token:
+            self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
+
+        if not self._aws_region:
+            self._aws_region = os.getenv("AWS_REGION")
+
+        if self._aws_region is None:
+            raise ValueError("Region is required to use the Amazon Bedrock API.")
 
         # Initialize Bedrock client, session, and runtime
         bedrock_config = Config(
-            region_name=self.aws_region_name,
+            region_name=self._aws_region,
             signature_version="v4",
             retries={"max_attempts": self._retries, "mode": "standard"},
         )
 
         session = boto3.Session(
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            aws_session_token=self.aws_session_token,
-            profile_name=self.aws_profile_name,
+            aws_access_key_id=self._aws_access_key,
+            aws_secret_access_key=self._aws_secret_key,
+            aws_session_token=self._aws_session_token,
+            profile_name=self._aws_profile_name,
         )
 
         self.bedrock_runtime = session.client(service_name="bedrock-runtime", config=bedrock_config)
+
+    def message_retrieval(self, response):
+        """Retrieve the messages from the response."""
+        return [choice.message for choice in response.choices]
 
     def parse_custom_params(self, params: Dict[str, Any]):
         """
@@ -94,10 +101,10 @@ class BedrockClient:
         """
 
         # Should we separate system messages into its own request parameter, default is True
-        # This is because not all models support a system prompt (e.g. Mistral Instruct).
+        # This is required because not all models support a system prompt (e.g. Mistral Instruct).
         self._supports_system_prompts = params.get("supports_system_prompts", True)
 
-    def parse_params(self, params: Dict[str, Any]) -> (Dict[str, Any], Dict[str, Any]):
+    def parse_params(self, params: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Loads the valid parameters required to invoke Bedrock Converse
         Returns a tuple of (base_params, additional_params)
@@ -171,9 +178,6 @@ class BedrockClient:
     def create(self, params):
         """Run Amazon Bedrock inference and return AutoGen response"""
 
-        # Establish Bedrock config and session from config parameters
-        self.parse_config_params(params)
-
         # Set custom client class settings
         self.parse_custom_params(params)
 
@@ -189,6 +193,13 @@ class BedrockClient:
         tool_config = format_tools(params["tools"] if has_tools else [])
 
         request_args = {"messages": messages, "modelId": self._model_id}
+
+        # Base and additional args
+        if len(base_params) > 0:
+            request_args["inferenceConfig"] = base_params
+
+        if len(additional_params) > 0:
+            request_args["additionalModelRequestFields"] = additional_params
 
         if self._supports_system_prompts:
             request_args["system"] = system_messages
@@ -227,11 +238,11 @@ class BedrockClient:
 
         message = ChatCompletionMessage(role="assistant", content=text, tool_calls=tool_calls)
 
-        reponse_usage = response["usage"]
+        response_usage = response["usage"]
         usage = CompletionUsage(
-            prompt_tokens=reponse_usage["inputTokens"],
-            completion_tokens=reponse_usage["outputTokens"],
-            total_tokens=reponse_usage["totalTokens"],
+            prompt_tokens=response_usage["inputTokens"],
+            completion_tokens=response_usage["outputTokens"],
+            total_tokens=response_usage["totalTokens"],
         )
 
         return ChatCompletion(
