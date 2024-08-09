@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// DotnetInteractiveKernelBuilderTest.cs
+// InProcessDotnetInteractiveKernelBuilderTest.cs
 
 using AutoGen.DotnetInteractive.Extension;
 using FluentAssertions;
