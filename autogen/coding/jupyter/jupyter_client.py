@@ -39,6 +39,10 @@ class JupyterClient:
             return {}
         return {"Authorization": f"token {self._connection_info.token}"}
 
+    def _get_cookies(self) -> str:
+        cookies = self._session.cookies.get_dict()
+        return "; ".join([f"{name}={value}" for name, value in cookies.items()])
+
     def _get_api_base_url(self) -> str:
         protocol = "https" if self._connection_info.use_https else "http"
         port = f":{self._connection_info.port}" if self._connection_info.port else ""
@@ -87,7 +91,7 @@ class JupyterClient:
 
     def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
         ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
-        ws = websocket.create_connection(ws_url, header=self._get_headers())
+        ws = websocket.create_connection(ws_url, header=self._get_headers(), cookie=self._get_cookies())
         return JupyterKernelClient(ws)
 
 
