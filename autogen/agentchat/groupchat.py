@@ -64,8 +64,9 @@ class GroupChat:
         - a customized speaker selection function (Callable): the function will be called to select the next speaker.
             The function should take the last speaker and the group chat as input and return one of the following:
                 1. an `Agent` class, it must be one of the agents in the group chat.
-                2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
-                3. None, which would terminate the conversation gracefully.
+                2. a list of Agents, which will be used as the eligible agents for the next speaker selection.
+                3. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
+                4. None, which would terminate the conversation gracefully.
             ```python
             def custom_speaker_selection_func(
                 last_speaker: Agent, groupchat: GroupChat
@@ -403,6 +404,7 @@ class GroupChat:
         # If self.speaker_selection_method is a callable, call it to get the next speaker.
         # If self.speaker_selection_method is a string, return it.
         speaker_selection_method = self.speaker_selection_method
+        allowed_agent_list = []
         if isinstance(self.speaker_selection_method, Callable):
             selected_agent = self.speaker_selection_method(last_speaker, self)
             if selected_agent is None:
@@ -417,9 +419,18 @@ class GroupChat:
             elif isinstance(selected_agent, str):
                 # If returned a string, assume it is a speaker selection method
                 speaker_selection_method = selected_agent
+            elif isinstance(selected_agent, list):
+                # make sure all values in the list are Agents
+                if all(isinstance(agent, Agent) for agent in selected_agent):
+                    allowed_agent_list = selected_agent
+                    speaker_selection_method = "auto"
+                else:
+                    raise ValueError(
+                        "Custom speaker selection function returned a list of objects that are not all Agents."
+                    )
             else:
                 raise ValueError(
-                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or list[Agent] or str."
                 )
 
         if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
@@ -496,6 +507,12 @@ class GroupChat:
             graph_eligible_agents = [
                 agent for agent in agents if agent in self.allowed_speaker_transitions_dict[last_speaker]
             ]
+
+        if len(allowed_agent_list) > 0:
+            # all agents in allowed_agent_list should be in graph_eligible_agents
+            if not set(allowed_agent_list).issubset(set(graph_eligible_agents)):
+                raise NoEligibleSpeaker("Allowed agents are not in the eligible agents list.")
+            graph_eligible_agents = allowed_agent_list
 
         # If there is only one eligible agent, just return it to avoid the speaker selection prompt
         if len(graph_eligible_agents) == 1:
