@@ -1,5 +1,5 @@
-﻿//// Copyright (c) Microsoft Corporation. All rights reserved.
-//// DotnetInteractiveServiceTest.cs
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// DotnetInteractiveServiceTest.cs
 
 //using FluentAssertions;
 //using Xunit;
