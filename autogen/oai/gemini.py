@@ -472,11 +472,7 @@ class GeminiClient:
                 ][0]
 
             parts = self._oai_content_to_gemini_content(message)
-            role = (
-                "user"
-                if message["role"] in ["user", "system"]
-                else "function" if message["role"] == "tool" else "model"
-            )
+            role = "user" if message["role"] in ["user", "system"] else "model"
 
             # In Gemini if the current message is a function call then previous message should not be a model message.
             if is_function_call(parts):
