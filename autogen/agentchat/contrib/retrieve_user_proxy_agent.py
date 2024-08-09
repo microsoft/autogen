@@ -189,7 +189,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     interactive retrieval. Default is True.
                 - `collection_name` (Optional, str) - the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
-                - `get_or_create` (Optional, bool) - Whether to get the collection if it exists. Default is True.
+                - `get_or_create` (Optional, bool) - Whether to get the collection if it exists. Default is False.
                 - `overwrite` (Optional, bool) - Whether to overwrite the collection if it exists. Default is False.
                     Case 1. if the collection does not exist, create the collection.
                     Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
@@ -306,6 +306,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 self._db_config["embedding_function"] = self._embedding_function
             self._vector_db = VectorDBFactory.create_vector_db(db_type=self._vector_db, **self._db_config)
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
+        self.register_hook(
+            hookable_method="process_message_before_send",
+            hook=self._check_update_context_before_send,
+        )
 
     def _init_db(self):
         if not self._vector_db:
@@ -399,6 +403,34 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 break
         update_context_case1, update_context_case2 = self._check_update_context(message)
         return not (contain_code or update_context_case1 or update_context_case2)
+
+    def _check_update_context_before_send(self, sender, message, recipient, silent):
+        if not isinstance(message, (str, dict)):
+            return message
+        elif isinstance(message, dict):
+            msg_text = message.get("content", message)
+        else:
+            msg_text = message
+
+        if "UPDATE CONTEXT" == msg_text.strip().upper():
+            doc_contents = self._get_context(self._results)
+
+            # Always use self.problem as the query text to retrieve docs, but each time we replace the context with the
+            # next similar docs in the retrieved doc results.
+            if not doc_contents:
+                for _tmp_retrieve_count in range(1, 5):
+                    self._reset(intermediate=True)
+                    self.retrieve_docs(
+                        self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                    )
+                    doc_contents = self._get_context(self._results)
+                    if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
+                        break
+            msg_text = self._generate_message(doc_contents, task=self._task)
+
+        if isinstance(message, dict):
+            message["content"] = msg_text
+        return message
 
     @staticmethod
     def get_max_tokens(model="gpt-3.5-turbo"):
