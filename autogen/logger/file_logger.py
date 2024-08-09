@@ -18,6 +18,7 @@ from .base_logger import LLMConfig
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.bedrock import BedrockClient
     from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.groq import GroqClient
@@ -215,6 +216,7 @@ class FileLogger(BaseLogger):
             | TogetherClient
             | GroqClient
             | CohereClient
+            | BedrockClient
         ),
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],
