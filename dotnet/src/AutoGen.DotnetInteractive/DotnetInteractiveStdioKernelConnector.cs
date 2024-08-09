@@ -24,9 +24,14 @@ public class DotnetInteractiveStdioKernelConnector
 
     public DotnetInteractiveStdioKernelConnector RestoreDotnetInteractive()
     {
-        this.interactiveService.RestoreDotnetInteractive();
-
-        return this;
+        if (this.interactiveService.RestoreDotnetInteractive())
+        {
+            return this;
+        }
+        else
+        {
+            throw new Exception("Failed to restore dotnet interactive tool.");
+        }
     }
 
     public DotnetInteractiveStdioKernelConnector AddPythonKernel(
@@ -75,29 +80,6 @@ public class DotnetInteractiveStdioKernelConnector
             var setupCommandResult = await rootProxyKernel.SendAsync(setupCommand, ct);
             setupCommandResult.ThrowOnCommandFailed();
         }
-
-        //// Get proxies for each subkernel present inside the dotnet - interactive tool.
-        //var requestKernelInfoCommand = new RequestKernelInfo(rootProxyKernel.KernelInfo.RemoteUri);
-        //var result =
-        //    await rootProxyKernel.SendAsync(
-        //        requestKernelInfoCommand,
-        //        ct).ConfigureAwait(false);
-
-        //var subKernels = result.Events.OfType<KernelInfoProduced>();
-
-        //foreach (var kernelInfoProduced in result.Events.OfType<KernelInfoProduced>())
-        //{
-        //    var kernelInfo = kernelInfoProduced.KernelInfo;
-        //    if (kernelInfo is not null && !kernelInfo.IsProxy && !kernelInfo.IsComposite)
-        //    {
-        //        var proxyKernel = await connector.CreateProxyKernelAsync(kernelInfo).ConfigureAwait(false);
-        //        proxyKernel.SetUpValueSharingIfSupported();
-        //        compositeKernel.Add(proxyKernel);
-        //    }
-        //}
-
-        ////compositeKernel.DefaultKernelName = "csharp";
-        //compositeKernel.Add(rootProxyKernel);
 
         return rootProxyKernel;
     }
