@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reflection;
+using AutoGen.DotnetInteractive.Extension;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
@@ -20,14 +21,6 @@ public class InteractiveService : IDisposable
     private const string DotnetInteractiveToolNotInstallMessage = "Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'.";
     //private readonly ProcessJobTracker jobTracker = new ProcessJobTracker();
     private string? installingDirectory;
-
-    public event EventHandler<DisplayEvent>? DisplayEvent;
-
-    public event EventHandler<string>? Output;
-
-    public event EventHandler<CommandFailed>? CommandFailed;
-
-    public event EventHandler<HoverTextProduced>? HoverTextProduced;
 
     /// <summary>
     /// Install dotnet interactive tool to <paramref name="installingDirectory"/>
@@ -52,6 +45,8 @@ public class InteractiveService : IDisposable
         this.kernel = kernel;
     }
 
+    public Kernel? Kernel => this.kernel;
+
     public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
         if (this.kernel != null)
@@ -63,31 +58,14 @@ public class InteractiveService : IDisposable
         return true;
     }
 
-    public async Task<string?> SubmitCommandAsync(KernelCommand cmd, CancellationToken ct)
+    public async Task<string?> SubmitCommandAsync(SubmitCode cmd, CancellationToken ct)
     {
         if (this.kernel == null)
         {
             throw new Exception("Kernel is not running");
         }
 
-        try
-        {
-            var res = await this.kernel.SendAndThrowOnCommandFailedAsync(cmd, ct);
-            var events = res.Events;
-            var displayValues = events.Where(x => x is StandardErrorValueProduced || x is StandardOutputValueProduced || x is ReturnValueProduced)
-                    .SelectMany(x => (x as DisplayEvent)!.FormattedValues);
-
-            if (displayValues is null || displayValues.Count() == 0)
-            {
-                return null;
-            }
-
-            return string.Join("\n", displayValues.Select(x => x.Value));
-        }
-        catch (Exception ex)
-        {
-            return $"Error: {ex.Message}";
-        }
+        return await this.kernel.RunSubmitCodeCommandAsync(cmd.Code, cmd.TargetKernelName, ct);
     }
 
     public async Task<string?> SubmitPowershellCodeAsync(string code, CancellationToken ct)
@@ -109,7 +87,6 @@ public class InteractiveService : IDisposable
             throw new Exception("Installing directory is not set");
         }
 
-        this.WriteLine("Restore dotnet interactive tool");
         // write RestoreInteractive.config from embedded resource to this.workingDirectory
         var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
         var resourceName = "AutoGen.DotnetInteractive.RestoreInteractive.config";
@@ -202,8 +179,6 @@ public class InteractiveService : IDisposable
             //compositeKernel.DefaultKernelName = "csharp";
             compositeKernel.Add(rootProxyKernel);
 
-            compositeKernel.KernelEvents.Subscribe(this.OnKernelDiagnosticEventReceived);
-
             return compositeKernel;
         }
         catch (CommandLineInvocationException) when (restoreWhenFail)
@@ -219,35 +194,11 @@ public class InteractiveService : IDisposable
         }
     }
 
-    private void OnKernelDiagnosticEventReceived(KernelEvent ke)
-    {
-        this.WriteLine("Receive data from kernel");
-        this.WriteLine(KernelEventEnvelope.Serialize(ke));
-
-        switch (ke)
-        {
-            case DisplayEvent de:
-                this.DisplayEvent?.Invoke(this, de);
-                break;
-            case CommandFailed cf:
-                this.CommandFailed?.Invoke(this, cf);
-                break;
-            case HoverTextProduced cf:
-                this.HoverTextProduced?.Invoke(this, cf);
-                break;
-        }
-    }
-
-    private void WriteLine(string data)
-    {
-        this.Output?.Invoke(this, data);
-    }
-
     private void PrintProcessOutput(object sender, DataReceivedEventArgs e)
     {
         if (!string.IsNullOrEmpty(e.Data))
         {
-            this.WriteLine(e.Data);
+            Console.WriteLine(e.Data);
         }
     }
 
