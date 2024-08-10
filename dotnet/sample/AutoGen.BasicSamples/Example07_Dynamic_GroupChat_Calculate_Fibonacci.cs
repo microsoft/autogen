@@ -233,7 +233,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     public static async Task RunWorkflowAsync()
     {
         long the39thFibonacciNumber = 63245986;
-        var kernel = DotnetInteractiveKernelBuilder.CreateDefaultBuilder().Build();
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultInProcessKernelBuilder()
+            .Build();
 
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
@@ -344,7 +346,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
 
-        var kernel = DotnetInteractiveKernelBuilder.CreateDefaultBuilder().Build();
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultInProcessKernelBuilder()
+            .Build();
         #region create_group_chat
         var reviewer = await CreateReviewerAgentAsync(openaiClient, config.DeploymentName);
         var coder = await CreateCoderAgentAsync(openaiClient, config.DeploymentName);
