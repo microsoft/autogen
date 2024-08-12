@@ -16,7 +16,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         var instance = new Example04_Dynamic_GroupChat_Coding_Task();
 
         var kernel = DotnetInteractiveKernelBuilder
-            .CreateDefaultBuilder()
+            .CreateDefaultInProcessKernelBuilder()
             .AddPythonKernel("python3")
             .Build();
 
