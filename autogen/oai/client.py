@@ -526,7 +526,7 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("cohere"):
                 if cohere_import_exception:
-                    raise ImportError("Please install `cohere` to use the Groq API.")
+                    raise ImportError("Please install `cohere` to use the Cohere API.")
                 client = CohereClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
