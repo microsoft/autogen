@@ -166,6 +166,13 @@ def init_db_samples(dbmanager: Any):
         user_id="guestuser@gmail.com",
         api_type="google",
     )
+    
+    anthropic_claude_model = Model(
+        model="claude-3-sonnet-20240229",
+        description="Anthropic's Claude 3 Sonnet model",
+        user_id="guestuser@gmail.com",
+        api_type="anthropic",
+    )
 
     # skills
 
@@ -272,6 +279,7 @@ def init_db_samples(dbmanager: Any):
     with Session(dbmanager.engine) as session:
         session.add(zephyr_model)
         session.add(google_gemini_model)
+        session.add(anthropic_claude_model)
         session.add(azure_model)
         session.add(gpt_4_model)
         session.add(generate_image_skill)

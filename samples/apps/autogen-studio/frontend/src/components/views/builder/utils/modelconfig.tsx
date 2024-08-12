@@ -36,6 +36,12 @@ const ModelTypeSelector = ({
       description: "Gemini",
       icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
     },
+    {
+      label: "Anthropic",
+      value: "anthropic",
+      description: "Anthropic",
+      icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+    },
   ];
 
   const [selectedType, setSelectedType] = React.useState<string | undefined>(
@@ -83,6 +89,7 @@ const ModelTypeSelector = ({
       "In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
     azure: "Azure OpenAI endpoint",
     google: "Gemini",
+    anthropic: "Anthropic"
   };
 
   const [selectedHint, setSelectedHint] = React.useState<string>("open_ai");
