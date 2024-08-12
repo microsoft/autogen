@@ -10,11 +10,14 @@ using System.Threading.Tasks;
 using AutoGen.Anthropic;
 using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
+using AutoGen.AzureAIInference;
+using AutoGen.AzureAIInference.Extension;
 using AutoGen.Gemini;
 using AutoGen.Mistral;
 using AutoGen.Mistral.Extension;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
+using Azure.AI.Inference;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Moq;
@@ -299,6 +302,22 @@ public class RolePlayOrchestratorTests
             client: client,
             name: "MistralClientAgent",
             model: "open-mistral-7b")
+            .RegisterMessageConnector();
+
+        await CoderReviewerRunnerTestAsync(agent);
+    }
+
+    [ApiKeyFact("GH_API_KEY")]
+    public async Task LLaMA_3_1_CoderReviewerRunnerTestAsync()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("GH_API_KEY") ?? throw new InvalidOperationException("GH_API_KEY is not set.");
+        var endPoint = "https://models.inference.ai.azure.com";
+
+        var chatCompletionClient = new ChatCompletionsClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
+        var agent = new ChatCompletionsClientAgent(
+            chatCompletionsClient: chatCompletionClient,
+            name: "assistant",
+            modelName: "Meta-Llama-3.1-70B-Instruct")
             .RegisterMessageConnector();
 
         await CoderReviewerRunnerTestAsync(agent);
