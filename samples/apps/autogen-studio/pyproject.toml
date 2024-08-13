@@ -25,7 +25,7 @@ dependencies = [
     "uvicorn",
     "arxiv",
     "pyautogen[anthropic,gemini]>=0.2.0",
-	"anthropic[bedrock]",
+    "anthropic[bedrock]",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",

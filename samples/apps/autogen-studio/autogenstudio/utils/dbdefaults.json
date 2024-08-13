@@ -17,6 +17,15 @@
       "api_key": "EMPTY",
       "base_url": "http://localhost:8000/v1",
       "description": "Local model example with vLLM server endpoint"
+    },
+    {
+      "model": "anthropic.claude-3-sonnet-20240229-v1:0",
+      "api_key": "EMPTY",
+      "aws_access_key": "EMPTY",
+      "aws_secret_key": "EMPTY",
+      "aws_session_token": "EMPTY",
+      "aws_region": "us-east-1",
+      "description": "Anthropic model configuration"
     }
   ],
   "agents": [

@@ -279,8 +279,8 @@ export const sampleModelConfig = (modelType: string = "open_ai") => {
       return azureConfig;
     case "google":
       return googleConfig;
-	case "anthropic":
-	  return anthropicConfig;
+    case "anthropic":
+      return anthropicConfig;
     default:
       return openaiConfig;
   }

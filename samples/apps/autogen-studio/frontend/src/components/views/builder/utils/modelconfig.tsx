@@ -275,7 +275,7 @@ const ModelConfigMainView = ({
             />
           )}
           {/* AWS Configuration */}
-		  {model?.api_type == "anthropic" ? [
+          {model?.api_type == "anthropic" ? [
             <ControlRowView
               title="AWS Access Key ID"
               className=""
@@ -291,7 +291,7 @@ const ModelConfigMainView = ({
                 />
               }
             />,
-			<ControlRowView
+            <ControlRowView
               title="AWS Secret Access Key"
               className=""
               description="Required by Anthropic Bedrock models"
