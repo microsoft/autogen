@@ -105,6 +105,7 @@ class ModelTypes(str, Enum):
     openai = "open_ai"
     google = "google"
     azure = "azure"
+    anthropic = "anthropic"
 
 
 class Model(SQLModel, table=True):
@@ -126,6 +127,11 @@ class Model(SQLModel, table=True):
     api_version: Optional[str] = None
     description: Optional[str] = None
     agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)
+    # AWS Configuration
+    aws_access_key: Optional[str] = None
+    aws_secret_key: Optional[str] = None
+    aws_session_token: Optional[str] = None
+    aws_region: Optional[str] = None
 
 
 class CodeExecutionConfigTypes(str, Enum):

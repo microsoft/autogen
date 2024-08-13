@@ -84,6 +84,11 @@ export interface IModelConfig {
   updated_at?: string;
   description?: string;
   id?: number;
+  /* AWS Configuration */
+  aws_access_key?: string;
+  aws_secret_key?: string;
+  aws_session_token?: string;
+  aws_region?: string;
 }
 
 export interface IMetadataFile {
