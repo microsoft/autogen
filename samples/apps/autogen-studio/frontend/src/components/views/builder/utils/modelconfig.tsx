@@ -36,6 +36,12 @@ const ModelTypeSelector = ({
       description: "Gemini",
       icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
     },
+    {
+      label: "Anthropic",
+      value: "anthropic",
+      description: "Anthropic or Anthropic Bedrock",
+      icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+    },
   ];
 
   const [selectedType, setSelectedType] = React.useState<string | undefined>(
@@ -83,6 +89,7 @@ const ModelTypeSelector = ({
       "In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
     azure: "Azure OpenAI endpoint",
     google: "Gemini",
+    anthropic: "Anthropic models available via Anthropic API or Amazon Bedrock"
   };
 
   const [selectedHint, setSelectedHint] = React.useState<string>("open_ai");
@@ -215,7 +222,7 @@ const ModelConfigMainView = ({
               />
             }
           />
-
+        {model?.api_type != "anthropic" && (
           <ControlRowView
             title="Base URL"
             className=""
@@ -231,6 +238,7 @@ const ModelConfigMainView = ({
               />
             }
           />
+        )}
         </div>
         <div>
           <ControlRowView
@@ -266,6 +274,69 @@ const ModelConfigMainView = ({
               }
             />
           )}
+          {/* AWS Configuration */}
+          {model?.api_type == "anthropic" ? [
+            <ControlRowView
+              title="AWS Access Key ID"
+              className=""
+              description="Required by Anthropic Bedrock models"
+              value=""
+              control={
+                <Input.Password
+                  className="mt-2 w-full"
+                  value={model?.aws_access_key || ""}
+                  onChange={(e) => {
+                    updateModelConfig("aws_access_key", e.target.value);
+                  }}
+                />
+              }
+            />,
+            <ControlRowView
+              title="AWS Secret Access Key"
+              className=""
+              description="Required by Anthropic Bedrock models"
+              value=""
+              control={
+                <Input.Password
+                  className="mt-2 w-full"
+                  value={model?.aws_secret_key || ""}
+                  onChange={(e) => {
+                    updateModelConfig("aws_secret_key", e.target.value);
+                  }}
+                />
+              }
+            />,
+            <ControlRowView
+              title="AWS Session Token"
+              className=""
+              description="Required by Anthropic Bedrock models"
+              value=""
+              control={
+                <Input.Password
+                  className="mt-2 w-full"
+                  value={model?.aws_session_token || ""}
+                  onChange={(e) => {
+                    updateModelConfig("aws_session_token", e.target.value);
+                  }}
+                />
+              }
+            />,
+            <ControlRowView
+              title="AWS Region"
+              className=""
+              description="Required by Anthropic Bedrock models"
+              value={model?.aws_region || "us-east-1"}
+              control={
+                <Input
+                  className="mt-2 w-full"
+                  value={model?.aws_region}
+                  onChange={(e) => {
+                    updateModelConfig("aws_region", e.target.value);
+                  }}
+                />
+              }
+            />
+          ] : null}
         </div>
       </div>
 
