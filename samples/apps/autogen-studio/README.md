@@ -107,7 +107,7 @@ AutoGen Studio proposes some high-level concepts.
 
 **Skills**: Skills are functions (e.g., Python functions) that describe how to solve a task. In general, a good skill has a descriptive name (e.g. `generate_images`), extensive docstrings and good defaults (e.g., writing out files to disk for persistence and reuse). You can add new skills AutoGen Studio app via the provided UI. At inference time, these skills are made available to the assistant agent as they address your tasks.
 
-**Secret Redaction**: A functionality in Agents that allows sensitive data to be redacted from an agent's response. The redaction is done based on secrets stored in these 3 locations: cloud services (i.e. Azure Key Vault), a custom file (Blacklist), and secrets defined in Skills.  
+**Secret Redaction**: A functionality in Agents that allows sensitive data to be redacted from an agent's response. The redaction is done based on secrets stored in these 3 locations: cloud services (i.e. Azure Key Vault), a custom file (Blacklist), and secrets defined in Skills.
 
 To enable this functionality, set the following env variable:
 - Required:
@@ -115,7 +115,7 @@ To enable this functionality, set the following env variable:
   - REDACTION_REPLACEMENT_STRING: The string that secrets will be replaced with
   - SECRET_FETCH_TIMEOUT: The secret fetch time period, in seconds.
 - Optional (ONLY set these env variables if you need them):
-  - CLOUD_SECRET_PROVIDERS: All cloud secret providers. To add more, make sure the extra function is added in secretmanager.py. 
+  - CLOUD_SECRET_PROVIDERS: All cloud secret providers. To add more, make sure the extra function is added in secretmanager.py.
   - AZURE_KEYVAULT_URL: Access Link for Azure Key Vault. More cloud secret providers' urls can be added, in string.
   - BLACKLIST_PATH: Path to user's blacklist, in string. The Blacklist is a txt file containing all the secrets user wants to be redacted.
 ## Example Usage

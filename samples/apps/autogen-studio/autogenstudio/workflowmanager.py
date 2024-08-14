@@ -273,7 +273,7 @@ class AutoWorkflowManager:
         replacementString = os.environ.get("REDACTION_REPLACEMENT_STRING")
         temp_message = copy.deepcopy(message)
 
-        if isinstance(temp_message, Dict):
+        if isinstance(temp_message, Dict) and self.secrets is not None:
             for secret in self.secrets:
                 if secret == "":
                     continue

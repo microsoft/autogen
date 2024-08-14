@@ -20,7 +20,7 @@ from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
-from ..utils.secretmanager import *
+from ..utils.secretmanager import get_secrets_from_cloud, get_secrets_from_file, get_secrets_from_skills
 from ..version import VERSION
 
 profiler = Profiler()
@@ -75,7 +75,7 @@ async def get_all_secrets(interval_time: int):
             map(
                 str,
                 (
-                    get_secrets_from_cloud(secret_providers=os.environ.get("CLOUD_SECRET_PROVIDERS").split(","))
+                    get_secrets_from_cloud(secret_providers=os.environ.get("CLOUD_SECRET_PROVIDERS", "").split(","))
                     if "CLOUD_SECRET_PROVIDERS" in os.environ
                     else []
                 )
@@ -94,8 +94,12 @@ async def lifespan(app: FastAPI):
     managers["chat"] = AutoGenChatManager(message_queue=message_queue)
     dbmanager.create_db_and_tables()
 
-    if strtobool(os.environ["ENABLE_SECRET_REDACTION"]):
-        asyncio.create_task(get_all_secrets(int(os.environ["SECRET_FETCH_TIMEOUT"])))
+    if (
+        "SECRET_FETCH_TIMEOUT" in os.environ
+        and "ENABLE_SECRET_REDACTION" in os.environ
+        and strtobool(os.environ.get("ENABLE_SECRET_REDACTION"))
+    ):
+        asyncio.create_task(get_all_secrets(int(os.environ.get("SECRET_FETCH_TIMEOUT"))))
 
     yield
     # Close all active connections
