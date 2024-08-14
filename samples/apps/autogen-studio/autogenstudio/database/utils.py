@@ -174,7 +174,7 @@ def init_db_samples(dbmanager: Any):
     gpt_4_model = Model(
         model="gpt-4-1106-preview", description="OpenAI GPT-4 model", user_id="guestuser@gmail.com", api_type="open_ai"
     )
-    
+
     anthropic_claude_model = Model(
         model="claude-3-sonnet-20240229",
         description="Anthropic's Claude 3 Sonnet model",

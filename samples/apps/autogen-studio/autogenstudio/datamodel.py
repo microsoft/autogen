@@ -118,6 +118,7 @@ class ModelTypes(str, Enum):
     azure = "azure"
     anthropic = "anthropic"
 
+
 class Model(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)

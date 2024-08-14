@@ -429,9 +429,16 @@ def sanitize_model(model: Model):
         model = model.model_dump()
     valid_keys = [
         # OpenAI-compatible keys
-        "model", "base_url", "api_key", "api_type", "api_version",
+        "model",
+        "base_url",
+        "api_key",
+        "api_type",
+        "api_version",
         # AWS keys
-        "aws_access_key", "aws_secret_key", "aws_session_token", "aws_region"
+        "aws_access_key",
+        "aws_secret_key",
+        "aws_session_token",
+        "aws_region",
     ]
     # only add key if value is not None
     sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
