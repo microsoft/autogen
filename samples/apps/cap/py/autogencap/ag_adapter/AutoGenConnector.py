@@ -38,7 +38,7 @@ class AutoGenConnector:
         # Setting retry to -1 to keep trying until a response is received
         # This normal AutoGen behavior but does not handle the case when an AutoGen agent
         # is not running. In that case, the connector will keep trying indefinitely.
-        _, _, resp = self._can_channel.binary_request(type(msg).__name__, serialized_msg, num_attempts=-1)
+        _, _, resp = self._can_channel.send_recv_msg(type(msg).__name__, serialized_msg, num_attempts=-1)
         gen_reply_resp = GenReplyResp()
         gen_reply_resp.ParseFromString(resp)
         return gen_reply_resp.data

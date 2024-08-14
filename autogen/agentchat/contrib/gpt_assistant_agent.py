@@ -5,8 +5,6 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import openai
-
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
@@ -66,6 +64,8 @@ class GPTAssistantAgent(ConversableAgent):
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         if logging_enabled():
             log_new_agent(self, locals())
@@ -173,6 +173,7 @@ class GPTAssistantAgent(ConversableAgent):
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
+        self.update_system_message(self._openai_assistant.instructions)
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)

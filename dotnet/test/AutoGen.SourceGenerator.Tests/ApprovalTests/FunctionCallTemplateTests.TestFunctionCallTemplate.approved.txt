@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 
 namespace AutoGen.SourceGenerator.Tests
 {
@@ -42,7 +41,7 @@ namespace AutoGen.SourceGenerator.Tests
                 Name = @"AddAsync",
                 Description = @"Add two numbers.",
                 ReturnType = typeof(System.Threading.Tasks.Task`1[System.String]),
-                Parameters = new []
+                Parameters = new global::AutoGen.Core.FunctionParameterContract[]
                 {
                     new FunctionParameterContract
                     {
@@ -60,11 +59,6 @@ namespace AutoGen.SourceGenerator.Tests
                     },
                 },
             };
-        }
-
-        public global::Azure.AI.OpenAI.FunctionDefinition AddAsyncFunction
-        {
-            get => this.AddAsyncFunctionContract.ToOpenAIFunctionDefinition();
         }
     }
 }

@@ -83,7 +83,7 @@ class ChromaVectorDB(VectorDB):
             if self.active_collection and self.active_collection.name == collection_name:
                 collection = self.active_collection
             else:
-                collection = self.client.get_collection(collection_name)
+                collection = self.client.get_collection(collection_name, embedding_function=self.embedding_function)
         except ValueError:
             collection = None
         if collection is None:
@@ -126,7 +126,9 @@ class ChromaVectorDB(VectorDB):
                 )
         else:
             if not (self.active_collection and self.active_collection.name == collection_name):
-                self.active_collection = self.client.get_collection(collection_name)
+                self.active_collection = self.client.get_collection(
+                    collection_name, embedding_function=self.embedding_function
+                )
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:

@@ -120,7 +120,17 @@ class ActorConnector:
     def send_bin_msg(self, msg_type: str, msg):
         self._sender.send_bin_msg(msg_type, msg)
 
-    def binary_request(self, msg_type: str, msg, num_attempts=5):
+    def send_proto_msg(self, msg):
+        bin_msg = msg.SerializeToString()
+        class_type = type(msg)
+        self._sender.send_bin_msg(class_type.__name__, bin_msg)
+
+    def send_recv_proto_msg(self, msg, num_attempts=5):
+        bin_msg = msg.SerializeToString()
+        class_type = type(msg)
+        return self.send_recv_msg(class_type.__name, bin_msg, num_attempts)
+
+    def send_recv_msg(self, msg_type: str, msg, num_attempts=5):
         original_timeout: int = 0
         if num_attempts == -1:
             original_timeout = self._resp_socket.getsockopt(zmq.RCVTIMEO)
@@ -148,5 +158,5 @@ class ActorConnector:
         return None, None, None
 
     def close(self):
-        self._pub_socket.close()
+        self._sender.close()
         self._resp_socket.close()

@@ -391,6 +391,10 @@ async def test_load_basemodels_if_needed_async() -> None:
     assert actual[1] == "EUR"
 
 
+def test_serialize_to_str_with_nonascii() -> None:
+    assert serialize_to_str("中文") == "中文"
+
+
 def test_serialize_to_json() -> None:
     assert serialize_to_str("abc") == "abc"
     assert serialize_to_str(123) == "123"

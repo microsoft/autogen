@@ -25,16 +25,15 @@ public partial class OpenAIChatAgentTest
         return $"The weather in {location} is sunny.";
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicConversationTestAsync()
     {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         // By default, OpenAIChatClient supports the following message types
         // - IMessage<ChatRequestMessage>
@@ -56,16 +55,15 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatMessageContentConnectorTestAsync()
     {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
             .RegisterMessageConnector();
@@ -102,16 +100,15 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatAgentToolCallTestAsync()
     {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract]);
@@ -170,16 +167,15 @@ public partial class OpenAIChatAgentTest
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task OpenAIChatAgentToolCallInvokingTestAsync()
     {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
-            modelName: "gpt-35-turbo-16k");
+            modelName: deployName);
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract],
@@ -231,5 +227,53 @@ public partial class OpenAIChatAgentTest
                 }
             }
         }
+    }
+
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
+    public async Task ItCreateOpenAIChatAgentWithChatCompletionOptionAsync()
+    {
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
+        var options = new ChatCompletionsOptions(deployName, [])
+        {
+            Temperature = 0.7f,
+            MaxTokens = 1,
+        };
+
+        var openAIChatAgent = new OpenAIChatAgent(
+            openAIClient: openaiClient,
+            name: "assistant",
+            options: options)
+            .RegisterMessageConnector();
+
+        var respond = await openAIChatAgent.SendAsync("hello");
+        respond.GetContent()?.Should().NotBeNullOrEmpty();
+    }
+
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
+    public async Task ItThrowExceptionWhenChatCompletionOptionContainsMessages()
+    {
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
+        var options = new ChatCompletionsOptions(deployName, [new ChatRequestUserMessage("hi")])
+        {
+            Temperature = 0.7f,
+            MaxTokens = 1,
+        };
+
+        var action = () => new OpenAIChatAgent(
+            openAIClient: openaiClient,
+            name: "assistant",
+            options: options)
+            .RegisterMessageConnector();
+
+        action.Should().ThrowExactly<ArgumentException>().WithMessage("Messages should not be provided in options");
+    }
+
+    private OpenAIClient CreateOpenAIClientFromAzureOpenAI()
+    {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        return new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
     }
 }
