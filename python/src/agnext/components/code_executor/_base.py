@@ -41,6 +41,11 @@ class CodeExecutor(Protocol):
 
         Returns:
             CodeResult: The result of the code execution.
+
+        Raises:
+            ValueError: Errors in user inputs
+            asyncio.TimeoutError: Code execution timeouts
+            asyncio.CancelledError: CancellationToken evoked during execution
         """
         ...
 

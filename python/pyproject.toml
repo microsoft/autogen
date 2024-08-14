@@ -22,7 +22,8 @@ dependencies = [
     "types-aiofiles",
     "grpcio",
     "protobuf",
-    "tiktoken"
+    "tiktoken",
+    "azure-core"
 ]
 
 [tool.hatch.envs.default]
