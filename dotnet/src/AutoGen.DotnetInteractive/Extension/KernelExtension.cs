@@ -1,23 +1,42 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Utils.cs
+// KernelExtension.cs
 
-using System.Collections;
-using System.Collections.Immutable;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.Events;
 
-public static class ObservableExtensions
-{
-    public static SubscribedList<T> ToSubscribedList<T>(this IObservable<T> source)
-    {
-        return new SubscribedList<T>(source);
-    }
-}
+namespace AutoGen.DotnetInteractive.Extension;
 
-public static class KernelExtensions
+public static class KernelExtension
 {
+    public static async Task<string?> RunSubmitCodeCommandAsync(
+        this Kernel kernel,
+        string codeBlock,
+        string targetKernelName,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var cmd = new SubmitCode(codeBlock, targetKernelName);
+            var res = await kernel.SendAndThrowOnCommandFailedAsync(cmd, ct);
+            var events = res.Events;
+            var displayValues = res.Events.Where(x => x is StandardErrorValueProduced || x is StandardOutputValueProduced || x is ReturnValueProduced || x is DisplayedValueProduced)
+                    .SelectMany(x => (x as DisplayEvent)!.FormattedValues);
+
+            if (displayValues is null || displayValues.Count() == 0)
+            {
+                return null;
+            }
+
+            return string.Join("\n", displayValues.Select(x => x.Value));
+        }
+        catch (Exception ex)
+        {
+            return $"Error: {ex.Message}";
+        }
+    }
+
     internal static void SetUpValueSharingIfSupported(this ProxyKernel proxyKernel)
     {
         var supportedCommands = proxyKernel.KernelInfo.SupportedKernelCommands;
@@ -38,7 +57,7 @@ public static class KernelExtensions
         return result;
     }
 
-    private static void ThrowOnCommandFailed(this KernelCommandResult result)
+    internal static void ThrowOnCommandFailed(this KernelCommandResult result)
     {
         var failedEvents = result.Events.OfType<CommandFailed>();
         if (!failedEvents.Any())
@@ -59,28 +78,4 @@ public static class KernelExtensions
 
     private static Exception GetException(this CommandFailed commandFailedEvent)
         => new Exception(commandFailedEvent.Message);
-}
-
-public class SubscribedList<T> : IReadOnlyList<T>, IDisposable
-{
-    private ImmutableArray<T> _list = ImmutableArray<T>.Empty;
-    private readonly IDisposable _subscription;
-
-    public SubscribedList(IObservable<T> source)
-    {
-        _subscription = source.Subscribe(x => _list = _list.Add(x));
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        return ((IEnumerable<T>)_list).GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public int Count => _list.Length;
-
-    public T this[int index] => _list[index];
-
-    public void Dispose() => _subscription.Dispose();
 }
