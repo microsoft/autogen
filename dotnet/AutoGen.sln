@@ -26,7 +26,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Core", "src\AutoGen.Core\AutoGen.Core.csproj", "{D58D43D1-0617-4A3D-9932-C773E6398535}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.V1", "src\AutoGen.OpenAI\AutoGen.OpenAI.V1.csproj", "{63445BB7-DBB9-4AEF-9D6F-98BBE75EE1EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.V1", "src\AutoGen.OpenAI.V1\AutoGen.OpenAI.V1.csproj", "{63445BB7-DBB9-4AEF-9D6F-98BBE75EE1EC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Mistral", "src\AutoGen.Mistral\AutoGen.Mistral.csproj", "{6585D1A4-3D97-4D76-A688-1933B61AEB19}"
 EndProject
@@ -38,7 +38,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Tests", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Tests", "test\AutoGen.SemanticKernel.Tests\AutoGen.SemanticKernel.Tests.csproj", "{1DFABC4A-8458-4875-8DCB-59F3802DAC65}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.V1.Tests", "test\AutoGen.OpenAI.Tests\AutoGen.OpenAI.V1.Tests.csproj", "{D36A85F9-C172-487D-8192-6BFE5D05B4A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.V1.Tests", "test\AutoGen.OpenAI.V1.Tests\AutoGen.OpenAI.V1.Tests.csproj", "{D36A85F9-C172-487D-8192-6BFE5D05B4A7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.DotnetInteractive.Tests", "test\AutoGen.DotnetInteractive.Tests\AutoGen.DotnetInteractive.Tests.csproj", "{B61388CA-DC73-4B7F-A7B2-7B9A86C9229E}"
 EndProject
