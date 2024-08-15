@@ -61,10 +61,6 @@ class MistralAIClient:
             api_key (str): The API key for using Mistral.AI (or environment variable MISTRAL_API_KEY needs to be set)
         """
 
-        # Ensure we have at least version 1.0.0 (major change)
-        # if mai.__version__ < "1.1.0":
-        # raise Exception(f"Please upgrade `mistralai` as version 1.0.0 or greater is required and you have version {mai.__version__}.")
-
         # Ensure we have the api_key upon instantiation
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
