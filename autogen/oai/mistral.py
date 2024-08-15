@@ -15,6 +15,8 @@ Install Mistral.AI python library using: pip install --upgrade mistralai
 
 Resources:
 - https://docs.mistral.ai/getting-started/quickstart/
+
+NOTE: Requires mistralai package version >= 1.0.1
 """
 
 # Important notes when using the Mistral.AI API:
@@ -30,9 +32,17 @@ from typing import Any, Dict, List, Tuple, Union
 
 # Mistral libraries
 # pip install mistralai
-from mistralai.client import MistralClient
-from mistralai.exceptions import MistralAPIException
-from mistralai.models.chat_completion import ChatCompletionResponse, ChatMessage, ToolCall
+# import mistralai
+from mistralai import (
+    AssistantMessage,
+    Function,
+    FunctionCall,
+    Mistral,
+    SystemMessage,
+    ToolCall,
+    ToolMessage,
+    UserMessage,
+)
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -50,6 +60,11 @@ class MistralAIClient:
         Args:
             api_key (str): The API key for using Mistral.AI (or environment variable MISTRAL_API_KEY needs to be set)
         """
+
+        # Ensure we have at least version 1.0.0 (major change)
+        # if mai.__version__ < "1.1.0":
+        # raise Exception(f"Please upgrade `mistralai` as version 1.0.0 or greater is required and you have version {mai.__version__}.")
+
         # Ensure we have the api_key upon instantiation
         self.api_key = kwargs.get("api_key", None)
         if not self.api_key:
@@ -59,7 +74,9 @@ class MistralAIClient:
             self.api_key
         ), "Please specify the 'api_key' in your config list entry for Mistral or set the MISTRAL_API_KEY env variable."
 
-    def message_retrieval(self, response: ChatCompletionResponse) -> Union[List[str], List[ChatCompletionMessage]]:
+        self._client = Mistral(api_key=self.api_key)
+
+    def message_retrieval(self, response: ChatCompletion) -> Union[List[str], List[ChatCompletionMessage]]:
         """Retrieve the messages from the response."""
 
         return [choice.message for choice in response.choices]
@@ -86,34 +103,48 @@ class MistralAIClient:
         )
         mistral_params["random_seed"] = validate_parameter(params, "random_seed", int, True, None, False, None)
 
+        # TODO
+        if params.get("stream", False):
+            warnings.warn(
+                "Streaming is not currently supported, streaming will be disabled.",
+                UserWarning,
+            )
+
         # 3. Convert messages to Mistral format
         mistral_messages = []
         tool_call_ids = {}  # tool call ids to function name mapping
         for message in params["messages"]:
             if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"] is not None:
                 # Convert OAI ToolCall to Mistral ToolCall
-                openai_toolcalls = message["tool_calls"]
-                mistral_toolcalls = []
-                for toolcall in openai_toolcalls:
-                    mistral_toolcall = ToolCall(id=toolcall["id"], function=toolcall["function"])
-                    mistral_toolcalls.append(mistral_toolcall)
-                mistral_messages.append(
-                    ChatMessage(role=message["role"], content=message["content"], tool_calls=mistral_toolcalls)
-                )
+                mistral_messages_tools = []
+                for toolcall in message["tool_calls"]:
+                    mistral_messages_tools.append(
+                        ToolCall(
+                            id=toolcall["id"],
+                            function=FunctionCall(
+                                name=toolcall["function"]["name"],
+                                arguments=json.loads(toolcall["function"]["arguments"]),
+                            ),
+                        )
+                    )
+
+                mistral_messages.append(AssistantMessage(content="", tool_calls=mistral_messages_tools))
 
                 # Map tool call id to the function name
                 for tool_call in message["tool_calls"]:
                     tool_call_ids[tool_call["id"]] = tool_call["function"]["name"]
 
-            elif message["role"] in ("system", "user", "assistant"):
-                # Note this ChatMessage can take a 'name' but it is rejected by the Mistral API if not role=tool, so, no, the 'name' field is not used.
-                mistral_messages.append(ChatMessage(role=message["role"], content=message["content"]))
+            elif message["role"] == "system":
+                mistral_messages.append(SystemMessage(content=message["content"]))
+            elif message["role"] == "assistant":
+                mistral_messages.append(AssistantMessage(content=message["content"]))
+            elif message["role"] == "user":
+                mistral_messages.append(UserMessage(content=message["content"]))
 
             elif message["role"] == "tool":
                 # Indicates the result of a tool call, the name is the function name called
                 mistral_messages.append(
-                    ChatMessage(
-                        role="tool",
+                    ToolMessage(
                         name=tool_call_ids[message["tool_call_id"]],
                         content=message["content"],
                         tool_call_id=message["tool_call_id"],
@@ -126,17 +157,23 @@ class MistralAIClient:
         # This can occur when using LLM summarisation
         for i in range(1, len(mistral_messages)):
             if mistral_messages[i - 1].role == "assistant" and mistral_messages[i].role == "system":
-                mistral_messages[i].role = "user"
+                # Move the system message into a user message
+                mistral_messages[i] = UserMessage(content=mistral_messages[i].content)
+
+        # 4. Last message needs to be user or tool, if not, add a "please continue" message
+        if not isinstance(mistral_messages[-1], UserMessage) and not isinstance(mistral_messages[-1], ToolMessage):
+            mistral_messages.append(UserMessage(content="Please continue."))
 
         mistral_params["messages"] = mistral_messages
 
-        # 4. Add tools to the call if we have them and aren't hiding them
+        # 5. Add tools to the call if we have them and aren't hiding them
         if "tools" in params:
             hide_tools = validate_parameter(
                 params, "hide_tools", str, False, "never", None, ["if_all_run", "if_any_run", "never"]
             )
             if not should_hide_tools(params["messages"], params["tools"], hide_tools):
-                mistral_params["tools"] = params["tools"]
+                mistral_params["tools"] = tool_def_to_mistral(params["tools"])
+
         return mistral_params
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
@@ -144,8 +181,7 @@ class MistralAIClient:
         mistral_params = self.parse_params(params)
 
         # 2. Call Mistral.AI API
-        client = MistralClient(api_key=self.api_key)
-        mistral_response = client.chat(**mistral_params)
+        mistral_response = self._client.chat.complete(**mistral_params)
         # TODO: Handle streaming
 
         # 3. Convert Mistral response to OAI compatible format
@@ -191,7 +227,7 @@ class MistralAIClient:
         return response_oai
 
     @staticmethod
-    def get_usage(response: ChatCompletionResponse) -> Dict:
+    def get_usage(response: ChatCompletion) -> Dict:
         return {
             "prompt_tokens": response.usage.prompt_tokens if response.usage is not None else 0,
             "completion_tokens": response.usage.completion_tokens if response.usage is not None else 0,
@@ -203,25 +239,48 @@ class MistralAIClient:
         }
 
 
+def tool_def_to_mistral(tool_definitions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Converts AutoGen tool definition to a mistral tool format"""
+
+    mistral_tools = []
+
+    for autogen_tool in tool_definitions:
+        mistral_tool = {
+            "type": "function",
+            "function": Function(
+                name=autogen_tool["function"]["name"],
+                description=autogen_tool["function"]["description"],
+                parameters=autogen_tool["function"]["parameters"],
+            ),
+        }
+
+        mistral_tools.append(mistral_tool)
+
+    return mistral_tools
+
+
 def calculate_mistral_cost(input_tokens: int, output_tokens: int, model_name: str) -> float:
     """Calculate the cost of the mistral response."""
 
-    # Prices per 1 million tokens
+    # Prices per 1 thousand tokens
     # https://mistral.ai/technology/
     model_cost_map = {
-        "open-mistral-7b": {"input": 0.25, "output": 0.25},
-        "open-mixtral-8x7b": {"input": 0.7, "output": 0.7},
-        "open-mixtral-8x22b": {"input": 2.0, "output": 6.0},
-        "mistral-small-latest": {"input": 1.0, "output": 3.0},
-        "mistral-medium-latest": {"input": 2.7, "output": 8.1},
-        "mistral-large-latest": {"input": 4.0, "output": 12.0},
+        "open-mistral-7b": {"input": 0.00025, "output": 0.00025},
+        "open-mixtral-8x7b": {"input": 0.0007, "output": 0.0007},
+        "open-mixtral-8x22b": {"input": 0.002, "output": 0.006},
+        "mistral-small-latest": {"input": 0.001, "output": 0.003},
+        "mistral-medium-latest": {"input": 0.00275, "output": 0.0081},
+        "mistral-large-latest": {"input": 0.0003, "output": 0.0003},
+        "mistral-large-2407": {"input": 0.0003, "output": 0.0003},
+        "open-mistral-nemo-2407": {"input": 0.0003, "output": 0.0003},
+        "codestral-2405": {"input": 0.001, "output": 0.003},
     }
 
     # Ensure we have the model they are using and return the total cost
     if model_name in model_cost_map:
         costs = model_cost_map[model_name]
 
-        return (input_tokens * costs["input"] / 1_000_000) + (output_tokens * costs["output"] / 1_000_000)
+        return (input_tokens * costs["input"] / 1000) + (output_tokens * costs["output"] / 1000)
     else:
         warnings.warn(f"Cost calculation is not implemented for model {model_name}, will return $0.", UserWarning)
         return 0
