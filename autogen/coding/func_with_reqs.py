@@ -162,9 +162,9 @@ def _build_python_functions_file(
     global_imports = set()
     for func in funcs:
         if isinstance(func, (FunctionWithRequirements, FunctionWithRequirementsStr)):
-            global_imports.update(func.global_imports)
+            global_imports.update(map(_import_to_str, func.global_imports))
 
-    content = "\n".join(map(_import_to_str, global_imports)) + "\n\n"
+    content = "\n".join(global_imports) + "\n\n"
 
     for func in funcs:
         content += _to_code(func) + "\n\n"
