@@ -5,8 +5,7 @@ import sys
 
 import pytest
 
-from autogen import config_list_from_json
-from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+from autogen import AssistantAgent, config_list_from_json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
@@ -51,7 +50,7 @@ def test_retrievechat():
         file_location=KEY_LOC,
     )
 
-    assistant = RetrieveAssistantAgent(
+    assistant = AssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
