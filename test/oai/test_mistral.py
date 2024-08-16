@@ -3,7 +3,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 try:
-    from mistralai.models.chat_completion import ChatMessage
+    from mistralai import (
+        AssistantMessage,
+        Function,
+        FunctionCall,
+        Mistral,
+        SystemMessage,
+        ToolCall,
+        ToolMessage,
+        UserMessage,
+    )
 
     from autogen.oai.mistral import MistralAIClient, calculate_mistral_cost
 
@@ -66,17 +75,16 @@ def test_cost_calculation(mock_response):
         cost=None,
         model="mistral-large-latest",
     )
-    assert (
-        calculate_mistral_cost(response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model)
-        == 0.0001
-    ), "Cost for this should be $0.0001"
+    assert calculate_mistral_cost(
+        response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model
+    ) == (15 / 1000 * 0.0003), "Cost for this should be $0.0000045"
 
 
 # Test text generation
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
-@patch("autogen.oai.mistral.MistralClient.chat")
+@patch("autogen.oai.mistral.MistralAIClient.create")
 def test_create_response(mock_chat, mistral_client):
-    # Mock MistralClient.chat response
+    # Mock `mistral_response = client.chat.complete(**mistral_params)`
     mock_mistral_response = MagicMock()
     mock_mistral_response.choices = [
         MagicMock(finish_reason="stop", message=MagicMock(content="Example Mistral response", tool_calls=None))
@@ -108,9 +116,9 @@ def test_create_response(mock_chat, mistral_client):
 
 # Test functions/tools
 @pytest.mark.skipif(skip, reason="Mistral.AI dependency is not installed")
-@patch("autogen.oai.mistral.MistralClient.chat")
+@patch("autogen.oai.mistral.MistralAIClient.create")
 def test_create_response_with_tool_call(mock_chat, mistral_client):
-    # Mock `mistral_response = client.chat(**mistral_params)`
+    # Mock `mistral_response = client.chat.complete(**mistral_params)`
     mock_function = MagicMock(name="currency_calculator")
     mock_function.name = "currency_calculator"
     mock_function.arguments = '{"base_currency": "EUR", "quote_currency": "USD", "base_amount": 123.45}'
@@ -159,7 +167,7 @@ def test_create_response_with_tool_call(mock_chat, mistral_client):
         {"role": "assistant", "content": "World"},
     ]
 
-    # Call the create method
+    # Call the chat method
     response = mistral_client.create(
         {"messages": mistral_messages, "tools": converted_functions, "model": "mistral-medium-latest"}
     )
