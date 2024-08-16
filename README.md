@@ -247,7 +247,7 @@ In addition, you can find:
 
 ## Related Papers
 
-[AutoGen](https://arxiv.org/abs/2308.08155)
+[AutoGen](https://aka.ms/autogen-pdf)
 
 ```
 @inproceedings{wu2023autogen,
