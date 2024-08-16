@@ -19,20 +19,15 @@ Resources:
 NOTE: Requires mistralai package version >= 1.0.1
 """
 
-# Important notes when using the Mistral.AI API:
-# The first system message can greatly affect whether the model returns a tool call, including text that references the ability to use functions will help.
-# Changing the role on the first system message to 'user' improved the chances of the model recommending a tool call.
-
 import inspect
 import json
 import os
 import time
 import warnings
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
 # Mistral libraries
 # pip install mistralai
-# import mistralai
 from mistralai import (
     AssistantMessage,
     Function,
@@ -46,7 +41,6 @@ from mistralai import (
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
-from typing_extensions import Annotated
 
 from autogen.oai.client_utils import should_hide_tools, validate_parameter
 
@@ -131,7 +125,11 @@ class MistralAIClient:
                     tool_call_ids[tool_call["id"]] = tool_call["function"]["name"]
 
             elif message["role"] == "system":
-                mistral_messages.append(SystemMessage(content=message["content"]))
+                if len(mistral_messages) > 0 and mistral_messages[-1].role == "assistant":
+                    # System messages can't appear after an Assistant message, so use a UserMessage
+                    mistral_messages.append(UserMessage(content=message["content"]))
+                else:
+                    mistral_messages.append(SystemMessage(content=message["content"]))
             elif message["role"] == "assistant":
                 mistral_messages.append(AssistantMessage(content=message["content"]))
             elif message["role"] == "user":
@@ -148,13 +146,6 @@ class MistralAIClient:
                 )
             else:
                 warnings.warn(f"Unknown message role {message['role']}", UserWarning)
-
-        # If a 'system' message follows an 'assistant' message, change it to 'user'
-        # This can occur when using LLM summarisation
-        for i in range(1, len(mistral_messages)):
-            if mistral_messages[i - 1].role == "assistant" and mistral_messages[i].role == "system":
-                # Move the system message into a user message
-                mistral_messages[i] = UserMessage(content=mistral_messages[i].content)
 
         # 4. Last message needs to be user or tool, if not, add a "please continue" message
         if not isinstance(mistral_messages[-1], UserMessage) and not isinstance(mistral_messages[-1], ToolMessage):
