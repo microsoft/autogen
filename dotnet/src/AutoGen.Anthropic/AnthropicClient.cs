@@ -24,12 +24,24 @@ public sealed class AnthropicClient : IDisposable
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
+        Converters =
+        {
+            new ContentBaseConverter(),
+            new JsonPropertyNameEnumConverter<ToolChoiceType>(),
+            new JsonPropertyNameEnumConverter<CacheControlType>(),
+            new SystemMessageConverter(),
+        }
     };
 
     private static readonly JsonSerializerOptions JsonDeserializerOptions = new()
     {
-        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
+        Converters =
+        {
+            new ContentBaseConverter(),
+            new JsonPropertyNameEnumConverter<ToolChoiceType>(),
+            new JsonPropertyNameEnumConverter<CacheControlType>(),
+            new SystemMessageConverter(),
+        }
     };
 
     public AnthropicClient(HttpClient httpClient, string baseUrl, string apiKey)
@@ -135,6 +147,7 @@ public sealed class AnthropicClient : IDisposable
         var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, _baseUrl);
         var jsonRequest = JsonSerializer.Serialize(requestObject, JsonSerializerOptions);
         httpRequestMessage.Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+        httpRequestMessage.Headers.Add("anthropic-beta", "prompt-caching-2024-07-31");
         return _httpClient.SendAsync(httpRequestMessage, cancellationToken);
     }
 
