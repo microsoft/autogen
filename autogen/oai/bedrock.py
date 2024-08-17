@@ -11,7 +11,7 @@ config_list = [
     {
         "api_type": "bedrock",
         "model": "meta.llama3-1-8b-instruct-v1:0",
-        "aws_region_name": "us-west-2",
+        "aws_region": "us-west-2",
         "aws_access_key": "",
         "aws_secret_key": "",
         "price" : [0.003, 0.015]
