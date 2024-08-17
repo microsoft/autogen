@@ -1050,6 +1050,7 @@ class GroupChatManager(ConversableAgent):
         groupchat_result = agent_a.initiate_chat(
             chat_manager, message="Hi, there, I'm agent A."
         )
+        ```
         """
         return self._last_speaker
 
