@@ -170,7 +170,7 @@ public class AnthropicClientAgentTest
             )
             .RegisterMessageConnector();
 
-        var weatherFunctionArgumets = """
+        var weatherFunctionArguments = """
                                       {
                                           "city": "Philadelphia",
                                           "date": "6/14/2024"
@@ -178,8 +178,8 @@ public class AnthropicClientAgentTest
                                       """;
 
         var function = new AnthropicTestFunctionCalls();
-        var functionCallResult = await function.GetWeatherReportWrapper(weatherFunctionArgumets);
-        var toolCall = new ToolCall(function.WeatherReportFunctionContract.Name!, weatherFunctionArgumets)
+        var functionCallResult = await function.GetWeatherReportWrapper(weatherFunctionArguments);
+        var toolCall = new ToolCall(function.WeatherReportFunctionContract.Name!, weatherFunctionArguments)
         {
             ToolCallId = "get_weather",
             Result = functionCallResult,

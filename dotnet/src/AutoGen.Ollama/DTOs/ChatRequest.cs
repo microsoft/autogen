@@ -50,4 +50,11 @@ public class ChatRequest
     [JsonPropertyName("keep_alive")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? KeepAlive { get; set; }
+
+    /// <summary>
+    /// Tools for the model to use. Not all models currently support tools.
+    /// Requires stream to be set to false
+    /// </summary>
+    [JsonPropertyName("tools")]
+    public IEnumerable<Tool>? Tools { get; set; }
 }
