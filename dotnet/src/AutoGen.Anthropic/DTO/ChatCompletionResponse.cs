@@ -72,10 +72,10 @@ public class Usage
     public int OutputTokens { get; set; }
 
     [JsonPropertyName("cache_creation_input_tokens")]
-    public int CreationInputTokens { get; set; }
+    public int CacheCreationInputTokens { get; set; }
 
     [JsonPropertyName("cache_read_input_tokens")]
-    public int ReadInputTokens { get; set; }
+    public int CacheReadInputTokens { get; set; }
 }
 
 public class Delta

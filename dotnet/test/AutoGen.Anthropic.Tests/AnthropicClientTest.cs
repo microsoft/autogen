@@ -210,7 +210,7 @@ public class AnthropicClientTests
 
         response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
         response.Usage.Should().NotBeNull();
-        response.Usage!.ReadInputTokens.Should().BeGreaterThan(0);
+        response.Usage!.CacheReadInputTokens.Should().BeGreaterThan(0);
         response.Usage!.InputTokens.Should().BeLessThan(20);
 
         // Should not use the cache
@@ -225,7 +225,7 @@ public class AnthropicClientTests
         ];
 
         response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
-        response.Usage!.ReadInputTokens.Should().Be(0);
+        response.Usage!.CacheReadInputTokens.Should().Be(0);
     }
 
     private sealed class Person

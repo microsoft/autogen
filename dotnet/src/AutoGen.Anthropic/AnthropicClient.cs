@@ -33,17 +33,6 @@ public sealed class AnthropicClient : IDisposable
         }
     };
 
-    private static readonly JsonSerializerOptions JsonDeserializerOptions = new()
-    {
-        Converters =
-        {
-            new ContentBaseConverter(),
-            new JsonPropertyNameEnumConverter<ToolChoiceType>(),
-            new JsonPropertyNameEnumConverter<CacheControlType>(),
-            new SystemMessageConverter(),
-        }
-    };
-
     public AnthropicClient(HttpClient httpClient, string baseUrl, string apiKey)
     {
         _httpClient = httpClient;
@@ -153,7 +142,7 @@ public sealed class AnthropicClient : IDisposable
 
     private async Task<T> DeserializeResponseAsync<T>(Stream responseStream, CancellationToken cancellationToken)
     {
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, JsonDeserializerOptions, cancellationToken)
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerOptions, cancellationToken)
                ?? throw new Exception("Failed to deserialize response");
     }
 
