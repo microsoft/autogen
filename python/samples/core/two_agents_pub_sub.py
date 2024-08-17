@@ -25,10 +25,10 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -57,7 +57,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         self._termination_word = termination_word
 
     @message_handler
-    async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
+    async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         self._memory.append(message)
         if self._termination_word in message.content:
             return

@@ -2,7 +2,7 @@ import json
 from typing import Any, Sequence, Tuple
 
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentId, AgentRuntime, CancellationToken
+from agnext.core import AgentId, AgentRuntime, MessageContext
 
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 
@@ -37,7 +37,7 @@ class OrchestratorChat(TypeRoutedAgent):
     async def on_text_message(
         self,
         message: TextMessage,
-        cancellation_token: CancellationToken,
+        ctx: MessageContext,
     ) -> TextMessage:
         # A task is received.
         task = message.content

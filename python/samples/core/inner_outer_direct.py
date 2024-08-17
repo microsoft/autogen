@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentId, CancellationToken
+from agnext.core import AgentId, MessageContext
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Inner(TypeRoutedAgent):
         super().__init__("The inner agent")
 
     @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         return MessageType(body=f"Inner: {message.body}", sender=self.metadata["type"])
 
 
@@ -36,7 +36,7 @@ class Outer(TypeRoutedAgent):
         self._inner = inner
 
     @message_handler()
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         inner_response = self.send_message(message, self._inner)
         inner_message = await inner_response
         assert isinstance(inner_message, MessageType)

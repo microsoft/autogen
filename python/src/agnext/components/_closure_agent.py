@@ -1,12 +1,13 @@
 import inspect
 from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar, get_type_hints
 
+from agnext.core import MessageContext
+
 from ..core._agent import Agent
 from ..core._agent_id import AgentId
 from ..core._agent_instantiation import AgentInstantiationContext
 from ..core._agent_metadata import AgentMetadata
 from ..core._agent_runtime import AgentRuntime
-from ..core._cancellation_token import CancellationToken
 from ..core._serialization import MESSAGE_TYPE_REGISTRY
 from ..core.exceptions import CantHandleException
 from ._type_helpers import get_types
@@ -15,7 +16,7 @@ T = TypeVar("T")
 
 
 def get_subscriptions_from_closure(
-    closure: Callable[[AgentRuntime, AgentId, T, CancellationToken], Awaitable[Any]],
+    closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]],
 ) -> Sequence[type]:
     args = inspect.getfullargspec(closure)[0]
     if len(args) != 4:
@@ -44,7 +45,7 @@ def get_subscriptions_from_closure(
 
 class ClosureAgent(Agent):
     def __init__(
-        self, description: str, closure: Callable[[AgentRuntime, AgentId, T, CancellationToken], Awaitable[Any]]
+        self, description: str, closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]]
     ) -> None:
         try:
             runtime = AgentInstantiationContext.current_runtime()
@@ -82,12 +83,12 @@ class ClosureAgent(Agent):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         if MESSAGE_TYPE_REGISTRY.type_name(message) not in self._subscriptions:
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._subscriptions} of {self.id}"
             )
-        return await self._closure(self._runtime, self._id, message, cancellation_token)
+        return await self._closure(self._runtime, self._id, message, ctx)
 
     def save_state(self) -> Mapping[str, Any]:
         raise ValueError("save_state not implemented for ClosureAgent")

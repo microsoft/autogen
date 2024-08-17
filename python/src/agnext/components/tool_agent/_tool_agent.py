@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import List
 
-from ...core import CancellationToken
+from ...core import MessageContext
 from .. import FunctionCall, TypeRoutedAgent, message_handler
 from ..models import FunctionExecutionResult
 from ..tools import Tool
@@ -60,9 +60,7 @@ class ToolAgent(TypeRoutedAgent):
         return self._tools
 
     @message_handler
-    async def handle_function_call(
-        self, message: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
+    async def handle_function_call(self, message: FunctionCall, ctx: MessageContext) -> FunctionExecutionResult:
         """Handles a `FunctionCall` message by executing the requested tool with the provided arguments.
 
         Args:
@@ -83,7 +81,7 @@ class ToolAgent(TypeRoutedAgent):
         else:
             try:
                 arguments = json.loads(message.arguments)
-                result = await tool.run_json(args=arguments, cancellation_token=cancellation_token)
+                result = await tool.run_json(args=arguments, cancellation_token=ctx.cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError as e:
                 raise InvalidToolArgumentsException(

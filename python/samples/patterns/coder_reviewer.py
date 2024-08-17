@@ -29,10 +29,10 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -89,7 +89,7 @@ Respond using the following JSON format:
         self._model_client = model_client
 
     @message_handler
-    async def handle_code_review_task(self, message: CodeReviewTask, cancellation_token: CancellationToken) -> None:
+    async def handle_code_review_task(self, message: CodeReviewTask, ctx: MessageContext) -> None:
         # Format the prompt for the code review.
         prompt = f"""The problem statement is: {message.code_writing_task}
 The code is:
@@ -155,7 +155,7 @@ Code: <Your code>
     async def handle_code_writing_task(
         self,
         message: CodeWritingTask,
-        cancellation_token: CancellationToken,
+        ctx: MessageContext,
     ) -> None:
         # Store the messages in a temporary memory for this request only.
         session_id = str(uuid.uuid4())
@@ -182,7 +182,7 @@ Code: <Your code>
         await self.publish_message(code_review_task)
 
     @message_handler
-    async def handle_code_review_result(self, message: CodeReviewResult, cancellation_token: CancellationToken) -> None:
+    async def handle_code_review_result(self, message: CodeReviewResult, ctx: MessageContext) -> None:
         # Store the review result in the session memory.
         self._session_memory[message.session_id].append(message)
         # Obtain the request from previous messages.

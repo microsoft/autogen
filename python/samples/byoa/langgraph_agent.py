@@ -10,7 +10,7 @@ from typing import Any, Callable, List, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
 from langchain_openai import ChatOpenAI
@@ -89,7 +89,7 @@ class LangGraphToolUseAgent(TypeRoutedAgent):
         self._app = self._workflow.compile()
 
     @message_handler
-    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
+    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         # Use the Runnable
         final_state = await self._app.ainvoke(
             {

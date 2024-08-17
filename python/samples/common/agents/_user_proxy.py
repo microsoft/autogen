@@ -1,7 +1,7 @@
 import asyncio
 
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 
 from ..types import PublishNow, TextMessage
 
@@ -20,7 +20,7 @@ class UserProxyAgent(TypeRoutedAgent):
         self._user_input_prompt = user_input_prompt
 
     @message_handler()
-    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+    async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method prompts the user for input, then publishes it."""
         user_input = await self.get_user_input(self._user_input_prompt)
         await self.publish_message(TextMessage(content=user_input, source=self.metadata["type"]))

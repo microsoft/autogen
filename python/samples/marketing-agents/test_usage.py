@@ -3,7 +3,7 @@ import os
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import Image, TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
@@ -16,14 +16,14 @@ class Printer(TypeRoutedAgent):
         super().__init__("")
 
     @message_handler
-    async def handle_graphic_design(self, message: GraphicDesignCreated, cancellation_token: CancellationToken) -> None:
+    async def handle_graphic_design(self, message: GraphicDesignCreated, ctx: MessageContext) -> None:
         image = Image.from_uri(message.imageUri)
         # Save image to random name in current directory
         image.image.save(os.path.join(os.getcwd(), f"{message.UserId}.png"))
         print(f"Received GraphicDesignCreated: user {message.UserId}, saved to {message.UserId}.png")
 
     @message_handler
-    async def handle_auditor_alert(self, message: AuditorAlert, cancellation_token: CancellationToken) -> None:
+    async def handle_auditor_alert(self, message: AuditorAlert, ctx: MessageContext) -> None:
         print(f"Received AuditorAlert: {message.auditorAlertMessage} for user {message.UserId}")
 
 

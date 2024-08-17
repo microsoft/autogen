@@ -5,7 +5,7 @@ from agnext.components.models import (
     LLMMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
+from agnext.core import CancellationToken, MessageContext
 
 from team_one.messages import (
     BroadcastMessage,
@@ -29,17 +29,17 @@ class BaseWorker(TeamOneBaseAgent):
         super().__init__(description, handle_messages_concurrently=handle_messages_concurrently)
         self._chat_history: List[LLMMessage] = []
 
-    async def _handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_broadcast(self, message: BroadcastMessage, ctx: MessageContext) -> None:
         assert isinstance(message.content, UserMessage)
         self._chat_history.append(message.content)
 
-    async def _handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_reset(self, message: ResetMessage, ctx: MessageContext) -> None:
         """Handle a reset message."""
-        await self._reset(cancellation_token)
+        await self._reset(ctx.cancellation_token)
 
-    async def _handle_request_reply(self, message: RequestReplyMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_request_reply(self, message: RequestReplyMessage, ctx: MessageContext) -> None:
         """Respond to a reply request."""
-        request_halt, response = await self._generate_reply(cancellation_token)
+        request_halt, response = await self._generate_reply(ctx.cancellation_token)
 
         assistant_message = AssistantMessage(content=message_content_to_str(response), source=self.metadata["type"])
         self._chat_history.append(assistant_message)

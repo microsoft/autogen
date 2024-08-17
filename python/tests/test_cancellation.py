@@ -5,6 +5,7 @@ import pytest
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.core import AgentId, CancellationToken
+from agnext.core import MessageContext
 
 
 @dataclass
@@ -22,10 +23,10 @@ class LongRunningAgent(TypeRoutedAgent):
         self.cancelled = False
 
     @message_handler
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
-        cancellation_token.link_future(sleep)
+        ctx.cancellation_token.link_future(sleep)
         try:
             await sleep
             return MessageType()
@@ -41,9 +42,9 @@ class NestingLongRunningAgent(TypeRoutedAgent):
         self._nested_agent = nested_agent
 
     @message_handler
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
-        response = self.send_message(message, self._nested_agent, cancellation_token=cancellation_token)
+        response = self.send_message(message, self._nested_agent, cancellation_token=ctx.cancellation_token)
         try:
             val = await response
             assert isinstance(val, MessageType)

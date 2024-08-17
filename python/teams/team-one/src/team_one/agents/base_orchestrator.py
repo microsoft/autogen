@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components.models import AssistantMessage, LLMMessage, UserMessage
-from agnext.core import AgentProxy, CancellationToken
+from agnext.core import AgentProxy, CancellationToken, MessageContext
 
 from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage, ResetMessage
 from ..utils import message_content_to_str
@@ -29,7 +29,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         self._num_rounds = 0
         self._start_time: float = -1.0
 
-    async def _handle_broadcast(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_broadcast(self, message: BroadcastMessage, ctx: MessageContext) -> None:
         """Handle an incoming message."""
 
         # First broadcast sets the timer
@@ -100,9 +100,9 @@ class BaseOrchestrator(TeamOneBaseAgent):
     def get_max_rounds(self) -> int:
         return self._max_rounds
 
-    async def _handle_reset(self, message: ResetMessage, cancellation_token: CancellationToken) -> None:
+    async def _handle_reset(self, message: ResetMessage, ctx: MessageContext) -> None:
         """Handle a reset message."""
-        await self._reset(cancellation_token)
+        await self._reset(ctx.cancellation_token)
 
     async def _reset(self, cancellation_token: CancellationToken) -> None:
         pass

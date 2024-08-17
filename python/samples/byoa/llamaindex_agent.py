@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
 from llama_index.core.agent.runner.base import AgentRunner
@@ -46,7 +46,7 @@ class LlamaIndexAgent(TypeRoutedAgent):
         self._memory = memory
 
     @message_handler
-    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
+    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         # retriever history messages from memory!
         history_messages: List[ChatMessage] = []
 

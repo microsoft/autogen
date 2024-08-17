@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
+from agnext.core import MessageContext
+
 from ..core import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
@@ -274,9 +276,15 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #     )
             # )
             recipient_agent = await self._get_agent(recipient)
+            message_context = MessageContext(
+                sender=message_envelope.sender,
+                topic_id=None,
+                is_rpc=True,
+                cancellation_token=message_envelope.cancellation_token,
+            )
             response = await recipient_agent.on_message(
                 message_envelope.message,
-                cancellation_token=message_envelope.cancellation_token,
+                ctx=message_context,
             )
         except BaseException as e:
             message_envelope.future.set_exception(e)
@@ -317,11 +325,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #         delivery_stage=DeliveryStage.DELIVER,
             #     )
             # )
-
+            message_context = MessageContext(
+                sender=message_envelope.sender,
+                # TODO: topic_id
+                topic_id=None,
+                is_rpc=False,
+                cancellation_token=message_envelope.cancellation_token,
+            )
             agent = await self._get_agent(agent_id)
             future = agent.on_message(
                 message_envelope.message,
-                cancellation_token=message_envelope.cancellation_token,
+                ctx=message_context,
             )
             responses.append(future)
 

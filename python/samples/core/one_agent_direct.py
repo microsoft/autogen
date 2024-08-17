@@ -17,10 +17,10 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -36,7 +36,7 @@ class ChatCompletionAgent(TypeRoutedAgent):
         self._model_client = model_client
 
     @message_handler
-    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
+    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         user_message = UserMessage(content=message.content, source="User")
         response = await self._model_client.create(self._system_messages + [user_message])
         assert isinstance(response.content, str)

@@ -5,12 +5,14 @@ from dataclasses import dataclass
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 
-from agnext.core import AgentRuntime, AgentId, CancellationToken
+from agnext.core import AgentRuntime, AgentId
 
 from agnext.components import ClosureAgent
 
 
 import asyncio
+
+from agnext.core import MessageContext
 
 @dataclass
 class Message:
@@ -24,7 +26,7 @@ async def test_register_receives_publish() -> None:
 
     queue = asyncio.Queue[tuple[str, str]]()
 
-    async def log_message(_runtime: AgentRuntime, id: AgentId, message: Message, cancellation_token: CancellationToken) -> None:
+    async def log_message(_runtime: AgentRuntime, id: AgentId, message: Message, ctx: MessageContext) -> None:
         key = id.key
         await queue.put((key, message.content))
 

@@ -2,9 +2,12 @@ from typing import Any, Callable, List, Mapping
 
 import openai
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken
+from agnext.core import (
+    CancellationToken,
+    MessageContext,  # type: ignore
+)
 from openai import AsyncAssistantEventHandler
-from openai.types import ResponseFormatJSONObject, ResponseFormatText  # type: ignore
+from openai.types import ResponseFormatJSONObject, ResponseFormatText
 
 from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
@@ -39,7 +42,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
         self._assistant_event_handler_factory = assistant_event_handler_factory
 
     @message_handler()
-    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+    async def on_text_message(self, message: TextMessage, ctx: MessageContext) -> None:
         """Handle a text message. This method adds the message to the thread."""
         # Save the message to the thread.
         _ = await self._client.beta.threads.messages.create(
@@ -50,7 +53,7 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
         )
 
     @message_handler()
-    async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method deletes all messages in the thread."""
         # Get all messages in this thread.
         all_msgs: List[str] = []
@@ -69,14 +72,14 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
             assert status.deleted is True
 
     @message_handler()
-    async def on_respond_now(self, message: RespondNow, cancellation_token: CancellationToken) -> TextMessage:
+    async def on_respond_now(self, message: RespondNow, ctx: MessageContext) -> TextMessage:
         """Handle a respond now message. This method generates a response and returns it to the sender."""
-        return await self._generate_response(message.response_format, cancellation_token)
+        return await self._generate_response(message.response_format, ctx.cancellation_token)
 
     @message_handler()
-    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+    async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method generates a response and publishes it."""
-        response = await self._generate_response(message.response_format, cancellation_token)
+        response = await self._generate_response(message.response_format, ctx.cancellation_token)
         await self.publish_message(response)
 
     async def _generate_response(

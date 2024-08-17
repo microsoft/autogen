@@ -7,7 +7,8 @@ from agnext.components import (
     message_handler,
 )
 from agnext.components.memory import ChatMemory
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
+from agnext.core._cancellation_token import CancellationToken
 
 from ..types import (
     Message,
@@ -42,21 +43,21 @@ class ImageGenerationAgent(TypeRoutedAgent):
         self._memory = memory
 
     @message_handler
-    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+    async def on_text_message(self, message: TextMessage, ctx: MessageContext) -> None:
         """Handle a text message. This method adds the message to the memory."""
         await self._memory.add_message(message)
 
     @message_handler
-    async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         await self._memory.clear()
 
     @message_handler
-    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:
+    async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method generates an image using a DALL-E model with
         a prompt. The prompt is a concatenation of all TextMessages in the memory. The generated
         image is published as a MultiModalMessage."""
 
-        response = await self._generate_response(cancellation_token)
+        response = await self._generate_response(ctx.cancellation_token)
         await self.publish_message(response)
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:

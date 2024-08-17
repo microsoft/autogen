@@ -17,7 +17,7 @@ from typing import (
     runtime_checkable,
 )
 
-from ..core import MESSAGE_TYPE_REGISTRY, BaseAgent, CancellationToken
+from ..core import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
 from ..core.exceptions import CantHandleException
 from ._type_helpers import AnyType, get_types
 
@@ -36,7 +36,7 @@ class MessageHandler(Protocol[ReceivesT, ProducesT]):
     produces_types: Sequence[type]
     is_message_handler: Literal[True]
 
-    async def __call__(self, message: ReceivesT, cancellation_token: CancellationToken) -> ProducesT: ...
+    async def __call__(self, message: ReceivesT, ctx: MessageContext) -> ProducesT: ...
 
 
 # NOTE: this works on concrete types and not inheritance
@@ -45,7 +45,7 @@ class MessageHandler(Protocol[ReceivesT, ProducesT]):
 
 @overload
 def message_handler(
-    func: Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]],
+    func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
 ) -> MessageHandler[ReceivesT, ProducesT]: ...
 
 
@@ -55,24 +55,24 @@ def message_handler(
     *,
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]]],
+    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
     MessageHandler[ReceivesT, ProducesT],
 ]: ...
 
 
 def message_handler(
-    func: None | Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]] = None,
+    func: None | Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
     *,
     strict: bool = True,
 ) -> (
     Callable[
-        [Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]]],
+        [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
         MessageHandler[ReceivesT, ProducesT],
     ]
     | MessageHandler[ReceivesT, ProducesT]
 ):
     def decorator(
-        func: Callable[[Any, ReceivesT, CancellationToken], Coroutine[Any, Any, ProducesT]],
+        func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
     ) -> MessageHandler[ReceivesT, ProducesT]:
         type_hints = get_type_hints(func)
         if "message" not in type_hints:
@@ -95,14 +95,14 @@ def message_handler(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: Any, message: ReceivesT, cancellation_token: CancellationToken) -> ProducesT:
+        async def wrapper(self: Any, message: ReceivesT, ctx: MessageContext) -> ProducesT:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
                 else:
                     logger.warning(f"Message type {type(message)} not in target types {target_types}")
 
-            return_value = await func(self, message, cancellation_token)
+            return_value = await func(self, message, ctx)
 
             if AnyType not in return_types and type(return_value) not in return_types:
                 if strict:
@@ -132,7 +132,7 @@ class TypeRoutedAgent(BaseAgent):
         # Self is already bound to the handlers
         self._handlers: Dict[
             Type[Any],
-            Callable[[Any, CancellationToken], Coroutine[Any, Any, Any | None]],
+            Callable[[Any, MessageContext], Coroutine[Any, Any, Any | None]],
         ] = {}
 
         for attr in dir(self):
@@ -149,13 +149,13 @@ class TypeRoutedAgent(BaseAgent):
         subscriptions_str = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscriptions]
         super().__init__(description, subscriptions_str)
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any | None:
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore
         handler = self._handlers.get(key_type)  # type: ignore
         if handler is not None:
-            return await handler(message, cancellation_token)
+            return await handler(message, ctx)
         else:
-            return await self.on_unhandled_message(message, cancellation_token)
+            return await self.on_unhandled_message(message, ctx)
 
-    async def on_unhandled_message(self, message: Any, cancellation_token: CancellationToken) -> NoReturn:
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:
         raise CantHandleException(f"Unhandled message: {message}")

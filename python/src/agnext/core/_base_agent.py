@@ -8,6 +8,7 @@ from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._cancellation_token import CancellationToken
+from ._message_context import MessageContext
 
 
 class BaseAgent(ABC, Agent):
@@ -50,7 +51,7 @@ class BaseAgent(ABC, Agent):
         return self._runtime
 
     @abstractmethod
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any: ...
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any: ...
 
     async def send_message(
         self,

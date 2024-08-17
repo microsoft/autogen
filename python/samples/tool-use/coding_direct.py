@@ -30,10 +30,11 @@ from agnext.components.models import (
 )
 from agnext.components.tool_agent import ToolAgent, ToolException
 from agnext.components.tools import PythonCodeExecutionTool, Tool, ToolSchema
-from agnext.core import AgentId, CancellationToken
+from agnext.core import AgentId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -61,7 +62,7 @@ class ToolUseAgent(TypeRoutedAgent):
         self._tool_agent = tool_agent
 
     @message_handler
-    async def handle_user_message(self, message: Message, cancellation_token: CancellationToken) -> Message:
+    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         """Handle a user message, execute the model and tools, and returns the response."""
         session: List[LLMMessage] = []
         session.append(UserMessage(content=message.content, source="User"))
@@ -72,7 +73,7 @@ class ToolUseAgent(TypeRoutedAgent):
         while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
             results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
                 *[
-                    self.send_message(call, self._tool_agent, cancellation_token=cancellation_token)
+                    self.send_message(call, self._tool_agent, cancellation_token=ctx.cancellation_token)
                     for call in response.content
                 ],
                 return_exceptions=True,

@@ -30,12 +30,7 @@ from playwright._impl._errors import TimeoutError
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 # TODO: Fix mdconvert
-from ...markdown_browser import (  # type: ignore
-    DocumentConverterResult,  # type: ignore
-    FileConversionException,  # type: ignore
-    MarkdownConverter,  # type: ignore
-    UnsupportedFormatException,  # type: ignore
-)
+from ...markdown_browser import MarkdownConverter  # type: ignore
 from ...messages import UserContent, WebSurferEvent
 from ...utils import SentinelMeta, message_content_to_str
 from ..base_worker import BaseWorker

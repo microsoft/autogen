@@ -30,10 +30,10 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -88,7 +88,7 @@ Reply "TERMINATE" in the end when everything is done."""
         self._session_memory: Dict[str, List[LLMMessage]] = {}
 
     @message_handler
-    async def handle_task(self, message: TaskMessage, cancellation_token: CancellationToken) -> None:
+    async def handle_task(self, message: TaskMessage, ctx: MessageContext) -> None:
         # Create a new session.
         session_id = str(uuid.uuid4())
         self._session_memory.setdefault(session_id, []).append(UserMessage(content=message.content, source="user"))
@@ -102,13 +102,12 @@ Reply "TERMINATE" in the end when everything is done."""
 
         # Publish the code execution task.
         await self.publish_message(
-            CodeExecutionTask(content=response.content, session_id=session_id), cancellation_token=cancellation_token
+            CodeExecutionTask(content=response.content, session_id=session_id),
+            cancellation_token=ctx.cancellation_token,
         )
 
     @message_handler
-    async def handle_code_execution_result(
-        self, message: CodeExecutionTaskResult, cancellation_token: CancellationToken
-    ) -> None:
+    async def handle_code_execution_result(self, message: CodeExecutionTaskResult, ctx: MessageContext) -> None:
         # Store the code execution output.
         self._session_memory[message.session_id].append(UserMessage(content=message.output, source="user"))
 
@@ -121,7 +120,9 @@ Reply "TERMINATE" in the end when everything is done."""
 
         if "TERMINATE" in response.content:
             # If the task is completed, publish a message with the completion content.
-            await self.publish_message(TaskCompletion(content=response.content), cancellation_token=cancellation_token)
+            await self.publish_message(
+                TaskCompletion(content=response.content), cancellation_token=ctx.cancellation_token
+            )
             print("--------------------")
             print("Task completed:")
             print(response.content)
@@ -130,7 +131,7 @@ Reply "TERMINATE" in the end when everything is done."""
         # Publish the code execution task.
         await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=message.session_id),
-            cancellation_token=cancellation_token,
+            cancellation_token=ctx.cancellation_token,
         )
 
 
@@ -142,7 +143,7 @@ class Executor(TypeRoutedAgent):
         self._executor = executor
 
     @message_handler
-    async def handle_code_execution(self, message: CodeExecutionTask, cancellation_token: CancellationToken) -> None:
+    async def handle_code_execution(self, message: CodeExecutionTask, ctx: MessageContext) -> None:
         # Extract the code block from the message.
         code_blocks = self._extract_code_blocks(message.content)
         if not code_blocks:
@@ -151,17 +152,17 @@ class Executor(TypeRoutedAgent):
                 CodeExecutionTaskResult(
                     output="Error: no Markdown code block found.", exit_code=1, session_id=message.session_id
                 ),
-                cancellation_token=cancellation_token,
+                cancellation_token=ctx.cancellation_token,
             )
             return
         # Execute code blocks.
         result = await self._executor.execute_code_blocks(
-            code_blocks=code_blocks, cancellation_token=cancellation_token
+            code_blocks=code_blocks, cancellation_token=ctx.cancellation_token
         )
         # Publish the code execution result.
         await self.publish_message(
             CodeExecutionTaskResult(output=result.output, exit_code=result.exit_code, session_id=message.session_id),
-            cancellation_token=cancellation_token,
+            cancellation_token=ctx.cancellation_token,
         )
 
     def _extract_code_blocks(self, markdown_text: str) -> List[CodeBlock]:

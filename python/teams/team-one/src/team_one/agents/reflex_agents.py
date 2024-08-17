@@ -1,6 +1,6 @@
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import UserMessage
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 
@@ -10,14 +10,12 @@ class ReflexAgent(TypeRoutedAgent):
         super().__init__(description)
 
     @message_handler
-    async def handle_incoming_message(self, message: BroadcastMessage, cancellation_token: CancellationToken) -> None:
+    async def handle_incoming_message(self, message: BroadcastMessage, ctx: MessageContext) -> None:
         """Handle an incoming message."""
         pass
 
     @message_handler
-    async def handle_request_reply_message(
-        self, message: RequestReplyMessage, cancellation_token: CancellationToken
-    ) -> None:
+    async def handle_request_reply_message(self, message: RequestReplyMessage, ctx: MessageContext) -> None:
         name = self.metadata["type"]
 
         response_message = UserMessage(
@@ -25,4 +23,4 @@ class ReflexAgent(TypeRoutedAgent):
             source=name,
         )
 
-        await self.publish_message(BroadcastMessage(response_message), cancellation_token=cancellation_token)
+        await self.publish_message(BroadcastMessage(response_message))

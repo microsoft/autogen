@@ -9,11 +9,12 @@ from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, SystemMessage
-from agnext.core import AgentInstantiationContext, AgentRuntime, CancellationToken
+from agnext.core import AgentInstantiationContext, AgentRuntime
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.memory import BufferedChatMemory
 from common.types import Message, TextMessage
 from common.utils import convert_messages_to_llm_messages, get_chat_completion_client_from_envs
@@ -50,7 +51,7 @@ Use the following JSON format to provide your thought on the latest message and 
         self._client = model_client
 
     @message_handler()
-    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+    async def on_chat_room_message(self, message: TextMessage, ctx: MessageContext) -> None:
         # Save the message to memory as structured JSON.
         from_message = TextMessage(
             content=json.dumps({"sender": message.source, "content": message.content}), source=message.source
@@ -82,7 +83,7 @@ class ChatRoomUserAgent(TextualUserAgent):
     """An agent that is used to receive messages from the runtime."""
 
     @message_handler
-    async def on_chat_room_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:
+    async def on_chat_room_message(self, message: TextMessage, ctx: MessageContext) -> None:
         await self._app.post_runtime_message(message)
 
 

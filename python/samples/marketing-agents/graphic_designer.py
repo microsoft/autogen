@@ -6,7 +6,7 @@ from agnext.components import (
     TypeRoutedAgent,
     message_handler,
 )
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 from messages import ArticleCreated, GraphicDesignCreated
 
 
@@ -21,7 +21,7 @@ class GraphicDesignerAgent(TypeRoutedAgent):
         self._model = model
 
     @message_handler
-    async def handle_user_chat_input(self, message: ArticleCreated, cancellation_token: CancellationToken) -> None:
+    async def handle_user_chat_input(self, message: ArticleCreated, ctx: MessageContext) -> None:
         logger = logging.getLogger("graphic_designer")
         try:
             logger.info(f"Asking model to generate an image for the article '{message.article}'.")

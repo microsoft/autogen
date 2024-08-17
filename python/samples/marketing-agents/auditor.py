@@ -1,7 +1,7 @@
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient
 from agnext.components.models._types import SystemMessage
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 from messages import AuditorAlert, AuditText
 
 auditor_prompt = """You are an Auditor in a Marketing team
@@ -24,7 +24,7 @@ class AuditAgent(TypeRoutedAgent):
         self._model_client = model_client
 
     @message_handler
-    async def handle_user_chat_input(self, message: AuditText, cancellation_token: CancellationToken) -> None:
+    async def handle_user_chat_input(self, message: AuditText, ctx: MessageContext) -> None:
         sys_prompt = auditor_prompt.format(input=message.text)
         completion = await self._model_client.create(messages=[SystemMessage(content=sys_prompt)])
         assert isinstance(completion.content, str)

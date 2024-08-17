@@ -3,7 +3,7 @@ from typing import Any, Optional, Union
 
 from agnext.components._type_routed_agent import message_handler
 from agnext.components._type_helpers import AnyType, get_types
-from agnext.core import CancellationToken
+from agnext.core import MessageContext
 
 
 def test_get_types() -> None:
@@ -21,11 +21,11 @@ def test_handler() -> None:
 
     class HandlerClass:
         @message_handler()
-        async def handler(self, message: int, cancellation_token: CancellationToken) -> Any:
+        async def handler(self, message: int, ctx: MessageContext) -> Any:
             return None
 
         @message_handler()
-        async def handler2(self, message: str | bool, cancellation_token: CancellationToken) -> None:
+        async def handler2(self, message: str | bool, ctx: MessageContext) -> None:
             return None
 
     assert HandlerClass.handler.target_types == [int]
@@ -36,5 +36,5 @@ def test_handler() -> None:
 
 class HandlerClass:
     @message_handler()
-    async def handler(self, message: int, cancellation_token: CancellationToken) -> Any:
+    async def handler(self, message: int, ctx: MessageContext) -> Any:
         return None

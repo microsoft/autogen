@@ -2,7 +2,7 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import BaseAgent, CancellationToken
+from agnext.core import BaseAgent, MessageContext
 
 
 class StatefulAgent(BaseAgent):
@@ -14,7 +14,7 @@ class StatefulAgent(BaseAgent):
     def subscriptions(self) -> Sequence[type]:
         return []
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> None:
+    async def on_message(self, message: Any, ctx: MessageContext) -> None:
         raise NotImplementedError
 
     def save_state(self) -> Mapping[str, Any]:

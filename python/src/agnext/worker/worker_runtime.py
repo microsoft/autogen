@@ -31,7 +31,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY
+from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext
 
 from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentProxy, AgentRuntime, CancellationToken
 from .protos import AgentId as AgentIdProto
@@ -248,8 +248,16 @@ class WorkerAgentRuntime(AgentRuntime):
                         ]:
                             logger.info("Sending message to %s", agent_id)
                             agent = await self._get_agent(agent_id)
+                            message_context = MessageContext(
+                                # TODO: should sender be in the proto even for published events?
+                                sender=None,
+                                # TODO: topic_id
+                                topic_id=None,
+                                is_rpc=False,
+                                cancellation_token=CancellationToken(),
+                            )
                             try:
-                                await agent.on_message(message, CancellationToken())
+                                await agent.on_message(message, ctx=message_context)
                                 logger.info("%s handled event %s", agent_id, message)
                             except Exception as e:
                                 event_logger.error("Error handling message", exc_info=e)

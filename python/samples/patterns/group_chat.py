@@ -26,10 +26,11 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, CancellationToken
+from agnext.core import AgentId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -62,7 +63,7 @@ class RoundRobinGroupChatManager(TypeRoutedAgent):
         self._round_count = 0
 
     @message_handler
-    async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
+    async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         # Select the next speaker in a round-robin fashion
         speaker = self._participants[self._round_count % len(self._participants)]
         self._round_count += 1
@@ -87,11 +88,11 @@ class GroupChatParticipant(TypeRoutedAgent):
         self._memory: List[Message] = []
 
     @message_handler
-    async def handle_message(self, message: Message, cancellation_token: CancellationToken) -> None:
+    async def handle_message(self, message: Message, ctx: MessageContext) -> None:
         self._memory.append(message)
 
     @message_handler
-    async def handle_request_to_speak(self, message: RequestToSpeak, cancellation_token: CancellationToken) -> None:
+    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         # Generate a response to the last message in the memory
         if not self._memory:
             return

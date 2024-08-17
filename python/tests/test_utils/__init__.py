@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import CancellationToken, BaseAgent
+from agnext.core import BaseAgent
+from agnext.core import MessageContext
 
 
 @dataclass
@@ -20,7 +21,7 @@ class LoopbackAgent(TypeRoutedAgent):
 
 
     @message_handler
-    async def on_new_message(self, message: MessageType, cancellation_token: CancellationToken) -> MessageType:
+    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.num_calls += 1
         return message
 
@@ -31,9 +32,9 @@ class CascadingAgent(TypeRoutedAgent):
         super().__init__("A cascading agent.")
         self.num_calls = 0
         self.max_rounds = max_rounds
-    
+
     @message_handler
-    async def on_new_message(self, message: CascadingMessageType, cancellation_token: CancellationToken) -> None:
+    async def on_new_message(self, message: CascadingMessageType, ctx: MessageContext) -> None:
         self.num_calls += 1
         if message.round == self.max_rounds:
             return
@@ -43,5 +44,5 @@ class NoopAgent(BaseAgent):
     def __init__(self) -> None:
         super().__init__("A no op agent", [])
 
-    async def on_message(self, message: Any, cancellation_token: CancellationToken) -> Any:
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError

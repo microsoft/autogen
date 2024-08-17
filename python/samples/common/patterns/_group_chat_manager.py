@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Mapping
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient
-from agnext.core import AgentId, AgentProxy, CancellationToken
+from agnext.core import AgentId, AgentProxy, MessageContext
 
 from ..types import (
     Message,
@@ -76,14 +76,12 @@ class GroupChatManager(TypeRoutedAgent):
         self._on_message_received = on_message_received
 
     @message_handler()
-    async def on_reset(self, message: Reset, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method clears the memory."""
         await self._memory.clear()
 
     @message_handler()
-    async def on_new_message(
-        self, message: TextMessage | MultiModalMessage, cancellation_token: CancellationToken
-    ) -> None:
+    async def on_new_message(self, message: TextMessage | MultiModalMessage, ctx: MessageContext) -> None:
         """Handle a message. This method adds the message to the memory, selects the next speaker,
         and sends a message to the selected speaker to publish a response."""
         # Call the custom on_message_received handler if provided.
