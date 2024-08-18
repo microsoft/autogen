@@ -648,6 +648,7 @@ class GeminiClient:
                         tool_config_entry["function_calling_config"]
                     ]
                     if func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY:
+                        # The function names are not yet known when parsing the OAI_CONFIG_LIST
                         func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
                     vertexai_tool_config = VertexAIToolConfig(
                         function_calling_config=VertexAIToolConfig.FunctionCallingConfig(**func_calling_config_params)
