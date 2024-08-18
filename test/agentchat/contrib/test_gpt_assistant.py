@@ -28,6 +28,7 @@ if not skip_openai:
         filter_dict={
             "api_type": ["openai"],
             "model": [
+                "gpt-4o-mini",
                 "gpt-4o",
                 "gpt-4-turbo",
                 "gpt-4-turbo-preview",

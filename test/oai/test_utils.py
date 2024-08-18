@@ -55,8 +55,8 @@ JSON_SAMPLE = """
     {
         "model": "gpt-35-turbo-v0301",
         "tags": ["gpt-3.5-turbo", "gpt35_turbo"],
-        "api_key": "111113fc7e8a46419bfac511bb301111",
-        "base_url": "https://1111.openai.azure.com",
+        "api_key": "Your Azure OAI API Key",
+        "base_url": "https://deployment_name.openai.azure.com",
         "api_type": "azure",
         "api_version": "2024-02-01"
     },
@@ -424,6 +424,12 @@ def test_is_valid_api_key():
     assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
     assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
     assert is_valid_api_key("sk-proj-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert is_valid_api_key("sk-0-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert is_valid_api_key("sk-aut0gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert is_valid_api_key("sk-aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert is_valid_api_key("sk-aut0--gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert not is_valid_api_key("sk-aut0-gen--asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert not is_valid_api_key("sk--aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
     assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 

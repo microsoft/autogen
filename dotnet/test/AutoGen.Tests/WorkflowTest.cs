@@ -17,7 +17,7 @@ public class WorkflowTest
         var alice = new EchoAgent("alice");
         var bob = new EchoAgent("bob");
 
-        var aliceToBob = Transition.Create(alice, bob, async (from, to, messages) =>
+        var aliceToBob = Transition.Create(alice, bob, async (from, to, messages, _) =>
         {
             if (messages.Any(m => m.GetContent() == "Hello"))
             {
@@ -30,7 +30,7 @@ public class WorkflowTest
         var canTransit = await aliceToBob.CanTransitionAsync([]);
         canTransit.Should().BeFalse();
 
-        canTransit = await aliceToBob.CanTransitionAsync(new[] { new TextMessage(Role.Assistant, "Hello") });
+        canTransit = await aliceToBob.CanTransitionAsync([new TextMessage(Role.Assistant, "Hello")]);
         canTransit.Should().BeTrue();
 
         // if no function is provided, it should always return true

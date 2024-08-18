@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Image_Chat_With_Vertex_Gemini.cs
 
+#region Using
 using AutoGen.Core;
-using AutoGen.Gemini.Middleware;
+#endregion Using
 using FluentAssertions;
 
 namespace AutoGen.Gemini.Sample;
@@ -11,6 +12,7 @@ public class Image_Chat_With_Vertex_Gemini
 {
     public static async Task RunAsync()
     {
+        #region Create_Gemini_Agent
         var projectID = Environment.GetEnvironmentVariable("GCP_VERTEX_PROJECT_ID");
 
         if (projectID is null)
@@ -19,7 +21,6 @@ public class Image_Chat_With_Vertex_Gemini
             return;
         }
 
-        #region Create_Gemini_Agent
         var geminiAgent = new GeminiChatAgent(
             name: "gemini",
             model: "gemini-1.5-flash-001",

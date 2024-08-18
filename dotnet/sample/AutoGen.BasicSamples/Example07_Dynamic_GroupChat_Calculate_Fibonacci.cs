@@ -3,12 +3,14 @@
 
 using System.Text;
 using System.Text.Json;
-using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
+using AutoGen.DotnetInteractive.Extension;
 using AutoGen.OpenAI;
-using FluentAssertions;
+using AutoGen.OpenAI.Extension;
+using Azure.AI.OpenAI;
+using Microsoft.DotNet.Interactive;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
@@ -48,10 +50,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion reviewer_function
 
     #region create_coder
-    public static async Task<IAgent> CreateCoderAgentAsync()
+    public static async Task<IAgent> CreateCoderAgentAsync(OpenAIClient client, string deployModel)
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var coder = new GPTAgent(
+        var coder = new OpenAIChatAgent(
+            openAIClient: client,
+            modelName: deployModel,
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
@@ -69,8 +72,8 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             ```
             
             If your code is incorrect, runner will tell you the error message. Fix the error and send the code again.",
-            config: gpt3Config,
             temperature: 0.4f)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         return coder;
@@ -78,13 +81,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion create_coder
 
     #region create_runner
-    public static async Task<IAgent> CreateRunnerAgentAsync(InteractiveService service)
+    public static async Task<IAgent> CreateRunnerAgentAsync(Kernel kernel)
     {
-        var runner = new AssistantAgent(
+        var runner = new DefaultReplyAgent(
             name: "runner",
-            systemMessage: "You run dotnet code",
             defaultReply: "No code available.")
-            .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
             .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
                 if (msgs.Count() == 0 || msgs.All(msg => msg.From != "coder"))
@@ -94,7 +95,24 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 else
                 {
                     var coderMsg = msgs.Last(msg => msg.From == "coder");
-                    return await agent.GenerateReplyAsync([coderMsg], option);
+                    if (coderMsg.ExtractCodeBlock("```csharp", "```") is string code)
+                    {
+                        var codeResult = await kernel.RunSubmitCodeCommandAsync(code, "csharp");
+
+                        codeResult = $"""
+                        [RUNNER_RESULT]
+                        {codeResult}
+                        """;
+
+                        return new TextMessage(Role.Assistant, codeResult)
+                        {
+                            From = "runner",
+                        };
+                    }
+                    else
+                    {
+                        return new TextMessage(Role.Assistant, "No code available. Coder please write code");
+                    }
                 }
             })
             .RegisterPrintMessage();
@@ -104,45 +122,38 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion create_runner
 
     #region create_admin
-    public static async Task<IAgent> CreateAdminAsync()
+    public static async Task<IAgent> CreateAdminAsync(OpenAIClient client, string deployModel)
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var admin = new GPTAgent(
+        var admin = new OpenAIChatAgent(
+            openAIClient: client,
+            modelName: deployModel,
             name: "admin",
-            systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
-            temperature: 0,
-            config: gpt3Config)
-            .RegisterMiddleware(async (msgs, option, agent, _) =>
-            {
-                var reply = await agent.GenerateReplyAsync(msgs, option);
-                if (reply is TextMessage textMessage && textMessage.Content.Contains("TERMINATE") is true)
-                {
-                    var content = $"{textMessage.Content}\n\n {GroupChatExtension.TERMINATE}";
-
-                    return new TextMessage(Role.Assistant, content, from: reply.From);
-                }
-
-                return reply;
-            });
+            temperature: 0)
+            .RegisterMessageConnector()
+            .RegisterPrintMessage();
 
         return admin;
     }
     #endregion create_admin
 
     #region create_reviewer
-    public static async Task<IAgent> CreateReviewerAgentAsync()
+    public static async Task<IAgent> CreateReviewerAgentAsync(OpenAIClient openAIClient, string deployModel)
     {
         var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var functions = new Example07_Dynamic_GroupChat_Calculate_Fibonacci();
-        var reviewer = new GPTAgent(
-            name: "code_reviewer",
-            systemMessage: @"You review code block from coder",
-            config: gpt3Config,
-            functions: [functions.ReviewCodeBlockFunction],
+        var functionCallMiddleware = new FunctionCallMiddleware(
+            functions: [functions.ReviewCodeBlockFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>>()
             {
-                { nameof(ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
-            })
+                { nameof(functions.ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
+            });
+        var reviewer = new OpenAIChatAgent(
+            openAIClient: openAIClient,
+            name: "code_reviewer",
+            systemMessage: @"You review code block from coder",
+            modelName: deployModel)
+            .RegisterMessageConnector()
+            .RegisterStreamingMiddleware(functionCallMiddleware)
             .RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
             {
                 var maxRetry = 3;
@@ -222,20 +233,18 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     public static async Task RunWorkflowAsync()
     {
         long the39thFibonacciNumber = 63245986;
-        var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
-        if (!Directory.Exists(workDir))
-            Directory.CreateDirectory(workDir);
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultInProcessKernelBuilder()
+            .Build();
 
-        using var service = new InteractiveService(workDir);
-        var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
-
-        await service.StartAsync(workDir, default);
+        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
 
         #region create_workflow
-        var reviewer = await CreateReviewerAgentAsync();
-        var coder = await CreateCoderAgentAsync();
-        var runner = await CreateRunnerAgentAsync(service);
-        var admin = await CreateAdminAsync();
+        var reviewer = await CreateReviewerAgentAsync(openaiClient, config.DeploymentName);
+        var coder = await CreateCoderAgentAsync(openaiClient, config.DeploymentName);
+        var runner = await CreateRunnerAgentAsync(kernel);
+        var admin = await CreateAdminAsync(openaiClient, config.DeploymentName);
 
         var admin2CoderTransition = Transition.Create(admin, coder);
         var coder2ReviewerTransition = Transition.Create(coder, reviewer);
@@ -306,21 +315,23 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 runner,
                 reviewer,
             ]);
-
+        #endregion create_group_chat_with_workflow
         admin.SendIntroduction("Welcome to my group, work together to resolve my task", groupChat);
         coder.SendIntroduction("I will write dotnet code to resolve task", groupChat);
         reviewer.SendIntroduction("I will review dotnet code", groupChat);
         runner.SendIntroduction("I will run dotnet code once the review is done", groupChat);
+        var task = "What's the 39th of fibonacci number?";
 
-        var groupChatManager = new GroupChatManager(groupChat);
-        var conversationHistory = await admin.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number?", maxRound: 10);
-        #endregion create_group_chat_with_workflow
-        // the last message is from admin, which is the termination message
-        var lastMessage = conversationHistory.Last();
-        lastMessage.From.Should().Be("admin");
-        lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
-        lastMessage.Should().BeOfType<TextMessage>();
-        lastMessage.GetContent().Should().Contain(the39thFibonacciNumber.ToString());
+        var taskMessage = new TextMessage(Role.User, task, from: admin.Name);
+        await foreach (var message in groupChat.SendAsync([taskMessage], maxRound: 10))
+        {
+            // teminate chat if message is from runner and run successfully
+            if (message.From == "runner" && message.GetContent().Contains(the39thFibonacciNumber.ToString()))
+            {
+                Console.WriteLine($"The 39th of fibonacci number is {the39thFibonacciNumber}");
+                break;
+            }
+        }
     }
 
     public static async Task RunAsync()
@@ -328,41 +339,45 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         long the39thFibonacciNumber = 63245986;
         var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
         if (!Directory.Exists(workDir))
+        {
             Directory.CreateDirectory(workDir);
+        }
 
-        using var service = new InteractiveService(workDir);
-        var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
+        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
 
-        await service.StartAsync(workDir, default);
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultInProcessKernelBuilder()
+            .Build();
         #region create_group_chat
-        var reviewer = await CreateReviewerAgentAsync();
-        var coder = await CreateCoderAgentAsync();
-        var runner = await CreateRunnerAgentAsync(service);
-        var admin = await CreateAdminAsync();
+        var reviewer = await CreateReviewerAgentAsync(openaiClient, config.DeploymentName);
+        var coder = await CreateCoderAgentAsync(openaiClient, config.DeploymentName);
+        var runner = await CreateRunnerAgentAsync(kernel);
+        var admin = await CreateAdminAsync(openaiClient, config.DeploymentName);
         var groupChat = new GroupChat(
             admin: admin,
             members:
             [
-                admin,
                 coder,
                 runner,
                 reviewer,
             ]);
 
-        admin.SendIntroduction("Welcome to my group, work together to resolve my task", groupChat);
         coder.SendIntroduction("I will write dotnet code to resolve task", groupChat);
         reviewer.SendIntroduction("I will review dotnet code", groupChat);
         runner.SendIntroduction("I will run dotnet code once the review is done", groupChat);
 
-        var groupChatManager = new GroupChatManager(groupChat);
-        var conversationHistory = await admin.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number?", maxRound: 10);
-
-        // the last message is from admin, which is the termination message
-        var lastMessage = conversationHistory.Last();
-        lastMessage.From.Should().Be("admin");
-        lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
-        lastMessage.Should().BeOfType<TextMessage>();
-        lastMessage.GetContent().Should().Contain(the39thFibonacciNumber.ToString());
+        var task = "What's the 39th of fibonacci number?";
+        var taskMessage = new TextMessage(Role.User, task);
+        await foreach (var message in groupChat.SendAsync([taskMessage], maxRound: 10))
+        {
+            // teminate chat if message is from runner and run successfully
+            if (message.From == "runner" && message.GetContent().Contains(the39thFibonacciNumber.ToString()))
+            {
+                Console.WriteLine($"The 39th of fibonacci number is {the39thFibonacciNumber}");
+                break;
+            }
+        }
         #endregion create_group_chat
     }
 }
