@@ -624,7 +624,7 @@ class GeminiClient:
         else:
             return safety_settings
 
-    # TODO: implement this properly
+    # TODO: check for possible improvements and test if it works properly
     @staticmethod
     def _to_vertexai_tool_config(tool_config, tools):
         """Convert tool config to VertexAI format,
@@ -642,13 +642,15 @@ class GeminiClient:
                     logger.error(f"Function calling mode {invalid_mode} is invalid")
                     return None
                 else:
+                    # Currently, there is only function calling config
+                    func_calling_config_params = {}
+                    func_calling_config_params["mode"] = VertexAIToolConfig.FunctionCallingConfig.Mode[
+                        tool_config_entry["function_calling_config"]
+                    ]
+                    if func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY:
+                        func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
                     vertexai_tool_config = VertexAIToolConfig(
-                        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(
-                            mode=VertexAIToolConfig.FunctionCallingConfig.Mode[
-                                tool_config_entry["function_calling_config"]
-                            ],
-                            allowed_function_names=[tool["function_name"] for tool in tools],
-                        )
+                        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(**func_calling_config_params)
                     )
                     return vertexai_tool_config
         elif isinstance(tool_config, VertexAIToolConfig):
