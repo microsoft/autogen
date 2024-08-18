@@ -29,6 +29,18 @@ jobs:
     - uses: actions/checkout@v4
       with:
         lfs: true
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+    - name: Install jupyter and ipykernel
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install jupyter
+        python -m pip install ipykernel
+    - name: list available kernels
+      run: |
+        python -m jupyter kernelspec list
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
