@@ -60,6 +60,9 @@ from vertexai.generative_models import (
 from vertexai.generative_models import (
     FunctionDeclaration as VertexAIFunctionDeclaration,
 )
+from vertexai.generative_models import (
+    GenerationConfig as VertexAIGenerationConfig,
+)
 from vertexai.generative_models import GenerativeModel
 from vertexai.generative_models import HarmBlockThreshold as VertexAIHarmBlockThreshold
 from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
@@ -67,6 +70,9 @@ from vertexai.generative_models import Part as VertexAIPart
 from vertexai.generative_models import SafetySetting as VertexAISafetySetting
 from vertexai.generative_models import (
     Tool as VertexAITool,
+)
+from vertexai.generative_models import (
+    ToolConfig as VertexAIToolConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -183,6 +189,7 @@ class GeminiClient:
         params.get("api_type", "google")  # not used
         messages = params.get("messages", [])
         tools = params.get("tools", [])
+        tool_config = params.get("tool_config", {})
         stream = params.get("stream", False)
         n_response = params.get("n", 1)
         system_instruction = params.get("system_instruction", None)
@@ -195,6 +202,7 @@ class GeminiClient:
         }
         if self.use_vertexai:
             safety_settings = GeminiClient._to_vertexai_safety_settings(params.get("safety_settings", {}))
+            tool_config = GeminiClient._to_vertexai_tool_config(tool_config, tools)
         else:
             safety_settings = params.get("safety_settings", {})
 
@@ -218,6 +226,7 @@ class GeminiClient:
                     safety_settings=safety_settings,
                     system_instruction=system_instruction,
                     tools=gemini_tools,
+                    tool_config=tool_config,
                 )
                 chat = model.start_chat(history=gemini_messages[:-1], response_validation=response_validation)
             else:
@@ -614,6 +623,39 @@ class GeminiClient:
             return vertexai_safety_settings
         else:
             return safety_settings
+
+    # TODO: implement this properly
+    @staticmethod
+    def _to_vertexai_tool_config(tool_config, tools):
+        """Convert tool config to VertexAI format,
+        like when specifying them in the OAI_CONFIG_LIST
+        """
+        if isinstance(tool_config, list) and all(
+            [isinstance(tool_config_entry, dict) for tool_config_entry in tool_config]
+        ):
+            for tool_config_entry in tool_config:
+                if (
+                    tool_config_entry["function_calling_config"]
+                    not in VertexAIToolConfig.FunctionCallingConfig.Mode.__members__
+                ):
+                    invalid_mode = tool_config_entry["function_calling_config"]
+                    logger.error(f"Function calling mode {invalid_mode} is invalid")
+                    return None
+                else:
+                    vertexai_tool_config = VertexAIToolConfig(
+                        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(
+                            mode=VertexAIToolConfig.FunctionCallingConfig.Mode[
+                                tool_config_entry["function_calling_config"]
+                            ],
+                            allowed_function_names=[tool["function_name"] for tool in tools],
+                        )
+                    )
+                    return vertexai_tool_config
+        elif isinstance(tool_config, VertexAIToolConfig):
+            return tool_config
+        else:
+            logger.error("Invalid VertexAI tool config!")
+            return None
 
 
 def _to_pil(data: str) -> Image.Image:
