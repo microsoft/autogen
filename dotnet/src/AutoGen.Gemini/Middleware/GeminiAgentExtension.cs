@@ -3,7 +3,7 @@
 
 using AutoGen.Core;
 
-namespace AutoGen.Gemini.Middleware;
+namespace AutoGen.Gemini;
 
 public static class GeminiAgentExtension
 {

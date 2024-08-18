@@ -18,7 +18,7 @@ designed to solve tasks through inter-agent conversations. Specifically, the age
 The figure below shows the built-in agents in AutoGen.
 ![Agent Chat Example](images/autogen_agents.png)
 
-We have designed a generic [`ConversableAgent`](../reference/agentchat/conversable_agent#conversableagent-objects)
+We have designed a generic [`ConversableAgent`](../reference/agentchat/conversable_agent.md#conversableagent-objects)
  class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects) and [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects)
 
 - The [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects) is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest corrections or bug fixes. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via [`llm_config`].
@@ -83,7 +83,7 @@ With the pluggable auto-reply function, one can choose to invoke conversations w
 - Hierarchical chat like in [OptiGuide](https://github.com/microsoft/optiguide).
 - [Dynamic Group Chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb) which is a special form of hierarchical chat. In the system, we register a reply function in the group chat manager, which broadcasts messages and decides who the next speaker will be in a group chat setting.
 - [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine) which is a special form of dynamic group chat. In this approach, a directed transition matrix is fed into group chat. Users can specify legal transitions or specify disallowed transitions.
-- Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb).
+- Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nested_chats_chess.ipynb).
 
 2. LLM-Based Function Call
 

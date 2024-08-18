@@ -22,11 +22,11 @@ internal static class LLMConfiguration
         return new OpenAIConfig(openAIKey, modelId);
     }
 
-    public static AzureOpenAIConfig GetAzureOpenAIGPT3_5_Turbo(string deployName = "gpt-35-turbo-16k")
+    public static AzureOpenAIConfig GetAzureOpenAIGPT3_5_Turbo(string? deployName = null)
     {
         var azureOpenAIKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-
+        deployName = deployName ?? Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         return new AzureOpenAIConfig(endpoint, deployName, azureOpenAIKey);
     }
 

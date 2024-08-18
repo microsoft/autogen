@@ -65,8 +65,8 @@ public class OllamaAgentTests
 
         var msg = new Message("user", "hey how are you");
         var messages = new IMessage[] { MessageEnvelope.Create(msg, from: modelName) };
-        IStreamingMessage? finalReply = default;
-        await foreach (IStreamingMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
+        IMessage? finalReply = default;
+        await foreach (IMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
         {
             message.Should().NotBeNull();
             message.From.Should().Be(ollamaAgent.Name);
@@ -171,8 +171,8 @@ public class OllamaAgentTests
 
         var messages = new IMessage[] { MessageEnvelope.Create(imageMessage, from: modelName) };
 
-        IStreamingMessage? finalReply = default;
-        await foreach (IStreamingMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
+        IMessage? finalReply = default;
+        await foreach (IMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
         {
             message.Should().NotBeNull();
             message.From.Should().Be(ollamaAgent.Name);

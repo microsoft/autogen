@@ -72,15 +72,14 @@ extra_require = {
     "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
     "retrievechat": retrieve_chat,
     "retrievechat-pgvector": retrieve_chat_pgvector,
-    "retrievechat-qdrant": [
-        *retrieve_chat,
-        "qdrant_client[fastembed]",
-    ],
-    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
+    "retrievechat-mongodb": [*retrieve_chat, "pymongo>=4.0.0"],
+    "retrievechat-qdrant": [*retrieve_chat, "qdrant_client", "fastembed>=0.3.1"],
+    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],
     "graph": ["networkx", "matplotlib"],
     "gemini": ["google-generativeai>=0.5,<1", "google-cloud-aiplatform", "google-auth", "pillow", "pydantic"],
+    "together": ["together>=1.2"],
     "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
     "redis": ["redis"],
     "cosmosdb": ["azure-cosmos>=4.2.0"],
@@ -89,6 +88,10 @@ extra_require = {
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
     "swe-bench": ["swebench"],
+    "anthropic": ["anthropic>=0.23.1"],
+    "mistral": ["mistralai>=1.0.1"],
+    "groq": ["groq>=0.9.0"],
+    "cohere": ["cohere>=5.5.8"],
 }
 
 setuptools.setup(
