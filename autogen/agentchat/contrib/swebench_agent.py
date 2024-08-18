@@ -1,21 +1,24 @@
-from typing import Any, Dict, List, Optional, Union, Literal, Tuple
-from typing import Dict, List, Optional, Tuple, Any
-from sweagent.agent.parsing import FormatError
-from sweagent.agent.agents import AgentConfig
-import autogen
-from openai import BadRequestError
-from autogen.agentchat import Agent, UserProxyAgent
 import json
-from pathlib import Path
 import re
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+
+from openai import BadRequestError
+from sweagent.agent.agents import AgentConfig
+from sweagent.agent.parsing import FormatError
+
+import autogen
+from autogen.agentchat import Agent, UserProxyAgent
+
 
 class SweUserProxy(UserProxyAgent):
     DEFAULT_REPLY = ""
+
     def __init__(
         self,
         setup_args,
-        env, 
-        config_path, 
+        env,
+        config_path,
         name: Optional[str] = "SweUserProxy",
         human_input_mode: Optional[str] = "NEVER",
         default_auto_reply: Optional[Union[str, Dict, None]] = DEFAULT_REPLY,
@@ -27,32 +30,30 @@ class SweUserProxy(UserProxyAgent):
             default_auto_reply=default_auto_reply,
             **kwargs,
         )
-        
+
         config = AgentConfig.load_yaml(config_path)
         object.__setattr__(self, "config", config)
         self.system_msg = None
         self.system_args = {
             "command_docs": self.config.command_docs,
             **self.config.env_variables,
-        }   
-        
+        }
+
         self._parse_command_patterns()
-        
+
         self.answer = None
         self.last_container_id = None
         self.done = False
         self.format_fails = 0
         self.blocklist_fails = 0
-         
+
         assert env.container_obj is not None
         assert env.record is not None
         assert self.config is not None
         assert self.config is not None
-        
+
         if env.container_obj.id != self.last_container_id:
-            print(
-                f"Initializing agent settings for container {env.container_obj.id}"
-            )
+            print(f"Initializing agent settings for container {env.container_obj.id}")
             self._init_environment_vars(env)
             self.last_container_id = env.container_obj.id
         self._setup(setup_args, None)
@@ -63,17 +64,17 @@ class SweUserProxy(UserProxyAgent):
     def state_command(self) -> str:
         """Return the bash command that will be used to extract the environment state."""
         return self.config.state_command.name
-    
+
     def _setup(self, instance_args, init_model_stats=None) -> None:
         """Setup the agent for a new instance."""
-        
-        assert self.config is not None  
+
+        assert self.config is not None
         self.instance_args = instance_args
         self.system_msg = self.config.system_template.format(**self.system_args)
 
     def _init_environment_vars(self, env):
         self._set_environment_vars(env, self.config.env_variables)
-    
+
     def _set_environment_vars(self, env, env_variables):
         assert self.config is not None  # mypy
         commands_to_execute = (
@@ -87,9 +88,7 @@ class SweUserProxy(UserProxyAgent):
         try:
             output = env.communicate(commands)
             if env.returncode != 0:
-                raise RuntimeError(
-                    f"Nonzero return code: {env.returncode}\nOutput: {output}"
-                )
+                raise RuntimeError(f"Nonzero return code: {env.returncode}\nOutput: {output}")
         except KeyboardInterrupt:
             raise
         except Exception as e:
@@ -141,9 +140,7 @@ class SweUserProxy(UserProxyAgent):
                     if not match_action.split("\n")[0].strip().endswith(f"<< '{eof}'"):
                         guarded_command = match_action[first_match.start() :]
                         first_line = guarded_command.split("\n")[0]
-                        guarded_command = guarded_command.replace(
-                            first_line, first_line + f" << '{eof}'", 1
-                        )
+                        guarded_command = guarded_command.replace(first_line, first_line + f" << '{eof}'", 1)
                         parsed_action.append(guarded_command)
                     else:
                         parsed_action.append(match_action)
@@ -182,13 +179,11 @@ class SweUserProxy(UserProxyAgent):
                 re.DOTALL | re.MULTILINE,
             )
         else:
-            submit_pat = re.compile(
-                rf"^\s*({self.config.submit_command})(\s*)$", re.MULTILINE
-            )  # group 2 is nothing
+            submit_pat = re.compile(rf"^\s*({self.config.submit_command})(\s*)$", re.MULTILINE)  # group 2 is nothing
         self.subroutine_patterns[self.config.submit_command] = submit_pat
         self.command_patterns[self.config.submit_command] = submit_pat
-        
-    def _get_first_match(self, action: str, pattern_type: str) -> Optional[re.Match]: # TODO: check
+
+    def _get_first_match(self, action: str, pattern_type: str) -> Optional[re.Match]:  # TODO: check
         """Return the first match of a command pattern in the action string."""
         assert self.config is not None  # mypy
         if pattern_type == "subroutine":
@@ -197,20 +192,13 @@ class SweUserProxy(UserProxyAgent):
             patterns = {
                 k: v
                 for k, v in self.command_patterns.items()
-                if k in self.config.multi_line_command_endings
-                or k == self.config.submit_command
+                if k in self.config.multi_line_command_endings or k == self.config.submit_command
             }
             patterns += {
-                k: v
-                for k, v in self.subroutine_patterns.items()
-                if k in self.config.multi_line_command_endings
+                k: v for k, v in self.subroutine_patterns.items() if k in self.config.multi_line_command_endings
             }
         elif pattern_type == "multi_line_no_subroutines":
-            patterns = {
-                k: v
-                for k, v in self.command_patterns.items()
-                if k in self.config.multi_line_command_endings
-            }
+            patterns = {k: v for k, v in self.command_patterns.items() if k in self.config.multi_line_command_endings}
         else:
             raise ValueError(f"Unknown pattern type: {pattern_type}")
         matches = list()
@@ -222,15 +210,15 @@ class SweUserProxy(UserProxyAgent):
             return None
         matches = sorted(matches, key=lambda x: x.start())
         return matches[0]
-      
+
     def _initial_text(self, observation: str, state: str) -> str:
-        
+
         assert self.config is not None  # mypy
         state_vars = json.loads(state)
         templates = [self.config.instance_template]
         if self.config.strategy_template is not None:
             templates.append(self.config.strategy_template)
-            
+
         messages = []
         for template in templates:
             messages.append(
@@ -243,20 +231,20 @@ class SweUserProxy(UserProxyAgent):
             )
         message = "\n".join(messages)
         return message
-    
+
     def _reply_text(self, observation: str, available_actions: list[str], state: str) -> str:
-        
+
         assert self.config is not None  # mypy
         state_vars = json.loads(state)
         templates: List[str] = []
-        
+
         if observation is None or observation.strip() == "":
             # Show no output template if observation content was empty
             templates = [self.config.next_step_no_output_template]
         else:
             # Show standard output template if there is observation content
             templates = [self.config.next_step_template]
-    
+
         messages = []
         for template in templates:
             messages.append(
@@ -268,7 +256,7 @@ class SweUserProxy(UserProxyAgent):
                 )
             )
         message = "\n".join(messages)
-        
+
         return message
 
     def _should_block_action(self, action):
@@ -285,18 +273,18 @@ class SweUserProxy(UserProxyAgent):
 
     def _retry_after_format_fail(self):
         """Ask the model to correct (without committing to persistent history) after a malformatted model output"""
-        
+
         format_error_template = self.config.format_error_template
         return format_error_template
 
     def _retry_after_blocklist_fail(self, output, action):
         """Ask the model to correct (without committing to persistent history) after a disallowed command"""
-        
+
         name = action.strip().split()[0]
         blocklist_error_message = self.config.blocklist_error_template.format(name=name)
         return blocklist_error_message
-        
-    def _parser_message(self, output:str) -> Tuple[bool, str, str]:
+
+    def _parser_message(self, output: str) -> Tuple[bool, str, str]:
         try:
             thought, action = self.config.parse_function(
                 output,
@@ -304,19 +292,19 @@ class SweUserProxy(UserProxyAgent):
                 strict=False,
             )
         except KeyboardInterrupt:
-                raise
+            raise
         except FormatError:
             self.format_fails += 1
             if self.format_fails + self.blocklist_fails > 3:
                 return True, None, "exit_format"
             output = self._retry_after_format_fail()
-            return True, output, "ask_for_retry" 
+            return True, output, "ask_for_retry"
         if self._should_block_action(action):
             self.blocklist_fails += 1
             if self.format_fails + self.blocklist_fails > 3:
                 return True, None, "exit_format"
             output = self._retry_after_blocklist_fail(output, action)
-            return True, output, "ask_for_retry"   
+            return True, output, "ask_for_retry"
         else:
             return False, thought, action
 
@@ -331,9 +319,7 @@ class SweUserProxy(UserProxyAgent):
                 match_action = rem_action[first_match.start() : first_match.end()]
                 rem_action = rem_action[first_match.end() :]
                 if pre_action.strip():
-                    parsed_action.append(
-                        {"agent": self.name, "action": pre_action, "cmd_name": None}
-                    )
+                    parsed_action.append({"agent": self.name, "action": pre_action, "cmd_name": None})
                 if match_action.strip():
                     if match_action.split()[0] == self.config.submit_command:
                         parsed_action.append(
@@ -353,9 +339,7 @@ class SweUserProxy(UserProxyAgent):
                             }
                         )
             else:
-                parsed_action.append(
-                    {"agent": self.name, "action": rem_action, "cmd_name": None}
-                )
+                parsed_action.append({"agent": self.name, "action": rem_action, "cmd_name": None})
                 rem_action = ""
         return parsed_action
 
@@ -366,7 +350,7 @@ class SweUserProxy(UserProxyAgent):
         self.answer = None
         self.format_fails = 0
         self.blocklist_fails = 0
-             
+
     def generate_evaluation_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -385,7 +369,7 @@ class SweUserProxy(UserProxyAgent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]["content"]
-        
+
         final, thought, action = self._parser_message(message)
         if final:
             return True, thought
@@ -407,7 +391,7 @@ class SweUserProxy(UserProxyAgent):
             else:
                 state = self.env.communicate(self.state_command) if self.state_command else None
                 return True, self._reply_text(observation, self.env.get_available_actions(), state)
-         
+
     def initiate_chat(
         self,
         recipient,
@@ -422,7 +406,7 @@ class SweUserProxy(UserProxyAgent):
             state = self.env.communicate(self.state_command) if self.state_command else None
             initial_text = self._initial_text(initial_observation, state)
             self.send(initial_text, recipient, silent=silent)
-        except BadRequestError as e: # TODO: deal with errors
+        except BadRequestError as e:  # TODO: deal with errors
             error_message = str(e)
             print("error information: {}".format(error_message))
 
@@ -432,10 +416,9 @@ class SweUserProxy(UserProxyAgent):
             chat_history.append(item)
         if error_message is not None:
             chat_history.append(error_message)
-            
+
         answer = self.answer
         if answer is None:
-            answer = {'exit_status':'submitted', 'submission':''}
+            answer = {"exit_status": "submitted", "submission": ""}
         recipient.reset()
         return answer, chat_history
-
