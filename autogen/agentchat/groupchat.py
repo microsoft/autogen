@@ -15,8 +15,13 @@ from ..io.base import IOStream
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent
 from .chat import ChatResult
-from .contrib.capabilities import transform_messages
 from .conversable_agent import ConversableAgent
+
+try:
+    # Non-core module
+    from .contrib.capabilities import transform_messages
+except ImportError:
+    transform_messages = None
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +140,7 @@ class GroupChat:
     The names are case-sensitive and should not be abbreviated or changed.
     The only names that are accepted are {agentlist}.
     Respond with ONLY the name of the speaker and DO NOT provide a reason."""
-    select_speaker_transform_messages: Optional[transform_messages.TransformMessages] = None
+    select_speaker_transform_messages: Optional[transform_messages.TransformMessages] = None  # type: ignore
     select_speaker_auto_verbose: Optional[bool] = False
     role_for_select_speaker_messages: Optional[str] = "system"
 
@@ -254,13 +259,18 @@ class GroupChat:
             raise ValueError("max_retries_for_selecting_speaker must be greater than or equal to zero")
 
         # Load message transforms here (load once for the Group Chat so we don't have to re-initiate it and it maintains the cache across subsequent select speaker calls)
+        self._speaker_selection_transforms = None
         if self.select_speaker_transform_messages is not None:
-            if isinstance(self.select_speaker_transform_messages, transform_messages.TransformMessages):
-                self._speaker_selection_transforms = self.select_speaker_transform_messages
+            if transform_messages is not None:
+                if isinstance(self.select_speaker_transform_messages, transform_messages.TransformMessages):
+                    self._speaker_selection_transforms = self.select_speaker_transform_messages
+                else:
+                    raise ValueError("select_speaker_transform_messages must be None or MessageTransforms.")
             else:
-                raise ValueError("select_speaker_transform_messages must be None or MessageTransforms.")
-        else:
-            self._speaker_selection_transforms = None
+                logger.warning(
+                    "TransformMessages could not be loaded, the 'select_speaker_transform_messages' transform"
+                    "will not apply."
+                )
 
         # Validate select_speaker_auto_verbose
         if self.select_speaker_auto_verbose is None or not isinstance(self.select_speaker_auto_verbose, bool):
