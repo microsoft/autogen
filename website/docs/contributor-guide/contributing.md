@@ -32,4 +32,3 @@ To see what we are working on and what we plan to work on, please check our
 ## Becoming a Reviewer
 
 There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors. If you are willing to become a reviewer, you are welcome to let us know on discord.
-
