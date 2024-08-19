@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
+from agnext.application import WorkerAgentRuntime
 from agnext.core._serialization import MESSAGE_TYPE_REGISTRY
-from agnext.worker.worker_runtime import WorkerAgentRuntime
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
@@ -18,7 +18,7 @@ async def main() -> None:
     MESSAGE_TYPE_REGISTRY.add_type(AuditText)
     MESSAGE_TYPE_REGISTRY.add_type(AuditorAlert)
     agnext_logger.info("1")
-    await runtime.setup_channel("localhost:5145")
+    await runtime.start("localhost:5145")
 
     agnext_logger.info("2")
 
@@ -30,7 +30,7 @@ async def main() -> None:
         await asyncio.sleep(1000000)
     except KeyboardInterrupt:
         pass
-    await runtime.close_channel()
+    await runtime.stop()
 
 
 if __name__ == "__main__":

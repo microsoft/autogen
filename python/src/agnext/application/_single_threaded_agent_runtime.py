@@ -12,8 +12,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from agnext.core import MessageContext
-
 from ..core import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
@@ -23,6 +21,7 @@ from ..core import (
     AgentProxy,
     AgentRuntime,
     CancellationToken,
+    MessageContext,
 )
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler

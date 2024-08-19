@@ -2,12 +2,9 @@ import asyncio
 import inspect
 import json
 import logging
-import threading
 import warnings
 from asyncio import Future, Task
 from collections import defaultdict
-from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -50,40 +47,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger("agnext")
 event_logger = logging.getLogger("agnext.events")
 
-
-@dataclass(kw_only=True)
-class PublishMessageEnvelope:
-    """A message envelope for publishing messages to all agents that can handle
-    the message of the type T."""
-
-    message: Any
-    cancellation_token: CancellationToken
-    sender: AgentId | None
-    namespace: str
-
-
-@dataclass(kw_only=True)
-class SendMessageEnvelope:
-    """A message envelope for sending a message to a specific agent that can handle
-    the message of the type T."""
-
-    message: Any
-    sender: AgentId | None
-    recipient: AgentId
-    future: Future[Any]
-    cancellation_token: CancellationToken
-
-
-@dataclass(kw_only=True)
-class ResponseMessageEnvelope:
-    """A message envelope for sending a response to a message."""
-
-    message: Any
-    future: Future[Any]
-    sender: AgentId
-    recipient: AgentId | None
-
-
 P = ParamSpec("P")
 T = TypeVar("T", bound=Agent)
 
@@ -99,7 +62,7 @@ class QueueAsyncIterable(AsyncIterator[Any], AsyncIterable[Any]):
         return self
 
 
-class RuntimeConnection:
+class HostConnection:
     DEFAULT_GRPC_CONFIG: ClassVar[Mapping[str, Any]] = {
         "methodConfig": [
             {
@@ -129,9 +92,6 @@ class RuntimeConnection:
         channel = grpc.aio.insecure_channel(
             connection_string, options=[("grpc.service_config", json.dumps(grpc_config))]
         )
-        # logger.info("awaiting channel_ready")
-        # await channel.channel_ready()
-        # logger.info("channel_ready")
         instance = cls(channel)
         instance._connection_task = asyncio.create_task(
             instance._connect(channel, instance._send_queue, instance._recv_queue)
@@ -176,102 +136,69 @@ class RuntimeConnection:
     async def recv(self) -> Message:
         logger.info("Getting message from queue")
         return await self._recv_queue.get()
-        logger.info("Got message from queue")
 
 
 class WorkerAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
-        self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
-        # (namespace, type) -> List[AgentId]
         self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
-        # If empty, then all namespaces are valid for that agent type
-        self._valid_namespaces: Dict[str, Sequence[str]] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
         self._known_namespaces: set[str] = set()
         self._read_task: None | Task[None] = None
         self._running = False
         self._pending_requests: Dict[str, Future[Any]] = {}
-        self._pending_requests_lock = threading.Lock()
+        self._pending_requests_lock = asyncio.Lock()
         self._next_request_id = 0
-        self._runtime_connection: RuntimeConnection | None = None
+        self._host_connection: HostConnection | None = None
+        self._background_tasks: Set[Task[Any]] = set()
 
-    async def setup_channel(self, connection_string: str) -> None:
-        logger.info(f"connecting to: {connection_string}")
-        self._runtime_connection = await RuntimeConnection.from_connection_string(connection_string)
+    async def start(self, host_connection_string: str) -> None:
+        if self._running:
+            raise ValueError("Runtime is already running.")
+        logger.info(f"Connecting to host: {host_connection_string}")
+        self._host_connection = await HostConnection.from_connection_string(host_connection_string)
         logger.info("connection")
         if self._read_task is None:
-            self._read_task = asyncio.create_task(self.run_read_loop())
+            self._read_task = asyncio.create_task(self._run_read_loop())
         self._running = True
 
-    async def send_register_agent_type(self, agent_type: str) -> None:
-        assert self._runtime_connection is not None
-        message = Message(registerAgentType=RegisterAgentType(type=agent_type))
-        await self._runtime_connection.send(message)
-        logger.info("Sent registerAgentType message for %s", agent_type)
-
-    async def run_read_loop(self) -> None:
+    async def _run_read_loop(self) -> None:
         logger.info("Starting read loop")
         # TODO: catch exceptions and reconnect
         while self._running:
             try:
-                message = await self._runtime_connection.recv()  # type: ignore
+                message = await self._host_connection.recv()  # type: ignore
                 logger.info("Got message: %s", message)
                 oneofcase = Message.WhichOneof(message, "message")
                 match oneofcase:
                     case "registerAgentType":
-                        logger.warn("Cant handle registerAgentType")
+                        logger.warn("Cant handle registerAgentType, skipping.")
                     case "request":
-                        # request: RpcRequest = message.request
-                        # source = AgentId(request.source.name, request.source.namespace)
-                        # target = AgentId(request.target.name, request.target.namespace)
-
-                        raise NotImplementedError("Sending messages is not yet implemented.")
+                        request: RpcRequest = message.request
+                        task = asyncio.create_task(self._process_request(request))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._background_tasks.discard)
                     case "response":
                         response: RpcResponse = message.response
-                        future = self._pending_requests.pop(response.request_id)
-                        if len(response.error) > 0:
-                            future.set_exception(Exception(response.error))
-                            break
-                        future.set_result(response.result)
+                        task = asyncio.create_task(self._process_response(response))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._background_tasks.discard)
                     case "event":
                         event: Event = message.event
-                        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
-                        # namespace = event.namespace
-                        namespace = "default"
-
-                        logger.info("Got event: %s", message)
-                        for agent_id in self._per_type_subscribers[
-                            (namespace, MESSAGE_TYPE_REGISTRY.type_name(message))
-                        ]:
-                            logger.info("Sending message to %s", agent_id)
-                            agent = await self._get_agent(agent_id)
-                            message_context = MessageContext(
-                                # TODO: should sender be in the proto even for published events?
-                                sender=None,
-                                # TODO: topic_id
-                                topic_id=None,
-                                is_rpc=False,
-                                cancellation_token=CancellationToken(),
-                            )
-                            try:
-                                await agent.on_message(message, ctx=message_context)
-                                logger.info("%s handled event %s", agent_id, message)
-                            except Exception as e:
-                                event_logger.error("Error handling message", exc_info=e)
-
-                        logger.warn("Cant handle event")
+                        task = asyncio.create_task(self._process_event(event))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warn("No message")
             except Exception as e:
                 logger.error("Error in read loop", exc_info=e)
 
-    async def close_channel(self) -> None:
+    async def stop(self) -> None:
         self._running = False
-        if self._runtime_connection is not None:
-            await self._runtime_connection.close()
+        if self._host_connection is not None:
+            await self._host_connection.close()
         if self._read_task is not None:
             await self._read_task
 
@@ -279,7 +206,6 @@ class WorkerAgentRuntime(AgentRuntime):
     def _known_agent_names(self) -> Set[str]:
         return set(self._agent_factories.keys())
 
-    # Returns the response of the message
     async def send_message(
         self,
         message: Any,
@@ -288,25 +214,32 @@ class WorkerAgentRuntime(AgentRuntime):
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> Any:
-        assert self._runtime_connection is not None
+        if not self._running:
+            raise ValueError("Runtime must be running when sending message.")
+        assert self._host_connection is not None
         # create a new future for the result
         future = asyncio.get_event_loop().create_future()
-        with self._pending_requests_lock:
+        async with self._pending_requests_lock:
             self._next_request_id += 1
             request_id = self._next_request_id
-            request_id_str = str(request_id)
-            self._pending_requests[request_id_str] = future
-            sender = cast(AgentId, sender)
-            runtime_message = Message(
-                request=RpcRequest(
-                    request_id=request_id_str,
-                    target=AgentIdProto(name=recipient.type, namespace=recipient.key),
-                    source=AgentIdProto(name=sender.type, namespace=sender.key),
-                    data=message,
-                )
+        request_id_str = str(request_id)
+        self._pending_requests[request_id_str] = future
+        sender = cast(AgentId, sender)
+        method = MESSAGE_TYPE_REGISTRY.type_name(message)
+        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=method)
+        runtime_message = Message(
+            request=RpcRequest(
+                request_id=request_id_str,
+                target=AgentIdProto(name=recipient.type, namespace=recipient.key),
+                source=AgentIdProto(name=sender.type, namespace=sender.key),
+                method=method,
+                data=serialized_message,
             )
-            # TODO: Find a way to handle timeouts/errors
-            asyncio.create_task(self._runtime_connection.send(runtime_message))
+        )
+        # TODO: Find a way to handle timeouts/errors
+        task = asyncio.create_task(self._host_connection.send(runtime_message))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
         return await future
 
     async def publish_message(
@@ -317,26 +250,24 @@ class WorkerAgentRuntime(AgentRuntime):
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
-        assert self._runtime_connection is not None
+        if not self._running:
+            raise ValueError("Runtime must be running when publishing message.")
+        assert self._host_connection is not None
         sender_namespace = sender.key if sender is not None else None
         explicit_namespace = namespace
         if explicit_namespace is not None and sender_namespace is not None and explicit_namespace != sender_namespace:
             raise ValueError(
                 f"Explicit namespace {explicit_namespace} does not match sender namespace {sender_namespace}"
             )
-
         assert explicit_namespace is not None or sender_namespace is not None
         actual_namespace = cast(str, explicit_namespace or sender_namespace)
         await self._process_seen_namespace(actual_namespace)
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
         serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
         message = Message(event=Event(namespace=actual_namespace, type=message_type, data=serialized_message))
-
-        async def write_message() -> None:
-            assert self._runtime_connection is not None
-            await self._runtime_connection.send(message)
-
-        await asyncio.create_task(write_message())
+        task = asyncio.create_task(self._host_connection.send(message))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def save_state(self) -> Mapping[str, Any]:
         raise NotImplementedError("Saving state is not yet implemented.")
@@ -358,6 +289,8 @@ class WorkerAgentRuntime(AgentRuntime):
         name: str,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
+        if not self._running:
+            raise ValueError("Runtime must be running when registering agent.")
         if name in self._agent_factories:
             raise ValueError(f"Agent with name {name} already exists.")
         self._agent_factories[name] = agent_factory
@@ -366,7 +299,75 @@ class WorkerAgentRuntime(AgentRuntime):
         for namespace in self._known_namespaces:
             await self._get_agent(AgentId(type=name, key=namespace))
 
-        await self.send_register_agent_type(name)
+        assert self._host_connection is not None
+        message = Message(registerAgentType=RegisterAgentType(type=name))
+        await self._host_connection.send(message)
+        logger.info("Sent registerAgentType message for %s", name)
+
+    async def _process_request(self, request: RpcRequest) -> None:
+        assert self._host_connection is not None
+        target = AgentId(request.target.name, request.target.namespace)
+        source = AgentId(request.source.name, request.source.namespace)
+
+        try:
+            logging.info(f"Processing request from {source} to {target}")
+            target_agent = await self._get_agent(target)
+            message_context = MessageContext(
+                sender=source,
+                topic_id=None,
+                is_rpc=True,
+                cancellation_token=CancellationToken(),
+            )
+            message = MESSAGE_TYPE_REGISTRY.deserialize(request.data, type_name=request.method)
+            response = await target_agent.on_message(message, ctx=message_context)
+            serialized_response = MESSAGE_TYPE_REGISTRY.serialize(response, type_name=request.method)
+            response_message = Message(
+                response=RpcResponse(
+                    request_id=request.request_id,
+                    result=serialized_response,
+                )
+            )
+        except BaseException as e:
+            response_message = Message(
+                response=RpcResponse(
+                    request_id=request.request_id,
+                    error=str(e),
+                )
+            )
+
+        # Send the response.
+        await self._host_connection.send(response_message)
+
+    async def _process_response(self, response: RpcResponse) -> None:
+        # TODO: deserialize the response and set the future result
+        future = self._pending_requests.pop(response.request_id)
+        if len(response.error) > 0:
+            future.set_exception(Exception(response.error))
+        else:
+            future.set_result(response.result)
+
+    async def _process_event(self, event: Event) -> None:
+        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
+        namespace = event.namespace
+        responses: List[Awaitable[Any]] = []
+        for agent_id in self._per_type_subscribers[(namespace, MESSAGE_TYPE_REGISTRY.type_name(message))]:
+            # TODO: skip the sender?
+            message_context = MessageContext(
+                sender=None,
+                topic_id=None,
+                is_rpc=False,
+                cancellation_token=CancellationToken(),
+            )
+            agent = await self._get_agent(agent_id)
+            future = agent.on_message(message, ctx=message_context)
+            responses.append(future)
+
+        try:
+            _ = await asyncio.gather(*responses)
+        except BaseException as e:
+            if isinstance(e, asyncio.CancelledError):
+                return
+            event_logger.error("Error handling event message", exc_info=e)
 
     async def _invoke_agent_factory(
         self,

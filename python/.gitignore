@@ -166,6 +166,7 @@ cython_debug/
 
 # Generated proto files
 src/agnext/worker/protos/agent*
+src/agnext/application/protos/agent*
 
 # Generated log files
 log.jsonl

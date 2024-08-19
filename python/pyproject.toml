@@ -128,7 +128,7 @@ dependencies = [
 [tool.ruff]
 line-length = 120
 fix = true
-exclude = ["build", "dist", "src/agnext/worker/protos"]
+exclude = ["build", "dist", "src/agnext/application/protos"]
 target-version = "py310"
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb"]
 
@@ -145,7 +145,7 @@ ignore = ["F401", "E501"]
 
 [tool.mypy]
 files = ["src", "samples", "tests"]
-exclude = ["src/agnext/worker/protos"]
+exclude = ["src/agnext/application/protos"]
 
 strict = true
 python_version = "3.10"
@@ -168,7 +168,7 @@ include = ["src", "tests", "samples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
-exclude = ["src/agnext/worker/protos"]
+exclude = ["src/agnext/application/protos"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -178,7 +178,7 @@ testpaths = ["tests"]
 dependencies = ["hatch-protobuf", "mypy-protobuf~=3.0"]
 generate_pyi = false
 proto_paths = ["../protos"]
-output_path = "src/agnext/worker/protos"
+output_path = "src/agnext/application/protos"
 
 
 [[tool.hatch.build.hooks.protobuf.generators]]

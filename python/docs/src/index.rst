@@ -59,7 +59,6 @@ To learn about the core concepts of AGNext, read the `overview <core-concepts/ov
     reference/agnext.components
     reference/agnext.application
     reference/agnext.core
-    reference/agnext.worker
 
 .. toctree::
     :caption: Other
