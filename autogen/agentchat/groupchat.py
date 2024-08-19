@@ -5,7 +5,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from ..code_utils import content_str
 from ..exception_utils import AgentNameConflict, NoEligibleSpeaker, UndefinedNextAgent
@@ -140,7 +140,7 @@ class GroupChat:
     The names are case-sensitive and should not be abbreviated or changed.
     The only names that are accepted are {agentlist}.
     Respond with ONLY the name of the speaker and DO NOT provide a reason."""
-    select_speaker_transform_messages: Optional[transform_messages.TransformMessages] = None  # type: ignore
+    select_speaker_transform_messages: Optional[Any] = None
     select_speaker_auto_verbose: Optional[bool] = False
     role_for_select_speaker_messages: Optional[str] = "system"
 
