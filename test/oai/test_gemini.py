@@ -13,6 +13,7 @@ try:
     from vertexai.generative_models import HarmCategory as VertexAIHarmCategory
     from vertexai.generative_models import Part as VertexAIPart
     from vertexai.generative_models import SafetySetting as VertexAISafetySetting
+    from vertexai.generative_models import ToolConfig as VertexAIToolConfig
 
     from autogen.oai.gemini import GeminiClient
 
@@ -23,6 +24,7 @@ except ImportError:
     VertexAIHarmCategory = object
     VertexAISafetySetting = object
     VertexAIPart = object
+    VertexAIToolConfig = object
     vertexai_global_config = object
     InternalServerError = object
     skip = True
@@ -249,6 +251,36 @@ def test_vertexai_safety_setting_list(gemini_client):
     ), "The length of the safety settings is incorrect"
     settings_comparison = compare_safety_settings(converted_safety_settings, expected_safety_settings)
     assert all(settings_comparison), "Converted safety settings are incorrect"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_tool_config(gemini_client):
+
+    tools = [{"function_name": "calculator"}]
+
+    tool_config = {"function_calling_config": {"mode": "ANY"}}
+
+    expected_tool_config = VertexAIToolConfig(
+        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(
+            # ANY mode forces the model to predict a function call
+            mode=VertexAIToolConfig.FunctionCallingConfig.Mode.ANY,
+            # Allowed functions to call when the mode is ANY. If empty, any one of
+            # the provided functions are called.
+            allowed_function_names=["calculator"],
+        )
+    )
+
+    converted_tool_config = GeminiClient._to_vertexai_tool_config(tool_config, tools)
+
+    converted_mode = converted_tool_config._gapic_tool_config.function_calling_config.mode
+    expected_mode = expected_tool_config._gapic_tool_config.function_calling_config.mode
+    converted_allowed_func = converted_tool_config._gapic_tool_config.function_calling_config.allowed_function_names
+    expected_allowed_func = expected_tool_config._gapic_tool_config.function_calling_config.allowed_function_names
+
+    assert converted_mode == expected_mode, "Function calling mode is not converted correctly"
+    assert (
+        converted_allowed_func == expected_allowed_func
+    ), "Function calling allowed function names is not converted correctly"
 
 
 # Test error handling

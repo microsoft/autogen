@@ -624,36 +624,36 @@ class GeminiClient:
         else:
             return safety_settings
 
-    # TODO: check for possible improvements and test if it works properly
     @staticmethod
     def _to_vertexai_tool_config(tool_config, tools):
         """Convert tool config to VertexAI format,
         like when specifying them in the OAI_CONFIG_LIST
         """
-        if isinstance(tool_config, list) and all(
-            [isinstance(tool_config_entry, dict) for tool_config_entry in tool_config]
+        if (
+            isinstance(tool_config, dict)
+            and (len(tool_config) > 0)
+            and all([isinstance(tool_config[tool_config_entry], dict) for tool_config_entry in tool_config])
         ):
-            for tool_config_entry in tool_config:
-                if (
-                    tool_config_entry["function_calling_config"]
-                    not in VertexAIToolConfig.FunctionCallingConfig.Mode.__members__
-                ):
-                    invalid_mode = tool_config_entry["function_calling_config"]
-                    logger.error(f"Function calling mode {invalid_mode} is invalid")
-                    return None
-                else:
-                    # Currently, there is only function calling config
-                    func_calling_config_params = {}
-                    func_calling_config_params["mode"] = VertexAIToolConfig.FunctionCallingConfig.Mode[
-                        tool_config_entry["function_calling_config"]
-                    ]
-                    if func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY:
-                        # The function names are not yet known when parsing the OAI_CONFIG_LIST
-                        func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
-                    vertexai_tool_config = VertexAIToolConfig(
-                        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(**func_calling_config_params)
-                    )
-                    return vertexai_tool_config
+            if (
+                tool_config["function_calling_config"]["mode"]
+                not in VertexAIToolConfig.FunctionCallingConfig.Mode.__members__
+            ):
+                invalid_mode = tool_config["function_calling_config"]
+                logger.error(f"Function calling mode {invalid_mode} is invalid")
+                return None
+            else:
+                # Currently, there is only function calling config
+                func_calling_config_params = {}
+                func_calling_config_params["mode"] = VertexAIToolConfig.FunctionCallingConfig.Mode[
+                    tool_config["function_calling_config"]["mode"]
+                ]
+                if func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY:
+                    # The function names are not yet known when parsing the OAI_CONFIG_LIST
+                    func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
+                vertexai_tool_config = VertexAIToolConfig(
+                    function_calling_config=VertexAIToolConfig.FunctionCallingConfig(**func_calling_config_params)
+                )
+                return vertexai_tool_config
         elif isinstance(tool_config, VertexAIToolConfig):
             return tool_config
         else:
