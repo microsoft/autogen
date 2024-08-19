@@ -97,7 +97,7 @@ setuptools.setup(
     name="pyautogen",
     version=__version__,
     author="AutoGen",
-    author_email="auto-gen@outlook.com",
+    author_email="autogen-contact@service.microsoft.com",
     description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
