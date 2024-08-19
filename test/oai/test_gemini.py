@@ -262,10 +262,7 @@ def test_vertexai_tool_config(gemini_client):
 
     expected_tool_config = VertexAIToolConfig(
         function_calling_config=VertexAIToolConfig.FunctionCallingConfig(
-            # ANY mode forces the model to predict a function call
             mode=VertexAIToolConfig.FunctionCallingConfig.Mode.ANY,
-            # Allowed functions to call when the mode is ANY. If empty, any one of
-            # the provided functions are called.
             allowed_function_names=["calculator"],
         )
     )
@@ -417,6 +414,57 @@ def test_vertexai_create_response(mock_init, mock_generative_model, gemini_clien
     )
 
     assert response.choices[0].message.content == "Example response", "Response content should match expected output"
+
+
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+@patch("autogen.oai.gemini.VertexAIPart")
+@patch("autogen.oai.gemini.VertexAIContent")
+@patch("autogen.oai.gemini.GenerativeModel")
+@patch("autogen.oai.gemini.vertexai.init")
+def test_vertexai_create_function_call_response(
+    mock_init, mock_generative_model, mock_content, mock_part, gemini_client_with_credentials
+):
+    # Mock the genai model configuration and creation process
+    mock_chat = MagicMock()
+    mock_model = MagicMock()
+    mock_init.return_value = None
+    mock_generative_model.return_value = mock_model
+    mock_model.start_chat.return_value = mock_chat
+
+    mock_part.to_dict.return_value = {
+        "function_call": {"name": "function_name", "args": {"arg1": "value1", "arg2": "value2"}}
+    }
+
+    # Set up a mock for the chat history item access and the text attribute return
+    mock_history_part = MagicMock()
+    mock_history_part.text = None
+    mock_history_part.function_call.name = "function_name"
+    mock_history_part.function_call.args = {"arg1": "value1", "arg2": "value2"}
+    mock_chat.history.__getitem__.return_value.parts.__iter__.return_value = iter([mock_history_part])
+
+    # Setup the mock to return a mocked chat response
+    mock_chat.send_message.return_value = MagicMock(
+        history=[
+            MagicMock(
+                parts=[
+                    MagicMock(
+                        function_call=MagicMock(name="function_name", arguments='{"arg1": "value1", "arg2": "value2"}')
+                    )
+                ]
+            )
+        ]
+    )
+
+    # Call the create method
+    response = gemini_client_with_credentials.create(
+        {"model": "gemini-pro", "messages": [{"content": "Hello", "role": "user"}], "stream": False}
+    )
+
+    # Assertions to check if response is structured as expected
+    assert (
+        response.choices[0].message.tool_calls[0].function.name == "function_name"
+        and json.loads(response.choices[0].message.tool_calls[0].function.arguments)["arg1"] == "value1"
+    ), "Response content should match expected output"
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
