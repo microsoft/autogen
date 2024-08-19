@@ -2,16 +2,20 @@
 
 Retrieval Augmented Generation (RAG) is a powerful technique that combines language models with external knowledge retrieval to improve the quality and relevance of generated responses.
 
-One way to realize RAG in AutoGen is to construct agent chats with `RetrieveAssistantAgent` and `RetrieveUserProxyAgent` classes.
+One way to realize RAG in AutoGen is to construct agent chats with `AssistantAgent` and `RetrieveUserProxyAgent` classes.
 
 ## Example Setup: RAG with Retrieval Augmented Agents
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
 
-### Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+### Step 1. Create an instance of `AssistantAgent` and `RetrieveUserProxyAgent`.
 
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
+
+Refer to the [doc](https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/retrieve_user_proxy_agent)
+for more information on the detailed configurations.
+
 ```python
-assistant = RetrieveAssistantAgent(
+assistant = AssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
     llm_config={
@@ -56,14 +60,14 @@ ragproxyagent.initiate_chat(
 ## Example Setup: RAG with Retrieval Augmented Agents with PGVector
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
 
-### Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+### Step 1. Create an instance of `AssistantAgent` and `RetrieveUserProxyAgent`.
 
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
 
 Specify the connection_string, or the host, port, database, username, and password in the db_config.
 
 ```python
-assistant = RetrieveAssistantAgent(
+assistant = AssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
     llm_config={

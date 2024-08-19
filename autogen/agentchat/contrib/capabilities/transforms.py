@@ -53,13 +53,16 @@ class MessageHistoryLimiter:
     It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
-    def __init__(self, max_messages: Optional[int] = None):
+    def __init__(self, max_messages: Optional[int] = None, keep_first_message: bool = False):
         """
         Args:
             max_messages Optional[int]: Maximum number of messages to keep in the context. Must be greater than 0 if not None.
+            keep_first_message bool: Whether to keep the original first message in the conversation history.
+                Defaults to False.
         """
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages
+        self._keep_first_message = keep_first_message
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Truncates the conversation history to the specified maximum number of messages.
@@ -75,10 +78,31 @@ class MessageHistoryLimiter:
             List[Dict]: A new list containing the most recent messages up to the specified maximum.
         """
 
-        if self._max_messages is None:
+        if self._max_messages is None or len(messages) <= self._max_messages:
             return messages
 
-        return messages[-self._max_messages :]
+        truncated_messages = []
+        remaining_count = self._max_messages
+
+        # Start with the first message if we need to keep it
+        if self._keep_first_message:
+            truncated_messages = [messages[0]]
+            remaining_count -= 1
+
+        # Loop through messages in reverse
+        for i in range(len(messages) - 1, 0, -1):
+            if remaining_count > 1:
+                truncated_messages.insert(1 if self._keep_first_message else 0, messages[i])
+            if remaining_count == 1:
+                # If there's only 1 slot left and it's a 'tools' message, ignore it.
+                if messages[i].get("role") != "tool":
+                    truncated_messages.insert(1, messages[i])
+
+            remaining_count -= 1
+            if remaining_count == 0:
+                break
+
+        return truncated_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_len = len(pre_transform_messages)

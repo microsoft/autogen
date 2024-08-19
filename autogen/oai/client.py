@@ -457,8 +457,11 @@ class OpenAIWrapper:
     def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Update openai_config with AWS credentials from config."""
         required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
-
+        optional_keys = ["aws_session_token"]
         for key in required_keys:
+            if key in config:
+                openai_config[key] = config[key]
+        for key in optional_keys:
             if key in config:
                 openai_config[key] = config[key]
 
