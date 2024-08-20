@@ -1,7 +1,7 @@
 # Contributors
 
-## Special thanks to all the people who have helped this project so far:
-> These individuals have dedicated their time and expertise to improve this project. We are deeply grateful for their contributions.
+## Special thanks to all the people who help this project so far:
+> These individuals dedicate their time and expertise to improve this project. We are deeply grateful for their contributions.
 
 | Name | GitHub Handle | Organization | Features | Roadmap Lead | Additional  Information |
 |---|---|---|---|---|---|
@@ -18,6 +18,11 @@
 | Xiaoyun Zhang | [LittleLittleCloud](https://github.com/LittleLittleCloud) | Microsoft | AutoGen.Net, group chat | Yes | [Backlog - AutoGen.Net](https://github.com/microsoft/autogen/issues) - Available most of the time (PST) |
 | Yiran Wu | [yiranwu0](https://github.com/yiranwu0) | Penn State University | alt-models, group chat, logging | Yes | |
 | Beibin Li | [BeibinLi](https://github.com/BeibinLi) | Microsoft Research | alt-models | Yes | |
+| Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  | - | |
+| Adam Fourney | [afourney](https://github.com/afourney) | Microsoft Research |  | - | |
+| Ricky Loynd | [rickyloyn-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research |  | - | |
+| Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  | - | |
+| Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  | - | |
 
 
 ## I would like to join this list. How can I help the project?
