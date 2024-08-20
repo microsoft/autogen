@@ -64,7 +64,7 @@ public class AnthropicClientAgent : IStreamingAgent
     {
         var chatCompletionRequest = new ChatCompletionRequest()
         {
-            SystemMessage = _systemMessage,
+            SystemMessage = [new SystemMessage { Text = _systemMessage }],
             MaxTokens = options?.MaxToken ?? _maxTokens,
             Model = _modelName,
             Stream = shouldStream,

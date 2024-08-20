@@ -16,7 +16,7 @@ public class RunCodeSnippetCodeSnippet
 
         #region code_snippet_1_1
         var kernel = DotnetInteractiveKernelBuilder
-            .CreateDefaultBuilder() // add C# and F# kernels
+            .CreateDefaultInProcessKernelBuilder() // add C# and F# kernels
             .Build();
         #endregion code_snippet_1_1
 
@@ -67,7 +67,7 @@ public class RunCodeSnippetCodeSnippet
 
         #region code_snippet_1_4
         var pythonKernel = DotnetInteractiveKernelBuilder
-            .CreateDefaultBuilder()
+            .CreateDefaultInProcessKernelBuilder()
             .AddPythonKernel(venv: "python3")
             .Build();
 
