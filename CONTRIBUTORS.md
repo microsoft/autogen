@@ -1,14 +1,7 @@
 # Contributors
 
-
-
 ## Special thanks to all the people who have helped this project so far:
-
-
-
 > These individuals have dedicated their time and expertise to improve this project. We are deeply grateful for their contributions.
-
-
 
 | Name | GitHub Handle | Organization | Features | Roadmap Lead | Additional  Information |
 |---|---|---|---|---|---|
@@ -27,16 +20,13 @@
 | Beibin Li | [BeibinLi](https://github.com/BeibinLi) | Microsoft Research | alt-models | Yes | |
 
 
-
 ## I would like to join this list. How can I help the project?
-
 > We're always looking for new contributors to join our team and help improve the project.
 
 
-
 ## Are you missing from this list?
-
 > Please open a PR to help us fix this.
+
 
 For more information, please refer to our [CONTRIBUTING](CONTRIBUTING.md) guide.
 
