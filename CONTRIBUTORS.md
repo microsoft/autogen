@@ -9,7 +9,7 @@
 | Chi Wang | [sonichi](https://github.com/sonichi) | - | all | Yes | |
 | Li Jiang | [thinkall](https://github.com/thinkall) | Microsoft | rag, autobuilder, group chat | Yes | [Issue #1657](https://github.com/microsoft/autogen/issues/1657) - Beijing, GMT+8 |
 | Mark Sze | [marklysze](https://github.com/marklysze) | - | alt-models, group chat | No | Generally available (Sydney, AU time) - Group Chat "auto" speaker selection |
-| Hrushikesh Dokala | [Hk669](https://github.com/Hk669) | - | alt-models, swebench, logging, rag | No | [Issue #2946](https://github.com/microsoft/autogen/issues/2946), [Pull Request #2933](https://github.com/microsoft/autogen/pull/2933) - Available most of the time (IST, GMT+5:30) |
+| Hrushikesh Dokala | [Hk669](https://github.com/Hk669) | - | alt-models, swebench, logging, rag | No | [Issue #2946](https://github.com/microsoft/autogen/issues/2946), [Pull Request #2933](https://github.com/microsoft/autogen/pull/2933) - Available most of the time (India, GMT+5:30) |
 | Jiale Liu | [LeoLjl](https://github.com/LeoLjl) | Penn State University | autobuild, group chat | No | |
 | Shaokun Zhang | [skzhang1](https://github.com/skzhang1) | Penn State University | AgentOptimizer, Teachability            | Yes | [Issue #521](https://github.com/microsoft/autogen/issues/521)                         |
 | Rajan Chari | [rajan-chari](https://github.com/rajan-chari) | Microsoft Research | CAP, Survey of other frameworks | No | |
