@@ -21,14 +21,12 @@
 
 
 ## I would like to join this list. How can I help the project?
-> We're always looking for new contributors to join our team and help improve the project.
+> We're always looking for new contributors to join our team and help improve the project. For more information, please refer to our [CONTRIBUTING](CONTRIBUTING.md) guide.
 
 
 ## Are you missing from this list?
 > Please open a PR to help us fix this.
 
-
-For more information, please refer to our [CONTRIBUTING](CONTRIBUTING.md) guide.
 
 ## Acknowledgements
 This template was adapted from [GitHub Template Guide](https://github.com/cezaraugusto/github-template-guidelines/blob/master/.github/CONTRIBUTORS.md) by [cezaraugusto](https://github.com/cezaraugusto).
