@@ -120,22 +120,7 @@ public class FSM_Group_Chat
             modelName: model,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
-            .RegisterPrintMessage()
-            .RegisterMiddleware(async (msgs, option, agent, ct) =>
-            {
-                var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
-                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
-
-                // if application is complete, exit conversation by sending termination message
-                if (lastReply.GetContent()?.Contains("Application information is saved to database.") is true)
-                {
-                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
-                }
-                else
-                {
-                    return reply;
-                }
-            });
+            .RegisterPrintMessage();
         #endregion Create_Assistant_Agent
         return chatAgent;
     }
@@ -193,9 +178,13 @@ public class FSM_Group_Chat
 
         var initialMessage = await assistantAgent.SendAsync("Generate a greeting meesage for user and start the conversation by asking what's their name.");
 
-        var chatHistory = await userAgent.SendMessageToGroupAsync(groupChat, [initialMessage], maxRound: 30);
-
-        var lastMessage = chatHistory.Last();
-        Console.WriteLine(lastMessage.GetContent());
+        var chatHistory = new List<IMessage> { initialMessage };
+        await foreach (var msg in groupChat.SendAsync(chatHistory, maxRound: 30))
+        {
+            if (msg.GetContent().ToLower().Contains("application information is saved to database.") is true)
+            {
+                break;
+            }
+        }
     }
 }

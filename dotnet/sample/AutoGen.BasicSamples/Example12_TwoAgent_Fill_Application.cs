@@ -120,22 +120,7 @@ public partial class TwoAgent_Fill_Application
             modelName: gpt3Config.DeploymentName,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
-            .RegisterPrintMessage()
-            .RegisterMiddleware(async (msgs, option, agent, ct) =>
-            {
-                var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
-                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
-
-                // if application is complete, exit conversation by sending termination message
-                if (lastReply.GetContent().Contains("Application information is saved to database."))
-                {
-                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
-                }
-                else
-                {
-                    return reply;
-                }
-            });
+            .RegisterPrintMessage();
 
         return chatAgent;
     }
@@ -191,9 +176,13 @@ public partial class TwoAgent_Fill_Application
         var groupChatManager = new GroupChatManager(groupChat);
         var initialMessage = await assistantAgent.SendAsync("Generate a greeting meesage for user and start the conversation by asking what's their name.");
 
-        var chatHistory = await userAgent.SendAsync(groupChatManager, [initialMessage], maxRound: 30);
-
-        var lastMessage = chatHistory.Last();
-        Console.WriteLine(lastMessage.GetContent());
+        var chatHistory = new List<IMessage> { initialMessage };
+        await foreach (var msg in userAgent.SendAsync(groupChatManager, chatHistory, maxRound: 30))
+        {
+            if (msg.GetContent().ToLower().Contains("application information is saved to database.") is true)
+            {
+                break;
+            }
+        }
     }
 }
