@@ -9,6 +9,7 @@ from ._agent_metadata import AgentMetadata
 from ._agent_props import AgentChildren
 from ._agent_proxy import AgentProxy
 from ._agent_runtime import AgentRuntime
+from ._agent_type import AgentType
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
@@ -33,4 +34,5 @@ __all__ = [
     "Subscription",
     "MessageContext",
     "Serialization",
+    "AgentType",
 ]

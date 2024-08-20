@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from agnext.core import Subscription, TopicId
+from agnext.core import AgentType, Subscription, TopicId
 
 from ..core import (
     Agent,
@@ -445,10 +445,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-    ) -> None:
+    ) -> AgentType:
         if type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
         self._agent_factories[type] = agent_factory
+        return AgentType(type)
 
     async def _invoke_agent_factory(
         self,

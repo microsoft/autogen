@@ -1,8 +1,13 @@
 from typing_extensions import Self
 
+from ._agent_type import AgentType
+
 
 class AgentId:
-    def __init__(self, type: str, key: str) -> None:
+    def __init__(self, type: str | AgentType, key: str) -> None:
+        if isinstance(type, AgentType):
+            type = type.type
+
         if type.isidentifier() is False:
             raise ValueError(f"Invalid type: {type}")
 

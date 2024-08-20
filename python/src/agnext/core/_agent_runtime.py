@@ -5,6 +5,7 @@ from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, r
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
+from ._agent_type import AgentType
 from ._cancellation_token import CancellationToken
 from ._subscription import Subscription
 from ._topic import TopicId
@@ -70,7 +71,7 @@ class AgentRuntime(Protocol):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]],
-    ) -> None:
+    ) -> AgentType:
         """Register an agent factory with the runtime associated with a specific type. The type must be unique.
 
         Args:

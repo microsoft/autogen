@@ -28,7 +28,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext, Subscription, TopicId
+from agnext.core import MESSAGE_TYPE_REGISTRY, AgentType, MessageContext, Subscription, TopicId
 
 from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentRuntime, CancellationToken
 from .protos import AgentId as AgentIdProto
@@ -352,7 +352,7 @@ class WorkerAgentRuntime(AgentRuntime):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]],
-    ) -> None:
+    ) -> AgentType:
         if type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
         self._agent_factories[type] = agent_factory
@@ -361,6 +361,7 @@ class WorkerAgentRuntime(AgentRuntime):
         message = Message(registerAgentType=RegisterAgentType(type=type))
         await self._host_connection.send(message)
         logger.info("Sent registerAgentType message for %s", type)
+        return AgentType(type)
 
     async def _invoke_agent_factory(
         self,
