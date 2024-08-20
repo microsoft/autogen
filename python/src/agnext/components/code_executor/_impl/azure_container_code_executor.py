@@ -1,12 +1,16 @@
-# File based from: https://github.com/microsoft/autogen/blob/main/autogen/coding/local_commandline_code_executor.py
 # Credit to original authors
 
 import asyncio
+import os
+from pathlib import Path
 from string import Template
 from typing import Any, Callable, ClassVar, List, Optional, Protocol, Sequence, Union
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import aiohttp
+
+# async functions shouldn't use open()
+from anyio import open_file
 from azure.core.credentials import AccessToken
 
 # from azure.mgmt.appcontainers import ContainerAppsAPIClient
@@ -33,6 +37,25 @@ class TokenProvider(Protocol):
     ) -> AccessToken: ...
 
 
+# class FileInfo:
+#    def __init__(self, filename: str, filesize: int, last_modified: str):
+#        self._filename = filename
+#        self._filesize = filesize
+#        self._last_modified = datetime.fromisoformat(last_modified)
+#    @property
+#    def filename(self) -> str:
+#        return self._filename
+#    @property
+#    def filesize(self) -> int:
+#        return self._filesize
+#    @property
+#    def last_modified(self) -> datetime:
+#        return self._last_modified
+#
+#    def __str__(self):
+#        return f"{self._filename}; {self._filesize} bytes; {self._last_modified}"
+
+
 class AzureContainerCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "python",
@@ -41,11 +64,14 @@ class AzureContainerCodeExecutor(CodeExecutor):
 
 $functions"""
 
+    _AZURE_API_VER = "2024-02-02-preview"
+
     def __init__(
         self,
         pool_management_endpoint: str,
         credential: TokenProvider,
         timeout: int = 60,
+        work_dir: Union[Path, str] = Path("."),
         functions: Sequence[
             Union[
                 FunctionWithRequirements[Any, A],
@@ -54,7 +80,6 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
-        persist_session: bool = False,
     ):
         """(Experimental) A code executor class that executes code through a an Azure
         Container Apps instance.
@@ -70,17 +95,25 @@ $functions"""
             pool_management_endpoint (str): The azure container apps dynamic sessions endpoint.
             credential (TokenProvider): An object that implements the get_token function.
             timeout (int): The timeout for the execution of any single code block. Default is 60.
+            work_dir (str): The working directory for the code execution. If None,
+                a default working directory will be used. The default working
+                directory is the current directory ".".
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
-            persist_session (bool): True - reuse the same azure session ID until restart() is called. False - Refresh the azure session ID for every call to execute_code(). Default is False.
         """
 
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
+        if isinstance(work_dir, str):
+            work_dir = Path(work_dir)
+
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
 
         self._functions_module = functions_module
+
+        work_dir.mkdir(exist_ok=True)
+        self._work_dir: Path = work_dir
 
         self._timeout = timeout
 
@@ -94,10 +127,11 @@ $functions"""
 
         self._pool_management_endpoint = pool_management_endpoint
         self._access_token: str | None = None
-        self._persist_session = persist_session
-        self._uuid: UUID = uuid4()
+        self._session_id: str = str(uuid4())
         self._available_packages: set[str] | None = None
         self._credential: TokenProvider = credential
+        # cwd needs to be set to /mnt/data to properly read uploaded files and download written files
+        self._setup_cwd_complete = False
 
     # TODO: expiration?
     def _ensure_access_token(self) -> None:
@@ -136,6 +170,18 @@ $functions"""
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
         return self._timeout
+
+    @property
+    def work_dir(self) -> Path:
+        """(Experimental) The working directory for the code execution."""
+        return self._work_dir
+
+    def _construct_url(self, path: str) -> str:
+        endpoint = self._pool_management_endpoint
+        if not endpoint.endswith("/"):
+            endpoint += "/"
+        url = endpoint + f"{path}?api-version={self._AZURE_API_VER}&identifier={self._session_id}"
+        return url
 
     async def get_available_packages(self, cancellation_token: CancellationToken) -> set[str]:
         if self._available_packages is not None:
@@ -180,6 +226,134 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
         self._setup_functions_complete = True
 
+    async def _setup_cwd(self, cancellation_token: CancellationToken) -> None:
+        # Change the cwd to /mnt/data to properly have access to uploaded files
+        exec_result = await self._execute_code_dont_check_setup(
+            [CodeBlock(code="import os; os.chdir('/mnt/data')", language="python")], cancellation_token
+        )
+
+        if exec_result.exit_code != 0:
+            raise ValueError("Failed to set up Azure container working directory")
+        self._setup_cwd_complete = True
+
+    async def get_file_list(self, cancellation_token: CancellationToken) -> List[str]:
+        self._ensure_access_token()
+        timeout = aiohttp.ClientTimeout(total=float(self._timeout))
+        headers = {
+            "Authorization": f"Bearer {self._access_token}",
+        }
+        url = self._construct_url("files")
+        async with aiohttp.ClientSession(timeout=timeout) as client:
+            task = asyncio.create_task(
+                client.get(
+                    url,
+                    headers=headers,
+                )
+            )
+            cancellation_token.link_future(task)
+            try:
+                resp = await task
+                resp.raise_for_status()
+                data = await resp.json()
+            except asyncio.TimeoutError as e:
+                # e.add_note is only in py 3.11+
+                raise asyncio.TimeoutError("Timeout getting file list") from e
+            except asyncio.CancelledError as e:
+                # e.add_note is only in py 3.11+
+                raise asyncio.CancelledError("File list retrieval cancelled") from e
+            except aiohttp.ClientResponseError as e:
+                raise ConnectionError("Error while getting file list") from e
+
+        values = data["value"]
+        file_info_list: List[str] = []
+        for value in values:
+            file = value["properties"]
+            file_info_list.append(file["filename"])
+        return file_info_list
+
+    async def upload_files(self, files: List[Union[Path, str]], cancellation_token: CancellationToken) -> None:
+        self._ensure_access_token()
+        # TODO: Better to use the client auth system rather than headers
+        headers = {"Authorization": f"Bearer {self._access_token}"}
+        url = self._construct_url("files/upload")
+        timeout = aiohttp.ClientTimeout(total=float(self._timeout))
+        async with aiohttp.ClientSession(timeout=timeout) as client:
+            for file in files:
+                file_path = os.path.join(self._work_dir, file)
+                if not os.path.isfile(file_path):
+                    # TODO: what to do here?
+                    raise FileNotFoundError(f"{file} does not exist")
+
+                data = aiohttp.FormData()
+                async with await open_file(file_path, "rb") as f:
+                    data.add_field(
+                        "file",
+                        f,
+                        filename=os.path.basename(file_path),
+                        content_type="application/octet-stream",
+                    )
+
+                    task = asyncio.create_task(
+                        client.post(
+                            url,
+                            headers=headers,
+                            data=data,
+                        )
+                    )
+
+                    cancellation_token.link_future(task)
+                    try:
+                        resp = await task
+                        resp.raise_for_status()
+
+                    except asyncio.TimeoutError as e:
+                        # e.add_note is only in py 3.11+
+                        raise asyncio.TimeoutError("Timeout uploading files") from e
+                    except asyncio.CancelledError as e:
+                        # e.add_note is only in py 3.11+
+                        raise asyncio.CancelledError("Uploading files cancelled") from e
+                    except aiohttp.ClientResponseError as e:
+                        raise ConnectionError("Error while uploading files") from e
+
+    async def download_files(self, files: List[Union[Path, str]], cancellation_token: CancellationToken) -> List[str]:
+        self._ensure_access_token()
+        available_files = await self.get_file_list(cancellation_token)
+        # TODO: Better to use the client auth system rather than headers
+        headers = {"Authorization": f"Bearer {self._access_token}"}
+        timeout = aiohttp.ClientTimeout(total=float(self._timeout))
+        local_paths: List[str] = []
+        async with aiohttp.ClientSession(timeout=timeout) as client:
+            for file in files:
+                if file not in available_files:
+                    # TODO: what's the right thing to do here?
+                    raise FileNotFoundError(f"{file} does not exist")
+
+                url = self._construct_url(f"files/content/{file}")
+
+                task = asyncio.create_task(
+                    client.get(
+                        url,
+                        headers=headers,
+                    )
+                )
+                cancellation_token.link_future(task)
+                try:
+                    resp = await task
+                    resp.raise_for_status()
+                    local_path = os.path.join(self._work_dir, file)
+                    local_paths.append(local_path)
+                    async with await open_file(local_path, "wb") as f:
+                        await f.write(await resp.read())
+                except asyncio.TimeoutError as e:
+                    # e.add_note is only in py 3.11+
+                    raise asyncio.TimeoutError("Timeout downloading files") from e
+                except asyncio.CancelledError as e:
+                    # e.add_note is only in py 3.11+
+                    raise asyncio.CancelledError("Downloading files cancelled") from e
+                except aiohttp.ClientResponseError as e:
+                    raise ConnectionError("Error while downloading files") from e
+        return local_paths
+
     async def execute_code_blocks(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CodeResult:
@@ -188,15 +362,18 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
             cancellation_token (CancellationToken): a token to cancel the operation
+            input_files (Optional[Union[Path, str]]): Any files the code blocks will need to access
 
         Returns:
             CodeResult: The result of the code execution."""
-        if not self._persist_session:
-            self.restart()
+
+        self._ensure_access_token()
         if self._available_packages is None:
             await self._populate_available_packages(cancellation_token)
         if not self._setup_functions_complete:
             await self._setup_functions(cancellation_token)
+        if not self._setup_cwd_complete:
+            await self._setup_cwd(cancellation_token)
 
         return await self._execute_code_dont_check_setup(code_blocks, cancellation_token)
 
@@ -206,17 +383,19 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
     ) -> CodeResult:
         logs_all = ""
         exitcode = 0
-        self._ensure_access_token()
 
         # TODO: Better to use the client auth system rather than headers
-        headers = {"Authorization": f"Bearer {self._access_token}"}
+        assert self._access_token is not None
+        headers = {
+            "Authorization": f"Bearer {self._access_token}",
+            "Content-Type": "application/json",
+        }
         properties = {
-            "identifier": str(self._uuid),
             "codeInputType": "inline",
             "executionType": "synchronous",
-            "pythonCode": "",
-            "timeoutInSeconds": self._timeout,
+            "code": "",  # Filled in later
         }
+        url = self._construct_url("code/execute")
         timeout = aiohttp.ClientTimeout(total=float(self._timeout))
         async with aiohttp.ClientSession(timeout=timeout) as client:
             for code_block in code_blocks:
@@ -241,11 +420,11 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
                         logs_all += "\n" + f"Python packages unavailable in environment: {missing_pkgs}"
                         break
 
-                properties["pythonCode"] = code_block.code
+                properties["code"] = code_block.code
 
                 task = asyncio.create_task(
                     client.post(
-                        self._pool_management_endpoint + "/python/execute",
+                        url,
                         headers=headers,
                         json={"properties": properties},
                     )
@@ -253,19 +432,14 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
                 cancellation_token.link_future(task)
                 try:
-                    response = await asyncio.wait_for(task, self._timeout)
+                    response = await task
                     response.raise_for_status()
                     data = await response.json()
+                    data = data["properties"]
                     logs_all += data.get("stderr", "") + data.get("stdout", "")
-
                     if "Success" in data["status"]:
                         logs_all += str(data["result"])
                     elif "Failure" in data["status"]:
-                        exitcode = 1
-                    # This case is in the official code example https://github.com/Azure-Samples/container-apps-dynamic-sessions-samples/blob/dd2b3827bc8ea489b8f088654847239e2d51743f/autogen-python-webapi/aca_sessions_executor.py
-                    # I have not seen this case actually occur before
-                    if "error" in data:
-                        logs_all += f"\n{data['error']}"
                         exitcode = 1
 
                 except asyncio.TimeoutError as e:
@@ -284,7 +458,8 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
-        self._uuid = uuid4()
+        self._session_id = str(uuid4())
         self._setup_functions_complete = False
         self._access_token = None
         self._available_packages = None
+        self._setup_cwd_complete = False
