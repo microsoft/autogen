@@ -280,6 +280,32 @@ def test_vertexai_tool_config(gemini_client):
     ), "Function calling allowed function names is not converted correctly"
 
 
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
+def test_vertexai_tool_config_no_functions(gemini_client):
+
+    tools = []
+
+    tool_config = {"function_calling_config": {"mode": "ANY"}}
+
+    expected_tool_config = VertexAIToolConfig(
+        function_calling_config=VertexAIToolConfig.FunctionCallingConfig(
+            mode=VertexAIToolConfig.FunctionCallingConfig.Mode.ANY,
+        )
+    )
+
+    converted_tool_config = GeminiClient._to_vertexai_tool_config(tool_config, tools)
+
+    converted_mode = converted_tool_config._gapic_tool_config.function_calling_config.mode
+    expected_mode = expected_tool_config._gapic_tool_config.function_calling_config.mode
+    converted_allowed_func = converted_tool_config._gapic_tool_config.function_calling_config.allowed_function_names
+    expected_allowed_func = expected_tool_config._gapic_tool_config.function_calling_config.allowed_function_names
+
+    assert converted_mode == expected_mode, "Function calling mode is not converted correctly"
+    assert (
+        converted_allowed_func == expected_allowed_func
+    ), "Function calling allowed function names is not converted correctly"
+
+
 # Test error handling
 @patch("autogen.oai.gemini.genai")
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")

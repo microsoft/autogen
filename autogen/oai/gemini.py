@@ -124,7 +124,7 @@ class GeminiClient:
 
         Args:
             api_key (str): The API key for using Gemini.
-                credentials (google.auth.credentials.Credentials): credentials to be used for authentication with vertexai.
+            credentials (google.auth.credentials.Credentials): credentials to be used for authentication with vertexai.
             google_application_credentials (str): Path to the JSON service account key file of the service account.
                 Alternatively, the GOOGLE_APPLICATION_CREDENTIALS environment variable
                 can also be set instead of using this argument.
@@ -647,9 +647,13 @@ class GeminiClient:
                 func_calling_config_params["mode"] = VertexAIToolConfig.FunctionCallingConfig.Mode[
                     tool_config["function_calling_config"]["mode"]
                 ]
-                # if func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY:
-                #    # The function names are not yet known when parsing the OAI_CONFIG_LIST
-                #    func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
+                if (
+                    (func_calling_config_params["mode"] == VertexAIToolConfig.FunctionCallingConfig.Mode.ANY)
+                    and (len(tools) > 0)
+                    and all(["function_name" in tool for tool in tools])
+                ):
+                    # The function names are not yet known when parsing the OAI_CONFIG_LIST
+                    func_calling_config_params["allowed_function_names"] = [tool["function_name"] for tool in tools]
                 vertexai_tool_config = VertexAIToolConfig(
                     function_calling_config=VertexAIToolConfig.FunctionCallingConfig(**func_calling_config_params)
                 )
