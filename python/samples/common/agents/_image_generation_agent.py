@@ -7,8 +7,7 @@ from agnext.components import (
     message_handler,
 )
 from agnext.components.memory import ChatMemory
-from agnext.core import MessageContext
-from agnext.core._cancellation_token import CancellationToken
+from agnext.core import CancellationToken, MessageContext
 
 from ..types import (
     Message,
@@ -58,7 +57,8 @@ class ImageGenerationAgent(TypeRoutedAgent):
         image is published as a MultiModalMessage."""
 
         response = await self._generate_response(ctx.cancellation_token)
-        await self.publish_message(response)
+        assert ctx.topic_id is not None
+        await self.publish_message(response, topic_id=ctx.topic_id)
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:
         messages = await self._memory.get_messages()

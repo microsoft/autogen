@@ -17,6 +17,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
+from agnext.core import AgentId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -45,10 +46,11 @@ class ChatCompletionAgent(TypeRoutedAgent):
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    agent = await runtime.register_and_get(
+    await runtime.register(
         "chat_agent",
         lambda: ChatCompletionAgent("Chat agent", get_chat_completion_client_from_envs(model="gpt-4o-mini")),
     )
+    agent = AgentId("chat_agent", "default")
 
     run_context = runtime.start()
 

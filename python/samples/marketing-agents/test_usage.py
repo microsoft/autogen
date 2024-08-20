@@ -3,7 +3,7 @@ import os
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import Image, TypeRoutedAgent, message_handler
-from agnext.core import MessageContext
+from agnext.core import MessageContext, TopicId
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
@@ -34,13 +34,15 @@ async def main() -> None:
 
     ctx = runtime.start()
 
+    topic_id = TopicId("default", "default")
+
     await runtime.publish_message(
-        AuditText(text="Buy my product for a MASSIVE 50% discount.", UserId="user-1"), namespace="default"
+        AuditText(text="Buy my product for a MASSIVE 50% discount.", UserId="user-1"), topic_id=topic_id
     )
 
     await runtime.publish_message(
         ArticleCreated(article="The best article ever written about trees and rocks", UserId="user-2"),
-        namespace="default",
+        topic_id=topic_id,
     )
 
     await ctx.stop_when_idle()

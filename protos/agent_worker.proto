@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package agents;
 
-// TODO: update
 message AgentId {
     string name = 1;
     string namespace = 2;
@@ -25,10 +24,11 @@ message RpcResponse {
 }
 
 message Event {
-    string namespace = 1;
-    string type = 2;
-    string data = 3;
-    map<string, string> metadata = 4;
+    string topic_type = 1;
+    string topic_source = 2;
+    string data_type = 3;
+    string data = 4;
+    map<string, string> metadata = 5;
 }
 
 message RegisterAgentType {

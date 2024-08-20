@@ -30,4 +30,7 @@ class AuditAgent(TypeRoutedAgent):
         assert isinstance(completion.content, str)
         if "NOTFORME" in completion.content:
             return
-        await self.publish_message(AuditorAlert(UserId=message.UserId, auditorAlertMessage=completion.content))
+        assert ctx.topic_id is not None
+        await self.publish_message(
+            AuditorAlert(UserId=message.UserId, auditorAlertMessage=completion.content), topic_id=ctx.topic_id
+        )

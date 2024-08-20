@@ -10,7 +10,7 @@ from typing import Any, Callable, List, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import MessageContext
+from agnext.core import AgentId, MessageContext
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
 from langchain_openai import ChatOpenAI
@@ -110,7 +110,7 @@ async def main() -> None:
     # Create runtime.
     runtime = SingleThreadedAgentRuntime()
     # Register the agent.
-    agent = await runtime.register_and_get(
+    await runtime.register(
         "langgraph_tool_use_agent",
         lambda: LangGraphToolUseAgent(
             "Tool use agent",
@@ -118,6 +118,7 @@ async def main() -> None:
             [get_weather],
         ),
     )
+    agent = AgentId("langgraph_tool_use_agent", key="default")
     # Start the runtime.
     run_context = runtime.start()
     # Send a message to the agent and get a response.

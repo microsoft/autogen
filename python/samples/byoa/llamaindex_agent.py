@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import MessageContext
+from agnext.core import AgentId, MessageContext
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
 from llama_index.core.agent.runner.base import AgentRunner
@@ -119,10 +119,11 @@ async def main() -> None:
         tools=[wikipedia_tool], llm=llm, max_iterations=8, memory=memory, verbose=True
     )
 
-    agent = await runtime.register_and_get(
+    await runtime.register(
         "chat_agent",
         lambda: LlamaIndexAgent("Chat agent", llama_index_agent=llama_index_agent),
     )
+    agent = AgentId("chat_agent", key="default")
 
     run_context = runtime.start()
 

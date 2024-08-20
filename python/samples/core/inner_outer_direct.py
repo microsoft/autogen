@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentId, MessageContext
+from agnext.core import AgentId, AgentInstantiationContext, MessageContext
 
 
 @dataclass
@@ -45,8 +45,9 @@ class Outer(TypeRoutedAgent):
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    inner = await runtime.register_and_get("inner", Inner)
-    outer = await runtime.register_and_get("outer", lambda: Outer(inner))
+    await runtime.register("inner", Inner)
+    await runtime.register("outer", lambda: Outer(AgentId("outer", AgentInstantiationContext.current_agent_id().key)))
+    outer = AgentId("outer", "default")
 
     run_context = runtime.start()
 

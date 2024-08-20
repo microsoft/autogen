@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from agnext.core._serialization import Serialization
+from agnext.core import Serialization
 
 class PydanticMessage(BaseModel):
     message: str

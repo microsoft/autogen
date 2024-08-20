@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from agnext.application import WorkerAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, MessageContext
+from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
 
 
 @dataclass
@@ -43,7 +43,8 @@ class GreeterAgent(TypeRoutedAgent):
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
         response = await self.send_message(Greeting(f"Hello, {message.content}!"), recipient=self._receive_agent_id)
-        await self.publish_message(Feedback(f"Feedback: {response.content}"))
+        assert ctx.topic_id is not None
+        await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=ctx.topic_id)
 
 
 async def main() -> None:
@@ -54,10 +55,11 @@ async def main() -> None:
     await runtime.start(host_connection_string="localhost:50051")
 
     await runtime.register("reciever", lambda: ReceiveAgent())
-    reciever = await runtime.get("reciever")
-    await runtime.register("greeter", lambda: GreeterAgent(reciever))
+    await runtime.register(
+        "greeter", lambda: GreeterAgent(AgentId("reciever", AgentInstantiationContext.current_agent_id().key))
+    )
 
-    await runtime.publish_message(AskToGreet("Hello World!"), namespace="default")
+    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=TopicId("default", "default"))
 
     # Just to keep the runtime running
     try:

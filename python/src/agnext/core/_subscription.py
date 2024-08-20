@@ -1,10 +1,11 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
-from agnext.core._agent_id import AgentId
+from agnext.core import AgentId
 
 from ._topic import TopicId
 
 
+@runtime_checkable
 class Subscription(Protocol):
     """Subscriptions define the topics that an agent is interested in."""
 
@@ -18,6 +19,20 @@ class Subscription(Protocol):
             str: ID of the subscription.
         """
         ...
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two subscriptions are equal.
+
+        Args:
+            other (object): Other subscription to compare against.
+
+        Returns:
+            bool: True if the subscriptions are equal, False otherwise.
+        """
+        if not isinstance(other, Subscription):
+            return False
+
+        return self.id == other.id
 
     def is_match(self, topic_id: TopicId) -> bool:
         """Check if a given topic_id matches the subscription.

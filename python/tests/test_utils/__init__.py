@@ -38,11 +38,12 @@ class CascadingAgent(TypeRoutedAgent):
         self.num_calls += 1
         if message.round == self.max_rounds:
             return
-        await self.publish_message(CascadingMessageType(round=message.round + 1))
+        assert ctx.topic_id is not None
+        await self.publish_message(CascadingMessageType(round=message.round + 1), topic_id=ctx.topic_id)
 
 class NoopAgent(BaseAgent):
     def __init__(self) -> None:
-        super().__init__("A no op agent", [])
+        super().__init__("A no op agent")
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError

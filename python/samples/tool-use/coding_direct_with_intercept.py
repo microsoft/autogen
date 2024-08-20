@@ -16,7 +16,7 @@ from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import SystemMessage
 from agnext.components.tool_agent import ToolAgent, ToolException
 from agnext.components.tools import PythonCodeExecutionTool, Tool
-from agnext.core import AgentId
+from agnext.core import AgentId, AgentInstantiationContext
 from agnext.core.intervention import DefaultInterventionHandler, DropMessage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -48,21 +48,21 @@ async def main() -> None:
         )
     ]
     # Register agents.
-    tool_executor_agent = await runtime.register_and_get(
+    await runtime.register(
         "tool_executor_agent",
         lambda: ToolAgent(
             description="Tool Executor Agent",
             tools=tools,
         ),
     )
-    tool_use_agent = await runtime.register_and_get(
+    await runtime.register(
         "tool_enabled_agent",
         lambda: ToolUseAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             tool_schema=[tool.schema for tool in tools],
-            tool_agent=tool_executor_agent,
+            tool_agent=AgentId("tool_executor_agent", AgentInstantiationContext.current_agent_id().key),
         ),
     )
 
@@ -70,7 +70,7 @@ async def main() -> None:
 
     # Send a task to the tool user.
     response = await runtime.send_message(
-        Message("Run the following Python code: print('Hello, World!')"), tool_use_agent
+        Message("Run the following Python code: print('Hello, World!')"), AgentId("tool_enabled_agent", "default")
     )
     print(response.content)
 

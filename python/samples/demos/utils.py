@@ -13,6 +13,7 @@ from textual_imageview.viewer import ImageViewer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from agnext.core import TopicId
 from common.types import (
     MultiModalMessage,
     PublishNow,
@@ -135,7 +136,9 @@ class TextualChatApp(App):  # type: ignore
         chat_messages.query("#typing").remove()
         # Publish the user message to the runtime.
         await self._runtime.publish_message(
-            TextMessage(source=self._user_name, content=user_input), namespace="default"
+            # TODO fix hard coded topic_id
+            TextMessage(source=self._user_name, content=user_input),
+            topic_id=TopicId("default", "default"),
         )
 
     async def post_runtime_message(self, message: TextMessage | MultiModalMessage) -> None:  # type: ignore

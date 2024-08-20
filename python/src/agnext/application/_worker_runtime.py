@@ -28,9 +28,9 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext
+from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext, Subscription, TopicId
 
-from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentProxy, AgentRuntime, CancellationToken
+from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentRuntime, CancellationToken
 from .protos import AgentId as AgentIdProto
 from .protos import (
     AgentRpcStub,
@@ -153,6 +153,9 @@ class WorkerAgentRuntime(AgentRuntime):
         self._next_request_id = 0
         self._host_connection: HostConnection | None = None
         self._background_tasks: Set[Task[Any]] = set()
+        self._subscriptions: List[Subscription] = []
+        self._seen_topics: Set[TopicId] = set()
+        self._subscribed_recipients: DefaultDict[TopicId, List[AgentId]] = defaultdict(list)
 
     async def start(self, host_connection_string: str) -> None:
         if self._running:
@@ -245,29 +248,25 @@ class WorkerAgentRuntime(AgentRuntime):
     async def publish_message(
         self,
         message: Any,
+        topic_id: TopicId,
         *,
-        namespace: str | None = None,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
-        if not self._running:
-            raise ValueError("Runtime must be running when publishing message.")
         assert self._host_connection is not None
-        sender_namespace = sender.key if sender is not None else None
-        explicit_namespace = namespace
-        if explicit_namespace is not None and sender_namespace is not None and explicit_namespace != sender_namespace:
-            raise ValueError(
-                f"Explicit namespace {explicit_namespace} does not match sender namespace {sender_namespace}"
-            )
-        assert explicit_namespace is not None or sender_namespace is not None
-        actual_namespace = cast(str, explicit_namespace or sender_namespace)
-        await self._process_seen_namespace(actual_namespace)
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
         serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
-        message = Message(event=Event(namespace=actual_namespace, type=message_type, data=serialized_message))
-        task = asyncio.create_task(self._host_connection.send(message))
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
+        message = Message(
+            event=Event(
+                topic_type=topic_id.type, topic_source=topic_id.source, data_type=message_type, data=serialized_message
+            )
+        )
+
+        async def write_message() -> None:
+            assert self._host_connection is not None
+            await self._host_connection.send(message)
+
+        await asyncio.create_task(write_message())
 
     async def save_state(self) -> Mapping[str, Any]:
         raise NotImplementedError("Saving state is not yet implemented.")
@@ -283,26 +282,6 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         raise NotImplementedError("Agent load_state is not yet implemented.")
-
-    async def register(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-    ) -> None:
-        if not self._running:
-            raise ValueError("Runtime must be running when registering agent.")
-        if name in self._agent_factories:
-            raise ValueError(f"Agent with name {name} already exists.")
-        self._agent_factories[name] = agent_factory
-
-        # For all already prepared namespaces we need to prepare this agent
-        for namespace in self._known_namespaces:
-            await self._get_agent(AgentId(type=name, key=namespace))
-
-        assert self._host_connection is not None
-        message = Message(registerAgentType=RegisterAgentType(type=name))
-        await self._host_connection.send(message)
-        logger.info("Sent registerAgentType message for %s", name)
 
     async def _process_request(self, request: RpcRequest) -> None:
         assert self._host_connection is not None
@@ -347,27 +326,41 @@ class WorkerAgentRuntime(AgentRuntime):
             future.set_result(response.result)
 
     async def _process_event(self, event: Event) -> None:
-        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.type)
-        namespace = event.namespace
-        responses: List[Awaitable[Any]] = []
-        for agent_id in self._per_type_subscribers[(namespace, MESSAGE_TYPE_REGISTRY.type_name(message))]:
-            # TODO: skip the sender?
-            message_context = MessageContext(
-                sender=None,
-                topic_id=None,
-                is_rpc=False,
-                cancellation_token=CancellationToken(),
-            )
-            agent = await self._get_agent(agent_id)
-            future = agent.on_message(message, ctx=message_context)
-            responses.append(future)
+        ...
+        # message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.data_type)
 
-        try:
-            _ = await asyncio.gather(*responses)
-        except BaseException as e:
-            if isinstance(e, asyncio.CancelledError):
-                return
-            event_logger.error("Error handling event message", exc_info=e)
+        # for agent_id in self._per_type_subscribers[
+        #                     (namespace, MESSAGE_TYPE_REGISTRY.type_name(message))
+        #                 ]:
+
+        #                     agent = await self._get_agent(agent_id)
+        #                     message_context = MessageContext(
+        #                         # TODO: should sender be in the proto even for published events?
+        #                         sender=None,
+        #                         # TODO: topic_id
+        #                         topic_id=None,
+        #                         is_rpc=False,
+        #                         cancellation_token=CancellationToken(),
+        #                     )
+        #                     try:
+        #                         await agent.on_message(message, ctx=message_context)
+        #                         logger.info("%s handled event %s", agent_id, message)
+        #                     except Exception as e:
+        #                         event_logger.error("Error handling message", exc_info=e)
+
+    async def register(
+        self,
+        type: str,
+        agent_factory: Callable[[], T | Awaitable[T]],
+    ) -> None:
+        if type in self._agent_factories:
+            raise ValueError(f"Agent with type {type} already exists.")
+        self._agent_factories[type] = agent_factory
+
+        assert self._host_connection is not None
+        message = Message(registerAgentType=RegisterAgentType(type=type))
+        await self._host_connection.send(message)
+        logger.info("Sent registerAgentType message for %s", type)
 
     async def _invoke_agent_factory(
         self,
@@ -394,7 +387,6 @@ class WorkerAgentRuntime(AgentRuntime):
         return agent
 
     async def _get_agent(self, agent_id: AgentId) -> Agent:
-        await self._process_seen_namespace(agent_id.key)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
@@ -402,32 +394,16 @@ class WorkerAgentRuntime(AgentRuntime):
             raise ValueError(f"Agent with name {agent_id.type} not found.")
 
         agent_factory = self._agent_factories[agent_id.type]
-
         agent = await self._invoke_agent_factory(agent_factory, agent_id)
-
-        for message_type in agent.metadata["subscriptions"]:
-            self._per_type_subscribers[(agent_id.key, message_type)].add(agent_id)
-
         self._instantiated_agents[agent_id] = agent
         return agent
-
-    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return (await self._get_agent(AgentId(type=name, key=namespace))).id
-
-    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
-        id = await self.get(name, namespace=namespace)
-        return AgentProxy(id, self)
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
         raise NotImplementedError("try_get_underlying_agent_instance is not yet implemented.")
 
-    # Hydrate the agent instances in a namespace. The primary reason for this is
-    # to ensure message type subscriptions are set up.
-    async def _process_seen_namespace(self, namespace: str) -> None:
-        if namespace in self._known_namespaces:
-            return
+    async def add_subscription(self, subscription: Subscription) -> None:
+        raise NotImplementedError("Subscriptions are not yet implemented.")
 
-        self._known_namespaces.add(namespace)
-        for name in self._known_agent_names:
-            await self._get_agent(AgentId(type=name, key=namespace))
+    async def remove_subscription(self, id: str) -> None:
+        raise NotImplementedError("Subscriptions are not yet implemented.")

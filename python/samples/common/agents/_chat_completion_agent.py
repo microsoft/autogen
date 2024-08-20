@@ -110,8 +110,9 @@ class ChatCompletionAgent(TypeRoutedAgent):
         # Generate a response.
         response = await self._generate_response(message.response_format, ctx)
 
+        assert ctx.topic_id is not None
         # Publish the response.
-        await self.publish_message(response)
+        await self.publish_message(response, topic_id=ctx.topic_id)
 
     @message_handler()
     async def on_tool_call_message(

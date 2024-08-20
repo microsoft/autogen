@@ -1,6 +1,8 @@
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.components._type_subscription import TypeSubscription
 from agnext.core import AgentId, AgentInstantiationContext
+from agnext.core import TopicId
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
 
 
@@ -15,13 +17,12 @@ async def test_agent_names_must_be_unique() -> None:
         assert agent.id == id
         return agent
 
-    agent1 = await runtime.register_and_get("name1", agent_factory)
-    assert agent1 == AgentId("name1", "default")
+    await runtime.register("name1", agent_factory)
 
     with pytest.raises(ValueError):
-        _agent1 = await runtime.register_and_get("name1", NoopAgent)
+        await runtime.register("name1", NoopAgent)
 
-    _agent1 = await runtime.register_and_get("name3", NoopAgent)
+    await runtime.register("name3", NoopAgent)
 
 
 @pytest.mark.asyncio
@@ -30,16 +31,19 @@ async def test_register_receives_publish() -> None:
 
     await runtime.register("name", LoopbackAgent)
     run_context = runtime.start()
-    await runtime.publish_message(MessageType(), namespace="default")
+    await runtime.add_subscription(TypeSubscription("default", "name"))
+    agent_id = AgentId("name", key="default")
+    topic_id = TopicId("default", "default")
+    await runtime.publish_message(MessageType(), topic_id=topic_id)
 
     await run_context.stop_when_idle()
 
     # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(await runtime.get("name"), type=LoopbackAgent)
+    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
     assert long_running_agent.num_calls == 1
 
     # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(await runtime.get("name", namespace="other"), type=LoopbackAgent)
+    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
     assert other_long_running_agent.num_calls == 0
 
 
@@ -56,17 +60,19 @@ async def test_register_receives_publish_cascade() -> None:
     # Register agents
     for i in range(num_agents):
         await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
+        await runtime.add_subscription(TypeSubscription("default", f"name{i}"))
 
     run_context = runtime.start()
 
     # Publish messages
+    topic_id = TopicId("default", "default")
     for _ in range(num_initial_messages):
-        await runtime.publish_message(CascadingMessageType(round=1), namespace="default")
+        await runtime.publish_message(CascadingMessageType(round=1), topic_id)
 
     # Process until idle.
     await run_context.stop_when_idle()
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):
-        agent = await runtime.try_get_underlying_agent_instance(await runtime.get(f"name{i}"), CascadingAgent)
+        agent = await runtime.try_get_underlying_agent_instance(AgentId(f"name{i}", "default"), CascadingAgent)
         assert agent.num_calls == total_num_calls_expected

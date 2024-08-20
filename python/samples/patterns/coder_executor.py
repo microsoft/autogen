@@ -22,6 +22,7 @@ from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components._type_subscription import TypeSubscription
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
@@ -30,6 +31,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
+from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -100,10 +102,12 @@ Reply "TERMINATE" in the end when everything is done."""
             AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
+        assert ctx.topic_id is not None
         # Publish the code execution task.
         await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=session_id),
             cancellation_token=ctx.cancellation_token,
+            topic_id=ctx.topic_id,
         )
 
     @message_handler
@@ -120,8 +124,11 @@ Reply "TERMINATE" in the end when everything is done."""
 
         if "TERMINATE" in response.content:
             # If the task is completed, publish a message with the completion content.
+            assert ctx.topic_id is not None
             await self.publish_message(
-                TaskCompletion(content=response.content), cancellation_token=ctx.cancellation_token
+                TaskCompletion(content=response.content),
+                cancellation_token=ctx.cancellation_token,
+                topic_id=ctx.topic_id,
             )
             print("--------------------")
             print("Task completed:")
@@ -129,9 +136,11 @@ Reply "TERMINATE" in the end when everything is done."""
             return
 
         # Publish the code execution task.
+        assert ctx.topic_id is not None
         await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=message.session_id),
             cancellation_token=ctx.cancellation_token,
+            topic_id=ctx.topic_id,
         )
 
 
@@ -148,11 +157,13 @@ class Executor(TypeRoutedAgent):
         code_blocks = self._extract_code_blocks(message.content)
         if not code_blocks:
             # If no code block is found, publish a message with an error.
+            assert ctx.topic_id is not None
             await self.publish_message(
                 CodeExecutionTaskResult(
                     output="Error: no Markdown code block found.", exit_code=1, session_id=message.session_id
                 ),
                 cancellation_token=ctx.cancellation_token,
+                topic_id=ctx.topic_id,
             )
             return
         # Execute code blocks.
@@ -160,9 +171,11 @@ class Executor(TypeRoutedAgent):
             code_blocks=code_blocks, cancellation_token=ctx.cancellation_token
         )
         # Publish the code execution result.
+        assert ctx.topic_id is not None
         await self.publish_message(
             CodeExecutionTaskResult(output=result.output, exit_code=result.exit_code, session_id=message.session_id),
             cancellation_token=ctx.cancellation_token,
+            topic_id=ctx.topic_id,
         )
 
     def _extract_code_blocks(self, markdown_text: str) -> List[CodeBlock]:
@@ -185,10 +198,12 @@ async def main(task: str, temp_dir: str) -> None:
         "coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"))
     )
     await runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
+    await runtime.add_subscription(TypeSubscription("default", "coder"))
+    await runtime.add_subscription(TypeSubscription("default", "executor"))
     run_context = runtime.start()
 
     # Publish the task message.
-    await runtime.publish_message(TaskMessage(content=task), namespace="default")
+    await runtime.publish_message(TaskMessage(content=task), topic_id=TopicId("default", "default"))
 
     await run_context.stop_when_idle()
 

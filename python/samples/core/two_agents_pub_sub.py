@@ -18,6 +18,7 @@ from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -25,6 +26,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
+from agnext.core import AgentId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -69,7 +71,11 @@ class ChatCompletionAgent(TypeRoutedAgent):
                 llm_messages.append(UserMessage(content=m.content, source=m.source))
         response = await self._model_client.create(self._system_messages + llm_messages)
         assert isinstance(response.content, str)
-        await self.publish_message(Message(content=response.content, source=self.metadata["type"]))
+
+        if ctx.topic_id is not None:
+            await self.publish_message(
+                Message(content=response.content, source=self.metadata["type"]), topic_id=ctx.topic_id
+            )
 
 
 async def main() -> None:
@@ -77,7 +83,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register the agents.
-    jack = await runtime.register_and_get(
+    await runtime.register(
         "Jack",
         lambda: ChatCompletionAgent(
             description="Jack a comedian",
@@ -88,7 +94,8 @@ async def main() -> None:
             termination_word="TERMINATE",
         ),
     )
-    await runtime.register_and_get(
+    await runtime.add_subscription(TypeSubscription("default", "Jack"))
+    await runtime.register(
         "Cathy",
         lambda: ChatCompletionAgent(
             description="Cathy a poet",
@@ -99,12 +106,13 @@ async def main() -> None:
             termination_word="TERMINATE",
         ),
     )
+    await runtime.add_subscription(TypeSubscription("default", "Cathy"))
 
     run_context = runtime.start()
 
     # Send a message to Jack to start the conversation.
     message = Message(content="Can you tell me something fun about SF?", source="User")
-    await runtime.send_message(message, jack)
+    await runtime.send_message(message, AgentId("jack", "default"))
 
     # Process messages.
     await run_context.stop_when_idle()

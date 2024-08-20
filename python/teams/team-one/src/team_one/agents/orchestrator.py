@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from agnext.components.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
-from agnext.core import AgentProxy
+from agnext.core import AgentProxy, TopicId
 
 from ..messages import BroadcastMessage, OrchestrationEvent, ResetMessage
 from .base_orchestrator import BaseOrchestrator, logger
@@ -248,8 +248,10 @@ class LedgerOrchestrator(BaseOrchestrator):
             synthesized_prompt = self._get_synthesize_prompt(
                 self._task, self._team_description, self._facts, self._plan
             )
+            topic_id = TopicId("default", self.id.key)
             await self.publish_message(
-                BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"]))
+                BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"])),
+                topic_id=topic_id,
             )
 
             logger.info(
@@ -319,14 +321,17 @@ class LedgerOrchestrator(BaseOrchestrator):
 
                     # Reset everyone, then rebroadcast the new plan
                     self._chat_history = [self._chat_history[0]]
-                    await self.publish_message(ResetMessage())
+                    topic_id = TopicId("default", self.id.key)
+                    await self.publish_message(ResetMessage(), topic_id=topic_id)
 
                     # Send everyone the NEW plan
                     synthesized_prompt = self._get_synthesize_prompt(
                         self._task, self._team_description, self._facts, self._plan
                     )
+                    topic_id = TopicId("default", self.id.key)
                     await self.publish_message(
-                        BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"]))
+                        BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"])),
+                        topic_id=topic_id,
                     )
 
                     logger.info(
@@ -351,8 +356,10 @@ class LedgerOrchestrator(BaseOrchestrator):
                 assistant_message = AssistantMessage(content=instruction, source=self.metadata["type"])
                 logger.info(OrchestrationEvent(f"{self.metadata['type']} (-> {next_agent_name})", instruction))
                 self._chat_history.append(assistant_message)  # My copy
+                topic_id = TopicId("default", self.id.key)
                 await self.publish_message(
-                    BroadcastMessage(content=user_message, request_halt=False)
+                    BroadcastMessage(content=user_message, request_halt=False),
+                    topic_id=topic_id,
                 )  # Send to everyone else
                 return agent
 

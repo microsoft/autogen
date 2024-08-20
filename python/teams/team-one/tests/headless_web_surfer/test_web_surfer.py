@@ -7,11 +7,14 @@ from math import ceil
 
 import asyncio
 import pytest
+
+from agnext.core import AgentId
+from agnext.core import AgentProxy
 pytest_plugins = ('pytest_asyncio',)
 from json import dumps
 
 from team_one.utils import (
-  ENVIRON_KEY_CHAT_COMPLETION_PROVIDER, 
+  ENVIRON_KEY_CHAT_COMPLETION_PROVIDER,
   ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON,
   create_completion_client_from_env
 )
@@ -96,13 +99,14 @@ async def test_web_surfer() -> None:
     # Register agents.
 
     # Register agents.
-    web_surfer = await runtime.register_and_get_proxy(
+    await runtime.register(
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
+    web_surfer = AgentId("WebSurfer", "default")
     run_context = runtime.start()
 
-    actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
+    actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer, MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
 
     # Test some basic navigations
@@ -138,7 +142,7 @@ async def test_web_surfer() -> None:
         tool_resp = await make_browser_request(actual_surfer, TOOL_PAGE_DOWN)
     assert (
         f"The viewport shows {viewport_percentage}% of the webpage, and is positioned at the bottom of the page" in tool_resp
-    )   
+    )
 
     # Test Q&A and summarization -- we don't have a key so we expect it to fail #(but it means the code path is correct)
     with pytest.raises(AuthenticationError):
@@ -160,15 +164,17 @@ async def test_web_surfer_oai() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    web_surfer = await runtime.register_and_get_proxy(
+    await runtime.register(
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
+    web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
 
-    user_proxy = await runtime.register_and_get_proxy(
+    await runtime.register(
         "UserProxy",
         lambda: UserProxy(),
     )
+    user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
     await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
     run_context = runtime.start()
 
@@ -220,10 +226,12 @@ async def test_web_surfer_bing() -> None:
     # Register agents.
 
     # Register agents.
-    web_surfer = await runtime.register_and_get_proxy(
+    await runtime.register(
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
+    web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
+
     run_context = runtime.start()
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
@@ -235,7 +243,7 @@ async def test_web_surfer_bing() -> None:
     assert f"{BING_QUERY}".strip() in metadata["meta_tags"]["og:url"]
     assert f"{BING_QUERY}".strip() in metadata["meta_tags"]["og:title"]
     assert f"I typed '{BING_QUERY}' into the browser search bar." in tool_resp.replace("\\","")
-    
+
     tool_resp = await make_browser_request(actual_surfer, TOOL_WEB_SEARCH, {"query": BING_QUERY + " Wikipedia"})
     markdown = await actual_surfer._get_page_markdown() # type: ignore
     assert "https://en.wikipedia.org/wiki/" in markdown

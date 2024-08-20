@@ -7,11 +7,12 @@ import sys
 import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import SystemMessage
-from agnext.core import AgentRuntime
+from agnext.core import AgentInstantiationContext, AgentRuntime
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import AgentId, AgentProxy
 from common.agents import ChatCompletionAgent, ImageGenerationAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -27,7 +28,7 @@ async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> Non
             app=app,
         ),
     )
-    descriptor = await runtime.register_and_get_proxy(
+    await runtime.register(
         "Descriptor",
         lambda: ChatCompletionAgent(
             description="An AI agent that provides a description of the image.",
@@ -46,7 +47,8 @@ async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> Non
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo", max_tokens=500),
         ),
     )
-    illustrator = await runtime.register_and_get_proxy(
+    descriptor = AgentProxy(AgentId("Descriptor", "default"), runtime)
+    await runtime.register(
         "Illustrator",
         lambda: ImageGenerationAgent(
             description="An AI agent that generates images.",
@@ -55,7 +57,8 @@ async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> Non
             memory=BufferedChatMemory(buffer_size=1),
         ),
     )
-    critic = await runtime.register_and_get_proxy(
+    illustrator = AgentProxy(AgentId("Illustrator", "default"), runtime)
+    await runtime.register(
         "Critic",
         lambda: ChatCompletionAgent(
             description="An AI agent that provides feedback on images given user's requirements.",
@@ -74,12 +77,17 @@ async def illustrator_critics(runtime: AgentRuntime, app: TextualChatApp) -> Non
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
     )
+    critic = AgentProxy(AgentId("Critic", "default"), runtime)
     await runtime.register(
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A chat manager that handles group chat.",
             memory=BufferedChatMemory(buffer_size=5),
-            participants=[illustrator.id, critic.id, descriptor.id],
+            participants=[
+                AgentId("Illustrator", AgentInstantiationContext.current_agent_id().key),
+                AgentId("Descriptor", AgentInstantiationContext.current_agent_id().key),
+                AgentId("Critic", AgentInstantiationContext.current_agent_id().key),
+            ],
             termination_word="APPROVE",
         ),
     )

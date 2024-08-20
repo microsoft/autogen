@@ -72,7 +72,6 @@ class ClosureAgent(Agent):
             key=self._id.key,
             type=self._id.type,
             description=self._description,
-            subscriptions=self._subscriptions,
         )
 
     @property

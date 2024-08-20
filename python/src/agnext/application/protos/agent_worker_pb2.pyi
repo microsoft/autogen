@@ -14,8 +14,6 @@ DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 @typing.final
 class AgentId(google.protobuf.message.Message):
-    """TODO: update"""
-
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     NAME_FIELD_NUMBER: builtins.int
@@ -143,24 +141,27 @@ class Event(google.protobuf.message.Message):
         ) -> None: ...
         def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
 
-    NAMESPACE_FIELD_NUMBER: builtins.int
-    TYPE_FIELD_NUMBER: builtins.int
+    TOPIC_TYPE_FIELD_NUMBER: builtins.int
+    TOPIC_SOURCE_FIELD_NUMBER: builtins.int
+    DATA_TYPE_FIELD_NUMBER: builtins.int
     DATA_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
-    namespace: builtins.str
-    type: builtins.str
+    topic_type: builtins.str
+    topic_source: builtins.str
+    data_type: builtins.str
     data: builtins.str
     @property
     def metadata(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     def __init__(
         self,
         *,
-        namespace: builtins.str = ...,
-        type: builtins.str = ...,
+        topic_type: builtins.str = ...,
+        topic_source: builtins.str = ...,
+        data_type: builtins.str = ...,
         data: builtins.str = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data", "metadata", b"metadata", "namespace", b"namespace", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data", b"data", "data_type", b"data_type", "metadata", b"metadata", "topic_source", b"topic_source", "topic_type", b"topic_type"]) -> None: ...
 
 global___Event = Event
 

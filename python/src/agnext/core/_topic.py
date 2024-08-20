@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class TopicId:
     type: str
     """Type of the event that this topic_id contains. Adhere's to the cloud event spec.

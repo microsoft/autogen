@@ -33,6 +33,9 @@ class GraphicDesignerAgent(TypeRoutedAgent):
             image_uri = response.data[0].url
             logger.info(f"Generated image for article. Got response: '{image_uri}'")
 
-            await self.publish_message(GraphicDesignCreated(UserId=message.UserId, imageUri=image_uri))
+            assert ctx.topic_id is not None
+            await self.publish_message(
+                GraphicDesignCreated(UserId=message.UserId, imageUri=image_uri), topic_id=ctx.topic_id
+            )
         except Exception as e:
             logger.error(f"Failed to generate image for article. Error: {e}")

@@ -80,7 +80,8 @@ class OpenAIAssistantAgent(TypeRoutedAgent):
     async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method generates a response and publishes it."""
         response = await self._generate_response(message.response_format, ctx.cancellation_token)
-        await self.publish_message(response)
+        assert ctx.topic_id is not None
+        await self.publish_message(response, ctx.topic_id)
 
     async def _generate_response(
         self,

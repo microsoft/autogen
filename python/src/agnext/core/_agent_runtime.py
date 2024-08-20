@@ -5,8 +5,9 @@ from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, r
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
-from ._agent_proxy import AgentProxy
 from ._cancellation_token import CancellationToken
+from ._subscription import Subscription
+from ._topic import TopicId
 
 # Undeliverable - error
 
@@ -45,8 +46,8 @@ class AgentRuntime(Protocol):
     async def publish_message(
         self,
         message: Any,
+        topic_id: TopicId,
         *,
-        namespace: str | None = None,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
@@ -56,23 +57,24 @@ class AgentRuntime(Protocol):
 
         Args:
             message (Any): The message to publish.
-            namespace (str | None, optional): The namespace to publish to. Defaults to None.
+            topic (TopicId): The topic to publish the message to.
             sender (AgentId | None, optional): The agent which sent the message. Defaults to None.
             cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress . Defaults to None.
 
         Raises:
             UndeliverableException: If the message cannot be delivered.
         """
+        ...
 
     async def register(
         self,
-        name: str,
+        type: str,
         agent_factory: Callable[[], T | Awaitable[T]],
     ) -> None:
-        """Register an agent factory with the runtime associated with a specific name. The name must be unique.
+        """Register an agent factory with the runtime associated with a specific type. The type must be unique.
 
         Args:
-            name (str): The name of the type agent this factory creates.
+            type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `agnext.core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
 
 
@@ -91,30 +93,6 @@ class AgentRuntime(Protocol):
 
         """
 
-        ...
-
-    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        """Get an agent by name and namespace.
-
-        Args:
-            name (str): The name of the agent.
-            namespace (str, optional): The namespace of the agent. Defaults to "default".
-
-        Returns:
-            AgentId: The agent id.
-        """
-        ...
-
-    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
-        """Get a proxy for an agent by name and namespace.
-
-        Args:
-            name (str): The name of the agent.
-            namespace (str, optional): The namespace of the agent. Defaults to "default".
-
-        Returns:
-            AgentProxy: The agent proxy.
-        """
         ...
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
@@ -136,46 +114,6 @@ class AgentRuntime(Protocol):
             TypeError: If the agent is not of the expected type.
         """
         ...
-
-    async def register_and_get(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentId:
-        """Register an agent factory with the runtime associated with a specific name and get the agent id. The name must be unique.
-
-        Args:
-            name (str): The name of the type agent this factory creates.
-            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `agnext.core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
-            namespace (str, optional): The namespace of the agent. Defaults to "default".
-
-        Returns:
-            AgentId: The agent id.
-        """
-        await self.register(name, agent_factory)
-        return await self.get(name, namespace=namespace)
-
-    async def register_and_get_proxy(
-        self,
-        name: str,
-        agent_factory: Callable[[], T | Awaitable[T]],
-        *,
-        namespace: str = "default",
-    ) -> AgentProxy:
-        """Register an agent factory with the runtime associated with a specific name and get the agent proxy. The name must be unique.
-
-        Args:
-            name (str): The name of the type agent this factory creates.
-            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type.
-            namespace (str, optional): The namespace of the agent. Defaults to "default".
-
-        Returns:
-            AgentProxy: The agent proxy.
-        """
-        await self.register(name, agent_factory)
-        return await self.get_proxy(name, namespace=namespace)
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the entire runtime, including all hosted agents. The only way to restore the state is to pass it to :meth:`load_state`.
@@ -225,5 +163,24 @@ class AgentRuntime(Protocol):
         Args:
             agent (AgentId): The agent id.
             state (Mapping[str, Any]): The saved state.
+        """
+        ...
+
+    async def add_subscription(self, subscription: Subscription) -> None:
+        """Add a new subscription that the runtime should fulfill when processing published messages
+
+        Args:
+            subscription (Subscription): The subscription to add
+        """
+        ...
+
+    async def remove_subscription(self, id: str) -> None:
+        """Remove a subscription from the runtime
+
+        Args:
+            id (str): id of the subscription to remove
+
+        Raises:
+            LookupError: If the subscription does not exist
         """
         ...

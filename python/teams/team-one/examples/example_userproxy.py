@@ -4,6 +4,7 @@ import logging
 # from typing import Any, Dict, List, Tuple, Union
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.core import AgentId, AgentProxy
 from team_one.agents.coder import Coder
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -19,14 +20,17 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    coder = await runtime.register_and_get_proxy(
+    await runtime.register(
         "Coder",
         lambda: Coder(model_client=client),
     )
-    user_proxy = await runtime.register_and_get_proxy(
+    coder = AgentProxy(AgentId("Coder", "default"), runtime)
+
+    await runtime.register(
         "UserProxy",
         lambda: UserProxy(),
     )
+    user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
     await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([coder, user_proxy]))
 

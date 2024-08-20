@@ -3,6 +3,7 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.core import AgentId, AgentProxy
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import LedgerOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -15,18 +16,22 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Register agents.
-    coder = await runtime.register_and_get_proxy(
+    await runtime.register(
         "Coder",
         lambda: Coder(model_client=create_completion_client_from_env()),
     )
+    coder = AgentProxy(AgentId("Coder", "default"), runtime)
 
-    executor = await runtime.register_and_get_proxy("Executor", lambda: Executor("A agent for executing code"))
+    await runtime.register("Executor", lambda: Executor("A agent for executing code"))
+    executor = AgentProxy(AgentId("Executor", "default"), runtime)
 
-    user_proxy = await runtime.register_and_get_proxy(
+    await runtime.register(
         "UserProxy",
         lambda: UserProxy(description="The current user interacting with you."),
     )
+    user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
+    # TODO: doesn't work for more than default key
     await runtime.register(
         "orchestrator",
         lambda: LedgerOrchestrator(

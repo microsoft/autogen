@@ -42,5 +42,4 @@ class TypeSubscription(Subscription):
         if not self.is_match(topic_id):
             raise CantHandleException("TopicId does not match the subscription")
 
-        # TODO: Update agentid to reflect agent type and key
         return AgentId(type=self._agent_type, key=topic_id.source)

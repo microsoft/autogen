@@ -4,6 +4,7 @@ import logging
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
 from agnext.components.models import UserMessage
+from agnext.core import AgentId, AgentProxy, TopicId
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.reflex_agents import ReflexAgent
 from team_one.messages import BroadcastMessage
@@ -13,14 +14,19 @@ from team_one.utils import LogHandler
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    fake1 = await runtime.register_and_get_proxy("fake_agent_1", lambda: ReflexAgent("First reflect agent"))
-    fake2 = await runtime.register_and_get_proxy("fake_agent_2", lambda: ReflexAgent("Second reflect agent"))
-    fake3 = await runtime.register_and_get_proxy("fake_agent_3", lambda: ReflexAgent("Third reflect agent"))
-    await runtime.register_and_get("orchestrator", lambda: RoundRobinOrchestrator([fake1, fake2, fake3]))
+    await runtime.register("fake_agent_1", lambda: ReflexAgent("First reflect agent"))
+    fake1 = AgentProxy(AgentId("fake_agent_1", "default"), runtime)
+    await runtime.register("fake_agent_2", lambda: ReflexAgent("Second reflect agent"))
+    fake2 = AgentProxy(AgentId("fake_agent_2", "default"), runtime)
+
+    await runtime.register("fake_agent_3", lambda: ReflexAgent("Third reflect agent"))
+    fake3 = AgentProxy(AgentId("fake_agent_3", "default"), runtime)
+
+    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([fake1, fake2, fake3]))
 
     task_message = UserMessage(content="Test Message", source="User")
     run_context = runtime.start()
-    await runtime.publish_message(BroadcastMessage(task_message), namespace="default")
+    await runtime.publish_message(BroadcastMessage(task_message), topic_id=TopicId("default", "default"))
 
     await run_context.stop_when_idle()
 

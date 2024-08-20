@@ -21,6 +21,7 @@ from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
+from agnext.components._type_subscription import TypeSubscription
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
@@ -32,6 +33,7 @@ from agnext.components.models import (
     UserMessage,
 )
 from agnext.components.tools import PythonCodeExecutionTool, Tool
+from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -88,7 +90,8 @@ class ToolExecutorAgent(TypeRoutedAgent):
             session_id=message.session_id,
             result=FunctionExecutionResult(content=result_as_str, call_id=message.function_call.id),
         )
-        await self.publish_message(task_result)
+        assert ctx.topic_id is not None
+        await self.publish_message(task_result, topic_id=ctx.topic_id)
 
 
 class ToolUseAgent(TypeRoutedAgent):
@@ -126,7 +129,8 @@ class ToolUseAgent(TypeRoutedAgent):
         if isinstance(response.content, str):
             # If the response is a string, just publish the response.
             response_message = AgentResponse(content=response.content)
-            await self.publish_message(response_message)
+            assert ctx.topic_id is not None
+            await self.publish_message(response_message, topic_id=ctx.topic_id)
             print(f"AI Response: {response.content}")
             return
 
@@ -139,7 +143,8 @@ class ToolUseAgent(TypeRoutedAgent):
         for function_call in response.content:
             task = ToolExecutionTask(session_id=session_id, function_call=function_call)
             self._tool_counter[session_id] += 1
-            await self.publish_message(task)
+            assert ctx.topic_id is not None
+            await self.publish_message(task, topic_id=ctx.topic_id)
 
     @message_handler
     async def handle_tool_result(self, message: ToolExecutionTaskResult, ctx: MessageContext) -> None:
@@ -165,10 +170,11 @@ class ToolUseAgent(TypeRoutedAgent):
         self._sessions[message.session_id].append(
             AssistantMessage(content=response.content, source=self.metadata["type"])
         )
+        assert ctx.topic_id is not None
         # If the response is a string, just publish the response.
         if isinstance(response.content, str):
             response_message = AgentResponse(content=response.content)
-            await self.publish_message(response_message)
+            await self.publish_message(response_message, topic_id=ctx.topic_id)
             self._tool_results.pop(message.session_id)
             self._tool_counter.pop(message.session_id)
             print(f"AI Response: {response.content}")
@@ -179,7 +185,7 @@ class ToolUseAgent(TypeRoutedAgent):
         for function_call in response.content:
             task = ToolExecutionTask(session_id=message.session_id, function_call=function_call)
             self._tool_counter[message.session_id] += 1
-            await self.publish_message(task)
+            await self.publish_message(task, topic_id=ctx.topic_id)
 
 
 async def main() -> None:
@@ -192,6 +198,7 @@ async def main() -> None:
     ]
     # Register agents.
     await runtime.register("tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools))
+    await runtime.add_subscription(TypeSubscription("default", "tool_executor"))
     await runtime.register(
         "tool_use_agent",
         lambda: ToolUseAgent(
@@ -201,12 +208,13 @@ async def main() -> None:
             tools=tools,
         ),
     )
+    await runtime.add_subscription(TypeSubscription("default", "tool_use_agent"))
 
     run_context = runtime.start()
 
     # Publish a task.
     await runtime.publish_message(
-        UserRequest("Run the following Python code: print('Hello, World!')"), namespace="default"
+        UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=TopicId("default", "default")
     )
 
     await run_context.stop_when_idle()

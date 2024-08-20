@@ -1,6 +1,6 @@
 from agnext.components import TypeRoutedAgent, message_handler
 from agnext.components.models import UserMessage
-from agnext.core import MessageContext
+from agnext.core import MessageContext, TopicId
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 
@@ -22,5 +22,6 @@ class ReflexAgent(TypeRoutedAgent):
             content=f"Hello, world from {name}!",
             source=name,
         )
+        topic_id = TopicId("default", self.id.key)
 
-        await self.publish_message(BroadcastMessage(response_message))
+        await self.publish_message(BroadcastMessage(response_message), topic_id=topic_id)

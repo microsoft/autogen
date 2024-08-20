@@ -5,7 +5,7 @@ from agnext.components.models import (
     LLMMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken, MessageContext
+from agnext.core import CancellationToken, MessageContext, TopicId
 
 from team_one.messages import (
     BroadcastMessage,
@@ -45,7 +45,8 @@ class BaseWorker(TeamOneBaseAgent):
         self._chat_history.append(assistant_message)
 
         user_message = UserMessage(content=response, source=self.metadata["type"])
-        await self.publish_message(BroadcastMessage(content=user_message, request_halt=request_halt))
+        topic_id = TopicId("default", self.id.key)
+        await self.publish_message(BroadcastMessage(content=user_message, request_halt=request_halt), topic_id=topic_id)
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Returns (request_halt, response_message)"""

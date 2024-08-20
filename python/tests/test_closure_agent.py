@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 
+from agnext.components._type_subscription import TypeSubscription
 from agnext.core import AgentRuntime, AgentId
 
 from agnext.components import ClosureAgent
@@ -13,6 +14,7 @@ from agnext.components import ClosureAgent
 import asyncio
 
 from agnext.core import MessageContext
+from agnext.core import TopicId
 
 @dataclass
 class Message:
@@ -30,11 +32,15 @@ async def test_register_receives_publish() -> None:
         key = id.key
         await queue.put((key, message.content))
 
-    await runtime.register("name", lambda: ClosureAgent("My agent", log_message))
+    await runtime.register("name", lambda: ClosureAgent("my_agent", log_message))
+    await runtime.add_subscription(TypeSubscription("default", "name"))
+    topic_id = TopicId("default", "default")
     run_context = runtime.start()
-    await runtime.publish_message(Message("first message"), namespace="default")
-    await runtime.publish_message(Message("second message"), namespace="default")
-    await runtime.publish_message(Message("third message"), namespace="default")
+
+    await runtime.publish_message(Message("first message"), topic_id=topic_id)
+    await runtime.publish_message(Message("second message"), topic_id=topic_id)
+    await runtime.publish_message(Message("third message"), topic_id=topic_id)
+
 
     await run_context.stop_when_idle()
 

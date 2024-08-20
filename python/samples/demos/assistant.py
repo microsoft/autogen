@@ -13,7 +13,7 @@ import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import AgentId, AgentRuntime, CancellationToken
+from agnext.core import AgentId, AgentRuntime, MessageContext
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -22,6 +22,7 @@ from typing_extensions import override
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from agnext.core import AgentInstantiationContext
 from common.agents import OpenAIAssistantAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -30,7 +31,7 @@ from common.types import PublishNow, TextMessage
 sep = "-" * 50
 
 
-class UserProxyAgent(TypeRoutedAgent):  # type: ignore
+class UserProxyAgent(TypeRoutedAgent):
     def __init__(  # type: ignore
         self,
         client: openai.AsyncClient,  # type: ignore
@@ -47,7 +48,7 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
         self._vector_store_id = vector_store_id
 
     @message_handler()  # type: ignore
-    async def on_text_message(self, message: TextMessage, cancellation_token: CancellationToken) -> None:  # type: ignore
+    async def on_text_message(self, message: TextMessage, ctx: MessageContext) -> None:
         # TODO: render image if message has image.
         # print(f"{message.source}: {message.content}")
         pass
@@ -57,7 +58,7 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
         return await loop.run_in_executor(None, input, prompt)
 
     @message_handler()  # type: ignore
-    async def on_publish_now(self, message: PublishNow, cancellation_token: CancellationToken) -> None:  # type: ignore
+    async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         while True:
             user_input = await self._get_user_input(f"\n{sep}\nYou: ")
             # Parse upload file command '[upload code_interpreter | file_search filename]'.
@@ -108,7 +109,10 @@ class UserProxyAgent(TypeRoutedAgent):  # type: ignore
                 return
             else:
                 # Publish user input and exit handler.
-                await self.publish_message(TextMessage(content=user_input, source=self.metadata["type"]))
+                assert ctx.topic_id is not None
+                await self.publish_message(
+                    TextMessage(content=user_input, source=self.metadata["type"]), topic_id=ctx.topic_id
+                )
                 return
 
 
@@ -166,7 +170,7 @@ class EventHandler(AsyncAssistantEventHandler):
             print("\n".join(citations))
 
 
-async def assistant_chat(runtime: AgentRuntime) -> AgentId:
+async def assistant_chat(runtime: AgentRuntime) -> str:
     oai_assistant = openai.beta.assistants.create(
         model="gpt-4-turbo",
         description="An AI assistant that helps with everyday tasks.",
@@ -177,7 +181,7 @@ async def assistant_chat(runtime: AgentRuntime) -> AgentId:
     thread = openai.beta.threads.create(
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
     )
-    assistant = await runtime.register_and_get(
+    await runtime.register(
         "Assistant",
         lambda: OpenAIAssistantAgent(
             description="An AI assistant that helps with everyday tasks.",
@@ -188,7 +192,7 @@ async def assistant_chat(runtime: AgentRuntime) -> AgentId:
         ),
     )
 
-    user = await runtime.register_and_get(
+    await runtime.register(
         "User",
         lambda: UserProxyAgent(
             client=openai.AsyncClient(),
@@ -203,10 +207,13 @@ async def assistant_chat(runtime: AgentRuntime) -> AgentId:
         lambda: GroupChatManager(
             description="A group chat manager.",
             memory=BufferedChatMemory(buffer_size=10),
-            participants=[assistant, user],
+            participants=[
+                AgentId("Assistant", AgentInstantiationContext.current_agent_id().key),
+                AgentId("User", AgentInstantiationContext.current_agent_id().key),
+            ],
         ),
     )
-    return user
+    return "User"
 
 
 async def main() -> None:
@@ -229,7 +236,7 @@ Type "exit" to exit the chat.
     _run_context = runtime.start()
     print(usage)
     # Request the user to start the conversation.
-    await runtime.send_message(PublishNow(), user)
+    await runtime.send_message(PublishNow(), AgentId(user, "default"))
 
     # TODO: have a way to exit the loop.
 

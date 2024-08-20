@@ -12,13 +12,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, DefaultDict, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
+from agnext.core import Subscription, TopicId
+
 from ..core import (
-    MESSAGE_TYPE_REGISTRY,
     Agent,
     AgentId,
     AgentInstantiationContext,
     AgentMetadata,
-    AgentProxy,
     AgentRuntime,
     CancellationToken,
     MessageContext,
@@ -38,7 +38,7 @@ class PublishMessageEnvelope:
     message: Any
     cancellation_token: CancellationToken
     sender: AgentId | None
-    namespace: str
+    topic_id: TopicId
 
 
 @dataclass(kw_only=True)
@@ -124,15 +124,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def __init__(self, *, intervention_handler: InterventionHandler | None = None) -> None:
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
-        self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
         self._intervention_handler = intervention_handler
-        self._known_namespaces: set[str] = set()
         self._outstanding_tasks = Counter()
         self._background_tasks: Set[Task[Any]] = set()
+
+        self._subscriptions: List[Subscription] = []
+        self._seen_topics: Set[TopicId] = set()
+        self._subscribed_recipients: DefaultDict[TopicId, List[AgentId]] = defaultdict(list)
 
     @property
     def unprocessed_messages(
@@ -177,8 +179,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if sender is not None and sender.key != recipient.key:
             raise ValueError("Sender and recipient must be in the same namespace to communicate.")
 
-        await self._process_seen_namespace(recipient.key)
-
         content = message.__dict__ if hasattr(message, "__dict__") else message
         logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
@@ -199,8 +199,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def publish_message(
         self,
         message: Any,
+        topic_id: TopicId,
         *,
-        namespace: str | None = None,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
@@ -219,26 +219,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         #     )
         # )
 
-        if sender is None and namespace is None:
-            raise ValueError("Namespace must be provided if sender is not provided.")
-
-        sender_namespace = sender.key if sender is not None else None
-        explicit_namespace = namespace
-        if explicit_namespace is not None and sender_namespace is not None and explicit_namespace != sender_namespace:
-            raise ValueError(
-                f"Explicit namespace {explicit_namespace} does not match sender namespace {sender_namespace}"
-            )
-
-        assert explicit_namespace is not None or sender_namespace is not None
-        namespace = cast(str, explicit_namespace or sender_namespace)
-        await self._process_seen_namespace(namespace)
-
         self._message_queue.append(
             PublishMessageEnvelope(
-                message=message,
-                cancellation_token=cancellation_token,
-                sender=sender,
-                namespace=namespace,
+                message=message, cancellation_token=cancellation_token, sender=sender, topic_id=topic_id
             )
         )
 
@@ -300,12 +283,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._outstanding_tasks.decrement()
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
+        self._build_for_new_topic(message_envelope.topic_id)
         responses: List[Awaitable[Any]] = []
-        target_namespace = message_envelope.namespace
-        for agent_id in self._per_type_subscribers[
-            (target_namespace, MESSAGE_TYPE_REGISTRY.type_name(message_envelope.message))
-        ]:
-            if message_envelope.sender is not None and agent_id.type == message_envelope.sender.type:
+
+        recipients = self._subscribed_recipients[message_envelope.topic_id]
+        for agent_id in recipients:
+            # Avoid sending the message back to the sender
+            if message_envelope.sender is not None and agent_id == message_envelope.sender:
                 continue
 
             sender_agent = (
@@ -326,8 +310,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # )
             message_context = MessageContext(
                 sender=message_envelope.sender,
-                # TODO: topic_id
-                topic_id=None,
+                topic_id=message_envelope.topic_id,
                 is_rpc=False,
                 cancellation_token=message_envelope.cancellation_token,
             )
@@ -460,16 +443,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def register(
         self,
-        name: str,
+        type: str,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
     ) -> None:
-        if name in self._agent_factories:
-            raise ValueError(f"Agent with name {name} already exists.")
-        self._agent_factories[name] = agent_factory
-
-        # For all already prepared namespaces we need to prepare this agent
-        for namespace in self._known_namespaces:
-            await self._get_agent(AgentId(type=name, key=namespace))
+        if type in self._agent_factories:
+            raise ValueError(f"Agent with type {type} already exists.")
+        self._agent_factories[type] = agent_factory
 
     async def _invoke_agent_factory(
         self,
@@ -496,7 +475,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             return agent
 
     async def _get_agent(self, agent_id: AgentId) -> Agent:
-        await self._process_seen_namespace(agent_id.key)
         if agent_id in self._instantiated_agents:
             return self._instantiated_agents[agent_id]
 
@@ -504,19 +482,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             raise LookupError(f"Agent with name {agent_id.type} not found.")
 
         agent_factory = self._agent_factories[agent_id.type]
-
         agent = await self._invoke_agent_factory(agent_factory, agent_id)
-        for message_type in agent.metadata["subscriptions"]:
-            self._per_type_subscribers[(agent_id.key, message_type)].add(agent_id)
         self._instantiated_agents[agent_id] = agent
         return agent
-
-    async def get(self, name: str, *, namespace: str = "default") -> AgentId:
-        return (await self._get_agent(AgentId(type=name, key=namespace))).id
-
-    async def get_proxy(self, name: str, *, namespace: str = "default") -> AgentProxy:
-        id = await self.get(name, namespace=namespace)
-        return AgentProxy(id, self)
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
@@ -531,12 +499,40 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         return agent_instance
 
-    # Hydrate the agent instances in a namespace. The primary reason for this is
-    # to ensure message type subscriptions are set up.
-    async def _process_seen_namespace(self, namespace: str) -> None:
-        if namespace in self._known_namespaces:
+    async def add_subscription(self, subscription: Subscription) -> None:
+        # Check if the subscription already exists
+        if any(sub.id == subscription.id for sub in self._subscriptions):
+            raise ValueError("Subscription already exists")
+
+        if len(self._seen_topics) > 0:
+            raise NotImplementedError("Cannot add subscription after topics have been seen yet")
+
+        self._subscriptions.append(subscription)
+
+    async def remove_subscription(self, id: str) -> None:
+        # Check if the subscription exists
+        if not any(sub.id == id for sub in self._subscriptions):
+            raise ValueError("Subscription does not exist")
+
+        def is_not_sub(x: Subscription) -> bool:
+            return x.id != id
+
+        self._subscriptions = list(filter(is_not_sub, self._subscriptions))
+
+        # Rebuild the subscriptions
+        self._rebuild_subscriptions(self._seen_topics)
+
+    # TODO: optimize this...
+    def _rebuild_subscriptions(self, topics: Set[TopicId]) -> None:
+        self._subscribed_recipients.clear()
+        for topic in topics:
+            self._build_for_new_topic(topic)
+
+    def _build_for_new_topic(self, topic: TopicId) -> None:
+        if topic in self._seen_topics:
             return
 
-        self._known_namespaces.add(namespace)
-        for name in self._known_agent_names:
-            await self._get_agent(AgentId(type=name, key=namespace))
+        self._seen_topics.add(topic)
+        for subscription in self._subscriptions:
+            if subscription.is_match(topic):
+                self._subscribed_recipients[topic].append(subscription.map_to_agent(topic))

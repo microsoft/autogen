@@ -22,6 +22,7 @@ from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -29,6 +30,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
+from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -110,12 +112,14 @@ Please review the code and provide feedback.
         review_text = "Code review:\n" + "\n".join([f"{k}: {v}" for k, v in review.items()])
         approved = review["approval"].lower().strip() == "approve"
         # Publish the review result.
+        assert ctx.topic_id is not None
         await self.publish_message(
             CodeReviewResult(
                 review=review_text,
                 approved=approved,
                 session_id=message.session_id,
-            )
+            ),
+            topic_id=ctx.topic_id,
         )
 
 
@@ -179,7 +183,11 @@ Code: <Your code>
         # Store the code review task in the session memory.
         self._session_memory[session_id].append(code_review_task)
         # Publish a code review task.
-        await self.publish_message(code_review_task)
+        assert ctx.topic_id is not None
+        await self.publish_message(
+            code_review_task,
+            topic_id=ctx.topic_id,
+        )
 
     @message_handler
     async def handle_code_review_result(self, message: CodeReviewResult, ctx: MessageContext) -> None:
@@ -193,12 +201,14 @@ Code: <Your code>
         # Check if the code is approved.
         if message.approved:
             # Publish the code writing result.
+            assert ctx.topic_id is not None
             await self.publish_message(
                 CodeWritingResult(
                     code=review_request.code,
                     task=review_request.code_writing_task,
                     review=message.review,
-                )
+                ),
+                topic_id=ctx.topic_id,
             )
             print("Code Writing Result:")
             print("-" * 80)
@@ -237,7 +247,11 @@ Code: <Your code>
             # Store the code review task in the session memory.
             self._session_memory[message.session_id].append(code_review_task)
             # Publish a new code review task.
-            await self.publish_message(code_review_task)
+            assert ctx.topic_id is not None
+            await self.publish_message(
+                code_review_task,
+                topic_id=ctx.topic_id,
+            )
 
     def _extract_code_block(self, markdown_text: str) -> Union[str, None]:
         pattern = r"```(\w+)\n(.*?)\n```"
@@ -258,6 +272,7 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
     )
+    await runtime.add_subscription(TypeSubscription("default", "ReviewerAgent"))
     await runtime.register(
         "CoderAgent",
         lambda: CoderAgent(
@@ -265,12 +280,13 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
     )
+    await runtime.add_subscription(TypeSubscription("default", "CoderAgent"))
     run_context = runtime.start()
     await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
         ),
-        namespace="default",
+        topic_id=TopicId("default", "default"),
     )
 
     # Keep processing messages until idle.

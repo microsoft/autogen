@@ -1,18 +1,15 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.core import BaseAgent, MessageContext
+from agnext.core import AgentId
 
 
 class StatefulAgent(BaseAgent):
     def __init__(self) -> None:
-        super().__init__("A stateful agent", [])
+        super().__init__("A stateful agent")
         self.state = 0
-
-    @property
-    def subscriptions(self) -> Sequence[type]:
-        return []
 
     async def on_message(self, message: Any, ctx: MessageContext) -> None:
         raise NotImplementedError
@@ -28,7 +25,8 @@ class StatefulAgent(BaseAgent):
 async def test_agent_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    agent1_id = await runtime.register_and_get("name1", StatefulAgent)
+    await runtime.register("name1", StatefulAgent)
+    agent1_id = AgentId("name1", key="default")
     agent1: StatefulAgent = await runtime.try_get_underlying_agent_instance(agent1_id, type=StatefulAgent)
     assert agent1.state == 0
     agent1.state = 1
@@ -46,7 +44,8 @@ async def test_agent_can_save_state() -> None:
 async def test_runtime_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    agent1_id = await runtime.register_and_get("name1", StatefulAgent)
+    await runtime.register("name1", StatefulAgent)
+    agent1_id = AgentId("name1", key="default")
     agent1: StatefulAgent = await runtime.try_get_underlying_agent_instance(agent1_id, type=StatefulAgent)
     assert agent1.state == 0
     agent1.state = 1
@@ -55,7 +54,8 @@ async def test_runtime_can_save_state() -> None:
     runtime_state = await runtime.save_state()
 
     runtime2 = SingleThreadedAgentRuntime()
-    agent2_id = await runtime2.register_and_get("name1", StatefulAgent)
+    await runtime2.register("name1", StatefulAgent)
+    agent2_id = AgentId("name1", key="default")
     agent2: StatefulAgent = await runtime2.try_get_underlying_agent_instance(agent2_id, type=StatefulAgent)
 
     await runtime2.load_state(runtime_state)

@@ -15,11 +15,13 @@ from agnext.components.models import (
 )
 from agnext.components.tool_agent import ToolAgent
 from agnext.components.tools import FunctionTool, Tool
+from agnext.core import AgentInstantiationContext
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import AgentId
 from coding_direct import Message, ToolUseAgent
 from common.utils import get_chat_completion_client_from_envs
 
@@ -42,23 +44,24 @@ async def main() -> None:
         )
     ]
     # Register agents.
-    tool_executor_agent = await runtime.register_and_get(
+    await runtime.register(
         "tool_executor_agent",
         lambda: ToolAgent(
             description="Tool Executor Agent",
             tools=tools,
         ),
     )
-    tool_use_agent = await runtime.register_and_get(
+    await runtime.register(
         "tool_enabled_agent",
         lambda: ToolUseAgent(
             description="Tool Use Agent",
             system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             tool_schema=[tool.schema for tool in tools],
-            tool_agent=tool_executor_agent,
+            tool_agent=AgentId("tool_executor_agent", AgentInstantiationContext.current_agent_id().key),
         ),
     )
+    tool_use_agent = AgentId("tool_enabled_agent", "default")
 
     run_context = runtime.start()
 

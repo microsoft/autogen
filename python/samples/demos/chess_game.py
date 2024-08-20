@@ -10,14 +10,16 @@ import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import AgentRuntime
+from agnext.core import AgentInstantiationContext, AgentRuntime, TopicId
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from agnext.core import AgentId
 from common.agents._chat_completion_agent import ChatCompletionAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -156,7 +158,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    black = await runtime.register_and_get(
+    await runtime.register(
         "PlayerBlack",
         lambda: ChatCompletionAgent(
             description="Player playing black.",
@@ -173,7 +175,8 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             tools=black_tools,
         ),
     )
-    white = await runtime.register_and_get(
+    await runtime.add_subscription(TypeSubscription("default", "PlayerBlack"))
+    await runtime.register(
         "PlayerWhite",
         lambda: ChatCompletionAgent(
             description="Player playing white.",
@@ -190,6 +193,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             tools=white_tools,
         ),
     )
+    await runtime.add_subscription(TypeSubscription("default", "PlayerWhite"))
     # Create a group chat manager for the chess game to orchestrate a turn-based
     # conversation between the two agents.
     await runtime.register(
@@ -197,7 +201,10 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         lambda: GroupChatManager(
             description="A chess game between two agents.",
             memory=BufferedChatMemory(buffer_size=10),
-            participants=[white, black],  # white goes first
+            participants=[
+                AgentId("PlayerWhite", AgentInstantiationContext.current_agent_id().key),
+                AgentId("PlayerBlack", AgentInstantiationContext.current_agent_id().key),
+            ],  # white goes first
         ),
     )
 
@@ -207,7 +214,9 @@ async def main() -> None:
     await chess_game(runtime)
     run_context = runtime.start()
     # Publish an initial message to trigger the group chat manager to start orchestration.
-    await runtime.publish_message(TextMessage(content="Game started.", source="System"), namespace="default")
+    await runtime.publish_message(
+        TextMessage(content="Game started.", source="System"), topic_id=TopicId("default", "default")
+    )
     await run_context.stop_when_idle()
 
 

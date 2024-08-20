@@ -4,7 +4,8 @@ from dataclasses import dataclass
 
 from agnext.application import WorkerAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
-from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext
+from agnext.components._type_subscription import TypeSubscription
+from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext, TopicId
 
 
 @dataclass
@@ -38,11 +39,14 @@ class ReceiveAgent(TypeRoutedAgent):
 
     @message_handler
     async def on_greet(self, message: Greeting, ctx: MessageContext) -> None:
-        await self.publish_message(ReturnedGreeting(f"Returned greeting: {message.content}"))
+        assert ctx.topic_id is not None
+        await self.publish_message(ReturnedGreeting(f"Returned greeting: {message.content}"), topic_id=ctx.topic_id)
 
     @message_handler
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
-        await self.publish_message(ReturnedFeedback(f"Returned feedback: {message.content}"))
+        assert ctx.topic_id is not None
+
+        await self.publish_message(ReturnedFeedback(f"Returned feedback: {message.content}"), topic_id=ctx.topic_id)
 
 
 class GreeterAgent(TypeRoutedAgent):
@@ -51,11 +55,15 @@ class GreeterAgent(TypeRoutedAgent):
 
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
-        await self.publish_message(Greeting(f"Hello, {message.content}!"))
+        assert ctx.topic_id is not None
+
+        await self.publish_message(Greeting(f"Hello, {message.content}!"), topic_id=ctx.topic_id)
 
     @message_handler
     async def on_returned_greet(self, message: ReturnedGreeting, ctx: MessageContext) -> None:
-        await self.publish_message(Feedback(f"Feedback: {message.content}"))
+        assert ctx.topic_id is not None
+
+        await self.publish_message(Feedback(f"Feedback: {message.content}"), topic_id=ctx.topic_id)
 
 
 async def main() -> None:
@@ -68,9 +76,11 @@ async def main() -> None:
     await runtime.start(host_connection_string="localhost:50051")
 
     await runtime.register("reciever", lambda: ReceiveAgent())
+    await runtime.add_subscription(TypeSubscription("default", "reciever"))
     await runtime.register("greeter", lambda: GreeterAgent())
+    await runtime.add_subscription(TypeSubscription("default", "greeter"))
 
-    await runtime.publish_message(AskToGreet("Hello World!"), namespace="default")
+    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=TopicId("default", "default"))
 
     # Just to keep the runtime running
     try:

@@ -23,7 +23,8 @@ class UserProxyAgent(TypeRoutedAgent):
     async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method prompts the user for input, then publishes it."""
         user_input = await self.get_user_input(self._user_input_prompt)
-        await self.publish_message(TextMessage(content=user_input, source=self.metadata["type"]))
+        assert ctx.topic_id is not None
+        await self.publish_message(TextMessage(content=user_input, source=self.metadata["type"]), topic_id=ctx.topic_id)
 
     async def get_user_input(self, prompt: str) -> str:
         """Get user input from the console. Override this method to customize how user input is retrieved."""

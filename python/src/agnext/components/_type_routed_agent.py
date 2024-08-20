@@ -142,12 +142,12 @@ class TypeRoutedAgent(BaseAgent):
                     message_handler = cast(MessageHandler[Any, Any], handler)
                     for target_type in message_handler.target_types:
                         self._handlers[target_type] = message_handler
-        subscriptions = list(self._handlers.keys())
+
         for message_type in self._handlers.keys():
             if not MESSAGE_TYPE_REGISTRY.is_registered(MESSAGE_TYPE_REGISTRY.type_name(message_type)):
                 MESSAGE_TYPE_REGISTRY.add_type(message_type)
-        subscriptions_str = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscriptions]
-        super().__init__(description, subscriptions_str)
+
+        super().__init__(description)
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore

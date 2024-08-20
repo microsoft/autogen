@@ -13,6 +13,7 @@ from agnext.components.tool_agent import (
 )
 from agnext.components.tools import FunctionTool
 from agnext.core import CancellationToken
+from agnext.core import AgentId
 
 
 def _pass_function(input: str) -> str:
@@ -31,7 +32,7 @@ async def _async_sleep_function(input: str) -> str:
 @pytest.mark.asyncio
 async def test_tool_agent() -> None:
     runtime = SingleThreadedAgentRuntime()
-    agent = await runtime.register_and_get(
+    await runtime.register(
         "tool_agent",
         lambda: ToolAgent(
             description="Tool agent",
@@ -42,6 +43,7 @@ async def test_tool_agent() -> None:
             ],
         ),
     )
+    agent = AgentId("tool_agent", "default")
     run = runtime.start()
 
     # Test pass function

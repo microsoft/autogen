@@ -12,7 +12,7 @@ from ._agent_runtime import AgentRuntime
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
-from ._serialization import MESSAGE_TYPE_REGISTRY, TypeDeserializer, TypeSerializer
+from ._serialization import MESSAGE_TYPE_REGISTRY, Serialization, TypeDeserializer, TypeSerializer
 from ._subscription import Subscription
 from ._topic import TopicId
 
@@ -32,4 +32,5 @@ __all__ = [
     "TopicId",
     "Subscription",
     "MessageContext",
+    "Serialization",
 ]

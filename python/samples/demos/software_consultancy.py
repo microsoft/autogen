@@ -19,7 +19,7 @@ import openai
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import AgentRuntime
+from agnext.core import AgentInstantiationContext, AgentRuntime
 from markdownify import markdownify  # type: ignore
 from tqdm import tqdm
 from typing_extensions import Annotated
@@ -27,6 +27,7 @@ from typing_extensions import Annotated
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from agnext.core import AgentId
 from common.agents import ChatCompletionAgent
 from common.memory import HeadAndTailChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -106,14 +107,14 @@ async def create_image(
 
 
 async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> None:  # type: ignore
-    user_agent = await runtime.register_and_get(
+    await runtime.register(
         "Customer",
         lambda: TextualUserAgent(
             description="A customer looking for help.",
             app=app,
         ),
     )
-    developer = await runtime.register_and_get(
+    await runtime.register(
         "Developer",
         lambda: ChatCompletionAgent(
             description="A Python software developer.",
@@ -149,11 +150,11 @@ async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> No
                 FunctionTool(list_files, name="list_files", description="List files in a directory."),
                 FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
             ],
-            tool_approver=user_agent,
+            tool_approver=AgentId("Customer", AgentInstantiationContext.current_agent_id().key),
         ),
     )
 
-    product_manager = await runtime.register_and_get(
+    await runtime.register(
         "ProductManager",
         lambda: ChatCompletionAgent(
             description="A product manager. "
@@ -179,10 +180,10 @@ async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> No
                 FunctionTool(list_files, name="list_files", description="List files in a directory."),
                 FunctionTool(browse_web, name="browse_web", description="Browse a web page."),
             ],
-            tool_approver=user_agent,
+            tool_approver=AgentId("Customer", AgentInstantiationContext.current_agent_id().key),
         ),
     )
-    ux_designer = await runtime.register_and_get(
+    await runtime.register(
         "UserExperienceDesigner",
         lambda: ChatCompletionAgent(
             description="A user experience designer for creating user interfaces.",
@@ -211,11 +212,11 @@ async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> No
                 ),
                 FunctionTool(list_files, name="list_files", description="List files in a directory."),
             ],
-            tool_approver=user_agent,
+            tool_approver=AgentId("Customer", AgentInstantiationContext.current_agent_id().key),
         ),
     )
 
-    illustrator = await runtime.register_and_get(
+    await runtime.register(
         "Illustrator",
         lambda: ChatCompletionAgent(
             description="An illustrator for creating images.",
@@ -237,7 +238,7 @@ async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> No
                     description="Create an image from a description.",
                 ),
             ],
-            tool_approver=user_agent,
+            tool_approver=AgentId("Customer", AgentInstantiationContext.current_agent_id().key),
         ),
     )
     await runtime.register(
@@ -246,7 +247,13 @@ async def software_consultancy(runtime: AgentRuntime, app: TextualChatApp) -> No
             description="A group chat manager.",
             memory=HeadAndTailChatMemory(head_size=1, tail_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
-            participants=[developer, product_manager, ux_designer, illustrator, user_agent],
+            participants=[
+                AgentId("Developer", AgentInstantiationContext.current_agent_id().key),
+                AgentId("ProductManager", AgentInstantiationContext.current_agent_id().key),
+                AgentId("UserExperienceDesigner", AgentInstantiationContext.current_agent_id().key),
+                AgentId("Illustrator", AgentInstantiationContext.current_agent_id().key),
+                AgentId("Customer", AgentInstantiationContext.current_agent_id().key),
+            ],
         ),
     )
     art = r"""
