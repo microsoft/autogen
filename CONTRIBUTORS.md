@@ -1,6 +1,6 @@
 # Contributors
 
-## Special thanks to all the people who help this project so far:
+## Special thanks to all the people who help this project:
 > These individuals dedicate their time and expertise to improve this project. We are deeply grateful for their contributions.
 
 | Name | GitHub Handle | Organization | Features | Roadmap Lead | Additional  Information |
