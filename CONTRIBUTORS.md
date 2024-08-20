@@ -30,4 +30,3 @@
 
 ## Acknowledgements
 This template was adapted from [GitHub Template Guide](https://github.com/cezaraugusto/github-template-guidelines/blob/master/.github/CONTRIBUTORS.md) by [cezaraugusto](https://github.com/cezaraugusto).
-
