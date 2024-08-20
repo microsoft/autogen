@@ -18,11 +18,11 @@
 | Xiaoyun Zhang | [LittleLittleCloud](https://github.com/LittleLittleCloud) | Microsoft | AutoGen.Net, group chat | Yes | [Backlog - AutoGen.Net](https://github.com/microsoft/autogen/issues) - Available most of the time (PST) |
 | Yiran Wu | [yiranwu0](https://github.com/yiranwu0) | Penn State University | alt-models, group chat, logging | Yes | |
 | Beibin Li | [BeibinLi](https://github.com/BeibinLi) | Microsoft Research | alt-models | Yes | |
-| Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  | Complex Tasks | |
-| Adam Fourney | [afourney](https://github.com/afourney) | Microsoft Research |  | Complex Tasks | |
-| Ricky Loynd | [rickyloyn-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research |  | Learning | |
-| Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  | Infra | |
-| Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  | Infra | |
+| Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  Complex Tasks | | |
+| Adam Fourney | [afourney](https://github.com/afourney) | Microsoft Research |  Complex Tasks | | |
+| Ricky Loynd | [rickyloyn-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research |  Learning | | |
+| Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  Infra | | |
+| Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  Infra | | |
 
 
 ## I would like to join this list. How can I help the project?
