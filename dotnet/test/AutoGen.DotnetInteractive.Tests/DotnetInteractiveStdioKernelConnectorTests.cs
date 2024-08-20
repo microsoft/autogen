@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace AutoGen.DotnetInteractive.Tests;
 
 [Collection("Sequential")]
-public class DotnetInteractiveStdioKernelConnectorTests
+public class DotnetInteractiveStdioKernelConnectorTests : IDisposable
 {
     private string _workingDir;
     private Kernel kernel;
@@ -76,5 +76,10 @@ public class DotnetInteractiveStdioKernelConnectorTests
 
         var result = await this.kernel.RunSubmitCodeCommandAsync(pythonCode, "python");
         result.Should().Contain("Hello, World!");
+    }
+
+    public void Dispose()
+    {
+        this.kernel.Dispose();
     }
 }
