@@ -660,6 +660,9 @@ class GeminiClient:
                 return vertexai_tool_config
         elif isinstance(tool_config, VertexAIToolConfig):
             return tool_config
+        elif len(tool_config) == 0 and len(tools) == 0:
+            logger.debug("VertexAI tool config is empty!")
+            return None
         else:
             logger.error("Invalid VertexAI tool config!")
             return None
