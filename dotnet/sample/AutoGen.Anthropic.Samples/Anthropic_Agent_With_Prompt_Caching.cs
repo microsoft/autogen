@@ -122,13 +122,12 @@ public class Anthropic_Agent_With_Prompt_Caching
                 new ChatMessage("user", [TextContent.CreateTextWithCacheControl(LongStory)]),
                 from: "user");
 
-        var history =
-            await userProxyAgent.SendMessageToGroupAsync
-            (groupChat,
-                "translate this text for me",
-                new List<IMessage>()
-                {
-                    messageEnvelope
-                });
+        var chatHistory = new List<IMessage>()
+        {
+            new TextMessage(Role.User, "translate this text for me", from: userProxyAgent.Name),
+            messageEnvelope,
+        };
+
+        var history = await groupChat.SendAsync(chatHistory).ToArrayAsync();
     }
 }
