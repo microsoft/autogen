@@ -281,7 +281,7 @@ async def main() -> None:
         ),
     )
     await runtime.add_subscription(TypeSubscription("default", "CoderAgent"))
-    run_context = runtime.start()
+    runtime.start()
     await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
@@ -290,7 +290,7 @@ async def main() -> None:
     )
 
     # Keep processing messages until idle.
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

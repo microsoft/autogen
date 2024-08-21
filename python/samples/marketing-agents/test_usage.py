@@ -32,7 +32,7 @@ async def main() -> None:
     await build_app(runtime)
     await runtime.register("Printer", lambda: Printer())
 
-    ctx = runtime.start()
+    runtime.start()
 
     topic_id = TopicId("default", "default")
 
@@ -45,7 +45,7 @@ async def main() -> None:
         topic_id=topic_id,
     )
 
-    await ctx.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

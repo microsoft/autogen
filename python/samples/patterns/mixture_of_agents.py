@@ -158,13 +158,13 @@ async def main() -> None:
         ),
     )
     await runtime.add_subscription(TypeSubscription("default", "AggregatorAgent"))
-    run_context = runtime.start()
+    runtime.start()
     await runtime.publish_message(
         AggregatorTask(task="What are something fun to do in SF?"), topic_id=TopicId("default", "default")
     )
 
     # Keep processing messages.
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

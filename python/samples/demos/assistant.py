@@ -233,7 +233,7 @@ Type "exit" to exit the chat.
 """
     runtime = SingleThreadedAgentRuntime()
     user = await assistant_chat(runtime)
-    _run_context = runtime.start()
+    runtime.start()
     print(usage)
     # Request the user to start the conversation.
     await runtime.send_message(PublishNow(), AgentId(user, "default"))

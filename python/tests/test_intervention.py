@@ -21,11 +21,11 @@ async def test_intervention_count_messages() -> None:
     runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
-    run_context = runtime.start()
+    runtime.start()
 
     _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await run_context.stop()
+    await runtime.stop()
 
     assert handler.num_messages == 1
     loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
@@ -43,12 +43,12 @@ async def test_intervention_drop_send() -> None:
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
-    run_context = runtime.start()
+    runtime.start()
 
     with pytest.raises(MessageDroppedException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await run_context.stop()
+    await runtime.stop()
 
     loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 0
@@ -66,12 +66,12 @@ async def test_intervention_drop_response() -> None:
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
-    run_context = runtime.start()
+    runtime.start()
 
     with pytest.raises(MessageDroppedException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await run_context.stop()
+    await runtime.stop()
 
 
 @pytest.mark.asyncio
@@ -89,12 +89,12 @@ async def test_intervention_raise_exception_on_send() -> None:
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
-    run_context = runtime.start()
+    runtime.start()
 
     with pytest.raises(InterventionException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await run_context.stop()
+    await runtime.stop()
 
     long_running_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert long_running_agent.num_calls == 0
@@ -114,11 +114,11 @@ async def test_intervention_raise_exception_on_respond() -> None:
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
-    run_context = runtime.start()
+    runtime.start()
     with pytest.raises(InterventionException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await run_context.stop()
+    await runtime.stop()
 
     long_running_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert long_running_agent.num_calls == 1

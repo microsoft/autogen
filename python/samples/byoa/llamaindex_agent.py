@@ -125,7 +125,7 @@ async def main() -> None:
     )
     agent = AgentId("chat_agent", key="default")
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Send a message to the agent and get the response.
     message = Message(content="What are the best movies from studio Ghibli?")
@@ -137,7 +137,7 @@ async def main() -> None:
         for source in response.sources:
             print(source.content)
 
-    await run_context.stop()
+    await runtime.stop()
 
 
 if __name__ == "__main__":

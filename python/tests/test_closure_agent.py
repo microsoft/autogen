@@ -35,14 +35,14 @@ async def test_register_receives_publish() -> None:
     await runtime.register("name", lambda: ClosureAgent("my_agent", log_message))
     await runtime.add_subscription(TypeSubscription("default", "name"))
     topic_id = TopicId("default", "default")
-    run_context = runtime.start()
+    runtime.start()
 
     await runtime.publish_message(Message("first message"), topic_id=topic_id)
     await runtime.publish_message(Message("second message"), topic_id=topic_id)
     await runtime.publish_message(Message("third message"), topic_id=topic_id)
 
 
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
     assert queue.qsize() == 3
     assert queue.get_nowait() == ("default", "first message")

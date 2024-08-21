@@ -200,12 +200,12 @@ async def main(task: str, temp_dir: str) -> None:
     await runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
     await runtime.add_subscription(TypeSubscription("default", "coder"))
     await runtime.add_subscription(TypeSubscription("default", "executor"))
-    run_context = runtime.start()
+    runtime.start()
 
     # Publish the task message.
     await runtime.publish_message(TaskMessage(content=task), topic_id=TopicId("default", "default"))
 
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

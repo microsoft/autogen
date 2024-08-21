@@ -157,14 +157,14 @@ async def main() -> None:
     )
 
     # Start the runtime.
-    run_context = runtime.start()
+    runtime.start()
 
     # Start the conversation.
     await runtime.publish_message(
         Message(content="Hello, everyone!", source="Moderator"), topic_id=TopicId("default", "default")
     )
 
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

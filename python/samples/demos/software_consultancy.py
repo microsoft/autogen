@@ -288,7 +288,7 @@ async def main() -> None:
     app = TextualChatApp(runtime, user_name="You")
     await software_consultancy(runtime, app)
     # Start the runtime.
-    _run_context = runtime.start()
+    runtime.start()
     # Start the app.
     await app.run_async()
 

@@ -125,7 +125,7 @@ async def main() -> None:
         ),
     )
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Send a task to the tool user.
     response = await runtime.send_message(
@@ -134,7 +134,7 @@ async def main() -> None:
     print(response.content)
 
     # Run the runtime until the task is completed.
-    await run_context.stop()
+    await runtime.stop()
 
 
 if __name__ == "__main__":

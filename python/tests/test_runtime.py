@@ -30,13 +30,13 @@ async def test_register_receives_publish() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     await runtime.register("name", LoopbackAgent)
-    run_context = runtime.start()
+    runtime.start()
     await runtime.add_subscription(TypeSubscription("default", "name"))
     agent_id = AgentId("name", key="default")
     topic_id = TopicId("default", "default")
     await runtime.publish_message(MessageType(), topic_id=topic_id)
 
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
     # Agent in default namespace should have received the message
     long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
@@ -62,7 +62,7 @@ async def test_register_receives_publish_cascade() -> None:
         await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
         await runtime.add_subscription(TypeSubscription("default", f"name{i}"))
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Publish messages
     topic_id = TopicId("default", "default")
@@ -70,7 +70,7 @@ async def test_register_receives_publish_cascade() -> None:
         await runtime.publish_message(CascadingMessageType(round=1), topic_id)
 
     # Process until idle.
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):

@@ -106,7 +106,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     app = TextualChatApp(runtime, user_name="You")
     await illustrator_critics(runtime, app)
-    _run_context = runtime.start()
+    runtime.start()
     await app.run_async()
 
 

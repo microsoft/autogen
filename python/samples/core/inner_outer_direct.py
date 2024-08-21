@@ -49,11 +49,11 @@ async def main() -> None:
     await runtime.register("outer", lambda: Outer(AgentId("outer", AgentInstantiationContext.current_agent_id().key)))
     outer = AgentId("outer", "default")
 
-    run_context = runtime.start()
+    runtime.start()
 
     response = await runtime.send_message(MessageType(body="Hello", sender="external"), outer)
     print(response)
-    await run_context.stop()
+    await runtime.stop()
 
 
 if __name__ == "__main__":

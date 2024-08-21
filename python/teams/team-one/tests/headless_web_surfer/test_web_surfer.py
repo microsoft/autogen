@@ -104,7 +104,7 @@ async def test_web_surfer() -> None:
         lambda: MultimodalWebSurfer(),
     )
     web_surfer = AgentId("WebSurfer", "default")
-    run_context = runtime.start()
+    runtime.start()
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer, MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
@@ -150,7 +150,7 @@ async def test_web_surfer() -> None:
 
     with pytest.raises(AuthenticationError):
         tool_resp = await make_browser_request(actual_surfer, TOOL_SUMMARIZE_PAGE)
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 @pytest.mark.skipif(
     skip_all or skip_openai,
@@ -176,7 +176,7 @@ async def test_web_surfer_oai() -> None:
     )
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
     await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
-    run_context = runtime.start()
+    runtime.start()
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
@@ -206,7 +206,7 @@ async def test_web_surfer_oai() -> None:
         recipient=web_surfer.id,
         sender=user_proxy.id
     )
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 @pytest.mark.skipif(
     skip_bing,
@@ -232,7 +232,7 @@ async def test_web_surfer_bing() -> None:
     )
     web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
 
-    run_context = runtime.start()
+    runtime.start()
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
     await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
 
@@ -247,7 +247,7 @@ async def test_web_surfer_bing() -> None:
     tool_resp = await make_browser_request(actual_surfer, TOOL_WEB_SEARCH, {"query": BING_QUERY + " Wikipedia"})
     markdown = await actual_surfer._get_page_markdown() # type: ignore
     assert "https://en.wikipedia.org/wiki/" in markdown
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""

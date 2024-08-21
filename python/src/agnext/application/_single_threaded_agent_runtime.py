@@ -137,6 +137,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._seen_topics: Set[TopicId] = set()
         self._subscribed_recipients: DefaultDict[TopicId, List[AgentId]] = defaultdict(list)
 
+        self._run_context: RunContext | None = None
+
     @property
     def unprocessed_messages(
         self,
@@ -430,8 +432,26 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def idle(self) -> bool:
         return len(self._message_queue) == 0 and self._outstanding_tasks.get() == 0
 
-    def start(self) -> RunContext:
-        return RunContext(self)
+    def start(self) -> None:
+        """Start the runtime message processing loop."""
+        if self._run_context is not None:
+            raise RuntimeError("Runtime is already started")
+        self._run_context = RunContext(self)
+
+    async def stop(self) -> None:
+        """Stop the runtime message processing loop."""
+        if self._run_context is None:
+            raise RuntimeError("Runtime is not started")
+        await self._run_context.stop()
+        self._run_context = None
+
+    async def stop_when_idle(self) -> None:
+        """Stop the runtime message processing loop when there is
+        no outstanding message being processed or queued."""
+        if self._run_context is None:
+            raise RuntimeError("Runtime is not started")
+        await self._run_context.stop_when_idle()
+        self._run_context = None
 
     async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
         return (await self._get_agent(agent)).metadata

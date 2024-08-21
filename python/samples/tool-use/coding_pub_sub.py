@@ -210,14 +210,14 @@ async def main() -> None:
     )
     await runtime.add_subscription(TypeSubscription("default", "tool_use_agent"))
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Publish a task.
     await runtime.publish_message(
         UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=TopicId("default", "default")
     )
 
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

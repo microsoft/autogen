@@ -44,7 +44,7 @@ async def test_tool_agent() -> None:
         ),
     )
     agent = AgentId("tool_agent", "default")
-    run = runtime.start()
+    runtime.start()
 
     # Test pass function
     result = await runtime.send_message(
@@ -73,4 +73,4 @@ async def test_tool_agent() -> None:
     with pytest.raises(asyncio.CancelledError):
         await result_future
 
-    await run.stop()
+    await runtime.stop()

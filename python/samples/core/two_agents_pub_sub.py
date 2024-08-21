@@ -108,14 +108,14 @@ async def main() -> None:
     )
     await runtime.add_subscription(TypeSubscription("default", "Cathy"))
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Send a message to Jack to start the conversation.
     message = Message(content="Can you tell me something fun about SF?", source="User")
     await runtime.send_message(message, AgentId("jack", "default"))
 
     # Process messages.
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

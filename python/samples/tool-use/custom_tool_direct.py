@@ -63,7 +63,7 @@ async def main() -> None:
     )
     tool_use_agent = AgentId("tool_enabled_agent", "default")
 
-    run_context = runtime.start()
+    runtime.start()
 
     # Send a task to the tool user.
     response = await runtime.send_message(Message("What is the stock price of NVDA on 2024/06/01"), tool_use_agent)
@@ -72,7 +72,7 @@ async def main() -> None:
     print(response.content)
 
     # Run the runtime until the task is completed.
-    await run_context.stop()
+    await runtime.stop()
 
 
 if __name__ == "__main__":

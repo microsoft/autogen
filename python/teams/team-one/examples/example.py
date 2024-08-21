@@ -39,9 +39,9 @@ async def main() -> None:
         ),
     )
 
-    run_context = runtime.start()
+    runtime.start()
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)
-    await run_context.stop_when_idle()
+    await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

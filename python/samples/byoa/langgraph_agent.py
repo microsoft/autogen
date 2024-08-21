@@ -120,12 +120,12 @@ async def main() -> None:
     )
     agent = AgentId("langgraph_tool_use_agent", key="default")
     # Start the runtime.
-    run_context = runtime.start()
+    runtime.start()
     # Send a message to the agent and get a response.
     response = await runtime.send_message(Message("What's the weather in SF?"), agent)
     print(response.content)
     # Stop the runtime.
-    await run_context.stop()
+    await runtime.stop()
 
 
 if __name__ == "__main__":
