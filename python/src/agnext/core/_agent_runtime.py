@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, runtime_checkable
+from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -115,6 +115,16 @@ class AgentRuntime(Protocol):
             TypeError: If the agent is not of the expected type.
         """
         ...
+
+    @overload
+    async def get(self, id: AgentId, /, *, lazy: bool = ...) -> AgentId: ...
+
+    @overload
+    async def get(self, type: AgentType | str, /, key: str = ..., *, lazy: bool = ...) -> AgentId: ...
+
+    async def get(
+        self, id_or_type: AgentId | AgentType | str, /, key: str = "default", *, lazy: bool = True
+    ) -> AgentId: ...
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the entire runtime, including all hosted agents. The only way to restore the state is to pass it to :meth:`load_state`.

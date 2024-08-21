@@ -25,6 +25,7 @@ from ..core import (
 )
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
+from ._helpers import get_impl
 
 logger = logging.getLogger("agnext")
 event_logger = logging.getLogger("agnext.events")
@@ -537,3 +538,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         for subscription in self._subscriptions:
             if subscription.is_match(topic):
                 self._subscribed_recipients[topic].append(subscription.map_to_agent(topic))
+
+    async def get(
+        self, id_or_type: AgentId | AgentType | str, /, key: str = "default", *, lazy: bool = True
+    ) -> AgentId:
+        return await get_impl(
+            id_or_type=id_or_type,
+            key=key,
+            lazy=lazy,
+            instance_getter=self._get_agent,
+        )

@@ -28,9 +28,20 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from agnext.core import MESSAGE_TYPE_REGISTRY, AgentType, MessageContext, Subscription, TopicId
-
-from ..core import Agent, AgentId, AgentInstantiationContext, AgentMetadata, AgentRuntime, CancellationToken
+from ..core import (
+    MESSAGE_TYPE_REGISTRY,
+    Agent,
+    AgentId,
+    AgentInstantiationContext,
+    AgentMetadata,
+    AgentRuntime,
+    AgentType,
+    CancellationToken,
+    MessageContext,
+    Subscription,
+    TopicId,
+)
+from ._helpers import get_impl
 from .protos import AgentId as AgentIdProto
 from .protos import (
     AgentRpcStub,
@@ -408,3 +419,13 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def remove_subscription(self, id: str) -> None:
         raise NotImplementedError("Subscriptions are not yet implemented.")
+
+    async def get(
+        self, id_or_type: AgentId | AgentType | str, /, key: str = "default", *, lazy: bool = True
+    ) -> AgentId:
+        return await get_impl(
+            id_or_type=id_or_type,
+            key=key,
+            lazy=lazy,
+            instance_getter=self._get_agent,
+        )
