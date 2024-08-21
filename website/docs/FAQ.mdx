@@ -259,16 +259,6 @@ user_proxy = autogen.UserProxyAgent(
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
 
-## Migrating from `CompressibleAgent` and `TransformChatHistory` to `TransformMessages`
-
-### Why migrate to `TransformMessages`?
-
-Migrating enhances flexibility, modularity, and customization in handling chat message transformations. `TransformMessages` introduces an improved, extensible approach for pre-processing messages for conversational agents.
-
-### How to migrate?
-
-To ensure a smooth migration process, simply follow the detailed guide provided in [Introduction to TransformMessages](/docs/topics/handling_long_contexts/intro_to_transform_messages.md).
-
 ### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?
 
 This error typically occurs when using Autogen version earlier than 0.2.27 in combination with OpenAI library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the OpenAI API.
