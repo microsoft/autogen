@@ -80,12 +80,12 @@ public abstract class AgentBase
         {
             case Message.MessageOneofCase.Event:
                 {
-                    var activity = ExtractActivity(msg.Event.Type, msg.Event.Metadata);
+                    var activity = ExtractActivity(msg.Event.DataType, msg.Event.Metadata);
                     await InvokeWithActivityAsync(
                         static ((AgentBase Agent, Event Item) state) => state.Agent.HandleEvent(state.Item),
                         (this, msg.Event),
                         activity,
-                        msg.Event.Type).ConfigureAwait(false);
+                        msg.Event.DataType).ConfigureAwait(false);
                 }
                 break;
             case Message.MessageOneofCase.Request:
@@ -175,8 +175,8 @@ public abstract class AgentBase
 
     protected async ValueTask PublishEvent(Event item)
     {
-        var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
-        activity?.SetTag("peer.service", $"{item.Type}/{item.Namespace}");
+        var activity = s_source.StartActivity($"PublishEvent '{item.DataType}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        activity?.SetTag("peer.service", $"{item.DataType}/{item.Namespace}");
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
@@ -187,7 +187,7 @@ public abstract class AgentBase
             },
             (this, item, completion),
             activity,
-            item.Type).ConfigureAwait(false);
+            item.DataType).ConfigureAwait(false);
     }
 
     protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });

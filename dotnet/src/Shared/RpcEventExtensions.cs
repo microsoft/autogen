@@ -11,7 +11,7 @@ public static class RpcEventExtensions
         var result = new RpcEvent
         {
             Namespace = input.Namespace,
-            Type = input.Type,
+            DataType = input.Type,
         };
 
         if (input.Data is not null)
@@ -26,7 +26,7 @@ public static class RpcEventExtensions
     {
         var result = new Event
         {
-            Type = input.Type,
+            Type = input.DataType,
             Subject = input.Namespace,
             Namespace = input.Namespace,
             Data = []
