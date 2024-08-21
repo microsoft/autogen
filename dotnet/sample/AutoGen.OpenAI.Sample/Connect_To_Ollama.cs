@@ -3,7 +3,8 @@
 
 #region using_statement
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 #endregion using_statement
