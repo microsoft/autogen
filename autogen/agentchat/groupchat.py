@@ -649,6 +649,7 @@ class GroupChat:
         if self.select_speaker_prompt_template is not None:
             start_message = {
                 "content": self.select_speaker_prompt(agents),
+                "name": "checking_agent",
                 "override_role": self.role_for_select_speaker_messages,
             }
         else:
@@ -813,6 +814,7 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_multiple_template.format(agentlist=agentlist),
+                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
@@ -842,6 +844,7 @@ class GroupChat:
 
                 return True, {
                     "content": self.select_speaker_auto_none_template.format(agentlist=agentlist),
+                    "name": "checking_agent",
                     "override_role": self.role_for_select_speaker_messages,
                 }
             else:
@@ -1050,6 +1053,7 @@ class GroupChatManager(ConversableAgent):
         groupchat_result = agent_a.initiate_chat(
             chat_manager, message="Hi, there, I'm agent A."
         )
+        ```
         """
         return self._last_speaker
 

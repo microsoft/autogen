@@ -130,7 +130,8 @@ You have access to the following functions. Use them if required:
 
         await userProxyAgent.SendAsync(
             receiver: lmAgent,
-            "Search the names of the five largest stocks in the US by market cap ");
+            "Search the names of the five largest stocks in the US by market cap ")
+            .ToArrayAsync();
         #endregion lmstudio_function_call_example
     }
 }
