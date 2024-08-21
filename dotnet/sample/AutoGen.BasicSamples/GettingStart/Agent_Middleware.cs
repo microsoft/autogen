@@ -3,11 +3,11 @@
 
 #region Using
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 #endregion Using
 using FluentAssertions;
+using OpenAI.Chat;
 
 namespace AutoGen.BasicSample;
 
@@ -16,20 +16,17 @@ public class Agent_Middleware
     public static async Task RunTokenCountAsync()
     {
         #region Create_Agent
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("Please set the environment variable OPENAI_API_KEY");
-        var model = "gpt-3.5-turbo";
-        var openaiClient = new OpenAIClient(apiKey);
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
         var totalTokenCount = 0;
         var agent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "agent",
-            modelName: model,
             systemMessage: "You are a helpful AI assistant")
             .RegisterMiddleware(async (messages, option, innerAgent, ct) =>
             {
                 var reply = await innerAgent.GenerateReplyAsync(messages, option, ct);
-                if (reply is MessageEnvelope<ChatCompletions> chatCompletions)
+                if (reply is MessageEnvelope<ChatCompletion> chatCompletions)
                 {
                     var tokenCount = chatCompletions.Content.Usage.TotalTokens;
                     totalTokenCount += tokenCount;
@@ -53,14 +50,11 @@ public class Agent_Middleware
     public static async Task RunRagTaskAsync()
     {
         #region Create_Agent
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("Please set the environment variable OPENAI_API_KEY");
-        var model = "gpt-3.5-turbo";
-        var openaiClient = new OpenAIClient(apiKey);
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
         var agent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "agent",
-            modelName: model,
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector()
             .RegisterMiddleware(async (messages, option, innerAgent, ct) =>
