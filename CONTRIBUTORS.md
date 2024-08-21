@@ -20,7 +20,7 @@
 | Beibin Li | [BeibinLi](https://github.com/BeibinLi) | Microsoft Research | alt-models | Yes | |
 | Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  Complex Tasks | | |
 | Adam Fourney | [afourney](https://github.com/afourney) | Microsoft Research |  Complex Tasks | | |
-| Ricky Loynd | [rickyloyn-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research |  Learning | | |
+| Ricky Loynd | [rickyloynd-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research | Teachability | | |
 | Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  Infra | | |
 | Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  Infra | | |
 | David Luong | [David Luong](https://github.com/DavidLuong98) | Microsoft | AutoGen.Net | | |
