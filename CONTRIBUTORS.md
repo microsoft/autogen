@@ -23,6 +23,7 @@
 | Ricky Loynd | [rickyloyn-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research |  Learning | | |
 | Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  Infra | | |
 | Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  Infra | | |
+| David Luong | [David Luong](https://github.com/DavidLuong98) | Microsoft | AutoGen.Net | | |
 
 
 ## I would like to join this list. How can I help the project?
