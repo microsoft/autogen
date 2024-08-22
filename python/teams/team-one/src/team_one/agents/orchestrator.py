@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from agnext.components.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
-from agnext.core import AgentProxy, TopicId
+from agnext.core import AgentProxy, MessageContext, TopicId
 
 from ..messages import BroadcastMessage, OrchestrationEvent, ResetMessage
 from .base_orchestrator import BaseOrchestrator, logger
@@ -231,9 +231,11 @@ class LedgerOrchestrator(BaseOrchestrator):
 
         raise ValueError("Failed to parse ledger information after multiple retries.")
 
-    async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
-        self._chat_history.append(message)
+    async def _handle_broadcast(self, message: BroadcastMessage, ctx: MessageContext) -> None:
+        self._chat_history.append(message.content)
+        await super()._handle_broadcast(message, ctx)
 
+    async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
         # Check if the task is still unset, in which case this message contains the task string
         if len(self._task) == 0:
             await self._initialize_task(self._get_message_str(message))
@@ -264,10 +266,11 @@ class LedgerOrchestrator(BaseOrchestrator):
             self._replan_counter = 0
             self._stall_counter = 0
 
+            synthesized_message = AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
+            self._chat_history.append(synthesized_message)
+
             # Answer from this synthesized message
-            return await self._select_next_agent(
-                AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
-            )
+            return await self._select_next_agent(synthesized_message)
 
         # Orchestrate the next step
         ledger_dict = await self.update_ledger()
@@ -341,10 +344,11 @@ class LedgerOrchestrator(BaseOrchestrator):
                         )
                     )
 
+                    synthesized_message = AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
+                    self._chat_history.append(synthesized_message)
+
                     # Answer from this synthesized message
-                    return await self._select_next_agent(
-                        AssistantMessage(content=synthesized_prompt, source=self.metadata["type"])
-                    )
+                    return await self._select_next_agent(synthesized_message)
 
         # If we goit this far, we were not starting, done, or stuck
         next_agent_name = ledger_dict["next_speaker"]["answer"]
