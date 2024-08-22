@@ -16,7 +16,7 @@ public static class FunctionContractExtension
     /// </summary>
     /// <param name="functionContract">function contract</param>
     /// <returns><see cref="ChatTool"/></returns>
-    public static ChatTool ToOpenAIFunctionDefinition(this FunctionContract functionContract)
+    public static ChatTool ToChatTool(this FunctionContract functionContract)
     {
         var requiredParameterNames = new List<string>();
         var propertiesSchemas = new Dictionary<string, JsonSchema>();
@@ -57,5 +57,16 @@ public static class FunctionContractExtension
            BinaryData.FromObjectAsJson(propertySchemaBuilder.Build(), option));
 
         return functionDefinition;
+    }
+
+    /// <summary>
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt funciton call.
+    /// </summary>
+    /// <param name="functionContract">function contract</param>
+    /// <returns><see cref="ChatTool"/></returns>
+    [Obsolete("Use ToChatTool instead")]
+    public static ChatTool ToOpenAIFunctionDefinition(this FunctionContract functionContract)
+    {
+        return functionContract.ToChatTool();
     }
 }

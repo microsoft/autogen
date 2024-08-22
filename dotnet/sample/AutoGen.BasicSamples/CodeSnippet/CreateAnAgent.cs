@@ -79,7 +79,7 @@ public partial class AssistantCodeSnippet
             name: "assistant",
             systemMessage: "You are an assistant that convert user input to upper case.",
             functions: [
-                this.UpperCaseFunctionContract.ToOpenAIFunctionDefinition(), // The FunctionDefinition object for the UpperCase function
+                this.UpperCaseFunctionContract.ToChatTool(), // The FunctionDefinition object for the UpperCase function
                 ])
             .RegisterMessageConnector()
             .RegisterPrintMessage();

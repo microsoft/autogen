@@ -31,7 +31,7 @@ public partial class TypeSafeFunctionCall
         var functionInstance = new TypeSafeFunctionCall();
 
         // Get the generated function definition
-        var functionDefiniton = functionInstance.WeatherReportFunctionContract.ToOpenAIFunctionDefinition();
+        var functionDefiniton = functionInstance.WeatherReportFunctionContract.ToChatTool();
 
         // Get the generated function wrapper
         Func<string, Task<string>> functionWrapper = functionInstance.WeatherReportWrapper;

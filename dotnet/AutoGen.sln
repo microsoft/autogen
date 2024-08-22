@@ -76,6 +76,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Tests.Share", "test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI", "src\AutoGen.OpenAI\AutoGen.OpenAI.csproj", "{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Tests", "test\AutoGen.OpenAI.Tests\AutoGen.OpenAI.Tests.csproj", "{42A8251C-E7B3-47BB-A82E-459952EBE132}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -218,6 +220,10 @@ Global
 		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -257,6 +263,7 @@ Global
 		{5970868F-831E-418F-89A9-4EC599563E16} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{143725E2-206C-4D37-93E4-9EDF699826B2} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{42A8251C-E7B3-47BB-A82E-459952EBE132} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

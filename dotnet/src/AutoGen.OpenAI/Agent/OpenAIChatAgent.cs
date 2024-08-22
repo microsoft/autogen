@@ -162,7 +162,7 @@ public class OpenAIChatAgent : IStreamingAgent
             option.StopSequences.Add(seq);
         }
 
-        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition()).ToList();
+        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToChatTool()).ToList();
         if (openAIFunctionDefinitions is { Count: > 0 })
         {
             foreach (var f in openAIFunctionDefinitions)
