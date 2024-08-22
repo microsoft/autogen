@@ -5,10 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 
-namespace AutoGen.OpenAI;
+namespace AutoGen.OpenAI.V1;
 
 /// <summary>
 /// GPT agent that can be used to connect to OpenAI chat models like GPT-3.5, GPT-4, etc.
