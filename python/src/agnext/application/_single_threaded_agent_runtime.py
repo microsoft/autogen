@@ -11,16 +11,18 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from agnext.core import AgentType, Subscription, TopicId
-
 from ..core import (
     Agent,
     AgentId,
     AgentInstantiationContext,
     AgentMetadata,
     AgentRuntime,
+    AgentType,
     CancellationToken,
     MessageContext,
+    Subscription,
+    SubscriptionInstantiationContext,
+    TopicId,
 )
 from ..core.exceptions import MessageDroppedException
 from ..core.intervention import DropMessage, InterventionHandler
@@ -459,9 +461,27 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
+        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
+        | list[Subscription]
+        | None = None,
     ) -> AgentType:
         if type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
+
+        if subscriptions is not None:
+            if callable(subscriptions):
+                with SubscriptionInstantiationContext.populate_context(AgentType(type)):
+                    subscriptions_list_result = subscriptions()
+                    if inspect.isawaitable(subscriptions_list_result):
+                        subscriptions_list = await subscriptions_list_result
+                    else:
+                        subscriptions_list = subscriptions_list_result
+            else:
+                subscriptions_list = subscriptions
+
+            for subscription in subscriptions_list:
+                await self.add_subscription(subscription)
+
         self._agent_factories[type] = agent_factory
         return AgentType(type)
 

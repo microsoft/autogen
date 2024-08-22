@@ -40,6 +40,7 @@ from ..core import (
     CancellationToken,
     MessageContext,
     Subscription,
+    SubscriptionInstantiationContext,
     TopicId,
 )
 from ._helpers import SubscriptionManager, get_impl
@@ -388,6 +389,9 @@ class WorkerAgentRuntime(AgentRuntime):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]],
+        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
+        | list[Subscription]
+        | None = None,
     ) -> AgentType:
         if type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
@@ -397,6 +401,21 @@ class WorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Host connection is not set.")
         message = agent_worker_pb2.Message(registerAgentType=agent_worker_pb2.RegisterAgentType(type=type))
         await self._host_connection.send(message)
+
+        if subscriptions is not None:
+            if callable(subscriptions):
+                with SubscriptionInstantiationContext.populate_context(AgentType(type)):
+                    subscriptions_list_result = subscriptions()
+                    if inspect.isawaitable(subscriptions_list_result):
+                        subscriptions_list = await subscriptions_list_result
+                    else:
+                        subscriptions_list = subscriptions_list_result
+            else:
+                subscriptions_list = subscriptions
+
+            for subscription in subscriptions_list:
+                await self.add_subscription(subscription)
+
         return AgentType(type)
 
     async def _invoke_agent_factory(

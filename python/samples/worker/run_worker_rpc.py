@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler, TypeSubscription
+from agnext.components import TypeRoutedAgent, TypeSubscription, message_handler
 from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
 
 

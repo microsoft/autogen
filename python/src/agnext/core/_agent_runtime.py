@@ -71,12 +71,16 @@ class AgentRuntime(Protocol):
         self,
         type: str,
         agent_factory: Callable[[], T | Awaitable[T]],
+        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
+        | list[Subscription]
+        | None = None,
     ) -> AgentType:
         """Register an agent factory with the runtime associated with a specific type. The type must be unique.
 
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `agnext.core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
+            subscriptions (Callable[[], list[Subscription]] | list[Subscription] | None, optional): The subscriptions that the agent should be subscribed to. Defaults to None.
 
 
         Example:
