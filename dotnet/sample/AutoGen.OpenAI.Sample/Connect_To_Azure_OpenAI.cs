@@ -18,6 +18,9 @@ public class Connect_To_Azure_OpenAI
         var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new InvalidOperationException("Please set environment variable AZURE_OPENAI_API_KEY");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("Please set environment variable AZURE_OPENAI_ENDPOINT");
         var model = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? "gpt-4o-mini";
+
+        // Use AzureOpenAIClient to connect to openai model deployed on azure.
+        // The AzureOpenAIClient comes from Azure.AI.OpenAI package
         var openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
 
         var agent = new OpenAIChatAgent(
