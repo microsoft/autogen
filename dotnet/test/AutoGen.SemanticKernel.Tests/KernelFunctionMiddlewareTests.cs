@@ -5,9 +5,10 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 using AutoGen.Tests;
+using Azure;
+using Azure.AI.OpenAI;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
-using OpenAI;
 
 namespace AutoGen.SemanticKernel.Tests;
 
@@ -19,10 +20,9 @@ public class KernelFunctionMiddlewareTests
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = new OpenAIClient(new System.ClientModel.ApiKeyCredential(key), new OpenAIClientOptions
-        {
-            Endpoint = new Uri(endpoint),
-        });
+        var openaiClient = new AzureOpenAIClient(
+            endpoint: new Uri(endpoint),
+            credential: new AzureKeyCredential(key));
 
         var kernel = new Kernel();
         var plugin = kernel.ImportPluginFromType<TestPlugin>();
@@ -66,10 +66,9 @@ public class KernelFunctionMiddlewareTests
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = new OpenAIClient(new System.ClientModel.ApiKeyCredential(key), new OpenAIClientOptions
-        {
-            Endpoint = new Uri(endpoint),
-        });
+        var openaiClient = new AzureOpenAIClient(
+            endpoint: new Uri(endpoint),
+            credential: new AzureKeyCredential(key));
 
         var kernel = new Kernel();
         var getWeatherMethod = kernel.CreateFunctionFromMethod((string location) => $"The weather in {location} is sunny.", functionName: "GetWeather", description: "Get the weather for a location.");
