@@ -2,7 +2,7 @@
 // TypeSafeFunctionCallCodeSnippet.cs
 
 using System.Text.Json;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 #region weather_report_using_statement
 using AutoGen.Core;

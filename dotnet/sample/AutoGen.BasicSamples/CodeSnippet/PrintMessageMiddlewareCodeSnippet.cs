@@ -2,8 +2,8 @@
 // PrintMessageMiddlewareCodeSnippet.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using Azure;
 using Azure.AI.OpenAI;
 
