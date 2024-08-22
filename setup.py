@@ -91,6 +91,7 @@ extra_require = {
     "mistral": ["mistralai>=1.0.1"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
+    "kubernetes": ["kubernetes"],
 }
 
 setuptools.setup(
