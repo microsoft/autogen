@@ -12,21 +12,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="..\..\..\protos\agent_worker.proto" GrpcServices="Client" Link="Protos\agent_worker.proto" />
-		<Compile Include="..\Shared\RpcEventExtensions.cs" Link="RpcEventExtensions.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\Microsoft.AI.Agents\Microsoft.AI.Agents.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Grpc.AspNetCore" />
-		<PackageReference Include="Grpc.Net.ClientFactory" />
-		<PackageReference Include="Grpc.Tools">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
 	</ItemGroup>
 
 </Project>
