@@ -6,13 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit.Abstractions;
 
-namespace AutoGen.OpenAI.Tests
+namespace AutoGen.OpenAI.V1.Tests
 {
     public partial class MathClassTest
     {

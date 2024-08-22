@@ -15,7 +15,7 @@ using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 
-namespace AutoGen.OpenAI.Tests;
+namespace AutoGen.OpenAI.V1.Tests;
 
 public class OpenAIMessageTests
 {
