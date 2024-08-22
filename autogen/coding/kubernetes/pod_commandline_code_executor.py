@@ -48,6 +48,7 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         pod_name: Optional[str] = None,
         namespace: Optional[str] = None,
         pod_spec: Optional[client.V1Pod] = None,
+        container_name: Optional[str] = "autogen-code-exec",
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("/workspace"),
         kube_config_file: Optional[str] = None,
@@ -72,8 +73,11 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                 which is created. If None, will autogenerate a name. Defaults to None.
             namespace (Optional[str], optional): Namespace of kubernetes pod
                 which is created. If None, will use current namespace of this instance
-            pod_spec (Optional[client.V1Pod], optional): Pod specification of kubernetes pod.
+            pod_spec (Optional[client.V1Pod], optional): Specification of kubernetes pod.
+                custom pod spec can be provided with this param. 
                 if pod_spec is provided, params above(image, pod_name, namespace) are neglected.
+            container_name (Optional[str], optional): Name of the container where code block will be
+                executed. if pod_spec param is provided, container_name must be provided also.
             timeout (int, optional): The timeout for code execution. Defaults to 60.
             work_dir (Union[Path, str], optional): The working directory for the code
                 execution. Defaults to Path("/workspace").
@@ -106,13 +110,18 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                 raise ValueError("Namespace where the pod will be launched must be provided")
             with open(namespace_path, "r") as f:
                 namespace = f.read()
+        if container_name is None:
+            container_name = "autogen-code-exec"
+        self._container_name = container_name
             
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
         self._work_dir: Path = work_dir
         
         # Start a container from the image, read to exec commands later
-        if not pod_spec:
+        if pod_spec:
+            pod = pod_spec
+        else:
             pod = client.V1Pod(
                 metadata=client.V1ObjectMeta(name=pod_name,namespace=namespace),
                 spec=client.V1PodSpec(
@@ -120,16 +129,15 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                     containers=[client.V1Container(
                         args=["-c", "while true;do sleep 5; done"],
                         command=["/bin/sh"],
-                        name="autogen-code-exec",
+                        name=container_name,
                         image=image
                     )]
                 )
             )
-        else:
-            pod = pod_spec
         
         try:
-            self._container = self._api_client.create_namespaced_pod(namespace=namespace, body=pod)
+            namespace = pod.metadata.namespace
+            self._pod = self._api_client.create_namespaced_pod(namespace=namespace, body=pod)
         except ApiException as e:
             raise ValueError(f"Creating pod failed: {e}")
 
@@ -153,8 +161,8 @@ class PodCommandLineCodeExecutor(CodeExecutor):
     
     def _wait_for_ready(self, stop_time: float = 0.1) ->  None:
         elapsed_time = 0.0
-        name = self._container.metadata.name
-        namespace = self._container.metadata.namespace
+        name = self._pod.metadata.name
+        namespace = self._pod.metadata.namespace
         while True:
             sleep(stop_time)
             elapsed_time += stop_time
@@ -236,9 +244,9 @@ class PodCommandLineCodeExecutor(CodeExecutor):
             )
             exec_script = exec_script.format(workspace=str(self._work_dir), code_path=code_path, code=code)
             stream(self._api_client.connect_get_namespaced_pod_exec, 
-                   self._container.metadata.name, self._container.metadata.namespace, 
+                   self._pod.metadata.name, self._pod.metadata.namespace, 
                    command=["/bin/sh", "-c", exec_script], 
-                   container="autogen-code-exec",
+                   container=self._container_name,
                    stderr=True, stdin=False, stdout=True, tty=False)
             
             files.append(code_path)
@@ -248,9 +256,9 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                 continue
                 
             resp = stream(self._api_client.connect_get_namespaced_pod_exec, 
-                            self._container.metadata.name, self._container.metadata.namespace, 
+                            self._pod.metadata.name, self._pod.metadata.namespace, 
                             command=["timeout", str(self._timeout), _cmd(lang), str(code_path)], 
-                            container="autogen-code-exec",
+                            container=self._container_name,
                             stderr=True, stdin=False, stdout=True, tty=False, _preload_content=False)
             
             stdout_messages = []
