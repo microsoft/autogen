@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
+from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
 from agnext.components import TypeRoutedAgent, message_handler
@@ -45,8 +46,10 @@ class ReceiveAgent(TypeRoutedAgent):
     @message_handler
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
-
         await self.publish_message(ReturnedFeedback(f"Returned feedback: {message.content}"), topic_id=ctx.topic_id)
+
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
+        print(f"Unhandled message: {message}")
 
 
 class GreeterAgent(TypeRoutedAgent):
@@ -56,14 +59,15 @@ class GreeterAgent(TypeRoutedAgent):
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
-
         await self.publish_message(Greeting(f"Hello, {message.content}!"), topic_id=ctx.topic_id)
 
     @message_handler
     async def on_returned_greet(self, message: ReturnedGreeting, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
-
         await self.publish_message(Feedback(f"Feedback: {message.content}"), topic_id=ctx.topic_id)
+
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
+        print(f"Unhandled message: {message}")
 
 
 async def main() -> None:
@@ -75,8 +79,8 @@ async def main() -> None:
     MESSAGE_TYPE_REGISTRY.add_type(ReturnedFeedback)
     await runtime.start(host_connection_string="localhost:50051")
 
-    await runtime.register("reciever", lambda: ReceiveAgent())
-    await runtime.add_subscription(TypeSubscription("default", "reciever"))
+    await runtime.register("receiver", lambda: ReceiveAgent())
+    await runtime.add_subscription(TypeSubscription("default", "receiver"))
     await runtime.register("greeter", lambda: GreeterAgent())
     await runtime.add_subscription(TypeSubscription("default", "greeter"))
 

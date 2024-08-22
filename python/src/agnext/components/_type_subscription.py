@@ -35,6 +35,14 @@ class TypeSubscription(Subscription):
     def id(self) -> str:
         return self._id
 
+    @property
+    def topic_type(self) -> str:
+        return self._topic_type
+
+    @property
+    def agent_type(self) -> str:
+        return self._agent_type
+
     def is_match(self, topic_id: TopicId) -> bool:
         return topic_id.type == self._topic_type
 

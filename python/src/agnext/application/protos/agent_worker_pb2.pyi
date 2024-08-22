@@ -54,10 +54,12 @@ class RpcRequest(google.protobuf.message.Message):
     SOURCE_FIELD_NUMBER: builtins.int
     TARGET_FIELD_NUMBER: builtins.int
     METHOD_FIELD_NUMBER: builtins.int
+    DATA_TYPE_FIELD_NUMBER: builtins.int
     DATA_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     request_id: builtins.str
     method: builtins.str
+    data_type: builtins.str
     data: builtins.str
     @property
     def source(self) -> global___AgentId: ...
@@ -72,11 +74,12 @@ class RpcRequest(google.protobuf.message.Message):
         source: global___AgentId | None = ...,
         target: global___AgentId | None = ...,
         method: builtins.str = ...,
+        data_type: builtins.str = ...,
         data: builtins.str = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["source", b"source", "target", b"target"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data", "metadata", b"metadata", "method", b"method", "request_id", b"request_id", "source", b"source", "target", b"target"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data", b"data", "data_type", b"data_type", "metadata", b"metadata", "method", b"method", "request_id", b"request_id", "source", b"source", "target", b"target"]) -> None: ...
 
 global___RpcRequest = RpcRequest
 
@@ -101,10 +104,12 @@ class RpcResponse(google.protobuf.message.Message):
         def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
 
     REQUEST_ID_FIELD_NUMBER: builtins.int
+    RESULT_TYPE_FIELD_NUMBER: builtins.int
     RESULT_FIELD_NUMBER: builtins.int
     ERROR_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     request_id: builtins.str
+    result_type: builtins.str
     result: builtins.str
     error: builtins.str
     @property
@@ -113,11 +118,12 @@ class RpcResponse(google.protobuf.message.Message):
         self,
         *,
         request_id: builtins.str = ...,
+        result_type: builtins.str = ...,
         result: builtins.str = ...,
         error: builtins.str = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["error", b"error", "metadata", b"metadata", "request_id", b"request_id", "result", b"result"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["error", b"error", "metadata", b"metadata", "request_id", b"request_id", "result", b"result", "result_type", b"result_type"]) -> None: ...
 
 global___RpcResponse = RpcResponse
 
@@ -141,11 +147,13 @@ class Event(google.protobuf.message.Message):
         ) -> None: ...
         def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
 
+    NAMESPACE_FIELD_NUMBER: builtins.int
     TOPIC_TYPE_FIELD_NUMBER: builtins.int
     TOPIC_SOURCE_FIELD_NUMBER: builtins.int
     DATA_TYPE_FIELD_NUMBER: builtins.int
     DATA_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    namespace: builtins.str
     topic_type: builtins.str
     topic_source: builtins.str
     data_type: builtins.str
@@ -155,13 +163,14 @@ class Event(google.protobuf.message.Message):
     def __init__(
         self,
         *,
+        namespace: builtins.str = ...,
         topic_type: builtins.str = ...,
         topic_source: builtins.str = ...,
         data_type: builtins.str = ...,
         data: builtins.str = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data", "data_type", b"data_type", "metadata", b"metadata", "topic_source", b"topic_source", "topic_type", b"topic_type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data", b"data", "data_type", b"data_type", "metadata", b"metadata", "namespace", b"namespace", "topic_source", b"topic_source", "topic_type", b"topic_type"]) -> None: ...
 
 global___Event = Event
 
@@ -181,6 +190,59 @@ class RegisterAgentType(google.protobuf.message.Message):
 global___RegisterAgentType = RegisterAgentType
 
 @typing.final
+class TypeSubscription(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TOPIC_TYPE_FIELD_NUMBER: builtins.int
+    AGENT_TYPE_FIELD_NUMBER: builtins.int
+    topic_type: builtins.str
+    agent_type: builtins.str
+    def __init__(
+        self,
+        *,
+        topic_type: builtins.str = ...,
+        agent_type: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type", b"topic_type"]) -> None: ...
+
+global___TypeSubscription = TypeSubscription
+
+@typing.final
+class Subscription(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TYPESUBSCRIPTION_FIELD_NUMBER: builtins.int
+    @property
+    def typeSubscription(self) -> global___TypeSubscription: ...
+    def __init__(
+        self,
+        *,
+        typeSubscription: global___TypeSubscription | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription"] | None: ...
+
+global___Subscription = Subscription
+
+@typing.final
+class AddSubscription(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SUBSCRIPTION_FIELD_NUMBER: builtins.int
+    @property
+    def subscription(self) -> global___Subscription: ...
+    def __init__(
+        self,
+        *,
+        subscription: global___Subscription | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["subscription", b"subscription"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["subscription", b"subscription"]) -> None: ...
+
+global___AddSubscription = AddSubscription
+
+@typing.final
 class Message(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -188,6 +250,7 @@ class Message(google.protobuf.message.Message):
     RESPONSE_FIELD_NUMBER: builtins.int
     EVENT_FIELD_NUMBER: builtins.int
     REGISTERAGENTTYPE_FIELD_NUMBER: builtins.int
+    ADDSUBSCRIPTION_FIELD_NUMBER: builtins.int
     @property
     def request(self) -> global___RpcRequest: ...
     @property
@@ -196,6 +259,8 @@ class Message(google.protobuf.message.Message):
     def event(self) -> global___Event: ...
     @property
     def registerAgentType(self) -> global___RegisterAgentType: ...
+    @property
+    def addSubscription(self) -> global___AddSubscription: ...
     def __init__(
         self,
         *,
@@ -203,9 +268,10 @@ class Message(google.protobuf.message.Message):
         response: global___RpcResponse | None = ...,
         event: global___Event | None = ...,
         registerAgentType: global___RegisterAgentType | None = ...,
+        addSubscription: global___AddSubscription | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "event", "registerAgentType"] | None: ...
+    def HasField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "event", "registerAgentType", "addSubscription"] | None: ...
 
 global___Message = Message

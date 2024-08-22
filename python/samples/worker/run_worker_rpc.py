@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from dataclasses import dataclass
+from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import TypeRoutedAgent, message_handler, TypeSubscription
 from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
 
 
@@ -34,6 +35,9 @@ class ReceiveAgent(TypeRoutedAgent):
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
         print(f"Feedback received: {message.content}")
 
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
+        print(f"Unhandled message: {message}")
+
 
 class GreeterAgent(TypeRoutedAgent):
     def __init__(self, receive_agent_id: AgentId) -> None:
@@ -46,6 +50,9 @@ class GreeterAgent(TypeRoutedAgent):
         assert ctx.topic_id is not None
         await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=ctx.topic_id)
 
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
+        print(f"Unhandled message: {message}")
+
 
 async def main() -> None:
     runtime = WorkerAgentRuntime()
@@ -54,11 +61,13 @@ async def main() -> None:
     MESSAGE_TYPE_REGISTRY.add_type(Feedback)
     await runtime.start(host_connection_string="localhost:50051")
 
-    await runtime.register("reciever", lambda: ReceiveAgent())
+    await runtime.register("receiver", lambda: ReceiveAgent())
     await runtime.register(
-        "greeter", lambda: GreeterAgent(AgentId("reciever", AgentInstantiationContext.current_agent_id().key))
+        "greeter", lambda: GreeterAgent(AgentId("receiver", AgentInstantiationContext.current_agent_id().key))
     )
 
+    await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="greeter"))
+    await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="receiver"))
     await runtime.publish_message(AskToGreet("Hello World!"), topic_id=TopicId("default", "default"))
 
     # Just to keep the runtime running

@@ -12,15 +12,17 @@ message RpcRequest {
     AgentId source = 2;
     AgentId target = 3;
     string method = 4;
-    string data = 5;
-    map<string, string> metadata = 6;
+    string data_type = 5;
+    string data = 6;
+    map<string, string> metadata = 7;
 }
 
 message RpcResponse {
     string request_id = 1;
-    string result = 2;
-    string error = 3;
-    map<string, string> metadata = 4;
+    string result_type = 2;
+    string result = 3;
+    string error = 4;
+    map<string, string> metadata = 5;
 }
 
 message Event {
@@ -36,6 +38,21 @@ message RegisterAgentType {
     string type = 1;
 }
 
+message TypeSubscription {
+    string topic_type = 1;
+    string agent_type = 2;
+}
+
+message Subscription {
+    oneof subscription {
+        TypeSubscription typeSubscription = 1;
+    }
+}
+
+message AddSubscription {
+    Subscription subscription = 1;
+}
+
 service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
 }
@@ -46,6 +63,7 @@ message Message {
         RpcResponse response = 2;
         Event event = 3;
         RegisterAgentType registerAgentType = 4;
+        AddSubscription addSubscription = 5;
     }
 }
 

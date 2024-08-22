@@ -28,6 +28,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
+from ..components import TypeSubscription
 from ..core import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
@@ -41,19 +42,11 @@ from ..core import (
     Subscription,
     TopicId,
 )
-from ._helpers import get_impl
-from .protos import AgentId as AgentIdProto
-from .protos import (
-    AgentRpcStub,
-    Event,
-    Message,
-    RegisterAgentType,
-    RpcRequest,
-    RpcResponse,
-)
+from ._helpers import SubscriptionManager, get_impl
+from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 
 if TYPE_CHECKING:
-    from .protos import AgentRpcAsyncStub
+    from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
 
 logger = logging.getLogger("agnext")
 event_logger = logging.getLogger("agnext.events")
@@ -91,8 +84,8 @@ class HostConnection:
 
     def __init__(self, channel: grpc.aio.Channel) -> None:  # type: ignore
         self._channel = channel
-        self._send_queue = asyncio.Queue[Message]()
-        self._recv_queue = asyncio.Queue[Message]()
+        self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
+        self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._connection_task: Task[None] | None = None
 
     @classmethod
@@ -116,24 +109,28 @@ class HostConnection:
 
     @staticmethod
     async def _connect(  # type: ignore
-        channel: grpc.aio.Channel, send_queue: asyncio.Queue[Message], receive_queue: asyncio.Queue[Message]
+        channel: grpc.aio.Channel,
+        send_queue: asyncio.Queue[agent_worker_pb2.Message],
+        receive_queue: asyncio.Queue[agent_worker_pb2.Message],
     ) -> None:
-        stub: AgentRpcAsyncStub = AgentRpcStub(channel)  # type: ignore
+        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
-        recv_stream: StreamStreamCall[Message, Message] = stub.OpenChannel(QueueAsyncIterable(send_queue))  # type: ignore
+        recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
+            QueueAsyncIterable(send_queue)
+        )  # type: ignore
 
         while True:
             try:
-                logger.info("Waiting for message")
+                logger.info("Waiting for message from host")
                 message = await recv_stream.read()  # type: ignore
                 if message == grpc.aio.EOF:  # type: ignore
                     logger.info("EOF")
                     break
-                message = cast(Message, message)
-                logger.info("Received message: %s", message)
+                message = cast(agent_worker_pb2.Message, message)
+                logger.info(f"Received a message from host: {message}")
                 await receive_queue.put(message)
-                logger.info("Put message in queue")
+                logger.info("Put message in receive queue")
             except Exception as e:
                 print("=========================================================================")
                 print(e)
@@ -141,10 +138,12 @@ class HostConnection:
                 del recv_stream
                 recv_stream = stub.OpenChannel(QueueAsyncIterable(send_queue))  # type: ignore
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: agent_worker_pb2.Message) -> None:
+        logger.info(f"Send message to host: {message}")
         await self._send_queue.put(message)
+        logger.info("Put message in send queue")
 
-    async def recv(self) -> Message:
+    async def recv(self) -> agent_worker_pb2.Message:
         logger.info("Getting message from queue")
         return await self._recv_queue.get()
 
@@ -164,9 +163,7 @@ class WorkerAgentRuntime(AgentRuntime):
         self._next_request_id = 0
         self._host_connection: HostConnection | None = None
         self._background_tasks: Set[Task[Any]] = set()
-        self._subscriptions: List[Subscription] = []
-        self._seen_topics: Set[TopicId] = set()
-        self._subscribed_recipients: DefaultDict[TopicId, List[AgentId]] = defaultdict(list)
+        self._subscription_manager = SubscriptionManager()
 
     async def start(self, host_connection_string: str) -> None:
         if self._running:
@@ -178,31 +175,38 @@ class WorkerAgentRuntime(AgentRuntime):
             self._read_task = asyncio.create_task(self._run_read_loop())
         self._running = True
 
+    def _raise_on_exception(self, task: Task[Any]) -> None:
+        exception = task.exception()
+        if exception is not None:
+            raise exception
+
     async def _run_read_loop(self) -> None:
         logger.info("Starting read loop")
         # TODO: catch exceptions and reconnect
         while self._running:
             try:
                 message = await self._host_connection.recv()  # type: ignore
-                logger.info("Got message: %s", message)
-                oneofcase = Message.WhichOneof(message, "message")
+                oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
                 match oneofcase:
-                    case "registerAgentType":
-                        logger.warn("Cant handle registerAgentType, skipping.")
+                    case "registerAgentType" | "addSubscription":
+                        logger.warn(f"Cant handle {oneofcase}, skipping.")
                     case "request":
-                        request: RpcRequest = message.request
+                        request: agent_worker_pb2.RpcRequest = message.request
                         task = asyncio.create_task(self._process_request(request))
                         self._background_tasks.add(task)
+                        task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
                     case "response":
-                        response: RpcResponse = message.response
+                        response: agent_worker_pb2.RpcResponse = message.response
                         task = asyncio.create_task(self._process_response(response))
                         self._background_tasks.add(task)
+                        task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
                     case "event":
-                        event: Event = message.event
+                        event: agent_worker_pb2.Event = message.event
                         task = asyncio.create_task(self._process_event(event))
                         self._background_tasks.add(task)
+                        task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warn("No message")
@@ -230,7 +234,8 @@ class WorkerAgentRuntime(AgentRuntime):
     ) -> Any:
         if not self._running:
             raise ValueError("Runtime must be running when sending message.")
-        assert self._host_connection is not None
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
         # create a new future for the result
         future = asyncio.get_event_loop().create_future()
         async with self._pending_requests_lock:
@@ -239,20 +244,21 @@ class WorkerAgentRuntime(AgentRuntime):
         request_id_str = str(request_id)
         self._pending_requests[request_id_str] = future
         sender = cast(AgentId, sender)
-        method = MESSAGE_TYPE_REGISTRY.type_name(message)
-        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=method)
-        runtime_message = Message(
-            request=RpcRequest(
+        data_type = MESSAGE_TYPE_REGISTRY.type_name(message)
+        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=data_type)
+        runtime_message = agent_worker_pb2.Message(
+            request=agent_worker_pb2.RpcRequest(
                 request_id=request_id_str,
-                target=AgentIdProto(name=recipient.type, namespace=recipient.key),
-                source=AgentIdProto(name=sender.type, namespace=sender.key),
-                method=method,
+                target=agent_worker_pb2.AgentId(name=recipient.type, namespace=recipient.key),
+                source=agent_worker_pb2.AgentId(name=sender.type, namespace=sender.key),
+                data_type=data_type,
                 data=serialized_message,
             )
         )
         # TODO: Find a way to handle timeouts/errors
         task = asyncio.create_task(self._host_connection.send(runtime_message))
         self._background_tasks.add(task)
+        task.add_done_callback(self._raise_on_exception)
         task.add_done_callback(self._background_tasks.discard)
         return await future
 
@@ -264,20 +270,21 @@ class WorkerAgentRuntime(AgentRuntime):
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
-        assert self._host_connection is not None
+        if not self._running:
+            raise ValueError("Runtime must be running when publishing message.")
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
         serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
-        message = Message(
-            event=Event(
+        runtime_message = agent_worker_pb2.Message(
+            event=agent_worker_pb2.Event(
                 topic_type=topic_id.type, topic_source=topic_id.source, data_type=message_type, data=serialized_message
             )
         )
-
-        async def write_message() -> None:
-            assert self._host_connection is not None
-            await self._host_connection.send(message)
-
-        await asyncio.create_task(write_message())
+        task = asyncio.create_task(self._host_connection.send(runtime_message))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._raise_on_exception)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def save_state(self) -> Mapping[str, Any]:
         raise NotImplementedError("Saving state is not yet implemented.")
@@ -294,70 +301,88 @@ class WorkerAgentRuntime(AgentRuntime):
     async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         raise NotImplementedError("Agent load_state is not yet implemented.")
 
-    async def _process_request(self, request: RpcRequest) -> None:
+    async def _process_request(self, request: agent_worker_pb2.RpcRequest) -> None:
         assert self._host_connection is not None
         target = AgentId(request.target.name, request.target.namespace)
         source = AgentId(request.source.name, request.source.namespace)
 
+        logging.info(f"Processing request from {source} to {target}")
+
+        # Deserialize the message.
+        message = MESSAGE_TYPE_REGISTRY.deserialize(request.data, type_name=request.data_type)
+
+        # Get the target agent and prepare the message context.
+        target_agent = await self._get_agent(target)
+        message_context = MessageContext(
+            sender=source,
+            topic_id=None,
+            is_rpc=True,
+            cancellation_token=CancellationToken(),
+        )
+
+        # Call the target agent.
         try:
-            logging.info(f"Processing request from {source} to {target}")
-            target_agent = await self._get_agent(target)
-            message_context = MessageContext(
-                sender=source,
-                topic_id=None,
-                is_rpc=True,
-                cancellation_token=CancellationToken(),
-            )
-            message = MESSAGE_TYPE_REGISTRY.deserialize(request.data, type_name=request.method)
-            response = await target_agent.on_message(message, ctx=message_context)
-            serialized_response = MESSAGE_TYPE_REGISTRY.serialize(response, type_name=request.method)
-            response_message = Message(
-                response=RpcResponse(
-                    request_id=request.request_id,
-                    result=serialized_response,
-                )
-            )
+            result = await target_agent.on_message(message, ctx=message_context)
         except BaseException as e:
-            response_message = Message(
-                response=RpcResponse(
+            response_message = agent_worker_pb2.Message(
+                response=agent_worker_pb2.RpcResponse(
                     request_id=request.request_id,
                     error=str(e),
                 )
             )
+            # Send the error response.
+            await self._host_connection.send(response_message)
+            return
+
+        # Serialize the result.
+        result_type = MESSAGE_TYPE_REGISTRY.type_name(result)
+        serialized_result = MESSAGE_TYPE_REGISTRY.serialize(result, type_name=result_type)
+
+        # Create the response message.
+        response_message = agent_worker_pb2.Message(
+            response=agent_worker_pb2.RpcResponse(
+                request_id=request.request_id,
+                result_type=result_type,
+                result=serialized_result,
+            )
+        )
 
         # Send the response.
         await self._host_connection.send(response_message)
 
-    async def _process_response(self, response: RpcResponse) -> None:
-        # TODO: deserialize the response and set the future result
+    async def _process_response(self, response: agent_worker_pb2.RpcResponse) -> None:
+        # Deserialize the result.
+        result = MESSAGE_TYPE_REGISTRY.deserialize(response.result, type_name=response.result_type)
+        # Get the future and set the result.
         future = self._pending_requests.pop(response.request_id)
         if len(response.error) > 0:
             future.set_exception(Exception(response.error))
         else:
-            future.set_result(response.result)
+            future.set_result(result)
 
-    async def _process_event(self, event: Event) -> None:
-        ...
-        # message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.data_type)
-
-        # for agent_id in self._per_type_subscribers[
-        #                     (namespace, MESSAGE_TYPE_REGISTRY.type_name(message))
-        #                 ]:
-
-        #                     agent = await self._get_agent(agent_id)
-        #                     message_context = MessageContext(
-        #                         # TODO: should sender be in the proto even for published events?
-        #                         sender=None,
-        #                         # TODO: topic_id
-        #                         topic_id=None,
-        #                         is_rpc=False,
-        #                         cancellation_token=CancellationToken(),
-        #                     )
-        #                     try:
-        #                         await agent.on_message(message, ctx=message_context)
-        #                         logger.info("%s handled event %s", agent_id, message)
-        #                     except Exception as e:
-        #                         event_logger.error("Error handling message", exc_info=e)
+    async def _process_event(self, event: agent_worker_pb2.Event) -> None:
+        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.data_type)
+        topic_id = TopicId(event.topic_type, event.topic_source)
+        # Get the recipients for the topic.
+        recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)
+        # Send the message to each recipient.
+        responses: List[Awaitable[Any]] = []
+        for agent_id in recipients:
+            # TODO: avoid sending to the sender.
+            message_context = MessageContext(
+                sender=None,
+                topic_id=topic_id,
+                is_rpc=False,
+                cancellation_token=CancellationToken(),
+            )
+            agent = await self._get_agent(agent_id)
+            future = agent.on_message(message, ctx=message_context)
+            responses.append(future)
+        # Wait for all responses.
+        try:
+            await asyncio.gather(*responses)
+        except BaseException as e:
+            logger.error("Error handling event", exc_info=e)
 
     async def register(
         self,
@@ -368,10 +393,10 @@ class WorkerAgentRuntime(AgentRuntime):
             raise ValueError(f"Agent with type {type} already exists.")
         self._agent_factories[type] = agent_factory
 
-        assert self._host_connection is not None
-        message = Message(registerAgentType=RegisterAgentType(type=type))
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
+        message = agent_worker_pb2.Message(registerAgentType=agent_worker_pb2.RegisterAgentType(type=type))
         await self._host_connection.send(message)
-        logger.info("Sent registerAgentType message for %s", type)
         return AgentType(type)
 
     async def _invoke_agent_factory(
@@ -415,7 +440,23 @@ class WorkerAgentRuntime(AgentRuntime):
         raise NotImplementedError("try_get_underlying_agent_instance is not yet implemented.")
 
     async def add_subscription(self, subscription: Subscription) -> None:
-        raise NotImplementedError("Subscriptions are not yet implemented.")
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
+        if not isinstance(subscription, TypeSubscription):
+            raise ValueError("Only TypeSubscription is supported.")
+        # Add to local subscription manager.
+        await self._subscription_manager.add_subscription(subscription)
+        # Send the subscription to the host.
+        message = agent_worker_pb2.Message(
+            addSubscription=agent_worker_pb2.AddSubscription(
+                subscription=agent_worker_pb2.Subscription(
+                    typeSubscription=agent_worker_pb2.TypeSubscription(
+                        topic_type=subscription.topic_type, agent_type=subscription.agent_type
+                    )
+                )
+            )
+        )
+        await self._host_connection.send(message)
 
     async def remove_subscription(self, id: str) -> None:
         raise NotImplementedError("Subscriptions are not yet implemented.")
