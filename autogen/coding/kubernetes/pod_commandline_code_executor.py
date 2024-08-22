@@ -50,7 +50,7 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         pod_spec: Optional[client.V1Pod] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("/workspace"),
-        kubernetes_config_file: Optional[str] = None,
+        kube_config_file: Optional[str] = None,
         stop_container: bool = True,
         execution_policies: Optional[Dict[str, bool]] = None,
     ):
@@ -77,7 +77,7 @@ class PodCommandLineCodeExecutor(CodeExecutor):
             timeout (int, optional): The timeout for code execution. Defaults to 60.
             work_dir (Union[Path, str], optional): The working directory for the code
                 execution. Defaults to Path("/workspace").
-            kubernetes_config_file (Optional[str], optional): kubernetes configuration file path.
+            kube_config_file (Optional[str], optional): kubernetes configuration file path.
                 If None, will use KUBECONFIG environment variables or service account token(incluster config)
             stop_container (bool, optional): If true, will automatically stop the
                 container when stop is called, when the context manager exits or when
@@ -87,10 +87,10 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         Raises:
             ValueError: On argument error, or if the container fails to start.
         """
-        if kubernetes_config_file is None:
+        if kube_config_file is None:
             config.load_config()
         else:
-            config.load_config(config_file=kubernetes_config_file)
+            config.load_config(config_file=kube_config_file)
             
         self._api_client = client.CoreV1Api()
         
