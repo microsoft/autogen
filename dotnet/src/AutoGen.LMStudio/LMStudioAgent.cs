@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 
