@@ -3,4 +3,4 @@
 
 using AutoGen.OpenAI.Sample;
 
-Connect_To_Ollama.RunAsync().Wait();
+Connect_To_Azure_OpenAI.RunAsync().Wait();
