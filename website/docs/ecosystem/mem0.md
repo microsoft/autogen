@@ -103,26 +103,7 @@ conversation = [
         "role": "user",
         "content": "Seeing horizontal lines on our tv. TV model: Sony - 77\" Class BRAVIA XR A80K OLED 4K UHD Smart Google TV"
     },
-    {
-        "role": "assistant",
-        "content": "Thanks for being a My Best Buy Total™ member. I can connect you to an expert immediately - just one perk of your membership!\n\nSelect the button below when you're ready to chat."
-    },
-    {
-        "role": "assistant",
-        "content": "Good evening, thank you for choosing Best Buy, Fnu. My name is Lovely. I hope you are doing well. I'm sorry to hear that you're seeing horizontal lines on your TV.\n\nI'm absolutely committed to exploring all possible ways to assist you to fix this issue.\n\nTo ensure that we are on the right account, may I please have your email address registered with your Best Buy account and the order number?"
-    },
-    {
-        "role": "user",
-        "content": "Email: dd@gmail.com, Order number: 112217629"
-    },
-    {
-        "role": "assistant",
-        "content": "Superb! Thank you for confirmation.\n\nThank you for your patience. After exploring all possible solutions, I can help you to arrange a home repair appointment for your device. Our Geek Squad experts will visit your home to inspect and fix your device.\n\nIt's great that you have a protection plan - rest assured, we've got your back! As a valued Total member, you can avail this service at a minimal service fee. This fee, applicable to all repairs, covers the cost of diagnosing the issue and any small parts needed for the repair. It's part of our 24-month free protection plan.\n\nPlease click here to review the service fee and plan coverage details -\n\nhttps://www.bestbuy.com/site/best-buy-membership/best-buy-protection/pcmcat1608643232014.c?id=pcmcat1608643232014#jl-servicefees\n\nFnu - just to confirm shall I proceed to schedule the appointment?"
-    },
-    {
-        "role": "user",
-        "content": "Yes please"
-    }
+    ........
 ]
 
 memory.add(messages=conversation, user_id="customer_service_bot")
@@ -172,6 +153,8 @@ Question: {data}
 
 result = manager.send(prompt, customer_bot, request_reply=True)
 ```
+
+Access the complete code from this notebook: [Mem0 with Autogen](https://colab.research.google.com/drive/1NZEwC9w6V2S6hYmK7l2SQ9jhQrG1uKk8?usp=sharing)
 
 This example showcases:
 1. Setting up Autogen agents and Mem0 memory
