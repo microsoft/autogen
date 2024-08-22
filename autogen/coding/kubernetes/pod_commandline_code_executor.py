@@ -13,6 +13,7 @@ import sys
 
 from kubernetes import config, client
 from kubernetes.stream import stream
+from kubernetes.client.rest import ApiException
 
 from ..base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from ..markdown_code_extractor import MarkdownCodeExtractor
@@ -37,13 +38,16 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         "html": False,
         "css": False,
     }
-    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = {"py": "python", "js": "javascript"}
-    LANGUAGE_FILE_EXTENSION: ClassVar[Dict[str, str]] = {"python": "py", "javascript": "js", "bash": "sh", "shell": "sh", "sh": "sh"}
+    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = {"py": "python", "js": "javascript",}
+    LANGUAGE_FILE_EXTENSION: ClassVar[Dict[str, str]] = {
+        "python": "py", "javascript": "js", "bash": "sh", "shell": "sh", "sh": "sh",
+    }
     def __init__(
         self,
         image: str = "python:3-slim",
         pod_name: Optional[str] = None,
         namespace: Optional[str] = None,
+        pod_spec: Optional[client.V1Pod] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("/workspace"),
         kubernetes_config_file: Optional[str] = None,
@@ -66,8 +70,10 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                 Defaults to "python:3-slim".
             pod_name (Optional[str], optional): Name of the kubernetes pod
                 which is created. If None, will autogenerate a name. Defaults to None.
-            namespace (Optional[str], optional): namespace of kubernetes pod
+            namespace (Optional[str], optional): Namespace of kubernetes pod
                 which is created. If None, will use current namespace of this instance
+            pod_spec (Optional[client.V1Pod], optional): Pod specification of kubernetes pod.
+                if pod_spec is provided, params above(image, pod_name, namespace) are neglected.
             timeout (int, optional): The timeout for code execution. Defaults to 60.
             work_dir (Union[Path, str], optional): The working directory for the code
                 execution. Defaults to Path("/workspace").
@@ -95,7 +101,10 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         if pod_name is None:
             pod_name = f"autogen-code-exec-{uuid.uuid4()}"
         if namespace is None:
-            with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace", "r") as f:
+            namespace_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+            if not Path(namespace_path).is_file():
+                raise ValueError("Namespace where the pod will be launched must be provided")
+            with open(namespace_path, "r") as f:
                 namespace = f.read()
             
         if isinstance(work_dir, str):
@@ -103,26 +112,30 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         self._work_dir: Path = work_dir
         
         # Start a container from the image, read to exec commands later
-        
-        pod = client.V1Pod(
-            metadata=client.V1ObjectMeta(name=pod_name,namespace=namespace),
-            spec=client.V1PodSpec(
-                restart_policy="Never",
-                containers=[client.V1Container(
-                    args=["-c", "while true;do sleep 5; done"],
-                    command=["/bin/sh"],
-                    name="autogen-code-exec",
-                    image=image
-                )]
+        if not pod_spec:
+            pod = client.V1Pod(
+                metadata=client.V1ObjectMeta(name=pod_name,namespace=namespace),
+                spec=client.V1PodSpec(
+                    restart_policy="Never",
+                    containers=[client.V1Container(
+                        args=["-c", "while true;do sleep 5; done"],
+                        command=["/bin/sh"],
+                        name="autogen-code-exec",
+                        image=image
+                    )]
+                )
             )
-        )
+        else:
+            pod = pod_spec
         
-        self._container = self._api_client.create_namespaced_pod(namespace=namespace, body=pod)
+        try:
+            self._container = self._api_client.create_namespaced_pod(namespace=namespace, body=pod)
+        except ApiException as e:
+            raise ValueError(f"Creating pod failed: {e}")
 
         self._wait_for_ready()
 
         def cleanup() -> None:
-            from kubernetes.client.rest import ApiException
             try:
                 self._api_client.delete_namespaced_pod(pod_name, namespace)
             except ApiException:
@@ -138,16 +151,23 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         if execution_policies is not None:
             self.execution_policies.update(execution_policies)
     
-    def _wait_for_ready(self, timeout:int = 60, stop_time: float = 0.1) ->  None:
+    def _wait_for_ready(self, stop_time: float = 0.1) ->  None:
         elapsed_time = 0.0
         name = self._container.metadata.name
         namespace = self._container.metadata.namespace
         while True:
             sleep(stop_time)
             elapsed_time += stop_time
-            pod_status = self._api_client.read_namespaced_pod_status(name, namespace)
-            if pod_status.status.phase == "Running":
-                break
+            if elapsed_time > self._timeout:
+                raise ValueError(
+                    f"pod name {name} on namespace {namespace} is not Ready after timeout {self._timeout} seconds"
+                )
+            try:
+                pod_status = self._api_client.read_namespaced_pod_status(name, namespace)
+                if pod_status.status.phase == "Running":
+                    break
+            except ApiException as e:
+                raise ValueError(f"reading pod status failed: {e}")
             
     @property
     def timeout(self) -> int:
