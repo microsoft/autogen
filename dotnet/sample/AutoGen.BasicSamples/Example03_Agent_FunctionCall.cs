@@ -56,7 +56,7 @@ public partial class Example03_Agent_FunctionCall
                 instance.ConcatStringFunctionContract,
                 instance.UpperCaseFunctionContract,
                 instance.CalculateTaxFunctionContract,
-                ],
+            ],
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
                 { nameof(instance.ConcatString), instance.ConcatStringWrapper },

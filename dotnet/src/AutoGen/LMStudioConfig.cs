@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // LMStudioConfig.cs
 using System;
-using OpenAI.Chat;
 using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen;
 

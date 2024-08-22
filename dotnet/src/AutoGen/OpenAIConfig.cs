@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIConfig.cs
 
-using OpenAI.Chat;
 using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen;
 
