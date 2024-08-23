@@ -13,6 +13,7 @@ from ._agent_type import AgentType
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
+from ._message_handler_context import MessageHandlerContext
 from ._serialization import MESSAGE_TYPE_REGISTRY, Serialization, TypeDeserializer, TypeSerializer
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
@@ -37,4 +38,5 @@ __all__ = [
     "Serialization",
     "AgentType",
     "SubscriptionInstantiationContext",
+    "MessageHandlerContext",
 ]

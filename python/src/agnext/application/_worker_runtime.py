@@ -39,6 +39,7 @@ from ..core import (
     AgentType,
     CancellationToken,
     MessageContext,
+    MessageHandlerContext,
     Subscription,
     SubscriptionInstantiationContext,
     TopicId,
@@ -323,7 +324,8 @@ class WorkerAgentRuntime(AgentRuntime):
 
         # Call the target agent.
         try:
-            result = await target_agent.on_message(message, ctx=message_context)
+            with MessageHandlerContext.populate_context(target_agent.id):
+                result = await target_agent.on_message(message, ctx=message_context)
         except BaseException as e:
             response_message = agent_worker_pb2.Message(
                 response=agent_worker_pb2.RpcResponse(
@@ -377,7 +379,8 @@ class WorkerAgentRuntime(AgentRuntime):
                 cancellation_token=CancellationToken(),
             )
             agent = await self._get_agent(agent_id)
-            future = agent.on_message(message, ctx=message_context)
+            with MessageHandlerContext.populate_context(agent.id):
+                future = agent.on_message(message, ctx=message_context)
             responses.append(future)
         # Wait for all responses.
         try:

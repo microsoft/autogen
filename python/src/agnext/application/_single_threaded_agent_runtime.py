@@ -20,6 +20,7 @@ from ..core import (
     AgentType,
     CancellationToken,
     MessageContext,
+    MessageHandlerContext,
     Subscription,
     SubscriptionInstantiationContext,
     TopicId,
@@ -264,10 +265,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 is_rpc=True,
                 cancellation_token=message_envelope.cancellation_token,
             )
-            response = await recipient_agent.on_message(
-                message_envelope.message,
-                ctx=message_context,
-            )
+            with MessageHandlerContext.populate_context(recipient_agent.id):
+                response = await recipient_agent.on_message(
+                    message_envelope.message,
+                    ctx=message_context,
+                )
         except BaseException as e:
             message_envelope.future.set_exception(e)
             return
@@ -313,10 +315,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 cancellation_token=message_envelope.cancellation_token,
             )
             agent = await self._get_agent(agent_id)
-            future = agent.on_message(
-                message_envelope.message,
-                ctx=message_context,
-            )
+            with MessageHandlerContext.populate_context(agent.id):
+                future = agent.on_message(
+                    message_envelope.message,
+                    ctx=message_context,
+                )
             responses.append(future)
 
         try:

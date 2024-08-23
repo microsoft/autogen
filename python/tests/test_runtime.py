@@ -1,11 +1,11 @@
 import asyncio
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import TypeSubscription, DefaultTopicId, DefaultSubscription
 from agnext.core import AgentId, AgentInstantiationContext
 from agnext.core import TopicId
-from agnext.core._subscription import Subscription
-from agnext.core._subscription_context import SubscriptionInstantiationContext
+from agnext.core import Subscription
+from agnext.core import SubscriptionInstantiationContext
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
 
 
@@ -163,3 +163,62 @@ async def test_register_factory_direct_list() -> None:
     # Agent in other namespace should not have received the message
     other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
     assert other_long_running_agent.num_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_default_subscription() -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])
+    runtime.start()
+    agent_id = AgentId("name", key="default")
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    await runtime.stop_when_idle()
+
+    # Agent in default namespace should have received the message
+    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    assert long_running_agent.num_calls == 1
+
+    # Agent in other namespace should not have received the message
+    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
+    assert other_long_running_agent.num_calls == 0
+
+@pytest.mark.asyncio
+async def test_non_default_default_subscription() -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription(topic_type="Other")])
+    runtime.start()
+    agent_id = AgentId("name", key="default")
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId(type="Other"))
+
+    await runtime.stop_when_idle()
+
+    # Agent in default namespace should have received the message
+    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    assert long_running_agent.num_calls == 1
+
+    # Agent in other namespace should not have received the message
+    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
+    assert other_long_running_agent.num_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_non_publish_to_other_source() -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])
+    runtime.start()
+    agent_id = AgentId("name", key="default")
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId(source="other"))
+
+    await runtime.stop_when_idle()
+
+    # Agent in default namespace should have received the message
+    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    assert long_running_agent.num_calls == 0
+
+    # Agent in other namespace should not have received the message
+    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
+    assert other_long_running_agent.num_calls == 1
