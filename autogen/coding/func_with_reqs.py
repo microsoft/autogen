@@ -6,7 +6,7 @@ import inspect
 from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
 from textwrap import dedent, indent
-from typing import Any, Callable, Generic, List, TypeVar, Union, Set
+from typing import Any, Callable, Generic, List, Set, TypeVar, Union
 
 from typing_extensions import ParamSpec
 
