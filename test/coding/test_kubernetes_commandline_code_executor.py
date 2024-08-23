@@ -40,18 +40,20 @@ pod_spec = client.V1Pod(
             command=["/bin/sh"],
             name="abcd",
             image="python:3.11-slim",
-            env=[client.V1EnvVar(
-                name="TEST",
-                value="TEST"
-            ),
-            client.V1EnvVar(
-                name="POD_NAME",
-                value_from=client.V1EnvVarSource(
-                    field_ref=client.V1ObjectFieldSelector(
-                        field_path="metadata.name"
+            env=[
+                client.V1EnvVar(
+                    name="TEST",
+                    value="TEST"
+                ),
+                client.V1EnvVar(
+                    name="POD_NAME",
+                    value_from=client.V1EnvVarSource(
+                        field_ref=client.V1ObjectFieldSelector(
+                            field_path="metadata.name"
+                        )
                     )
                 )
-            )]
+            ]
         )],
     )
 )
