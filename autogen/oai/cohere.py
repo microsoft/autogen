@@ -35,7 +35,6 @@ from flaml.automl.logger import logger_formatter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
-import json
 
 from autogen.oai.client_utils import validate_parameter
 
@@ -287,6 +286,7 @@ class CohereClient:
 
         return response_oai
 
+
 def extract_to_cohere_tool_results(tool_call_id: str, content_output: str, all_tool_calls) -> List[Dict[str, Any]]:
     temp_tool_results = []
 
@@ -296,9 +296,7 @@ def extract_to_cohere_tool_results(tool_call_id: str, content_output: str, all_t
             call = {
                 "name": tool_call["function"]["name"],
                 "parameters": json.loads(
-                    tool_call["function"]["arguments"]
-                    if not tool_call["function"]["arguments"] == ""
-                    else "{}"
+                    tool_call["function"]["arguments"] if not tool_call["function"]["arguments"] == "" else "{}"
                 ),
             }
             output = [{"value": content_output}]
@@ -391,7 +389,13 @@ def oai_messages_to_cohere_messages(
             new_message = {
                 "role": "CHATBOT",
                 "message": message["content"],
-                "tool_calls": [{"name": tool_call_.get("function",{}).get("name"), "parameters": json.loads(tool_call_.get("function",{}).get("arguments") or 'null')} for tool_call_ in message["tool_calls"]],
+                "tool_calls": [
+                    {
+                        "name": tool_call_.get("function", {}).get("name"),
+                        "parameters": json.loads(tool_call_.get("function", {}).get("arguments") or "null"),
+                    }
+                    for tool_call_ in message["tool_calls"]
+                ],
             }
 
             cohere_messages.append(new_message)
@@ -402,17 +406,16 @@ def oai_messages_to_cohere_messages(
             # Convert the tool call to a result
             content_output = message["content"]
             tool_results_chat_turn = extract_to_cohere_tool_results(tool_call_id, content_output, tool_calls)
-            if (index == messages_length - 1) or (messages[index+1].get("role", "").lower() in ("user", "tool")):
-                # If the tool call is the last message or the next message is a user/tool message, this is a recent tool call. 
+            if (index == messages_length - 1) or (messages[index + 1].get("role", "").lower() in ("user", "tool")):
+                # If the tool call is the last message or the next message is a user/tool message, this is a recent tool call.
                 # So, we pass it into tool_results.
                 tool_results.extend(tool_results_chat_turn)
                 continue
-            
+
             else:
                 # If its not the current tool call, we pass it as a tool message in the chat history.
                 new_message = {"role": "TOOL", "tool_results": tool_results_chat_turn}
                 cohere_messages.append(new_message)
-                
 
         elif "content" in message and isinstance(message["content"], str):
             # Standard text message
@@ -422,7 +425,6 @@ def oai_messages_to_cohere_messages(
             }
 
             cohere_messages.append(new_message)
-        
 
     # Append any Tool Results
     if len(tool_results) != 0:
