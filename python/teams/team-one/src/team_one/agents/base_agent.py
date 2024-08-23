@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import MessageContext
 
 from team_one.messages import (
@@ -18,7 +18,7 @@ from team_one.messages import (
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".agent")
 
 
-class TeamOneBaseAgent(TypeRoutedAgent):
+class TeamOneBaseAgent(RoutedAgent):
     """An agent that optionally ensures messages are handled non-concurrently in the order they arrive."""
 
     def __init__(

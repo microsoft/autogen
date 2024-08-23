@@ -2,14 +2,14 @@ import asyncio
 import os
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import Image, TypeRoutedAgent, message_handler
+from agnext.components import Image, RoutedAgent, message_handler
 from agnext.core import MessageContext, TopicId
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
 
 
-class Printer(TypeRoutedAgent):
+class Printer(RoutedAgent):
     def __init__(
         self,
     ) -> None:

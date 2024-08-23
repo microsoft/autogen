@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List
 
 from ...core import MessageContext
-from .. import FunctionCall, TypeRoutedAgent, message_handler
+from .. import FunctionCall, RoutedAgent, message_handler
 from ..models import FunctionExecutionResult
 from ..tools import Tool
 
@@ -37,7 +37,7 @@ class ToolExecutionException(ToolException):
     pass
 
 
-class ToolAgent(TypeRoutedAgent):
+class ToolAgent(RoutedAgent):
     """A tool agent accepts direct messages of the type `FunctionCall`,
     executes the requested tool with the provided arguments, and returns the
     result as `FunctionExecutionResult` messages.

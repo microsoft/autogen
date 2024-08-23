@@ -4,7 +4,7 @@ from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
 from agnext.components import (
     FunctionCall,
-    TypeRoutedAgent,
+    RoutedAgent,
     message_handler,
 )
 from agnext.components.memory import ChatMemory
@@ -32,7 +32,7 @@ from ..types import (
 from ..utils import convert_messages_to_llm_messages
 
 
-class ChatCompletionAgent(TypeRoutedAgent):
+class ChatCompletionAgent(RoutedAgent):
     """An agent implementation that uses the ChatCompletion API to gnenerate
     responses and execute tools.
 

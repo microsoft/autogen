@@ -3,7 +3,7 @@ from typing import Literal
 import openai
 from agnext.components import (
     Image,
-    TypeRoutedAgent,
+    RoutedAgent,
     message_handler,
 )
 from agnext.components.memory import ChatMemory
@@ -18,7 +18,7 @@ from ..types import (
 )
 
 
-class ImageGenerationAgent(TypeRoutedAgent):
+class ImageGenerationAgent(RoutedAgent):
     """An agent that generates images using DALL-E models. It publishes the
     generated images as MultiModalMessage.
 

@@ -1,6 +1,6 @@
 # Using Type Routed Agent
 
-To make it easier to implement agents that respond to certain message types there is a base class called {py:class}`~agnext.components.TypeRoutedAgent`. This class provides a simple decorator pattern for associating message types with message handlers.
+To make it easier to implement agents that respond to certain message types there is a base class called {py:class}`~agnext.components.RoutedAgent`. This class provides a simple decorator pattern for associating message types with message handlers.
 
 The decorator {py:func}`agnext.components.message_handler` should be added to functions in the class that are intended to handle messages. These functions have a specific signature that needs to be followed for it to be recognized as a message handler.
 
@@ -25,7 +25,7 @@ One important thing to point out is that when an agent is constructed it must be
 ```python
 from dataclasses import dataclass
 from typing import List, Union
-from agnext.components import TypeRoutedAgent, message_handler, Image
+from agnext.components import RoutedAgent, message_handler, Image
 from agnext.core import AgentRuntime, CancellationToken
 
 @dataclass
@@ -43,7 +43,7 @@ class Reset:
     pass
 
 
-class MyAgent(TypeRoutedAgent):
+class MyAgent(RoutedAgent):
     def __init__(self):
         super().__init__(description="I am a demo agent")
         self._received_count = 0

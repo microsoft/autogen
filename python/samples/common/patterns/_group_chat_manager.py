@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient
 from agnext.core import AgentId, AgentProxy, MessageContext
@@ -18,7 +18,7 @@ from ._group_chat_utils import select_speaker
 logger = logging.getLogger("agnext.events")
 
 
-class GroupChatManager(TypeRoutedAgent):
+class GroupChatManager(RoutedAgent):
     """An agent that manages a group chat through event-driven orchestration.
 
     Args:

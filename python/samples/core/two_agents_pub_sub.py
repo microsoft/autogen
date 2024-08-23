@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -40,7 +40,7 @@ class Message:
     content: str
 
 
-class ChatCompletionAgent(TypeRoutedAgent):
+class ChatCompletionAgent(RoutedAgent):
     """An agent that uses a chat completion model to respond to messages.
     It keeps a memory of the conversation and uses it to generate responses.
     It publishes a termination message when the termination word is mentioned."""

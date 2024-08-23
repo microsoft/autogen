@@ -12,7 +12,7 @@ from typing import List
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, AgentRuntime, MessageContext
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
@@ -31,7 +31,7 @@ from common.types import PublishNow, TextMessage
 sep = "-" * 50
 
 
-class UserProxyAgent(TypeRoutedAgent):
+class UserProxyAgent(RoutedAgent):
     def __init__(  # type: ignore
         self,
         client: openai.AsyncClient,  # type: ignore

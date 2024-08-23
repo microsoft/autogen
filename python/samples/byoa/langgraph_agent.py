@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, List, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, MessageContext
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
@@ -34,7 +34,7 @@ def get_weather(location: str) -> str:
 
 
 # Define the tool-use agent using LangGraph.
-class LangGraphToolUseAgent(TypeRoutedAgent):
+class LangGraphToolUseAgent(RoutedAgent):
     def __init__(self, description: str, model: ChatOpenAI, tools: List[Callable[..., Any]]) -> None:  # pyright: ignore
         super().__init__(description)
         self._model = model.bind_tools(tools)  # pyright: ignore

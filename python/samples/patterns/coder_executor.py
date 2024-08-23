@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
@@ -62,7 +62,7 @@ class CodeExecutionTaskResult:
     exit_code: int
 
 
-class Coder(TypeRoutedAgent):
+class Coder(RoutedAgent):
     """An agent that writes code."""
 
     def __init__(
@@ -144,7 +144,7 @@ Reply "TERMINATE" in the end when everything is done."""
         )
 
 
-class Executor(TypeRoutedAgent):
+class Executor(RoutedAgent):
     """An agent that executes code."""
 
     def __init__(self, executor: CodeExecutor) -> None:

@@ -4,7 +4,7 @@ import random
 import sys
 from asyncio import Future
 
-from agnext.components import Image, TypeRoutedAgent, message_handler
+from agnext.components import Image, RoutedAgent, message_handler
 from agnext.core import AgentRuntime, CancellationToken
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
@@ -157,7 +157,7 @@ class TextualChatApp(App):  # type: ignore
         return await future
 
 
-class TextualUserAgent(TypeRoutedAgent):  # type: ignore
+class TextualUserAgent(RoutedAgent):  # type: ignore
     """An agent that is used to receive messages from the runtime."""
 
     def __init__(self, description: str, app: TextualChatApp) -> None:  # type: ignore

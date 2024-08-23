@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, CancellationToken
 from agnext.core import MessageContext
 from agnext.core import AgentInstantiationContext
@@ -18,7 +18,7 @@ class MessageType: ...
 # If you cancel a future, it may not work as you expect.
 
 
-class LongRunningAgent(TypeRoutedAgent):
+class LongRunningAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("A long running agent")
         self.called = False
@@ -37,7 +37,7 @@ class LongRunningAgent(TypeRoutedAgent):
             raise
 
 
-class NestingLongRunningAgent(TypeRoutedAgent):
+class NestingLongRunningAgent(RoutedAgent):
     def __init__(self, nested_agent: AgentId) -> None:
         super().__init__("A nesting long running agent")
         self.called = False

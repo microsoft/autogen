@@ -11,7 +11,7 @@ import sys
 from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.models import (
     ChatCompletionClient,
     SystemMessage,
@@ -30,7 +30,7 @@ class Message:
     content: str
 
 
-class ChatCompletionAgent(TypeRoutedAgent):
+class ChatCompletionAgent(RoutedAgent):
     def __init__(self, description: str, model_client: ChatCompletionClient) -> None:
         super().__init__(description)
         self._system_messages = [SystemMessage("You are a helpful AI assistant.")]

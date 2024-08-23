@@ -1,11 +1,11 @@
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.models import UserMessage
 from agnext.core import MessageContext, TopicId
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 
 
-class ReflexAgent(TypeRoutedAgent):
+class ReflexAgent(RoutedAgent):
     def __init__(self, description: str) -> None:
         super().__init__(description)
 

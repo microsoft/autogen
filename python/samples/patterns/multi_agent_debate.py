@@ -40,7 +40,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -92,7 +92,7 @@ class FinalSolverResponse:
     answer: str
 
 
-class MathSolver(TypeRoutedAgent):
+class MathSolver(RoutedAgent):
     def __init__(self, model_client: ChatCompletionClient, neighbor_names: List[str], max_round: int) -> None:
         super().__init__("A debator.")
         self._model_client = model_client
@@ -185,7 +185,7 @@ class MathSolver(TypeRoutedAgent):
             )
 
 
-class MathAggregator(TypeRoutedAgent):
+class MathAggregator(RoutedAgent):
     def __init__(self, num_solvers: int) -> None:
         super().__init__("Math Aggregator")
         self._num_solvers = num_solvers

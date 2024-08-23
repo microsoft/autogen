@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import ChatCompletionClient, SystemMessage, UserMessage
 from agnext.core import MessageContext
@@ -48,7 +48,7 @@ class AggregatorTaskResult:
     result: str
 
 
-class ReferenceAgent(TypeRoutedAgent):
+class ReferenceAgent(RoutedAgent):
     """The reference agent that handles each task independently."""
 
     def __init__(
@@ -72,7 +72,7 @@ class ReferenceAgent(TypeRoutedAgent):
         await self.publish_message(task_result, topic_id=ctx.topic_id)
 
 
-class AggregatorAgent(TypeRoutedAgent):
+class AggregatorAgent(RoutedAgent):
     """The aggregator agent that distribute tasks to reference agents and aggregates the results."""
 
     def __init__(

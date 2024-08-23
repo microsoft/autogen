@@ -1,7 +1,7 @@
 import json
 from typing import Any, Sequence, Tuple
 
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, AgentRuntime, MessageContext
 
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
@@ -9,7 +9,7 @@ from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 __all__ = ["OrchestratorChat"]
 
 
-class OrchestratorChat(TypeRoutedAgent):
+class OrchestratorChat(RoutedAgent):
     def __init__(
         self,
         description: str,

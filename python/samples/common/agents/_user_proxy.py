@@ -1,12 +1,12 @@
 import asyncio
 
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import MessageContext
 
 from ..types import PublishNow, TextMessage
 
 
-class UserProxyAgent(TypeRoutedAgent):
+class UserProxyAgent(RoutedAgent):
     """An agent that proxies user input from the console. Override the `get_user_input`
     method to customize how user input is retrieved.
 

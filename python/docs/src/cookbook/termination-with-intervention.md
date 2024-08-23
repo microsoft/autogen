@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, CancellationToken
 from agnext.core.intervention import DefaultInterventionHandler
 ```
@@ -28,7 +28,7 @@ class Termination:
 We code our agent to publish a termination message when it decides it is time to terminate.
 
 ```python
-class AnAgent(TypeRoutedAgent):
+class AnAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("MyAgent")
         self.received = 0

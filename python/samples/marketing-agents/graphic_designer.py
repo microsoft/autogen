@@ -3,14 +3,14 @@ from typing import Literal
 
 import openai
 from agnext.components import (
-    TypeRoutedAgent,
+    RoutedAgent,
     message_handler,
 )
 from agnext.core import MessageContext
 from messages import ArticleCreated, GraphicDesignCreated
 
 
-class GraphicDesignerAgent(TypeRoutedAgent):
+class GraphicDesignerAgent(RoutedAgent):
     def __init__(
         self,
         client: openai.AsyncClient,

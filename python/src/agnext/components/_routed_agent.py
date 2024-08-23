@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import wraps
 from typing import (
     Any,
@@ -6,7 +7,6 @@ from typing import (
     Coroutine,
     Dict,
     Literal,
-    NoReturn,
     Protocol,
     Sequence,
     Type,
@@ -127,7 +127,7 @@ def message_handler(
         raise ValueError("Invalid arguments")
 
 
-class TypeRoutedAgent(BaseAgent):
+class RoutedAgent(BaseAgent):
     def __init__(self, description: str) -> None:
         # Self is already bound to the handlers
         self._handlers: Dict[
@@ -155,7 +155,14 @@ class TypeRoutedAgent(BaseAgent):
         if handler is not None:
             return await handler(message, ctx)
         else:
-            return await self.on_unhandled_message(message, ctx)
+            return await self.on_unhandled_message(message, ctx)  # type: ignore
 
-    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:
-        raise CantHandleException(f"Unhandled message: {message}")
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
+        logger.info(f"Unhandled message: {message}")
+
+
+# Deprecation warning for TypeRoutedAgent
+class TypeRoutedAgent(RoutedAgent):
+    def __init__(self, description: str) -> None:
+        warnings.warn("TypeRoutedAgent is deprecated. Use RoutedAgent instead.", DeprecationWarning, stacklevel=2)
+        super().__init__(description)

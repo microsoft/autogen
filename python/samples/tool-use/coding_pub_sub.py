@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
+from agnext.components import FunctionCall, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
@@ -63,7 +63,7 @@ class AgentResponse:
     content: str
 
 
-class ToolExecutorAgent(TypeRoutedAgent):
+class ToolExecutorAgent(RoutedAgent):
     """An agent that executes tools."""
 
     def __init__(self, description: str, tools: List[Tool]) -> None:
@@ -94,7 +94,7 @@ class ToolExecutorAgent(TypeRoutedAgent):
         await self.publish_message(task_result, topic_id=ctx.topic_id)
 
 
-class ToolUseAgent(TypeRoutedAgent):
+class ToolUseAgent(RoutedAgent):
     """An agent that uses tools to perform tasks. It doesn't execute the tools
     by itself, but delegates the execution to ToolExecutorAgent using pub/sub
     mechanism."""

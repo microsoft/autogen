@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import FunctionCall, TypeRoutedAgent, message_handler
+from agnext.components import FunctionCall, RoutedAgent, message_handler
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
@@ -43,7 +43,7 @@ class Message:
     content: str
 
 
-class ToolUseAgent(TypeRoutedAgent):
+class ToolUseAgent(RoutedAgent):
     """An agent that uses tools to perform tasks. It executes the tools
     by itself by sending the tool execution task to itself."""
 

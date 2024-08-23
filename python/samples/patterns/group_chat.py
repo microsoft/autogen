@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -50,7 +50,7 @@ class Termination:
     pass
 
 
-class RoundRobinGroupChatManager(TypeRoutedAgent):
+class RoundRobinGroupChatManager(RoutedAgent):
     def __init__(
         self,
         description: str,
@@ -76,7 +76,7 @@ class RoundRobinGroupChatManager(TypeRoutedAgent):
         await self.send_message(RequestToSpeak(), speaker)
 
 
-class GroupChatParticipant(TypeRoutedAgent):
+class GroupChatParticipant(RoutedAgent):
     def __init__(
         self,
         description: str,

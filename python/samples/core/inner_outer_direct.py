@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import AgentId, AgentInstantiationContext, MessageContext
 
 
@@ -21,7 +21,7 @@ class MessageType:
     sender: str
 
 
-class Inner(TypeRoutedAgent):
+class Inner(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("The inner agent")
 
@@ -30,7 +30,7 @@ class Inner(TypeRoutedAgent):
         return MessageType(body=f"Inner: {message.body}", sender=self.metadata["type"])
 
 
-class Outer(TypeRoutedAgent):
+class Outer(RoutedAgent):
     def __init__(self, inner: AgentId) -> None:
         super().__init__("The outer agent")
         self._inner = inner

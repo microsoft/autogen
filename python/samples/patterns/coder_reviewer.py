@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -65,7 +65,7 @@ class CodeReviewResult:
     approved: bool
 
 
-class ReviewerAgent(TypeRoutedAgent):
+class ReviewerAgent(RoutedAgent):
     """An agent that performs code review tasks."""
 
     def __init__(
@@ -123,7 +123,7 @@ Please review the code and provide feedback.
         )
 
 
-class CoderAgent(TypeRoutedAgent):
+class CoderAgent(RoutedAgent):
     """An agent that performs code writing tasks."""
 
     def __init__(

@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Mapping
 
 import openai
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import (
     CancellationToken,
     MessageContext,  # type: ignore
@@ -12,7 +12,7 @@ from openai.types import ResponseFormatJSONObject, ResponseFormatText
 from ..types import PublishNow, Reset, RespondNow, ResponseFormat, TextMessage
 
 
-class OpenAIAssistantAgent(TypeRoutedAgent):
+class OpenAIAssistantAgent(RoutedAgent):
     """An agent implementation that uses the OpenAI Assistant API to generate
     responses.
 

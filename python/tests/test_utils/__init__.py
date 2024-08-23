@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.core import BaseAgent
 from agnext.core import MessageContext
 
@@ -14,7 +14,7 @@ class MessageType:
 class CascadingMessageType:
     round: int
 
-class LoopbackAgent(TypeRoutedAgent):
+class LoopbackAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("A loop back agent.")
         self.num_calls = 0
@@ -26,7 +26,7 @@ class LoopbackAgent(TypeRoutedAgent):
         return message
 
 
-class CascadingAgent(TypeRoutedAgent):
+class CascadingAgent(RoutedAgent):
 
     def __init__(self, max_rounds: int) -> None:
         super().__init__("A cascading agent.")

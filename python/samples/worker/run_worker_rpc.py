@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import TypeRoutedAgent, TypeSubscription, message_handler
+from agnext.components import RoutedAgent, TypeSubscription, message_handler
 from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
 
 
@@ -23,7 +23,7 @@ class Feedback:
     content: str
 
 
-class ReceiveAgent(TypeRoutedAgent):
+class ReceiveAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("Receive Agent")
 
@@ -39,7 +39,7 @@ class ReceiveAgent(TypeRoutedAgent):
         print(f"Unhandled message: {message}")
 
 
-class GreeterAgent(TypeRoutedAgent):
+class GreeterAgent(RoutedAgent):
     def __init__(self, receive_agent_id: AgentId) -> None:
         super().__init__("Greeter Agent")
         self._receive_agent_id = receive_agent_id

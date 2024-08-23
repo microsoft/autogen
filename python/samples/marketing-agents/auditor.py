@@ -1,4 +1,4 @@
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient
 from agnext.components.models._types import SystemMessage
 from agnext.core import MessageContext
@@ -15,7 +15,7 @@ Input: {input}
 """
 
 
-class AuditAgent(TypeRoutedAgent):
+class AuditAgent(RoutedAgent):
     def __init__(
         self,
         model_client: ChatCompletionClient,

@@ -6,7 +6,7 @@ import os
 import sys
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import TypeRoutedAgent, message_handler
+from agnext.components import RoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, SystemMessage
 from agnext.core import AgentId, AgentInstantiationContext, AgentProxy, AgentRuntime
@@ -22,7 +22,7 @@ from utils import TextualChatApp, TextualUserAgent
 
 
 # Define a custom agent that can handle chat room messages.
-class ChatRoomAgent(TypeRoutedAgent):
+class ChatRoomAgent(RoutedAgent):
     def __init__(
         self,
         name: str,
