@@ -11,11 +11,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Setup a non-root user 'autogen' with sudo access
-RUN adduser --disabled-password --gecos '' autogen
+RUN adduser --home /home/autogen-ai --disabled-password --gecos '' autogen
 RUN adduser autogen sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER autogen
-WORKDIR /home/autogen
+WORKDIR /home/autogen-ai
 
 # Set environment variable if needed
 # ENV OPENAI_API_KEY="{OpenAI-API-Key}"

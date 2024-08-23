@@ -10,7 +10,7 @@ FROM mcr.microsoft.com/vscode/devcontainers/python:3.10
 #
 ENV DEBIAN_FRONTEND=noninteractive
 
-# add git lhs to apt
+# add git lfs to apt
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 
 RUN apt-get update \

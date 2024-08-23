@@ -10,21 +10,21 @@ These configurations can be used with Codespaces and locally.
 
 - **Purpose**: This Dockerfile, i.e., `./Dockerfile`, is designed for basic setups. It includes common Python libraries and essential dependencies required for general usage of AutoGen.
 - **Usage**: Ideal for those just starting with AutoGen or for general-purpose applications.
-- **Building the Image**: Run `docker build -f ./Dockerfile -t autogen_base_img .` in this directory.
+- **Building the Image**: Run `docker build -f ./Dockerfile -t autogen_ai_base_img .` in this directory.
 - **Using with Codespaces**: `Code > Codespaces > Click on +` By default + creates a Codespace on the current branch.
 
 ### full
 
 - **Purpose**: This Dockerfile, i.e., `./full/Dockerfile` is for advanced features. It includes additional dependencies and is configured for more complex or feature-rich AutoGen applications.
 - **Usage**: Suited for advanced users who need the full range of AutoGen's capabilities.
-- **Building the Image**: Execute `docker build -f full/Dockerfile -t autogen_full_img .`.
+- **Building the Image**: Execute `docker build -f full/Dockerfile -t autogen_ai_full_img .`.
 - **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "full" as devcontainer configuration`. This image may require a Codespace with at least 64GB of disk space.
 
 ### dev
 
 - **Purpose**: Tailored for AutoGen project developers, this Dockerfile, i.e., `./dev/Dockerfile` includes tools and configurations aiding in development and contribution.
 - **Usage**: Recommended for developers who are contributing to the AutoGen project.
-- **Building the Image**: Run `docker build -f dev/Dockerfile -t autogen_dev_img .`.
+- **Building the Image**: Run `docker build -f dev/Dockerfile -t autogen_ai_dev_img .`.
 - **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "dev" as devcontainer configuration`. This image may require a Codespace with at least 64GB of disk space.
 - **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
