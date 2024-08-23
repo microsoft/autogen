@@ -6,6 +6,7 @@ Example:
             "api_type": "cohere",
             "model": "command-r-plus",
             "api_key": os.environ.get("COHERE_API_KEY")
+            "client_name": "autogen-cohere", # Optional parameter
             }
     ]}
 
@@ -67,6 +68,7 @@ class CohereClient:
         """
         # Ensure we have the api_key upon instantiation
         self.api_key = kwargs.get("api_key", None)
+        self.client_name = kwargs.get("client_name") or "autogen-cohere"
         if not self.api_key:
             self.api_key = os.getenv("COHERE_API_KEY")
 
@@ -157,7 +159,7 @@ class CohereClient:
         cohere_params["preamble"] = preamble
 
         # We use chat model by default
-        client = Cohere(api_key=self.api_key, client_name="autogen-cohere")
+        client = Cohere(api_key=self.api_key, client_name=self.client_name)
 
         # Token counts will be returned
         prompt_tokens = 0
