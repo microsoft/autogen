@@ -2,8 +2,8 @@
 // Example05_Dalle_And_GPT4V.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;

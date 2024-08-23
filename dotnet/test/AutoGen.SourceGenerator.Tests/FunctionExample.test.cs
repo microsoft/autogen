@@ -5,7 +5,7 @@ using System.Text.Json;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;

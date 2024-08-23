@@ -725,7 +725,7 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {"content": "hello", "role": "assistant"},
+        {"content": "hello", "role": "assistant", "name": "alice"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
@@ -746,7 +746,7 @@ def test_clear_agents_history():
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert agent2_history == [
-        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "This is bob speaking.", "role": "assistant", "name": "bob"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert groupchat.messages == [
@@ -760,12 +760,12 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {"content": "hello", "role": "assistant"},
+        {"content": "hello", "role": "assistant", "name": "alice"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert agent2_history == [
-        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "This is bob speaking.", "role": "assistant", "name": "bob"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert groupchat.messages == [
@@ -823,6 +823,7 @@ def test_clear_agents_history():
             "content": "example tool response",
             "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
             "role": "tool",
+            "name": "alice",
         },
     ]
 
@@ -1219,7 +1220,7 @@ def test_role_for_select_speaker_messages():
     # into a message attribute called 'override_role'. This is evaluated in Conversable Agent's _append_oai_message function
     # e.g.: message={'content':self.select_speaker_prompt(agents),'override_role':self.role_for_select_speaker_messages},
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     # Test default is "system"
     assert len(checking_agent.chat_messages) == 1
@@ -1228,7 +1229,7 @@ def test_role_for_select_speaker_messages():
     # Test as "user"
     groupchat.role_for_select_speaker_messages = "user"
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     assert len(checking_agent.chat_messages) == 1
     assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "user"
@@ -1236,7 +1237,7 @@ def test_role_for_select_speaker_messages():
     # Test as something unusual
     groupchat.role_for_select_speaker_messages = "SockS"
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     assert len(checking_agent.chat_messages) == 1
     assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "SockS"
@@ -1647,6 +1648,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_multiple_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1693,6 +1695,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_none_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1762,6 +1765,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_multiple_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1771,6 +1775,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_no_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
