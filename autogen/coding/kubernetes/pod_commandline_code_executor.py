@@ -101,27 +101,28 @@ class PodCommandLineCodeExecutor(CodeExecutor):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
         self._timeout = timeout
-
-        if pod_name is None:
-            pod_name = f"autogen-code-exec-{uuid.uuid4()}"
-        if namespace is None:
-            namespace_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-            if not Path(namespace_path).is_file():
-                raise ValueError("Namespace where the pod will be launched must be provided")
-            with open(namespace_path, "r") as f:
-                namespace = f.read()
-        if container_name is None:
-            container_name = "autogen-code-exec"
-        self._container_name = container_name
             
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
         self._work_dir: Path = work_dir
+
+        if container_name is None:
+            container_name = "autogen-code-exec"
+        self._container_name = container_name
         
         # Start a container from the image, read to exec commands later
         if pod_spec:
             pod = pod_spec
         else:
+            if pod_name is None:
+                pod_name = f"autogen-code-exec-{uuid.uuid4()}"
+            if namespace is None:
+                namespace_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+                if not Path(namespace_path).is_file():
+                    raise ValueError("Namespace where the pod will be launched must be provided")
+                with open(namespace_path, "r") as f:
+                    namespace = f.read()
+
             pod = client.V1Pod(
                 metadata=client.V1ObjectMeta(name=pod_name,namespace=namespace),
                 spec=client.V1PodSpec(
@@ -136,6 +137,7 @@ class PodCommandLineCodeExecutor(CodeExecutor):
             )
         
         try:
+            pod_name = pod.metadata.name
             namespace = pod.metadata.namespace
             self._pod = self._api_client.create_namespaced_pod(namespace=namespace, body=pod)
         except ApiException as e:
@@ -269,7 +271,7 @@ class PodCommandLineCodeExecutor(CodeExecutor):
                     stderr_messages.append(resp.read_stderr())
                 if resp.peek_stdout():
                     stdout_messages.append(resp.read_stdout())
-            outputs = stdout_messages + stderr_messages
+            outputs.extend(stdout_messages + stderr_messages)
             exit_code = resp.returncode
             resp.close()
             
