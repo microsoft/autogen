@@ -3,7 +3,7 @@
     <PropertyGroup>
         <VersionPrefix>0.1.0</VersionPrefix>
         <Authors>AutoGen</Authors>
-        <PackageProjectUrl>https://microsoft.github.io/autogen-for-net/</PackageProjectUrl>
+        <PackageProjectUrl>https://autogen-ai.github.io/autogen-for-net/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/microsoft/autogen</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

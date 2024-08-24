@@ -2,12 +2,12 @@
 
 Promptflow is a comprehensive suite of tools that simplifies the development, testing, evaluation, and deployment of LLM based AI applications. It also supports integration with Azure AI for cloud-based operations and is designed to streamline end-to-end development.
 
-Refer to [Promptflow docs](https://microsoft.github.io/promptflow/) for more information.
+Refer to [Promptflow docs](https://autogen-ai.github.io/promptflow/) for more information.
 
 Quick links:
 
 - Why use Promptflow - [Link](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow)
-- Quick start guide - [Link](https://microsoft.github.io/promptflow/how-to-guides/quick-start.html)
+- Quick start guide - [Link](https://autogen-ai.github.io/promptflow/how-to-guides/quick-start.html)
 
 ## Getting Started
 
@@ -74,12 +74,12 @@ pf flow test --flow <flow_folder> --interactive
 
 ## Autogen State Flow
 
-[Autogen State Flow](./autogen_stateflow.py) contains stateflow example shared at [StateFlow](https://microsoft.github.io/autogen/blog/2024/02/29/StateFlow/) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
+[Autogen State Flow](./autogen_stateflow.py) contains stateflow example shared at [StateFlow](https://autogen-ai.github.io/autogen/blog/2024/02/29/StateFlow/) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
 
 ## Agent Nested Chat
 
-[Autogen Nested Chat](./agentchat_nestedchat.py) contains Scenario 1 of nested chat example shared at [Nested Chats](https://microsoft.github.io/autogen/docs/notebooks/agentchat_nestedchat) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
+[Autogen Nested Chat](./agentchat_nestedchat.py) contains Scenario 1 of nested chat example shared at [Nested Chats](https://autogen-ai.github.io/autogen/docs/notebooks/agentchat_nestedchat) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
 
 ## Redis for Data cache and Interim Messages
 
-Autogen supports Redis for [data caching](https://microsoft.github.io/autogen/docs/reference/cache/redis_cache/) and since redis supports a pub-subs model as well, this Promptflow example is configured for all agent callbacks to send messages to a Redis channel. This is optional feature but is essential for long running workflows and provides access to interim messages for your frontend. NOTE: Currently Promtpflow only support [SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) for streaming data and does not support websockets. NOTE: In multi user chat bot environment please make necessary changes to send messages to corresponding channel.
+Autogen supports Redis for [data caching](https://autogen-ai.github.io/autogen/docs/reference/cache/redis_cache/) and since redis supports a pub-subs model as well, this Promptflow example is configured for all agent callbacks to send messages to a Redis channel. This is optional feature but is essential for long running workflows and provides access to interim messages for your frontend. NOTE: Currently Promtpflow only support [SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) for streaming data and does not support websockets. NOTE: In multi user chat bot environment please make necessary changes to send messages to corresponding channel.

@@ -25,11 +25,11 @@
 
 :tada: May 11, 2024: [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation](https://openreview.net/pdf?id=uAjxFFing2) received the best paper award at the [ICLR 2024 LLM Agents Workshop](https://llmagents.github.io/).
 
-:tada: Apr 26, 2024: [AutoGen.NET](https://microsoft.github.io/autogen-for-net/) is available for .NET developers!
+:tada: Apr 26, 2024: [AutoGen.NET](https://autogen-ai.github.io/autogen-for-net/) is available for .NET developers!
 
 :tada: Apr 17, 2024: Andrew Ng cited AutoGen in [The Batch newsletter](https://www.deeplearning.ai/the-batch/issue-245/) and [What's next for AI agentic workflows](https://youtu.be/sal78ACtGTc?si=JduUzN_1kDnMq0vF) at Sequoia Capital's AI Ascent (Mar 26).
 
-:tada: Mar 3, 2024: What's new in AutoGen? 📰[Blog](https://microsoft.github.io/autogen/blog/2024/03/03/AutoGen-Update); 📺[Youtube](https://www.youtube.com/watch?v=j_mtwQiaLGU).
+:tada: Mar 3, 2024: What's new in AutoGen? 📰[Blog](https://autogen-ai.github.io/autogen/blog/2024/03/03/AutoGen-Update); 📺[Youtube](https://www.youtube.com/watch?v=j_mtwQiaLGU).
 
 <!-- :tada: Mar 1, 2024: the first AutoGen multi-agent experiment on the challenging [GAIA](https://huggingface.co/spaces/gaia-benchmark/leaderboard) benchmark achieved the No. 1 accuracy in all the three levels. -->
 
@@ -37,9 +37,9 @@
 
 :tada: Dec 31, 2023: [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework](https://arxiv.org/abs/2308.08155) is selected by [TheSequence: My Five Favorite AI Papers of 2023](https://thesequence.substack.com/p/my-five-favorite-ai-papers-of-2023).
 
-<!-- :fire: Nov 24: pyautogen [v0.2](https://github.com/microsoft/autogen/releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python). -->
+<!-- :fire: Nov 24: pyautogen [v0.2](https://github.com/microsoft/autogen/releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://autogen-ai.github.io/autogen/docs/Installation#python). -->
 
-<!-- :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples. -->
+<!-- :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://autogen-ai.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples. -->
 
 :tada: Nov 8, 2023: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
@@ -56,7 +56,7 @@
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
-:fire: [autogen](https://microsoft.github.io/autogen/) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
+:fire: [autogen](https://autogen-ai.github.io/autogen/) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
 
 :fire: FLAML supports Code-First AutoML & Tuning – Private Preview in [Microsoft Fabric Data Science](https://learn.microsoft.com/en-us/fabric/data-science/). -->
 
@@ -72,11 +72,11 @@ The project is currently maintained by a [dynamic group of volunteers](https://b
 ![AutoGen Overview](https://github.com/autogen-ai/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
 <!--
-- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
-- It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://autogen-ai.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+- It supports [diverse conversation patterns](https://autogen-ai.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
   the number of agents, and agent conversation topology.
-- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
-- AutoGen provides [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
+- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://autogen-ai.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
+- AutoGen provides [enhanced LLM inference](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 -->
 AutoGen is created out of collaborative [research](https://autogen-ai.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
@@ -107,10 +107,10 @@ The easiest way to start playing is
   </a>
 </p>
 
-## [Installation](https://microsoft.github.io/autogen/docs/Installation)
+## [Installation](https://autogen-ai.github.io/autogen/docs/Installation)
 ### Option 1. Install and Run AutoGen in Docker
 
-Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/installation/Docker#step-1-install-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker-for-development).
+Find detailed instructions for users [here](https://autogen-ai.github.io/autogen/docs/installation/Docker#step-1-install-docker), and for developers [here](https://autogen-ai.github.io/autogen/docs/Contribute#docker-for-development).
 
 ### Option 2. Install AutoGen Locally
 
@@ -122,18 +122,18 @@ pip install pyautogen
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
 
-<!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
+<!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://autogen-ai.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
 pip install "pyautogen[blendsearch]"
 ``` -->
 
-Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
+Find more options in [Installation](https://autogen-ai.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-Even if you are installing and running AutoGen locally outside of docker, the recommendation and default behavior of agents is to perform [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. Find more instructions and how to change the default behaviour [here](https://microsoft.github.io/autogen/docs/Installation#code-execution-with-docker-(default)).
+Even if you are installing and running AutoGen locally outside of docker, the recommendation and default behavior of agents is to perform [code execution](https://autogen-ai.github.io/autogen/docs/FAQ/#code-execution) in docker. Find more instructions and how to change the default behaviour [here](https://autogen-ai.github.io/autogen/docs/Installation#code-execution-with-docker-(default)).
 
-For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
+For LLM inference configurations, check the [FAQs](https://autogen-ai.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -143,7 +143,7 @@ For LLM inference configurations, check the [FAQs](https://microsoft.github.io/a
 
 ## Multi-Agent Conversation Framework
 
-Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
+Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://autogen-ai.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
 Features of this use case include:
@@ -157,7 +157,7 @@ For [example](https://github.com/autogen-ai/autogen/blob/main/test/twoagent.py),
 ```python
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 # Load LLM inference endpoints from an env variable or a file
-# See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
+# See https://autogen-ai.github.io/autogen/docs/FAQ#set-your-api-endpoints
 # and OAI_CONFIG_LIST_sample
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 # You can also set config_list directly as a list, for example, config_list = [{'model': 'gpt-4', 'api_key': '<your OpenAI API key here>'},]
@@ -178,7 +178,7 @@ The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/autogen-ai/autogen/blob/main/website/static/img/chat_example.png)
 
 Alternatively, the [sample code](https://github.com/autogen-ai/autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
+Please find more [code examples](https://autogen-ai.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -188,7 +188,7 @@ Please find more [code examples](https://microsoft.github.io/autogen/docs/Exampl
 
 ## Enhanced LLM Inferences
 
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification) with powerful functionalities like caching, error handling, multi-config inference and templating.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers [enhanced LLM inference](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification) with powerful functionalities like caching, error handling, multi-config inference and templating.
 
 <!-- For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 
@@ -207,7 +207,7 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#tune-gpt-models) for this feature. -->
+Please find more [code examples](https://autogen-ai.github.io/autogen/docs/Examples#tune-gpt-models) for this feature. -->
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -217,15 +217,15 @@ Please find more [code examples](https://microsoft.github.io/autogen/docs/Exampl
 
 ## Documentation
 
-You can find detailed documentation about AutoGen [here](https://microsoft.github.io/autogen/).
+You can find detailed documentation about AutoGen [here](https://autogen-ai.github.io/autogen/).
 
 In addition, you can find:
 
-- [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/autogen-ai/autogen/blob/main/TRANSPARENCY_FAQS.md)
+- [Research](https://autogen-ai.github.io/autogen/docs/Research), [blogposts](https://autogen-ai.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/autogen-ai/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
 - [Discord](https://discord.gg/pAbnFJrkgZ)
 
-- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
+- [Contributing guide](https://autogen-ai.github.io/autogen/docs/Contribute)
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">

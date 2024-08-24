@@ -26,7 +26,7 @@ These configurations can be used with Codespaces and locally.
 - **Usage**: Recommended for developers who are contributing to the AutoGen project.
 - **Building the Image**: Run `docker build -f dev/Dockerfile -t autogen_ai_dev_img .`.
 - **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "dev" as devcontainer configuration`. This image may require a Codespace with at least 64GB of disk space.
-- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
+- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
 
 ### studio
@@ -35,7 +35,7 @@ These configurations can be used with Codespaces and locally.
 - **Usage**: Recommended for developers who are contributing to the AutoGen project.
 - **Building the Image**: Run `docker build -f studio/Dockerfile -t autogen_studio_img .`.
 - **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "studio" as devcontainer configuration`.
-- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
+- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
 
 ## Customizing Dockerfiles

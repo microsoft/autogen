@@ -11,7 +11,7 @@ The following is an example setup demonstrating how to create retrieval augmente
 
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
 
-Refer to the [doc](https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/retrieve_user_proxy_agent)
+Refer to the [doc](https://autogen-ai.github.io/autogen/docs/reference/agentchat/contrib/retrieve_user_proxy_agent)
 for more information on the detailed configurations.
 
 ```python
