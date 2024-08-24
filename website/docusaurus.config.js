@@ -15,12 +15,12 @@ customPostCssPlugin = () => {
 module.exports = {
   title: "AutoGen",
   tagline: "An Open-Source Programming Framework for Agentic AI",
-  url: "https://microsoft.github.io",
+  url: "https://autogen-ai.github.io",
   baseUrl: "/autogen/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
-  organizationName: "Microsoft", // Usually your GitHub org/user name.
+  organizationName: "autogen-ai", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
   scripts: [
     {
@@ -131,7 +131,7 @@ module.exports = {
           items: [
             {
               label: "Dotnet",
-              href: "https://microsoft.github.io/autogen-for-net/",
+              href: "https://autogen-ai.github.io/autogen-for-net/",
             },
           ],
         },
@@ -141,7 +141,7 @@ module.exports = {
           position: "left",
         },
         {
-          href: "https://github.com/microsoft/autogen",
+          href: "https://github.com/autogen-ai/autogen",
           label: "GitHub",
           position: "right",
         },
@@ -187,7 +187,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.autogen-ai.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
     },
     announcementBar: {
       id: "whats_new",
@@ -214,7 +214,7 @@ module.exports = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           // Please change this to your repo.
-          editUrl: "https://github.com/microsoft/autogen/edit/main/website/",
+          editUrl: "https://github.com/autogen-ai/autogen/edit/main/website/",
           remarkPlugins: [math],
           rehypePlugins: [katex],
         },
