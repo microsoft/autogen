@@ -8,10 +8,10 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 
-namespace AutoGen.OpenAI;
+namespace AutoGen.OpenAI.V1;
 
 /// <summary>
 /// OpenAI client agent. This agent is a thin wrapper around <see cref="OpenAIClient"/> to provide a simple interface for chat completions.

@@ -6,7 +6,7 @@ using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using FluentAssertions;
 
 public partial class Example04_Dynamic_GroupChat_Coding_Task
