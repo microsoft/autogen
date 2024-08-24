@@ -6,13 +6,15 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any, Union
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
+
 from loguru import logger
 from openai import OpenAIError
 
-from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from .chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
@@ -23,7 +25,7 @@ from ..version import VERSION
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
 # Create thread-safe queue for messages between api thread and autogen threads
-message_queue = queue.Queue()
+# message_queue = queue.Queue()
 active_connections = []
 active_connections_lock = asyncio.Lock()
 websocket_manager = WebSocketConnectionManager(
@@ -32,29 +34,29 @@ websocket_manager = WebSocketConnectionManager(
 )
 
 
-def message_handler():
-    while True:
-        message = message_queue.get()
-        logger.info(
-            "** Processing Agent Message on Queue: Active Connections: "
-            + str([client_id for _, client_id in websocket_manager.active_connections])
-            + " **"
-        )
-        for connection, socket_client_id in websocket_manager.active_connections:
-            if message["connection_id"] == socket_client_id:
-                logger.info(
-                    f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
-                )
-                asyncio.run(websocket_manager.send_message(message, connection))
-            else:
-                logger.info(
-                    f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
-                )
-        message_queue.task_done()
-
-
-message_handler_thread = threading.Thread(target=message_handler, daemon=True)
-message_handler_thread.start()
+# def message_handler():
+#     while True:
+#         message = message_queue.get()
+#         logger.info(
+#             "** Processing Agent Message on Queue: Active Connections: "
+#             + str([client_id for _, client_id in websocket_manager.active_connections])
+#             + " **"
+#         )
+#         for connection, socket_client_id in websocket_manager.active_connections:
+#             if message["connection_id"] == socket_client_id:
+#                 logger.info(
+#                     f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+#                 )
+#                 asyncio.run(websocket_manager.send_message(message, connection))
+#             else:
+#                 logger.info(
+#                     f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+#                 )
+#         message_queue.task_done()
+#
+#
+# message_handler_thread = threading.Thread(target=message_handler, daemon=True)
+# message_handler_thread.start()
 
 
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +70,7 @@ dbmanager = DBManager(engine_uri=database_engine_uri)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
-    managers["chat"] = AutoGenChatManager(message_queue=message_queue)
+    managers["chat"] = AutoGenChatManager(websocket_manager=websocket_manager)
     dbmanager.create_db_and_tables()
 
     yield
@@ -450,12 +452,16 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
-        agent_response: Message = managers["chat"].chat(
+        # So this is where the problem begins.  In order to ensure we are not blocking the threadpool
+        # Ww need to wrap the synchronous call in run_in_threadpool to avoid blocking the event loop
+        agent_response: Message = await run_in_threadpool(
+            managers["chat"].chat,
             message=message,
             history=user_message_history,
             user_dir=user_dir,
             workflow=workflow,
             connection_id=message.connection_id,
+            human_input_function=get_human_input
         )
 
         response: Response = dbmanager.upsert(agent_response)
@@ -477,9 +483,24 @@ async def get_version():
     }
 
 
+def get_human_input(prompt, timeout=120):
+    """
+    Sends a prompt to the frontend to request human input and blocks until input is received or timeout occurs.
+    """
+    connection_id = prompt.get("connection_id")
+    socket_msg = {
+        "type": "user_input_request",
+        "data": prompt,
+        "connection_id": connection_id,
+    }
+
+    # Send the prompt to the frontend
+    response = managers["chat"].get_user_input(socket_msg, timeout)
+
+    return response
+
+
 # websockets
-
-
 async def process_socket_message(data: dict, websocket: WebSocket, client_id: str):
     print(f"Client says: {data['type']}")
     if data["type"] == "user_message":

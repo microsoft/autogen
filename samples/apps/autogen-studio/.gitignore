@@ -8,6 +8,7 @@ scratch/
 autogenstudio/web/workdir/*
 autogenstudio/web/ui/*
 autogenstudio/web/skills/user/*
+autogenstudio/output
 .release.sh
 .nightly.sh
 
