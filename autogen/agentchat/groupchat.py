@@ -525,7 +525,7 @@ class GroupChat:
                 select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
-    def select_speaker(self, last_speaker: Agent) -> Agent:
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker (with requery)."""
 
         # Prepare the list of available agents and select an agent if selection method allows (non-auto)
@@ -537,7 +537,7 @@ class GroupChat:
             return self.next_agent(last_speaker)
 
         # auto speaker selection with 2-agent chat
-        return self._auto_select_speaker(last_speaker, messages, agents)
+        return self._auto_select_speaker(last_speaker, selector, messages, agents)
 
     async def a_select_speaker(self, last_speaker: Agent) -> Agent:
         """Select the next speaker (with requery), asynchronously."""
@@ -613,7 +613,8 @@ class GroupChat:
         elif not config_format_is_list:
             self._register_client_from_config(agent, self.select_speaker_auto_llm_config)
 
-    def _create_internal_agents(self, agents, max_attempts, messages, validate_speaker_name):
+    def _create_internal_agents(self, agents, max_attempts, messages, validate_speaker_name,
+                                selector: Optional[ConversableAgent] = None):
         checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
         # Register the speaker validation function with the checking agent
         checking_agent.register_reply(
@@ -621,12 +622,16 @@ class GroupChat:
             reply_func=validate_speaker_name,  # Validate each response
             remove_other_reply_funcs=True,
         )
+
+        # Override the selector's config if one was passed as a parameter to this class
+        speaker_selection_llm_config = self.select_speaker_auto_llm_config or selector.llm_config
+
         # Agent for selecting a single agent name from the response
         speaker_selection_agent = ConversableAgent(
             "speaker_selection_agent",
             system_message=self.select_speaker_msg(agents),
             chat_messages={checking_agent: messages},
-            llm_config=self.select_speaker_auto_llm_config,
+            llm_config=speaker_selection_llm_config,
             human_input_mode="NEVER",
             # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
         )
@@ -637,6 +642,7 @@ class GroupChat:
     def _auto_select_speaker(
         self,
         last_speaker: Agent,
+        selector: ConversableAgent,
         messages: Optional[List[Dict]],
         agents: Optional[List[Agent]],
     ) -> Agent:
@@ -687,7 +693,7 @@ class GroupChat:
 
         # Agent for checking the response from the speaker_select_agent
         checking_agent, speaker_selection_agent = self._create_internal_agents(
-            agents, max_attempts, messages, validate_speaker_name
+            agents, max_attempts, messages, validate_speaker_name, selector
         )
 
         # Create the starting message
@@ -1076,7 +1082,10 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                speaker = groupchat.select_speaker(speaker)
+                speaker = groupchat.select_speaker(speaker, self)
+                if not silent:
+                    iostream = IOStream.get_default()
+                    iostream.print(colored(f"\nNext speaker: {speaker.name}\n", "green"), flush=True)
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
