@@ -2047,7 +2047,8 @@ def test_custom_model_client():
     llm_config = {"config_list": [{"model": "test_model_name", "model_client_cls": "CustomModelClient"}]}
 
     group_chat = autogen.GroupChat(
-        agents=[], messages=[], max_round=3, llm_config=llm_config, model_client_cls=CustomModelClient
+        agents=[], messages=[], max_round=3, select_speaker_auto_llm_config=llm_config,
+        select_speaker_auto_model_client_cls=CustomModelClient
     )
 
     result = group_chat._create_internal_agents(
