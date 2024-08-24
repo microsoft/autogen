@@ -48,4 +48,4 @@ docker run -it -p 8081:3000 -v /home/AutoGenDeveloper/autogen-newcode:newstuff/ 
 ## Develop in Remote Container
 
 If you use vscode, you can open the autogen folder in a [Container](https://code.visualstudio.com/docs/remote/containers).
-We have provided the configuration in [devcontainer](https://github.com/microsoft/autogen/blob/main/.devcontainer). They can be used in GitHub codespace too. Developing AutoGen in dev containers is recommended.
+We have provided the configuration in [devcontainer](https://github.com/autogen-ai/autogen/blob/main/.devcontainer). They can be used in GitHub codespace too. Developing AutoGen in dev containers is recommended.
