@@ -8,7 +8,7 @@ from autogencap.Actor import Actor
 from autogencap.ActorConnector import ActorConnector, ActorSender
 from autogencap.Broker import Broker
 from autogencap.Config import router_url, xpub_url, xsub_url
-from autogencap.Constants import Directory_Svc_Topic
+from autogencap.constants import Directory_Svc_Topic
 from autogencap.DebugLog import Debug, Error, Info
 from autogencap.proto.CAP_pb2 import (
     ActorInfo,
@@ -121,7 +121,7 @@ class DirectorySvc:
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
         if self._no_other_directory():
             self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
-            self._directory_actor.start(self._context)
+            self._directory_actor.on_start(self._context)
             Info("DirectorySvc", "Directory service started.")
         else:
             Info("DirectorySvc", "Another directory service is running. This instance will not start.")

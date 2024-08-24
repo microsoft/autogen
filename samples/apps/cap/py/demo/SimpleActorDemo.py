@@ -1,9 +1,5 @@
-import time
-
 from AppAgents import GreeterAgent
-from autogencap.ComponentEnsemble import ComponentEnsemble
-from autogencap.DebugLog import Error
-from autogencap.proto.CAP_pb2 import Ping
+from autogencap.runtime_factory import RuntimeFactory
 
 
 def simple_actor_demo():
@@ -12,17 +8,10 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
-    ensemble = ComponentEnsemble()
+    runtime = RuntimeFactory.get_runtime("ZMQ")
     agent = GreeterAgent()
-    ensemble.register(agent)
-    ensemble.connect()
-    greeter_link = ensemble.find_by_name("Greeter")
-    ensemble.disconnect()
-
-    ping = Ping()
-    # Serialize and send the message
-    msg_type_str = Ping.__name__
-    msg_bytes = ping.SerializeToString()
+    runtime.register(agent)
+    runtime.connect()
+    greeter_link = runtime.find_by_name("Greeter")
     greeter_link.send_txt_msg("Hello World!")
-    greeter_link.send_bin_msg(msg_type_str, msg_bytes)
-    _, resp_type, resp_msg_bytes = greeter_link.send_recv_msg(msg_type_str, msg_bytes)
+    runtime.disconnect()

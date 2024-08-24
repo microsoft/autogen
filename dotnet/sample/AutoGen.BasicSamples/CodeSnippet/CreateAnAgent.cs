@@ -3,7 +3,7 @@
 
 using AutoGen;
 using AutoGen.Core;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using FluentAssertions;
 
 public partial class AssistantCodeSnippet
@@ -129,7 +129,7 @@ public partial class AssistantCodeSnippet
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.UpperCaseFunction.Name, this.UpperCaseWrapper }, // The wrapper function for the UpperCase function
+                { this.UpperCaseFunctionContract.Name, this.UpperCaseWrapper }, // The wrapper function for the UpperCase function
             });
 
         var response = await assistantAgent.SendAsync("hello");

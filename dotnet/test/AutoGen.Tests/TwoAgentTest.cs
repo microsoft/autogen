@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using FluentAssertions;
 using Xunit.Abstractions;
 
@@ -25,12 +25,12 @@ public partial class TwoAgentTest
         return $"[GetWeatherFunction] The weather in {city} is sunny";
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task TwoAgentWeatherChatTestAsync()
     {
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-        var deploymentName = "gpt-35-turbo-16k";
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
         var config = new AzureOpenAIConfig(endpoint, deploymentName, key);
 
         var assistant = new AssistantAgent(
@@ -56,7 +56,7 @@ public partial class TwoAgentTest
             name: "user",
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.GetWeatherFunction.Name, this.GetWeatherWrapper },
+                { this.GetWeatherFunctionContract.Name, this.GetWeatherWrapper },
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {

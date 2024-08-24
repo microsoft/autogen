@@ -1,7 +1,8 @@
 import hashlib
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import uuid
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from IPython import get_ipython
 
@@ -81,6 +82,7 @@ Context is: {input_context}
 """
 
 HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
+UPDATE_CONTEXT_IN_PROMPT = "you should reply exactly `UPDATE CONTEXT`"
 
 
 class RetrieveUserProxyAgent(UserProxyAgent):
@@ -91,7 +93,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def __init__(
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "ALWAYS",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
@@ -134,7 +136,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
-                     **Deprecated**: use `vector_db` instead.
+                     *[Deprecated]* use `vector_db` instead.
                 - `docs_path` (Optional, Union[str, List[str]]) - the path to the docs directory. It
                      can also be the path to a single file, the url to a single file or a list
                      of directories, files and urls. Default is None, which works only if the
@@ -148,7 +150,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     By default, "extra_docs" is set to false, starting document IDs from zero.
                     This poses a risk as new documents might overwrite existing ones, potentially
                     causing unintended loss or alteration of data in the collection.
-                    **Deprecated**: use `new_docs` when use `vector_db` instead of `client`.
+                    *[Deprecated]* use `new_docs` when use `vector_db` instead of `client`.
                 - `new_docs` (Optional, bool) - when True, only adds new documents to the collection;
                     when False, updates existing documents and adds new ones. Default is True.
                     Document id is used to determine if a document is new or existing. By default, the
@@ -171,7 +173,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     models can be found at `https://www.sbert.net/docs/pretrained_models.html`.
                     The default model is a fast model. If you want to use a high performance model,
                     `all-mpnet-base-v2` is recommended.
-                    **Deprecated**: no need when use `vector_db` instead of `client`.
+                    *[Deprecated]* no need when use `vector_db` instead of `client`.
                 - `embedding_function` (Optional, Callable) - the embedding function for creating the
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
@@ -187,7 +189,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     interactive retrieval. Default is True.
                 - `collection_name` (Optional, str) - the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
-                - `get_or_create` (Optional, bool) - Whether to get the collection if it exists. Default is True.
+                - `get_or_create` (Optional, bool) - Whether to get the collection if it exists. Default is False.
                 - `overwrite` (Optional, bool) - Whether to overwrite the collection if it exists. Default is False.
                     Case 1. if the collection does not exist, create the collection.
                     Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
@@ -218,7 +220,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Example of overriding retrieve_docs - If you have set up a customized vector db, and it's
         not compatible with chromadb, you can easily plug in it with below code.
-        **Deprecated**: Use `vector_db` instead. You can extend VectorDB and pass it to the agent.
+        *[Deprecated]* use `vector_db` instead. You can extend VectorDB and pass it to the agent.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -253,7 +255,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._vector_db = self._retrieve_config.get("vector_db", "chroma")
         self._db_config = self._retrieve_config.get("db_config", {})
-        self._client = self._retrieve_config.get("client", chromadb.Client())
+        self._client = self._retrieve_config.get("client", None)
+        if self._client is None:
+            self._client = chromadb.Client()
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
         self._new_docs = self._retrieve_config.get("new_docs", True)
@@ -302,6 +306,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 self._db_config["embedding_function"] = self._embedding_function
             self._vector_db = VectorDBFactory.create_vector_db(db_type=self._vector_db, **self._db_config)
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
+        self.register_hook(
+            hookable_method="process_message_before_send",
+            hook=self._check_update_context_before_send,
+        )
 
     def _init_db(self):
         if not self._vector_db:
@@ -346,7 +354,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    self._max_tokens,
+                    self._chunk_token_size,
                     self._chunk_mode,
                     self._must_break_at_empty_line,
                 )
@@ -362,7 +370,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 all_docs_ids = set()
 
-            chunk_ids = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            chunk_ids = (
+                [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+                if not self._vector_db.type == "qdrant"
+                else [str(uuid.UUID(hex=hashlib.md5(chunk.encode("utf-8")).hexdigest())) for chunk in chunks]
+            )
             chunk_ids_set = set(chunk_ids)
             chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
             docs = [
@@ -391,6 +403,34 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 break
         update_context_case1, update_context_case2 = self._check_update_context(message)
         return not (contain_code or update_context_case1 or update_context_case2)
+
+    def _check_update_context_before_send(self, sender, message, recipient, silent):
+        if not isinstance(message, (str, dict)):
+            return message
+        elif isinstance(message, dict):
+            msg_text = message.get("content", message)
+        else:
+            msg_text = message
+
+        if "UPDATE CONTEXT" == msg_text.strip().upper():
+            doc_contents = self._get_context(self._results)
+
+            # Always use self.problem as the query text to retrieve docs, but each time we replace the context with the
+            # next similar docs in the retrieved doc results.
+            if not doc_contents:
+                for _tmp_retrieve_count in range(1, 5):
+                    self._reset(intermediate=True)
+                    self.retrieve_docs(
+                        self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                    )
+                    doc_contents = self._get_context(self._results)
+                    if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
+                        break
+            msg_text = self._generate_message(doc_contents, task=self._task)
+
+        if isinstance(message, dict):
+            message["content"] = msg_text
+        return message
 
     @staticmethod
     def get_max_tokens(model="gpt-3.5-turbo"):
@@ -469,7 +509,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
+        update_context_case1 = "UPDATE CONTEXT" in message.upper() and UPDATE_CONTEXT_IN_PROMPT not in message
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
 
@@ -511,7 +551,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                             self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
                         )
                         doc_contents = self._get_context(self._results)
-                        if doc_contents:
+                        if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
                             break
             elif update_context_case2:
                 # Use the current intermediate info as the query text to retrieve docs, and each time we append the top similar
@@ -523,7 +563,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     )
                     self._get_context(self._results)
                     doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
-                    if doc_contents:
+                    if doc_contents or self.n_results * (2 * _tmp_retrieve_count + 1) >= len(self._results[0]):
                         break
 
             self.clear_history()

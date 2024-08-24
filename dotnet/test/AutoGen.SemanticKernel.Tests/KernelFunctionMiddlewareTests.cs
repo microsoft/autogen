@@ -2,8 +2,8 @@
 // KernelFunctionMiddlewareTests.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
@@ -13,18 +13,19 @@ namespace AutoGen.SemanticKernel.Tests;
 
 public class KernelFunctionMiddlewareTests
 {
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task ItRegisterKernelFunctionMiddlewareFromTestPluginTests()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
 
         var kernel = new Kernel();
         var plugin = kernel.ImportPluginFromType<TestPlugin>();
         var kernelFunctionMiddleware = new KernelPluginMiddleware(kernel, plugin);
 
-        var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: "gpt-35-turbo-16k")
+        var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: deployName)
             .RegisterMessageConnector()
             .RegisterMiddleware(kernelFunctionMiddleware);
 
@@ -56,11 +57,12 @@ public class KernelFunctionMiddlewareTests
         }
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task ItRegisterKernelFunctionMiddlewareFromMethodTests()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
 
         var kernel = new Kernel();
@@ -69,7 +71,7 @@ public class KernelFunctionMiddlewareTests
         var plugin = kernel.ImportPluginFromFunctions("plugin", [getWeatherMethod, createPersonObjectMethod]);
         var kernelFunctionMiddleware = new KernelPluginMiddleware(kernel, plugin);
 
-        var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: "gpt-35-turbo-16k")
+        var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: deployName)
             .RegisterMessageConnector()
             .RegisterMiddleware(kernelFunctionMiddleware);
 

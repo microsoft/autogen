@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 
@@ -80,7 +80,7 @@ public class LMStudioAgent : IAgent
         {
             // request.RequestUri = new Uri($"{_modelServiceUrl}{request.RequestUri.PathAndQuery}");
             var uriBuilder = new UriBuilder(_modelServiceUrl);
-            uriBuilder.Path = request.RequestUri.PathAndQuery;
+            uriBuilder.Path = request.RequestUri?.PathAndQuery ?? throw new InvalidOperationException("RequestUri is null");
             request.RequestUri = uriBuilder.Uri;
             return base.SendAsync(request, cancellationToken);
         }

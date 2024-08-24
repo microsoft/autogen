@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <RootNamespace>AutoGen.Mistral</RootNamespace>
   </PropertyGroup>
 
@@ -14,10 +14,6 @@
       Provide support for consuming Mistral model in AutoGen
     </Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Memory.Data" Version="8.0.0" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />

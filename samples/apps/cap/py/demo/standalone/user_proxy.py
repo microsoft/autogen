@@ -2,8 +2,8 @@ import time
 
 import _paths
 from autogencap.ag_adapter.agent import Agent
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.Config import IGNORED_LOG_CONTEXTS
+from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import UserProxyAgent
 
@@ -22,7 +22,7 @@ def main():
     # Wrap AutoGen Agent in CAP
     cap_user_proxy = Agent(user_proxy, counter_party_name="assistant", init_chat=True)
     # Create the message bus
-    ensemble = ComponentEnsemble()
+    ensemble = RuntimeFactory.get_runtime("ZMQ")
     # Add the user_proxy to the message bus
     cap_user_proxy.register(ensemble)
     # Start message processing
