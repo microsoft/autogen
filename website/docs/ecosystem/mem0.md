@@ -122,7 +122,7 @@ Question: {data}
 """
 
 reply = agent.generate_reply(messages=[{"content": prompt, "role": "user"}])
-print(reply)
+print("Reply :", reply)
 
 # Multi Agent Conversation
 manager = ConversableAgent(
