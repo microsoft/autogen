@@ -123,10 +123,10 @@ ragproxyagent.initiate_chat(
 ## More Examples and Notebooks
 For more detailed examples and notebooks showcasing the usage of retrieval augmented agents in AutoGen, refer to the following:
 - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
-- Automated Code Generation and Question Answering with [PGVector](https://github.com/pgvector/pgvector) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_pgvector.ipynb)
-- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
-- Automated Code Generation and Question Answering with [MongoDB Atlas](https://www.mongodb.com/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_mongodb.ipynb)
-- Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
+- Automated Code Generation and Question Answering with [PGVector](https://github.com/pgvector/pgvector) based Retrieval Augmented Agents - [View Notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_RetrieveChat_pgvector.ipynb)
+- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
+- Automated Code Generation and Question Answering with [MongoDB Atlas](https://www.mongodb.com/) based Retrieval Augmented Agents - [View Notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_RetrieveChat_mongodb.ipynb)
+- Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
 - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_RAG)
 
 ## Roadmap
