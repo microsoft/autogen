@@ -1,11 +1,11 @@
 # Contributing to AutoGenBench
 
-As part of the broader AutoGen project, AutoGenBench welcomes community contributions. Contributions are subject to AutoGen's [contribution guidelines](https://microsoft.github.io/autogen/docs/Contribute), as well as a few additional AutoGenBench-specific requirements outlined here. You may also wish to develop your own private benchmark scenarios and the guidance in this document will help with such efforts as well. Below you will find the general requirements, followed by a detailed technical description.
+As part of the broader AutoGen project, AutoGenBench welcomes community contributions. Contributions are subject to AutoGen's [contribution guidelines](https://autogen-ai.github.io/autogen/docs/Contribute), as well as a few additional AutoGenBench-specific requirements outlined here. You may also wish to develop your own private benchmark scenarios and the guidance in this document will help with such efforts as well. Below you will find the general requirements, followed by a detailed technical description.
 
 ## General Contribution Requirements
 We ask that all contributions to AutoGenBench adhere to the following:
 
-- Follow AutoGen's broader [contribution guidelines](https://microsoft.github.io/autogen/docs/Contribute)
+- Follow AutoGen's broader [contribution guidelines](https://autogen-ai.github.io/autogen/docs/Contribute)
 - All AutoGenBench benchmarks should live in a subfolder of `/samples/tools/autogenbench/scenarios` alongside `HumanEval`, `GAIA`, etc.
 - Benchmark scenarios should include a detailed README.md, in the root of their folder, describing the benchmark and providing citations where warranted.
 - Benchmark data (tasks, ground truth, etc.) should be downloaded from their original sources rather than hosted in the AutoGen repository (unless the benchmark is original, and the repository *is* the original source)

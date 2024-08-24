@@ -726,7 +726,7 @@ class Completion(openai_Completion):
                 E.g., `prompt="Complete the following sentence: {prefix}, context={"prefix": "Today I feel"}`.
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
-                More examples can be found at [templating](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#templating).
+                More examples can be found at [templating](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#templating).
             use_cache (bool, Optional): Whether to use cached responses.
             config_list (List, Optional): List of configurations for the completion to try.
                 The first one that does not raise an error will be used.
@@ -788,7 +788,7 @@ class Completion(openai_Completion):
         logger.warning(
             "Completion.create is deprecated in pyautogen v0.2 and openai>=1. "
             "The new openai requires initiating a client for inference. "
-            "Please refer to https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification"
+            "Please refer to https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification"
         )
         if ERROR:
             raise ERROR

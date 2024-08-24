@@ -8,7 +8,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
 - **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
 - **Updating Dockerfile**: Modify your copy of `Dockerfile` in the `dev` folder as needed for your development work.
-- **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page.
+- **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page.
 
 ## Building the Developer Docker Image
 
