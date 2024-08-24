@@ -67,7 +67,6 @@ class CohereClient:
         """
         # Ensure we have the api_key upon instantiation
         self.api_key = kwargs.get("api_key", None)
-        self.client_name = kwargs.get("client_name") or "autogen-cohere"
         if not self.api_key:
             self.api_key = os.getenv("COHERE_API_KEY")
 
@@ -146,7 +145,7 @@ class CohereClient:
     def create(self, params: Dict) -> ChatCompletion:
 
         messages = params.get("messages", [])
-
+        client_name = params.get("client_name") or "autogen-cohere"
         # Parse parameters to the Cohere API's parameters
         cohere_params = self.parse_params(params)
 
@@ -158,7 +157,7 @@ class CohereClient:
         cohere_params["preamble"] = preamble
 
         # We use chat model by default
-        client = Cohere(api_key=self.api_key, client_name=self.client_name)
+        client = Cohere(api_key=self.api_key, client_name=client_name)
 
         # Token counts will be returned
         prompt_tokens = 0
