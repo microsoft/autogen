@@ -1,6 +1,6 @@
 # File A Bug Report
 
-When you submit an issue to [GitHub](https://github.com/microsoft/autogen/issues), please do your best to
+When you submit an issue to [GitHub](https://github.com/autogen-ai/autogen/issues), please do your best to
 follow these guidelines! This will make it a lot easier to provide you with good
 feedback:
 
