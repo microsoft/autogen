@@ -1,7 +1,7 @@
 # Portkey Integration with Autogen
  <img src="https://github.com/siddharthsambharia-portkey/Portkey-Product-Images/blob/main/Portkey-Autogen.png?raw=true" alt="Portkey Metrics Visualization" width=70% />
 
-[Portkey](https://portkey.ai) is a 2-line upgrade to make your Autogen agents reliable, cost-efficient, and fast.
+[Portkey](https://portkey.ai) is a 2-line upgrade to make your AutoGen agents reliable, cost-efficient, and fast.
 
 Portkey adds 4 core production capabilities to any AutoGen agent:
 1. Routing to 200+ LLMs
