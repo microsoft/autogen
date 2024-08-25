@@ -3,7 +3,7 @@
 
 [Portkey](https://portkey.ai) is a 2-line upgrade to make your Autogen agents reliable, cost-efficient, and fast.
 
-Portkey adds 4 core production capabilities to any Autogen agent:
+Portkey adds 4 core production capabilities to any AutoGen agent:
 1. Routing to 200+ LLMs
 2. Making each LLM call more robust
 3. Full-stack tracing & cost, performance analytics
