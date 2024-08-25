@@ -5,14 +5,14 @@
 
 ![ARA](./docs/ara_stockprices.png)
 
-AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://microsoft.github.io/autogen) framework, which is a toolkit for building AI agents.
+AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://autogen-ai.github.io/autogen) framework, which is a toolkit for building AI agents.
 
 Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio)
 
 > **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app.
 
 > [!WARNING]
-> AutoGen Studio is currently under active development and we are iterating quickly. Kindly consider that we may introduce breaking changes in the releases during the upcoming weeks, and also the `README` might be outdated. Please see the AutoGen Studio [docs](https://microsoft.github.io/autogen/docs/autogen-studio/getting-started) page for the most up-to-date information.
+> AutoGen Studio is currently under active development and we are iterating quickly. Kindly consider that we may introduce breaking changes in the releases during the upcoming weeks, and also the `README` might be outdated. Please see the AutoGen Studio [docs](https://autogen-ai.github.io/autogen/docs/autogen-studio/getting-started) page for the most up-to-date information.
 
 **Updates**
 
@@ -101,8 +101,8 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 
 ## FAQ
 
-Please refer to the AutoGen Studio [FAQs](https://microsoft.github.io/autogen/docs/autogen-studio/faqs) page for more information.
+Please refer to the AutoGen Studio [FAQs](https://autogen-ai.github.io/autogen/docs/autogen-studio/faqs) page for more information.
 
 ## Acknowledgements
 
-AutoGen Studio is Based on the [AutoGen](https://microsoft.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).
+AutoGen Studio is Based on the [AutoGen](https://autogen-ai.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).

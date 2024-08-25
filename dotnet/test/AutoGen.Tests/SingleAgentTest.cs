@@ -71,7 +71,7 @@ namespace AutoGen.Tests
                     { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
                 });
 
-            var imageUri = new Uri(@"https://microsoft.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
+            var imageUri = new Uri(@"https://autogen-ai.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
                 new ChatMessageImageContentItem(imageUri));

@@ -38,9 +38,9 @@ pip install "pyautogen[blendsearch]<0.2"
 
 Example notebooks:
 
-[Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
+[Optimize for Code Generation](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_completion.ipynb)
 
-[Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+[Optimize for Math](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
 
 ## retrievechat
 
@@ -71,11 +71,11 @@ You can find a list of all supported document types by using `autogen.retrieve_u
 
 Example notebooks:
 
-[Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
+[Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
 
-[Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
+[Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
 
-[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
+[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
 
 ## Teachability
 
@@ -85,7 +85,7 @@ To use Teachability, please install AutoGen with the [teachable] option.
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook: [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook: [Chatting with a teachable agent](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## Large Multimodal Model (LMM) Agents
 
@@ -97,7 +97,7 @@ pip install "pyautogen[lmm]"
 
 Example notebooks:
 
-[LLaVA Agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
+[LLaVA Agent](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
 
 ## mathchat
 
@@ -109,7 +109,7 @@ pip install "pyautogen[mathchat]<0.2"
 
 Example notebooks:
 
-[Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
+[Using MathChat to Solve Math Problems](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
 
 ## Graph
 
@@ -119,7 +119,7 @@ To use a graph in `GroupChat`, particularly for graph visualization, please inst
 pip install "pyautogen[graph]"
 ```
 
-Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://autogen-ai.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
 
 ## Long Context Handling
 

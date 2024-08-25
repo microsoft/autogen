@@ -4,7 +4,7 @@ This directory aims to contain tools for fine-tuning the local models that power
 
 ## Fine tune a custom model client
 
-AutoGen supports the use of custom models to power agents [see blog post here](https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models). This directory contains a tool to provide feedback to that model, that can be used to fine-tune the model.
+AutoGen supports the use of custom models to power agents [see blog post here](https://autogen-ai.github.io/autogen/blog/2024/01/26/Custom-Models). This directory contains a tool to provide feedback to that model, that can be used to fine-tune the model.
 
 The creator of the Custom Model Client will have to decide what kind of data is going to be fed back and how it will be used to fine-tune the model. This tool is designed to be flexible and allow for a wide variety of feedback mechanisms.
 
