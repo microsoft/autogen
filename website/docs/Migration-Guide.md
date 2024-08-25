@@ -26,7 +26,7 @@ autogen.runtime_logging.start()
 # Stop logging
 autogen.runtime_logging.stop()
 ```
-Checkout [Logging documentation](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#logging) and [Logging example notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb) to learn more.
+Checkout [Logging documentation](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#logging) and [Logging example notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_logging.ipynb) to learn more.
 
 Inference parameter tuning can be done via [`flaml.tune`](https://autogen-ai.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).
 - `seed` in autogen is renamed into `cache_seed` to accommodate the newly added `seed` param in openai chat completion api. `use_cache` is removed as a kwarg in `OpenAIWrapper.create()` for being automatically decided by `cache_seed`: int | None. The difference between autogen's `cache_seed` and openai's `seed` is that:
