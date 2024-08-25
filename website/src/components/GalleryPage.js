@@ -90,8 +90,8 @@ const GalleryPage = (props) => {
     if (!item.source) {
       return null;
     }
-    const colab_href = `https://colab.research.google.com/github/microsoft/autogen/blob/main/${item.source}`;
-    const github_href = `https://github.com/microsoft/autogen/blob/main/${item.source}`;
+    const colab_href = `https://colab.research.google.com/github/autogen-ai/autogen/blob/main/${item.source}`;
+    const github_href = `https://github.com/autogen-ai/autogen/blob/main/${item.source}`;
     return (<span>
       <a style={{marginRight: '5px'}}href={colab_href} target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
       <a href={github_href} target="_parent"><img alt="Static Badge" src="https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github"/></a>
