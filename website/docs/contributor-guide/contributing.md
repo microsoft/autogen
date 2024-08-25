@@ -15,7 +15,7 @@ If you are new to GitHub [here](https://help.github.com/categories/collaborating
 ## Roadmaps
 
 To see what we are working on and what we plan to work on, please check our
-[Roadmap Issues](https://github.com/autogen-ai/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap).
+[Roadmap Issues](https://autogen-ai.com/roadmap).
 
 ## Becoming a Reviewer
 
