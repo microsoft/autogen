@@ -292,6 +292,6 @@ module.exports = {
         ],
       },
     ],
-    ["docusaurus-plugin-clarity", {}],
+    // ["docusaurus-plugin-clarity", {}],
   ],
 };
