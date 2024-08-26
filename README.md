@@ -122,7 +122,7 @@ pip install pyautogen
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
 
-<!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://autogen-ai.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
+<!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
 pip install "pyautogen[blendsearch]"
 ``` -->
