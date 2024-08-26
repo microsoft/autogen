@@ -3,7 +3,7 @@ This sample shows how to use @AutoGen.Ollama.OllamaAgent to chat with LLaVA mode
 To run this example, you need to have an Ollama server running aside and have `llava:latest` model installed. For how to setup an Ollama server, please refer to [Ollama](https://ollama.com/).
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.Ollama.Sample/Chat_With_LLaVA.cs)
+> You can find the complete sample code [here](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.Ollama.Sample/Chat_With_LLaVA.cs)
 
 ### Step 1: Install AutoGen.Ollama
 

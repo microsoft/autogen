@@ -11,7 +11,7 @@ This tutorial shows how to generate response using an @AutoGen.Core.IAgent by ta
 > - @AutoGen.Gemini.GeminiChatAgent
 
 > [!NOTE]
-> The complete code example can be found in [Chat_With_Agent.cs](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Chat_With_Agent.cs)
+> The complete code example can be found in [Chat_With_Agent.cs](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Chat_With_Agent.cs)
 
 ## Step 1: Install AutoGen
 

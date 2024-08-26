@@ -11,7 +11,7 @@ This tutorial shows how to perform image chat with an agent using the @AutoGen.O
 > In this example, we are using the gpt-4o model as the backend model for the agent.
 
 > [!NOTE]
-> The complete code example can be found in [Image_Chat_With_Agent.cs](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Image_Chat_With_Agent.cs)
+> The complete code example can be found in [Image_Chat_With_Agent.cs](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Image_Chat_With_Agent.cs)
 
 ## Step 1: Install AutoGen
 
