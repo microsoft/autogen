@@ -150,10 +150,6 @@ csharp_using_directive_placement = outside_namespace:error
 csharp_prefer_static_local_function = true:warning
 csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:warning
 
-# Header template
-file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.\n{fileName}
-dotnet_diagnostic.IDE0073.severity = error
-
 # enable format error
 dotnet_diagnostic.IDE0055.severity = error
 

@@ -24,3 +24,27 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 ## Contact Maintainers
 
 The project is currently maintained by a [dynamic group of volunteers](https://butternut-swordtail-8a5.notion.site/410675be605442d3ada9a42eb4dfef30?v=fa5d0a79fd3d4c0f9c112951b2831cbb&pvs=4) from several different organizations. Contact project administrators Chi Wang and Qingyun Wu via auto-gen@outlook.com if you are interested in becoming a maintainer.
+
+
+## License Headers
+
+To maintain proper licensing and copyright notices, please include the following header at the top of each new source code file you create, regardless of the programming language:
+
+```python
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+```
+
+For files that contain or are derived from the original MIT-licensed code from https://github.com/microsoft/autogen, please use this extended header:
+
+```python
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
+```
+
+Please ensure you update the year range as appropriate. If you're unsure which header to use or have any questions about licensing, please don't hesitate to ask in your pull request or reach out to the maintainers.
