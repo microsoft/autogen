@@ -3,7 +3,7 @@
 For technical details, please check our technical report and research publications.
 
 
-[AutoGen Studio: A No-Code Developer Tool for Building and Debugging Multi-Agent Systems](https://www.microsoft.com/en-us/research/publication/autogen-studio-a-no-code-developer-tool-for-building-and-debugging-multi-agent-systems/)
+* [AutoGen Studio: A No-Code Developer Tool for Building and Debugging Multi-Agent Systems](https://www.microsoft.com/en-us/research/publication/autogen-studio-a-no-code-developer-tool-for-building-and-debugging-multi-agent-systems/)
 
 ```bibtex
 @inproceedings{dibia2024studio,
