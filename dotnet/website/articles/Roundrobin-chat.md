@@ -10,7 +10,7 @@ flowchart LR
 ```
 
 > [!NOTE]
-> Complete code can be found in [Example11_Sequential_GroupChat_Example](https://github.com/microsoft/autogen/blob/dotnet/dotnet/sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs);
+> Complete code can be found in [Example11_Sequential_GroupChat_Example](https://github.com/autogen-ai/autogen/blob/dotnet/dotnet/sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs);
 
 Step 1: Add required using statements
 

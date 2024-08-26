@@ -14,7 +14,7 @@ Tools are pre-defined functions in user's project that agent can invoke. Agent c
 > This tutorial uses the latest `GPT-3.5-turbo` as example.
 
 > [!NOTE]
-> The complete code example can be found in [Use_Tools_With_Agent.cs](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs)
+> The complete code example can be found in [Use_Tools_With_Agent.cs](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs)
 
 ## Key Concepts
 - @AutoGen.Core.FunctionContract: The contract of a function that agent can invoke. It contains the function name, description, parameters schema, and return type.

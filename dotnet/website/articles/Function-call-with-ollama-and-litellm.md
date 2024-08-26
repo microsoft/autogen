@@ -1,6 +1,6 @@
 This example shows how to use function call with local LLM models where [Ollama](https://ollama.com/) as local model provider and [LiteLLM](https://docs.litellm.ai/docs/) proxy server which provides an openai-api compatible interface.
 
-[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs)
+[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs)
 
 To run this example, the following prerequisites are required:
 - Install [Ollama](https://ollama.com/) and [LiteLLM](https://docs.litellm.ai/docs/) on your local machine.
