@@ -39,7 +39,7 @@ Portkey adds 4 core production capabilities to any AutoGen agent:
 
    Generate your API key in the [Portkey Dashboard](https://app.portkey.ai/).
 
-And, that's it! With just this, you can start logging all of your Autogen requests and make them reliable.
+And, that's it! With just this, you can start logging all of your AutoGen requests and make them reliable.
 
 3. **Let's Run your Agent**
 
