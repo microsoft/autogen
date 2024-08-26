@@ -2,7 +2,7 @@
 
 
 <div align="center">
-    
+
 <img src="https://microsoft.github.io/autogen/img/ag.svg" alt="AutoGen Logo" width="100">
 
 
