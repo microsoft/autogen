@@ -6,7 +6,8 @@ import os
 import sys
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
+from agnext.components._default_subscription import DefaultSubscription
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, SystemMessage
 from agnext.core import AgentId, AgentInstantiationContext, AgentProxy, AgentRuntime
@@ -76,9 +77,8 @@ Use the following JSON format to provide your thought on the latest message and 
 
         # Publish the response if needed.
         if respond is True or str(respond).lower().strip() == "true":
-            assert ctx.topic_id is not None
             await self.publish_message(
-                TextMessage(source=self.metadata["type"], content=str(response)), topic_id=ctx.topic_id
+                TextMessage(source=self.metadata["type"], content=str(response)), topic_id=DefaultTopicId()
             )
 
 
@@ -98,6 +98,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             description="The user in the chat room.",
             app=app,
         ),
+        lambda: [DefaultSubscription()],
     )
     await runtime.register(
         "Alice",
@@ -108,6 +109,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             memory=BufferedChatMemory(buffer_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
+        lambda: [DefaultSubscription()],
     )
     alice = AgentProxy(AgentId("Alice", "default"), runtime)
     await runtime.register(
@@ -119,6 +121,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             memory=BufferedChatMemory(buffer_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
+        lambda: [DefaultSubscription()],
     )
     bob = AgentProxy(AgentId("Bob", "default"), runtime)
     await runtime.register(
@@ -130,6 +133,7 @@ async def chat_room(runtime: AgentRuntime, app: TextualChatApp) -> None:
             memory=BufferedChatMemory(buffer_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"),
         ),
+        lambda: [DefaultSubscription()],
     )
     charlie = AgentProxy(AgentId("Charlie", "default"), runtime)
     app.welcoming_notice = f"""Welcome to the chat room demo with the following participants:

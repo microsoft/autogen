@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
@@ -102,12 +102,11 @@ Reply "TERMINATE" in the end when everything is done."""
             AssistantMessage(content=response.content, source=self.metadata["type"])
         )
 
-        assert ctx.topic_id is not None
         # Publish the code execution task.
         await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=session_id),
             cancellation_token=ctx.cancellation_token,
-            topic_id=ctx.topic_id,
+            topic_id=DefaultTopicId(),
         )
 
     @message_handler
@@ -124,11 +123,10 @@ Reply "TERMINATE" in the end when everything is done."""
 
         if "TERMINATE" in response.content:
             # If the task is completed, publish a message with the completion content.
-            assert ctx.topic_id is not None
             await self.publish_message(
                 TaskCompletion(content=response.content),
                 cancellation_token=ctx.cancellation_token,
-                topic_id=ctx.topic_id,
+                topic_id=DefaultTopicId(),
             )
             print("--------------------")
             print("Task completed:")
@@ -136,11 +134,10 @@ Reply "TERMINATE" in the end when everything is done."""
             return
 
         # Publish the code execution task.
-        assert ctx.topic_id is not None
         await self.publish_message(
             CodeExecutionTask(content=response.content, session_id=message.session_id),
             cancellation_token=ctx.cancellation_token,
-            topic_id=ctx.topic_id,
+            topic_id=DefaultTopicId(),
         )
 
 
@@ -157,13 +154,12 @@ class Executor(RoutedAgent):
         code_blocks = self._extract_code_blocks(message.content)
         if not code_blocks:
             # If no code block is found, publish a message with an error.
-            assert ctx.topic_id is not None
             await self.publish_message(
                 CodeExecutionTaskResult(
                     output="Error: no Markdown code block found.", exit_code=1, session_id=message.session_id
                 ),
                 cancellation_token=ctx.cancellation_token,
-                topic_id=ctx.topic_id,
+                topic_id=DefaultTopicId(),
             )
             return
         # Execute code blocks.
@@ -171,11 +167,10 @@ class Executor(RoutedAgent):
             code_blocks=code_blocks, cancellation_token=ctx.cancellation_token
         )
         # Publish the code execution result.
-        assert ctx.topic_id is not None
         await self.publish_message(
             CodeExecutionTaskResult(output=result.output, exit_code=result.exit_code, session_id=message.session_id),
             cancellation_token=ctx.cancellation_token,
-            topic_id=ctx.topic_id,
+            topic_id=DefaultTopicId(),
         )
 
     def _extract_code_blocks(self, markdown_text: str) -> List[CodeBlock]:

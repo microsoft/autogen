@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId
 from agnext.core import BaseAgent
 from agnext.core import MessageContext
 
@@ -38,8 +39,7 @@ class CascadingAgent(RoutedAgent):
         self.num_calls += 1
         if message.round == self.max_rounds:
             return
-        assert ctx.topic_id is not None
-        await self.publish_message(CascadingMessageType(round=message.round + 1), topic_id=ctx.topic_id)
+        await self.publish_message(CascadingMessageType(round=message.round + 1), topic_id=DefaultTopicId())
 
 class NoopAgent(BaseAgent):
     def __init__(self) -> None:

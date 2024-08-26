@@ -10,10 +10,11 @@ import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.components import DefaultTopicId
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import AgentInstantiationContext, AgentRuntime, TopicId
+from agnext.core import AgentInstantiationContext, AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 
@@ -214,9 +215,7 @@ async def main() -> None:
     await chess_game(runtime)
     runtime.start()
     # Publish an initial message to trigger the group chat manager to start orchestration.
-    await runtime.publish_message(
-        TextMessage(content="Game started.", source="System"), topic_id=TopicId("default", "default")
-    )
+    await runtime.publish_message(TextMessage(content="Game started.", source="System"), topic_id=DefaultTopicId())
     await runtime.stop_when_idle()
 
 

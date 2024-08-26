@@ -2,6 +2,7 @@ from typing import Literal
 
 import openai
 from agnext.components import (
+    DefaultTopicId,
     Image,
     RoutedAgent,
     message_handler,
@@ -57,8 +58,7 @@ class ImageGenerationAgent(RoutedAgent):
         image is published as a MultiModalMessage."""
 
         response = await self._generate_response(ctx.cancellation_token)
-        assert ctx.topic_id is not None
-        await self.publish_message(response, topic_id=ctx.topic_id)
+        await self.publish_message(response, topic_id=DefaultTopicId())
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:
         messages = await self._memory.get_messages()

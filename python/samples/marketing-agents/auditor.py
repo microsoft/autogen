@@ -1,4 +1,4 @@
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient
 from agnext.components.models._types import SystemMessage
 from agnext.core import MessageContext
@@ -30,7 +30,6 @@ class AuditAgent(RoutedAgent):
         assert isinstance(completion.content, str)
         if "NOTFORME" in completion.content:
             return
-        assert ctx.topic_id is not None
         await self.publish_message(
-            AuditorAlert(UserId=message.UserId, auditorAlertMessage=completion.content), topic_id=ctx.topic_id
+            AuditorAlert(UserId=message.UserId, auditorAlertMessage=completion.content), topic_id=DefaultTopicId()
         )

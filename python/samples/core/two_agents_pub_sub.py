@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -74,7 +74,7 @@ class ChatCompletionAgent(RoutedAgent):
 
         if ctx.topic_id is not None:
             await self.publish_message(
-                Message(content=response.content, source=self.metadata["type"]), topic_id=ctx.topic_id
+                Message(content=response.content, source=self.metadata["type"]), topic_id=DefaultTopicId()
             )
 
 

@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Mapping
 
 import openai
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.core import (
     CancellationToken,
     MessageContext,  # type: ignore
@@ -80,8 +80,7 @@ class OpenAIAssistantAgent(RoutedAgent):
     async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method generates a response and publishes it."""
         response = await self._generate_response(message.response_format, ctx.cancellation_token)
-        assert ctx.topic_id is not None
-        await self.publish_message(response, ctx.topic_id)
+        await self.publish_message(response, DefaultTopicId())
 
     async def _generate_response(
         self,

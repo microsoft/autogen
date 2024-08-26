@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import RoutedAgent, TypeSubscription, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, TypeSubscription, message_handler
 from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
 
 
@@ -47,8 +47,7 @@ class GreeterAgent(RoutedAgent):
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
         response = await self.send_message(Greeting(f"Hello, {message.content}!"), recipient=self._receive_agent_id)
-        assert ctx.topic_id is not None
-        await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=ctx.topic_id)
+        await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=DefaultTopicId())
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
         print(f"Unhandled message: {message}")

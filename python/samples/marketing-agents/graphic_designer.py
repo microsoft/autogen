@@ -3,6 +3,7 @@ from typing import Literal
 
 import openai
 from agnext.components import (
+    DefaultTopicId,
     RoutedAgent,
     message_handler,
 )
@@ -33,9 +34,8 @@ class GraphicDesignerAgent(RoutedAgent):
             image_uri = response.data[0].url
             logger.info(f"Generated image for article. Got response: '{image_uri}'")
 
-            assert ctx.topic_id is not None
             await self.publish_message(
-                GraphicDesignCreated(UserId=message.UserId, imageUri=image_uri), topic_id=ctx.topic_id
+                GraphicDesignCreated(UserId=message.UserId, imageUri=image_uri), topic_id=DefaultTopicId()
             )
         except Exception as e:
             logger.error(f"Failed to generate image for article. Error: {e}")

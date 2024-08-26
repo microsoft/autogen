@@ -3,6 +3,7 @@ import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
 from agnext.components import (
+    DefaultTopicId,
     FunctionCall,
     RoutedAgent,
     message_handler,
@@ -110,9 +111,8 @@ class ChatCompletionAgent(RoutedAgent):
         # Generate a response.
         response = await self._generate_response(message.response_format, ctx)
 
-        assert ctx.topic_id is not None
         # Publish the response.
-        await self.publish_message(response, topic_id=ctx.topic_id)
+        await self.publish_message(response, topic_id=DefaultTopicId())
 
     @message_handler()
     async def on_tool_call_message(

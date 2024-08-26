@@ -12,7 +12,7 @@ from typing import List
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.core import AgentId, AgentRuntime, MessageContext
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
@@ -109,9 +109,8 @@ class UserProxyAgent(RoutedAgent):
                 return
             else:
                 # Publish user input and exit handler.
-                assert ctx.topic_id is not None
                 await self.publish_message(
-                    TextMessage(content=user_input, source=self.metadata["type"]), topic_id=ctx.topic_id
+                    TextMessage(content=user_input, source=self.metadata["type"]), topic_id=DefaultTopicId()
                 )
                 return
 

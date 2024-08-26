@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -69,8 +69,7 @@ class RoundRobinGroupChatManager(RoutedAgent):
         self._round_count += 1
         if self._round_count > self._num_rounds * len(self._participants):
             # End the conversation after the specified number of rounds.
-            assert ctx.topic_id is not None
-            await self.publish_message(Termination(), ctx.topic_id)
+            await self.publish_message(Termination(), DefaultTopicId())
             return
         # Send a request to speak message to the selected speaker.
         await self.send_message(RequestToSpeak(), speaker)
@@ -107,8 +106,7 @@ class GroupChatParticipant(RoutedAgent):
         assert isinstance(response.content, str)
         speech = Message(content=response.content, source=self.metadata["type"])
         self._memory.append(speech)
-        assert ctx.topic_id is not None
-        await self.publish_message(speech, topic_id=ctx.topic_id)
+        await self.publish_message(speech, topic_id=DefaultTopicId())
 
 
 async def main() -> None:

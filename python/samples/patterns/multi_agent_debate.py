@@ -40,7 +40,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -165,11 +165,10 @@ class MathSolver(RoutedAgent):
         answer = match.group(1)
         # Increment the counter.
         self._counters[message.session_id] = self._counters.get(message.session_id, 0) + 1
-        assert ctx.topic_id is not None
         if self._counters[message.session_id] == self._max_round:
             # If the counter reaches the maximum round, publishes a final response.
             await self.publish_message(
-                FinalSolverResponse(answer=answer, session_id=message.session_id), topic_id=ctx.topic_id
+                FinalSolverResponse(answer=answer, session_id=message.session_id), topic_id=DefaultTopicId()
             )
         else:
             # Publish intermediate response.
@@ -181,7 +180,7 @@ class MathSolver(RoutedAgent):
                     session_id=message.session_id,
                     round=self._counters[message.session_id],
                 ),
-                topic_id=ctx.topic_id,
+                topic_id=DefaultTopicId(),
             )
 
 
@@ -199,9 +198,8 @@ class MathAggregator(RoutedAgent):
             "in the form of {{answer}}, at the end of your response."
         )
         session_id = str(uuid.uuid4())
-        assert ctx.topic_id is not None
         await self.publish_message(
-            SolverRequest(content=prompt, session_id=session_id, question=message.content), topic_id=ctx.topic_id
+            SolverRequest(content=prompt, session_id=session_id, question=message.content), topic_id=DefaultTopicId()
         )
 
     @message_handler
@@ -212,8 +210,7 @@ class MathAggregator(RoutedAgent):
             answers = [resp.answer for resp in self._responses[message.session_id]]
             majority_answer = max(set(answers), key=answers.count)
             # Publish the aggregated response.
-            assert ctx.topic_id is not None
-            await self.publish_message(Answer(content=majority_answer), topic_id=ctx.topic_id)
+            await self.publish_message(Answer(content=majority_answer), topic_id=DefaultTopicId())
             # Clear the responses.
             self._responses.pop(message.session_id)
             print(f"Aggregated answer: {majority_answer}")

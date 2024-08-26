@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import (
     AssistantMessage,
@@ -112,14 +112,13 @@ Please review the code and provide feedback.
         review_text = "Code review:\n" + "\n".join([f"{k}: {v}" for k, v in review.items()])
         approved = review["approval"].lower().strip() == "approve"
         # Publish the review result.
-        assert ctx.topic_id is not None
         await self.publish_message(
             CodeReviewResult(
                 review=review_text,
                 approved=approved,
                 session_id=message.session_id,
             ),
-            topic_id=ctx.topic_id,
+            topic_id=DefaultTopicId(),
         )
 
 
@@ -183,10 +182,9 @@ Code: <Your code>
         # Store the code review task in the session memory.
         self._session_memory[session_id].append(code_review_task)
         # Publish a code review task.
-        assert ctx.topic_id is not None
         await self.publish_message(
             code_review_task,
-            topic_id=ctx.topic_id,
+            topic_id=DefaultTopicId(),
         )
 
     @message_handler
@@ -201,14 +199,13 @@ Code: <Your code>
         # Check if the code is approved.
         if message.approved:
             # Publish the code writing result.
-            assert ctx.topic_id is not None
             await self.publish_message(
                 CodeWritingResult(
                     code=review_request.code,
                     task=review_request.code_writing_task,
                     review=message.review,
                 ),
-                topic_id=ctx.topic_id,
+                topic_id=DefaultTopicId(),
             )
             print("Code Writing Result:")
             print("-" * 80)
@@ -247,10 +244,9 @@ Code: <Your code>
             # Store the code review task in the session memory.
             self._session_memory[message.session_id].append(code_review_task)
             # Publish a new code review task.
-            assert ctx.topic_id is not None
             await self.publish_message(
                 code_review_task,
-                topic_id=ctx.topic_id,
+                topic_id=DefaultTopicId(),
             )
 
     def _extract_code_block(self, markdown_text: str) -> Union[str, None]:

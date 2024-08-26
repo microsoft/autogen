@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components._type_subscription import TypeSubscription
 from agnext.components.models import ChatCompletionClient, SystemMessage, UserMessage
 from agnext.core import MessageContext
@@ -68,8 +68,7 @@ class ReferenceAgent(RoutedAgent):
         response = await self._model_client.create(self._system_messages + [task_message])
         assert isinstance(response.content, str)
         task_result = ReferenceAgentTaskResult(session_id=message.session_id, result=response.content)
-        assert ctx.topic_id is not None
-        await self.publish_message(task_result, topic_id=ctx.topic_id)
+        await self.publish_message(task_result, topic_id=DefaultTopicId())
 
 
 class AggregatorAgent(RoutedAgent):
@@ -93,8 +92,7 @@ class AggregatorAgent(RoutedAgent):
         """Handle a task message. This method publishes the task to the reference agents."""
         session_id = str(uuid.uuid4())
         ref_task = ReferenceAgentTask(session_id=session_id, task=message.task)
-        assert ctx.topic_id is not None
-        await self.publish_message(ref_task, topic_id=ctx.topic_id)
+        await self.publish_message(ref_task, topic_id=DefaultTopicId())
 
     @message_handler
     async def handle_result(self, message: ReferenceAgentTaskResult, ctx: MessageContext) -> None:
@@ -108,8 +106,7 @@ class AggregatorAgent(RoutedAgent):
             )
             assert isinstance(response.content, str)
             task_result = AggregatorTaskResult(result=response.content)
-            assert ctx.topic_id is not None
-            await self.publish_message(task_result, topic_id=ctx.topic_id)
+            await self.publish_message(task_result, topic_id=DefaultTopicId())
             self._session_results.pop(message.session_id)
             print(f"Aggregator result: {response.content}")
 
