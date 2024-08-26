@@ -9,12 +9,12 @@ tags: [openai-assistant]
 
 
 ## TL;DR
-OpenAI assistants are now integrated into AutoGen via [`GPTAssistantAgent`](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py).
+OpenAI assistants are now integrated into AutoGen via [`GPTAssistantAgent`](https://github.com/autogen-ai/autogen/blob/main/autogen/agentchat/contrib/gpt_assistant_agent.py).
 This enables multiple OpenAI assistants, which form the backend of the now popular GPTs, to collaborate and tackle complex tasks.
 Checkout example notebooks for reference:
-* [Basic example](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_twoagents_basic.ipynb)
-* [Code interpreter](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
-* [Function calls](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_function_call.ipynb)
+* [Basic example](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_oai_assistant_twoagents_basic.ipynb)
+* [Code interpreter](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
+* [Function calls](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_oai_assistant_function_call.ipynb)
 
 
 ## Introduction
@@ -100,7 +100,7 @@ user_proxy = UserProxyAgent(name="user_proxy",
 user_proxy.initiate_chat(gpt_assistant, message="Print hello world")
 ```
 
-Checkout more examples [here](https://github.com/microsoft/autogen/tree/main/notebook).
+Checkout more examples [here](https://github.com/autogen-ai/autogen/tree/main/notebook).
 
 ## Limitations and Future Work
 
@@ -114,4 +114,4 @@ Checkout more examples [here](https://github.com/microsoft/autogen/tree/main/not
 [Jiale Liu](https://leoljl.github.io),
 [Yiran Wu](https://github.com/yiranwu0),
 [Qingyun Wu](https://qingyun-wu.github.io/),
-[Chi Wang](https://www.microsoft.com/en-us/research/people/chiw/), and many other AutoGen maintainers.
+[Chi Wang](https://github.com/sonichi), and many other AutoGen maintainers.

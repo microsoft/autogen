@@ -9,8 +9,8 @@ tags: [LMM, multimodal]
 **In Brief:**
 * Introducing the **Multimodal Conversable Agent** and the **LLaVA Agent** to enhance LMM functionalities.
 * Users can input text and images simultaneously using the `<img img_path>` tag to specify image loading.
-* Demonstrated through the [GPT-4V notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb).
-* Demonstrated through the [LLaVA notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb).
+* Demonstrated through the [GPT-4V notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb).
+* Demonstrated through the [LLaVA notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb).
 
 ## Introduction
 Large multimodal models (LMMs) augment large language models (LLMs) with the ability to process multi-sensory data.
@@ -62,7 +62,7 @@ The `MultimodalConversableAgent` interprets the input prompt, extracting images 
 ## Advanced Usage
 Similar to other AutoGen agents, multimodal agents support multi-round dialogues with other agents, code generation, factual queries, and management via a GroupChat interface.
 
-For example, the `FigureCreator` in our [GPT-4V notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb) and [LLaVA notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) integrates two agents: a coder (an AssistantAgent) and critics (a multimodal agent).
+For example, the `FigureCreator` in our [GPT-4V notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb) and [LLaVA notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) integrates two agents: a coder (an AssistantAgent) and critics (a multimodal agent).
 The coder drafts Python code for visualizations, while the critics provide insights for enhancement. Collaboratively, these agents aim to refine visual outputs.
 With `human_input_mode=ALWAYS`, you can also contribute suggestions for better visualizations.
 
@@ -72,6 +72,6 @@ With `human_input_mode=ALWAYS`, you can also contribute suggestions for better v
 
 ## Future Enhancements
 
-For further inquiries or suggestions, please open an issue in the [AutoGen repository](https://github.com/microsoft/autogen/) or contact me directly at beibin.li@microsoft.com.
+For further inquiries or suggestions, please open an issue in the [AutoGen repository](https://github.com/autogen-ai/autogen/) or contact me directly at beibin.li@microsoft.com.
 
 AutoGen will continue to evolve, incorporating more multimodal functionalities such as DALLE model integration, audio interaction, and video comprehension. Stay tuned for these exciting developments.

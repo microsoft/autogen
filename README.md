@@ -129,7 +129,7 @@ pip install "pyautogen[blendsearch]"
 
 Find more options in [Installation](https://autogen-ai.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
 
-<!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
+<!-- Each of the [`notebook examples`](https://github.com/autogen-ai/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
 Even if you are installing and running AutoGen locally outside of docker, the recommendation and default behavior of agents is to perform [code execution](https://autogen-ai.github.io/autogen/docs/FAQ/#code-execution) in docker. Find more instructions and how to change the default behaviour [here](https://autogen-ai.github.io/autogen/docs/Installation#code-execution-with-docker-(default)).
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "autogenstudio"
 authors = [
-  { name="AutoGen Team", email="autogen@microsoft.com" },
+  { name="Victor Dibia", email="victor.dibia@microsoft.com" },
 ]
 description = "AutoGen Studio"
 readme = "README.md"
@@ -61,8 +61,8 @@ filterwarnings = [
 
 
 [project.urls]
-"Homepage" = "https://github.com/microsoft/autogen"
-"Bug Tracker" = "https://github.com/microsoft/autogen/issues"
+"Homepage" = "https://github.com/autogen-ai/autogen"
+"Bug Tracker" = "https://github.com/autogen-ai/autogen/issues"
 
 [project.scripts]
 autogenstudio = "autogenstudio.cli:run"
