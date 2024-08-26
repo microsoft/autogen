@@ -85,7 +85,7 @@ Here’s the output from your Agent’s run on Portkey's dashboard<br>
 
 
 ## Key Features
-Portkey offers a range of advanced features to enhance your Autogen agents. Here’s an overview
+Portkey offers a range of advanced features to enhance your AutoGen agents. Here’s an overview
 
 | Feature | Description |
 |---------|-------------|
