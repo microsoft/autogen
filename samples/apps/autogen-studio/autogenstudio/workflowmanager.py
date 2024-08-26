@@ -236,11 +236,6 @@ class AutoWorkflowManager:
         if agent.config.llm_config is not False:
             config_list = []
             for llm in agent.config.llm_config.config_list:
-                # check if api_key is present either in llm or env variable
-                if "api_key" not in llm and "OPENAI_API_KEY" not in os.environ:
-                    error_message = f"api_key is not present in llm_config or OPENAI_API_KEY env variable for agent ** {agent.config.name}**. Update your workflow to provide an api_key to use the LLM."
-                    raise ValueError(error_message)
-
                 # only add key if value is not None
                 sanitized_llm = sanitize_model(llm)
                 config_list.append(sanitized_llm)
