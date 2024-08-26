@@ -7,7 +7,7 @@ using Azure.AI.OpenAI;
 using Json.Schema;
 using Json.Schema.Generation;
 
-namespace AutoGen.OpenAI.Extension;
+namespace AutoGen.OpenAI.V1.Extension;
 
 public static class FunctionContractExtension
 {

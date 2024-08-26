@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AzureOpenAIConfig.cs
 
-namespace AutoGen.OpenAI;
+namespace AutoGen.OpenAI.V1;
 
 public class AzureOpenAIConfig : ILLMConfig
 {

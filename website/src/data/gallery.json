@@ -228,5 +228,12 @@
     "tags": [
       "tools", "ui", "app"
     ]
+  },
+  {
+    "title": "Expense Tracker - using Autogen",
+    "link": "https://github.com/Kirushikesh/Personal-Finance-Agent",
+    "description": "Tracks personal finance income and expenses then helps the user to analyse it using AutoGen agents.",
+    "image": "default.png",
+    "tags": ["tools", "app"]
   }
 ]

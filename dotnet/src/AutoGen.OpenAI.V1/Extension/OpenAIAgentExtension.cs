@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIAgentExtension.cs
 
-namespace AutoGen.OpenAI.Extension;
+namespace AutoGen.OpenAI.V1.Extension;
 
 public static class OpenAIAgentExtension
 {

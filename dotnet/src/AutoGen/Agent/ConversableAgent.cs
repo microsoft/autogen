@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.LMStudio;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 
 namespace AutoGen;
 

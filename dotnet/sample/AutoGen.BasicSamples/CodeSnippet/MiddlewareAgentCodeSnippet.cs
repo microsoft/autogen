@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using AutoGen.Core;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using FluentAssertions;
 
 namespace AutoGen.BasicSample.CodeSnippet;

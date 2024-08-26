@@ -6,7 +6,7 @@ import inspect
 from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
 from textwrap import dedent, indent
-from typing import Any, Callable, Generic, List, TypeVar, Union
+from typing import Any, Callable, Generic, List, Set, TypeVar, Union
 
 from typing_extensions import ParamSpec
 
@@ -159,12 +159,12 @@ def _build_python_functions_file(
     funcs: List[Union[FunctionWithRequirements[Any, P], Callable[..., Any], FunctionWithRequirementsStr]]
 ) -> str:
     # First collect all global imports
-    global_imports = set()
+    global_imports: Set[str] = set()
     for func in funcs:
         if isinstance(func, (FunctionWithRequirements, FunctionWithRequirementsStr)):
-            global_imports.update(func.global_imports)
+            global_imports.update(map(_import_to_str, func.global_imports))
 
-    content = "\n".join(map(_import_to_str, global_imports)) + "\n\n"
+    content = "\n".join(global_imports) + "\n\n"
 
     for func in funcs:
         content += _to_code(func) + "\n\n"

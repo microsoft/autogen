@@ -92,6 +92,7 @@ extra_require = {
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
     "kubernetes": ["kubernetes>=27.2.0"],
+    "bedrock": ["boto3>=1.34.149"],
 }
 
 setuptools.setup(

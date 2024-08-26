@@ -82,6 +82,6 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 ## Additional Resources
 
-- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
+- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/blob/main/.devcontainer/README.md) README.
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 - Details on how to use the Dockerfile dev version can be found on the [Contributor Guide](/docs/contributor-guide/docker).

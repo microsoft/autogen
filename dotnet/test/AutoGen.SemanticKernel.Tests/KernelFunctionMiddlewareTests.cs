@@ -2,8 +2,8 @@
 // KernelFunctionMiddlewareTests.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;

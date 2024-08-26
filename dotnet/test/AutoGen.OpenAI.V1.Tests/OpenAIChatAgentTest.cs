@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 
-namespace AutoGen.OpenAI.Tests;
+namespace AutoGen.OpenAI.V1.Tests;
 
 public partial class OpenAIChatAgentTest
 {

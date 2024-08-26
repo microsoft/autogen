@@ -93,7 +93,7 @@ class QdrantVectorDB(VectorDB):
             kwargs: dict | Additional keyword arguments.
         """
         self.client: QdrantClient = client or QdrantClient(location=":memory:")
-        self.embedding_function = FastEmbedEmbeddingFunction() or embedding_function
+        self.embedding_function = embedding_function or FastEmbedEmbeddingFunction()
         self.collection_options = collection_options
         self.content_payload_key = content_payload_key
         self.metadata_payload_key = metadata_payload_key

@@ -2,8 +2,8 @@
 // Streaming_Tool_Call.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 

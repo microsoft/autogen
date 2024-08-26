@@ -2,7 +2,7 @@
 // Example15_GPT4V_BinaryDataImageMessage.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 
 namespace AutoGen.BasicSample;
 

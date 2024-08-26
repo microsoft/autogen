@@ -3,8 +3,8 @@
 
 #region using_statement
 using AutoGen.Core;
-using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI.V1.Extension;
 using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
 using Azure.AI.OpenAI;
