@@ -134,26 +134,32 @@ config = [
 Implement fallbacks, load balancing, and automatic retries to make your agents more resilient.
 
 ```python
-portkey_config = {
-  "retry": {
-    "attempts": 5
-  },
+{
   "strategy": {
-    "mode": "loadbalance"  # Options: "loadbalance" or "fallback"
+    "mode": "fallback" # Options: "loadbalance" or "fallback"
   },
   "targets": [
     {
       "provider": "openai",
-      "api_key": "OpenAI_API_Key"
+      "api_key": "openai-api-key",
+      "override_params": {
+        "top_k": "0.4",
+        "max_tokens": "100"
+      }
     },
     {
       "provider": "anthropic",
-      "api_key": "Anthropic_API_Key"
+      "api_key": "anthropic-api-key",
+      "override_params": {
+        "top_p": "0.6",
+        "model": "claude-3-5-sonnet-20240620"
+      }
     }
   ]
 }
 ```
-
+Learn more about [Portkey Config object here](https://docs.portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/configs).
+Be Careful to Load-Balance/Fallback to providers that don't support tool calling when the request contains a function call.
 ### Metrics
 
 Agent runs are complex. Portkey automatically logs **40+ comprehensive metrics** for your AI agents, including cost, tokens used, latency, etc. Whether you need a broad overview or granular insights into your agent runs, Portkey's customizable filters provide the metrics you need.
