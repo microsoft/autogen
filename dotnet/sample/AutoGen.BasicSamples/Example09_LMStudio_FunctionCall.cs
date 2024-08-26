@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
 using AutoGen.LMStudio;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
@@ -130,7 +130,8 @@ You have access to the following functions. Use them if required:
 
         await userProxyAgent.SendAsync(
             receiver: lmAgent,
-            "Search the names of the five largest stocks in the US by market cap ");
+            "Search the names of the five largest stocks in the US by market cap ")
+            .ToArrayAsync();
         #endregion lmstudio_function_call_example
     }
 }

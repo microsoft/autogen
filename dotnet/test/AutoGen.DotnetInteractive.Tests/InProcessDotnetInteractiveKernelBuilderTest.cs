@@ -7,12 +7,13 @@ using Xunit;
 
 namespace AutoGen.DotnetInteractive.Tests;
 
+[Collection("Sequential")]
 public class InProcessDotnetInteractiveKernelBuilderTest
 {
     [Fact]
     public async Task ItAddCSharpKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
+        using var kernel = DotnetInteractiveKernelBuilder
             .CreateEmptyInProcessKernelBuilder()
             .AddCSharpKernel()
             .Build();
@@ -29,7 +30,7 @@ public class InProcessDotnetInteractiveKernelBuilderTest
     [Fact]
     public async Task ItAddPowershellKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
+        using var kernel = DotnetInteractiveKernelBuilder
             .CreateEmptyInProcessKernelBuilder()
             .AddPowershellKernel()
             .Build();
@@ -45,7 +46,7 @@ public class InProcessDotnetInteractiveKernelBuilderTest
     [Fact]
     public async Task ItAddFSharpKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
+        using var kernel = DotnetInteractiveKernelBuilder
             .CreateEmptyInProcessKernelBuilder()
             .AddFSharpKernel()
             .Build();
@@ -62,7 +63,7 @@ public class InProcessDotnetInteractiveKernelBuilderTest
     [Fact]
     public async Task ItAddPythonKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
+        using var kernel = DotnetInteractiveKernelBuilder
             .CreateEmptyInProcessKernelBuilder()
             .AddPythonKernel("python3")
             .Build();
