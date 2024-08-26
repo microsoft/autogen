@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <AzureOpenAIVersion>1.0.0-beta.17</AzureOpenAIVersion>
-        <AzureOpenAIV2Version>2.0.0-beta.2</AzureOpenAIV2Version>
+        <AzureOpenAIV2Version>2.0.0-beta.3</AzureOpenAIV2Version>
         <SemanticKernelVersion>1.18.0-rc</SemanticKernelVersion>
         <SemanticKernelExperimentalVersion>1.18.0-alpha</SemanticKernelExperimentalVersion>
         <SystemCodeDomVersion>5.0.0</SystemCodeDomVersion>
@@ -17,7 +17,7 @@
         <GoogleCloudAPIPlatformVersion>3.0.0</GoogleCloudAPIPlatformVersion>
         <JsonSchemaVersion>4.3.0.2</JsonSchemaVersion>
         <AzureAIInferenceVersion>1.0.0-beta.1</AzureAIInferenceVersion>
-        <OpenAISDKVersion>2.0.0-beta.10</OpenAISDKVersion>
+        <OpenAISDKVersion>2.0.0-beta.9</OpenAISDKVersion>
         <PowershellSDKVersion>7.4.4</PowershellSDKVersion>
     </PropertyGroup>
 </Project>

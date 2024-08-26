@@ -9,6 +9,7 @@
           {
             "Kind": {},
             "Text": "You are a helpful AI assistant",
+            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
@@ -27,6 +28,7 @@
           {
             "Kind": {},
             "Text": "Hello",
+            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
@@ -52,6 +54,7 @@
           {
             "Kind": {},
             "Text": "How can I help you?",
+            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
@@ -74,6 +77,7 @@
           {
             "Kind": {},
             "Text": null,
+            "Refusal": null,
             "ImageUri": "https://example.com/image.png",
             "ImageBytes": null,
             "ImageBytesMediaType": null,
@@ -99,6 +103,7 @@
           {
             "Kind": {},
             "Text": "Hello",
+            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
@@ -107,6 +112,7 @@
           {
             "Kind": {},
             "Text": null,
+            "Refusal": null,
             "ImageUri": "https://example.com/image.png",
             "ImageBytes": null,
             "ImageBytesMediaType": null,
