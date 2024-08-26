@@ -147,7 +147,7 @@ public class OpenAIChatAgent : IStreamingAgent
             ToolChoice = this.options.ToolChoice,
             TopLogProbabilityCount = this.options.TopLogProbabilityCount,
             TopP = this.options.TopP,
-            User = this.options.User,
+            EndUserId = this.options.EndUserId,
         };
 
         // add tools from this.options to option
