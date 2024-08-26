@@ -69,9 +69,9 @@ After initializing Mem0, you can start using its memory management features in y
 
 ## Mem0 Platform Examples
 
-### Autogen with Mem0 Example
+### AutoGen with Mem0 Example
 
-This example demonstrates how to use Mem0 with Autogen to create a conversational AI system with memory capabilities.
+This example demonstrates how to use Mem0 with AutoGen to create a conversational AI system with memory capabilities.
 
 ```python
 import os
@@ -154,10 +154,10 @@ Question: {data}
 result = manager.send(prompt, customer_bot, request_reply=True)
 ```
 
-Access the complete code from this notebook: [Mem0 with Autogen](https://colab.research.google.com/drive/1NZEwC9w6V2S6hYmK7l2SQ9jhQrG1uKk8?usp=sharing)
+Access the complete code from this notebook: [Mem0 with AutoGen](https://colab.research.google.com/drive/1NZEwC9w6V2S6hYmK7l2SQ9jhQrG1uKk8?usp=sharing)
 
 This example showcases:
-1. Setting up Autogen agents and Mem0 memory
+1. Setting up AutoGen agents and Mem0 memory
 2. Adding a conversation to Mem0 memory
 3. Using Mem0 to retrieve relevant memories for agent inference
 4. Implementing a multi-agent conversation with memory-augmented context
