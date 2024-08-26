@@ -23,7 +23,8 @@
 | Ricky Loynd | [rickyloynd-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research | Teachability | | |
 | Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  Infra | | |
 | Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  Infra | | |
-| David Luong | [David Luong](https://github.com/DavidLuong98) | Microsoft | AutoGen.Net | | |
+| David Luong | [DavidLuong98](https://github.com/DavidLuong98) | Microsoft | AutoGen.Net | | |
+| Davor Runje | [davorrunje](https://github.com/davorrunje) | airt.ai | Tool calling, IO | | Available most of the time (Central European Time) |
 
 
 ## I would like to join this list. How can I help the project?
