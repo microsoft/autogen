@@ -2084,7 +2084,7 @@ def test_select_speaker_transform_messages():
         groupchat = GroupChat(
             messages=[],
             agents=[coder],
-            select_speaker_transform_messages=List[transforms.MessageHistoryLimiter(max_messages=10)],
+            select_speaker_transform_messages=[transforms.MessageHistoryLimiter(max_messages=10)],
         )
 
     # Ensure if we don't pass any transforms in, none are on the GroupChat
