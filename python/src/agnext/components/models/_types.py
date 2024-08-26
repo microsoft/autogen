@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal, Union
+from typing import List, Literal, Optional, Union
 
 from .. import FunctionCall, Image
 
@@ -49,8 +49,23 @@ FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
 
 
 @dataclass
+class TopLogprob:
+    logprob: float
+    bytes: Optional[List[int]] = None
+
+
+@dataclass
+class ChatCompletionTokenLogprob:
+    token: str
+    logprob: float
+    top_logprobs: Optional[List[TopLogprob] | None] = None
+    bytes: Optional[List[int]] = None
+
+
+@dataclass
 class CreateResult:
     finish_reason: FinishReasons
     content: Union[str, List[FunctionCall]]
     usage: RequestUsage
     cached: bool
+    logprobs: Optional[List[ChatCompletionTokenLogprob] | None] = None

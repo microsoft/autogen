@@ -47,11 +47,13 @@ from . import _model_info
 from ._model_client import ChatCompletionClient, ModelCapabilities
 from ._types import (
     AssistantMessage,
+    ChatCompletionTokenLogprob,
     CreateResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     RequestUsage,
     SystemMessage,
+    TopLogprob,
     UserMessage,
 )
 from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
@@ -343,7 +345,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             converted_tools = convert_tools(tools)
             future = asyncio.ensure_future(
                 self._client.chat.completions.create(
-                    messages=oai_messages, stream=False, tools=converted_tools, **create_args
+                    messages=oai_messages,
+                    stream=False,
+                    tools=converted_tools,
+                    **create_args,
                 )
             )
         else:
@@ -353,7 +358,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result = await future
-
         if result.usage is not None:
             logger.info(
                 LLMCallEvent(
@@ -398,8 +402,24 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
-
-        response = CreateResult(finish_reason=finish_reason, content=content, usage=usage, cached=False)  # type: ignore
+        logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
+        if choice.logprobs and choice.logprobs.content:
+            logprobs = [
+                ChatCompletionTokenLogprob(
+                    token=x.token,
+                    logprob=x.logprob,
+                    top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
+                    bytes=x.bytes,
+                )
+                for x in choice.logprobs.content
+            ]
+        response = CreateResult(
+            finish_reason=finish_reason,  # type: ignore
+            content=content,
+            usage=usage,
+            cached=False,
+            logprobs=logprobs,
+        )
 
         _add_usage(self._actual_usage, usage)
         _add_usage(self._total_usage, usage)
@@ -448,7 +468,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             converted_tools = convert_tools(tools)
             stream_future = asyncio.ensure_future(
                 self._client.chat.completions.create(
-                    messages=oai_messages, stream=True, tools=converted_tools, **create_args
+                    messages=oai_messages,
+                    stream=True,
+                    tools=converted_tools,
+                    **create_args,
                 )
             )
         else:
@@ -464,7 +487,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         content_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
-
+        logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
         while True:
             try:
                 chunk_future = asyncio.ensure_future(anext(stream))
@@ -497,6 +520,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                                 full_tool_calls[idx].name += tool_call_chunk.function.name
                             if tool_call_chunk.function.arguments is not None:
                                 full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+                if choice.logprobs and choice.logprobs.content:
+                    logprobs = [
+                        ChatCompletionTokenLogprob(
+                            token=x.token,
+                            logprob=x.logprob,
+                            top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
+                            bytes=x.bytes,
+                        )
+                        for x in choice.logprobs.content
+                    ]
+
             except StopAsyncIteration:
                 break
 
@@ -532,7 +566,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if stop_reason == "tool_calls":
             stop_reason = "function_calls"
 
-        result = CreateResult(finish_reason=stop_reason, content=content, usage=usage, cached=False)
+        result = CreateResult(
+            finish_reason=stop_reason,  # type: ignore
+            content=content,
+            usage=usage,
+            cached=False,
+            logprobs=logprobs,
+        )
 
         _add_usage(self._actual_usage, usage)
         _add_usage(self._total_usage, usage)
