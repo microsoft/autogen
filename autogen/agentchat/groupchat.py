@@ -1340,7 +1340,7 @@ class GroupChatManager(ConversableAgent):
     async def a_resume(
         self,
         messages: Union[List[Dict], str],
-        remove_termination_string: Union[str, Callable[[str], str]],
+        remove_termination_string: Union[str, Callable[[str], str]] = None,
         silent: Optional[bool] = False,
     ) -> Tuple[ConversableAgent, Dict]:
         """Resumes a group chat using the previous messages as a starting point, asynchronously. Requires the agents, group chat, and group chat manager to be established
