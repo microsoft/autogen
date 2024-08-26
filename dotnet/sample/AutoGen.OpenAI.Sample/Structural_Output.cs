@@ -34,8 +34,7 @@ internal class Structural_Output
             chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
             systemMessage: "You are a helpful assistant",
-            seed: 0, // explicitly set a seed to enable deterministic output
-            responseFormat: personSchemaFormat) // set response format to JSON object to enable JSON mode
+            responseFormat: personSchemaFormat) // strcutural output by passing schema to response format
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent
