@@ -2,16 +2,26 @@
 
 For technical details, please check our technical report and research publications.
 
-* [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework](https://arxiv.org/abs/2308.08155). Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Shaokun Zhang, Erkang Zhu, Beibin Li, Li Jiang, Xiaoyun Zhang and Chi Wang. ArXiv 2023.
+
+* [AutoGen Studio: A No-Code Developer Tool for Building and Debugging Multi-Agent Systems](https://www.microsoft.com/en-us/research/publication/autogen-studio-a-no-code-developer-tool-for-building-and-debugging-multi-agent-systems/)
 
 ```bibtex
-@inproceedings{wu2023autogen,
+@inproceedings{dibia2024studio,
+      title={AutoGen Studio: A No-Code Developer Tool for Building and Debugging Multi-Agent Systems},
+      author={Victor Dibia and Jingya Chen and Gagan Bansal and Suff Syed and Adam Fourney and Erkang (Eric) Zhu and Chi Wang and Saleema Amershi},
+      year={2024},
+      booktitle={Pre-Print}
+}
+```
+
+* [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework](https://aka.ms/autogen-pdf).
+
+```bibtex
+@inproceedings{wu2024autogen,
       title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
-      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
-      year={2023},
-      eprint={2308.08155},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI}
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and Erkang Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and Ahmed Hassan Awadallah and Ryen W White and Doug Burger and Chi Wang},
+      year={2024},
+      booktitle={COLM}
 }
 ```
 
