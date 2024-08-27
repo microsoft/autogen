@@ -2,8 +2,7 @@
 // TypeSafeFunctionCallCodeSnippet.cs
 
 using System.Text.Json;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI.Extension;
 #region weather_report_using_statement
 using AutoGen.Core;
 #endregion weather_report_using_statement
@@ -32,7 +31,7 @@ public partial class TypeSafeFunctionCall
         var functionInstance = new TypeSafeFunctionCall();
 
         // Get the generated function definition
-        FunctionDefinition functionDefiniton = functionInstance.WeatherReportFunctionContract.ToOpenAIFunctionDefinition();
+        var functionDefiniton = functionInstance.WeatherReportFunctionContract.ToChatTool();
 
         // Get the generated function wrapper
         Func<string, Task<string>> functionWrapper = functionInstance.WeatherReportWrapper;
@@ -69,32 +68,31 @@ public class TypeSafeFunctionCallCodeSnippet
 
     #region code_snippet_1
     // file: FunctionDefinition.generated.cs
-    public FunctionDefinition UpperCaseFunction
+    public FunctionContract WeatherReportFunctionContract
     {
-        get => new FunctionDefinition
+        get => new FunctionContract
         {
-            Name = @"UpperCase",
-            Description = "convert input to upper case",
-            Parameters = BinaryData.FromObjectAsJson(new
+            ClassName = @"TypeSafeFunctionCall",
+            Name = @"WeatherReport",
+            Description = @"Get weather report",
+            ReturnType = typeof(Task<string>),
+            Parameters = new global::AutoGen.Core.FunctionParameterContract[]
             {
-                Type = "object",
-                Properties = new
-                {
-                    input = new
+                    new FunctionParameterContract
                     {
-                        Type = @"string",
-                        Description = @"input",
+                        Name = @"city",
+                        Description = @"city",
+                        ParameterType = typeof(string),
+                        IsRequired = true,
                     },
-                },
-                Required = new[]
-                {
-                        "input",
+                    new FunctionParameterContract
+                    {
+                        Name = @"date",
+                        Description = @"date",
+                        ParameterType = typeof(string),
+                        IsRequired = true,
                     },
             },
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
         };
     }
     #endregion code_snippet_1

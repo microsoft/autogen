@@ -3,13 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.LMStudio;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -39,90 +34,6 @@ namespace AutoGen.Tests
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-        public async Task GPTAgentTestAsync()
-        {
-            var config = this.CreateAzureOpenAIGPT35TurboConfig();
-
-            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
-
-            await UpperCaseTestAsync(agent);
-            await UpperCaseStreamingTestAsync(agent);
-        }
-
-        [ApiKeyFact("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
-        public async Task GPTAgentVisionTestAsync()
-        {
-            var visionConfig = this.CreateOpenAIGPT4VisionConfig();
-            var visionAgent = new GPTAgent(
-                name: "gpt",
-                systemMessage: "You are a helpful AI assistant",
-                config: visionConfig,
-                temperature: 0);
-
-            var gpt3Config = this.CreateAzureOpenAIGPT35TurboConfig();
-            var gpt3Agent = new GPTAgent(
-                name: "gpt3",
-                systemMessage: "You are a helpful AI assistant, return highest label from conversation",
-                config: gpt3Config,
-                temperature: 0,
-                functions: new[] { this.GetHighestLabelFunctionContract.ToOpenAIFunctionDefinition() },
-                functionMap: new Dictionary<string, Func<string, Task<string>>>
-                {
-                    { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
-                });
-
-            var imageUri = new Uri(@"https://microsoft.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
-            var oaiMessage = new ChatRequestUserMessage(
-                new ChatMessageTextContentItem("which label has the highest inference cost"),
-                new ChatMessageImageContentItem(imageUri));
-            var multiModalMessage = new MultiModalMessage(Role.User,
-                [
-                    new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),
-                    new ImageMessage(Role.User, imageUri, from: "user"),
-                ],
-                from: "user");
-
-            var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
-
-            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApprovalTests", "square.png");
-            ImageMessage imageMessageData;
-            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-            {
-                var ms = new MemoryStream();
-                await fs.CopyToAsync(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-                var imageData = await BinaryData.FromStreamAsync(ms, "image/png");
-                imageMessageData = new ImageMessage(Role.Assistant, imageData, from: "user");
-            }
-
-            IMessage[] messages = [
-                MessageEnvelope.Create(oaiMessage),
-                multiModalMessage,
-                imageMessage,
-                imageMessageData
-                ];
-
-            foreach (var message in messages)
-            {
-                var response = await visionAgent.SendAsync(message);
-                response.From.Should().Be(visionAgent.Name);
-
-                var labelResponse = await gpt3Agent.SendAsync(response);
-                labelResponse.From.Should().Be(gpt3Agent.Name);
-                labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
-            }
-        }
-
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-        public async Task GPTFunctionCallAgentTestAsync()
-        {
-            var config = this.CreateAzureOpenAIGPT35TurboConfig();
-            var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunctionContract.ToOpenAIFunctionDefinition() });
-
-            await EchoFunctionCallTestAsync(agentWithFunction);
-        }
-
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task AssistantAgentFunctionCallTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
@@ -146,43 +57,6 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallTestAsync(assistantAgent);
         }
-
-        [Fact]
-        public async Task ItCreateAssistantAgentFromLMStudioConfigAsync()
-        {
-            var host = "http://localhost";
-            var port = 8080;
-            var lmStudioConfig = new LMStudioConfig(host, port);
-
-            var assistantAgent = new AssistantAgent(
-                name: "assistant",
-                llmConfig: new ConversableAgentConfig()
-                {
-                    ConfigList = [lmStudioConfig],
-                });
-
-            assistantAgent.Name.Should().Be("assistant");
-            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
-        }
-
-        [ApiKeyFact("LMStudio_ENDPOINT")]
-        public async Task ItTestAssistantAgentFromLMStudioConfigAsync()
-        {
-            var Uri = Environment.GetEnvironmentVariable("LMStudio_ENDPOINT") ?? throw new ArgumentException("LMStudio_ENDPOINT is not set");
-            var lmStudioConfig = new LMStudioConfig(new Uri(Uri));
-
-            var assistantAgent = new AssistantAgent(
-                name: "assistant",
-                llmConfig: new ConversableAgentConfig()
-                {
-                    ConfigList = [lmStudioConfig],
-                });
-
-            assistantAgent.Name.Should().Be("assistant");
-            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
-            await this.UpperCaseTestAsync(assistantAgent);
-        }
-
 
         [Fact]
         public async Task AssistantAgentDefaultReplyTestAsync()
@@ -223,25 +97,6 @@ namespace AutoGen.Tests
                 });
 
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
-        }
-
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-        public async Task GPTAgentFunctionCallSelfExecutionTestAsync()
-        {
-            var config = this.CreateAzureOpenAIGPT35TurboConfig();
-            var agent = new GPTAgent(
-                name: "gpt",
-                systemMessage: "You are a helpful AI assistant",
-                config: config,
-                temperature: 0,
-                functions: new[] { this.EchoAsyncFunctionContract.ToOpenAIFunctionDefinition() },
-                functionMap: new Dictionary<string, Func<string, Task<string>>>
-                {
-                    { nameof(EchoAsync), this.EchoAsyncWrapper },
-                });
-
-            await EchoFunctionCallExecutionStreamingTestAsync(agent);
-            await EchoFunctionCallExecutionTestAsync(agent);
         }
 
         /// <summary>

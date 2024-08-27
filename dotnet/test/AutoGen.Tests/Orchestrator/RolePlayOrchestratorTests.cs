@@ -15,12 +15,13 @@ using AutoGen.AzureAIInference.Extension;
 using AutoGen.Gemini;
 using AutoGen.Mistral;
 using AutoGen.Mistral.Extension;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.Inference;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Moq;
+using OpenAI;
 using Xunit;
 
 namespace AutoGen.Tests;
@@ -221,11 +222,10 @@ public class RolePlayOrchestratorTests
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        var openaiClient = new AzureOpenAIClient(new Uri(endpoint), new System.ClientModel.ApiKeyCredential(key));
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: deployName)
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant")
             .RegisterMessageConnector();
 
         await CoderReviewerRunnerTestAsync(openAIChatAgent);
@@ -234,13 +234,12 @@ public class RolePlayOrchestratorTests
     [ApiKeyFact("OPENAI_API_KEY")]
     public async Task GPT_4o_CoderReviewerRunnerTestAsync()
     {
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("OPENAI_API_KEY is not set");
         var model = "gpt-4o";
         var openaiClient = new OpenAIClient(apiKey);
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: model)
+            chatClient: openaiClient.GetChatClient(model),
+            name: "assistant")
             .RegisterMessageConnector();
 
         await CoderReviewerRunnerTestAsync(openAIChatAgent);
@@ -249,13 +248,12 @@ public class RolePlayOrchestratorTests
     [ApiKeyFact("OPENAI_API_KEY")]
     public async Task GPT_4o_mini_CoderReviewerRunnerTestAsync()
     {
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("OPENAI_API_KEY is not set");
         var model = "gpt-4o-mini";
         var openaiClient = new OpenAIClient(apiKey);
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: model)
+            chatClient: openaiClient.GetChatClient(model),
+            name: "assistant")
             .RegisterMessageConnector();
 
         await CoderReviewerRunnerTestAsync(openAIChatAgent);
