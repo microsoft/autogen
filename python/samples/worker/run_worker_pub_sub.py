@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
-from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext, TopicId
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from agnext.core import MESSAGE_TYPE_REGISTRY, MessageContext
 
 
 @dataclass
@@ -75,12 +74,10 @@ async def main() -> None:
     MESSAGE_TYPE_REGISTRY.add_type(ReturnedFeedback)
     await runtime.start(host_connection_string="localhost:50051")
 
-    await runtime.register("receiver", lambda: ReceiveAgent())
-    await runtime.add_subscription(TypeSubscription("default", "receiver"))
-    await runtime.register("greeter", lambda: GreeterAgent())
-    await runtime.add_subscription(TypeSubscription("default", "greeter"))
+    await runtime.register("receiver", ReceiveAgent, lambda: [DefaultSubscription()])
+    await runtime.register("greeter", GreeterAgent, lambda: [DefaultSubscription()])
 
-    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=TopicId("default", "default"))
+    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
     # Just to keep the runtime running
     try:

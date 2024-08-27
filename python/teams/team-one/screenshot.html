@@ -1,0 +1,12 @@
+<html style="width:100%; margin: 0px; padding: 0px;">
+<body style="width: 100%; margin: 0px; padding: 0px;">
+    <img src="screenshot.png" id="main_image" style="width: 100%; max-width: 1440px; margin: 0px; padding: 0px;">
+    <script language="JavaScript">
+var counter = 0;
+setInterval(function() {
+   counter += 1;
+   document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
+}, 300);
+    </script>
+</body>
+</html>

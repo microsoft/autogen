@@ -20,8 +20,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, FunctionCall, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
@@ -33,7 +32,6 @@ from agnext.components.models import (
     UserMessage,
 )
 from agnext.components.tools import PythonCodeExecutionTool, Tool
-from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -193,8 +191,9 @@ async def main() -> None:
         )
     ]
     # Register agents.
-    await runtime.register("tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools))
-    await runtime.add_subscription(TypeSubscription("default", "tool_executor"))
+    await runtime.register(
+        "tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools), lambda: [DefaultSubscription()]
+    )
     await runtime.register(
         "tool_use_agent",
         lambda: ToolUseAgent(
@@ -203,14 +202,14 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             tools=tools,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "tool_use_agent"))
 
     runtime.start()
 
     # Publish a task.
     await runtime.publish_message(
-        UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=TopicId("default", "default")
+        UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=DefaultTopicId()
     )
 
     await runtime.stop_when_idle()

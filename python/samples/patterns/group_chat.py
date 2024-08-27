@@ -26,7 +26,7 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, AgentInstantiationContext, TopicId
+from agnext.core import AgentId, AgentInstantiationContext
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -158,9 +158,7 @@ async def main() -> None:
     runtime.start()
 
     # Start the conversation.
-    await runtime.publish_message(
-        Message(content="Hello, everyone!", source="Moderator"), topic_id=TopicId("default", "default")
-    )
+    await runtime.publish_message(Message(content="Hello, everyone!", source="Moderator"), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

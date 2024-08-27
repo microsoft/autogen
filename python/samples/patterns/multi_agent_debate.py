@@ -40,8 +40,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -49,7 +48,6 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -229,8 +227,8 @@ async def main(question: str) -> None:
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "MathSolver1"))
     await runtime.register(
         "MathSolver2",
         lambda: MathSolver(
@@ -238,8 +236,8 @@ async def main(question: str) -> None:
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "MathSolver2"))
     await runtime.register(
         "MathSolver3",
         lambda: MathSolver(
@@ -247,8 +245,8 @@ async def main(question: str) -> None:
             neighbor_names=["MathSolver2", "MathSolver4"],
             max_round=3,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "MathSolver3"))
     await runtime.register(
         "MathSolver4",
         lambda: MathSolver(
@@ -256,15 +254,15 @@ async def main(question: str) -> None:
             neighbor_names=["MathSolver1", "MathSolver3"],
             max_round=3,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "MathSolver4"))
     # Register the aggregator agent.
     await runtime.register("MathAggregator", lambda: MathAggregator(num_solvers=4))
 
     runtime.start()
 
     # Send a math problem to the aggregator agent.
-    await runtime.publish_message(Question(content=question), topic_id=TopicId("default", "default"))
+    await runtime.publish_message(Question(content=question), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

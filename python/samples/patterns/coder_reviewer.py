@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -30,7 +29,6 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -267,22 +265,22 @@ async def main() -> None:
             description="Code Reviewer",
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "ReviewerAgent"))
     await runtime.register(
         "CoderAgent",
         lambda: CoderAgent(
             description="Coder",
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "CoderAgent"))
     runtime.start()
     await runtime.publish_message(
         message=CodeWritingTask(
             task="Write a function to find the directory with the largest number of files using multi-processing."
         ),
-        topic_id=TopicId("default", "default"),
+        topic_id=DefaultTopicId(),
     )
 
     # Keep processing messages until idle.

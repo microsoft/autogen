@@ -3,6 +3,7 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.components import DefaultSubscription
 from agnext.core import AgentId, AgentProxy
 from team_one.agents.file_surfer import FileSurfer
 from team_one.agents.orchestrator import RoundRobinOrchestrator
@@ -19,19 +20,15 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    await runtime.register(
-        "file_surfer",
-        lambda: FileSurfer(model_client=client),
-    )
+    await runtime.register("file_surfer", lambda: FileSurfer(model_client=client), lambda: [DefaultSubscription()])
     file_surfer = AgentProxy(AgentId("file_surfer", "default"), runtime)
 
-    await runtime.register(
-        "UserProxy",
-        lambda: UserProxy(),
-    )
+    await runtime.register("UserProxy", lambda: UserProxy(), lambda: [DefaultSubscription()])
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
-    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy]))
+    await runtime.register(
+        "orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy]), lambda: [DefaultSubscription()]
+    )
 
     runtime.start()
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)

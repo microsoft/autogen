@@ -1,6 +1,6 @@
 import os
 
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription
 from agnext.components.models import AzureOpenAIChatCompletionClient
 from agnext.core import AgentRuntime
 from auditor import AuditAgent
@@ -28,7 +28,7 @@ async def build_app(runtime: AgentRuntime) -> None:
         api_version="2024-02-01",
     )
 
-    await runtime.register("GraphicDesigner", lambda: GraphicDesignerAgent(client=image_client))
-    await runtime.add_subscription(TypeSubscription("default", "GraphicDesigner"))
-    await runtime.register("Auditor", lambda: AuditAgent(model_client=chat_client))
-    await runtime.add_subscription(TypeSubscription("default", "Auditor"))
+    await runtime.register(
+        "GraphicDesigner", lambda: GraphicDesignerAgent(client=image_client), lambda: [DefaultSubscription()]
+    )
+    await runtime.register("Auditor", lambda: AuditAgent(model_client=chat_client), lambda: [DefaultSubscription()])

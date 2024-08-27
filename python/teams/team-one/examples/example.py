@@ -3,6 +3,7 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.components import DefaultSubscription
 from agnext.core import AgentId, AgentProxy
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import LedgerOrchestrator
@@ -17,17 +18,17 @@ async def main() -> None:
 
     # Register agents.
     await runtime.register(
-        "Coder",
-        lambda: Coder(model_client=create_completion_client_from_env()),
+        "Coder", lambda: Coder(model_client=create_completion_client_from_env()), lambda: [DefaultSubscription()]
     )
     coder = AgentProxy(AgentId("Coder", "default"), runtime)
 
-    await runtime.register("Executor", lambda: Executor("A agent for executing code"))
+    await runtime.register("Executor", lambda: Executor("A agent for executing code"), lambda: [DefaultSubscription()])
     executor = AgentProxy(AgentId("Executor", "default"), runtime)
 
     await runtime.register(
         "UserProxy",
         lambda: UserProxy(description="The current user interacting with you."),
+        lambda: [DefaultSubscription()],
     )
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
@@ -37,6 +38,7 @@ async def main() -> None:
         lambda: LedgerOrchestrator(
             model_client=create_completion_client_from_env(), agents=[coder, executor, user_proxy]
         ),
+        lambda: [DefaultSubscription()],
     )
 
     runtime.start()

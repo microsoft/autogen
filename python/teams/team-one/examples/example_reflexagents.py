@@ -3,8 +3,9 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.components import DefaultSubscription, DefaultTopicId
 from agnext.components.models import UserMessage
-from agnext.core import AgentId, AgentProxy, TopicId
+from agnext.core import AgentId, AgentProxy
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.reflex_agents import ReflexAgent
 from team_one.messages import BroadcastMessage
@@ -14,19 +15,22 @@ from team_one.utils import LogHandler
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("fake_agent_1", lambda: ReflexAgent("First reflect agent"))
+    await runtime.register("fake_agent_1", lambda: ReflexAgent("First reflect agent"), lambda: [DefaultSubscription()])
     fake1 = AgentProxy(AgentId("fake_agent_1", "default"), runtime)
-    await runtime.register("fake_agent_2", lambda: ReflexAgent("Second reflect agent"))
+
+    await runtime.register("fake_agent_2", lambda: ReflexAgent("Second reflect agent"), lambda: [DefaultSubscription()])
     fake2 = AgentProxy(AgentId("fake_agent_2", "default"), runtime)
 
-    await runtime.register("fake_agent_3", lambda: ReflexAgent("Third reflect agent"))
+    await runtime.register("fake_agent_3", lambda: ReflexAgent("Third reflect agent"), lambda: [DefaultSubscription()])
     fake3 = AgentProxy(AgentId("fake_agent_3", "default"), runtime)
 
-    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([fake1, fake2, fake3]))
+    await runtime.register(
+        "orchestrator", lambda: RoundRobinOrchestrator([fake1, fake2, fake3]), lambda: [DefaultSubscription()]
+    )
 
     task_message = UserMessage(content="Test Message", source="User")
     runtime.start()
-    await runtime.publish_message(BroadcastMessage(task_message), topic_id=TopicId("default", "default"))
+    await runtime.publish_message(BroadcastMessage(task_message), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

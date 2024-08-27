@@ -15,14 +15,12 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient, SystemMessage, UserMessage
 from agnext.core import MessageContext
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import TopicId
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -121,8 +119,8 @@ async def main() -> None:
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=0.1),
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "ReferenceAgent1"))
     await runtime.register(
         "ReferenceAgent2",
         lambda: ReferenceAgent(
@@ -130,8 +128,8 @@ async def main() -> None:
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=0.5),
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "ReferenceAgent2"))
     await runtime.register(
         "ReferenceAgent3",
         lambda: ReferenceAgent(
@@ -139,8 +137,8 @@ async def main() -> None:
             system_messages=[SystemMessage("You are a helpful assistant that can answer questions.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini", temperature=1.0),
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "ReferenceAgent3"))
     await runtime.register(
         "AggregatorAgent",
         lambda: AggregatorAgent(
@@ -153,12 +151,10 @@ async def main() -> None:
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             num_references=3,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "AggregatorAgent"))
     runtime.start()
-    await runtime.publish_message(
-        AggregatorTask(task="What are something fun to do in SF?"), topic_id=TopicId("default", "default")
-    )
+    await runtime.publish_message(AggregatorTask(task="What are something fun to do in SF?"), topic_id=DefaultTopicId())
 
     # Keep processing messages.
     await runtime.stop_when_idle()

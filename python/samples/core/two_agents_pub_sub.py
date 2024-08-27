@@ -17,8 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -93,8 +92,8 @@ async def main() -> None:
             ],
             termination_word="TERMINATE",
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "Jack"))
     await runtime.register(
         "Cathy",
         lambda: ChatCompletionAgent(
@@ -105,8 +104,8 @@ async def main() -> None:
             ],
             termination_word="TERMINATE",
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "Cathy"))
 
     runtime.start()
 

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from agnext.application import WorkerAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, TypeSubscription, message_handler
-from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext, TopicId
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from agnext.core import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext
 
 
 @dataclass
@@ -60,14 +60,13 @@ async def main() -> None:
     MESSAGE_TYPE_REGISTRY.add_type(Feedback)
     await runtime.start(host_connection_string="localhost:50051")
 
-    await runtime.register("receiver", lambda: ReceiveAgent())
+    await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])
     await runtime.register(
-        "greeter", lambda: GreeterAgent(AgentId("receiver", AgentInstantiationContext.current_agent_id().key))
+        "greeter",
+        lambda: GreeterAgent(AgentId("receiver", AgentInstantiationContext.current_agent_id().key)),
+        lambda: [DefaultSubscription()],
     )
-
-    await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="greeter"))
-    await runtime.add_subscription(TypeSubscription(topic_type="default", agent_type="receiver"))
-    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=TopicId("default", "default"))
+    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
     # Just to keep the runtime running
     try:

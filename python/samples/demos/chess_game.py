@@ -10,8 +10,7 @@ import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
 from agnext.core import AgentInstantiationContext, AgentRuntime
@@ -175,8 +174,8 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=black_tools,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "PlayerBlack"))
     await runtime.register(
         "PlayerWhite",
         lambda: ChatCompletionAgent(
@@ -193,8 +192,8 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=white_tools,
         ),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.add_subscription(TypeSubscription("default", "PlayerWhite"))
     # Create a group chat manager for the chess game to orchestrate a turn-based
     # conversation between the two agents.
     await runtime.register(

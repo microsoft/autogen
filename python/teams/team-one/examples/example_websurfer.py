@@ -4,6 +4,7 @@ import os
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.components import DefaultSubscription
 from agnext.core import AgentId, AgentProxy
 from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from team_one.agents.orchestrator import RoundRobinOrchestrator
@@ -22,19 +23,15 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    await runtime.register(
-        "WebSurfer",
-        lambda: MultimodalWebSurfer(),
-    )
+    await runtime.register("WebSurfer", lambda: MultimodalWebSurfer(), lambda: [DefaultSubscription()])
     web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
 
-    await runtime.register(
-        "UserProxy",
-        lambda: UserProxy(),
-    )
+    await runtime.register("UserProxy", lambda: UserProxy(), lambda: [DefaultSubscription()])
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
-    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
+    await runtime.register(
+        "orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]), lambda: [DefaultSubscription()]
+    )
 
     runtime.start()
 

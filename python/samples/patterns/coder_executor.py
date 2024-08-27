@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._type_subscription import TypeSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
     AssistantMessage,
@@ -31,7 +30,6 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import TopicId
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -190,15 +188,19 @@ async def main(task: str, temp_dir: str) -> None:
 
     # Register the agents.
     await runtime.register(
-        "coder", lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo"))
+        "coder",
+        lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")),
+        lambda: [DefaultSubscription()],
     )
-    await runtime.register("executor", lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)))
-    await runtime.add_subscription(TypeSubscription("default", "coder"))
-    await runtime.add_subscription(TypeSubscription("default", "executor"))
+    await runtime.register(
+        "executor",
+        lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)),
+        lambda: [DefaultSubscription()],
+    )
     runtime.start()
 
     # Publish the task message.
-    await runtime.publish_message(TaskMessage(content=task), topic_id=TopicId("default", "default"))
+    await runtime.publish_message(TaskMessage(content=task), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

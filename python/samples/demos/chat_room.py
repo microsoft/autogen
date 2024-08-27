@@ -6,8 +6,7 @@ import os
 import sys
 
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components._default_subscription import DefaultSubscription
+from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient, SystemMessage
 from agnext.core import AgentId, AgentInstantiationContext, AgentProxy, AgentRuntime
