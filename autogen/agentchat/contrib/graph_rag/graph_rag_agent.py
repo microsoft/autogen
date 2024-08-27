@@ -17,8 +17,7 @@ class GraphRagAgent(ConversableAgent, Protocol):
 
     For example,
     graph_rag_agent = GraphRagAgent(
-        name="movie knowledge graph agent",
-        human_input_mode="NEVER",
+        name="graph_rag_agent",
         max_consecutive_auto_reply=3,
         retrieve_config={
             "docs_path": [
@@ -36,16 +35,26 @@ class GraphRagAgent(ConversableAgent, Protocol):
     # initialize database (internally)
     # self._init_db(input_doc=[Document(doc) for doc in retrieve_config["docs_path"]])
 
-    question = "Name a few actors who've played in 'The Matrix'"
+    user_proxy = UserProxyAgent(
+        name="user_proxy",
+        code_execution_config=False,
+        is_termination_msg=lambda msg: "TERMINATE" in msg["content"],
+        human_input_mode="ALWAYS",
+    )
+    user_proxy.initiate_chat(graph_rag_agent, message="Name a few actors who've played in 'The Matrix'")
 
-    answer = graph_rag_agent.retrieve(question)
+    # ChatResult(
+        # chat_id=None,
+        # chat_history=[
+            # {'content': 'Name a few actors who've played in \'The Matrix\'', 'role': 'graph_rag_agent'},
+            # {'content': 'A few actors who have played in The Matrix are:
+            #   - Keanu Reeves
+            #   - Laurence Fishburne
+            #   - Carrie-Anne Moss
+            #   - Hugo Weaving',
+            #   'role': 'user_proxy'},
+        # ...)
 
-    # answer:
-    # A few actors who have played in 'The Matrix' are:
-    # - Keanu Reeves
-    # - Laurence Fishburne
-    # - Carrie-Anne Moss
-    # - Hugo Weaving
     """
 
     def _init_db(self, input_doc: List[Document] | None = None) -> GraphStore:
@@ -60,12 +69,6 @@ class GraphRagAgent(ConversableAgent, Protocol):
         input_doc: a list of input documents that are used to build the graph in database.
 
         Returns: GraphStore
-        """
-        pass
-
-    def retrieve(self, question: str, **kwargs):
-        """
-        Retrieve answers with human readable questions.
         """
         pass
 
