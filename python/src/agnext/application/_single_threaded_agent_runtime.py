@@ -177,9 +177,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if recipient.type not in self._known_agent_names:
             future.set_exception(Exception("Recipient not found"))
 
-        if sender is not None and sender.key != recipient.key:
-            raise ValueError("Sender and recipient must be in the same namespace to communicate.")
-
         content = message.__dict__ if hasattr(message, "__dict__") else message
         logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
