@@ -1,5 +1,16 @@
 # Optional Dependencies
 
+## Different LLMs
+
+AutoGen installs OpenAI package by default. To use LLMs by other providers, you can install the following packages:
+
+```bash
+pip install pyautogen[gemini,anthropic,mistral,together,groq,cohere]
+```
+
+Check out the [notebook](/docs/notebooks/autogen_uniformed_api_calling) and
+[blogpost](/blog/2024/06/24/AltModels-Classes) for more details.
+
 ## LLM Caching
 
 To use LLM caching with Redis, you need to install the Python package with
@@ -9,7 +20,7 @@ the option `redis`:
 pip install "pyautogen[redis]"
 ```
 
-See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
+See [LLM Caching](/docs/topics/llm-caching) for details.
 
 ## IPython Code Executor
 
@@ -36,11 +47,7 @@ proxy = UserProxyAgent(name="proxy", code_execution_config={"executor": "ipython
 pip install "pyautogen[blendsearch]<0.2"
 ```
 
-Example notebooks:
-
-[Optimize for Code Generation](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_completion.ipynb)
-
-[Optimize for Math](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+Checkout [Optimize for Code Generation](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_completion.ipynb) and [Optimize for Math](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) for details.
 
 ## retrievechat
 
@@ -85,7 +92,7 @@ To use Teachability, please install AutoGen with the [teachable] option.
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook: [Chatting with a teachable agent](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook: [Chatting with a teachable agent](/docs/notebooks/agentchat_teachability)
 
 ## Large Multimodal Model (LMM) Agents
 
@@ -95,9 +102,7 @@ We offered Multimodal Conversable Agent and LLaVA Agent. Please install with the
 pip install "pyautogen[lmm]"
 ```
 
-Example notebooks:
-
-[LLaVA Agent](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
+Example notebook: [LLaVA Agent](/docs/notebooks/agentchat_lmm_llava)
 
 ## mathchat
 
@@ -107,9 +112,7 @@ Example notebooks:
 pip install "pyautogen[mathchat]<0.2"
 ```
 
-Example notebooks:
-
-[Using MathChat to Solve Math Problems](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
+Example notebook: [Using MathChat to Solve Math Problems](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
 
 ## Graph
 
@@ -119,7 +122,7 @@ To use a graph in `GroupChat`, particularly for graph visualization, please inst
 pip install "pyautogen[graph]"
 ```
 
-Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://autogen-ai.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](/docs/notebooks/agentchat_groupchat_finite_state_machine)
 
 ## Long Context Handling
 
