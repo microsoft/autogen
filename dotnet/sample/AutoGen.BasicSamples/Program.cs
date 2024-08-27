@@ -17,7 +17,6 @@ allSamples.Add(new Tuple<string, Func<Task>>("DALL-E and GPT4v", async () => { a
 allSamples.Add(new Tuple<string, Func<Task>>("User Proxy Agent", async () => { await Example06_UserProxyAgent.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("Dynamic Group Chat - Calculate Fibonacci", async () => { await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("LM Studio", async () => { await Example08_LMStudio.RunAsync(); }));
-//allSamples.Add(new Tuple<string, Func<Task>>("LM Studio - Function Call", async () => { await Example09_LMStudio_FunctionCall.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("Semantic Kernel", async () => { await Example10_SemanticKernel.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("Sequential Group Chat", async () => { await Sequential_GroupChat_Example.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("Two Agent - Fill Application", async () => { await TwoAgent_Fill_Application.RunAsync(); }));

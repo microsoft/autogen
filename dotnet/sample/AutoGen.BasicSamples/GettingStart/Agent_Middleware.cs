@@ -51,7 +51,6 @@ public class Agent_Middleware
     {
         #region Create_Agent
         var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
         var agent = new OpenAIChatAgent(
             chatClient: gpt4o,
             name: "agent",
@@ -61,7 +60,7 @@ public class Agent_Middleware
             {
                 var today = DateTime.UtcNow;
                 var todayMessage = new TextMessage(Role.System, $"Today is {today:yyyy-MM-dd}");
-                messages = messages.Concat(new[] { todayMessage });
+                messages = messages.Concat([todayMessage]);
                 return await innerAgent.GenerateReplyAsync(messages, option, ct);
             })
             .RegisterPrintMessage();

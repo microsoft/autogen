@@ -54,8 +54,6 @@ The image is generated from prompt {prompt}
 
         // get OpenAI Key and create config
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gpt35Config = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
-        var gpt4vConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-4-vision-preview" });
         var openAIClient = new OpenAIClient(openAIKey);
         var instance = new Example05_Dalle_And_GPT4V(openAIClient);
         var imagePath = Path.Combine("resource", "images", "background.png");

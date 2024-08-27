@@ -34,7 +34,7 @@ internal class Structural_Output
             chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
             systemMessage: "You are a helpful assistant",
-            responseFormat: personSchemaFormat) // strcutural output by passing schema to response format
+            responseFormat: personSchemaFormat) // structural output by passing schema to response format
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent
