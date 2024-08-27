@@ -59,7 +59,7 @@ user_proxy = autogen.UserProxyAgent(
 
 coder = autogen.AssistantAgent(
     name="Coder",
-    system_message = "You are a Python developer who is good at developing games. You work with Product Manager."
+    system_message = "You are a Python developer who is good at developing games. You work with Product Manager.",
     llm_config={"config_list": config},
 )
 
