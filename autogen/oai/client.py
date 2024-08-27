@@ -195,6 +195,16 @@ class OpenAIClient:
                 for choice in choices
             ]
 
+    @staticmethod
+    def _remove_names_from_messages(params: Dict[str, Any]):
+        def _remove_names(messages: List[Dict[str, Any]]):
+            def __remove_names(message: Dict[str, Any]):
+                return {k: v for k, v in message.items() if k != "name"}
+
+            return [__remove_names(message) for message in messages]
+
+        return {k: _remove_names(v) if k == "messages" else v for k, v in params.items()}
+
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config using openai's client.
 
@@ -206,6 +216,9 @@ class OpenAIClient:
             The completion.
         """
         iostream = IOStream.get_default()
+
+        # names should not be in the messages (see: https://platform.openai.com/docs/guides/chat-completions)
+        params = self._remove_names_from_messages(params)
 
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
