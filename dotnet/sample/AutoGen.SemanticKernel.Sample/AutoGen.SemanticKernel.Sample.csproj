@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <ProjectReference Include="..\..\src\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\AutoGen.BasicSamples\AutoGen.BasicSample.csproj" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(SemanticKernelExperimentalVersion)" />
   </ItemGroup>
 

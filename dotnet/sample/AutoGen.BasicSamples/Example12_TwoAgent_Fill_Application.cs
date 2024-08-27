@@ -3,9 +3,8 @@
 
 using System.Text;
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 
 namespace AutoGen.BasicSample;
 
@@ -69,11 +68,7 @@ public partial class TwoAgent_Fill_Application
 
     public static async Task<IAgent> CreateSaveProgressAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var instance = new TwoAgent_Fill_Application();
         var functionCallConnector = new FunctionCallMiddleware(
             functions: [instance.SaveProgressFunctionContract],
@@ -83,9 +78,8 @@ public partial class TwoAgent_Fill_Application
             });
 
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "application",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """You are a helpful application form assistant who saves progress while user fills application.""")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallConnector)
@@ -109,15 +103,10 @@ public partial class TwoAgent_Fill_Application
 
     public static async Task<IAgent> CreateAssistantAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "assistant",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
@@ -127,15 +116,10 @@ public partial class TwoAgent_Fill_Application
 
     public static async Task<IAgent> CreateUserAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "user",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """
             You are a user who is filling an application form. Simply provide the information as requested and answer the questions, don't do anything else.
             
