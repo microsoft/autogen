@@ -30,6 +30,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { appContext } from "../../../../hooks/provider";
+import { useRef } from 'react';
 
 const { useToken } = theme;
 
@@ -183,10 +184,41 @@ export const SkillSelector = ({ agentId }: { agentId: number }) => {
   };
 
   const { token } = useToken();
+
+  const plusIconRef = useRef<SVGSVGElement>(null);
+  const [maxHeight, setMaxHeight] = useState<number>(100);
+  const [dropdownPlacement, setDropdownPlacement] = useState<'topRight'|'bottomRight'>('bottomRight');
+  const dropdownContentStyle: React.CSSProperties = {
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
+  };
+  
+  const updateDropdownPlacement = () => {
+    if (plusIconRef.current) {  
+      const rect = plusIconRef.current.getBoundingClientRect();
+      const availableTopSpace = rect.top - 50;
+      const availableBottomSpace = window.innerHeight - rect.bottom - 50;
+      const shouldPlaceOnTop = availableBottomSpace < availableTopSpace;
+      const newPlacement = shouldPlaceOnTop ? 'topRight' : 'bottomRight';
+      const newMaxHeight = shouldPlaceOnTop ? availableTopSpace : availableBottomSpace;
+      setDropdownPlacement(newPlacement);
+      setMaxHeight(newMaxHeight);
+    } 
+  };
+  
+  useEffect(() => {
+    updateDropdownPlacement();
+    window.addEventListener('resize', updateDropdownPlacement);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPlacement);
+    };
+  }, []);
+
   const contentStyle: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
     borderRadius: token.borderRadiusLG,
     boxShadow: token.boxShadowSecondary,
+    ...dropdownContentStyle,
   };
 
   const handleRemoveSkill = (index: number) => {
@@ -200,7 +232,7 @@ export const SkillSelector = ({ agentId }: { agentId: number }) => {
     return (
       <Dropdown
         menu={{ items: skillItems, onClick: skillOnClick }}
-        placement="bottomRight"
+        placement={dropdownPlacement}
         trigger={["click"]}
         dropdownRender={(menu) => (
           <div style={contentStyle}>
@@ -227,7 +259,7 @@ export const SkillSelector = ({ agentId }: { agentId: number }) => {
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
           role="button"
         >
-          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+          add <PlusIcon ref={plusIconRef} className="w-4 h-4 inline-block mt-1" />
         </div>
       </Dropdown>
     );
@@ -598,17 +630,48 @@ export const AgentSelector = ({ agentId }: { agentId: number }) => {
   };
 
   const { token } = useToken();
+
+  const plusIconRef = useRef<SVGSVGElement>(null);
+  const [maxHeight, setMaxHeight] = useState<number>(100);
+  const [dropdownPlacement, setDropdownPlacement] = useState<'topRight'|'bottomRight'>('bottomRight');
+  const dropdownContentStyle: React.CSSProperties = {
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
+  };
+  
+  const updateDropdownPlacement = () => {
+    if (plusIconRef.current) {  
+      const rect = plusIconRef.current.getBoundingClientRect();
+      const availableTopSpace = rect.top - 50;
+      const availableBottomSpace = window.innerHeight - rect.bottom - 50;
+      const shouldPlaceOnTop = availableBottomSpace < availableTopSpace;
+      const newPlacement = shouldPlaceOnTop ? 'topRight' : 'bottomRight';
+      const newMaxHeight = shouldPlaceOnTop ? availableTopSpace : availableBottomSpace;
+      setDropdownPlacement(newPlacement);
+      setMaxHeight(newMaxHeight);
+    } 
+  };
+  
+  useEffect(() => {
+    updateDropdownPlacement();
+    window.addEventListener('resize', updateDropdownPlacement);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPlacement);
+    };
+  }, []);
+
   const contentStyle: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
     borderRadius: token.borderRadiusLG,
     boxShadow: token.boxShadowSecondary,
+    ...dropdownContentStyle,
   };
 
   const AddAgentDropDown = () => {
     return (
       <Dropdown
         menu={{ items: agentItems, onClick: agentOnClick }}
-        placement="bottomRight"
+        placement={dropdownPlacement}
         trigger={["click"]}
         dropdownRender={(menu) => (
           <div style={contentStyle}>
@@ -635,7 +698,7 @@ export const AgentSelector = ({ agentId }: { agentId: number }) => {
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
           role="button"
         >
-          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+          add <PlusIcon ref={plusIconRef} className="w-4 h-4 inline-block mt-1" />
         </div>
       </Dropdown>
     );
@@ -860,17 +923,48 @@ export const ModelSelector = ({ agentId }: { agentId: number }) => {
   };
 
   const { token } = useToken();
+
+  const plusIconRef = useRef<SVGSVGElement>(null);
+  const [maxHeight, setMaxHeight] = useState<number>(100);
+  const [dropdownPlacement, setDropdownPlacement] = useState<'topRight'|'bottomRight'>('bottomRight');
+  const dropdownContentStyle: React.CSSProperties = {
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
+  };
+  
+  const updateDropdownPlacement = () => {
+    if (plusIconRef.current) {  
+      const rect = plusIconRef.current.getBoundingClientRect();
+      const availableTopSpace = rect.top - 50;
+      const availableBottomSpace = window.innerHeight - rect.bottom - 50;
+      const shouldPlaceOnTop = availableBottomSpace < availableTopSpace;
+      const newPlacement = shouldPlaceOnTop ? 'topRight' : 'bottomRight';
+      const newMaxHeight = shouldPlaceOnTop ? availableTopSpace : availableBottomSpace;
+      setDropdownPlacement(newPlacement);
+      setMaxHeight(newMaxHeight);
+    } 
+  };
+  
+  useEffect(() => {
+    updateDropdownPlacement();
+    window.addEventListener('resize', updateDropdownPlacement);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPlacement);
+    };
+  }, []);
+
   const contentStyle: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
     borderRadius: token.borderRadiusLG,
     boxShadow: token.boxShadowSecondary,
+    ...dropdownContentStyle,
   };
 
   const AddModelsDropDown = () => {
     return (
       <Dropdown
         menu={{ items: modelItems, onClick: modelOnClick }}
-        placement="bottomRight"
+        placement={dropdownPlacement}
         trigger={["click"]}
         dropdownRender={(menu) => (
           <div style={contentStyle}>
@@ -897,7 +991,7 @@ export const ModelSelector = ({ agentId }: { agentId: number }) => {
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
           role="button"
         >
-          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+          add <PlusIcon ref={plusIconRef} className="w-4 h-4 inline-block mt-1" />
         </div>
       </Dropdown>
     );
@@ -1191,10 +1285,41 @@ export const WorkflowAgentSelector = ({
   };
 
   const { token } = useToken();
+
+  const plusIconRef = useRef<SVGSVGElement>(null);
+  const [maxHeight, setMaxHeight] = useState<number>(100);
+  const [dropdownPlacement, setDropdownPlacement] = useState<'topRight'|'bottomRight'>('bottomRight');
+  const dropdownContentStyle: React.CSSProperties = {
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
+  };
+  
+  const updateDropdownPlacement = () => {
+    if (plusIconRef.current) {  
+      const rect = plusIconRef.current.getBoundingClientRect();
+      const availableTopSpace = rect.top - 50;
+      const availableBottomSpace = window.innerHeight - rect.bottom - 50;
+      const shouldPlaceOnTop = availableBottomSpace < availableTopSpace;
+      const newPlacement = shouldPlaceOnTop ? 'topRight' : 'bottomRight';
+      const newMaxHeight = shouldPlaceOnTop ? availableTopSpace : availableBottomSpace;
+      setDropdownPlacement(newPlacement);
+      setMaxHeight(newMaxHeight);
+    } 
+  };
+  
+  useEffect(() => {
+    updateDropdownPlacement();
+    window.addEventListener('resize', updateDropdownPlacement);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPlacement);
+    };
+  }, []);
+  
   const contentStyle: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
     borderRadius: token.borderRadiusLG,
     boxShadow: token.boxShadowSecondary,
+    ...dropdownContentStyle,
   };
 
   const AddAgentDropDown = ({
@@ -1272,7 +1397,7 @@ export const WorkflowAgentSelector = ({
           agentType === "sequential") && (
           <Dropdown
             menu={{ items: agentItems, onClick: onClick }}
-            placement="bottomRight"
+            placement={dropdownPlacement}
             trigger={["click"]}
             dropdownRender={(menu) => (
               <div style={contentStyle}>
@@ -1301,7 +1426,7 @@ export const WorkflowAgentSelector = ({
                 className=" inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent text-primary duration-300 hover:text-accent"
                 role="button"
               >
-                Add {title} <PlusIcon className="w-4 h-4 inline-block mt-1" />
+                Add {title} <PlusIcon ref={plusIconRef} className="w-4 h-4 inline-block mt-1" />
               </div>
             </div>
           </Dropdown>
