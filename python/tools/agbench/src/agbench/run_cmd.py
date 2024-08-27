@@ -16,7 +16,6 @@ import docker
 from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from docker.errors import APIError, DockerException, ImageNotFound
-from docker.models.containers import Container
 from typing_extensions import TypedDict
 
 from .version import __version__
@@ -504,19 +503,16 @@ echo RUN.SH COMPLETE !#!#
 
     assert image is not None
     # Create and run the container
-    container: Container = cast(
-        Container,
-        client.containers.run(
-            image,
-            command=["sh", "run.sh"],
-            working_dir="/workspace",
-            environment=dict(env),
-            detach=True,
-            remove=True,
-            auto_remove=True,
-            # Type hint of docker is wrong here
-            volumes=volumes,  # type: ignore
-        ),
+    container = client.containers.run(
+        image,
+        command=["sh", "run.sh"],
+        working_dir="/workspace",
+        environment=dict(env),
+        detach=True,
+        remove=True,
+        auto_remove=True,
+        # Type hint of docker is wrong here
+        volumes=volumes,  # type: ignore
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
