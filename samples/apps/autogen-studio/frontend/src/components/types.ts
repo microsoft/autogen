@@ -80,7 +80,7 @@ export interface IModelConfig {
   api_key?: string;
   api_version?: string;
   base_url?: string;
-  api_type?: "open_ai" | "azure" | "google";
+  api_type?: "open_ai" | "azure" | "google" | "anthropic" | "mistral";
   user_id?: string;
   created_at?: string;
   updated_at?: string;

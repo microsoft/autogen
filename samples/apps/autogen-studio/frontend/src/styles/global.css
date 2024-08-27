@@ -334,6 +334,12 @@ iiz__zoom-img {
   @apply bg-primary text-primary !important;
 }
 
+.ant-dropdown-menu {
+  max-height: 250px;
+  overflow: auto;
+  @apply scroll !important;
+}
+
 /* .ant-radio-input::before {
   @apply bg-primary !important;
 } */

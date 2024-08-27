@@ -266,6 +266,18 @@ export const sampleModelConfig = (modelType: string = "open_ai") => {
     description: "Google Gemini Model model",
   };
 
+  const anthropicConfig: IModelConfig = {
+    model: "claude-3-5-sonnet-20240620",
+    api_type: "anthropic",
+    description: "Claude 3.5 Sonnet model",
+  };
+
+  const mistralConfig: IModelConfig = {
+    model: "mistral",
+    api_type: "mistral",
+    description: "Mistral model",
+  };
+
   switch (modelType) {
     case "open_ai":
       return openaiConfig;
@@ -273,6 +285,10 @@ export const sampleModelConfig = (modelType: string = "open_ai") => {
       return azureConfig;
     case "google":
       return googleConfig;
+    case "anthropic":
+      return anthropicConfig;
+    case "mistral":
+      return mistralConfig;
     default:
       return openaiConfig;
   }

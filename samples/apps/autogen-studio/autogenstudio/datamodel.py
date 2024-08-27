@@ -116,6 +116,10 @@ class ModelTypes(str, Enum):
     openai = "open_ai"
     google = "google"
     azure = "azure"
+    anthropic = "anthropic"
+    mistral = "mistral"
+    together = "together"
+    groq = "groq"
 
 
 class Model(SQLModel, table=True):

@@ -1275,7 +1275,7 @@ export const WorkflowAgentSelector = ({
             placement="bottomRight"
             trigger={["click"]}
             dropdownRender={(menu) => (
-              <div style={contentStyle}>
+              <div className="h-64" style={contentStyle}>
                 {React.cloneElement(menu as React.ReactElement, {
                   style: { boxShadow: "none" },
                 })}

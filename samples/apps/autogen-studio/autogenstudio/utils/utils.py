@@ -438,6 +438,8 @@ def test_model(model: Model):
     Test the model endpoint by sending a simple message to the model and returning the response.
     """
 
+    print("Testing model", model)
+
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
     response = client.create(
