@@ -1,3 +1,4 @@
+from ._caller_loop import tool_agent_caller_loop
 from ._tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
@@ -12,4 +13,5 @@ __all__ = [
     "ToolNotFoundException",
     "InvalidToolArgumentsException",
     "ToolExecutionException",
+    "tool_agent_caller_loop",
 ]

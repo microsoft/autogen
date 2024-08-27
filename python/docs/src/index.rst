@@ -30,6 +30,8 @@ To learn about the core concepts of AGNext, read the `overview <core-concepts/ov
     getting-started/model-clients
     getting-started/tools
     getting-started/multi-agent-design-patterns
+    getting-started/group-chat
+    getting-started/reflection
 
 .. toctree::
     :caption: Guides
