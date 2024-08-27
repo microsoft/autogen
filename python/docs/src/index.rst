@@ -9,8 +9,7 @@ You can implement agents in
 different programming languages and deploy them on different machines across organizational boundaries.
 You can also implement agents using other agent frameworks and run them in AGNext.
 
-To get you started quickly, we offers
-`a suite of samples <https://github.com/microsoft/agnext/tree/main/python/samples>`_.
+To start quickly, read the `quick start <getting-started/quickstart.html>`_.
 
 To learn about the core concepts of AGNext, read the `overview <core-concepts/overview.html>`_.
 
@@ -25,6 +24,7 @@ To learn about the core concepts of AGNext, read the `overview <core-concepts/ov
     :hidden:
 
     getting-started/installation
+    getting-started/quickstart
     getting-started/agent-and-agent-runtime
     getting-started/message-and-communication
     getting-started/model-clients
