@@ -7,7 +7,6 @@ using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 using OpenAI;
 using OpenAI.Images;
-using autogen = AutoGen.LLMConfigAPI;
 
 public partial class Example05_Dalle_And_GPT4V
 {
