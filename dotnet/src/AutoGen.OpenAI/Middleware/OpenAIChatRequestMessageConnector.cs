@@ -120,6 +120,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 currentToolName = toolCall.FunctionName;
                 currentToolArguments = toolCall.FunctionArgumentsUpdate;
                 currentToolId = toolCall.Id;
+                currentIndex = toolCall.Index;
 
                 yield return new ToolCallMessageUpdate(currentToolName, currentToolArguments, from: agent.Name);
             }
