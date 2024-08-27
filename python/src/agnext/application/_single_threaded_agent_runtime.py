@@ -272,6 +272,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 )
         except BaseException as e:
             message_envelope.future.set_exception(e)
+            self._outstanding_tasks.decrement()
             return
 
         self._message_queue.append(
@@ -327,6 +328,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         except BaseException as e:
             # Ignore cancelled errors from logs
             if isinstance(e, CancelledError):
+                self._outstanding_tasks.decrement()
                 return
             logger.error("Error processing publish message", exc_info=True)
         finally:
