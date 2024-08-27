@@ -2,16 +2,16 @@
 // Example17_ReActAgent.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen.BasicSample;
 
 public class OpenAIReActAgent : IAgent
 {
-    private readonly OpenAIClient _client;
-    private readonly string modelName = "gpt-3.5-turbo";
+    private readonly ChatClient _client;
     private readonly FunctionContract[] tools;
     private readonly Dictionary<string, Func<string, Task<string>>> toolExecutors = new();
     private readonly IAgent reasoner;
@@ -39,16 +39,15 @@ Final Answer: the final answer to the original input question
 Begin!
 Question: {input}";
 
-    public OpenAIReActAgent(OpenAIClient client, string modelName, string name, FunctionContract[] tools, Dictionary<string, Func<string, Task<string>>> toolExecutors)
+    public OpenAIReActAgent(ChatClient client, string name, FunctionContract[] tools, Dictionary<string, Func<string, Task<string>>> toolExecutors)
     {
         _client = client;
         this.Name = name;
-        this.modelName = modelName;
         this.tools = tools;
         this.toolExecutors = toolExecutors;
         this.reasoner = CreateReasoner();
         this.actor = CreateActor();
-        this.helper = new OpenAIChatAgent(client, "helper", modelName)
+        this.helper = new OpenAIChatAgent(client, "helper")
             .RegisterMessageConnector();
     }
 
@@ -106,8 +105,7 @@ Question: {input}";
     private IAgent CreateReasoner()
     {
         return new OpenAIChatAgent(
-            openAIClient: _client,
-            modelName: modelName,
+            chatClient: _client,
             name: "reasoner")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
@@ -117,8 +115,7 @@ Question: {input}";
     {
         var functionCallMiddleware = new FunctionCallMiddleware(tools, toolExecutors);
         return new OpenAIChatAgent(
-            openAIClient: _client,
-            modelName: modelName,
+            chatClient: _client,
             name: "actor")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddleware)
@@ -166,9 +163,9 @@ public class Example17_ReActAgent
         var modelName = "gpt-4-turbo";
         var tools = new Tools();
         var openAIClient = new OpenAIClient(openAIKey);
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var reactAgent = new OpenAIReActAgent(
-            client: openAIClient,
-            modelName: modelName,
+            client: openAIClient.GetChatClient(modelName),
             name: "react-agent",
             tools: [tools.GetLocalizationFunctionContract, tools.GetDateTodayFunctionContract, tools.WeatherReportFunctionContract],
             toolExecutors: new Dictionary<string, Func<string, Task<string>>>

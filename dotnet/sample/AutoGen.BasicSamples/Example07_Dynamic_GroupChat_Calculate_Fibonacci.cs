@@ -7,10 +7,10 @@ using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Microsoft.DotNet.Interactive;
+using OpenAI.Chat;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
@@ -50,11 +50,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion reviewer_function
 
     #region create_coder
-    public static async Task<IAgent> CreateCoderAgentAsync(OpenAIClient client, string deployModel)
+    public static async Task<IAgent> CreateCoderAgentAsync(ChatClient client)
     {
         var coder = new OpenAIChatAgent(
-            openAIClient: client,
-            modelName: deployModel,
+            chatClient: client,
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
@@ -122,11 +121,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion create_runner
 
     #region create_admin
-    public static async Task<IAgent> CreateAdminAsync(OpenAIClient client, string deployModel)
+    public static async Task<IAgent> CreateAdminAsync(ChatClient client)
     {
         var admin = new OpenAIChatAgent(
-            openAIClient: client,
-            modelName: deployModel,
+            chatClient: client,
             name: "admin",
             temperature: 0)
             .RegisterMessageConnector()
@@ -137,9 +135,8 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     #endregion create_admin
 
     #region create_reviewer
-    public static async Task<IAgent> CreateReviewerAgentAsync(OpenAIClient openAIClient, string deployModel)
+    public static async Task<IAgent> CreateReviewerAgentAsync(ChatClient chatClient)
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var functions = new Example07_Dynamic_GroupChat_Calculate_Fibonacci();
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [functions.ReviewCodeBlockFunctionContract],
@@ -148,10 +145,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 { nameof(functions.ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
             });
         var reviewer = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: chatClient,
             name: "code_reviewer",
-            systemMessage: @"You review code block from coder",
-            modelName: deployModel)
+            systemMessage: @"You review code block from coder")
             .RegisterMessageConnector()
             .RegisterStreamingMiddleware(functionCallMiddleware)
             .RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
@@ -237,14 +233,13 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             .CreateDefaultInProcessKernelBuilder()
             .Build();
 
-        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
         #region create_workflow
-        var reviewer = await CreateReviewerAgentAsync(openaiClient, config.DeploymentName);
-        var coder = await CreateCoderAgentAsync(openaiClient, config.DeploymentName);
+        var reviewer = await CreateReviewerAgentAsync(gpt4o);
+        var coder = await CreateCoderAgentAsync(gpt4o);
         var runner = await CreateRunnerAgentAsync(kernel);
-        var admin = await CreateAdminAsync(openaiClient, config.DeploymentName);
+        var admin = await CreateAdminAsync(gpt4o);
 
         var admin2CoderTransition = Transition.Create(admin, coder);
         var coder2ReviewerTransition = Transition.Create(coder, reviewer);
@@ -343,17 +338,16 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             Directory.CreateDirectory(workDir);
         }
 
-        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var openaiClient = new OpenAIClient(new Uri(config.Endpoint), new Azure.AzureKeyCredential(config.ApiKey));
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
         var kernel = DotnetInteractiveKernelBuilder
             .CreateDefaultInProcessKernelBuilder()
             .Build();
         #region create_group_chat
-        var reviewer = await CreateReviewerAgentAsync(openaiClient, config.DeploymentName);
-        var coder = await CreateCoderAgentAsync(openaiClient, config.DeploymentName);
+        var reviewer = await CreateReviewerAgentAsync(gpt4o);
+        var coder = await CreateCoderAgentAsync(gpt4o);
         var runner = await CreateRunnerAgentAsync(kernel);
-        var admin = await CreateAdminAsync(openaiClient, config.DeploymentName);
+        var admin = await CreateAdminAsync(gpt4o);
         var groupChat = new GroupChat(
             admin: admin,
             members:
