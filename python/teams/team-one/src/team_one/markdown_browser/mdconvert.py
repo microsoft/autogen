@@ -160,7 +160,7 @@ class PlainTextConverter(DocumentConverter):
             return None
 
         text_content = ""
-        with open(local_path, "rt") as fh:
+        with open(local_path, "rt", encoding="utf-8") as fh:
             text_content = fh.read()
         return DocumentConverterResult(
             title=None,
@@ -178,7 +178,7 @@ class HtmlConverter(DocumentConverter):
             return None
 
         result = None
-        with open(local_path, "rt") as fh:
+        with open(local_path, "rt", encoding="utf-8") as fh:
             result = self._convert(fh.read())
 
         return result
@@ -222,7 +222,7 @@ class WikipediaConverter(DocumentConverter):
 
         # Parse the file
         soup = None
-        with open(local_path, "rt") as fh:
+        with open(local_path, "rt", encoding="utf-8") as fh:
             soup = BeautifulSoup(fh.read(), "html.parser")
 
         # Remove javascript and style blocks
@@ -267,7 +267,7 @@ class YouTubeConverter(DocumentConverter):
 
         # Parse the file
         soup = None
-        with open(local_path, "rt") as fh:
+        with open(local_path, "rt", encoding="utf-8") as fh:
             soup = BeautifulSoup(fh.read(), "html.parser")
 
         # Read the meta tags
@@ -396,7 +396,7 @@ class BingSerpConverter(DocumentConverter):
 
         # Parse the file
         soup = None
-        with open(local_path, "rt") as fh:
+        with open(local_path, "rt", encoding="utf-8") as fh:
             soup = BeautifulSoup(fh.read(), "html.parser")
 
         # Clean up some formatting
