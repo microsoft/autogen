@@ -1,6 +1,7 @@
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
+  CodeBracketSquareIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
@@ -15,13 +16,13 @@ import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
-  sampleWorkflowConfig,
   sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { WorflowViewer } from "./utils/workflowconfig";
+import { ExportWorkflowModal } from "./utils/export";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -37,10 +38,15 @@ const WorkflowView = ({}: any) => {
   const [workflows, setWorkflows] = React.useState<IWorkflow[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
     React.useState<IWorkflow | null>(null);
+  const [selectedExportWorkflow, setSelectedExportWorkflow] =
+    React.useState<IWorkflow | null>(null);
 
-  const defaultConfig = sampleWorkflowConfig();
+  const sampleWorkflow: IWorkflow = {
+    name: "Sample Agent Workflow",
+    description: "Sample Agent Workflow",
+  };
   const [newWorkflow, setNewWorkflow] = React.useState<IWorkflow | null>(
-    defaultConfig
+    sampleWorkflow
   );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
@@ -119,9 +125,21 @@ const WorkflowView = ({}: any) => {
     }
   }, [selectedWorkflow]);
 
+  const [showExportModal, setShowExportModal] = React.useState(false);
+
   const workflowRows = (workflows || []).map(
     (workflow: IWorkflow, i: number) => {
       const cardItems = [
+        {
+          title: "Export",
+          icon: CodeBracketSquareIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            setSelectedExportWorkflow(workflow);
+            setShowExportModal(true);
+          },
+          hoverText: "Export",
+        },
         {
           title: "Download",
           icon: ArrowDownTrayIcon,
@@ -145,13 +163,8 @@ const WorkflowView = ({}: any) => {
           icon: DocumentDuplicateIcon,
           onClick: (e: any) => {
             e.stopPropagation();
-            let newWorkflow = { ...workflow };
-            newWorkflow.name = `${workflow.name} Copy`;
-            newWorkflow.user_id = user?.email;
-            if (newWorkflow.id) {
-              delete newWorkflow.id;
-            }
-
+            let newWorkflow = { ...sanitizeConfig(workflow) };
+            newWorkflow.name = `${workflow.name}_copy`;
             setNewWorkflow(newWorkflow);
             setShowNewWorkflowModal(true);
           },
@@ -185,7 +198,7 @@ const WorkflowView = ({}: any) => {
               className="break-words  my-2"
               aria-hidden="true"
             >
-              {" "}
+              <div className="text-xs mb-2">{workflow.type}</div>{" "}
               {truncateText(workflow.description, 70)}
             </div>
             <div
@@ -285,28 +298,28 @@ const WorkflowView = ({}: any) => {
   };
 
   const workflowTypes: MenuProps["items"] = [
-    {
-      key: "twoagents",
-      label: (
-        <div>
-          {" "}
-          <UsersIcon className="w-5 h-5 inline-block mr-2" />
-          Two Agents
-        </div>
-      ),
-    },
-    {
-      key: "groupchat",
-      label: (
-        <div>
-          <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
-          Group Chat
-        </div>
-      ),
-    },
-    {
-      type: "divider",
-    },
+    // {
+    //   key: "twoagents",
+    //   label: (
+    //     <div>
+    //       {" "}
+    //       <UsersIcon className="w-5 h-5 inline-block mr-2" />
+    //       Two Agents
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   key: "groupchat",
+    //   label: (
+    //     <div>
+    //       <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+    //       Group Chat
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   type: "divider",
+    // },
     {
       key: "uploadworkflow",
       label: (
@@ -328,7 +341,7 @@ const WorkflowView = ({}: any) => {
       uploadWorkflow();
       return;
     }
-    showWorkflow(sampleWorkflowConfig(key));
+    showWorkflow(sampleWorkflow);
   };
 
   return (
@@ -352,6 +365,12 @@ const WorkflowView = ({}: any) => {
         }}
       />
 
+      <ExportWorkflowModal
+        workflow={selectedExportWorkflow}
+        show={showExportModal}
+        setShow={setShowExportModal}
+      />
+
       <div className="mb-2   relative">
         <div className="     rounded  ">
           <div className="flex mt-2 pb-2 mb-2 border-b">
@@ -366,7 +385,7 @@ const WorkflowView = ({}: any) => {
                 placement="bottomRight"
                 trigger={["click"]}
                 onClick={() => {
-                  showWorkflow(sampleWorkflowConfig());
+                  showWorkflow(sampleWorkflow);
                 }}
               >
                 <PlusIcon className="w-5 h-5 inline-block mr-1" />
