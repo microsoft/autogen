@@ -1,4 +1,4 @@
-from agnext.components.code_executor import extract_markdown_code_blocks
+from autogen_core.components.code_executor import extract_markdown_code_blocks
 
 
 def test_extract_markdown_code_blocks() -> None:

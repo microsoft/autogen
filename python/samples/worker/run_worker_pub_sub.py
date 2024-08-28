@@ -3,9 +3,9 @@ import logging
 from dataclasses import dataclass
 from typing import Any, NoReturn
 
-from agnext.application import WorkerAgentRuntime
-from agnext.base import MESSAGE_TYPE_REGISTRY, MessageContext
-from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.application import WorkerAgentRuntime
+from autogen_core.base import MESSAGE_TYPE_REGISTRY, MessageContext
+from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
 
 @dataclass
@@ -89,6 +89,6 @@ async def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("agnext")
+    logger = logging.getLogger("autogen_core")
     logger.setLevel(logging.DEBUG)
     asyncio.run(main())

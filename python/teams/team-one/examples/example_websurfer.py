@@ -2,10 +2,10 @@ import asyncio
 import logging
 import os
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.base import AgentId, AgentProxy
-from agnext.components import DefaultSubscription
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core.base import AgentId, AgentProxy
+from autogen_core.components import DefaultSubscription
 from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy

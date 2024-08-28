@@ -153,7 +153,7 @@ Once on Waoonet's profile, the agents focused on counting the comments that had 
 | Total          | 28%  (120/422) |
 
 
-### Logging in Team One Agents 
+### Logging in Team One Agents
 
 Team One agents can emit several log events that can be consumed by a log handler (see the example log handler in [utils.py](src/team_one/utils.py)). A list of currently emitted events are:
 
@@ -171,7 +171,7 @@ You can install the Team-One package using pip and then run the example code to 
 
 1. Clone the code.
 ```bash
-# clone agnext
+# clone autogen_core
 cd python/teams/team-one
 pip install -e .
 ```

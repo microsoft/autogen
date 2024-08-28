@@ -5,16 +5,16 @@ import logging
 import os
 import sys
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentId, AgentInstantiationContext, AgentProxy, AgentRuntime
-from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
-from agnext.components.memory import ChatMemory
-from agnext.components.models import ChatCompletionClient, SystemMessage
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, AgentInstantiationContext, AgentProxy, AgentRuntime
+from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components.memory import ChatMemory
+from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.base import MessageContext
+from autogen_core.base import MessageContext
 from common.memory import BufferedChatMemory
 from common.types import Message, TextMessage
 from common.utils import convert_messages_to_llm_messages, get_chat_completion_client_from_envs
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
-        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        logging.getLogger("autogen_core").setLevel(logging.DEBUG)
         handler = logging.FileHandler("chat_room.log")
-        logging.getLogger("agnext").addHandler(handler)
+        logging.getLogger("autogen_core").addHandler(handler)
     asyncio.run(main())

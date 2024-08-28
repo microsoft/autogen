@@ -1,10 +1,10 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
-from agnext.base import AgentId, AgentProxy, MessageContext
-from agnext.components import RoutedAgent, message_handler
-from agnext.components.memory import ChatMemory
-from agnext.components.models import ChatCompletionClient
+from autogen_core.base import AgentId, AgentProxy, MessageContext
+from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.components.memory import ChatMemory
+from autogen_core.components.models import ChatCompletionClient
 
 from ..types import (
     Message,
@@ -15,7 +15,7 @@ from ..types import (
 )
 from ._group_chat_utils import select_speaker
 
-logger = logging.getLogger("agnext.events")
+logger = logging.getLogger("autogen_core.events")
 
 
 class GroupChatManager(RoutedAgent):

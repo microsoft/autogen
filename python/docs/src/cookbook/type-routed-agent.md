@@ -1,15 +1,15 @@
 # Using Type Routed Agent
 
-To make it easier to implement agents that respond to certain message types there is a base class called {py:class}`~agnext.components.RoutedAgent`. This class provides a simple decorator pattern for associating message types with message handlers.
+To make it easier to implement agents that respond to certain message types there is a base class called {py:class}`~autogen_core.components.RoutedAgent`. This class provides a simple decorator pattern for associating message types with message handlers.
 
-The decorator {py:func}`agnext.components.message_handler` should be added to functions in the class that are intended to handle messages. These functions have a specific signature that needs to be followed for it to be recognized as a message handler.
+The decorator {py:func}`autogen_core.components.message_handler` should be added to functions in the class that are intended to handle messages. These functions have a specific signature that needs to be followed for it to be recognized as a message handler.
 
 - The function must be an `async` function.
 - The function must be decorated with the `message_handler` decorator.
 - The function must have exactly 3 arguments.
   - `self`
   - `message`: The message to be handled, this must be type hinted with the message type that it is intended to handle.
-  - `cancellation_token`: A {py:class}`agnext.base.CancellationToken` object
+  - `cancellation_token`: A {py:class}`autogen_core.base.CancellationToken` object
 - The function must be type hinted with what message types it can return.
 
 ```{tip}
@@ -25,8 +25,8 @@ One important thing to point out is that when an agent is constructed it must be
 ```python
 from dataclasses import dataclass
 from typing import List, Union
-from agnext.components import RoutedAgent, message_handler, Image
-from agnext.base import AgentRuntime, CancellationToken
+from autogen_core.components import RoutedAgent, message_handler, Image
+from autogen_core.base import AgentRuntime, CancellationToken
 
 @dataclass
 class TextMessage:

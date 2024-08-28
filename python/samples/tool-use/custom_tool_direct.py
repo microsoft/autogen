@@ -9,19 +9,19 @@ import random
 import sys
 from typing import List
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentInstantiationContext
-from agnext.components.models import (
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentInstantiationContext
+from autogen_core.components.models import (
     SystemMessage,
 )
-from agnext.components.tool_agent import ToolAgent
-from agnext.components.tools import FunctionTool, Tool
+from autogen_core.components.tool_agent import ToolAgent
+from autogen_core.components.tools import FunctionTool, Tool
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.base import AgentId
+from autogen_core.base import AgentId
 from coding_direct import Message, ToolUseAgent
 from common.utils import get_chat_completion_client_from_envs
 
@@ -79,5 +79,5 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
     asyncio.run(main())

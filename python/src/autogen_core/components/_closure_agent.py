@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar, get_type_hints
 
-from agnext.base import MessageContext
+from autogen_core.base import MessageContext
 
 from ..base._agent import Agent
 from ..base._agent_id import AgentId

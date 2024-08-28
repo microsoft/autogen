@@ -1,13 +1,13 @@
 import asyncio
 import logging
 
-from agnext.application import WorkerAgentRuntime
-from agnext.base import MESSAGE_TYPE_REGISTRY
 from app import build_app
+from autogen_core.application import WorkerAgentRuntime
+from autogen_core.base import MESSAGE_TYPE_REGISTRY
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated
 
-agnext_logger = logging.getLogger("agnext")
+agnext_logger = logging.getLogger("autogen_core")
 
 
 async def main() -> None:

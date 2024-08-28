@@ -11,9 +11,9 @@ from typing import List
 
 import aiofiles
 import openai
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentId, AgentRuntime, MessageContext
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, AgentRuntime, MessageContext
+from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -22,7 +22,7 @@ from typing_extensions import override
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from agnext.base import AgentInstantiationContext
+from autogen_core.base import AgentInstantiationContext
 from common.agents import OpenAIAssistantAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
-        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        logging.getLogger("autogen_core").setLevel(logging.DEBUG)
         handler = logging.FileHandler("assistant.log")
-        logging.getLogger("agnext").addHandler(handler)
+        logging.getLogger("autogen_core").addHandler(handler)
     asyncio.run(main())

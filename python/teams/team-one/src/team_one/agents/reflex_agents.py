@@ -1,6 +1,6 @@
-from agnext.base import MessageContext, TopicId
-from agnext.components import RoutedAgent, message_handler
-from agnext.components.models import UserMessage
+from autogen_core.base import MessageContext, TopicId
+from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.components.models import UserMessage
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 

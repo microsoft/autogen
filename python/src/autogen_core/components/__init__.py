@@ -1,5 +1,5 @@
 """
-The :mod:`agnext.components` module provides building blocks for creating single agents
+The :mod:`autogen_core.components` module provides building blocks for creating single agents
 """
 
 from ._closure_agent import ClosureAgent

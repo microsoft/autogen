@@ -29,8 +29,8 @@ from ..base.exceptions import MessageDroppedException
 from ..base.intervention import DropMessage, InterventionHandler
 from ._helpers import SubscriptionManager, get_impl
 
-logger = logging.getLogger("agnext")
-event_logger = logging.getLogger("agnext.events")
+logger = logging.getLogger("autogen_core")
+event_logger = logging.getLogger("autogen_core.events")
 
 
 @dataclass(kw_only=True)

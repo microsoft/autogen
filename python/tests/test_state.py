@@ -1,9 +1,9 @@
 from typing import Any, Mapping
 
 import pytest
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import BaseAgent, MessageContext
-from agnext.base import AgentId
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import BaseAgent, MessageContext
+from autogen_core.base import AgentId
 
 
 class StatefulAgent(BaseAgent):

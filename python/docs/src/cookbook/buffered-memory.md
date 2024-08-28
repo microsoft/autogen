@@ -6,8 +6,8 @@ last N messages:
 ```python
 from typing import Any, List, Mapping
 
-from agnext.components.memory import ChatMemory
-from agnext.components.models import FunctionExecutionResultMessage, LLMMessage
+from autogen_core.components.memory import ChatMemory
+from autogen_core.components.models import FunctionExecutionResultMessage, LLMMessage
 
 
 class BufferedChatMemory(ChatMemory[LLMMessage]):

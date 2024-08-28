@@ -8,14 +8,14 @@ import tempfile
 import polars
 import pytest
 from azure.identity import DefaultAzureCredential
-from agnext.components.code_executor import (
+from autogen_core.components.code_executor import (
     CodeBlock,
     FunctionWithRequirements,
     LocalCommandLineCodeExecutor,
     AzureContainerCodeExecutor,
     with_requirements,
 )
-from agnext.base import CancellationToken
+from autogen_core.base import CancellationToken
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 

@@ -8,8 +8,8 @@ from math import ceil
 import asyncio
 import pytest
 
-from agnext.base import AgentId
-from agnext.base import AgentProxy
+from autogen_core.base import AgentId
+from autogen_core.base import AgentProxy
 pytest_plugins = ('pytest_asyncio',)
 from json import dumps
 
@@ -21,12 +21,12 @@ from team_one.utils import (
 from team_one.agents.user_proxy import UserProxy
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.messages import BroadcastMessage
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import FunctionCall
-from agnext.components.models import (
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.components import FunctionCall
+from autogen_core.components.models import (
     UserMessage,
 )
-from agnext.components.tools._base import ToolSchema
+from autogen_core.components.tools._base import ToolSchema
 
 from openai import AuthenticationError
 

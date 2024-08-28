@@ -8,9 +8,9 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any, Callable, List, Literal
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentId, MessageContext
-from agnext.components import RoutedAgent, message_handler
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, MessageContext
+from autogen_core.components import RoutedAgent, message_handler
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
 from langchain_openai import ChatOpenAI
@@ -132,5 +132,5 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
     asyncio.run(main())

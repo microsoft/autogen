@@ -1,6 +1,6 @@
 import pytest
 from pytest_mock import MockerFixture
-from agnext.base import AgentRuntime, AgentInstantiationContext, AgentId
+from autogen_core.base import AgentRuntime, AgentInstantiationContext, AgentId
 
 from test_utils import NoopAgent
 

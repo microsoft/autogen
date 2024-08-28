@@ -9,17 +9,17 @@ import os
 import sys
 from typing import Annotated, Literal
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentInstantiationContext, AgentRuntime
-from agnext.components import DefaultSubscription, DefaultTopicId
-from agnext.components.models import SystemMessage
-from agnext.components.tools import FunctionTool
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentInstantiationContext, AgentRuntime
+from autogen_core.components import DefaultSubscription, DefaultTopicId
+from autogen_core.components.models import SystemMessage
+from autogen_core.components.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from agnext.base import AgentId
+from autogen_core.base import AgentId
 from common.agents._chat_completion_agent import ChatCompletionAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -224,8 +224,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
-        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        logging.getLogger("autogen_core").setLevel(logging.DEBUG)
         handler = logging.FileHandler("chess_game.log")
-        logging.getLogger("agnext").addHandler(handler)
+        logging.getLogger("autogen_core").addHandler(handler)
 
     asyncio.run(main())

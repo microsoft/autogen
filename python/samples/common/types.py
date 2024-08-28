@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union
 
-from agnext.components import FunctionCall, Image
-from agnext.components.models import FunctionExecutionResultMessage
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResultMessage
 
 
 @dataclass(kw_only=True)

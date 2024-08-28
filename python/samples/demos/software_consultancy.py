@@ -16,10 +16,10 @@ import sys
 import aiofiles
 import aiohttp
 import openai
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentInstantiationContext, AgentRuntime
-from agnext.components.models import SystemMessage
-from agnext.components.tools import FunctionTool
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentInstantiationContext, AgentRuntime
+from autogen_core.components.models import SystemMessage
+from autogen_core.components.tools import FunctionTool
 from markdownify import markdownify  # type: ignore
 from tqdm import tqdm
 from typing_extensions import Annotated
@@ -27,7 +27,7 @@ from typing_extensions import Annotated
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.base import AgentId
+from autogen_core.base import AgentId
 from common.agents import ChatCompletionAgent
 from common.memory import HeadAndTailChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
-        logging.getLogger("agnext").setLevel(logging.DEBUG)
+        logging.getLogger("autogen_core").setLevel(logging.DEBUG)
         handler = logging.FileHandler("software_consultancy.log")
-        logging.getLogger("agnext").addHandler(handler)
+        logging.getLogger("autogen_core").addHandler(handler)
     asyncio.run(main())

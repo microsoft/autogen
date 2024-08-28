@@ -10,10 +10,10 @@ import os
 import sys
 from dataclasses import dataclass
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentId
-from agnext.components import RoutedAgent, message_handler
-from agnext.components.models import (
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId
+from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
@@ -21,7 +21,7 @@ from agnext.components.models import (
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.base import MessageContext
+from autogen_core.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
     asyncio.run(main())

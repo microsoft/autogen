@@ -1,14 +1,14 @@
 from typing import Literal
 
 import openai
-from agnext.base import CancellationToken, MessageContext
-from agnext.components import (
+from autogen_core.base import CancellationToken, MessageContext
+from autogen_core.components import (
     DefaultTopicId,
     Image,
     RoutedAgent,
     message_handler,
 )
-from agnext.components.memory import ChatMemory
+from autogen_core.components.memory import ChatMemory
 
 from ..types import (
     Message,

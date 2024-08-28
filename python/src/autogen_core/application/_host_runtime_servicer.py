@@ -11,8 +11,8 @@ from ..components import TypeSubscription
 from ._helpers import SubscriptionManager
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 
-logger = logging.getLogger("agnext")
-event_logger = logging.getLogger("agnext.events")
+logger = logging.getLogger("autogen_core")
+event_logger = logging.getLogger("autogen_core.events")
 
 
 class HostRuntimeServicer(agent_worker_pb2_grpc.AgentRpcServicer):

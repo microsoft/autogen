@@ -1,5 +1,5 @@
 """
-The :mod:`agnext.application` module provides implementations of core components that are used to compose an application
+The :mod:`autogen_core.application` module provides implementations of core components that are used to compose an application
 """
 
 from ._host_runtime_servicer import HostRuntimeServicer

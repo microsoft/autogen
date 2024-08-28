@@ -39,9 +39,9 @@ import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
-from agnext.components.models import (
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
@@ -51,7 +51,7 @@ from agnext.components.models import (
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.base import MessageContext
+from autogen_core.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 logger = logging.getLogger(__name__)
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
     asyncio.run(
         main(
             "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?"

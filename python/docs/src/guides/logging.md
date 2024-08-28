@@ -5,11 +5,11 @@ AGNext uses Python's built-in [`logging`](https://docs.python.org/3/library/logg
 There are two kinds of logging:
 
 - **Trace logging**: This is used for debugging and is human readable messages to indicate what is going on. This is intended for a developer to understand what is happening in the code. The content and format of these logs should not be depended on by other systems.
-    - Name: {py:attr}`~agnext.application.logging.TRACE_LOGGER_NAME`.
+    - Name: {py:attr}`~autogen_core.application.logging.TRACE_LOGGER_NAME`.
 - **Structured logging**: This logger emits structured events that can be consumed by other systems. The content and format of these logs should be can be depended on by other systems.
-    - Name: {py:attr}`~agnext.application.logging.EVENT_LOGGER_NAME`.
-    - See the module {py:mod}`agnext.application.logging.events` to see the available events.
-- {py:attr}`~agnext.application.logging.ROOT_LOGGER` can be used to enable or disable all logs at the same time.
+    - Name: {py:attr}`~autogen_core.application.logging.EVENT_LOGGER_NAME`.
+    - See the module {py:mod}`autogen_core.application.logging.events` to see the available events.
+- {py:attr}`~autogen_core.application.logging.ROOT_LOGGER` can be used to enable or disable all logs at the same time.
 
 ## Enabling logging output
 
@@ -18,7 +18,7 @@ To enable trace logging, you can use the following code:
 ```python
 import logging
 
-from agnext.application.logging import TRACE_LOGGER_NAME
+from autogen_core.application.logging import TRACE_LOGGER_NAME
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -70,7 +70,7 @@ These two names are the root loggers for these types. Code that emits logs shoul
 ```python
 import logging
 
-from agnext.application.logging import TRACE_LOGGER_NAME
+from autogen_core.application.logging import TRACE_LOGGER_NAME
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.my_module")
 ```
 
@@ -90,7 +90,7 @@ class MyEvent:
 Then it could be emitted in code like this:
 
 ```python
-from agnext.application.logging import EVENT_LOGGER_NAME
+from autogen_core.application.logging import EVENT_LOGGER_NAME
 
 logger = logging.getLogger(EVENT_LOGGER_NAME + ".my_module")
 logger.info(MyEvent("timestamp", "message"))

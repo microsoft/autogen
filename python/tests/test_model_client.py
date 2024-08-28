@@ -2,8 +2,8 @@ import asyncio
 from typing import Any, AsyncGenerator, List
 
 import pytest
-from agnext.components import Image
-from agnext.components.models import (
+from autogen_core.components import Image
+from autogen_core.components.models import (
     AssistantMessage,
     AzureOpenAIChatCompletionClient,
     CreateResult,
@@ -14,9 +14,9 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.components.models._model_info import resolve_model
-from agnext.components.tools import FunctionTool
-from agnext.base import CancellationToken
+from autogen_core.components.models._model_info import resolve_model
+from autogen_core.components.tools import FunctionTool
+from autogen_core.base import CancellationToken
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta

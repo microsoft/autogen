@@ -3,9 +3,9 @@
 import re
 from typing import Dict, List
 
-from agnext.base import AgentProxy
-from agnext.components.memory import ChatMemory
-from agnext.components.models import ChatCompletionClient, SystemMessage
+from autogen_core.base import AgentProxy
+from autogen_core.components.memory import ChatMemory
+from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
 from ..types import Message, TextMessage
 

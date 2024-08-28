@@ -1,7 +1,7 @@
 import asyncio
 from typing import Tuple
 
-from agnext.base import CancellationToken
+from autogen_core.base import CancellationToken
 
 from ..messages import UserContent
 from .base_worker import BaseWorker

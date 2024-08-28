@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import Any, cast
 
-from agnext.base import AgentId
+from autogen_core.base import AgentId
 
 
 class LLMCallEvent:
@@ -17,7 +17,7 @@ class LLMCallEvent:
 
             .. code-block:: python
 
-                from agnext.application.logging import LLMCallEvent, EVENT_LOGGER_NAME
+                from autogen_core.application.logging import LLMCallEvent, EVENT_LOGGER_NAME
 
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
                 logger.info(LLMCallEvent(prompt_tokens=10, completion_tokens=20))

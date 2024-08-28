@@ -1,7 +1,7 @@
 import asyncio
 
-from agnext.base import MessageContext
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.base import MessageContext
+from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 
 from ..types import PublishNow, TextMessage
 

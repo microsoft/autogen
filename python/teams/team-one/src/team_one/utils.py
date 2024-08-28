@@ -5,9 +5,9 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Literal
 
-from agnext.application.logging.events import LLMCallEvent
-from agnext.components import Image
-from agnext.components.models import (
+from autogen_core.application.logging.events import LLMCallEvent
+from autogen_core.components import Image
+from autogen_core.components.models import (
     AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
     ModelCapabilities,

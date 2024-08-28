@@ -50,8 +50,8 @@ from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 if TYPE_CHECKING:
     from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
 
-logger = logging.getLogger("agnext")
-event_logger = logging.getLogger("agnext.events")
+logger = logging.getLogger("autogen_core")
+event_logger = logging.getLogger("autogen_core.events")
 
 P = ParamSpec("P")
 T = TypeVar("T", bound=Agent)

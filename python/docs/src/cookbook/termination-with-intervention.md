@@ -4,17 +4,17 @@
 This method is only really valid for single-tenant applications. If multiple parallel users are using the application via namespaces this approach will not work without modification.
 ```
 
-There are many different ways to handle termination in `agnext`. Ultimately, the goal is to detect that the runtime no longer needs to be executed and you can proceed to finalization tasks. One way to do this is to use an `InterventionHandler` to detect a termination message and then act on it.
+There are many different ways to handle termination in `autogen_core`. Ultimately, the goal is to detect that the runtime no longer needs to be executed and you can proceed to finalization tasks. One way to do this is to use an `InterventionHandler` to detect a termination message and then act on it.
 
 ```python
 import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import RoutedAgent, message_handler
-from agnext.base import AgentId, CancellationToken
-from agnext.base.intervention import DefaultInterventionHandler
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.base import AgentId, CancellationToken
+from autogen_core.base.intervention import DefaultInterventionHandler
 ```
 
 First, we define a dataclass that will be used to signal termination.

@@ -2,9 +2,9 @@ import asyncio
 import logging
 from typing import Any
 
-from agnext.application.logging import EVENT_LOGGER_NAME
-from agnext.base import MessageContext
-from agnext.components import RoutedAgent, message_handler
+from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core.base import MessageContext
+from autogen_core.components import RoutedAgent, message_handler
 
 from team_one.messages import (
     AgentEvent,

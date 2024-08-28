@@ -1,9 +1,9 @@
 import re
 from typing import List, Optional, Tuple, Union
 
-from agnext.base import CancellationToken
-from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
-from agnext.components.models import (
+from autogen_core.base import CancellationToken
+from autogen_core.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
+from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,

@@ -1,7 +1,7 @@
 import os
 from typing import Any, List, Optional, Union
 
-from agnext.components.models import (
+from autogen_core.components.models import (
     AssistantMessage,
     AzureOpenAIChatCompletionClient,
     ChatCompletionClient,

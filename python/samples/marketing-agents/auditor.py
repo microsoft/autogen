@@ -1,7 +1,7 @@
-from agnext.base import MessageContext
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.components.models import ChatCompletionClient
-from agnext.components.models._types import SystemMessage
+from autogen_core.base import MessageContext
+from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components.models import ChatCompletionClient
+from autogen_core.components.models._types import SystemMessage
 from messages import AuditorAlert, AuditText
 
 auditor_prompt = """You are an Auditor in a Marketing team

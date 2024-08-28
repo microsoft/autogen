@@ -2,9 +2,9 @@ import json
 import time
 from typing import List, Optional, Tuple
 
-from agnext.base import CancellationToken
-from agnext.components import FunctionCall
-from agnext.components.models import (
+from autogen_core.base import CancellationToken
+from autogen_core.components import FunctionCall
+from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,

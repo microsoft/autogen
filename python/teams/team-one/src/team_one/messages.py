@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 
-from agnext.components import FunctionCall, Image
-from agnext.components.models import FunctionExecutionResult, LLMMessage
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResult, LLMMessage
 
 # Convenience type
 UserContent = Union[str, List[Union[str, Image]]]

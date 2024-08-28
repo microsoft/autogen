@@ -10,25 +10,25 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.components import FunctionCall
-from agnext.components.tool_agent import (
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.components import FunctionCall
+from autogen_core.components.tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
     ToolExecutionException,
     ToolNotFoundException,
     tool_agent_caller_loop,
 )
-from agnext.components.tools import FunctionTool, Tool
-from agnext.base import CancellationToken, AgentId
-from agnext.components.models import (
+from autogen_core.components.tools import FunctionTool, Tool
+from autogen_core.base import CancellationToken, AgentId
+from autogen_core.components.models import (
     AssistantMessage,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     OpenAIChatCompletionClient,
     UserMessage,
 )
-from agnext.components.tools import FunctionTool
+from autogen_core.components.tools import FunctionTool
 
 
 def _pass_function(input: str) -> str:

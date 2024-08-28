@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "agnext@{root:parent:parent:uri}",
+    "autogen-core@{root:parent:parent:uri}",
     "aiofiles",
     "requests",
     "mammoth",

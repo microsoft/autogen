@@ -2,8 +2,8 @@ import asyncio
 import signal
 
 import grpc
-from agnext.application import HostRuntimeServicer
-from agnext.application.protos import agent_worker_pb2_grpc
+from autogen_core.application import HostRuntimeServicer
+from autogen_core.application.protos import agent_worker_pb2_grpc
 
 
 async def serve(server: grpc.aio.Server) -> None:  # type: ignore
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
 
     try:
         asyncio.run(main())

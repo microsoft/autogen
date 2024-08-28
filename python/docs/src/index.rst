@@ -64,9 +64,9 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     :caption: Reference
     :hidden:
 
-    reference/agnext.components
-    reference/agnext.application
-    reference/agnext.base
+    reference/autogen_core.components
+    reference/autogen_core.application
+    reference/autogen_core.base
 
 .. toctree::
     :caption: Other

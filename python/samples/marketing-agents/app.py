@@ -1,9 +1,9 @@
 import os
 
-from agnext.base import AgentRuntime
-from agnext.components import DefaultSubscription
-from agnext.components.models import AzureOpenAIChatCompletionClient
 from auditor import AuditAgent
+from autogen_core.base import AgentRuntime
+from autogen_core.components import DefaultSubscription
+from autogen_core.components.models import AzureOpenAIChatCompletionClient
 from graphic_designer import GraphicDesignerAgent
 from openai import AsyncAzureOpenAI
 

@@ -2,8 +2,8 @@ import logging
 from typing import Literal
 
 import openai
-from agnext.base import MessageContext
-from agnext.components import (
+from autogen_core.base import MessageContext
+from autogen_core.components import (
     DefaultTopicId,
     RoutedAgent,
     message_handler,

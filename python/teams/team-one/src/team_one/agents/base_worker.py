@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
-from agnext.base import CancellationToken, MessageContext, TopicId
-from agnext.components.models import (
+from autogen_core.base import CancellationToken, MessageContext, TopicId
+from autogen_core.components.models import (
     AssistantMessage,
     LLMMessage,
     UserMessage,

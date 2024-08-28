@@ -1,9 +1,9 @@
-from agnext.components import TypeSubscription
-from agnext.base import TopicId, AgentId
+from autogen_core.components import TypeSubscription
+from autogen_core.base import TopicId, AgentId
 
 import pytest
 
-from agnext.base.exceptions import CantHandleException
+from autogen_core.base.exceptions import CantHandleException
 
 def test_type_subscription_match() -> None:
     sub = TypeSubscription(topic_type="t1", agent_type="a1")

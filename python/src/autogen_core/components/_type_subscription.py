@@ -1,6 +1,6 @@
 import uuid
 
-from agnext.base.exceptions import CantHandleException
+from autogen_core.base.exceptions import CantHandleException
 
 from ..base import AgentId, Subscription, TopicId
 

@@ -477,7 +477,7 @@ echo RUN.SH COMPLETE !#!#
     # Figure out what folders to mount
     volumes = {str(pathlib.Path(work_dir).absolute()): {"bind": "/workspace", "mode": "rw"}}
 
-    # Add the agnext repo if we can find it
+    # Add the autogen_core repo if we can find it
     agnext_repo_base = os.environ.get("AGNEXT_REPO_BASE")
     if agnext_repo_base is None:
         agnext_repo_base = find_agnext_repo(os.getcwd())
@@ -490,7 +490,7 @@ echo RUN.SH COMPLETE !#!#
         )
 
     agnext_repo_base = os.path.join(agnext_repo_base, "python")
-    volumes[str(pathlib.Path(agnext_repo_base).absolute())] = {"bind": "/agnext", "mode": "rw"}
+    volumes[str(pathlib.Path(agnext_repo_base).absolute())] = {"bind": "/autogen_core", "mode": "rw"}
 
     print("Mounting:")
     for k in volumes:
@@ -585,9 +585,9 @@ def build_default_docker_image(docker_client: docker.DockerClient, image_tag: st
 
 def find_agnext_repo(path: str) -> Optional[str]:
     """
-    Utility for identifying if the path is a subdirectory of the agnext repo.
+    Utility for identifying if the path is a subdirectory of the autogen_core repo.
 
-    Returns: the path to the root of the agnext repo if one is found, otherwise None
+    Returns: the path to the root of the autogen_core repo if one is found, otherwise None
     """
 
     # Normalize the path (we expect a directory)
@@ -596,7 +596,7 @@ def find_agnext_repo(path: str) -> Optional[str]:
         path = os.path.dirname(path)
 
     while True:
-        test_path = os.path.join(path, "python", "src", "agnext")  # We found agnext
+        test_path = os.path.join(path, "python", "src", "autogen_core")  # We found autogen_core
         if os.path.isdir(test_path):
             return path
 

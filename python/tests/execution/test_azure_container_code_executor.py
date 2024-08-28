@@ -9,8 +9,8 @@ from anyio import open_file
 
 import pytest
 from azure.identity import DefaultAzureCredential
-from agnext.components.code_executor import CodeBlock, AzureContainerCodeExecutor
-from agnext.base import CancellationToken
+from autogen_core.components.code_executor import CodeBlock, AzureContainerCodeExecutor
+from autogen_core.base import CancellationToken
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]

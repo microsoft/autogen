@@ -1,4 +1,4 @@
-from agnext.components.tools import ParametersSchema, ToolSchema
+from autogen_core.components.tools import ParametersSchema, ToolSchema
 
 TOOL_OPEN_LOCAL_FILE = ToolSchema(
     name="open_local_file",

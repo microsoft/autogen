@@ -1,6 +1,6 @@
 from typing import Protocol, runtime_checkable
 
-from agnext.base import AgentId
+from autogen_core.base import AgentId
 
 from ._topic import TopicId
 

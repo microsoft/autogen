@@ -1,8 +1,14 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from agnext.base import AgentProxy, MessageContext, TopicId
-from agnext.components.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.base import AgentProxy, MessageContext, TopicId
+from autogen_core.components.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
+)
 
 from ..messages import BroadcastMessage, OrchestrationEvent, ResetMessage
 from .base_orchestrator import BaseOrchestrator, logger

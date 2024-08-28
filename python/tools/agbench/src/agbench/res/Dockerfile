@@ -11,7 +11,7 @@ RUN ln -snf /usr/share/zoneinfo/US/Pacific /etc/localtime && echo "US/Pacific" >
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Pre-load agnext dependencies, but not agnext itself since we'll often want to install the latest from source
+# Pre-load autogen_core dependencies, but not autogen_core itself since we'll often want to install the latest from source
 RUN pip install openai pillow aiohttp typing-extensions pydantic types-aiofiles grpcio protobuf
 
 # Pre-load popular packages as per https://learnpython.com/blog/most-popular-python-packages/

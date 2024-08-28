@@ -1,4 +1,4 @@
-from agnext.base.exceptions import CantHandleException
+from autogen_core.base.exceptions import CantHandleException
 
 from ..base import SubscriptionInstantiationContext
 from ._type_subscription import TypeSubscription

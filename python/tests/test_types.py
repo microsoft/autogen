@@ -1,9 +1,9 @@
 from types import NoneType
 from typing import Any, Optional, Union
 
-from agnext.components._routed_agent import message_handler
-from agnext.components._type_helpers import AnyType, get_types
-from agnext.base import MessageContext
+from autogen_core.components._routed_agent import message_handler
+from autogen_core.components._type_helpers import AnyType, get_types
+from autogen_core.base import MessageContext
 
 
 def test_get_types() -> None:

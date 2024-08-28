@@ -1,5 +1,5 @@
 """
-The :mod:`agnext.worker.protos` module provides Google Protobuf classes for agent-worker communication
+The :mod:`autogen_core.worker.protos` module provides Google Protobuf classes for agent-worker communication
 """
 
 import os

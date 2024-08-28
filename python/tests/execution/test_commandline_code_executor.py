@@ -7,8 +7,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from agnext.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
-from agnext.base import CancellationToken
+from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
+from autogen_core.base import CancellationToken
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]

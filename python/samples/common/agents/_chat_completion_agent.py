@@ -2,21 +2,21 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
-from agnext.base import AgentId, CancellationToken, MessageContext
-from agnext.components import (
+from autogen_core.base import AgentId, CancellationToken, MessageContext
+from autogen_core.components import (
     DefaultTopicId,
     FunctionCall,
     RoutedAgent,
     message_handler,
 )
-from agnext.components.memory import ChatMemory
-from agnext.components.models import (
+from autogen_core.components.memory import ChatMemory
+from autogen_core.components.models import (
     ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     SystemMessage,
 )
-from agnext.components.tools import Tool
+from autogen_core.components.tools import Tool
 
 from ..types import (
     FunctionCallMessage,

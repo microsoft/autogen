@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Any
 
-from agnext.components import RoutedAgent, message_handler
-from agnext.components import DefaultTopicId
-from agnext.base import BaseAgent
-from agnext.base import MessageContext
+from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.components import DefaultTopicId
+from autogen_core.base import BaseAgent
+from autogen_core.base import MessageContext
 
 
 @dataclass

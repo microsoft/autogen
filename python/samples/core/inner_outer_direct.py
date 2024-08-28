@@ -10,9 +10,9 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
-from agnext.application import SingleThreadedAgentRuntime
-from agnext.base import AgentId, AgentInstantiationContext, MessageContext
-from agnext.components import RoutedAgent, message_handler
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, AgentInstantiationContext, MessageContext
+from autogen_core.components import RoutedAgent, message_handler
 
 
 @dataclass
@@ -60,5 +60,5 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.WARNING)
-    logging.getLogger("agnext").setLevel(logging.DEBUG)
+    logging.getLogger("autogen_core").setLevel(logging.DEBUG)
     asyncio.run(main())

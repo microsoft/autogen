@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "agnext"
+project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
 
@@ -22,7 +22,7 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 
-apidoc_module_dir = "../../src/agnext"
+apidoc_module_dir = "../../src/autogen_core"
 apidoc_output_dir = "reference"
 apidoc_template_dir = "_apidoc_templates"
 apidoc_separate_modules = True
@@ -31,7 +31,7 @@ napoleon_custom_sections = [("Returns", "params_style")]
 apidoc_excluded_paths = ["./application/protos/"]
 
 templates_path = []
-exclude_patterns = ["reference/agnext.rst"]
+exclude_patterns = ["reference/autogen_core.rst"]
 
 autoclass_content = "init"
 
@@ -53,7 +53,7 @@ html_theme = "furo"
 html_static_path = []
 
 html_theme_options = {
-    "source_repository": "https://github.com/microsoft/agnext",
+    "source_repository": "https://github.com/microsoft/autogen_core",
     "source_branch": "main",
     "source_directory": "python/docs/src/",
 }

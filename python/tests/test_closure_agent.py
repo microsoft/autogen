@@ -3,18 +3,18 @@
 from dataclasses import dataclass
 
 import pytest
-from agnext.application import SingleThreadedAgentRuntime
+from autogen_core.application import SingleThreadedAgentRuntime
 
-from agnext.components._type_subscription import TypeSubscription
-from agnext.base import AgentRuntime, AgentId
+from autogen_core.components._type_subscription import TypeSubscription
+from autogen_core.base import AgentRuntime, AgentId
 
-from agnext.components import ClosureAgent
+from autogen_core.components import ClosureAgent
 
 
 import asyncio
 
-from agnext.base import MessageContext
-from agnext.base import TopicId
+from autogen_core.base import MessageContext
+from autogen_core.base import TopicId
 
 @dataclass
 class Message:

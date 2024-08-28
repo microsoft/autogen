@@ -21,7 +21,7 @@ from ..base import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
 from ..base.exceptions import CantHandleException
 from ._type_helpers import AnyType, get_types
 
-logger = logging.getLogger("agnext")
+logger = logging.getLogger("autogen_core")
 
 ReceivesT = TypeVar("ReceivesT", contravariant=True)
 ProducesT = TypeVar("ProducesT", covariant=True)
