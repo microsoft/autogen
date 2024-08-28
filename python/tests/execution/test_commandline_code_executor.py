@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from agnext.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]

@@ -4,9 +4,9 @@ from dataclasses import dataclass
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, CancellationToken
-from agnext.core import MessageContext
-from agnext.core import AgentInstantiationContext
+from agnext.base import AgentId, CancellationToken
+from agnext.base import MessageContext
+from agnext.base import AgentInstantiationContext
 
 
 @dataclass

@@ -3,8 +3,8 @@ import logging
 from typing import Any
 
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.base import MessageContext
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import MessageContext
 
 from team_one.messages import (
     AgentEvent,

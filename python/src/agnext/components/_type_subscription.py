@@ -1,8 +1,8 @@
 import uuid
 
-from agnext.core.exceptions import CantHandleException
+from agnext.base.exceptions import CantHandleException
 
-from ..core import AgentId, Subscription, TopicId
+from ..base import AgentId, Subscription, TopicId
 
 
 class TypeSubscription(Subscription):

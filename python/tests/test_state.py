@@ -2,8 +2,8 @@ from typing import Any, Mapping
 
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import BaseAgent, MessageContext
-from agnext.core import AgentId
+from agnext.base import BaseAgent, MessageContext
+from agnext.base import AgentId
 
 
 class StatefulAgent(BaseAgent):

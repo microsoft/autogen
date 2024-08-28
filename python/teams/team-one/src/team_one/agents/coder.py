@@ -1,13 +1,13 @@
 import re
 from typing import List, Optional, Tuple, Union
 
+from agnext.base import CancellationToken
 from agnext.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
 from agnext.components.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 from ..messages import UserContent
 from ..utils import message_content_to_str

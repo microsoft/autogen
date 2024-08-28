@@ -6,7 +6,7 @@ from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeV
 from pydantic import BaseModel
 from typing_extensions import NotRequired
 
-from ...core import CancellationToken
+from ...base import CancellationToken
 from .._function_utils import normalize_annotated_type
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)

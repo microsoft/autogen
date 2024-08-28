@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
-from ...core import CancellationToken
+from ...base import CancellationToken
 from .._function_utils import (
     args_base_model_from_signature,
     get_typed_signature,

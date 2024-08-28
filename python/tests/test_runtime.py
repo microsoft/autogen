@@ -2,10 +2,10 @@ import asyncio
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeSubscription, DefaultTopicId, DefaultSubscription
-from agnext.core import AgentId, AgentInstantiationContext
-from agnext.core import TopicId
-from agnext.core import Subscription
-from agnext.core import SubscriptionInstantiationContext
+from agnext.base import AgentId, AgentInstantiationContext
+from agnext.base import TopicId
+from agnext.base import Subscription
+from agnext.base import SubscriptionInstantiationContext
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
 
 

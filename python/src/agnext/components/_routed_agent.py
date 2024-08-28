@@ -17,8 +17,8 @@ from typing import (
     runtime_checkable,
 )
 
-from ..core import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
-from ..core.exceptions import CantHandleException
+from ..base import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
+from ..base.exceptions import CantHandleException
 from ._type_helpers import AnyType, get_types
 
 logger = logging.getLogger("agnext")

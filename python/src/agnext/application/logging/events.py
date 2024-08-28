@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import Any, cast
 
-from agnext.core import AgentId
+from agnext.base import AgentId
 
 
 class LLMCallEvent:

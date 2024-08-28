@@ -6,13 +6,13 @@ import sys
 
 import openai
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentInstantiationContext, AgentRuntime
 from agnext.components.models import SystemMessage
-from agnext.core import AgentInstantiationContext, AgentRuntime
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import AgentId, AgentProxy
+from agnext.base import AgentId, AgentProxy
 from common.agents import ChatCompletionAgent, ImageGenerationAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager

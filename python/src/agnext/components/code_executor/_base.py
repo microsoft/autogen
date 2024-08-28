@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Protocol, runtime_checkable
 
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 
 
 @dataclass

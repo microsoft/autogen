@@ -1,6 +1,6 @@
 from typing import Any, Awaitable, Callable, Protocol, final
 
-from agnext.core import AgentId
+from agnext.base import AgentId
 
 __all__ = [
     "DropMessage",

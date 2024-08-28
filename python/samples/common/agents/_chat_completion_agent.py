@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
+from agnext.base import AgentId, CancellationToken, MessageContext
 from agnext.components import (
     DefaultTopicId,
     FunctionCall,
@@ -16,7 +17,6 @@ from agnext.components.models import (
     SystemMessage,
 )
 from agnext.components.tools import Tool
-from agnext.core import AgentId, CancellationToken, MessageContext
 
 from ..types import (
     FunctionCallMessage,

@@ -13,8 +13,8 @@ from typing import Any
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, CancellationToken
-from agnext.core.intervention import DefaultInterventionHandler
+from agnext.base import AgentId, CancellationToken
+from agnext.base.intervention import DefaultInterventionHandler
 ```
 
 First, we define a dataclass that will be used to signal termination.

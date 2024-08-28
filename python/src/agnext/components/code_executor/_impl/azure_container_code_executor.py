@@ -16,7 +16,7 @@ from azure.core.credentials import AccessToken
 # from azure.mgmt.appcontainers import ContainerAppsAPIClient
 from typing_extensions import ParamSpec
 
-from ....core import CancellationToken
+from ....base import CancellationToken
 from .._base import CodeBlock, CodeExecutor, CodeResult
 from .._func_with_reqs import (
     FunctionWithRequirements,

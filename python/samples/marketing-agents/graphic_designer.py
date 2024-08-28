@@ -2,12 +2,12 @@ import logging
 from typing import Literal
 
 import openai
+from agnext.base import MessageContext
 from agnext.components import (
     DefaultTopicId,
     RoutedAgent,
     message_handler,
 )
-from agnext.core import MessageContext
 from messages import ArticleCreated, GraphicDesignCreated
 
 

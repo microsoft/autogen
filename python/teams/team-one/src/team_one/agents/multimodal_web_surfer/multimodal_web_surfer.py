@@ -12,6 +12,7 @@ from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlun
 
 import aiofiles
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.base import CancellationToken
 from agnext.components import FunctionCall
 from agnext.components import Image as AGImage
 from agnext.components.models import (
@@ -21,7 +22,6 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 from PIL import Image
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError

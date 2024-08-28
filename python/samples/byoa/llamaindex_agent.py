@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, MessageContext
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, MessageContext
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
 from llama_index.core.agent.runner.base import AgentRunner

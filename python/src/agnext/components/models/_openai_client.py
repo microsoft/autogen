@@ -37,7 +37,7 @@ from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...application.logging.events import LLMCallEvent
-from ...core import CancellationToken
+from ...base import CancellationToken
 from .. import (
     FunctionCall,
     Image,

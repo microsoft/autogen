@@ -6,15 +6,15 @@ import pytest
 from agnext.application import SingleThreadedAgentRuntime
 
 from agnext.components._type_subscription import TypeSubscription
-from agnext.core import AgentRuntime, AgentId
+from agnext.base import AgentRuntime, AgentId
 
 from agnext.components import ClosureAgent
 
 
 import asyncio
 
-from agnext.core import MessageContext
-from agnext.core import TopicId
+from agnext.base import MessageContext
+from agnext.base import TopicId
 
 @dataclass
 class Message:

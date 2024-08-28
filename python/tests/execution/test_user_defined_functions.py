@@ -15,7 +15,7 @@ from agnext.components.code_executor import (
     AzureContainerCodeExecutor,
     with_requirements,
 )
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 
@@ -255,11 +255,11 @@ def add_two_numbers(a: int, b: int) -> int:
     return a + b
 '''
         )
-    
+
     assert_str = '''def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
-    
+
     with tempfile.TemporaryDirectory() as temp_dir:
 
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[func])

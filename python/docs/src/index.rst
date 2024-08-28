@@ -3,9 +3,9 @@ AGNext
 
 AGNext is a framework for building multi-agent applications with AI agents.
 
-At a high level, it provides a framework for inter-agent communication and a 
+At a high level, it provides a framework for inter-agent communication and a
 suite of independent components for building and managing agents.
-You can implement agents in 
+You can implement agents in
 different programming languages and deploy them on different machines across organizational boundaries.
 You can also implement agents using other agent frameworks and run them in AGNext.
 
@@ -66,7 +66,7 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
 
     reference/agnext.components
     reference/agnext.application
-    reference/agnext.core
+    reference/agnext.base
 
 .. toctree::
     :caption: Other

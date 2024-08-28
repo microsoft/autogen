@@ -6,8 +6,8 @@ from typing import Any, Dict, Set
 
 import grpc
 
+from ..base import TopicId
 from ..components import TypeSubscription
-from ..core import TopicId
 from ._helpers import SubscriptionManager
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 

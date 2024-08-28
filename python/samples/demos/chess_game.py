@@ -10,16 +10,16 @@ import sys
 from typing import Annotated, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentInstantiationContext, AgentRuntime
 from agnext.components import DefaultSubscription, DefaultTopicId
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import AgentInstantiationContext, AgentRuntime
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from agnext.core import AgentId
+from agnext.base import AgentId
 from common.agents._chat_completion_agent import ChatCompletionAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager

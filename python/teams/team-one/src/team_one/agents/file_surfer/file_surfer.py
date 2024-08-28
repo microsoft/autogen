@@ -2,13 +2,13 @@ import json
 import time
 from typing import List, Optional, Tuple
 
+from agnext.base import CancellationToken
 from agnext.components import FunctionCall
 from agnext.components.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
-from agnext.core import CancellationToken
 
 from ...markdown_browser import RequestsMarkdownBrowser
 from ..base_worker import BaseWorker

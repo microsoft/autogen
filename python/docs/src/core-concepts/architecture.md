@@ -30,7 +30,7 @@ memory stores, and more.
 
 The API consists of the following layers:
 
-- {py:mod}`agnext.core`
+- {py:mod}`agnext.base`
 - {py:mod}`agnext.application`
 - {py:mod}`agnext.components`
 
@@ -38,7 +38,7 @@ The following diagram shows the relationship between the layers.
 
 ![AGNext Layers](agnext-layers.svg)
 
-The {py:mod}`agnext.core` layer defines the
+The {py:mod}`agnext.base` layer defines the
 core interfaces and base classes for agents, messages, and runtime.
 This layer is the foundation of the framework and is used by the other layers.
 

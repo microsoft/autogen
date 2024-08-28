@@ -3,10 +3,10 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.base import AgentId, AgentProxy
 
 # from typing import Any, Dict, List, Tuple, Union
 from agnext.components import DefaultSubscription
-from agnext.core import AgentId, AgentProxy
 from team_one.agents.coder import Coder
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy

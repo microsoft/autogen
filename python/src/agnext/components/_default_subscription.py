@@ -1,6 +1,6 @@
-from agnext.core.exceptions import CantHandleException
+from agnext.base.exceptions import CantHandleException
 
-from ..core import SubscriptionInstantiationContext
+from ..base import SubscriptionInstantiationContext
 from ._type_subscription import TypeSubscription
 
 

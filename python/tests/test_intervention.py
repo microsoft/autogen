@@ -1,8 +1,8 @@
 import pytest
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import AgentId
-from agnext.core.exceptions import MessageDroppedException
-from agnext.core.intervention import DefaultInterventionHandler, DropMessage
+from agnext.base import AgentId
+from agnext.base.exceptions import MessageDroppedException
+from agnext.base.intervention import DefaultInterventionHandler, DropMessage
 from test_utils import LoopbackAgent, MessageType
 
 

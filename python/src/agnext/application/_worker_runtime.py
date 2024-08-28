@@ -28,8 +28,7 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
-from ..components import TypeSubscription
-from ..core import (
+from ..base import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
     AgentId,
@@ -44,6 +43,7 @@ from ..core import (
     SubscriptionInstantiationContext,
     TopicId,
 )
+from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 

@@ -10,7 +10,7 @@ When considering how to extract results from a multi-agent system, you must alwa
 
 ```python
 from agnext.application import SingleThreadedAgentRuntime
-from agnext.core import AgentRuntime, AgentId, CancellationToken
+from agnext.base import AgentRuntime, AgentId, CancellationToken
 from agnext.components import ClosureAgent
 
 import asyncio

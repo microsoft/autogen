@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from agnext.application import WorkerAgentRuntime
-from agnext.core import MESSAGE_TYPE_REGISTRY
+from agnext.base import MESSAGE_TYPE_REGISTRY
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated

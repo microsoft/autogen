@@ -3,9 +3,9 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.application.logging import EVENT_LOGGER_NAME
+from agnext.base import AgentId, AgentProxy
 from agnext.components import DefaultSubscription, DefaultTopicId
 from agnext.components.models import UserMessage
-from agnext.core import AgentId, AgentProxy
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.reflex_agents import ReflexAgent
 from team_one.messages import BroadcastMessage

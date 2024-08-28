@@ -3,7 +3,7 @@ from typing import Any, Optional, Union
 
 from agnext.components._routed_agent import message_handler
 from agnext.components._type_helpers import AnyType, get_types
-from agnext.core import MessageContext
+from agnext.base import MessageContext
 
 
 def test_get_types() -> None:

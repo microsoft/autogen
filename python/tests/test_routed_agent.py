@@ -4,7 +4,7 @@ import logging
 
 from agnext.application import SingleThreadedAgentRuntime
 from agnext.components import TypeSubscription
-from agnext.core import TopicId
+from agnext.base import TopicId
 
 from test_utils import LoopbackAgent
 

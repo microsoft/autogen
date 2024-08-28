@@ -17,9 +17,9 @@ import aiofiles
 import aiohttp
 import openai
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentInstantiationContext, AgentRuntime
 from agnext.components.models import SystemMessage
 from agnext.components.tools import FunctionTool
-from agnext.core import AgentInstantiationContext, AgentRuntime
 from markdownify import markdownify  # type: ignore
 from tqdm import tqdm
 from typing_extensions import Annotated
@@ -27,7 +27,7 @@ from typing_extensions import Annotated
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import AgentId
+from agnext.base import AgentId
 from common.agents import ChatCompletionAgent
 from common.memory import HeadAndTailChatMemory
 from common.patterns._group_chat_manager import GroupChatManager

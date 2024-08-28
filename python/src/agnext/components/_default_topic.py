@@ -1,4 +1,4 @@
-from ..core import MessageHandlerContext, TopicId
+from ..base import MessageHandlerContext, TopicId
 
 
 class DefaultTopicId(TopicId):

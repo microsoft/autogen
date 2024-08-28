@@ -10,18 +10,18 @@ import sys
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentInstantiationContext
 from agnext.components.models import (
     SystemMessage,
 )
 from agnext.components.tool_agent import ToolAgent
 from agnext.components.tools import FunctionTool, Tool
-from agnext.core import AgentInstantiationContext
 from typing_extensions import Annotated
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import AgentId
+from agnext.base import AgentId
 from coding_direct import Message, ToolUseAgent
 from common.utils import get_chat_completion_client_from_envs
 

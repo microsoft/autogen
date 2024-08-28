@@ -10,7 +10,7 @@ from anyio import open_file
 import pytest
 from azure.identity import DefaultAzureCredential
 from agnext.components.code_executor import CodeBlock, AzureContainerCodeExecutor
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
@@ -109,7 +109,7 @@ async def test_upload_files() -> None:
     test_file_2 = "test2"
     test_file_2_contents = "test file 2"
     cancellation_token = CancellationToken()
-    
+
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir)
 
@@ -148,7 +148,7 @@ async def test_download_files() -> None:
     test_file_2 = "test2"
     test_file_2_contents = "azure test file 2"
     cancellation_token = CancellationToken()
-    
+
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir)
 

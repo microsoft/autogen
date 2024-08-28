@@ -8,8 +8,8 @@ from math import ceil
 import asyncio
 import pytest
 
-from agnext.core import AgentId
-from agnext.core import AgentProxy
+from agnext.base import AgentId
+from agnext.base import AgentProxy
 pytest_plugins = ('pytest_asyncio',)
 from json import dumps
 

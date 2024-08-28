@@ -12,7 +12,7 @@ from typing import Any, Callable, ClassVar, List, Sequence, Union
 
 from typing_extensions import ParamSpec
 
-from ....core import CancellationToken
+from ....base import CancellationToken
 from .._base import CodeBlock, CodeExecutor
 from .._func_with_reqs import (
     FunctionWithRequirements,

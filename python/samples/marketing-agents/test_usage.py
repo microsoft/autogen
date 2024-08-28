@@ -2,8 +2,8 @@ import asyncio
 import os
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import MessageContext
 from agnext.components import DefaultTopicId, Image, RoutedAgent, message_handler
-from agnext.core import MessageContext
 from app import build_app
 from dotenv import load_dotenv
 from messages import ArticleCreated, AuditorAlert, AuditText, GraphicDesignCreated

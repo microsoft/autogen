@@ -3,8 +3,8 @@ from typing import Any
 
 from agnext.components import RoutedAgent, message_handler
 from agnext.components import DefaultTopicId
-from agnext.core import BaseAgent
-from agnext.core import MessageContext
+from agnext.base import BaseAgent
+from agnext.base import MessageContext
 
 
 @dataclass

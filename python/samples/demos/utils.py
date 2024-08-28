@@ -4,8 +4,8 @@ import random
 import sys
 from asyncio import Future
 
+from agnext.base import AgentRuntime, CancellationToken
 from agnext.components import DefaultTopicId, Image, RoutedAgent, message_handler
-from agnext.core import AgentRuntime, CancellationToken
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
 from textual.widgets import Button, Footer, Header, Input, Markdown, Static

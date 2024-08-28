@@ -12,8 +12,8 @@ from typing import List
 import aiofiles
 import openai
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, AgentRuntime, MessageContext
 from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.core import AgentId, AgentRuntime, MessageContext
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -22,7 +22,7 @@ from typing_extensions import override
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from agnext.core import AgentInstantiationContext
+from agnext.base import AgentInstantiationContext
 from common.agents import OpenAIAssistantAgent
 from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager

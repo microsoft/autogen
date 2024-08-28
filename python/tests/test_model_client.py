@@ -16,7 +16,7 @@ from agnext.components.models import (
 )
 from agnext.components.models._model_info import resolve_model
 from agnext.components.tools import FunctionTool
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta

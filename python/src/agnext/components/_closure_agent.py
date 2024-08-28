@@ -1,15 +1,15 @@
 import inspect
 from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar, get_type_hints
 
-from agnext.core import MessageContext
+from agnext.base import MessageContext
 
-from ..core._agent import Agent
-from ..core._agent_id import AgentId
-from ..core._agent_instantiation import AgentInstantiationContext
-from ..core._agent_metadata import AgentMetadata
-from ..core._agent_runtime import AgentRuntime
-from ..core._serialization import MESSAGE_TYPE_REGISTRY
-from ..core.exceptions import CantHandleException
+from ..base._agent import Agent
+from ..base._agent_id import AgentId
+from ..base._agent_instantiation import AgentInstantiationContext
+from ..base._agent_metadata import AgentMetadata
+from ..base._agent_runtime import AgentRuntime
+from ..base._serialization import MESSAGE_TYPE_REGISTRY
+from ..base.exceptions import CantHandleException
 from ._type_helpers import get_types
 
 T = TypeVar("T")

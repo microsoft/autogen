@@ -20,7 +20,7 @@ from agnext.components.tool_agent import (
     tool_agent_caller_loop,
 )
 from agnext.components.tools import FunctionTool, Tool
-from agnext.core import CancellationToken, AgentId
+from agnext.base import CancellationToken, AgentId
 from agnext.components.models import (
     AssistantMessage,
     FunctionExecutionResult,
@@ -162,10 +162,10 @@ async def test_caller_loop(monkeypatch: pytest.MonkeyPatch) -> None:
     agent = AgentId("tool_agent", "default")
     runtime.start()
     messages = await tool_agent_caller_loop(
-        runtime, 
-        agent, 
-        client, 
-        [UserMessage(content="Hello", source="user")], 
+        runtime,
+        agent,
+        client,
+        [UserMessage(content="Hello", source="user")],
         tool_schema=tools
     )
     assert len(messages) == 3

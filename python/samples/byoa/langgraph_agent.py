@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, List, Literal
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, MessageContext
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, MessageContext
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool  # pyright: ignore
 from langchain_openai import ChatOpenAI

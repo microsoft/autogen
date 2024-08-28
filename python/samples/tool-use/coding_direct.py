@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, AgentInstantiationContext
 from agnext.components import FunctionCall, RoutedAgent, message_handler
 from agnext.components.code_executor import LocalCommandLineCodeExecutor
 from agnext.components.models import (
@@ -30,11 +31,10 @@ from agnext.components.models import (
 )
 from agnext.components.tool_agent import ToolAgent, ToolException
 from agnext.components.tools import PythonCodeExecutionTool, Tool, ToolSchema
-from agnext.core import AgentId, AgentInstantiationContext
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import MessageContext
+from agnext.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 

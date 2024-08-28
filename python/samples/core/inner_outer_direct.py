@@ -11,8 +11,8 @@ import logging
 from dataclasses import dataclass
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, AgentInstantiationContext, MessageContext
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, AgentInstantiationContext, MessageContext
 
 
 @dataclass

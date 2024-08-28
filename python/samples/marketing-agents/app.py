@@ -1,8 +1,8 @@
 import os
 
+from agnext.base import AgentRuntime
 from agnext.components import DefaultSubscription
 from agnext.components.models import AzureOpenAIChatCompletionClient
-from agnext.core import AgentRuntime
 from auditor import AuditAgent
 from graphic_designer import GraphicDesignerAgent
 from openai import AsyncAzureOpenAI

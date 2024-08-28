@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from ..core import (
+from ..base import (
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -25,8 +25,8 @@ from ..core import (
     SubscriptionInstantiationContext,
     TopicId,
 )
-from ..core.exceptions import MessageDroppedException
-from ..core.intervention import DropMessage, InterventionHandler
+from ..base.exceptions import MessageDroppedException
+from ..base.intervention import DropMessage, InterventionHandler
 from ._helpers import SubscriptionManager, get_impl
 
 logger = logging.getLogger("agnext")

@@ -15,9 +15,9 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import MessageContext
 from agnext.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import ChatCompletionClient, SystemMessage, UserMessage
-from agnext.core import MessageContext
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 

@@ -6,7 +6,7 @@ import pytest
 from agnext.components._function_utils import get_typed_signature
 from agnext.components.tools import BaseTool, FunctionTool
 from agnext.components.models._openai_client import convert_tools
-from agnext.core import CancellationToken
+from agnext.base import CancellationToken
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
 

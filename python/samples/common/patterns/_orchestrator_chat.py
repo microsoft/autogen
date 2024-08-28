@@ -1,8 +1,8 @@
 import json
 from typing import Any, Sequence, Tuple
 
+from agnext.base import AgentId, AgentRuntime, MessageContext
 from agnext.components import RoutedAgent, message_handler
-from agnext.core import AgentId, AgentRuntime, MessageContext
 
 from ..types import Reset, RespondNow, ResponseFormat, TextMessage
 

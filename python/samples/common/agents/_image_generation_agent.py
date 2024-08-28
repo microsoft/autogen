@@ -1,6 +1,7 @@
 from typing import Literal
 
 import openai
+from agnext.base import CancellationToken, MessageContext
 from agnext.components import (
     DefaultTopicId,
     Image,
@@ -8,7 +9,6 @@ from agnext.components import (
     message_handler,
 )
 from agnext.components.memory import ChatMemory
-from agnext.core import CancellationToken, MessageContext
 
 from ..types import (
     Message,

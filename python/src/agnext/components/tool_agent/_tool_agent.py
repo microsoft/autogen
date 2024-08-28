@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import List
 
-from ...core import MessageContext
+from ...base import MessageContext
 from .. import FunctionCall, RoutedAgent, message_handler
 from ..models import FunctionExecutionResult
 from ..tools import Tool

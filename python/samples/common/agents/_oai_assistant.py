@@ -1,11 +1,11 @@
 from typing import Any, Callable, List, Mapping
 
 import openai
-from agnext.components import DefaultTopicId, RoutedAgent, message_handler
-from agnext.core import (
+from agnext.base import (
     CancellationToken,
     MessageContext,  # type: ignore
 )
+from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from openai import AsyncAssistantEventHandler
 from openai.types import ResponseFormatJSONObject, ResponseFormatText
 

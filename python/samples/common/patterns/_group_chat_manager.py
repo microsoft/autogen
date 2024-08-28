@@ -1,10 +1,10 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
+from agnext.base import AgentId, AgentProxy, MessageContext
 from agnext.components import RoutedAgent, message_handler
 from agnext.components.memory import ChatMemory
 from agnext.components.models import ChatCompletionClient
-from agnext.core import AgentId, AgentProxy, MessageContext
 
 from ..types import (
     Message,

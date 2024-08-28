@@ -32,7 +32,7 @@ from agnext.components.models import (
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import MessageContext
+from agnext.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 

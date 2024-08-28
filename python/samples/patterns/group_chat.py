@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import List
 
 from agnext.application import SingleThreadedAgentRuntime
+from agnext.base import AgentId, AgentInstantiationContext
 from agnext.components import DefaultTopicId, RoutedAgent, message_handler
 from agnext.components.models import (
     AssistantMessage,
@@ -26,11 +27,10 @@ from agnext.components.models import (
     SystemMessage,
     UserMessage,
 )
-from agnext.core import AgentId, AgentInstantiationContext
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from agnext.core import MessageContext
+from agnext.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 

@@ -9,7 +9,7 @@ The decorator {py:func}`agnext.components.message_handler` should be added to fu
 - The function must have exactly 3 arguments.
   - `self`
   - `message`: The message to be handled, this must be type hinted with the message type that it is intended to handle.
-  - `cancellation_token`: A {py:class}`agnext.core.CancellationToken` object
+  - `cancellation_token`: A {py:class}`agnext.base.CancellationToken` object
 - The function must be type hinted with what message types it can return.
 
 ```{tip}
@@ -26,7 +26,7 @@ One important thing to point out is that when an agent is constructed it must be
 from dataclasses import dataclass
 from typing import List, Union
 from agnext.components import RoutedAgent, message_handler, Image
-from agnext.core import AgentRuntime, CancellationToken
+from agnext.base import AgentRuntime, CancellationToken
 
 @dataclass
 class TextMessage:

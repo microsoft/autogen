@@ -1,8 +1,8 @@
 import asyncio
 from typing import List
 
+from ...base import AgentId, AgentRuntime, BaseAgent, CancellationToken
 from ...components import FunctionCall
-from ...core import AgentId, AgentRuntime, BaseAgent, CancellationToken
 from ..models import (
     AssistantMessage,
     ChatCompletionClient,
