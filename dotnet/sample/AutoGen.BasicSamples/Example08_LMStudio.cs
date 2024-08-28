@@ -3,7 +3,9 @@
 
 #region lmstudio_using_statements
 using AutoGen.Core;
-using AutoGen.LMStudio;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
 #endregion lmstudio_using_statements
 
 namespace AutoGen.BasicSample;
@@ -13,8 +15,16 @@ public class Example08_LMStudio
     public static async Task RunAsync()
     {
         #region lmstudio_example_1
-        var config = new LMStudioConfig("localhost", 1234);
-        var lmAgent = new LMStudioAgent("asssistant", config: config)
+        var endpoint = "http://localhost:1234";
+        var openaiClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        {
+            Endpoint = new Uri(endpoint),
+        });
+
+        var lmAgent = new OpenAIChatAgent(
+            chatClient: openaiClient.GetChatClient("<does-not-matter>"),
+            name: "assistant")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         await lmAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");

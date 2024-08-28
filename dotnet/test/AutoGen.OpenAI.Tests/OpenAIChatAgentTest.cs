@@ -9,6 +9,8 @@ using AutoGen.OpenAI.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI;
+using OpenAI.Chat;
 
 namespace AutoGen.OpenAI.Tests;
 
@@ -31,27 +33,26 @@ public partial class OpenAIChatAgentTest
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: deployName);
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant");
 
         // By default, OpenAIChatClient supports the following message types
         // - IMessage<ChatRequestMessage>
-        var chatMessageContent = MessageEnvelope.Create(new ChatRequestUserMessage("Hello"));
+        var chatMessageContent = MessageEnvelope.Create(new UserChatMessage("Hello"));
         var reply = await openAIChatAgent.SendAsync(chatMessageContent);
 
-        reply.Should().BeOfType<MessageEnvelope<ChatCompletions>>();
-        reply.As<MessageEnvelope<ChatCompletions>>().From.Should().Be("assistant");
-        reply.As<MessageEnvelope<ChatCompletions>>().Content.Choices.First().Message.Role.Should().Be(ChatRole.Assistant);
-        reply.As<MessageEnvelope<ChatCompletions>>().Content.Usage.TotalTokens.Should().BeGreaterThan(0);
+        reply.Should().BeOfType<MessageEnvelope<ChatCompletion>>();
+        reply.As<MessageEnvelope<ChatCompletion>>().From.Should().Be("assistant");
+        reply.As<MessageEnvelope<ChatCompletion>>().Content.Role.Should().Be(ChatMessageRole.Assistant);
+        reply.As<MessageEnvelope<ChatCompletion>>().Content.Usage.TotalTokens.Should().BeGreaterThan(0);
 
         // test streaming
         var streamingReply = openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
 
         await foreach (var streamingMessage in streamingReply)
         {
-            streamingMessage.Should().BeOfType<MessageEnvelope<StreamingChatCompletionsUpdate>>();
-            streamingMessage.As<MessageEnvelope<StreamingChatCompletionsUpdate>>().From.Should().Be("assistant");
+            streamingMessage.Should().BeOfType<MessageEnvelope<StreamingChatCompletionUpdate>>();
+            streamingMessage.As<MessageEnvelope<StreamingChatCompletionUpdate>>().From.Should().Be("assistant");
         }
     }
 
@@ -61,16 +62,15 @@ public partial class OpenAIChatAgentTest
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: deployName);
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant");
 
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
             .RegisterMessageConnector();
 
         var messages = new IMessage[]
         {
-            MessageEnvelope.Create(new ChatRequestUserMessage("Hello")),
+            MessageEnvelope.Create(new UserChatMessage("Hello")),
             new TextMessage(Role.Assistant, "Hello", from: "user"),
             new MultiModalMessage(Role.Assistant,
                 [
@@ -106,9 +106,8 @@ public partial class OpenAIChatAgentTest
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: deployName);
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant");
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract]);
@@ -122,7 +121,7 @@ public partial class OpenAIChatAgentTest
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
         {
-            MessageEnvelope.Create(new ChatRequestUserMessage(question)),
+            MessageEnvelope.Create(new UserChatMessage(question)),
             new TextMessage(Role.Assistant, question, from: "user"),
             new MultiModalMessage(Role.Assistant,
                 [
@@ -148,16 +147,14 @@ public partial class OpenAIChatAgentTest
             ToolCallMessage? toolCallMessage = null;
             await foreach (var streamingMessage in reply)
             {
+                if (streamingMessage is ToolCallMessage finalMessage)
+                {
+                    toolCallMessage = finalMessage;
+                    break;
+                }
+
                 streamingMessage.Should().BeOfType<ToolCallMessageUpdate>();
                 streamingMessage.As<ToolCallMessageUpdate>().From.Should().Be("assistant");
-                if (toolCallMessage is null)
-                {
-                    toolCallMessage = new ToolCallMessage(streamingMessage.As<ToolCallMessageUpdate>());
-                }
-                else
-                {
-                    toolCallMessage.Update(streamingMessage.As<ToolCallMessageUpdate>());
-                }
             }
 
             toolCallMessage.Should().NotBeNull();
@@ -173,9 +170,8 @@ public partial class OpenAIChatAgentTest
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = CreateOpenAIClientFromAzureOpenAI();
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            modelName: deployName);
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant");
 
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract],
@@ -189,7 +185,7 @@ public partial class OpenAIChatAgentTest
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
         {
-            MessageEnvelope.Create(new ChatRequestUserMessage(question)),
+            MessageEnvelope.Create(new UserChatMessage(question)),
             new TextMessage(Role.Assistant, question, from: "user"),
             new MultiModalMessage(Role.Assistant,
                 [
@@ -234,14 +230,14 @@ public partial class OpenAIChatAgentTest
     {
         var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
         var openaiClient = CreateOpenAIClientFromAzureOpenAI();
-        var options = new ChatCompletionsOptions(deployName, [])
+        var options = new ChatCompletionOptions()
         {
             Temperature = 0.7f,
             MaxTokens = 1,
         };
 
         var openAIChatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: openaiClient.GetChatClient(deployName),
             name: "assistant",
             options: options)
             .RegisterMessageConnector();
@@ -250,30 +246,11 @@ public partial class OpenAIChatAgentTest
         respond.GetContent()?.Should().NotBeNullOrEmpty();
     }
 
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-    public async Task ItThrowExceptionWhenChatCompletionOptionContainsMessages()
-    {
-        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
-        var options = new ChatCompletionsOptions(deployName, [new ChatRequestUserMessage("hi")])
-        {
-            Temperature = 0.7f,
-            MaxTokens = 1,
-        };
-
-        var action = () => new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "assistant",
-            options: options)
-            .RegisterMessageConnector();
-
-        action.Should().ThrowExactly<ArgumentException>().WithMessage("Messages should not be provided in options");
-    }
 
     private OpenAIClient CreateOpenAIClientFromAzureOpenAI()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        return new OpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
+        return new AzureOpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(key));
     }
 }

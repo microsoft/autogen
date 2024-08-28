@@ -9,6 +9,7 @@ from autogen.agentchat.contrib.capabilities.transforms import (
     MessageHistoryLimiter,
     MessageTokenLimiter,
     TextMessageCompressor,
+    TextMessageContentName,
 )
 from autogen.agentchat.contrib.capabilities.transforms_util import count_text_tokens
 
@@ -57,6 +58,42 @@ def get_tool_messages_kept() -> List[Dict]:
         {"role": "tool", "content": "tool_response"},
         {"role": "tool_calls", "content": "calling_tool"},
         {"role": "tool", "content": "tool_response"},
+    ]
+
+
+def get_messages_with_names() -> List[Dict]:
+    return [
+        {"role": "system", "content": "I am the system."},
+        {"role": "user", "name": "charlie", "content": "I think the sky is blue."},
+        {"role": "user", "name": "mary", "content": "The sky is red."},
+        {"role": "user", "name": "bob", "content": "The sky is crimson."},
+    ]
+
+
+def get_messages_with_names_post_start() -> List[Dict]:
+    return [
+        {"role": "system", "content": "I am the system."},
+        {"role": "user", "name": "charlie", "content": "'charlie' said:\nI think the sky is blue."},
+        {"role": "user", "name": "mary", "content": "'mary' said:\nThe sky is red."},
+        {"role": "user", "name": "bob", "content": "'bob' said:\nThe sky is crimson."},
+    ]
+
+
+def get_messages_with_names_post_end() -> List[Dict]:
+    return [
+        {"role": "system", "content": "I am the system."},
+        {"role": "user", "name": "charlie", "content": "I think the sky is blue.\n(said 'charlie')"},
+        {"role": "user", "name": "mary", "content": "The sky is red.\n(said 'mary')"},
+        {"role": "user", "name": "bob", "content": "The sky is crimson.\n(said 'bob')"},
+    ]
+
+
+def get_messages_with_names_post_filtered() -> List[Dict]:
+    return [
+        {"role": "system", "content": "I am the system."},
+        {"role": "user", "name": "charlie", "content": "I think the sky is blue."},
+        {"role": "user", "name": "mary", "content": "'mary' said:\nThe sky is red."},
+        {"role": "user", "name": "bob", "content": "'bob' said:\nThe sky is crimson."},
     ]
 
 
@@ -298,6 +335,63 @@ def test_text_compression_with_filter(messages, text_compressor):
     pre_post_messages = zip(messages, transformed_messages)
     for pre_transform, post_transform in pre_post_messages:
         assert _filter_dict_test(post_transform, pre_transform, ["user"], exclude_filter=False)
+
+
+@pytest.mark.parametrize("messages", [get_messages_with_names()])
+def test_message_content_name(messages):
+    # Test including content name in messages
+
+    # Add name at the start with format: "'{name}' said:\n"
+    content_transform = TextMessageContentName(position="start", format_string="'{name}' said:\n")
+    transformed_messages = content_transform.apply_transform(messages=messages)
+
+    assert transformed_messages == get_messages_with_names_post_start()
+
+    # Add name at the end with format: "\n(said '{name}')"
+    content_transform = TextMessageContentName(position="end", format_string="\n(said '{name}')")
+    transformed_messages_end = content_transform.apply_transform(messages=messages)
+
+    assert transformed_messages_end == get_messages_with_names_post_end()
+
+    # Test filtering out exclusion
+    content_transform = TextMessageContentName(
+        position="start",
+        format_string="'{name}' said:\n",
+        filter_dict={"name": ["charlie"]},
+        exclude_filter=True,  # Exclude
+    )
+
+    transformed_messages_end = content_transform.apply_transform(messages=messages)
+
+    assert transformed_messages_end == get_messages_with_names_post_filtered()
+
+    # Test filtering (inclusion)
+    content_transform = TextMessageContentName(
+        position="start",
+        format_string="'{name}' said:\n",
+        filter_dict={"name": ["mary", "bob"]},
+        exclude_filter=False,  # Include
+    )
+
+    transformed_messages_end = content_transform.apply_transform(messages=messages)
+
+    assert transformed_messages_end == get_messages_with_names_post_filtered()
+
+    # Test instantiation
+    with pytest.raises(AssertionError):
+        TextMessageContentName(position=123)  # Invalid type for position
+
+    with pytest.raises(AssertionError):
+        TextMessageContentName(position="middle")  # Invalid value for position
+
+    with pytest.raises(AssertionError):
+        TextMessageContentName(format_string=123)  # Invalid type for format_string
+
+    with pytest.raises(AssertionError):
+        TextMessageContentName(format_string="Agent:\n")  # Missing '{name}' in format_string
+
+    with pytest.raises(AssertionError):
+        TextMessageContentName(deduplicate="yes")  # Invalid type for deduplicate
 
 
 if __name__ == "__main__":

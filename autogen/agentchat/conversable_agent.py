@@ -621,7 +621,7 @@ class ConversableAgent(LLMAgent):
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
         return name
 
-    def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
+    def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent, is_sending: bool) -> bool:
         """Append a message to the ChatCompletion conversation.
 
         If the message received is a string, it will be put in the "content" field of the new dictionary.
@@ -633,6 +633,7 @@ class ConversableAgent(LLMAgent):
             message (dict or str): message to be appended to the ChatCompletion conversation.
             role (str): role of the message, can be "assistant" or "function".
             conversation_id (Agent): id of the conversation, should be the recipient or sender.
+            is_sending (bool): If the agent (aka self) is sending to the conversation_id agent, otherwise receiving.
 
         Returns:
             bool: whether the message is appended to the ChatCompletion conversation.
@@ -662,7 +663,15 @@ class ConversableAgent(LLMAgent):
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+        elif "name" not in oai_message:
+            # If we don't have a name field, append it
+            if is_sending:
+                oai_message["name"] = self.name
+            else:
+                oai_message["name"] = conversation_id.name
+
         self._oai_messages[conversation_id].append(oai_message)
+
         return True
 
     def _process_message_before_send(
@@ -718,7 +727,7 @@ class ConversableAgent(LLMAgent):
         message = self._process_message_before_send(message, recipient, ConversableAgent._is_silent(self, silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        valid = self._append_oai_message(message, "assistant", recipient)
+        valid = self._append_oai_message(message, "assistant", recipient, is_sending=True)
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -768,7 +777,7 @@ class ConversableAgent(LLMAgent):
         message = self._process_message_before_send(message, recipient, ConversableAgent._is_silent(self, silent))
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        valid = self._append_oai_message(message, "assistant", recipient)
+        valid = self._append_oai_message(message, "assistant", recipient, is_sending=True)
         if valid:
             await recipient.a_receive(message, self, request_reply, silent)
         else:
@@ -839,7 +848,7 @@ class ConversableAgent(LLMAgent):
 
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
-        valid = self._append_oai_message(message, "user", sender)
+        valid = self._append_oai_message(message, "user", sender, is_sending=False)
         if logging_enabled():
             log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
 

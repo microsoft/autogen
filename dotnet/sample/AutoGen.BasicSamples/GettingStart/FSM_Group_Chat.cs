@@ -6,7 +6,8 @@ using System.Text;
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
+using OpenAI;
+using OpenAI.Chat;
 #endregion Using
 
 namespace AutoGen.BasicSample;
@@ -74,7 +75,7 @@ public partial class FillFormTool
 
 public class FSM_Group_Chat
 {
-    public static async Task<IAgent> CreateSaveProgressAgent(OpenAIClient client, string model)
+    public static async Task<IAgent> CreateSaveProgressAgent(ChatClient client)
     {
         #region Create_Save_Progress_Agent
         var tool = new FillFormTool();
@@ -86,9 +87,8 @@ public class FSM_Group_Chat
             });
 
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: client,
+            chatClient: client,
             name: "application",
-            modelName: model,
             systemMessage: """You are a helpful application form assistant who saves progress while user fills application.""")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddleware)
@@ -111,42 +111,25 @@ public class FSM_Group_Chat
         return chatAgent;
     }
 
-    public static async Task<IAgent> CreateAssistantAgent(OpenAIClient openaiClient, string model)
+    public static async Task<IAgent> CreateAssistantAgent(ChatClient chatClient)
     {
         #region Create_Assistant_Agent
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: chatClient,
             name: "assistant",
-            modelName: model,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
-            .RegisterPrintMessage()
-            .RegisterMiddleware(async (msgs, option, agent, ct) =>
-            {
-                var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
-                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
-
-                // if application is complete, exit conversation by sending termination message
-                if (lastReply.GetContent()?.Contains("Application information is saved to database.") is true)
-                {
-                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
-                }
-                else
-                {
-                    return reply;
-                }
-            });
+            .RegisterPrintMessage();
         #endregion Create_Assistant_Agent
         return chatAgent;
     }
 
-    public static async Task<IAgent> CreateUserAgent(OpenAIClient openaiClient, string model)
+    public static async Task<IAgent> CreateUserAgent(ChatClient chatClient)
     {
         #region Create_User_Agent
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: chatClient,
             name: "user",
-            modelName: model,
             systemMessage: """
             You are a user who is filling an application form. Simply provide the information as requested and answer the questions, don't do anything else.
             
@@ -166,11 +149,12 @@ public class FSM_Group_Chat
     public static async Task RunAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-3.5-turbo";
+        var model = "gpt-4o-mini";
         var openaiClient = new OpenAIClient(apiKey);
-        var applicationAgent = await CreateSaveProgressAgent(openaiClient, model);
-        var assistantAgent = await CreateAssistantAgent(openaiClient, model);
-        var userAgent = await CreateUserAgent(openaiClient, model);
+        var chatClient = openaiClient.GetChatClient(model);
+        var applicationAgent = await CreateSaveProgressAgent(chatClient);
+        var assistantAgent = await CreateAssistantAgent(chatClient);
+        var userAgent = await CreateUserAgent(chatClient);
 
         #region Create_Graph
         var userToApplicationTransition = Transition.Create(userAgent, applicationAgent);
@@ -193,9 +177,13 @@ public class FSM_Group_Chat
 
         var initialMessage = await assistantAgent.SendAsync("Generate a greeting meesage for user and start the conversation by asking what's their name.");
 
-        var chatHistory = await userAgent.SendMessageToGroupAsync(groupChat, [initialMessage], maxRound: 30);
-
-        var lastMessage = chatHistory.Last();
-        Console.WriteLine(lastMessage.GetContent());
+        var chatHistory = new List<IMessage> { initialMessage };
+        await foreach (var msg in groupChat.SendAsync(chatHistory, maxRound: 30))
+        {
+            if (msg.GetContent().ToLower().Contains("application information is saved to database.") is true)
+            {
+                break;
+            }
+        }
     }
 }

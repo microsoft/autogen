@@ -445,3 +445,95 @@ class TextMessageCompressor:
     def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:
             raise ValueError("min_tokens must be greater than 0 or None")
+
+
+class TextMessageContentName:
+    """A transform for including the agent's name in the content of a message."""
+
+    def __init__(
+        self,
+        position: str = "start",
+        format_string: str = "{name}:\n",
+        deduplicate: bool = True,
+        filter_dict: Optional[Dict] = None,
+        exclude_filter: bool = True,
+    ):
+        """
+        Args:
+            position (str): The position to add the name to the content. The possible options are 'start' or 'end'. Defaults to 'start'.
+            format_string (str): The f-string to format the message name with. Use '{name}' as a placeholder for the agent's name. Defaults to '{name}:\n' and must contain '{name}'.
+            deduplicate (bool): Whether to deduplicate the formatted string so it doesn't appear twice (sometimes the LLM will add it to new messages itself). Defaults to True.
+            filter_dict (None or dict): A dictionary to filter out messages that you want/don't want to compress.
+                If None, no filters will be applied.
+            exclude_filter (bool): If exclude filter is True (the default value), messages that match the filter will be
+                excluded from compression. If False, messages that match the filter will be compressed.
+        """
+
+        assert isinstance(position, str) and position is not None
+        assert position in ["start", "end"]
+        assert isinstance(format_string, str) and format_string is not None
+        assert "{name}" in format_string
+        assert isinstance(deduplicate, bool) and deduplicate is not None
+
+        self._position = position
+        self._format_string = format_string
+        self._deduplicate = deduplicate
+        self._filter_dict = filter_dict
+        self._exclude_filter = exclude_filter
+
+        # Track the number of messages changed for logging
+        self._messages_changed = 0
+
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """Applies the name change to the message based on the position and format string.
+
+        Args:
+            messages (List[Dict]): A list of message dictionaries.
+
+        Returns:
+            List[Dict]: A list of dictionaries with the message content updated with names.
+        """
+        # Make sure there is at least one message
+        if not messages:
+            return messages
+
+        messages_changed = 0
+        processed_messages = copy.deepcopy(messages)
+        for message in processed_messages:
+            # Some messages may not have content.
+            if not transforms_util.is_content_right_type(
+                message.get("content")
+            ) or not transforms_util.is_content_right_type(message.get("name")):
+                continue
+
+            if not transforms_util.should_transform_message(message, self._filter_dict, self._exclude_filter):
+                continue
+
+            if transforms_util.is_content_text_empty(message["content"]) or transforms_util.is_content_text_empty(
+                message["name"]
+            ):
+                continue
+
+            # Get and format the name in the content
+            content = message["content"]
+            formatted_name = self._format_string.format(name=message["name"])
+
+            if self._position == "start":
+                if not self._deduplicate or not content.startswith(formatted_name):
+                    message["content"] = f"{formatted_name}{content}"
+
+                    messages_changed += 1
+            else:
+                if not self._deduplicate or not content.endswith(formatted_name):
+                    message["content"] = f"{content}{formatted_name}"
+
+                    messages_changed += 1
+
+        self._messages_changed = messages_changed
+        return processed_messages
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        if self._messages_changed > 0:
+            return f"{self._messages_changed} message(s) changed to incorporate name.", True
+        else:
+            return "No messages changed to incorporate name.", False
