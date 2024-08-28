@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         working-directory:
-          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+          ["./python/packages/autogen-core", "./python/packages/team-one", "./python/packages/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         working-directory:
-          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+          ["./python/packages/autogen-core", "./python/packages/team-one", "./python/packages/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         working-directory:
-          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+          ["./python/packages/autogen-core", "./python/packages/team-one", "./python/packages/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         working-directory:
-          ["./python", "./python/teams/team-one", "./python/tools/agbench"]
+          ["./python/packages/autogen-core", "./python/packages/team-one", "./python/packages/agbench"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Hatch
@@ -71,7 +71,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run +python=${{ matrix.python-version }} test-matrix:pytest -n auto
-        working-directory: ./python
+        working-directory: ./python/packages/autogen-core
 
   team-one-test:
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
       - run: |
           hatch run +python=${{ matrix.python-version }} teamone-test-matrix:playwright install
           hatch run +python=${{ matrix.python-version }} teamone-test-matrix:pytest -n auto
-        working-directory: ./python/teams/team-one
+        working-directory: ./python/packages/team-one
 
   mypy-notebooks:
     runs-on: ubuntu-latest
@@ -94,7 +94,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run nbqa mypy docs/src
-        working-directory: ./python
+        working-directory: ./python/packages/autogen-core
 
   docs:
     runs-on: ubuntu-latest
@@ -103,4 +103,4 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run docs:check
-        working-directory: ./python
+        working-directory: ./python/packages/autogen-core

@@ -29,7 +29,7 @@ PDF_STRING = "Figure 1: AutoGen enables diverse LLM-based applications using mul
 DIR_TEST_STRINGS = [
     "# Index of ",
     "[.. (parent directory)]",
-    "/python/teams/team-one/tests/browser_utils",
+    "/python/packages/team-one/tests/browser_utils",
 ]
 
 LOCAL_FILE_TEST_STRINGS = [

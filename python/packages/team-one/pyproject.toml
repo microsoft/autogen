@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core@{root:parent:parent:uri}",
+    "autogen-core@{root:parent:uri}/autogen-core",
     "aiofiles",
     "requests",
     "mammoth",
@@ -128,9 +128,6 @@ include = [
     "src",
     "tests",
     "examples",
-    "../../benchmarks/HumanEval/Templates/TeamOne/scenario.py",
-    "../../benchmarks/HumanEval/Templates/TwoAgents/scenario.py",
-    "../../benchmarks/GAIA/Templates/TeamOne/scenario.py",
 ]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
