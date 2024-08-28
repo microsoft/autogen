@@ -398,7 +398,6 @@ async def profile_agent_task_run(message_id: int):
             "data": profile,
         }
     except Exception as ex_error:
-        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while profiling agent task run: " + str(ex_error),
@@ -461,7 +460,6 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         response: Response = dbmanager.upsert(agent_response)
         return response.model_dump(mode="json")
     except Exception as ex_error:
-        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
