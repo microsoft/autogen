@@ -3,8 +3,10 @@
 
 using AutoGen;
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
+using OpenAI;
 
 public partial class AssistantCodeSnippet
 {
@@ -32,23 +34,18 @@ public partial class AssistantCodeSnippet
     {
         #region code_snippet_2
         // get OpenAI Key and create config
-        var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
-        string endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT"); // change to your endpoint
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var model = "gpt-4o-mini";
 
-        var llmConfig = new AzureOpenAIConfig(
-            endpoint: endPoint,
-            deploymentName: "gpt-3.5-turbo-16k", // change to your deployment name
-            apiKey: apiKey);
+        var openAIClient = new OpenAIClient(apiKey);
 
         // create assistant agent
-        var assistantAgent = new AssistantAgent(
+        var assistantAgent = new OpenAIChatAgent(
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = new[] { llmConfig },
-            });
+            chatClient: openAIClient.GetChatClient(model))
+            .RegisterMessageConnector()
+            .RegisterPrintMessage();
         #endregion code_snippet_2
     }
 
@@ -71,27 +68,21 @@ public partial class AssistantCodeSnippet
         // get OpenAI Key and create config
         var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
         string endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT"); // change to your endpoint
-
-        var llmConfig = new AzureOpenAIConfig(
-            endpoint: endPoint,
-            deploymentName: "gpt-3.5-turbo-16k", // change to your deployment name
-            apiKey: apiKey);
+        var model = "gpt-4o-mini";
+        var openAIClient = new OpenAIClient(new System.ClientModel.ApiKeyCredential(apiKey), new OpenAIClientOptions
+        {
+            Endpoint = new Uri(endPoint),
+        });
         #region code_snippet_4
-        var assistantAgent = new AssistantAgent(
+        var assistantAgent = new OpenAIChatAgent(
+            chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
             systemMessage: "You are an assistant that convert user input to upper case.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = new[]
-                {
-                    llmConfig
-                },
-                FunctionContracts = new[]
-                {
-                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
-                },
-            });
+            functions: [
+                this.UpperCaseFunctionContract.ToChatTool(), // The FunctionDefinition object for the UpperCase function
+            ])
+            .RegisterMessageConnector()
+            .RegisterPrintMessage();
 
         var response = await assistantAgent.SendAsync("hello");
         response.Should().BeOfType<ToolCallMessage>();
@@ -106,31 +97,24 @@ public partial class AssistantCodeSnippet
         // get OpenAI Key and create config
         var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
         string endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT"); // change to your endpoint
-
-        var llmConfig = new AzureOpenAIConfig(
-            endpoint: endPoint,
-            deploymentName: "gpt-3.5-turbo-16k", // change to your deployment name
-            apiKey: apiKey);
+        var model = "gpt-4o-mini";
+        var openAIClient = new OpenAIClient(new System.ClientModel.ApiKeyCredential(apiKey), new OpenAIClientOptions
+        {
+            Endpoint = new Uri(endPoint),
+        });
         #region code_snippet_5
-        var assistantAgent = new AssistantAgent(
+        var functionCallMiddleware = new FunctionCallMiddleware(
+            functions: [this.UpperCaseFunctionContract],
+            functionMap: new Dictionary<string, Func<string, Task<string>>>()
+            {
+                { this.UpperCaseFunctionContract.Name, this.UpperCase },
+            });
+        var assistantAgent = new OpenAIChatAgent(
             name: "assistant",
             systemMessage: "You are an assistant that convert user input to upper case.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = new[]
-                {
-                    llmConfig
-                },
-                FunctionContracts = new[]
-                {
-                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
-                },
-            },
-            functionMap: new Dictionary<string, Func<string, Task<string>>>
-            {
-                { this.UpperCaseFunctionContract.Name, this.UpperCaseWrapper }, // The wrapper function for the UpperCase function
-            });
+            chatClient: openAIClient.GetChatClient(model))
+            .RegisterMessageConnector()
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var response = await assistantAgent.SendAsync("hello");
         response.Should().BeOfType<TextMessage>();

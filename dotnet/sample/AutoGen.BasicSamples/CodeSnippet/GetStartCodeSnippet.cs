@@ -4,7 +4,9 @@
 #region snippet_GetStartCodeSnippet
 using AutoGen;
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
 #endregion snippet_GetStartCodeSnippet
 
 public class GetStartCodeSnippet
@@ -13,16 +15,14 @@ public class GetStartCodeSnippet
     {
         #region code_snippet_1
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gpt35Config = new OpenAIConfig(openAIKey, "gpt-3.5-turbo");
+        var openAIClient = new OpenAIClient(openAIKey);
+        var model = "gpt-4o-mini";
 
-        var assistantAgent = new AssistantAgent(
+        var assistantAgent = new OpenAIChatAgent(
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = [gpt35Config],
-            })
+            chatClient: openAIClient.GetChatClient(model))
+            .RegisterMessageConnector()
             .RegisterPrintMessage(); // register a hook to print message nicely to console
 
         // set human input mode to ALWAYS so that user always provide input
