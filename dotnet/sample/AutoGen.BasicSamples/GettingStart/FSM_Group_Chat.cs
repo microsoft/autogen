@@ -4,9 +4,10 @@
 using System.Text;
 #region Using
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
+using OpenAI.Chat;
 #endregion Using
 
 namespace AutoGen.BasicSample;
@@ -74,7 +75,7 @@ public partial class FillFormTool
 
 public class FSM_Group_Chat
 {
-    public static async Task<IAgent> CreateSaveProgressAgent(OpenAIClient client, string model)
+    public static async Task<IAgent> CreateSaveProgressAgent(ChatClient client)
     {
         #region Create_Save_Progress_Agent
         var tool = new FillFormTool();
@@ -86,9 +87,8 @@ public class FSM_Group_Chat
             });
 
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: client,
+            chatClient: client,
             name: "application",
-            modelName: model,
             systemMessage: """You are a helpful application form assistant who saves progress while user fills application.""")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddleware)
@@ -111,13 +111,12 @@ public class FSM_Group_Chat
         return chatAgent;
     }
 
-    public static async Task<IAgent> CreateAssistantAgent(OpenAIClient openaiClient, string model)
+    public static async Task<IAgent> CreateAssistantAgent(ChatClient chatClient)
     {
         #region Create_Assistant_Agent
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: chatClient,
             name: "assistant",
-            modelName: model,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
@@ -125,13 +124,12 @@ public class FSM_Group_Chat
         return chatAgent;
     }
 
-    public static async Task<IAgent> CreateUserAgent(OpenAIClient openaiClient, string model)
+    public static async Task<IAgent> CreateUserAgent(ChatClient chatClient)
     {
         #region Create_User_Agent
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: chatClient,
             name: "user",
-            modelName: model,
             systemMessage: """
             You are a user who is filling an application form. Simply provide the information as requested and answer the questions, don't do anything else.
             
@@ -151,11 +149,12 @@ public class FSM_Group_Chat
     public static async Task RunAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-3.5-turbo";
+        var model = "gpt-4o-mini";
         var openaiClient = new OpenAIClient(apiKey);
-        var applicationAgent = await CreateSaveProgressAgent(openaiClient, model);
-        var assistantAgent = await CreateAssistantAgent(openaiClient, model);
-        var userAgent = await CreateUserAgent(openaiClient, model);
+        var chatClient = openaiClient.GetChatClient(model);
+        var applicationAgent = await CreateSaveProgressAgent(chatClient);
+        var assistantAgent = await CreateAssistantAgent(chatClient);
+        var userAgent = await CreateUserAgent(chatClient);
 
         #region Create_Graph
         var userToApplicationTransition = Transition.Create(userAgent, applicationAgent);

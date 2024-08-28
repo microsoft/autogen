@@ -63,7 +63,7 @@ export const AgentConfigView = ({
   const llm_config: ILLMConfig = agent?.config?.llm_config || {
     config_list: [],
     temperature: 0.1,
-    max_tokens: 1000,
+    max_tokens: 4000,
   };
 
   const createAgent = (agent: IAgent) => {

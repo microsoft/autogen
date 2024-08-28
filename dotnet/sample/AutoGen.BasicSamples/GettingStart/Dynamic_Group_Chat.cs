@@ -2,12 +2,12 @@
 // Dynamic_Group_Chat.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
-using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
+using OpenAI;
 
 namespace AutoGen.BasicSample;
 
@@ -16,14 +16,13 @@ public class Dynamic_Group_Chat
     public static async Task RunAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-3.5-turbo";
+        var model = "gpt-4o-mini";
 
         #region Create_Coder
         var openaiClient = new OpenAIClient(apiKey);
         var coder = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: openaiClient.GetChatClient(model),
             name: "coder",
-            modelName: model,
             systemMessage: "You are a C# coder, when writing csharp code, please put the code between ```csharp and ```")
             .RegisterMessageConnector() // convert OpenAI message to AutoGen message
             .RegisterPrintMessage(); // print the message content
@@ -49,9 +48,8 @@ public class Dynamic_Group_Chat
 
         #region Create_Group
         var admin = new OpenAIChatAgent(
-            openAIClient: openaiClient,
-            name: "admin",
-            modelName: model)
+            chatClient: openaiClient.GetChatClient(model),
+            name: "admin")
             .RegisterMessageConnector(); // convert OpenAI message to AutoGen message
 
         var group = new GroupChat(

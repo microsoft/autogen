@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
-using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;
-using AutoGen.OpenAI.V1;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 public partial class Example04_Dynamic_GroupChat_Coding_Task
@@ -20,20 +20,21 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
             .AddPythonKernel("python3")
             .Build();
 
-        var gptConfig = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
-        var groupAdmin = new GPTAgent(
+        var groupAdmin = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "groupAdmin",
-            systemMessage: "You are the admin of the group chat",
-            temperature: 0f,
-            config: gptConfig)
+            systemMessage: "You are the admin of the group chat")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
-        var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
+        var userProxy = new DefaultReplyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE)
             .RegisterPrintMessage();
 
         // Create admin agent
-        var admin = new AssistantAgent(
+        var admin = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "admin",
             systemMessage: """
             You are a manager who takes coding problem from user and resolve problem by splitting them into small tasks and assign each task to the most appropriate agent.
@@ -69,12 +70,8 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
             ```
 
             Your reply must contain one of [task|ask|summary] to indicate the type of your message.
-            """,
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = [gptConfig],
-            })
+            """)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // create coder agent
@@ -82,8 +79,9 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         // The dotnet coder write dotnet code to resolve the task.
         // The code reviewer review the code block from coder's reply.
         // The nuget agent install nuget packages if there's any.
-        var coderAgent = new GPTAgent(
+        var coderAgent = new OpenAIChatAgent(
             name: "coder",
+            chatClient: gpt4o,
             systemMessage: @"You act as python coder, you write python code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
 Here're some rules to follow on writing dotnet code:
@@ -100,9 +98,8 @@ If your code is incorrect, Fix the error and send the code again.
 
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
-",
-            config: gptConfig,
-            temperature: 0.4f)
+")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // code reviewer agent will review if code block from coder's reply satisfy the following conditions:
@@ -110,7 +107,8 @@ Here's some externel information
         // - The code block is csharp code block
         // - The code block is top level statement
         // - The code block is not using declaration
-        var codeReviewAgent = new GPTAgent(
+        var codeReviewAgent = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "reviewer",
             systemMessage: """
             You are a code reviewer who reviews code from coder. You need to check if the code satisfy the following conditions:
@@ -133,9 +131,8 @@ Here's some externel information
             result: REJECTED
             ```
 
-            """,
-            config: gptConfig,
-            temperature: 0f)
+            """)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // create runner agent

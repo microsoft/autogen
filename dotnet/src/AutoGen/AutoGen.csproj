@@ -17,7 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
     <ProjectReference Include="..\AutoGen.AzureAIInference\AutoGen.AzureAIInference.csproj" />
-    <ProjectReference Include="..\AutoGen.LMStudio\AutoGen.LMStudio.csproj" />
     <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
     <ProjectReference Include="..\AutoGen.Ollama\AutoGen.Ollama.csproj" />
     <ProjectReference Include="..\AutoGen.Gemini\AutoGen.Gemini.csproj" />
@@ -27,7 +26,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-    <ProjectReference Include="..\AutoGen.OpenAI.V1\AutoGen.OpenAI.V1.csproj" />
+    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIV2Version)" />
   </ItemGroup>
   
   <ItemGroup>
