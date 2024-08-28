@@ -40,6 +40,7 @@ class AutoWorkflowManager:
         work_dir: str = None,
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
+        human_input_function: Optional[callable] = None,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -67,6 +68,7 @@ class AutoWorkflowManager:
         # TODO - improved typing for workflow
         self.workflow_skills = []
         self.send_message_function = send_message_function
+        self.human_input_function = human_input_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         self.code_executor_pool = {
@@ -284,6 +286,8 @@ class AutoWorkflowManager:
             agent = ExtendedGroupChatManager(
                 groupchat=groupchat,
                 message_processor=self.process_message,
+                human_input_function=self.human_input_function,
+                connection_id=self.connection_id,
                 llm_config=agent.config.llm_config.model_dump(),
             )
             return agent
@@ -293,11 +297,15 @@ class AutoWorkflowManager:
                 agent = ExtendedConversableAgent(
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
+                    human_input_function=self.human_input_function,
+                    connection_id=self.connection_id
                 )
             elif agent.type == "userproxy":
                 agent = ExtendedConversableAgent(
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
+                    human_input_function=self.human_input_function,
+                    connection_id=self.connection_id
                 )
             else:
                 raise ValueError(f"Unknown agent type: {agent.type}")
@@ -422,6 +430,7 @@ class SequentialWorkflowManager:
         work_dir: str = None,
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
+        human_input_function: Optional[callable] = None,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -448,6 +457,7 @@ class SequentialWorkflowManager:
 
         # TODO - improved typing for workflow
         self.send_message_function = send_message_function
+        self.human_input_function = human_input_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         if clear_work_dir:
@@ -498,6 +508,7 @@ class SequentialWorkflowManager:
                 work_dir=self.work_dir,
                 clear_work_dir=True,
                 send_message_function=self.send_message_function,
+                human_input_function=self.human_input_function,
                 connection_id=self.connection_id,
             )
             task_prompt = (
@@ -600,6 +611,7 @@ class WorkflowManager:
         work_dir: str = None,
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
+        human_input_function: Optional[callable] = None,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -631,6 +643,7 @@ class WorkflowManager:
                 work_dir=work_dir,
                 clear_work_dir=clear_work_dir,
                 send_message_function=send_message_function,
+                human_input_function=human_input_function,
                 connection_id=connection_id,
             )
         elif self.workflow.get("type") == WorkFlowType.sequential.value:
@@ -640,14 +653,17 @@ class WorkflowManager:
                 work_dir=work_dir,
                 clear_work_dir=clear_work_dir,
                 send_message_function=send_message_function,
+                human_input_function=human_input_function,
                 connection_id=connection_id,
             )
 
 
 class ExtendedConversableAgent(autogen.ConversableAgent):
-    def __init__(self, message_processor=None, *args, **kwargs):
+    def __init__(self, message_processor=None, human_input_function=None, connection_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
+        self.human_input_function = human_input_function
+        self.connection_id = connection_id
 
     def receive(
         self,
@@ -660,14 +676,30 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
             self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
         super().receive(message, sender, request_reply, silent)
 
+    def get_human_input(self, prompt: str) -> str:
+        if self.message_processor and self.human_input_function:
+            message_payload = {
+                "recipient": self.name,
+                "sender": "system",
+                "message": {"content": prompt, "role": "system"},
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "system",
+                "connection_id": self.connection_id,
+                "message_type": "agent_message"
+            }
 
-""
+            return self.human_input_function(message_payload)
+
+        else:
+            return super().get_human_input(prompt)
 
 
 class ExtendedGroupChatManager(autogen.GroupChatManager):
-    def __init__(self, message_processor=None, *args, **kwargs):
+    def __init__(self, message_processor=None, human_input_function=None, connection_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
+        self.human_input_function = human_input_function
+        self.connection_id = connection_id
 
     def receive(
         self,
@@ -679,3 +711,25 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         if self.message_processor:
             self.message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         super().receive(message, sender, request_reply, silent)
+
+
+    def get_human_input(self, prompt: str) -> str:
+        if self.message_processor and self.human_input_function:
+            message_payload = {
+                "recipient": self.name,
+                "sender": "system",
+                "message": {"content": prompt, "role": "system"},
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "system",
+                "connection_id": self.connection_id,
+                "message_type": "user_input_request",
+            }
+            socket_msg = SocketMessage(
+                type="user_input_request",
+                data=message_payload,
+                connection_id=self.connection_id,
+            )
+            return self.human_input_function(socket_msg.dict(), self.connection_id)
+
+        else:
+            return super().get_human_input(prompt)
