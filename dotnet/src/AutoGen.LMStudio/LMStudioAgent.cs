@@ -18,6 +18,7 @@ namespace AutoGen.LMStudio;
 /// <example>
 /// [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
 /// </example>
+[Obsolete("Use OpenAIChatAgent to connect to LM Studio")]
 public class LMStudioAgent : IAgent
 {
     private readonly GPTAgent innerAgent;
