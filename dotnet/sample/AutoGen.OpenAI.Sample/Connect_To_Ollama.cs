@@ -3,53 +3,28 @@
 
 #region using_statement
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
 #endregion using_statement
 
 namespace AutoGen.OpenAI.Sample;
-
-#region CustomHttpClientHandler
-public sealed class CustomHttpClientHandler : HttpClientHandler
-{
-    private string _modelServiceUrl;
-
-    public CustomHttpClientHandler(string modelServiceUrl)
-    {
-        _modelServiceUrl = modelServiceUrl;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        request.RequestUri = new Uri($"{_modelServiceUrl}{request.RequestUri.PathAndQuery}");
-
-        return base.SendAsync(request, cancellationToken);
-    }
-}
-#endregion CustomHttpClientHandler
 
 public class Connect_To_Ollama
 {
     public static async Task RunAsync()
     {
         #region create_agent
-        using var client = new HttpClient(new CustomHttpClientHandler("http://localhost:11434"));
-        var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2024_04_01_Preview)
-        {
-            Transport = new HttpClientTransport(client),
-        };
-
         // api-key is not required for local server
         // so you can use any string here
-        var openAIClient = new OpenAIClient("api-key", option);
+        var openAIClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        {
+            Endpoint = new Uri("http://localhost:11434/v1/"), // remember to add /v1/ at the end to connect to Ollama openai server
+        });
         var model = "llama3";
 
         var agent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
-            modelName: model,
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0)
             .RegisterMessageConnector()

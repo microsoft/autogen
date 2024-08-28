@@ -1,7 +1,5 @@
 import asyncio
-import json
 import os
-import time
 from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -9,12 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
-from .datamodel import Message, SocketMessage, Workflow
-from .utils import (
-    extract_successful_code_blocks,
-    get_modified_files,
-    summarize_chat_history,
-)
+from .datamodel import Message
 from .workflowmanager import WorkflowManager
 
 
@@ -82,76 +75,12 @@ class AutoGenChatManager:
             connection_id=connection_id,
         )
 
-        workflow = Workflow.model_validate(workflow)
-
         message_text = message.content.strip()
+        result_message: Message = workflow_manager.run(message=f"{message_text}", clear_history=False, history=history)
 
-        start_time = time.time()
-        workflow_manager.run(message=f"{message_text}", clear_history=False)
-        end_time = time.time()
-
-        metadata = {
-            "messages": workflow_manager.agent_history,
-            "summary_method": workflow.summary_method,
-            "time": end_time - start_time,
-            "files": get_modified_files(start_time, end_time, source_dir=work_dir),
-        }
-
-        output = self._generate_output(message_text, workflow_manager, workflow)
-
-        output_message = Message(
-            user_id=message.user_id,
-            role="assistant",
-            content=output,
-            meta=json.dumps(metadata),
-            session_id=message.session_id,
-        )
-
-        return output_message
-
-    def _generate_output(
-        self,
-        message_text: str,
-        workflow_manager: WorkflowManager,
-        workflow: Workflow,
-    ) -> str:
-        """
-        Generates the output response based on the workflow configuration and agent history.
-
-        :param message_text: The text of the incoming message.
-        :param flow: An instance of `WorkflowManager`.
-        :param flow_config: An instance of `AgentWorkFlowConfig`.
-        :return: The output response as a string.
-        """
-
-        output = ""
-        if workflow.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(workflow_manager.agent_history)
-            last_message = (
-                workflow_manager.agent_history[-1]["message"]["content"] if workflow_manager.agent_history else ""
-            )
-            successful_code_blocks = "\n\n".join(successful_code_blocks)
-            output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
-        elif workflow.summary_method == "llm":
-            client = workflow_manager.receiver.client
-            status_message = SocketMessage(
-                type="agent_status",
-                data={
-                    "status": "summarizing",
-                    "message": "Summarizing agent dialogue",
-                },
-                connection_id=workflow_manager.connection_id,
-            )
-            self.send(status_message.dict())
-            output = summarize_chat_history(
-                task=message_text,
-                messages=workflow_manager.agent_history,
-                client=client,
-            )
-
-        elif workflow.summary_method == "none":
-            output = ""
-        return output
+        result_message.user_id = message.user_id
+        result_message.session_id = message.session_id
+        return result_message
 
 
 class WebSocketConnectionManager:

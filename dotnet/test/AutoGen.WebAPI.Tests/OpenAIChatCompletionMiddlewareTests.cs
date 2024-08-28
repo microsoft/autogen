@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIChatCompletionMiddlewareTests.cs
 
+using System.ClientModel.Primitives;
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenAI;
 
 namespace AutoGen.WebAPI.Tests;
 
@@ -24,7 +24,7 @@ public class OpenAIChatCompletionMiddlewareTests
         using var host = await hostBuilder.StartAsync();
         var client = host.GetTestClient();
         var openaiClient = CreateOpenAIClient(client);
-        var openAIAgent = new OpenAIChatAgent(openaiClient, "test", "test")
+        var openAIAgent = new OpenAIChatAgent(openaiClient.GetChatClient("test"), "test")
             .RegisterMessageConnector();
 
         var response = await openAIAgent.SendAsync("Hey");
@@ -42,7 +42,7 @@ public class OpenAIChatCompletionMiddlewareTests
         using var host = await hostBuilder.StartAsync();
         var client = host.GetTestClient();
         var openaiClient = CreateOpenAIClient(client);
-        var openAIAgent = new OpenAIChatAgent(openaiClient, "test", "test")
+        var openAIAgent = new OpenAIChatAgent(openaiClient.GetChatClient("test"), "test")
             .RegisterMessageConnector();
 
         var message = new TextMessage(Role.User, "ABCDEFGHIJKLMN");
@@ -73,10 +73,9 @@ public class OpenAIChatCompletionMiddlewareTests
 
     private OpenAIClient CreateOpenAIClient(HttpClient client)
     {
-        var clientOption = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2024_02_15_Preview)
+        return new OpenAIClient("api-key", new OpenAIClientOptions
         {
-            Transport = new HttpClientTransport(client),
-        };
-        return new OpenAIClient("api-key", clientOption);
+            Transport = new HttpClientPipelineTransport(client),
+        });
     }
 }

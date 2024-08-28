@@ -1,9 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example03_Agent_FunctionCall.cs
 
-using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 /// <summary>
@@ -45,33 +46,30 @@ public partial class Example03_Agent_FunctionCall
     public static async Task RunAsync()
     {
         var instance = new Example03_Agent_FunctionCall();
-        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
         // AutoGen makes use of AutoGen.SourceGenerator to automatically generate FunctionDefinition and FunctionCallWrapper for you.
         // The FunctionDefinition will be created based on function signature and XML documentation.
         // The return type of type-safe function needs to be Task<string>. And to get the best performance, please try only use primitive types and arrays of primitive types as parameters.
-        var config = new ConversableAgentConfig
-        {
-            Temperature = 0,
-            ConfigList = [gpt35],
-            FunctionContracts = new[]
-            {
+        var toolCallMiddleware = new FunctionCallMiddleware(
+            functions: [
                 instance.ConcatStringFunctionContract,
                 instance.UpperCaseFunctionContract,
                 instance.CalculateTaxFunctionContract,
-            },
-        };
-
-        var agent = new AssistantAgent(
-            name: "agent",
-            systemMessage: "You are a helpful AI assistant",
-            llmConfig: config,
+            ],
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { nameof(ConcatString), instance.ConcatStringWrapper },
-                { nameof(UpperCase), instance.UpperCaseWrapper },
-                { nameof(CalculateTax), instance.CalculateTaxWrapper },
-            })
+                { nameof(instance.ConcatString), instance.ConcatStringWrapper },
+                { nameof(instance.UpperCase), instance.UpperCaseWrapper },
+                { nameof(instance.CalculateTax), instance.CalculateTaxWrapper },
+            });
+
+        var agent = new OpenAIChatAgent(
+            chatClient: gpt4o,
+            name: "agent",
+            systemMessage: "You are a helpful AI assistant")
+            .RegisterMessageConnector()
+            .RegisterStreamingMiddleware(toolCallMiddleware)
             .RegisterPrintMessage();
 
         // talk to the assistant agent

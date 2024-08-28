@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.LMStudio;
-using AutoGen.OpenAI.V1;
-
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 namespace AutoGen;
 
 public enum HumanInputMode
@@ -87,13 +86,21 @@ public class ConversableAgent : IAgent
         {
             IAgent nextAgent = llmConfig switch
             {
-                AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0),
-                OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0),
-                LMStudioConfig lmStudioConfig => new LMStudioAgent(
-                    name: this.Name,
-                    config: lmStudioConfig,
-                    systemMessage: this.systemMessage,
-                    temperature: config.Temperature ?? 0),
+                AzureOpenAIConfig azureConfig => new OpenAIChatAgent(
+                    chatClient: azureConfig.CreateChatClient(),
+                    name: this.Name!,
+                    systemMessage: this.systemMessage)
+                    .RegisterMessageConnector(),
+                OpenAIConfig openAIConfig => new OpenAIChatAgent(
+                    chatClient: openAIConfig.CreateChatClient(),
+                    name: this.Name!,
+                    systemMessage: this.systemMessage)
+                    .RegisterMessageConnector(),
+                LMStudioConfig lmStudioConfig => new OpenAIChatAgent(
+                    chatClient: lmStudioConfig.CreateChatClient(),
+                    name: this.Name!,
+                    systemMessage: this.systemMessage)
+                    .RegisterMessageConnector(),
                 _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
             };
 

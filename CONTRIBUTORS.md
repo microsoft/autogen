@@ -18,14 +18,18 @@
 | Xiaoyun Zhang | [LittleLittleCloud](https://github.com/LittleLittleCloud) | Microsoft | AutoGen.Net, group chat | Yes | [Backlog - AutoGen.Net](https://github.com/microsoft/autogen/issues) - Available most of the time (PST) |
 | Yiran Wu | [yiranwu0](https://github.com/yiranwu0) | Penn State University | alt-models, group chat, logging | Yes | |
 | Beibin Li | [BeibinLi](https://github.com/BeibinLi) | Microsoft Research | alt-models | Yes | |
-| Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  Complex Tasks | | |
+| Gagan Bansal | [gagb](https://github.com/gagb) | Microsoft Research |  All | | |
 | Adam Fourney | [afourney](https://github.com/afourney) | Microsoft Research |  Complex Tasks | | |
 | Ricky Loynd | [rickyloynd-microsoft](https://github.com/rickyloynd-microsoft) | Microsoft Research | Teachability | | |
-| Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  Infra | | |
-| Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  Infra | | |
+| Eric Zhu | [ekzhu](https://github.com/ekzhu) | Microsoft Research |  All, Infra | | |
+| Jack Gerrits | [jackgerrits](https://github.com/jackgerrits) | Microsoft Research |  All, Infra | | |
 | David Luong | [DavidLuong98](https://github.com/DavidLuong98) | Microsoft | AutoGen.Net | | |
 | Davor Runje | [davorrunje](https://github.com/davorrunje) | airt.ai | Tool calling, IO | | Available most of the time (Central European Time) |
-
+| Friederike Niedtner | [Friderike](https://www.microsoft.com/en-us/research/people/fniedtner/) | Microsoft Research | PM | | |
+| Rafah Hosn | [Rafah](https://www.microsoft.com/en-us/research/people/raaboulh/) | Microsoft Research | PM | | |
+| Robin Moeur | [Robin](https://www.linkedin.com/in/rmoeur/) | Microsoft Research | PM | | |
+| Jingya Chen | [jingyachen](https://github.com/JingyaChen) | Microsoft | UX Design, AutoGen Studio | | |
+| Suff Syed | [suffsyed](https://github.com/suffsyed) | Microsoft | UX Design, AutoGen Studio | | |
 
 ## I would like to join this list. How can I help the project?
 > We're always looking for new contributors to join our team and help improve the project. For more information, please refer to our [CONTRIBUTING](https://microsoft.github.io/autogen/docs/contributor-guide/contributing) guide.
