@@ -1,11 +1,17 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+// SPDX-License-Identifier: Apache-2.0
+// Contributions to this project, i.e., https://github.com/autogen-ai/autogen, 
+// are licensed under the Apache License, Version 2.0 (Apache-2.0).
+// Portions derived from  https://github.com/microsoft/autogen under the MIT License.
+// SPDX-License-Identifier: MIT
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example09_LMStudio_FunctionCall.cs
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
 using AutoGen.LMStudio;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
@@ -130,7 +136,8 @@ You have access to the following functions. Use them if required:
 
         await userProxyAgent.SendAsync(
             receiver: lmAgent,
-            "Search the names of the five largest stocks in the US by market cap ");
+            "Search the names of the five largest stocks in the US by market cap ")
+            .ToArrayAsync();
         #endregion lmstudio_function_call_example
     }
 }

@@ -3,7 +3,7 @@ In semantic kernel, a kernel plugin is a collection of kernel functions that can
 `AutoGen.SemanticKernel` provides a middleware called @AutoGen.SemanticKernel.KernelPluginMiddleware that allows you to use semantic kernel plugins in other AutoGen agents like @AutoGen.OpenAI.OpenAIChatAgent. The following example shows how to define a simple plugin with a single `GetWeather` function and use it in @AutoGen.OpenAI.OpenAIChatAgent.
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs)
+> You can find the complete sample code [here](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs)
 
 ### Step 1: add using statement
 [!code-csharp[](../../../sample/AutoGen.SemanticKernel.Sample/Use_Kernel_Functions_With_Other_Agent.cs?name=Using)]

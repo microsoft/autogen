@@ -1,3 +1,9 @@
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
 import copy
 import json
 from typing import Dict, List, Literal, Optional, Union
@@ -238,7 +244,7 @@ class AgentOptimizer:
         """
         One step of training. It will return register_for_llm and register_for_executor at each iteration,
         which are subsequently utilized to update the assistant and executor agents, respectively.
-        See example: https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb
+        See example: https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb
         """
         performance = sum(sum(d.values()) for d in self._trial_conversations_performance) / len(
             self._trial_conversations_performance

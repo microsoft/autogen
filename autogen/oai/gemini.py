@@ -1,3 +1,9 @@
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
 """Create a OpenAI-compatible client for Gemini features.
 
 
@@ -166,7 +172,7 @@ class GeminiClient:
             raise ValueError(
                 "Please provide a model name for the Gemini Client. "
                 "You can configure it in the OAI Config List file. "
-                "See this [LLM configuration tutorial](https://microsoft.github.io/autogen/docs/topics/llm_configuration/) for more details."
+                "See this [LLM configuration tutorial](https://autogen-ai.github.io/autogen/docs/topics/llm_configuration/) for more details."
             )
 
         params.get("api_type", "google")  # not used

@@ -1,3 +1,9 @@
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
 import abc
 import logging
 import os
@@ -93,7 +99,7 @@ class QdrantVectorDB(VectorDB):
             kwargs: dict | Additional keyword arguments.
         """
         self.client: QdrantClient = client or QdrantClient(location=":memory:")
-        self.embedding_function = FastEmbedEmbeddingFunction() or embedding_function
+        self.embedding_function = embedding_function or FastEmbedEmbeddingFunction()
         self.collection_options = collection_options
         self.content_payload_key = content_payload_key
         self.metadata_payload_key = metadata_payload_key

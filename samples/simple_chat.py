@@ -1,9 +1,15 @@
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 
 
 def main():
     # Load LLM inference endpoints from an env variable or a file
-    # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
+    # See https://autogen-ai.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample.
     # For example, if you have created a OAI_CONFIG_LIST file in the current working directory, that file will be used.
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")

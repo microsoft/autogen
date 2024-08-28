@@ -1,3 +1,9 @@
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
+# SPDX-License-Identifier: MIT
 from copy import deepcopy
 from time import monotonic, sleep
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union

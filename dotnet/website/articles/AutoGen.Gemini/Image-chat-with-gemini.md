@@ -4,7 +4,7 @@ To run this example, you need to have a project on Google Cloud with access to V
 
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Image_Chat_With_Vertex_Gemini.cs)
+> You can find the complete sample code [here](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Image_Chat_With_Vertex_Gemini.cs)
 
 ### Step 1: Install AutoGen.Gemini
 

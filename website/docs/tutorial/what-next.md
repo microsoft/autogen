@@ -31,15 +31,14 @@ topics:
 
 ## Get Help
 
-If you have any questions, you can ask in our [GitHub
-Discussions](https://github.com/microsoft/autogen/discussions), or join
-our [Discord Server](https://aka.ms/autogen-dc).
+If you have any questions, you can ask in
+our [Discord Server](https://discord.gg/pAbnFJrkgZ).
 
-[![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat.png)](https://aka.ms/autogen-dc)
+[![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat.png)](https://discord.gg/pAbnFJrkgZ)
 
 ## Get Involved
 
-- Check out [Roadmap Issues](https://aka.ms/autogen-roadmap) to see what we are working on.
+- Check out [Roadmap Issues](https://autogen-ai.com/roadmap) to see what we are working on.
 - Contribute your work to our [gallery](/docs/Gallery)
 - Follow our [contribution guide](/docs/contributor-guide/contributing) to make a pull request to AutoGen
 - You can also share your work with the community on the Discord server.

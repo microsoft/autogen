@@ -15,12 +15,12 @@ customPostCssPlugin = () => {
 module.exports = {
   title: "AutoGen",
   tagline: "An Open-Source Programming Framework for Agentic AI",
-  url: "https://microsoft.github.io",
+  url: "https://autogen-ai.github.io",
   baseUrl: "/autogen/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
-  organizationName: "Microsoft", // Usually your GitHub org/user name.
+  organizationName: "autogen-ai", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
   scripts: [
     {
@@ -131,7 +131,7 @@ module.exports = {
           items: [
             {
               label: "Dotnet",
-              href: "https://microsoft.github.io/autogen-for-net/",
+              href: "https://autogen-ai.github.io/autogen-for-net/",
             },
           ],
         },
@@ -141,17 +141,17 @@ module.exports = {
           position: "left",
         },
         {
-          href: "https://github.com/microsoft/autogen",
+          href: "https://github.com/autogen-ai/autogen",
           label: "GitHub",
           position: "right",
         },
         {
-          href: "https://aka.ms/autogen-dc",
+          href: "https://discord.gg/pAbnFJrkgZ",
           label: "Discord",
           position: "right",
         },
         {
-          href: "https://twitter.com/pyautogen",
+          href: "https://twitter.com/Chi_Wang_",
           label: "Twitter",
           position: "right",
         },
@@ -178,29 +178,29 @@ module.exports = {
             //     // },
             {
               label: "Discord",
-              href: "https://aka.ms/autogen-dc",
+              href: "https://discord.gg/pAbnFJrkgZ",
             },
             {
               label: "Twitter",
-              href: "https://twitter.com/pyautogen",
+              href: "https://twitter.com/Chi_Wang_",
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors`,
     },
-    announcementBar: {
-      id: "whats_new",
-      content:
-        'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
-      backgroundColor: "#fafbfc",
-      textColor: "#091E42",
-      isCloseable: true,
-    },
+    // announcementBar: {
+    //   id: "whats_new",
+    //   content:
+    //     'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
+    //   backgroundColor: "#fafbfc",
+    //   textColor: "#091E42",
+    //   isCloseable: true,
+    // },
     /* Clarity Config */
-    clarity: {
-      ID: "lnxpe6skj1", // The Tracking ID provided by Clarity
-    },
+    // clarity: {
+    //   ID: "lnxpe6skj1", // The Tracking ID provided by Clarity
+    // },
   },
   presets: [
     [
@@ -214,7 +214,7 @@ module.exports = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           // Please change this to your repo.
-          editUrl: "https://github.com/microsoft/autogen/edit/main/website/",
+          editUrl: "https://github.com/autogen-ai/autogen/edit/main/website/",
           remarkPlugins: [math],
           rehypePlugins: [katex],
         },
@@ -292,6 +292,6 @@ module.exports = {
         ],
       },
     ],
-    ["docusaurus-plugin-clarity", {}],
+    // ["docusaurus-plugin-clarity", {}],
   ],
 };

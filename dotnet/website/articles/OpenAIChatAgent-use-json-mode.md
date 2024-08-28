@@ -1,6 +1,6 @@
 The following example shows how to enable JSON mode in @AutoGen.OpenAI.OpenAIChatAgent.
 
-[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Use_Json_Mode.cs)
+[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Use_Json_Mode.cs)
 
 ## What is JSON mode?
 JSON mode is a new feature in OpenAI which allows you to instruct model to always respond with a valid JSON object. This is useful when you want to constrain the model output to JSON format only.

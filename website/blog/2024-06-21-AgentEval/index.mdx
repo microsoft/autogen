@@ -15,13 +15,13 @@ tags: [LLM, GPT, evaluation, task utility]
 
 TL;DR:
 * As a developer, how can you assess the utility and effectiveness of an LLM-powered application in helping end users with their tasks?
-* To shed light on the question above, we previously introduced [`AgentEval`](https://microsoft.github.io/autogen/blog/2023/11/20/AgentEval/) — a framework to assess the multi-dimensional utility of any LLM-powered application crafted to assist users in specific tasks. We have now embedded it as part of the AutoGen library to ease developer adoption.
+* To shed light on the question above, we previously introduced [`AgentEval`](https://autogen-ai.github.io/autogen/blog/2023/11/20/AgentEval/) — a framework to assess the multi-dimensional utility of any LLM-powered application crafted to assist users in specific tasks. We have now embedded it as part of the AutoGen library to ease developer adoption.
 * Here, we introduce an updated version of AgentEval that includes a verification process to estimate the robustness of the QuantifierAgent. More details can be found in [this paper](https://arxiv.org/abs/2405.02178).
 
 
 ## Introduction
 
-Previously introduced [`AgentEval`](https://microsoft.github.io/autogen/blog/2023/11/20/AgentEval/) is a comprehensive framework designed to bridge the gap in assessing the utility of LLM-powered applications. It leverages recent advancements in LLMs to offer a scalable and cost-effective alternative to traditional human evaluations. The framework comprises three main agents: `CriticAgent`, `QuantifierAgent`, and `VerifierAgent`, each playing a crucial role in assessing the task utility of an application.
+Previously introduced [`AgentEval`](https://autogen-ai.github.io/autogen/blog/2023/11/20/AgentEval/) is a comprehensive framework designed to bridge the gap in assessing the utility of LLM-powered applications. It leverages recent advancements in LLMs to offer a scalable and cost-effective alternative to traditional human evaluations. The framework comprises three main agents: `CriticAgent`, `QuantifierAgent`, and `VerifierAgent`, each playing a crucial role in assessing the task utility of an application.
 
 **CriticAgent: Defining the Criteria**
 
