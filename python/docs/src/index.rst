@@ -9,15 +9,21 @@ You can implement agents in
 different programming languages and deploy them on different machines across organizational boundaries.
 You can also implement agents using other agent frameworks and run them in AGNext.
 
-To start quickly, read the `quick start <getting-started/quickstart.html>`_.
+To start quickly, read the `Quick Start <getting-started/quickstart.html>`_ and
+follow the tutorial sections.
 
-To learn about the core concepts of AGNext, read the `overview <core-concepts/overview.html>`_.
+To learn about the core concepts of AGNext, read the sections starting
+from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-application.html>`_.
 
 .. toctree::
     :caption: Core Concepts
     :hidden:
 
-    core-concepts/overview
+    core-concepts/agent-and-multi-agent-application
+    core-concepts/architecture
+    core-concepts/application-stack
+    core-concepts/agent-identity-and-lifecycle
+    core-concepts/topic-and-subscription
 
 .. toctree::
     :caption: Getting started
