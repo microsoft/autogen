@@ -1,8 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import * as React from "react";
-import AgentsView from "./workflows";
 import SessionsView from "./sessions";
-import { useConfigStore } from "../../../hooks/store";
 
 const SideBarView = () => {
   const [isOpen, setIsOpen] = React.useState(true);
@@ -13,8 +11,6 @@ const SideBarView = () => {
     windowHeight = window.innerHeight;
     sidebarMaxHeight = windowHeight - 180 + "px";
   }
-
-  const workflowConfig = useConfigStore((state) => state.workflowConfig);
 
   return (
     <div

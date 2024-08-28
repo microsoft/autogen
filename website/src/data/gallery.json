@@ -1,5 +1,19 @@
 [
   {
+    "title": "AutoTx - Crypto Transactions Agent",
+    "link": "https://www.agentcoin.org/blog/autotx",
+    "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
+    "image": "autotx.png",
+    "tags": ["tools", "groupchat", "app", "blockchain"]
+  },
+  {
+    "title": "AutoGen Virtual Focus Group",
+    "link": "https://github.com/msamylea/autogen_focus_group",
+    "description": "A virtual consumer focus group with multiple custom personas, product details, and final analysis created with AutoGen, Ollama/Llama3, and Streamlit.",
+    "image": "default.png",
+    "tags": ["ui", "groupchat"]
+  },
+  {
     "title": "Function Generator & Validator",
     "link": "https://github.com/abhaymathur21/TensionCode",
     "description": "A platform where user-required code is generated and simultaneously validated against sample data by AutoGen.",
@@ -197,6 +211,29 @@
     "link": "https://github.com/schauppi/MultimodalWebAgent",
     "description": "A multimodal webbrowsing agent that autonomously browses the web.",
     "image": "webagent.jpg",
+    "tags": ["tools", "app"]
+  },
+  {
+    "title": "Create Issues from Code Commits - using Autogen",
+    "link": "https://blog.composio.dev/automating-task-creation-with-openai-assistant-from-code-comments-to-linear-issues/",
+    "description": "Automatically creating linear tasks and assigning them to the right person, project, and team from GitHub commits using AutoGen Agents.",
+    "image": "composio-autogen.png",
+    "tags": ["tools"]
+  },
+  {
+    "title": "Agentok - Autogen Visualized",
+    "link": "https://github.com/hughlv/agentok",
+    "description": "Offering intuitive visual tools that streamline the creation and management of complex AutoGen workflows.",
+    "image": "agentok.png",
+    "tags": [
+      "tools", "ui", "app"
+    ]
+  },
+  {
+    "title": "Expense Tracker - using Autogen",
+    "link": "https://github.com/Kirushikesh/Personal-Finance-Agent",
+    "description": "Tracks personal finance income and expenses then helps the user to analyse it using AutoGen agents.",
+    "image": "default.png",
     "tags": ["tools", "app"]
   }
 ]

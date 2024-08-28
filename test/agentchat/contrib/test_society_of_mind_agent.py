@@ -1,10 +1,12 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import sys
-import autogen
 import os
+import sys
+
+import pytest
 from typing_extensions import Annotated
+
+import autogen
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))

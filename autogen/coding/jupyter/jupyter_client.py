@@ -1,22 +1,22 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, Dict, List, Optional, Type, cast
-import sys
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
 
+import datetime
 import json
 import uuid
-import datetime
-import requests
-from requests.adapters import HTTPAdapter, Retry
 
+import requests
 import websocket
+from requests.adapters import HTTPAdapter, Retry
 from websocket import WebSocket
 
 from .base import JupyterConnectionInfo
@@ -41,10 +41,12 @@ class JupyterClient:
 
     def _get_api_base_url(self) -> str:
         protocol = "https" if self._connection_info.use_https else "http"
-        return f"{protocol}://{self._connection_info.host}:{self._connection_info.port}"
+        port = f":{self._connection_info.port}" if self._connection_info.port else ""
+        return f"{protocol}://{self._connection_info.host}{port}"
 
     def _get_ws_base_url(self) -> str:
-        return f"ws://{self._connection_info.host}:{self._connection_info.port}"
+        port = f":{self._connection_info.port}" if self._connection_info.port else ""
+        return f"ws://{self._connection_info.host}{port}"
 
     def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())

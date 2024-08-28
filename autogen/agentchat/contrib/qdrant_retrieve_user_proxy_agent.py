@@ -1,17 +1,22 @@
-from typing import Callable, Dict, List, Optional
+import warnings
+from typing import Callable, Dict, List, Literal, Optional
 
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
-from autogen.retrieve_utils import get_files_from_dir, split_files_to_chunks, TEXT_FORMATS
-import logging
+from autogen.agentchat.contrib.vectordb.utils import (
+    chroma_results_to_query_results,
+    filter_results_by_distance,
+    get_logger,
+)
+from autogen.retrieve_utils import TEXT_FORMATS, get_files_from_dir, split_files_to_chunks
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 try:
+    import fastembed
     from qdrant_client import QdrantClient, models
     from qdrant_client.fastembed_common import QueryResponse
-    import fastembed
 except ImportError as e:
-    logging.fatal("Failed to import qdrant_client with fastembed. Try running 'pip install qdrant_client[fastembed]'")
+    logger.fatal("Failed to import qdrant_client with fastembed. Try running 'pip install qdrant_client[fastembed]'")
     raise e
 
 
@@ -19,7 +24,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "ALWAYS",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
@@ -89,6 +94,11 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
              **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         """
+        warnings.warn(
+            "The QdrantRetrieveUserProxyAgent is deprecated. Please use the RetrieveUserProxyAgent instead, set `vector_db` to `qdrant`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(name, human_input_mode, is_termination_msg, retrieve_config, **kwargs)
         self._client = self._retrieve_config.get("client", QdrantClient(":memory:"))
         self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-small-en-v1.5")
@@ -136,6 +146,11 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             collection_name=self._collection_name,
             embedding_model=self._embedding_model,
         )
+        results["contents"] = results.pop("documents")
+        results = chroma_results_to_query_results(results, "distances")
+        results = filter_results_by_distance(results, self._distance_threshold)
+
+        self._search_string = search_string
         self._results = results
 
 
@@ -190,12 +205,12 @@ def create_qdrant_from_dir(
         client.set_model(embedding_model)
 
     if custom_text_split_function is not None:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive),
             custom_text_split_function=custom_text_split_function,
         )
     else:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
         )
     logger.info(f"Found {len(chunks)} chunks.")
@@ -298,5 +313,7 @@ def query_qdrant(
     data = {
         "ids": [[result.id for result in sublist] for sublist in results],
         "documents": [[result.document for result in sublist] for sublist in results],
+        "distances": [[result.score for result in sublist] for sublist in results],
+        "metadatas": [[result.metadata for result in sublist] for sublist in results],
     }
     return data

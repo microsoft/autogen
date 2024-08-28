@@ -1,19 +1,58 @@
+import importlib.metadata
 import json
 import logging
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
-
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
+from packaging.version import parse
 
-NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
+NON_CACHE_KEY = [
+    "api_key",
+    "base_url",
+    "api_type",
+    "api_version",
+    "azure_ad_token",
+    "azure_ad_token_provider",
+    "credentials",
+]
+DEFAULT_AZURE_API_VERSION = "2024-02-01"
 OAI_PRICE1K = {
+    # https://openai.com/api/pricing/
+    # gpt-4o
+    "gpt-4o": (0.005, 0.015),
+    "gpt-4o-2024-05-13": (0.005, 0.015),
+    "gpt-4o-2024-08-06": (0.0025, 0.01),
+    # gpt-4-turbo
+    "gpt-4-turbo-2024-04-09": (0.01, 0.03),
+    # gpt-4
+    "gpt-4": (0.03, 0.06),
+    "gpt-4-32k": (0.06, 0.12),
+    # gpt-4o-mini
+    "gpt-4o-mini": (0.000150, 0.000600),
+    "gpt-4o-mini-2024-07-18": (0.000150, 0.000600),
+    # gpt-3.5 turbo
+    "gpt-3.5-turbo": (0.0005, 0.0015),  # default is 0125
+    "gpt-3.5-turbo-0125": (0.0005, 0.0015),  # 16k
+    "gpt-3.5-turbo-instruct": (0.0015, 0.002),
+    # base model
+    "davinci-002": 0.002,
+    "babbage-002": 0.0004,
+    # old model
+    "gpt-4-0125-preview": (0.01, 0.03),
+    "gpt-4-1106-preview": (0.01, 0.03),
+    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    "gpt-3.5-turbo-1106": (0.001, 0.002),
+    "gpt-3.5-turbo-0613": (0.0015, 0.002),
+    # "gpt-3.5-turbo-16k": (0.003, 0.004),
+    "gpt-3.5-turbo-16k-0613": (0.003, 0.004),
+    "gpt-3.5-turbo-0301": (0.0015, 0.002),
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
     "text-curie-001": 0.002,
@@ -21,28 +60,20 @@ OAI_PRICE1K = {
     "code-davinci-002": 0.1,
     "text-davinci-002": 0.02,
     "text-davinci-003": 0.02,
-    "gpt-3.5-turbo-instruct": (0.0015, 0.002),
-    "gpt-3.5-turbo-0301": (0.0015, 0.002),  # deprecate in Sep
-    "gpt-3.5-turbo-0613": (0.0015, 0.002),
-    "gpt-3.5-turbo-16k": (0.003, 0.004),
-    "gpt-3.5-turbo-16k-0613": (0.003, 0.004),
-    "gpt-35-turbo": (0.0015, 0.002),
-    "gpt-35-turbo-16k": (0.003, 0.004),
-    "gpt-35-turbo-instruct": (0.0015, 0.002),
-    "gpt-4": (0.03, 0.06),
-    "gpt-4-32k": (0.06, 0.12),
     "gpt-4-0314": (0.03, 0.06),  # deprecate in Sep
     "gpt-4-32k-0314": (0.06, 0.12),  # deprecate in Sep
     "gpt-4-0613": (0.03, 0.06),
     "gpt-4-32k-0613": (0.06, 0.12),
-    # 11-06
-    "gpt-3.5-turbo": (0.0015, 0.002),  # default is still 0613
-    "gpt-3.5-turbo-1106": (0.001, 0.002),
-    "gpt-35-turbo-1106": (0.001, 0.002),
-    "gpt-4-1106-preview": (0.01, 0.03),
-    "gpt-4-0125-preview": (0.01, 0.03),
     "gpt-4-turbo-preview": (0.01, 0.03),
-    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    # https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/#pricing
+    "gpt-35-turbo": (0.0005, 0.0015),  # what's the default? using 0125 here.
+    "gpt-35-turbo-0125": (0.0005, 0.0015),
+    "gpt-35-turbo-instruct": (0.0015, 0.002),
+    "gpt-35-turbo-1106": (0.001, 0.002),
+    "gpt-35-turbo-0613": (0.0015, 0.002),
+    "gpt-35-turbo-0301": (0.0015, 0.002),
+    "gpt-35-turbo-16k": (0.003, 0.004),
+    "gpt-35-turbo-16k-0613": (0.003, 0.004),
 }
 
 
@@ -77,7 +108,7 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-[A-Za-z0-9]{32,}$")
+    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
     return bool(re.fullmatch(api_key_re, api_key))
 
 
@@ -108,7 +139,7 @@ def get_config_list(
 
     # Optionally, define the API type and version if they are common for all keys
     api_type = 'azure'
-    api_version = '2024-02-15-preview'
+    api_version = '2024-02-01'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)
@@ -360,11 +391,10 @@ def config_list_gpt4_gpt35(
 def filter_config(
     config_list: List[Dict[str, Any]],
     filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]],
+    exclude: bool = False,
 ) -> List[Dict[str, Any]]:
-    """
-    This function filters `config_list` by checking each configuration dictionary against the
-    criteria specified in `filter_dict`. A configuration dictionary is retained if for every
-    key in `filter_dict`, see example below.
+    """This function filters `config_list` by checking each configuration dictionary against the criteria specified in
+    `filter_dict`. A configuration dictionary is retained if for every key in `filter_dict`, see example below.
 
     Args:
         config_list (list of dict): A list of configuration dictionaries to be filtered.
@@ -375,69 +405,66 @@ def filter_config(
                             when it is found in the list of acceptable values. If the configuration's
                             field's value is a list, then a match occurs if there is a non-empty
                             intersection with the acceptable values.
-
-
+        exclude (bool): If False (the default value), configs that match the filter will be included in the returned
+            list. If True, configs that match the filter will be excluded in the returned list.
     Returns:
         list of dict: A list of configuration dictionaries that meet all the criteria specified
                       in `filter_dict`.
 
     Example:
-    ```python
-    # Example configuration list with various models and API types
-    configs = [
-        {'model': 'gpt-3.5-turbo'},
-        {'model': 'gpt-4'},
-        {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
-        {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
-    ]
-
-    # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
-    # that are also using the 'azure' API type
-    filter_criteria = {
-        'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
-        'api_type': ['azure']       # Only accept configurations for 'azure' API type
-    }
-
-    # Apply the filter to the configuration list
-    filtered_configs = filter_config(configs, filter_criteria)
-
-    # The resulting `filtered_configs` will be:
-    # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
-
-
-    # Define a filter to select a given tag
-    filter_criteria = {
-        'tags': ['gpt35_turbo'],
-    }
-
-    # Apply the filter to the configuration list
-    filtered_configs = filter_config(configs, filter_criteria)
-
-    # The resulting `filtered_configs` will be:
-    # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
-    ```
-
+        ```python
+        # Example configuration list with various models and API types
+        configs = [
+            {'model': 'gpt-3.5-turbo'},
+            {'model': 'gpt-4'},
+            {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+            {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
+        ]
+        # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
+        # that are also using the 'azure' API type
+        filter_criteria = {
+            'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
+            'api_type': ['azure']       # Only accept configurations for 'azure' API type
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
+        # Define a filter to select a given tag
+        filter_criteria = {
+            'tags': ['gpt35_turbo'],
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
+        ```
     Note:
         - If `filter_dict` is empty or None, no filtering is applied and `config_list` is returned as is.
         - If a configuration dictionary in `config_list` does not contain a key specified in `filter_dict`,
           it is considered a non-match and is excluded from the result.
         - If the list of acceptable values for a key in `filter_dict` includes None, then configuration
           dictionaries that do not have that key will also be considered a match.
+
     """
 
-    def _satisfies(config_value: Any, acceptable_values: Any) -> bool:
-        if isinstance(config_value, list):
-            return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
-        else:
-            return config_value in acceptable_values
-
     if filter_dict:
-        config_list = [
-            config
-            for config in config_list
-            if all(_satisfies(config.get(key), value) for key, value in filter_dict.items())
+        return [
+            item
+            for item in config_list
+            if all(_satisfies_criteria(item.get(key), values) != exclude for key, values in filter_dict.items())
         ]
     return config_list
+
+
+def _satisfies_criteria(value: Any, criteria_values: Any) -> bool:
+    if value is None:
+        return False
+
+    if isinstance(value, list):
+        return bool(set(value) & set(criteria_values))  # Non-empty intersection
+    else:
+        return value in criteria_values
 
 
 def config_list_from_json(
@@ -662,3 +689,114 @@ def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
         if assistant.name == name:
             candidate_assistants.append(assistant)
     return candidate_assistants
+
+
+def detect_gpt_assistant_api_version() -> str:
+    """Detect the openai assistant API version"""
+    oai_version = importlib.metadata.version("openai")
+    if parse(oai_version) < parse("1.21"):
+        return "v1"
+    else:
+        return "v2"
+
+
+def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
+    """Create a openai vector store for gpt assistant"""
+
+    try:
+        vector_store = client.beta.vector_stores.create(name=name)
+    except Exception as e:
+        raise AttributeError(f"Failed to create vector store, please install the latest OpenAI python package: {e}")
+
+    # poll the status of the file batch for completion.
+    batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
+
+    if batch.status == "in_progress":
+        time.sleep(1)
+        logging.debug(f"file batch status: {batch.file_counts}")
+        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)
+
+    if batch.status == "completed":
+        return vector_store
+
+    raise ValueError(f"Failed to upload files to vector store {vector_store.id}:{batch.status}")
+
+
+def create_gpt_assistant(
+    client: OpenAI, name: str, instructions: str, model: str, assistant_config: Dict[str, Any]
+) -> Assistant:
+    """Create a openai gpt assistant"""
+
+    assistant_create_kwargs = {}
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
+    tools = assistant_config.get("tools", [])
+
+    if gpt_assistant_api_version == "v2":
+        tool_resources = assistant_config.get("tool_resources", {})
+        file_ids = assistant_config.get("file_ids")
+        if tool_resources.get("file_search") is not None and file_ids is not None:
+            raise ValueError(
+                "Cannot specify both `tool_resources['file_search']` tool and `file_ids` in the assistant config."
+            )
+
+        # Designed for backwards compatibility for the V1 API
+        # Instead of V1 AssistantFile, files are attached to Assistants using the tool_resources object.
+        for tool in tools:
+            if tool["type"] == "retrieval":
+                tool["type"] = "file_search"
+                if file_ids is not None:
+                    # create a vector store for the file search tool
+                    vs = create_gpt_vector_store(client, f"{name}-vectorestore", file_ids)
+                    tool_resources["file_search"] = {
+                        "vector_store_ids": [vs.id],
+                    }
+            elif tool["type"] == "code_interpreter" and file_ids is not None:
+                tool_resources["code_interpreter"] = {
+                    "file_ids": file_ids,
+                }
+
+        assistant_create_kwargs["tools"] = tools
+        if len(tool_resources) > 0:
+            assistant_create_kwargs["tool_resources"] = tool_resources
+    else:
+        # not support forwards compatibility
+        if "tool_resources" in assistant_config:
+            raise ValueError("`tool_resources` argument are not supported in the openai assistant V1 API.")
+        if any(tool["type"] == "file_search" for tool in tools):
+            raise ValueError(
+                "`file_search` tool are not supported in the openai assistant V1 API, please use `retrieval`."
+            )
+        assistant_create_kwargs["tools"] = tools
+        assistant_create_kwargs["file_ids"] = assistant_config.get("file_ids", [])
+
+    logging.info(f"Creating assistant with config: {assistant_create_kwargs}")
+    return client.beta.assistants.create(name=name, instructions=instructions, model=model, **assistant_create_kwargs)
+
+
+def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Dict[str, Any]) -> Assistant:
+    """Update openai gpt assistant"""
+
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
+    assistant_update_kwargs = {}
+
+    if assistant_config.get("tools") is not None:
+        assistant_update_kwargs["tools"] = assistant_config["tools"]
+
+    if assistant_config.get("instructions") is not None:
+        assistant_update_kwargs["instructions"] = assistant_config["instructions"]
+
+    if gpt_assistant_api_version == "v2":
+        if assistant_config.get("tool_resources") is not None:
+            assistant_update_kwargs["tool_resources"] = assistant_config["tool_resources"]
+    else:
+        if assistant_config.get("file_ids") is not None:
+            assistant_update_kwargs["file_ids"] = assistant_config["file_ids"]
+
+    return client.beta.assistants.update(assistant_id=assistant_id, **assistant_update_kwargs)
+
+
+def _satisfies(config_value: Any, acceptable_values: Any) -> bool:
+    if isinstance(config_value, list):
+        return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
+    else:
+        return config_value in acceptable_values

@@ -1,6 +1,8 @@
 from typing import Dict, List, Union
-from autogen import agentchat
+
 import pytest
+
+from autogen import agentchat
 
 TAG_PARSING_TESTS = [
     {

@@ -1,7 +1,9 @@
+from typing import Dict
+
 import pytest
+
 from autogen import OpenAIWrapper
 from autogen.oai import ModelClient
-from typing import Dict
 
 try:
     from openai import OpenAI

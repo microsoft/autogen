@@ -2,8 +2,8 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from ..code_utils import CODE_BLOCK_PATTERN, UNKNOWN, content_str, infer_lang
-from .base import CodeBlock, CodeExtractor
 from ..types import UserMessageImageContentPart, UserMessageTextContentPart
+from .base import CodeBlock, CodeExtractor
 
 __all__ = ("MarkdownCodeExtractor",)
 

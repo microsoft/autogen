@@ -71,4 +71,4 @@ The need for model selection, parameter tuning and cost saving is not specific t
 * [Research paper about the tuning technique](https://arxiv.org/abs/2303.04673)
 * [Documentation about inference tuning](/docs/Use-Cases/enhanced_inference)
 
-*Do you have any experience to share about LLM applications? Do you like to see more support or research of LLM optimization or automation? Please join our [Discord](https://discord.gg/pAbnFJrkgZ) server for discussion.*
+*Do you have any experience to share about LLM applications? Do you like to see more support or research of LLM optimization or automation? Please join our [Discord](https://aka.ms/autogen-dc) server for discussion.*

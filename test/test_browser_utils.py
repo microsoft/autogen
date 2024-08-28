@@ -1,13 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import os
-import sys
-import requests
 import hashlib
-import re
 import math
+import os
+import re
+import sys
 
+import pytest
+import requests
 from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
@@ -78,7 +78,7 @@ def test_simple_text_browser():
     top_viewport = browser.visit_page(BLOG_POST_URL)
     assert browser.viewport == top_viewport
     assert browser.page_title.strip() == BLOG_POST_TITLE.strip()
-    assert BLOG_POST_STRING in browser.page_content
+    assert BLOG_POST_STRING in browser.page_content.replace("\n\n", " ").replace("\\", "")
 
     # Check if page splitting works
     approx_pages = math.ceil(len(browser.page_content) / viewport_size)  # May be fewer, since it aligns to word breaks

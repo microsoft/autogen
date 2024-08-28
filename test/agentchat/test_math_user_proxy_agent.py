@@ -1,15 +1,17 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
-    _remove_print,
     _add_print_to_last_line,
+    _remove_print,
 )
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -36,14 +38,13 @@ def test_math_user_proxy_agent():
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-3.5-turbo"],
         },
     )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "timeout": 600,
             "cache_seed": 42,
             "config_list": config_list,
         },
@@ -125,5 +126,5 @@ def test_generate_prompt():
 if __name__ == "__main__":
     # test_add_remove_print()
     # test_execute_one_python_code()
-    test_generate_prompt()
+    # test_generate_prompt()
     test_math_user_proxy_agent()

@@ -4,11 +4,10 @@ import unittest
 from unittest.mock import MagicMock
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen
 from autogen.agentchat.conversable_agent import ConversableAgent
-
-from conftest import MOCK_OPEN_AI_API_KEY
 
 try:
     from autogen.agentchat.contrib.img_utils import get_pil_image
@@ -123,6 +122,7 @@ def test_group_chat_with_lmm():
         system_message="Ask both image explainer 1 and 2 for their description.",
         human_input_mode="NEVER",  # Options: 'ALWAYS' or 'NEVER'
         max_consecutive_auto_reply=max_consecutive_auto_reply,
+        code_execution_config=False,
     )
 
     # Setting up the group chat

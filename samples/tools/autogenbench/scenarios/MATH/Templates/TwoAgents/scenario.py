@@ -1,7 +1,9 @@
-import os
 import json
-import autogen
+import os
+
 import testbed_utils
+
+import autogen
 
 testbed_utils.init()
 

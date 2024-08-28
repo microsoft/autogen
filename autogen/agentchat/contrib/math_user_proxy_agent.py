@@ -1,14 +1,14 @@
-import re
 import os
-from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+import re
 from time import sleep
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
+from pydantic import BaseModel, Extra, root_validator
 
 from autogen._pydantic import PYDANTIC_V1
 from autogen.agentchat import Agent, UserProxyAgent
-from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
+from autogen.code_utils import UNKNOWN, execute_code, extract_code, infer_lang
 from autogen.math_utils import get_answer
-
 
 PROMPTS = {
     # default
@@ -136,7 +136,7 @@ class MathUserProxyAgent(UserProxyAgent):
         is_termination_msg: Optional[
             Callable[[Dict], bool]
         ] = _is_termination_msg_mathchat,  # terminate if \boxed{} in message
-        human_input_mode: Optional[str] = "NEVER",  # Fully automated
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",  # Fully automated
         default_auto_reply: Optional[Union[str, Dict, None]] = DEFAULT_REPLY,
         max_invalid_q_per_step=3,  # a parameter needed in MathChat
         **kwargs,

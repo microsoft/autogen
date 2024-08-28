@@ -1,10 +1,11 @@
 import os
-from typing_extensions import Annotated
+from typing import Optional
+
 import typer
 import uvicorn
+from typing_extensions import Annotated
 
 from .version import VERSION
-from .utils.dbutils import DBManager
 
 app = typer.Typer()
 
@@ -17,6 +18,7 @@ def ui(
     reload: Annotated[bool, typer.Option("--reload")] = False,
     docs: bool = False,
     appdir: str = None,
+    database_uri: Optional[str] = None,
 ):
     """
     Run the AutoGen Studio UI.
@@ -28,11 +30,14 @@ def ui(
         reload (bool, optional): Whether to reload the UI on code changes. Defaults to False.
         docs (bool, optional): Whether to generate API docs. Defaults to False.
         appdir (str, optional): Path to the AutoGen Studio app directory. Defaults to None.
+        database-uri (str, optional): Database URI to connect to. Defaults to None. Examples include sqlite:///autogenstudio.db, postgresql://user:password@localhost/autogenstudio.
     """
 
     os.environ["AUTOGENSTUDIO_API_DOCS"] = str(docs)
     if appdir:
         os.environ["AUTOGENSTUDIO_APPDIR"] = appdir
+    if database_uri:
+        os.environ["AUTOGENSTUDIO_DATABASE_URI"] = database_uri
 
     uvicorn.run(
         "autogenstudio.web.app:app",

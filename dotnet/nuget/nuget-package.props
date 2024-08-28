@@ -1,0 +1,54 @@
+<Project>
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+
+    <!-- Default description and tags. Packages can override. -->
+    <Authors>AutoGen</Authors>
+    <Company>Microsoft</Company>
+    <Product>AutoGen</Product>
+    <Description>A programming framework for agentic AI</Description>
+    <PackageTags>AI, Artificial Intelligence, SDK</PackageTags>
+    <PackageId>$(AssemblyName)</PackageId>
+
+    <!-- Required license, copyright, and repo information. Packages can override. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <PackageProjectUrl>https://microsoft.github.io/autogen-for-net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/microsoft/autogen</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+    <!-- Use icon and NUGET readme from dotnet/nuget folder -->
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageIconUrl>icon.png</PackageIconUrl>
+    <PackageReadmeFile>NUGET.md</PackageReadmeFile>
+
+    <!-- Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+ 
+    <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Include the XML documentation file in the NuGet package. -->
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SourceLink allows step-through debugging for source hosted on GitHub. -->
+    <!-- https://github.com/dotnet/sourcelink -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="$(MicrosoftSourceLinkGitHubVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include icon.png and NUGET.md in the project. -->
+    <None Include="$(RepoRoot)/nuget/icon.png" Link="icon.png" Pack="true" PackagePath="." />
+    <None Include="$(RepoRoot)/nuget/NUGET.md" Link="NUGET.md" Pack="true" PackagePath="." />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+</Project>

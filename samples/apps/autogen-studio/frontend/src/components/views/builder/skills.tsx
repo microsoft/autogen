@@ -37,7 +37,6 @@ const SkillsView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
   const saveSkillsUrl = `${serverUrl}/skills`;
-  const deleteSkillsUrl = `${serverUrl}/skills/delete`;
 
   const [skills, setSkills] = React.useState<ISkill[] | null>([]);
   const [selectedSkill, setSelectedSkill] = React.useState<any>(null);
@@ -52,6 +51,7 @@ const SkillsView = ({}: any) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    const deleteSkillUrl = `${serverUrl}/skills/delete?user_id=${user?.email}&skill_id=${skill.id}`;
     const payLoad = {
       method: "DELETE",
       headers: {
@@ -66,7 +66,7 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setSkills(data.data);
+        fetchSkills();
       } else {
         message.error(data.message);
       }
@@ -77,7 +77,7 @@ const SkillsView = ({}: any) => {
       message.error(err.message);
       setLoading(false);
     };
-    fetchJSON(deleteSkillsUrl, payLoad, onSuccess, onError);
+    fetchJSON(deleteSkillUrl, payLoad, onSuccess, onError);
   };
 
   const fetchSkills = () => {
@@ -94,7 +94,7 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         // message.success(data.message);
-        // console.log("skills", data.data);
+        console.log("skills", data.data);
         setSkills(data.data);
       } else {
         message.error(data.message);
@@ -113,23 +113,21 @@ const SkillsView = ({}: any) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    skill.user_id = user?.email;
     const payLoad = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        user_id: user?.email,
-        skill: skill,
-      }),
+      body: JSON.stringify(skill),
     };
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        // console.log("skills", data.data);
-        setSkills(data.data);
+        const updatedSkills = [data.data].concat(skills || []);
+        setSkills(updatedSkills);
       } else {
         message.error(data.message);
       }
@@ -164,7 +162,7 @@ const SkillsView = ({}: any) => {
             type: "application/json",
           });
           element.href = URL.createObjectURL(file);
-          element.download = `skill_${skill.title}.json`;
+          element.download = `skill_${skill.name}.json`;
           document.body.appendChild(element); // Required for this to work in FireFox
           element.click();
         },
@@ -176,9 +174,8 @@ const SkillsView = ({}: any) => {
         onClick: (e: any) => {
           e.stopPropagation();
           let newSkill = { ...skill };
-          newSkill.title = `${skill.title} Copy`;
+          newSkill.name = `${skill.name} Copy`;
           newSkill.user_id = user?.email;
-          newSkill.timestamp = new Date().toISOString();
           if (newSkill.id) {
             delete newSkill.id;
           }
@@ -198,27 +195,38 @@ const SkillsView = ({}: any) => {
       },
     ];
     return (
-      <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
+      <li key={"skillrow" + i} className=" " style={{ width: "200px" }}>
         <div>
           {" "}
           <Card
             className="h-full p-2 cursor-pointer group"
-            title={truncateText(skill.title, 25)}
+            title={truncateText(skill.name, 25)}
             onClick={() => {
               setSelectedSkill(skill);
               setShowSkillModal(true);
             }}
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
+            <div
+              style={{ minHeight: "65px" }}
+              className="my-2   break-words"
+              aria-hidden="true"
+            >
               {" "}
-              {truncateText(skill.content, 70)}
+              {skill.description
+                ? truncateText(skill.description || "", 70)
+                : truncateText(skill.content || "", 70)}
             </div>
-            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+            <div
+              aria-label={`Updated ${timeAgo(skill.updated_at || "")}`}
+              className="text-xs"
+            >
+              {timeAgo(skill.updated_at || "")}
+            </div>
             <CardHoverBar items={cardItems} />
           </Card>
           <div className="text-right mt-2"></div>
         </div>
-      </div>
+      </li>
     );
   });
 
@@ -242,7 +250,7 @@ const SkillsView = ({}: any) => {
         title={
           <>
             Skill Specification{" "}
-            <span className="text-accent font-normal">{localSkill?.title}</span>{" "}
+            <span className="text-accent font-normal">{localSkill?.name}</span>{" "}
           </>
         }
         width={800}
@@ -281,29 +289,14 @@ const SkillsView = ({}: any) => {
           <div style={{ minHeight: "70vh" }}>
             <div className="mb-2">
               <Input
-                placeholder="Skill Title"
-                value={localSkill.title}
+                placeholder="Skill Name"
+                value={localSkill.name}
                 onChange={(e) => {
-                  const updatedSkill = { ...localSkill, title: e.target.value };
+                  const updatedSkill = { ...localSkill, name: e.target.value };
                   setLocalSkill(updatedSkill);
                 }}
               />
             </div>
-
-            {/* <div className="mb-2">
-              <div className="inline-block  "> Skill Description </div>
-              <TextArea
-                placeholder="Skill Description"
-                value={localSkill.description}
-                onChange={(e) => {
-                  const updatedSkill = {
-                    ...localSkill,
-                    description: e.target.value,
-                  };
-                  setLocalSkill(updatedSkill);
-                }}
-              />
-            </div> */}
 
             <div style={{ height: "70vh" }} className="h-full  mt-2 rounded">
               <MonacoEditor
@@ -391,10 +384,10 @@ const SkillsView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1   font-semibold mb-2 ">
+            <ul className="flex-1   font-semibold mb-2 ">
               {" "}
               Skills ({skillRows.length}){" "}
-            </div>
+            </ul>
             <div>
               <Dropdown.Button
                 type="primary"

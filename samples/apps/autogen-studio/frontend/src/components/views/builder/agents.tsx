@@ -8,24 +8,17 @@ import {
 } from "@heroicons/react/24/outline";
 import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
-import { IAgentFlowSpec, IStatus } from "../../types";
+import { IAgent, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
-  sampleAgentConfig,
   sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  AgentFlowSpecView,
-  BounceLoader,
-  Card,
-  CardHoverBar,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
+import { AgentViewer } from "./utils/agentconfig";
 
 const AgentsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -37,25 +30,30 @@ const AgentsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
-  const saveAgentsUrl = `${serverUrl}/agents`;
-  const deleteAgentUrl = `${serverUrl}/agents/delete`;
 
-  const [agents, setAgents] = React.useState<IAgentFlowSpec[] | null>([]);
-  const [selectedAgent, setSelectedAgent] =
-    React.useState<IAgentFlowSpec | null>(null);
+  const [agents, setAgents] = React.useState<IAgent[] | null>([]);
+  const [selectedAgent, setSelectedAgent] = React.useState<IAgent | null>(null);
 
   const [showNewAgentModal, setShowNewAgentModal] = React.useState(false);
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
-  const sampleAgent = sampleAgentConfig(user?.email || "");
-  const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
-    sampleAgent
-  );
+  const sampleAgent = {
+    config: {
+      name: "sample_agent",
+      description: "Sample agent description",
+      human_input_mode: "NEVER",
+      max_consecutive_auto_reply: 3,
+      system_message: "",
+    },
+  };
+  const [newAgent, setNewAgent] = React.useState<IAgent | null>(sampleAgent);
 
-  const deleteAgent = (agent: IAgentFlowSpec) => {
+  const deleteAgent = (agent: IAgent) => {
     setError(null);
     setLoading(true);
+
+    const deleteAgentUrl = `${serverUrl}/agents/delete?user_id=${user?.email}&agent_id=${agent.id}`;
     // const fetch;
     const payLoad = {
       method: "DELETE",
@@ -71,8 +69,7 @@ const AgentsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        console.log("agents", data.data);
-        setAgents(data.data);
+        fetchAgents();
       } else {
         message.error(data.message);
       }
@@ -98,8 +95,6 @@ const AgentsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         setAgents(data.data);
       } else {
         message.error(data.message);
@@ -114,42 +109,6 @@ const AgentsView = ({}: any) => {
     fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveAgent = (agent: IAgentFlowSpec) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        agent: agent,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        // console.log("agents", data.data);
-        setAgents(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-      setNewAgent(sampleAgent);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveAgentsUrl, payLoad, onSuccess, onError);
-  };
-
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
@@ -157,7 +116,7 @@ const AgentsView = ({}: any) => {
     }
   }, []);
 
-  const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
+  const agentRows = (agents || []).map((agent: IAgent, i: number) => {
     const cardItems = [
       {
         title: "Download",
@@ -185,11 +144,10 @@ const AgentsView = ({}: any) => {
           let newAgent = { ...agent };
           newAgent.config.name = `${agent.config.name}_copy`;
           newAgent.user_id = user?.email;
-          newAgent.timestamp = new Date().toISOString();
+          newAgent.updated_at = new Date().toISOString();
           if (newAgent.id) {
             delete newAgent.id;
           }
-
           setNewAgent(newAgent);
           setShowNewAgentModal(true);
         },
@@ -206,27 +164,41 @@ const AgentsView = ({}: any) => {
       },
     ];
     return (
-      <div key={"agentrow" + i} className=" " style={{ width: "200px" }}>
-        <div className="">
-          <Card
-            className="h-full p-2 cursor-pointer"
-            title={
-              <div className="  ">{truncateText(agent.config.name, 25)}</div>
-            }
-            onClick={() => {
-              setSelectedAgent(agent);
-              setShowAgentModal(true);
-            }}
-          >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(agent.config.description || "", 70)}
+      <li
+        role="listitem"
+        key={"agentrow" + i}
+        className=" "
+        style={{ width: "200px" }}
+      >
+        <Card
+          className="h-full p-2 cursor-pointer"
+          title={
+            <div className="  ">
+              {truncateText(agent.config.name || "", 25)}
             </div>
-            <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
-            <CardHoverBar items={cardItems} />
-          </Card>
-        </div>
-      </div>
+          }
+          onClick={() => {
+            setSelectedAgent(agent);
+            setShowAgentModal(true);
+          }}
+        >
+          <div
+            style={{ minHeight: "65px" }}
+            aria-hidden="true"
+            className="my-2   break-words"
+          >
+            {" "}
+            {truncateText(agent.config.description || "", 70)}
+          </div>
+          <div
+            aria-label={`Updated ${timeAgo(agent.updated_at || "")}`}
+            className="text-xs"
+          >
+            {timeAgo(agent.updated_at || "")}
+          </div>
+          <CardHoverBar items={cardItems} />
+        </Card>
+      </li>
     );
   });
 
@@ -237,45 +209,39 @@ const AgentsView = ({}: any) => {
     setShowAgentModal,
     handler,
   }: {
-    agent: IAgentFlowSpec | null;
-    setAgent: (agent: IAgentFlowSpec | null) => void;
+    agent: IAgent | null;
+    setAgent: (agent: IAgent | null) => void;
     showAgentModal: boolean;
     setShowAgentModal: (show: boolean) => void;
-    handler?: (agent: IAgentFlowSpec | null) => void;
+    handler?: (agent: IAgent | null) => void;
   }) => {
-    const [localAgent, setLocalAgent] = React.useState<IAgentFlowSpec | null>(
-      agent
-    );
+    const [localAgent, setLocalAgent] = React.useState<IAgent | null>(agent);
+
+    const closeModal = () => {
+      setShowAgentModal(false);
+      if (handler) {
+        handler(localAgent);
+      }
+    };
 
     return (
       <Modal
-        title={
-          <>
-            Agent Specification{" "}
-            <span className="text-accent font-normal">
-              {agent?.config?.name || ""}
-            </span>{" "}
-          </>
-        }
+        title={<>Agent Configuration</>}
         width={800}
         open={showAgentModal}
         onOk={() => {
-          setAgent(null);
-          setShowAgentModal(false);
-          if (handler) {
-            handler(localAgent);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setAgent(null);
-          setShowAgentModal(false);
+          closeModal();
         }}
+        footer={[]}
       >
         {agent && (
-          <AgentFlowSpecView
-            title=""
-            flowSpec={localAgent || agent}
-            setFlowSpec={setLocalAgent}
+          <AgentViewer
+            agent={localAgent || agent}
+            setAgent={setLocalAgent}
+            close={closeModal}
           />
         )}
         {/* {JSON.stringify(localAgent)} */}
@@ -344,10 +310,8 @@ const AgentsView = ({}: any) => {
         setAgent={setSelectedAgent}
         setShowAgentModal={setShowAgentModal}
         showAgentModal={showAgentModal}
-        handler={(agent: IAgentFlowSpec | null) => {
-          if (agent) {
-            saveAgent(agent);
-          }
+        handler={(agent: IAgent | null) => {
+          fetchAgents();
         }}
       />
 
@@ -356,10 +320,8 @@ const AgentsView = ({}: any) => {
         setAgent={setNewAgent}
         setShowAgentModal={setShowNewAgentModal}
         showAgentModal={showNewAgentModal}
-        handler={(agent: IAgentFlowSpec | null) => {
-          if (agent) {
-            saveAgent(agent);
-          }
+        handler={(agent: IAgent | null) => {
+          fetchAgents();
         }}
       />
 
@@ -397,7 +359,7 @@ const AgentsView = ({}: any) => {
           {agents && agents.length > 0 && (
             <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
-              <div className="   flex flex-wrap gap-3">{agentRows}</div>
+              <ul className="   flex flex-wrap gap-3">{agentRows}</ul>
             </div>
           )}
 

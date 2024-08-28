@@ -1,10 +1,11 @@
-import _paths
 import sys
 import time
 from typing import Any, Dict
+
+import _paths
 import zmq
+from autogencap.Config import dealer_url, router_url, xpub_url, xsub_url
 from zmq.utils.monitor import recv_monitor_message
-from autogencap.Config import xsub_url, xpub_url, router_url, dealer_url
 
 
 def zmq_sub_test():

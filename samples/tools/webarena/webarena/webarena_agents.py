@@ -1,26 +1,23 @@
-import autogen
-
-from browser_env.actions import (
-    ActionParsingError,
-    Action,
-    create_none_action,
-    create_id_based_action,
-    create_playwright_action,
-)
-
 from browser_env import (
     ActionTypes,
     StateInfo,
     Trajectory,
     create_stop_action,
 )
-
+from browser_env.actions import (
+    Action,
+    ActionParsingError,
+    create_id_based_action,
+    create_none_action,
+    create_playwright_action,
+    is_equivalent,
+)
 from browser_env.helper_functions import (
     RenderHelper,
     get_action_description,
 )
 
-from browser_env.actions import is_equivalent
+import autogen
 
 
 def early_stop(trajectory: Trajectory, max_steps: int, thresholds: dict[str, int]) -> tuple[bool, str]:

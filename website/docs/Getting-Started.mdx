@@ -3,11 +3,12 @@ import TabItem from "@theme/TabItem";
 
 # Getting Started
 
-AutoGen is a framework that enables development of LLM applications using
-multiple agents that can converse with each other to solve tasks. AutoGen agents
-are customizable, conversable, and seamlessly allow human participation. They
-can operate in various modes that employ combinations of LLMs, human inputs, and
-tools.
+AutoGen is an open-source programming framework for building AI agents and facilitating
+cooperation among multiple agents to solve tasks. AutoGen aims to provide an easy-to-use
+and flexible framework for accelerating development and research on agentic AI,
+like PyTorch for Deep Learning. It offers features such as agents that can converse
+with other agents, LLM and tool use support, autonomous and human-in-the-loop workflows,
+and multi-agent conversation patterns.
 
 ![AutoGen Overview](/img/autogen_agentchat.png)
 
@@ -41,6 +42,7 @@ pip install pyautogen
     <TabItem value="nocode" label="No code execution" default>
 
 ```python
+import os
 from autogen import AssistantAgent, UserProxyAgent
 
 llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
@@ -56,11 +58,13 @@ user_proxy.initiate_chat(
 
     </TabItem>
     <TabItem value="local" label="Local execution" default>
+
 :::warning
 When asked, be sure to check the generated code before continuing to ensure it is safe to run.
 :::
 
 ```python
+import os
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
 
@@ -82,6 +86,7 @@ user_proxy.initiate_chat(
     <TabItem value="docker" label="Docker execution" default>
 
 ```python
+import os
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
 
@@ -103,6 +108,7 @@ with autogen.coding.DockerCommandLineCodeExecutor(work_dir="coding") as code_exe
 Open `coding/plot.png` to see the generated plot.
 
     </TabItem>
+
 </Tabs>
 
 :::tip
@@ -125,11 +131,11 @@ The figure below shows an example conversation flow with AutoGen.
 - Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat) and [enhanced LLM inference](/docs/Use-Cases/enhanced_inference)
 - Read the [API](/docs/reference/agentchat/conversable_agent/) docs
 - Learn about [research](/docs/Research) around AutoGen
-- Chat on [Discord](https://discord.gg/pAbnFJrkgZ)
+- Chat on [Discord](https://aka.ms/autogen-dc)
 - Follow on [Twitter](https://twitter.com/pyautogen)
-- See our [roadmaps](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap)
+- See our [roadmaps](https://aka.ms/autogen-roadmap)
 
-If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
+If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/contributor-guide/contributing).
 
 <iframe
   src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large"

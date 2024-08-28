@@ -1,13 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import asyncio
 import json
+import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.math_utils import eval_math_responses
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-import sys
-import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -22,8 +24,12 @@ else:
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
-    config_list = autogen.config_list_from_models(
-        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "tags": ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
+        },
+        file_location=KEY_LOC,
     )
     functions = [
         {
@@ -85,6 +91,12 @@ def test_json_extraction():
     jstr = '{"code": "a=\\"hello\\""}'
     assert user._format_json_str(jstr) == '{"code": "a=\\"hello\\""}'
 
+    jstr = '{\n"tool": "python",\n"query": "print(\'hello\')\n\tprint(\'world\')"\n}'  # mixed newlines and tabs
+    assert user._format_json_str(jstr) == '{"tool": "python","query": "print(\'hello\')\\n\\tprint(\'world\')"}'
+
+    jstr = "{}"  # empty json
+    assert user._format_json_str(jstr) == "{}"
+
 
 def test_execute_function():
     from autogen.agentchat import UserProxyAgent
@@ -109,9 +121,9 @@ def test_execute_function():
         "name": "add_num",
         "arguments": '{ "num_to_be_added": 5, given_num: 10 }',
     }  # should be "given_num" with quotes
-    assert "You argument should follow json format." in user.execute_function(func_call=wrong_json_format)[1]["content"]
+    assert "The argument must be in JSON format." in user.execute_function(func_call=wrong_json_format)[1]["content"]
 
-    # function execution error with wrong arguments passed
+    # function execution error with extra arguments
     wrong_args = {"name": "add_num", "arguments": '{ "num_to_be_added": 5, "given_num": 10 }'}
     assert "Error: " in user.execute_function(func_call=wrong_args)[1]["content"]
 
@@ -137,11 +149,25 @@ def test_execute_function():
     func_call = {"name": "get_number", "arguments": "{}"}
     assert user.execute_function(func_call)[1]["content"] == "42"
 
+    # 4. test with a non-existent function
+    user = UserProxyAgent(name="test", function_map={})
+    func_call = {"name": "nonexistent_function", "arguments": "{}"}
+    assert "Error: Function" in user.execute_function(func_call=func_call)[1]["content"]
+
+    # 5. test calling a function that raises an exception
+    def raise_exception():
+        raise ValueError("This is an error")
+
+    user = UserProxyAgent(name="test", function_map={"raise_exception": raise_exception})
+    func_call = {"name": "raise_exception", "arguments": "{}"}
+    assert "Error: " in user.execute_function(func_call=func_call)[1]["content"]
+
 
 @pytest.mark.asyncio
 async def test_a_execute_function():
-    from autogen.agentchat import UserProxyAgent
     import time
+
+    from autogen.agentchat import UserProxyAgent
 
     # Create an async function
     async def add_num(num_to_be_added):
@@ -167,7 +193,7 @@ async def test_a_execute_function():
         "arguments": '{ "num_to_be_added": 5, given_num: 10 }',
     }  # should be "given_num" with quotes
     assert (
-        "You argument should follow json format."
+        "The argument must be in JSON format."
         in (await user.a_execute_function(func_call=wrong_json_format))[1]["content"]
     )
 
@@ -206,7 +232,7 @@ def test_update_function():
     config_list_gpt4 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-4", "gpt-4-32k", "gpt-4o", "gpt-4o-mini"],
         },
         file_location=KEY_LOC,
     )

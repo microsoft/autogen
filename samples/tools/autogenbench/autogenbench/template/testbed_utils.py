@@ -1,8 +1,10 @@
-from pkg_resources import packaging
-from datetime import datetime
-import os
-import autogen
 import json
+import os
+from datetime import datetime
+
+from pkg_resources import packaging
+
+import autogen
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
@@ -68,7 +70,7 @@ def init():
 
     # Start logging
     if LOGGING_ENABLED:
-        autogen.runtime_logging.start(config={"dbname": "telemetry.db"})
+        autogen.runtime_logging.start(config={"dbname": "telemetry.sqlite"})
 
 
 def finalize(agents):

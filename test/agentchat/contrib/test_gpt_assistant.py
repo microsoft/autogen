@@ -1,24 +1,25 @@
 #!/usr/bin/env python3 -m pytest
 
-from unittest.mock import MagicMock
-import uuid
-import pytest
 import os
 import sys
+import uuid
+from unittest.mock import MagicMock
+
 import openai
+import pytest
+
 import autogen
-from autogen import OpenAIWrapper
-from autogen import UserProxyAgent
+from autogen import OpenAIWrapper, UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-from autogen.oai.openai_utils import retrieve_assistants_by_name
+from autogen.oai.openai_utils import detect_gpt_assistant_api_version, retrieve_assistants_by_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai as skip  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
-if not skip:
+if not skip_openai:
     openai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
@@ -27,6 +28,9 @@ if not skip:
         filter_dict={
             "api_type": ["openai"],
             "model": [
+                "gpt-4o-mini",
+                "gpt-4o",
+                "gpt-4-turbo",
                 "gpt-4-turbo-preview",
                 "gpt-4-0125-preview",
                 "gpt-4-1106-preview",
@@ -39,13 +43,13 @@ if not skip:
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "api_version": ["2024-02-15-preview"]},
+        filter_dict={"api_type": ["azure"], "tags": ["assistant"]},
     )
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_config_list() -> None:
     assert len(openai_config_list) > 0
@@ -53,8 +57,8 @@ def test_config_list() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_chat() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -127,8 +131,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_get_assistant_instructions() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -156,8 +160,8 @@ def _test_get_assistant_instructions(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -210,8 +214,8 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_existing_no_instructions() -> None:
     """
@@ -250,8 +254,8 @@ def test_gpt_assistant_existing_no_instructions() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_get_assistant_files() -> None:
     """
@@ -262,6 +266,7 @@ def test_get_assistant_files() -> None:
     openai_client = OpenAIWrapper(config_list=openai_config_list)._clients[0]._oai_client
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = f"For test_get_assistant_files {uuid.uuid4()}"
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
 
     # keep it to test older version of assistant config
     assistant = GPTAssistantAgent(
@@ -275,10 +280,17 @@ def test_get_assistant_files() -> None:
     )
 
     try:
-        files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
-        retrieved_file_ids = [fild.id for fild in files]
+        if gpt_assistant_api_version == "v1":
+            files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
+            retrieved_file_ids = [fild.id for fild in files]
+        elif gpt_assistant_api_version == "v2":
+            oas_assistant = assistant.openai_client.beta.assistants.retrieve(assistant_id=assistant.assistant_id)
+            vectorstore_ids = oas_assistant.tool_resources.file_search.vector_store_ids
+            retrieved_file_ids = []
+            for vectorstore_id in vectorstore_ids:
+                files = assistant.openai_client.beta.vector_stores.files.list(vector_store_id=vectorstore_id)
+                retrieved_file_ids.extend([fild.id for fild in files])
         expected_file_id = file.id
-
     finally:
         assistant.delete_assistant()
         openai_client.files.delete(file.id)
@@ -287,8 +299,8 @@ def test_get_assistant_files() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_assistant_retrieval() -> None:
     """
@@ -303,7 +315,7 @@ def test_assistant_retrieval() -> None:
         "description": "This is a test function 1",
     }
     function_2_schema = {
-        "name": "call_function_1",
+        "name": "call_function_2",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 2",
     }
@@ -364,8 +376,8 @@ def test_assistant_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_assistant_mismatch_retrieval() -> None:
     """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
@@ -373,12 +385,12 @@ def test_assistant_mismatch_retrieval() -> None:
     name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
-        "name": "call_function",
+        "name": "call_function_1",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 1",
     }
     function_2_schema = {
-        "name": "call_function",
+        "name": "call_function_2",
         "parameters": {"type": "object", "properties": {}, "required": []},
         "description": "This is a test function 2",
     }
@@ -399,7 +411,7 @@ def test_assistant_mismatch_retrieval() -> None:
             "tools": [
                 {"type": "function", "function": function_1_schema},
                 {"type": "function", "function": function_2_schema},
-                {"type": "retrieval"},
+                {"type": "file_search"},
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
@@ -409,7 +421,6 @@ def test_assistant_mismatch_retrieval() -> None:
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
         assistant_first, assistant_instructions_mistaching = None, None
-        assistant_file_ids_mismatch, assistant_tools_mistaching = None, None
         try:
             assistant_first = GPTAssistantAgent(
                 name,
@@ -430,30 +441,11 @@ def test_assistant_mismatch_retrieval() -> None:
             )
             assert len(candidate_instructions_mistaching) == 2
 
-            # test mismatch fild ids
-            file_ids_mismatch_llm_config = {
-                "tools": [
-                    {"type": "code_interpreter"},
-                    {"type": "retrieval"},
-                    {"type": "function", "function": function_2_schema},
-                    {"type": "function", "function": function_1_schema},
-                ],
-                "file_ids": [file_2.id],
-                "config_list": openai_config_list,
-            }
-            assistant_file_ids_mismatch = GPTAssistantAgent(
-                name,
-                instructions="This is a test",
-                llm_config=file_ids_mismatch_llm_config,
-            )
-            candidate_file_ids_mismatch = retrieve_assistants_by_name(assistant_file_ids_mismatch.openai_client, name)
-            assert len(candidate_file_ids_mismatch) == 3
-
             # test tools mismatch
             tools_mismatch_llm_config = {
                 "tools": [
                     {"type": "code_interpreter"},
-                    {"type": "retrieval"},
+                    {"type": "file_search"},
                     {"type": "function", "function": function_3_schema},
                 ],
                 "file_ids": [file_2.id, file_1.id],
@@ -465,15 +457,13 @@ def test_assistant_mismatch_retrieval() -> None:
                 llm_config=tools_mismatch_llm_config,
             )
             candidate_tools_mismatch = retrieve_assistants_by_name(assistant_tools_mistaching.openai_client, name)
-            assert len(candidate_tools_mismatch) == 4
+            assert len(candidate_tools_mismatch) == 3
 
         finally:
             if assistant_first:
                 assistant_first.delete_assistant()
             if assistant_instructions_mistaching:
                 assistant_instructions_mistaching.delete_assistant()
-            if assistant_file_ids_mismatch:
-                assistant_file_ids_mismatch.delete_assistant()
             if assistant_tools_mistaching:
                 assistant_tools_mistaching.delete_assistant()
 
@@ -486,8 +476,8 @@ def test_assistant_mismatch_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_tools_overwrite() -> None:
     """
@@ -608,8 +598,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_reflection_with_llm() -> None:
     gpt_assistant = GPTAssistantAgent(
@@ -639,10 +629,10 @@ def test_gpt_reflection_with_llm() -> None:
 
 
 if __name__ == "__main__":
-    test_gpt_assistant_chat()
-    test_get_assistant_instructions()
-    test_gpt_assistant_instructions_overwrite()
-    test_gpt_assistant_existing_no_instructions()
+    # test_gpt_assistant_chat()
+    # test_get_assistant_instructions()
+    # test_gpt_assistant_instructions_overwrite()
+    # test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
-    test_assistant_mismatch_retrieval()
-    test_gpt_assistant_tools_overwrite()
+    # test_assistant_mismatch_retrieval()
+    # test_gpt_assistant_tools_overwrite()

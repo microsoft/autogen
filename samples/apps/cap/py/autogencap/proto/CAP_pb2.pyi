@@ -1,4 +1,5 @@
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import (
@@ -10,6 +11,26 @@ from typing import (
 )
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class ErrorCode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EC_OK: _ClassVar[ErrorCode]
+    EC_NOT_FOUND: _ClassVar[ErrorCode]
+    EC_ALREADY_EXISTS: _ClassVar[ErrorCode]
+    EC_MAX: _ClassVar[ErrorCode]
+
+EC_OK: ErrorCode
+EC_NOT_FOUND: ErrorCode
+EC_ALREADY_EXISTS: ErrorCode
+EC_MAX: ErrorCode
+
+class Error(_message.Message):
+    __slots__ = ("code", "message")
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    code: ErrorCode
+    message: str
+    def __init__(self, code: _Optional[_Union[ErrorCode, str]] = ..., message: _Optional[str] = ...) -> None: ...
 
 class ActorInfo(_message.Message):
     __slots__ = ("name", "namespace", "description")

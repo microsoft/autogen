@@ -12,16 +12,17 @@ import {
   MenuProps,
   message as ToastMessage,
   Tooltip,
+  message,
 } from "antd";
 import * as React from "react";
 import {
   IChatMessage,
   IChatSession,
-  IFlowConfig,
   IMessage,
   IStatus,
+  IWorkflow,
 } from "../../types";
-import { examplePrompts, getServerUrl, guid } from "../../utils";
+import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
 import {
@@ -34,22 +35,27 @@ import {
 import { useConfigStore } from "../../../hooks/store";
 
 let socketMsgs: any[] = [];
+
 const ChatBox = ({
   initMessages,
+  session,
   editable = true,
-  connectionId,
+  heightOffset = 160,
 }: {
   initMessages: IMessage[] | null;
+  session: IChatSession | null;
   editable?: boolean;
-  connectionId: string;
+  heightOffset?: number;
 }) => {
-  const session: IChatSession | null = useConfigStore((state) => state.session);
+  // const session: IChatSession | null = useConfigStore((state) => state.session);
   const textAreaInputRef = React.useRef<HTMLTextAreaElement>(null);
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
   const wsClient = React.useRef<WebSocket | null>(null);
+  const wsMessages = React.useRef<IChatMessage[]>([]);
   const [wsConnectionStatus, setWsConnectionStatus] =
     React.useState<string>("disconnected");
+  const [workflow, setWorkflow] = React.useState<IWorkflow | null>(null);
 
   const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
 
@@ -59,7 +65,6 @@ const ChatBox = ({
   const [retries, setRetries] = React.useState(0);
 
   const serverUrl = getServerUrl();
-  const deleteMsgUrl = `${serverUrl}/messages/delete`;
 
   let websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
 
@@ -83,41 +88,36 @@ const ChatBox = ({
   });
 
   const socketDivRef = React.useRef<HTMLDivElement>(null);
+  const connectionId = useConfigStore((state) => state.connectionId);
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
-  const workflowConfig: IFlowConfig | null = useConfigStore(
-    (state) => state.workflowConfig
-  );
 
-  let pageHeight, chatMaxHeight;
-  if (typeof window !== "undefined") {
-    pageHeight = window.innerHeight;
-    chatMaxHeight = pageHeight - 310 + "px";
-  }
+  const parseMessage = (message: any) => {
+    let meta;
+    try {
+      meta = JSON.parse(message.meta);
+    } catch (e) {
+      meta = message.meta;
+    }
+    const msg: IChatMessage = {
+      text: message.content,
+      sender: message.role === "user" ? "user" : "bot",
+      meta: meta,
+      msg_id: message.msg_id,
+    };
+    return msg;
+  };
 
   const parseMessages = (messages: any) => {
-    return messages?.map((message: any) => {
-      let meta;
-      try {
-        meta = JSON.parse(message.metadata);
-      } catch (e) {
-        meta = message.metadata;
-      }
-      const msg: IChatMessage = {
-        text: message.content,
-        sender: message.role === "user" ? "user" : "bot",
-        metadata: meta,
-        msg_id: message.msg_id,
-      };
-      return msg;
-    });
+    return messages?.map(parseMessage);
   };
 
   React.useEffect(() => {
     // console.log("initMessages changed", initMessages);
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
+    wsMessages.current = initMsgs;
     socketMsgs = [];
   }, [initMessages]);
 
@@ -128,7 +128,7 @@ const ChatBox = ({
         type="primary"
         className=""
         onClick={() => {
-          getCompletion(prompt.prompt);
+          runWorkflow(prompt.prompt);
         }}
       >
         {" "}
@@ -142,12 +142,12 @@ const ChatBox = ({
     const css = isUser ? "bg-accent text-white  " : "bg-light";
     // console.log("message", message);
     let hasMeta = false;
-    if (message.metadata) {
+    if (message.meta) {
       hasMeta =
-        message.metadata.code !== null ||
-        message.metadata.images?.length > 0 ||
-        message.metadata.files?.length > 0 ||
-        message.metadata.scripts?.length > 0;
+        message.meta.code !== null ||
+        message.meta.images?.length > 0 ||
+        message.meta.files?.length > 0 ||
+        message.meta.scripts?.length > 0;
     }
 
     let items: MenuProps["items"] = [];
@@ -158,7 +158,7 @@ const ChatBox = ({
           <div
             onClick={() => {
               console.log("retrying");
-              getCompletion(message.text);
+              runWorkflow(message.text);
             }}
           >
             <ArrowPathIcon
@@ -237,9 +237,9 @@ const ChatBox = ({
                 />
               </div>
             )}
-            {message.metadata && (
+            {message.meta && (
               <div className="">
-                <MetaDataView metadata={message.metadata} />
+                <MetaDataView metadata={message.meta} />
               </div>
             )}
           </div>
@@ -311,10 +311,7 @@ const ChatBox = ({
         if (waitingToReconnect) {
           return;
         }
-
-        // Parse event code and log
         setWsConnectionStatus("disconnected");
-
         setWaitingToReconnect(true);
         setWsConnectionStatus("reconnecting");
         setTimeout(() => {
@@ -357,14 +354,6 @@ const ChatBox = ({
     }
   }, [waitingToReconnect]);
 
-  const chatHistory = (messages: IChatMessage[] | null) => {
-    let history = "";
-    messages?.forEach((message) => {
-      history += message.text + "\n"; // message.sender + ": " + message.text + "\n";
-    });
-    return history;
-  };
-
   const scrollChatBox = (element: any) => {
     element.current?.scroll({
       top: element.current.scrollHeight,
@@ -372,13 +361,14 @@ const ChatBox = ({
     });
   };
 
+  const mainDivRef = React.useRef<HTMLDivElement>(null);
+
   const processAgentResponse = (data: any) => {
     if (data && data.status) {
-      const updatedMessages = parseMessages(data.data);
-      setTimeout(() => {
-        setLoading(false);
-        setMessages(updatedMessages);
-      }, 2000);
+      const msg = parseMessage(data.data);
+      wsMessages.current.push(msg);
+      setMessages(wsMessages.current);
+      setLoading(false);
     } else {
       console.log("error", data);
       // setError(data);
@@ -387,7 +377,31 @@ const ChatBox = ({
     }
   };
 
-  const getCompletion = (query: string) => {
+  const fetchWorkFlow = (workflowId: number) => {
+    const fetchUrl = `${serverUrl}/workflows/${workflowId}?user_id=${user?.email}`;
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        if (data.data && data.data.length > 0) {
+          setWorkflow(data.data[0]);
+        }
+      } else {
+        message.error(data.message);
+      }
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+    };
+    fetchJSON(fetchUrl, payLoad, onSuccess, onError);
+  };
+
+  const runWorkflow = (query: string) => {
     setError(null);
     socketMsgs = [];
     let messageHolder = Object.assign([], messages);
@@ -399,31 +413,26 @@ const ChatBox = ({
     };
     messageHolder.push(userMessage);
     setMessages(messageHolder);
+    wsMessages.current.push(userMessage);
 
     const messagePayload: IMessage = {
       role: "user",
       content: query,
-      msg_id: userMessage.msg_id,
       user_id: user?.email || "",
-      root_msg_id: "0",
-      session_id: session?.id || "",
-    };
-
-    const textUrl = `${serverUrl}/messages`;
-    const postBody = {
-      message: messagePayload,
-      workflow: workflowConfig,
-      session: session,
-      user_id: user?.email,
+      session_id: session?.id,
+      workflow_id: session?.workflow_id,
       connection_id: connectionId,
     };
+
+    const runWorkflowUrl = `${serverUrl}/sessions/${session?.id}/workflow/${session?.workflow_id}/run`;
+
     const postData = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(postBody),
+      body: JSON.stringify(messagePayload),
     };
     setLoading(true);
 
@@ -433,13 +442,14 @@ const ChatBox = ({
       wsClient.current.send(
         JSON.stringify({
           connection_id: connectionId,
-          data: postBody,
+          data: messagePayload,
           type: "user_message",
+          session_id: session?.id,
+          workflow_id: session?.workflow_id,
         })
       );
-      console.log("sending on socket ..");
     } else {
-      fetch(textUrl, postData)
+      fetch(runWorkflowUrl, postData)
         .then((res) => {
           if (res.status === 200) {
             res.json().then((data) => {
@@ -483,7 +493,7 @@ const ChatBox = ({
     if (event.key === "Enter" && !event.shiftKey) {
       if (textAreaInputRef.current && !loading) {
         event.preventDefault();
-        getCompletion(textAreaInputRef.current.value);
+        runWorkflow(textAreaInputRef.current.value);
       }
     }
   };
@@ -498,17 +508,33 @@ const ChatBox = ({
     }
   };
 
+  React.useEffect(() => {
+    if (session && session.workflow_id) {
+      fetchWorkFlow(session.workflow_id);
+    }
+  }, [session]);
+
+  const WorkflowView = ({ workflow }: { workflow: IWorkflow }) => {
+    return (
+      <div className="text-xs cursor-pointer  inline-block">
+        {" "}
+        {workflow.name}
+      </div>
+    );
+  };
+
   return (
     <div
-      style={{ height: "calc(100vh - 160px)" }}
-      className="text-primary    relative  h-full rounded  "
+      style={{ height: "calc(100vh - " + heightOffset + "px)" }}
+      className="text-primary    relative   rounded  "
+      ref={mainDivRef}
     >
       <div
         style={{ zIndex: 100 }}
-        className=" absolute right-0  text-secondary -top-8 rounded p-2"
+        className=" absolute right-3 bg-primary   rounded  text-secondary -top-6  p-2"
       >
         {" "}
-        <div className="text-xs"> {session?.flow_config.name}</div>
+        {workflow && <div className="text-xs"> {workflow.name}</div>}
       </div>
 
       <div
@@ -620,7 +646,11 @@ const ChatBox = ({
                 placeholder="Write message here..."
                 ref={textAreaInputRef}
                 className="flex items-center w-full resize-none text-gray-600 bg-white p-2 ring-2 rounded-sm pl-5 pr-16"
-                style={{ maxHeight: "120px", overflowY: "auto" }}
+                style={{
+                  maxHeight: "120px",
+                  overflowY: "auto",
+                  minHeight: "50px",
+                }}
               />
               <div
                 role={"button"}
@@ -628,7 +658,7 @@ const ChatBox = ({
                 title="Send message"
                 onClick={() => {
                   if (textAreaInputRef.current && !loading) {
-                    getCompletion(textAreaInputRef.current.value);
+                    runWorkflow(textAreaInputRef.current.value);
                   }
                 }}
                 className="absolute right-3 bottom-2 bg-accent hover:brightness-75 transition duration-300 rounded cursor-pointer flex justify-center items-center"

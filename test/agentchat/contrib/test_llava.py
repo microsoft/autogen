@@ -4,8 +4,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
-import autogen
 from conftest import MOCK_OPEN_AI_API_KEY
+
+import autogen
 
 try:
     from autogen.agentchat.contrib.llava_agent import LLaVAAgent, _llava_call_binary_with_config, llava_call
