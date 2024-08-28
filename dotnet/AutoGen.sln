@@ -64,7 +64,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "sa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AotCompatibility.Tests", "test\AutoGen.AotCompatibility.Tests\AutoGen.AotCompatibility.Tests.csproj", "{6B82F26D-5040-4453-B21B-C8D1F913CE4C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.V1.Sample", "sample\AutoGen.OpenAI.Sample\AutoGen.OpenAI.V1.Sample.csproj", "{0E635268-351C-4A6B-A28D-593D868C2CA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "sample\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{0E635268-351C-4A6B-A28D-593D868C2CA4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "sample\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{12079C18-A519-403F-BBFD-200A36A0C083}"
 EndProject
@@ -73,6 +73,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AzureAIInference.Tests", "test\AutoGen.AzureAIInference.Tests\AutoGen.AzureAIInference.Tests.csproj", "{5970868F-831E-418F-89A9-4EC599563E16}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Tests.Share", "test\AutoGen.Test.Share\AutoGen.Tests.Share.csproj", "{143725E2-206C-4D37-93E4-9EDF699826B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI", "src\AutoGen.OpenAI\AutoGen.OpenAI.csproj", "{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Tests", "test\AutoGen.OpenAI.Tests\AutoGen.OpenAI.Tests.csproj", "{42A8251C-E7B3-47BB-A82E-459952EBE132}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -212,6 +216,14 @@ Global
 		{143725E2-206C-4D37-93E4-9EDF699826B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{143725E2-206C-4D37-93E4-9EDF699826B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{143725E2-206C-4D37-93E4-9EDF699826B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42A8251C-E7B3-47BB-A82E-459952EBE132}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -250,6 +262,8 @@ Global
 		{5C45981D-1319-4C25-935C-83D411CB28DF} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{5970868F-831E-418F-89A9-4EC599563E16} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{143725E2-206C-4D37-93E4-9EDF699826B2} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{3AF1CBEC-2877-41E9-92AE-3A391B2AA9E8} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{42A8251C-E7B3-47BB-A82E-459952EBE132} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

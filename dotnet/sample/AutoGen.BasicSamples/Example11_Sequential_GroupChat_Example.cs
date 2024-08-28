@@ -3,11 +3,10 @@
 
 #region using_statement
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
-using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
@@ -52,15 +51,10 @@ public partial class Sequential_GroupChat_Example
     public static async Task<IAgent> CreateSummarizerAgentAsync()
     {
         #region CreateSummarizerAgent
-        var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var apiKey = config.ApiKey;
-        var endPoint = new Uri(config.Endpoint);
-
-        var openAIClient = new OpenAIClient(endPoint, new Azure.AzureKeyCredential(apiKey));
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var openAIClientAgent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: gpt4o,
             name: "summarizer",
-            modelName: config.DeploymentName,
             systemMessage: "You summarize search result from bing in a short and concise manner");
 
         return openAIClientAgent
