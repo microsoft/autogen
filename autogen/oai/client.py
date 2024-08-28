@@ -196,14 +196,14 @@ class OpenAIClient:
             ]
 
     @staticmethod
-    def _remove_names_from_messages(params: Dict[str, Any]):
-        def _remove_names(messages: List[Dict[str, Any]]):
-            def __remove_names(message: Dict[str, Any]):
+    def _remove_assistant_names_from_messages(params: Dict[str, Any]):
+        def _remove_assistant_names(messages: List[Dict[str, Any]]):
+            def _remove_name(message: Dict[str, Any]):
                 return {k: v for k, v in message.items() if k != "name"}
 
-            return [__remove_names(message) for message in messages]
+            return [_remove_name(m) if m["role"] == "assistant" else m for m in messages]
 
-        return {k: _remove_names(v) if k == "messages" else v for k, v in params.items()}
+        return {k: _remove_assistant_names(v) if k == "messages" else v for k, v in params.items()}
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config using openai's client.
@@ -217,8 +217,8 @@ class OpenAIClient:
         """
         iostream = IOStream.get_default()
 
-        # names should not be in the messages (see: https://platform.openai.com/docs/guides/chat-completions)
-        params = self._remove_names_from_messages(params)
+        # name parameter in an assistant message causes sometimes an error in the API, although they are legit parameter according to the API reference (https://platform.openai.com/docs/api-reference/chat/create)
+        params = self._remove_assistant_names_from_messages(params)
 
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
