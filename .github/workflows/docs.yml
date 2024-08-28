@@ -33,11 +33,11 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
       - run: hatch run docs:build
-        working-directory: ./python
+        working-directory: ./python/packages/autogen-core
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "python/docs/build"
+          path: "python/packages/autogen-core/docs/build"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
