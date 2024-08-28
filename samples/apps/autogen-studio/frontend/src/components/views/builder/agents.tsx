@@ -141,13 +141,9 @@ const AgentsView = ({}: any) => {
         icon: DocumentDuplicateIcon,
         onClick: (e: any) => {
           e.stopPropagation();
-          let newAgent = { ...agent };
+          let newAgent = { ...sanitizeConfig(agent) };
           newAgent.config.name = `${agent.config.name}_copy`;
-          newAgent.user_id = user?.email;
-          newAgent.updated_at = new Date().toISOString();
-          if (newAgent.id) {
-            delete newAgent.id;
-          }
+          console.log("newAgent", newAgent);
           setNewAgent(newAgent);
           setShowNewAgentModal(true);
         },
@@ -187,7 +183,7 @@ const AgentsView = ({}: any) => {
             aria-hidden="true"
             className="my-2   break-words"
           >
-            {" "}
+            <div className="text-xs mb-2">{agent.type}</div>{" "}
             {truncateText(agent.config.description || "", 70)}
           </div>
           <div
@@ -353,8 +349,11 @@ const AgentsView = ({}: any) => {
 
           <div className="text-xs mb-2 pb-1  ">
             {" "}
-            Configure an agent that can reused in your agent workflow{" "}
-            {selectedAgent?.config.name}
+            Configure an agent that can reused in your agent workflow .
+            <div>
+              Tip: You can also create a Group of Agents ( New Agent -
+              GroupChat) which can have multiple agents in it.
+            </div>
           </div>
           {agents && agents.length > 0 && (
             <div className="w-full  relative">
