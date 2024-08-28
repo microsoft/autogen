@@ -2,8 +2,7 @@ from typing import List, Protocol
 
 from autogen.agentchat import ConversableAgent
 
-from .document import Document
-from .graph_store import GraphStore
+from .graph_query_engine import GraphQueryEngine
 
 
 class GraphRagAgent(ConversableAgent, Protocol):
@@ -16,24 +15,15 @@ class GraphRagAgent(ConversableAgent, Protocol):
     3. use the retrieved information to generate and send back messages.
 
     For example,
+    graph_query_engine = GraphQueryEngine(...)
+    graph_query_engine.init_db([Document(doc1), Document(doc2), ...])
+
     graph_rag_agent = GraphRagAgent(
         name="graph_rag_agent",
         max_consecutive_auto_reply=3,
-        retrieve_config={
-            "docs_path": [
-                "./data/movies.txt",
-            ],
-            "llm_config" = autogen.config_list_from_json("OAI_CONFIG_LIST")
-            "database_config" = {
-                "host": "127.0.0.1",
-                "port": 6379,
-                "table_name": "movies"
-            }
-        },
+        ...
     )
-
-    # initialize database (internally)
-    # self._init_db(input_doc=[Document(doc) for doc in retrieve_config["docs_path"]])
+    graph_rag_agent.attach_graph_query_engine(graph_query_engine)
 
     user_proxy = UserProxyAgent(
         name="user_proxy",
@@ -57,23 +47,6 @@ class GraphRagAgent(ConversableAgent, Protocol):
 
     """
 
-    def _init_db(self, input_doc: List[Document] | None = None) -> GraphStore:
-        """
-        This method initializes graph database with the input documents or records.
-        Usually, it takes the following steps,
-        1. connecting to a graph database.
-        2. extract graph nodes, edges based on input data, graph schema and etc.
-        3. build indexes etc.
-
-        Args:
-        input_doc: a list of input documents that are used to build the graph in database.
-
-        Returns: GraphStore
-        """
-        pass
-
-    def add_records(self, new_records: List) -> bool:
-        """
-        Add new records to the underlying database and add to the graph if required.
-        """
+    def attach_graph_query_engine(self, graph_query_engine: GraphQueryEngine):
+        """Add a graph query engine to the agent."""
         pass
