@@ -14,7 +14,7 @@ if not re.match(MODULE_REGEX, package_name):
 packaging_version = '{{ cookiecutter.version }}'
 
 # Check version format using version.VERSION_PATTERN
-if not re.match(version.VERSION_PATTERN, packaging_version):
+if not re.match(version.VERSION_PATTERN, packaging_version, re.VERBOSE | re.IGNORECASE):
     print(f'ERROR: "{packaging_version}" is not a valid version string')
     at_least_one_error = True
 

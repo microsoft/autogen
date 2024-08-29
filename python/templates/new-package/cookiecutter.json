@@ -1,6 +1,6 @@
 {
     "package_name": "my-project",
-    "version": "0.1.0dev",
+    "version": "0.1.dev0",
     "description": "My package description",
     "depends_on_core": false,
     "__final_destination": "../packages",

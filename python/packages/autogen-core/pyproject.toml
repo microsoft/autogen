@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.3.0dev1"
+version = "0.3.dev0"
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,45 +27,38 @@ dependencies = [
 
 [tool.uv]
 dev-dependencies = [
-    "azure-identity",
     "aiofiles",
+    "azure-identity",
     "chess",
     "colorama",
-    "langgraph",
+    "furo",
     "langchain-openai",
+    "langgraph",
+    "llama-index-embeddings-azure-openai",
+    "llama-index-llms-azure-openai",
     "llama-index-readers-web",
     "llama-index-readers-wikipedia",
     "llama-index-tools-wikipedia",
-    "llama-index-embeddings-azure-openai",
-    "llama-index-llms-azure-openai",
     "llama-index",
     "markdownify",
-    "mypy==1.10.0",
+    "myst-nb",
+    "nbqa",
     "pip",
     "polars",
-    "pytest-asyncio",
-    "pytest-mock",
-    "pytest-xdist",
-    "pytest",
     "python-dotenv",
     "requests",
-    "ruff==0.4.8",
+    "sphinx-autobuild",
+    "sphinx",
+    "sphinxcontrib-apidoc",
     "tavily-python",
     "textual-dev",
     "textual-imageview",
     "textual",
-    "tiktoken",
     "types-aiofiles",
     "types-pillow",
     "types-protobuf",
     "types-requests",
     "wikipedia",
-    "nbqa",
-    "sphinx",
-    "furo",
-    "sphinxcontrib-apidoc",
-    "myst-nb",
-    "sphinx-autobuild",
 ]
 
 
