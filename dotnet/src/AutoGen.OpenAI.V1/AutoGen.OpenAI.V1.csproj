@@ -8,9 +8,11 @@
 
   <PropertyGroup>
     <!-- NuGet Package Settings -->
-    <Title>AutoGen.OpenAI</Title>
+    <Title>AutoGen.OpenAI.V1</Title>
     <Description>
       OpenAI Intergration for AutoGen.
+      This package connects to openai using Azure.AI.OpenAI v1 package. It is reserved to keep compatibility with the projects which stick to that v1 package.
+      To use the latest version of OpenAI SDK, please use AutoGen.OpenAI package.
     </Description>
   </PropertyGroup>
 

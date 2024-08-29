@@ -1,3 +1,4 @@
+import threading
 from datetime import datetime
 from typing import Optional
 
@@ -15,14 +16,22 @@ from ..datamodel import (
     Skill,
     Workflow,
     WorkflowAgentLink,
+    WorkflowAgentType,
 )
 from .utils import init_db_samples
 
 valid_link_types = ["agent_model", "agent_skill", "agent_agent", "workflow_agent"]
 
 
+class WorkflowAgentMap(SQLModel):
+    agent: Agent
+    link: WorkflowAgentLink
+
+
 class DBManager:
     """A class to manage database operations"""
+
+    _init_lock = threading.Lock()  # Class-level lock
 
     def __init__(self, engine_uri: str):
         connection_args = {"check_same_thread": True} if "sqlite" in engine_uri else {}
@@ -31,14 +40,15 @@ class DBManager:
 
     def create_db_and_tables(self):
         """Create a new database and tables"""
-        try:
-            SQLModel.metadata.create_all(self.engine)
+        with self._init_lock:  # Use the lock
             try:
-                init_db_samples(self)
+                SQLModel.metadata.create_all(self.engine)
+                try:
+                    init_db_samples(self)
+                except Exception as e:
+                    logger.info("Error while initializing database samples: " + str(e))
             except Exception as e:
-                logger.info("Error while initializing database samples: " + str(e))
-        except Exception as e:
-            logger.info("Error while creating database tables:" + str(e))
+                logger.info("Error while creating database tables:" + str(e))
 
     def upsert(self, model: SQLModel):
         """Create a new entity"""
@@ -62,7 +72,7 @@ class DBManager:
                 session.refresh(model)
             except Exception as e:
                 session.rollback()
-                logger.error("Error while upserting %s", e)
+                logger.error("Error while updating " + str(model_class.__name__) + ": " + str(e))
                 status = False
 
         response = Response(
@@ -115,7 +125,7 @@ class DBManager:
             session.rollback()
             status = False
             status_message = f"Error while fetching  {model_class.__name__}"
-            logger.error("Error while getting %s: %s", model_class.__name__, e)
+            logger.error("Error while getting items: " + str(model_class.__name__) + " " + str(e))
 
         response: Response = Response(
             message=status_message,
@@ -157,16 +167,16 @@ class DBManager:
                     status_message = f"{model_class.__name__} Deleted Successfully"
                 else:
                     print(f"Row with filters {filters} not found")
-                    logger.info("Row with filters %s not found", filters)
+                    logger.info("Row with filters + filters + not found")
                     status_message = "Row not found"
             except exc.IntegrityError as e:
                 session.rollback()
-                logger.error("Integrity ... Error while deleting: %s", e)
+                logger.error("Integrity ... Error while deleting: " + str(e))
                 status_message = f"The {model_class.__name__} is linked to another entity and cannot be deleted."
                 status = False
             except Exception as e:
                 session.rollback()
-                logger.error("Error while deleting: %s", e)
+                logger.error("Error while deleting: " + str(e))
                 status_message = f"Error while deleting: {e}"
                 status = False
             response = Response(
@@ -182,6 +192,7 @@ class DBManager:
         primary_id: int,
         return_json: bool = False,
         agent_type: Optional[str] = None,
+        sequence_id: Optional[int] = None,
     ):
         """
         Get all entities linked to the primary entity.
@@ -217,19 +228,21 @@ class DBManager:
                     linked_entities = agent.agents
                 elif link_type == "workflow_agent":
                     linked_entities = session.exec(
-                        select(Agent)
-                        .join(WorkflowAgentLink)
+                        select(WorkflowAgentLink, Agent)
+                        .join(Agent, WorkflowAgentLink.agent_id == Agent.id)
                         .where(
                             WorkflowAgentLink.workflow_id == primary_id,
-                            WorkflowAgentLink.agent_type == agent_type,
                         )
                     ).all()
+
+                    linked_entities = [WorkflowAgentMap(agent=agent, link=link) for link, agent in linked_entities]
+                    linked_entities = sorted(linked_entities, key=lambda x: x.link.sequence_id)  # type: ignore
             except Exception as e:
-                logger.error("Error while getting linked entities: %s", e)
+                logger.error("Error while getting linked entities: " + str(e))
                 status_message = f"Error while getting linked entities: {e}"
                 status = False
             if return_json:
-                linked_entities = [self._model_to_dict(row) for row in linked_entities]
+                linked_entities = [row.model_dump() for row in linked_entities]
 
         response = Response(
             message=status_message,
@@ -245,6 +258,7 @@ class DBManager:
         primary_id: int,
         secondary_id: int,
         agent_type: Optional[str] = None,
+        sequence_id: Optional[int] = None,
     ) -> Response:
         """
         Link two entities together.
@@ -357,6 +371,7 @@ class DBManager:
                                     WorkflowAgentLink.workflow_id == primary_id,
                                     WorkflowAgentLink.agent_id == secondary_id,
                                     WorkflowAgentLink.agent_type == agent_type,
+                                    WorkflowAgentLink.sequence_id == sequence_id,
                                 )
                             ).first()
                             if existing_link:
@@ -373,6 +388,7 @@ class DBManager:
                                     workflow_id=primary_id,
                                     agent_id=secondary_id,
                                     agent_type=agent_type,
+                                    sequence_id=sequence_id,
                                 )
                                 session.add(workflow_agent_link)
                     # add and commit the link
@@ -385,7 +401,7 @@ class DBManager:
 
                 except Exception as e:
                     session.rollback()
-                    logger.error("Error while linking: %s", e)
+                    logger.error("Error while linking: " + str(e))
                     status = False
                     status_message = f"Error while linking due to an exception: {e}"
 
@@ -402,6 +418,7 @@ class DBManager:
         primary_id: int,
         secondary_id: int,
         agent_type: Optional[str] = None,
+        sequence_id: Optional[int] = 0,
     ) -> Response:
         """
         Unlink two entities.
@@ -417,6 +434,7 @@ class DBManager:
         """
         status = True
         status_message = ""
+        print("primary", primary_id, "secondary", secondary_id, "sequence", sequence_id, "agent_type", agent_type)
 
         if link_type not in valid_link_types:
             status = False
@@ -452,6 +470,7 @@ class DBManager:
                             WorkflowAgentLink.workflow_id == primary_id,
                             WorkflowAgentLink.agent_id == secondary_id,
                             WorkflowAgentLink.agent_type == agent_type,
+                            WorkflowAgentLink.sequence_id == sequence_id,
                         )
                     ).first()
 
@@ -465,7 +484,7 @@ class DBManager:
 
             except Exception as e:
                 session.rollback()
-                logger.error("Error while unlinking: %s", e)
+                logger.error("Error while unlinking: " + str(e))
                 status = False
                 status_message = f"Error while unlinking due to an exception: {e}"
 
