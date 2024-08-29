@@ -19,8 +19,8 @@ dependencies = [
     "aiohttp",
     "typing-extensions",
     "pydantic>=1.10,<3",
-    "grpcio",
-    "protobuf",
+    "grpcio~=1.66.0",
+    "protobuf~=5.27.0",
     "tiktoken",
     "azure-core"
 ]
@@ -31,7 +31,6 @@ dev-dependencies = [
     "aiofiles",
     "chess",
     "colorama",
-    "grpcio-tools",
     "langgraph",
     "langchain-openai",
     "llama-index-readers-web",
