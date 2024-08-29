@@ -14,7 +14,8 @@ dev-dependencies = [
     "polars",
     "pytest_mock",
     "poethepoet",
-    "packaging"
+    "packaging",
+    "cookiecutter"
 ]
 
 [tool.uv.sources]
