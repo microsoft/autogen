@@ -106,7 +106,6 @@ public class SemanticKernelAgent : IStreamingAgent
             MaxTokens = options?.MaxToken ?? 1024,
             StopSequences = options?.StopSequence,
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            ResultsPerPrompt = 1,
         };
     }
 

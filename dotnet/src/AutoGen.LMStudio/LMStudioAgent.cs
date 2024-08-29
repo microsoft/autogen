@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 
@@ -18,6 +18,7 @@ namespace AutoGen.LMStudio;
 /// <example>
 /// [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
 /// </example>
+[Obsolete("Use OpenAIChatAgent to connect to LM Studio")]
 public class LMStudioAgent : IAgent
 {
     private readonly GPTAgent innerAgent;

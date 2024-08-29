@@ -14,6 +14,7 @@ from autogen.logger.logger_factory import LoggerFactory
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.bedrock import BedrockClient
     from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.groq import GroqClient
@@ -123,6 +124,7 @@ def log_new_client(
         GroqClient,
         CohereClient,
         OllamaClient,
+        BedrockClient,
     ],
     wrapper: OpenAIWrapper,
     init_args: Dict[str, Any],

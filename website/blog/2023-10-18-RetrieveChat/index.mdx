@@ -4,12 +4,12 @@ authors: thinkall
 tags: [LLM, RAG]
 ---
 
-*Last update: April 4, 2024; AutoGen version: v0.2.21*
+*Last update: August 14, 2024; AutoGen version: v0.2.35*
 
 ![RAG Architecture](img/retrievechat-arch.png)
 
 **TL;DR:**
-* We introduce **RetrieveUserProxyAgent** and **RetrieveAssistantAgent**, RAG agents of AutoGen that
+* We introduce **RetrieveUserProxyAgent**, RAG agents of AutoGen that
 allows retrieval-augmented generation, and its basic usage.
 * We showcase customizations of RAG agents, such as customizing the embedding function, the text
 split function and vector database.
@@ -21,8 +21,9 @@ application with Gradio.
 Retrieval augmentation has emerged as a practical and effective approach for mitigating the intrinsic
 limitations of LLMs by incorporating external documents. In this blog post, we introduce RAG agents of
 AutoGen that allows retrieval-augmented generation. The system consists of two agents: a
-Retrieval-augmented User Proxy agent, called `RetrieveUserProxyAgent`, and a Retrieval-augmented Assistant
-agent, called `RetrieveAssistantAgent`, both of which are extended from built-in agents from AutoGen.
+Retrieval-augmented User Proxy agent, called `RetrieveUserProxyAgent`, and an Assistant
+agent, called `RetrieveAssistantAgent`; `RetrieveUserProxyAgent` is extended from built-in agents from AutoGen,
+while `RetrieveAssistantAgent` can be any conversable agent with LLM configured.
 The overall architecture of the RAG agents is shown in the figure above.
 
 To use Retrieval-augmented Chat, one needs to initialize two agents including Retrieval-augmented
@@ -75,13 +76,17 @@ You can find a list of all supported document types by using `autogen.retrieve_u
 1. Import Agents
 ```python
 import autogen
-from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+from autogen import AssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 ```
 
-2. Create an 'RetrieveAssistantAgent' instance named "assistant" and an 'RetrieveUserProxyAgent' instance named "ragproxyagent"
+2. Create an 'AssistantAgent' instance named "assistant" and an 'RetrieveUserProxyAgent' instance named "ragproxyagent"
+
+Refer to the [doc](https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/retrieve_user_proxy_agent)
+for more information on the detailed configurations.
+
 ```python
-assistant = RetrieveAssistantAgent(
+assistant = AssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
     llm_config=llm_config,
@@ -195,93 +200,12 @@ ragproxyagent = RetrieveUserProxyAgent(
 
 
 ### Customizing Vector Database
-We are using chromadb as the default vector database, you can also replace it with any other vector database
-by simply overriding the function `retrieve_docs` of `RetrieveUserProxyAgent`.
+We are using chromadb as the default vector database, you can also use mongodb, pgvectordb and qdrantdb
+by simply set `vector_db` to `mongodb`, `pgvector` and `qdrant` in `retrieve_config`, respectively.
 
-For example, you can use Qdrant as below:
+To plugin any other dbs, you can also extend class `agentchat.contrib.vectordb.base`,
+check out the code [here](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/vectordb/base.py).
 
-```python
-# Creating qdrant client
-from qdrant_client import QdrantClient
-
-client = QdrantClient(url="***", api_key="***")
-
-# Wrapping RetrieveUserProxyAgent
-from litellm import embedding as test_embedding
-from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
-from qdrant_client.models import SearchRequest, Filter, FieldCondition, MatchText
-
-class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
-    def query_vector_db(
-        self,
-        query_texts: List[str],
-        n_results: int = 10,
-        search_string: str = "",
-        **kwargs,
-    ) -> Dict[str, Union[List[str], List[List[str]]]]:
-        # define your own query function here
-        embed_response = test_embedding('text-embedding-ada-002', input=query_texts)
-
-        all_embeddings: List[List[float]] = []
-
-        for item in embed_response['data']:
-            all_embeddings.append(item['embedding'])
-
-        search_queries: List[SearchRequest] = []
-
-        for embedding in all_embeddings:
-            search_queries.append(
-                SearchRequest(
-                    vector=embedding,
-                    filter=Filter(
-                        must=[
-                            FieldCondition(
-                                key="page_content",
-                                match=MatchText(
-                                    text=search_string,
-                                )
-                            )
-                        ]
-                    ),
-                    limit=n_results,
-                    with_payload=True,
-                )
-            )
-
-        search_response = client.search_batch(
-            collection_name="{your collection name}",
-            requests=search_queries,
-        )
-
-        return {
-            "ids": [[scored_point.id for scored_point in batch] for batch in search_response],
-            "documents": [[scored_point.payload.get('page_content', '') for scored_point in batch] for batch in search_response],
-            "metadatas": [[scored_point.payload.get('metadata', {}) for scored_point in batch] for batch in search_response]
-        }
-
-    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", **kwargs):
-        results = self.query_vector_db(
-            query_texts=[problem],
-            n_results=n_results,
-            search_string=search_string,
-            **kwargs,
-        )
-
-        self._results = results
-
-
-# Use QdrantRetrieveUserProxyAgent
-qdrantragagent = QdrantRetrieveUserProxyAgent(
-    name="ragproxyagent",
-    human_input_mode="NEVER",
-    max_consecutive_auto_reply=2,
-    retrieve_config={
-        "task": "qa",
-    },
-)
-
-qdrantragagent.retrieve_docs("What is Autogen?", n_results=10, search_string="autogen")
-```
 
 ## Advanced Usage of RAG Agents
 ### Integrate with other agents in a group chat
@@ -340,15 +264,9 @@ def retrieve_content(
     n_results: Annotated[int, "number of results"] = 3,
 ) -> str:
     boss_aid.n_results = n_results  # Set the number of results to be retrieved.
-    # Check if we need to update the context.
-    update_context_case1, update_context_case2 = boss_aid._check_update_context(message)
-    if (update_context_case1 or update_context_case2) and boss_aid.update_context:
-        boss_aid.problem = message if not hasattr(boss_aid, "problem") else boss_aid.problem
-        _, ret_msg = boss_aid._generate_retrieve_user_reply(message)
-    else:
-        _context = {"problem": message, "n_results": n_results}
-        ret_msg = boss_aid.message_generator(boss_aid, None, _context)
-    return ret_msg if ret_msg else message
+    _context = {"problem": message, "n_results": n_results}
+    ret_msg = boss_aid.message_generator(boss_aid, None, _context)
+    return ret_msg or message
 
 for caller in [pm, coder, reviewer]:
     d_retrieve_content = caller.register_for_llm(
@@ -483,4 +401,6 @@ The online app and the source code are hosted in [HuggingFace](https://huggingfa
 You can check out more example notebooks for RAG use cases:
 - [Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
 - [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
-- [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
+- [Using RetrieveChat with Qdrant for Retrieve Augmented Code Generation and Question Answering](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
+- [Using RetrieveChat Powered by PGVector for Retrieve Augmented Code Generation and Question Answering](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_pgvector.ipynb)
+- [Using RetrieveChat Powered by MongoDB Atlas for Retrieve Augmented Code Generation and Question Answering](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_mongodb.ipynb)
