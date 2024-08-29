@@ -41,3 +41,13 @@ source .venv/bin/activate
 > [!NOTE]
 > These need to be run in the virtual environment.
 
+
+### Create new package
+
+To create a new package, run:
+
+```sh
+uv sync
+source .venv/bin/activate
+cookiecutter ./templates/new-package/
+```
