@@ -9,6 +9,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+import yaml
 from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
@@ -68,6 +69,24 @@ JSON_SAMPLE = """
 ]
 """
 
+YAML_SAMPLE = """
+- model: gpt-3.5-turbo
+  api_type: openai
+- model: gpt-4
+  api_type: openai
+- model: gpt-35-turbo-v0301
+  tags:
+    - gpt-3.5-turbo
+    - gpt35_turbo
+  api_key: "111113fc7e8a46419bfac511bb301111"
+  base_url: "https://1111.openai.azure.com"
+  api_type: azure
+  api_version: "2024-02-15-preview"
+- model: gpt
+  api_key: not-needed
+  base_url: "http://localhost:1234/v1"
+"""
+
 JSON_SAMPLE_DICT = json.loads(JSON_SAMPLE)
 
 
@@ -113,23 +132,24 @@ def test_filter_config(test_case):
     assert _compare_lists_of_dicts(config_list, expected)
 
 
-def test_config_list_from_json():
+@pytest.mark.parametrize("config_example", [JSON_SAMPLE, YAML_SAMPLE], ids=["from_json", "from_yaml"])
+def test_config_list_from_json(config_example):
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
-        json_data = json.loads(JSON_SAMPLE)
-        tmp_file.write(JSON_SAMPLE)
+        config_data = yaml.safe_load(config_example)
+        tmp_file.write(config_example)
         tmp_file.flush()
         config_list = autogen.config_list_from_json(tmp_file.name)
 
-        assert len(config_list) == len(json_data)
+        assert len(config_list) == len(config_data)
         i = 0
         for config in config_list:
             assert isinstance(config, dict)
             for key in config:
-                assert key in json_data[i]
-                assert config[key] == json_data[i][key]
+                assert key in config_data[i]
+                assert config[key] == config_data[i][key]
             i += 1
 
-        os.environ["config_list_test"] = JSON_SAMPLE
+        os.environ["config_list_test"] = config_example
         config_list_2 = autogen.config_list_from_json("config_list_test")
         assert config_list == config_list_2
 

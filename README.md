@@ -118,10 +118,10 @@ The easiest way to start playing is
 
     [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
 
- 2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
+ 2. Copy OAI_CONFIG_LIST_sample or OAI_CONFIG_LIST_yaml_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
-*NOTE*: OAI_CONFIG_LIST_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by OpenAI or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
+*NOTE*: OAI_CONFIG_LIST_sample/OAI_CONFIG_LIST_yaml_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by OpenAI or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -180,7 +180,7 @@ For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 # Load LLM inference endpoints from an env variable or a file
 # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
-# and OAI_CONFIG_LIST_sample
+# and OAI_CONFIG_LIST_sample/OAI_CONFIG_LIST_yaml_sample
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 # You can also set config_list directly as a list, for example, config_list = [{'model': 'gpt-4', 'api_key': '<your OpenAI API key here>'},]
 assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
