@@ -12,12 +12,11 @@ Portkey adds 4 core production capabilities to any AutoGen agent:
 ## Getting Started
 
 1. **Install Required Packages:**
-
+2. 
    ```bash
    pip install -qU pyautogen portkey-ai
    ```
-
-2. **Configure AutoGen with Portkey:**
+. **Configure AutoGen with Portkey:**
 
    ```python
    from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
@@ -73,16 +72,10 @@ manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list
 # Start the conversation
 user_proxy.initiate_chat(
     manager, message="Build a classic & basic pong game with 2 players in python")
-     
 ```
 <br>
 Here’s the output from your Agent’s run on Portkey's dashboard<br>
 <img src=https://github.com/siddharthsambharia-portkey/Portkey-Product-Images/blob/main/Portkey-Dashboard.png?raw=true width=70%" alt="Portkey Dashboard" />
-
-
-
-
-
 
 ## Key Features
 Portkey offers a range of advanced features to enhance your AutoGen agents. Here’s an overview
