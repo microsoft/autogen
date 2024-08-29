@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentExtension.cs
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -60,14 +61,14 @@ public static class AgentExtension
     }
 
     /// <summary>
-    /// Send message to another agent.
+    /// Send message to another agent and iterate over the responses.
     /// </summary>
     /// <param name="agent">sender agent.</param>
     /// <param name="receiver">receiver agent.</param>
     /// <param name="chatHistory">chat history.</param>
     /// <param name="maxRound">max conversation round.</param>
     /// <returns>conversation history</returns>
-    public static async Task<IEnumerable<IMessage>> SendAsync(
+    public static IAsyncEnumerable<IMessage> SendAsync(
         this IAgent agent,
         IAgent receiver,
         IEnumerable<IMessage> chatHistory,
@@ -78,21 +79,21 @@ public static class AgentExtension
         {
             var gc = manager.GroupChat;
 
-            return await agent.SendMessageToGroupAsync(gc, chatHistory, maxRound, ct);
+            return gc.SendAsync(chatHistory, maxRound, ct);
         }
 
         var groupChat = new RoundRobinGroupChat(
-            agents: new[]
-            {
+            agents:
+            [
                 agent,
                 receiver,
-            });
+            ]);
 
-        return await groupChat.CallAsync(chatHistory, maxRound, ct: ct);
+        return groupChat.SendAsync(chatHistory, maxRound, cancellationToken: ct);
     }
 
     /// <summary>
-    /// Send message to another agent.
+    /// Send message to another agent and iterate over the responses.
     /// </summary>
     /// <param name="agent">sender agent.</param>
     /// <param name="message">message to send. will be added to the end of <paramref name="chatHistory"/> if provided </param>
@@ -100,7 +101,7 @@ public static class AgentExtension
     /// <param name="chatHistory">chat history.</param>
     /// <param name="maxRound">max conversation round.</param>
     /// <returns>conversation history</returns>
-    public static async Task<IEnumerable<IMessage>> SendAsync(
+    public static IAsyncEnumerable<IMessage> SendAsync(
         this IAgent agent,
         IAgent receiver,
         string message,
@@ -116,11 +117,12 @@ public static class AgentExtension
         chatHistory = chatHistory ?? new List<IMessage>();
         chatHistory = chatHistory.Append(msg);
 
-        return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
+        return agent.SendAsync(receiver, chatHistory, maxRound, ct);
     }
 
     /// <summary>
-    /// Shortcut API to send message to another agent.
+    /// Shortcut API to send message to another agent and get all responses.
+    /// To iterate over the responses, use <see cref="SendAsync(IAgent, IAgent, string, IEnumerable{IMessage}?, int, CancellationToken)"/> or <see cref="SendAsync(IAgent, IAgent, IEnumerable{IMessage}, int, CancellationToken)"/>
     /// </summary>
     /// <param name="agent">sender agent</param>
     /// <param name="receiver">receiver agent</param>
@@ -144,10 +146,16 @@ public static class AgentExtension
             chatHistory.Add(msg);
         }
 
-        return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
+        await foreach (var msg in agent.SendAsync(receiver, chatHistory, maxRound, ct))
+        {
+            chatHistory.Add(msg);
+        }
+
+        return chatHistory;
     }
 
-    public static async Task<IEnumerable<IMessage>> SendMessageToGroupAsync(
+    [Obsolete("use GroupChatExtension.SendAsync")]
+    public static IAsyncEnumerable<IMessage> SendMessageToGroupAsync(
         this IAgent agent,
         IGroupChat groupChat,
         string msg,
@@ -159,16 +167,18 @@ public static class AgentExtension
         chatHistory = chatHistory ?? Enumerable.Empty<IMessage>();
         chatHistory = chatHistory.Append(chatMessage);
 
-        return await agent.SendMessageToGroupAsync(groupChat, chatHistory, maxRound, ct);
+        return agent.SendMessageToGroupAsync(groupChat, chatHistory, maxRound, ct);
     }
 
-    public static async Task<IEnumerable<IMessage>> SendMessageToGroupAsync(
+    [Obsolete("use GroupChatExtension.SendAsync")]
+    public static IAsyncEnumerable<IMessage> SendMessageToGroupAsync(
         this IAgent _,
         IGroupChat groupChat,
         IEnumerable<IMessage>? chatHistory = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
-        return await groupChat.CallAsync(chatHistory, maxRound, ct);
+        chatHistory = chatHistory ?? Enumerable.Empty<IMessage>();
+        return groupChat.SendAsync(chatHistory, maxRound, ct);
     }
 }

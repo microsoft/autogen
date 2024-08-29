@@ -5,63 +5,60 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
+using global::OpenAI;
+using global::OpenAI.Chat;
 
 namespace AutoGen.OpenAI;
 
 /// <summary>
 /// OpenAI client agent. This agent is a thin wrapper around <see cref="OpenAIClient"/> to provide a simple interface for chat completions.
-/// To better work with other agents, it's recommended to use <see cref="GPTAgent"/> which supports more message types and have a better compatibility with other agents.
 /// <para><see cref="OpenAIChatAgent" /> supports the following message types:</para>
 /// <list type="bullet">
 /// <item>
-/// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatRequestMessage"/>: chat request message.
+/// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatMessage"/>: chat message.
 /// </item>
 /// </list>
 /// <para><see cref="OpenAIChatAgent" /> returns the following message types:</para>
 /// <list type="bullet">
 /// <item>
-/// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatResponseMessage"/>: chat response message.
-/// <see cref="MessageEnvelope{T}"/> where T is <see cref="StreamingChatCompletionsUpdate"/>: streaming chat completions update.
+/// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatCompletion"/>: chat response message.
+/// <see cref="MessageEnvelope{T}"/> where T is <see cref="StreamingChatCompletionUpdate"/>: streaming chat completions update.
 /// </item>
 /// </list>
 /// </summary>
 public class OpenAIChatAgent : IStreamingAgent
 {
-    private readonly OpenAIClient openAIClient;
-    private readonly ChatCompletionsOptions options;
+    private readonly ChatClient chatClient;
+    private readonly ChatCompletionOptions options;
     private readonly string systemMessage;
 
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatAgent"/>.
     /// </summary>
-    /// <param name="openAIClient">openai client</param>
+    /// <param name="chatClient">openai client</param>
     /// <param name="name">agent name</param>
-    /// <param name="modelName">model name. e.g. gpt-turbo-3.5</param>
     /// <param name="systemMessage">system message</param>
     /// <param name="temperature">temperature</param>
     /// <param name="maxTokens">max tokens to generated</param>
-    /// <param name="responseFormat">response format, set it to <see cref="ChatCompletionsResponseFormat.JsonObject"/> to enable json mode.</param>
+    /// <param name="responseFormat">response format, set it to <see cref="ChatResponseFormat.JsonObject"/> to enable json mode.</param>
     /// <param name="seed">seed to use, set it to enable deterministic output</param>
     /// <param name="functions">functions</param>
     public OpenAIChatAgent(
-        OpenAIClient openAIClient,
+        ChatClient chatClient,
         string name,
-        string modelName,
         string systemMessage = "You are a helpful AI assistant",
         float temperature = 0.7f,
         int maxTokens = 1024,
         int? seed = null,
-        ChatCompletionsResponseFormat? responseFormat = null,
-        IEnumerable<FunctionDefinition>? functions = null)
+        ChatResponseFormat? responseFormat = null,
+        IEnumerable<ChatTool>? functions = null)
         : this(
-            openAIClient: openAIClient,
+            chatClient: chatClient,
             name: name,
-            options: CreateChatCompletionOptions(modelName, temperature, maxTokens, seed, responseFormat, functions),
+            options: CreateChatCompletionOptions(temperature, maxTokens, seed, responseFormat, functions),
             systemMessage: systemMessage)
     {
     }
@@ -69,22 +66,17 @@ public class OpenAIChatAgent : IStreamingAgent
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatAgent"/>.
     /// </summary>
-    /// <param name="openAIClient">openai client</param>
+    /// <param name="chatClient">openai chat client</param>
     /// <param name="name">agent name</param>
     /// <param name="systemMessage">system message</param>
     /// <param name="options">chat completion option. The option can't contain messages</param>
     public OpenAIChatAgent(
-        OpenAIClient openAIClient,
+        ChatClient chatClient,
         string name,
-        ChatCompletionsOptions options,
+        ChatCompletionOptions options,
         string systemMessage = "You are a helpful AI assistant")
     {
-        if (options.Messages is { Count: > 0 })
-        {
-            throw new ArgumentException("Messages should not be provided in options");
-        }
-
-        this.openAIClient = openAIClient;
+        this.chatClient = chatClient;
         this.Name = name;
         this.options = options;
         this.systemMessage = systemMessage;
@@ -97,10 +89,10 @@ public class OpenAIChatAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var settings = this.CreateChatCompletionsOptions(options, messages);
-        var reply = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
-
-        return new MessageEnvelope<ChatCompletions>(reply, from: this.Name);
+        var chatHistory = this.CreateChatMessages(messages);
+        var settings = this.CreateChatCompletionsOptions(options);
+        var reply = await this.chatClient.CompleteChatAsync(chatHistory, settings, cancellationToken);
+        return new MessageEnvelope<ChatCompletion>(reply.Value, from: this.Name);
     }
 
     public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
@@ -108,61 +100,74 @@ public class OpenAIChatAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var settings = this.CreateChatCompletionsOptions(options, messages);
-        var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings, cancellationToken);
+        var chatHistory = this.CreateChatMessages(messages);
+        var settings = this.CreateChatCompletionsOptions(options);
+        var response = this.chatClient.CompleteChatStreamingAsync(chatHistory, settings, cancellationToken);
         await foreach (var update in response.WithCancellation(cancellationToken))
         {
-            if (update.ChoiceIndex > 0)
+            if (update.ContentUpdate.Count > 1)
             {
                 throw new InvalidOperationException("Only one choice is supported in streaming response");
             }
 
-            yield return new MessageEnvelope<StreamingChatCompletionsUpdate>(update, from: this.Name);
+            yield return new MessageEnvelope<StreamingChatCompletionUpdate>(update, from: this.Name);
         }
     }
 
-    private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)
+    private IEnumerable<ChatMessage> CreateChatMessages(IEnumerable<IMessage> messages)
     {
         var oaiMessages = messages.Select(m => m switch
         {
-            IMessage<ChatRequestMessage> chatRequestMessage => chatRequestMessage.Content,
+            IMessage<ChatMessage> chatMessage => chatMessage.Content,
             _ => throw new ArgumentException("Invalid message type")
         });
 
         // add system message if there's no system message in messages
-        if (!oaiMessages.Any(m => m is ChatRequestSystemMessage))
+        if (!oaiMessages.Any(m => m is SystemChatMessage))
         {
-            oaiMessages = new[] { new ChatRequestSystemMessage(systemMessage) }.Concat(oaiMessages);
+            oaiMessages = new[] { new SystemChatMessage(systemMessage) }.Concat(oaiMessages);
         }
 
-        // clone the options by serializing and deserializing
-        var json = JsonSerializer.Serialize(this.options);
-        var settings = JsonSerializer.Deserialize<ChatCompletionsOptions>(json) ?? throw new InvalidOperationException("Failed to clone options");
+        return oaiMessages;
+    }
 
-        foreach (var m in oaiMessages)
+    private ChatCompletionOptions CreateChatCompletionsOptions(GenerateReplyOptions? options)
+    {
+        var option = new ChatCompletionOptions()
         {
-            settings.Messages.Add(m);
+            Seed = this.options.Seed,
+            Temperature = options?.Temperature ?? this.options.Temperature,
+            MaxTokens = options?.MaxToken ?? this.options.MaxTokens,
+            ResponseFormat = this.options.ResponseFormat,
+            FrequencyPenalty = this.options.FrequencyPenalty,
+            FunctionChoice = this.options.FunctionChoice,
+            IncludeLogProbabilities = this.options.IncludeLogProbabilities,
+            ParallelToolCallsEnabled = this.options.ParallelToolCallsEnabled,
+            PresencePenalty = this.options.PresencePenalty,
+            ToolChoice = this.options.ToolChoice,
+            TopLogProbabilityCount = this.options.TopLogProbabilityCount,
+            TopP = this.options.TopP,
+            EndUserId = this.options.EndUserId,
+        };
+
+        // add tools from this.options to option
+        foreach (var tool in this.options.Tools)
+        {
+            option.Tools.Add(tool);
         }
 
-        settings.Temperature = options?.Temperature ?? settings.Temperature;
-        settings.MaxTokens = options?.MaxToken ?? settings.MaxTokens;
-
-        foreach (var functions in this.options.Tools)
+        // add stop sequences from this.options to option
+        foreach (var seq in this.options.StopSequences)
         {
-            settings.Tools.Add(functions);
+            option.StopSequences.Add(seq);
         }
 
-        foreach (var stopSequence in this.options.StopSequences)
-        {
-            settings.StopSequences.Add(stopSequence);
-        }
-
-        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition()).ToList();
+        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToChatTool()).ToList();
         if (openAIFunctionDefinitions is { Count: > 0 })
         {
             foreach (var f in openAIFunctionDefinitions)
             {
-                settings.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
+                option.Tools.Add(f);
             }
         }
 
@@ -170,22 +175,21 @@ public class OpenAIChatAgent : IStreamingAgent
         {
             foreach (var seq in sequence)
             {
-                settings.StopSequences.Add(seq);
+                option.StopSequences.Add(seq);
             }
         }
 
-        return settings;
+        return option;
     }
 
-    private static ChatCompletionsOptions CreateChatCompletionOptions(
-        string modelName,
+    private static ChatCompletionOptions CreateChatCompletionOptions(
         float temperature = 0.7f,
         int maxTokens = 1024,
         int? seed = null,
-        ChatCompletionsResponseFormat? responseFormat = null,
-        IEnumerable<FunctionDefinition>? functions = null)
+        ChatResponseFormat? responseFormat = null,
+        IEnumerable<ChatTool>? functions = null)
     {
-        var options = new ChatCompletionsOptions(modelName, [])
+        var options = new ChatCompletionOptions
         {
             Temperature = temperature,
             MaxTokens = maxTokens,
@@ -197,7 +201,7 @@ public class OpenAIChatAgent : IStreamingAgent
         {
             foreach (var f in functions)
             {
-                options.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
+                options.Tools.Add(f);
             }
         }
 

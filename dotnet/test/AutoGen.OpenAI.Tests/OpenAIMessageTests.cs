@@ -11,8 +11,8 @@ using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
 using AutoGen.Tests;
-using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI.Chat;
 using Xunit;
 
 namespace AutoGen.OpenAI.Tests;
@@ -71,10 +71,10 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("Hello");
-                chatRequestMessage.Name.Should().Be("user");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (UserChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("Hello");
+                chatRequestMessage.ParticipantName.Should().Be("user");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -92,16 +92,16 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestUserMessage>>();
+                innerMessage!.Should().BeOfType<MessageEnvelope<UserChatMessage>>();
 
-                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestUserMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("hello");
+                var chatRequestMessage = (UserChatMessage)((MessageEnvelope<UserChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("hello");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
 
         // user message
-        var userMessage = new ChatRequestUserMessage("hello");
+        var userMessage = new UserChatMessage("hello");
         var chatRequestMessage = MessageEnvelope.Create(userMessage);
         await agent.GenerateReplyAsync([chatRequestMessage]);
     }
@@ -151,10 +151,10 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("How can I help you?");
-                chatRequestMessage.Name.Should().Be("assistant");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("How can I help you?");
+                chatRequestMessage.ParticipantName.Should().Be("assistant");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -172,9 +172,9 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestSystemMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("You are a helpful AI assistant");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (SystemChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("You are a helpful AI assistant");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -192,12 +192,11 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().BeNullOrEmpty();
-                chatRequestMessage.Name.Should().Be("user");
-                chatRequestMessage.MultimodalContentItems.Count().Should().Be(1);
-                chatRequestMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageImageContentItem>();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (UserChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.ParticipantName.Should().Be("user");
+                chatRequestMessage.Content.Count().Should().Be(1);
+                chatRequestMessage.Content.First().Kind.Should().Be(ChatMessageContentPartKind.Image);
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -228,13 +227,12 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().BeNullOrEmpty();
-                chatRequestMessage.Name.Should().Be("user");
-                chatRequestMessage.MultimodalContentItems.Count().Should().Be(2);
-                chatRequestMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageTextContentItem>();
-                chatRequestMessage.MultimodalContentItems.Last().Should().BeOfType<ChatMessageImageContentItem>();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (UserChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.ParticipantName.Should().Be("user");
+                chatRequestMessage.Content.Count().Should().Be(2);
+                chatRequestMessage.Content.First().Kind.Should().Be(ChatMessageContentPartKind.Text);
+                chatRequestMessage.Content.Last().Kind.Should().Be(ChatMessageContentPartKind.Image);
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -276,16 +274,16 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Name.Should().Be("assistant");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.ParticipantName.Should().Be("assistant");
                 chatRequestMessage.ToolCalls.Count().Should().Be(1);
-                chatRequestMessage.Content.Should().Be("textContent");
-                chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
-                var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
-                functionToolCall.Name.Should().Be("test");
+                chatRequestMessage.Content.First().Text.Should().Be("textContent");
+                chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatToolCall>();
+                var functionToolCall = (ChatToolCall)chatRequestMessage.ToolCalls.First();
+                functionToolCall.FunctionName.Should().Be("test");
                 functionToolCall.Id.Should().Be("test");
-                functionToolCall.Arguments.Should().Be("test");
+                functionToolCall.FunctionArguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -306,18 +304,18 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().BeNullOrEmpty();
-                chatRequestMessage.Name.Should().Be("assistant");
+                chatRequestMessage.ParticipantName.Should().Be("assistant");
                 chatRequestMessage.ToolCalls.Count().Should().Be(2);
                 for (int i = 0; i < chatRequestMessage.ToolCalls.Count(); i++)
                 {
-                    chatRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatCompletionsFunctionToolCall>();
-                    var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.ElementAt(i);
-                    functionToolCall.Name.Should().Be("test");
+                    chatRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatToolCall>();
+                    var functionToolCall = (ChatToolCall)chatRequestMessage.ToolCalls.ElementAt(i);
+                    functionToolCall.FunctionName.Should().Be("test");
                     functionToolCall.Id.Should().Be($"test_{i}");
-                    functionToolCall.Arguments.Should().Be("test");
+                    functionToolCall.FunctionArguments.Should().Be("test");
                 }
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
@@ -353,10 +351,11 @@ public class OpenAIMessageTests
             .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
             {
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("result");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (ToolChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("result");
                 chatRequestMessage.ToolCallId.Should().Be("test");
+
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -378,9 +377,9 @@ public class OpenAIMessageTests
                 for (int i = 0; i < msgs.Count(); i++)
                 {
                     var innerMessage = msgs.ElementAt(i);
-                    innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                    var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                    chatRequestMessage.Content.Should().Be("result");
+                    innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                    var chatRequestMessage = (ToolChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                    chatRequestMessage.Content.First().Text.Should().Be("result");
                     chatRequestMessage.ToolCallId.Should().Be($"test_{i}");
                 }
                 return await innerAgent.GenerateReplyAsync(msgs);
@@ -406,10 +405,10 @@ public class OpenAIMessageTests
             {
                 msgs.Count().Should().Be(1);
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("result");
-                chatRequestMessage.Name.Should().Be("user");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (UserChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("result");
+                chatRequestMessage.ParticipantName.Should().Be("user");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -430,21 +429,21 @@ public class OpenAIMessageTests
             {
                 msgs.Count().Should().Be(2);
                 var innerMessage = msgs.Last();
-                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
-                chatRequestMessage.Content.Should().Be("result");
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var chatRequestMessage = (ToolChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.First().Text.Should().Be("result");
                 chatRequestMessage.ToolCallId.Should().Be("test");
 
                 var toolCallMessage = msgs.First();
-                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var toolCallRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)toolCallMessage!).Content;
+                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var toolCallRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)toolCallMessage!).Content;
                 toolCallRequestMessage.Content.Should().BeNullOrEmpty();
                 toolCallRequestMessage.ToolCalls.Count().Should().Be(1);
-                toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
-                var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.First();
-                functionToolCall.Name.Should().Be("test");
+                toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatToolCall>();
+                var functionToolCall = (ChatToolCall)toolCallRequestMessage.ToolCalls.First();
+                functionToolCall.FunctionName.Should().Be("test");
                 functionToolCall.Id.Should().Be("test");
-                functionToolCall.Arguments.Should().Be("test");
+                functionToolCall.FunctionArguments.Should().Be("test");
                 return await innerAgent.GenerateReplyAsync(msgs);
             })
             .RegisterMiddleware(middleware);
@@ -465,26 +464,26 @@ public class OpenAIMessageTests
             {
                 msgs.Count().Should().Be(3);
                 var toolCallMessage = msgs.First();
-                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                var toolCallRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)toolCallMessage!).Content;
+                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                var toolCallRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)toolCallMessage!).Content;
                 toolCallRequestMessage.Content.Should().BeNullOrEmpty();
                 toolCallRequestMessage.ToolCalls.Count().Should().Be(2);
 
                 for (int i = 0; i < toolCallRequestMessage.ToolCalls.Count(); i++)
                 {
-                    toolCallRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatCompletionsFunctionToolCall>();
-                    var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.ElementAt(i);
-                    functionToolCall.Name.Should().Be("test");
+                    toolCallRequestMessage.ToolCalls.ElementAt(i).Should().BeOfType<ChatToolCall>();
+                    var functionToolCall = (ChatToolCall)toolCallRequestMessage.ToolCalls.ElementAt(i);
+                    functionToolCall.FunctionName.Should().Be("test");
                     functionToolCall.Id.Should().Be($"test_{i}");
-                    functionToolCall.Arguments.Should().Be("test");
+                    functionToolCall.FunctionArguments.Should().Be("test");
                 }
 
                 for (int i = 1; i < msgs.Count(); i++)
                 {
                     var toolCallResultMessage = msgs.ElementAt(i);
-                    toolCallResultMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
-                    var toolCallResultRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)toolCallResultMessage!).Content;
-                    toolCallResultRequestMessage.Content.Should().Be("result");
+                    toolCallResultMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
+                    var toolCallResultRequestMessage = (ToolChatMessage)((MessageEnvelope<ChatMessage>)toolCallResultMessage!).Content;
+                    toolCallResultRequestMessage.Content.First().Text.Should().Be("result");
                     toolCallResultRequestMessage.ToolCallId.Should().Be($"test_{i - 1}");
                 }
 
@@ -502,41 +501,6 @@ public class OpenAIMessageTests
         var toolCallResultMessage = new ToolCallResultMessage(toolCalls, "assistant");
         var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "assistant");
         await agent.GenerateReplyAsync([aggregateMessage]);
-    }
-
-    [Fact]
-    public async Task ItConvertChatResponseMessageToTextMessageAsync()
-    {
-        var middleware = new OpenAIChatRequestMessageConnector();
-        var agent = new EchoAgent("assistant")
-            .RegisterMiddleware(middleware);
-
-        // text message
-        var textMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "hello");
-        var chatRequestMessage = MessageEnvelope.Create(textMessage);
-
-        var message = await agent.GenerateReplyAsync([chatRequestMessage]);
-        message.Should().BeOfType<TextMessage>();
-        message.GetContent().Should().Be("hello");
-        message.GetRole().Should().Be(Role.Assistant);
-    }
-
-    [Fact]
-    public async Task ItConvertChatResponseMessageToToolCallMessageAsync()
-    {
-        var middleware = new OpenAIChatRequestMessageConnector();
-        var agent = new EchoAgent("assistant")
-            .RegisterMiddleware(middleware);
-
-        // tool call message
-        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "textContent", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
-        var chatRequestMessage = MessageEnvelope.Create(toolCallMessage);
-        var message = await agent.GenerateReplyAsync([chatRequestMessage]);
-        message.Should().BeOfType<ToolCallMessage>();
-        message.GetToolCalls()!.Count().Should().Be(1);
-        message.GetToolCalls()!.First().FunctionName.Should().Be("test");
-        message.GetToolCalls()!.First().FunctionArguments.Should().Be("test");
-        message.GetContent().Should().Be("textContent");
     }
 
     [Fact]
@@ -562,7 +526,7 @@ public class OpenAIMessageTests
             .RegisterMiddleware(middleware);
 
         // text message
-        var textMessage = new ChatRequestUserMessage("hello");
+        var textMessage = new UserChatMessage("hello");
         var messageToSend = MessageEnvelope.Create(textMessage);
         Func<Task> action = async () => await agent.GenerateReplyAsync([messageToSend]);
 
@@ -574,22 +538,24 @@ public class OpenAIMessageTests
     {
         var agent = new EchoAgent("assistant");
         var middleware = new OpenAIChatRequestMessageConnector();
-        ChatRequestMessage[] messages =
+#pragma warning disable CS0618 // Type or member is obsolete
+        ChatMessage[] messages =
             [
-                new ChatRequestUserMessage("Hello"),
-                new ChatRequestAssistantMessage("How can I help you?"),
-                new ChatRequestSystemMessage("You are a helpful AI assistant"),
-                new ChatRequestFunctionMessage("result", "functionName"),
-                new ChatRequestToolMessage("test", "test"),
+                new UserChatMessage("Hello"),
+                new AssistantChatMessage("How can I help you?"),
+                new SystemChatMessage("You are a helpful AI assistant"),
+                new FunctionChatMessage("functionName", "result"),
+                new ToolChatMessage("test", "test"),
             ];
+#pragma warning restore CS0618 // Type or member is obsolete
 
         foreach (var oaiMessage in messages)
         {
-            IMessage message = new MessageEnvelope<ChatRequestMessage>(oaiMessage);
+            IMessage message = new MessageEnvelope<ChatMessage>(oaiMessage);
             var oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
             oaiMessages.Count().Should().Be(1);
             //oaiMessages.First().Should().BeOfType<IMessage<ChatRequestMessage>>();
-            if (oaiMessages.First() is IMessage<ChatRequestMessage> chatRequestMessage)
+            if (oaiMessages.First() is IMessage<ChatMessage> chatRequestMessage)
             {
                 chatRequestMessage.Content.Should().Be(oaiMessage);
             }
@@ -609,27 +575,27 @@ public class OpenAIMessageTests
             foreach (var m in ms)
             {
                 object? obj = null;
-                var chatRequestMessage = (m as IMessage<ChatRequestMessage>)?.Content;
-                if (chatRequestMessage is ChatRequestUserMessage userMessage)
+                var chatRequestMessage = (m as IMessage<ChatMessage>)?.Content;
+                if (chatRequestMessage is UserChatMessage userMessage)
                 {
                     obj = new
                     {
-                        Role = userMessage.Role.ToString(),
+                        Role = "user",
                         Content = userMessage.Content,
-                        Name = userMessage.Name,
-                        MultiModaItem = userMessage.MultimodalContentItems?.Select(item =>
+                        Name = userMessage.ParticipantName,
+                        MultiModaItem = userMessage.Content?.Select(item =>
                         {
                             return item switch
                             {
-                                ChatMessageImageContentItem imageContentItem => new
+                                _ when item.Kind == ChatMessageContentPartKind.Image => new
                                 {
                                     Type = "Image",
-                                    ImageUrl = GetImageUrlFromContent(imageContentItem),
+                                    ImageUrl = GetImageUrlFromContent(item),
                                 } as object,
-                                ChatMessageTextContentItem textContentItem => new
+                                _ when item.Kind == ChatMessageContentPartKind.Text => new
                                 {
                                     Type = "Text",
-                                    Text = textContentItem.Text,
+                                    Text = item.Text,
                                 } as object,
                                 _ => throw new System.NotImplementedException(),
                             };
@@ -637,58 +603,60 @@ public class OpenAIMessageTests
                     };
                 }
 
-                if (chatRequestMessage is ChatRequestAssistantMessage assistantMessage)
+                if (chatRequestMessage is AssistantChatMessage assistantMessage)
                 {
                     obj = new
                     {
-                        Role = assistantMessage.Role.ToString(),
+                        Role = "assistant",
                         Content = assistantMessage.Content,
-                        Name = assistantMessage.Name,
+                        Name = assistantMessage.ParticipantName,
                         TooCall = assistantMessage.ToolCalls.Select(tc =>
                         {
                             return tc switch
                             {
-                                ChatCompletionsFunctionToolCall functionToolCall => new
+                                ChatToolCall functionToolCall => new
                                 {
                                     Type = "Function",
-                                    Name = functionToolCall.Name,
-                                    Arguments = functionToolCall.Arguments,
+                                    Name = functionToolCall.FunctionName,
+                                    Arguments = functionToolCall.FunctionArguments,
                                     Id = functionToolCall.Id,
                                 } as object,
                                 _ => throw new System.NotImplementedException(),
                             };
                         }),
-                        FunctionCallName = assistantMessage.FunctionCall?.Name,
-                        FunctionCallArguments = assistantMessage.FunctionCall?.Arguments,
+                        FunctionCallName = assistantMessage.FunctionCall?.FunctionName,
+                        FunctionCallArguments = assistantMessage.FunctionCall?.FunctionArguments,
                     };
                 }
 
-                if (chatRequestMessage is ChatRequestSystemMessage systemMessage)
+                if (chatRequestMessage is SystemChatMessage systemMessage)
                 {
                     obj = new
                     {
-                        Name = systemMessage.Name,
-                        Role = systemMessage.Role.ToString(),
+                        Name = systemMessage.ParticipantName,
+                        Role = "system",
                         Content = systemMessage.Content,
                     };
                 }
 
-                if (chatRequestMessage is ChatRequestFunctionMessage functionMessage)
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (chatRequestMessage is FunctionChatMessage functionMessage)
                 {
                     obj = new
                     {
-                        Role = functionMessage.Role.ToString(),
+                        Role = "function",
                         Content = functionMessage.Content,
-                        Name = functionMessage.Name,
+                        Name = functionMessage.FunctionName,
                     };
                 }
+#pragma warning restore CS0618 // Type or member is obsolete
 
-                if (chatRequestMessage is ChatRequestToolMessage toolCallMessage)
+                if (chatRequestMessage is ToolChatMessage toolCallMessage)
                 {
                     obj = new
                     {
-                        Role = toolCallMessage.Role.ToString(),
-                        Content = toolCallMessage.Content,
+                        Role = "tool",
+                        Content = toolCallMessage.Content.First().Text,
                         ToolCallId = toolCallMessage.ToolCallId,
                     };
                 }
@@ -707,9 +675,9 @@ public class OpenAIMessageTests
         Approvals.Verify(json);
     }
 
-    private object? GetImageUrlFromContent(ChatMessageImageContentItem content)
+    private object? GetImageUrlFromContent(ChatMessageContentPart content)
     {
-        return content.GetType().GetProperty("ImageUrl", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(content);
+        return content.ImageUri;
     }
 
     private static T CreateInstance<T>(params object[] args)

@@ -47,7 +47,12 @@ public class AnthropicClientTests
         request.Model = AnthropicConstants.Claude3Haiku;
         request.Stream = true;
         request.MaxTokens = 500;
-        request.SystemMessage = "You are a helpful assistant that convert input to json object, use JSON format.";
+        request.SystemMessage =
+        [
+            SystemMessage.CreateSystemMessage(
+            "You are a helpful assistant that convert input to json object, use JSON format.")
+        ];
+
         request.Messages = new List<ChatMessage>()
         {
             new("user", "name: John, age: 41, email: g123456@gmail.com")
@@ -88,7 +93,11 @@ public class AnthropicClientTests
         request.Model = AnthropicConstants.Claude3Haiku;
         request.Stream = false;
         request.MaxTokens = 100;
-        request.SystemMessage = "You are a LLM that is suppose to describe the content of the image. Give me a description of the provided image.";
+        request.SystemMessage =
+        [
+            SystemMessage.CreateSystemMessage(
+                "You are a LLM that is suppose to describe the content of the image. Give me a description of the provided image."),
+        ];
 
         var base64Image = await AnthropicTestUtils.Base64FromImageAsync("square.png");
         var messages = new List<ChatMessage>
@@ -163,6 +172,60 @@ public class AnthropicClientTests
         Assert.Equal("get_stock_price", toolUseContent.Name);
         Assert.NotNull(toolUseContent.Input);
         Assert.True(toolUseContent.Input is JsonNode);
+    }
+
+    [ApiKeyFact("ANTHROPIC_API_KEY")]
+    public async Task AnthropicClientChatCompletionCacheControlTestAsync()
+    {
+        var anthropicClient = new AnthropicClient(new HttpClient(), AnthropicConstants.Endpoint, AnthropicTestUtils.ApiKey);
+
+        var request = new ChatCompletionRequest();
+        request.Model = AnthropicConstants.Claude35Sonnet;
+        request.Stream = false;
+        request.MaxTokens = 100;
+
+        request.SystemMessage =
+        [
+            SystemMessage.CreateSystemMessageWithCacheControl(
+                $"You are an LLM that is great at remembering stories {AnthropicTestUtils.LongStory}"),
+        ];
+
+        request.Messages =
+        [
+            new ChatMessage("user", "What should i know about Bob?")
+        ];
+
+        var response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+        response.Usage.Should().NotBeNull();
+
+        // There's no way to clear the cache. Running the assert frequently may cause this to fail because the cache is already been created 
+        // response.Usage!.CreationInputTokens.Should().BeGreaterThan(0);
+        // The cache reduces the input tokens. We expect the input tokens to be less the large system prompt and only the user message
+        response.Usage!.InputTokens.Should().BeLessThan(20);
+
+        request.Messages =
+        [
+            new ChatMessage("user", "Summarize the story of bob")
+        ];
+
+        response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+        response.Usage.Should().NotBeNull();
+        response.Usage!.CacheReadInputTokens.Should().BeGreaterThan(0);
+        response.Usage!.InputTokens.Should().BeLessThan(20);
+
+        // Should not use the cache
+        request.SystemMessage =
+        [
+            SystemMessage.CreateSystemMessage("You are a helpful assistant.")
+        ];
+
+        request.Messages =
+        [
+            new ChatMessage("user", "What are some text editors I could use to write C#?")
+        ];
+
+        response = await anthropicClient.CreateChatCompletionsAsync(request, CancellationToken.None);
+        response.Usage!.CacheReadInputTokens.Should().Be(0);
     }
 
     private sealed class Person

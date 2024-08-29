@@ -5,7 +5,6 @@ using System.Text;
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
 
@@ -69,11 +68,7 @@ public partial class TwoAgent_Fill_Application
 
     public static async Task<IAgent> CreateSaveProgressAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var instance = new TwoAgent_Fill_Application();
         var functionCallConnector = new FunctionCallMiddleware(
             functions: [instance.SaveProgressFunctionContract],
@@ -83,9 +78,8 @@ public partial class TwoAgent_Fill_Application
             });
 
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "application",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """You are a helpful application form assistant who saves progress while user fills application.""")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallConnector)
@@ -109,48 +103,23 @@ public partial class TwoAgent_Fill_Application
 
     public static async Task<IAgent> CreateAssistantAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "assistant",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterMessageConnector()
-            .RegisterPrintMessage()
-            .RegisterMiddleware(async (msgs, option, agent, ct) =>
-            {
-                var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
-                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
-
-                // if application is complete, exit conversation by sending termination message
-                if (lastReply.GetContent().Contains("Application information is saved to database."))
-                {
-                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
-                }
-                else
-                {
-                    return reply;
-                }
-            });
+            .RegisterPrintMessage();
 
         return chatAgent;
     }
 
     public static async Task<IAgent> CreateUserAgent()
     {
-        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var endPoint = gpt3Config.Endpoint ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
-
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
         var chatAgent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: gpt4o,
             name: "user",
-            modelName: gpt3Config.DeploymentName,
             systemMessage: """
             You are a user who is filling an application form. Simply provide the information as requested and answer the questions, don't do anything else.
             
@@ -191,9 +160,13 @@ public partial class TwoAgent_Fill_Application
         var groupChatManager = new GroupChatManager(groupChat);
         var initialMessage = await assistantAgent.SendAsync("Generate a greeting meesage for user and start the conversation by asking what's their name.");
 
-        var chatHistory = await userAgent.SendAsync(groupChatManager, [initialMessage], maxRound: 30);
-
-        var lastMessage = chatHistory.Last();
-        Console.WriteLine(lastMessage.GetContent());
+        var chatHistory = new List<IMessage> { initialMessage };
+        await foreach (var msg in userAgent.SendAsync(groupChatManager, chatHistory, maxRound: 30))
+        {
+            if (msg.GetContent().ToLower().Contains("application information is saved to database.") is true)
+            {
+                break;
+            }
+        }
     }
 }
