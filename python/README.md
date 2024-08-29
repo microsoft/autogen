@@ -10,7 +10,7 @@ See [`autogen-core`](./packages/autogen-core/) package for main functionality.
 ```sh
 uv sync
 source .venv/bin/activate
-poe all
+poe check
 ```
 
 ### Setup
