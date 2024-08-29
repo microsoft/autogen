@@ -19,16 +19,14 @@ dependencies = [
     "aiohttp",
     "typing-extensions",
     "pydantic>=1.10,<3",
-    "types-aiofiles",
     "grpcio",
     "protobuf",
     "tiktoken",
     "azure-core"
 ]
 
-[tool.hatch.envs.default]
-installer = "uv"
-dependencies = [
+[tool.uv]
+dev-dependencies = [
     "azure-identity",
     "aiofiles",
     "chess",
@@ -46,7 +44,6 @@ dependencies = [
     "mypy==1.10.0",
     "pip",
     "polars",
-    "pyright==1.1.368",
     "pytest-asyncio",
     "pytest-mock",
     "pytest-xdist",
@@ -64,35 +61,7 @@ dependencies = [
     "types-protobuf",
     "types-requests",
     "wikipedia",
-    "nbqa"
-]
-
-[tool.hatch.envs.default.extra-scripts]
-pip = "{env:HATCH_UV} pip {args}"
-
-[tool.hatch.envs.default.scripts]
-fmt = "ruff format"
-lint = "ruff check"
-test = "pytest -n auto"
-check = [
-    "ruff format",
-    "ruff check --fix",
-    "pyright",
-    "mypy --non-interactive --install-types",
-    "pytest -n auto",
-    # Only checking notebooks with mypy for now due to the fact pyright doesn't seem to be able to ignore the top level await
-    "nbqa mypy docs/src",
-]
-
-[tool.hatch.envs.test-matrix]
-template = "default"
-
-[[tool.hatch.envs.test-matrix.matrix]]
-python = ["3.10", "3.11", "3.12"]
-
-[tool.hatch.envs.docs]
-template = "default"
-dependencies = [
+    "nbqa",
     "sphinx",
     "furo",
     "sphinxcontrib-apidoc",
@@ -100,96 +69,36 @@ dependencies = [
     "sphinx-autobuild",
 ]
 
-[tool.hatch.envs.docs.scripts]
-build = "sphinx-build docs/src docs/build"
-serve = "sphinx-autobuild --watch src docs/src docs/build"
-check = [
-    "sphinx-build --fail-on-warning docs/src docs/build"
-]
-
-# Benchmark environments
-[tool.hatch.envs.bench-humaneval-teamone]
-installer = "uv"
-detached = true
-dependencies = [
-    "autogen_core@{root:uri}",
-    "agbench@{root:uri}/tools/agbench",
-    "team-one@{root:uri}/teams/team-one",
-]
-
-[tool.hatch.envs.bench-humaneval-twoagents]
-installer = "uv"
-detached = true
-dependencies = [
-    "autogen_core@{root:uri}",
-    "agbench@{root:uri}/tools/agbench",
-]
 
 [tool.ruff]
-line-length = 120
-fix = true
+extend = "../../pyproject.toml"
 exclude = ["build", "dist", "src/autogen_core/application/protos"]
-target-version = "py310"
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb"]
 
-[tool.ruff.format]
-docstring-code-format = true
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
-ignore = ["F401", "E501"]
-
-[tool.ruff.lint.flake8-tidy-imports]
-[tool.ruff.lint.flake8-tidy-imports.banned-api]
-"unittest".msg = "Use `pytest` instead."
-
-[tool.mypy]
-files = ["src", "samples", "tests"]
-exclude = ["src/autogen_core/application/protos"]
-
-strict = true
-python_version = "3.10"
-ignore_missing_imports = true
-
-# from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
-warn_unused_ignores = false
-
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-disallow_any_unimported = true
-
 [tool.pyright]
+extend = "../../pyproject.toml"
 include = ["src", "tests", "samples"]
-typeCheckingMode = "strict"
-reportUnnecessaryIsInstance = false
-reportMissingTypeStubs = false
 exclude = ["src/autogen_core/application/protos"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
 
-[tool.hatch.build.hooks.protobuf]
-dependencies = ["hatch-protobuf", "mypy-protobuf~=3.0"]
-generate_pyi = false
-proto_paths = ["../protos"]
-output_path = "src/autogen_core/application/protos"
-
-
-[[tool.hatch.build.hooks.protobuf.generators]]
-name = "mypy"
-outputs = ["{proto_path}/{proto_name}_pb2.pyi"]
-
-[[tool.hatch.build.hooks.protobuf.generators]]
-name = "mypy_grpc"
-outputs = ["{proto_path}/{proto_name}_pb2_grpc.pyi"]
-
 [tool.nbqa.addopts]
 mypy = [
     "--disable-error-code=top-level-await"
 ]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+test = "pytest -n auto"
+mypy.default_item_type = "cmd"
+mypy.sequence = [
+    "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos src tests",
+    "nbqa mypy docs/src --config-file ../../pyproject.toml",
+]
+docs-build = "sphinx-build docs/src docs/build"
+docs-serve = "sphinx-autobuild --watch src docs/src docs/build"
+docs-check = "sphinx-build --fail-on-warning docs/src docs/build"

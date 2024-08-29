@@ -15,15 +15,15 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
 dependencies = [
-    "autogen-core@{root:parent:uri}/autogen-core",
+    "autogen-core",
     "aiofiles",
     "requests",
     "mammoth",
     "markdownify",
     "numpy",
     "python-pptx",
-    "easyocr",
     "pandas",
     "pdfminer.six",
     "puremagic",
@@ -35,15 +35,14 @@ dependencies = [
     "playwright",
 ]
 
-[tool.hatch.envs.default]
-installer = "uv"
-dependencies = [
-    "pyright==1.1.368",
-    "mypy==1.10.0",
-    "ruff==0.4.8",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-xdist",
+[project.optional-dependencies]
+ocr = [
+    "easyocr",
+    "torchvision>=0.12",
+]
+
+[tool.uv]
+dev-dependencies = [
     "aiofiles",
     "types-aiofiles",
     "types-requests",
@@ -52,83 +51,26 @@ dependencies = [
     "openpyxl",
 ]
 
-[tool.hatch.envs.default.extra-scripts]
-pip = "{env:HATCH_UV} pip {args}"
 
-[tool.hatch.envs.default.scripts]
-fmt = "ruff format"
-lint = "ruff check"
-test = [
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+test.sequence = [
     "playwright install",
     "pytest -n auto",
 ]
-check = [
-    "ruff format",
-    "ruff check --fix",
-    "pyright",
-    "mypy --non-interactive --install-types",
-    "playwright install",
-    "pytest",
-]
-
-[tool.hatch.envs.teamone-test-matrix]
-template = "default"
-
-[[tool.hatch.envs.teamone-test-matrix.matrix]]
-python = ["3.10", "3.11", "3.12"]
-
-[tool.hatch.metadata]
-allow-direct-references = true
+test.default_item_type = "cmd"
 
 [tool.ruff]
-line-length = 120
-fix = true
+extend = "../../pyproject.toml"
 exclude = ["build", "dist", "page_script.js"]
-target-version = "py310"
 include = [
     "src/**",
     "examples/*.py",
-    "../../benchmarks/HumanEval/Templates/TeamOne/scenario.py",
-    "../../benchmarks/HumanEval/Templates/TwoAgents/scenario.py",
-    "../../benchmarks/GAIA/TeamOne/TwoAgents/scenario.py",
 ]
 
-[tool.ruff.format]
-docstring-code-format = true
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
-ignore = ["F401", "E501"]
-
-[tool.mypy]
-files = [
-    "src",
-    "tests",
-    "examples",
-]
-
-strict = true
-python_version = "3.10"
-ignore_missing_imports = true
-
-# from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
-warn_unused_ignores = false
-
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-disallow_any_unimported = true
 
 [tool.pyright]
-include = [
-    "src",
-    "tests",
-    "examples",
-]
-typeCheckingMode = "strict"
-reportUnnecessaryIsInstance = false
-reportMissingTypeStubs = false
+extend = "../../pyproject.toml"
+include = ["src", "tests"]

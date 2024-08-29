@@ -26,28 +26,10 @@ dependencies = [
     "pandas"
 ]
 
-
-[tool.hatch.envs.default]
-installer = "uv"
-dependencies = [
-    "pyright==1.1.368",
-    "mypy==1.10.0",
-    "ruff==0.4.8",
+[tool.uv]
+dev-dependencies = [
     "types-tabulate",
     "types-docker"
-]
-
-[tool.hatch.envs.default.extra-scripts]
-pip = "{env:HATCH_UV} pip {args}"
-
-[tool.hatch.envs.default.scripts]
-fmt = "ruff format"
-lint = "ruff check"
-check = [
-    "ruff format",
-    "ruff check --fix",
-    "pyright",
-    "mypy",
 ]
 
 [tool.hatch.version]
@@ -57,41 +39,19 @@ path = "src/agbench/version.py"
 agbench = "agbench.cli:main"
 
 [tool.ruff]
-line-length = 120
-fix = true
-exclude = ["build", "dist", "src/agbench/res/*", "src/agbench/template/*",]
-target-version = "py310"
-include = ["src/**"]
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
-ignore = ["F401", "E501"]
-
-[tool.ruff.lint.flake8-tidy-imports]
-[tool.ruff.lint.flake8-tidy-imports.banned-api]
-"unittest".msg = "Use `pytest` instead."
-
-[tool.mypy]
-files = ["src"]
-
-strict = true
-python_version = "3.10"
-ignore_missing_imports = true
-
-# from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
-warn_unused_ignores = false
-
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-disallow_any_unimported = true
+extend = "../../pyproject.toml"
+exclude = ["build", "dist", "page_script.js", "src/agbench/res/Dockerfile", "src/agbench/template/global_init.sh"]
+include = [
+    "src/**",
+    "examples/*.py",
+]
 
 [tool.pyright]
+extend = "../../pyproject.toml"
 include = ["src"]
-typeCheckingMode = "strict"
-reportUnnecessaryIsInstance = false
-reportMissingTypeStubs = false
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+mypy = "mypy --config-file ../../pyproject.toml src"
