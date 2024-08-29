@@ -596,7 +596,7 @@ def find_agnext_repo(path: str) -> Optional[str]:
         path = os.path.dirname(path)
 
     while True:
-        test_path = os.path.join(path, "python", "src", "autogen_core")  # We found autogen_core
+        test_path = os.path.join(path, "python", "packages", "autogen-core")  # We found autogen_core
         if os.path.isdir(test_path):
             return path
 
