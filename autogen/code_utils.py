@@ -6,8 +6,10 @@ import string
 import subprocess
 import sys
 import time
+import venv
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import docker
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
-    """Converts the `content` field of an OpenAI merssage into a string format.
+    """Converts the `content` field of an OpenAI message into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
     and converts it into a string. Text is directly appended to the result string, while image URLs are
@@ -251,6 +253,8 @@ def _cmd(lang: str) -> str:
         return lang
     if lang in ["shell"]:
         return "sh"
+    if lang == "javascript":
+        return "node"
     if lang in ["ps1", "pwsh", "powershell"]:
         powershell_command = get_powershell_command()
         return powershell_command
@@ -281,7 +285,7 @@ def in_docker_container() -> bool:
     return os.path.exists("/.dockerenv")
 
 
-def decide_use_docker(use_docker) -> bool:
+def decide_use_docker(use_docker: Optional[bool]) -> Optional[bool]:
     if use_docker is None:
         env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
 
@@ -717,3 +721,19 @@ def implement(
     #     cost += metrics["gen_cost"]
     #     if metrics["succeed_assertions"] or i == len(configs) - 1:
     #         return responses[metrics["index_selected"]], cost, i
+
+
+def create_virtual_env(dir_path: str, **env_args) -> SimpleNamespace:
+    """Creates a python virtual environment and returns the context.
+
+    Args:
+        dir_path (str): Directory path where the env will be created.
+        **env_args: Any extra args to pass to the `EnvBuilder`
+
+    Returns:
+        SimpleNamespace: the virtual env context object."""
+    if not env_args:
+        env_args = {"with_pip": True}
+    env_builder = venv.EnvBuilder(**env_args)
+    env_builder.create(dir_path)
+    return env_builder.ensure_directories(dir_path)

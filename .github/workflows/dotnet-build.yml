@@ -6,11 +6,11 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "dotnet" ]
-    paths:
-      - 'dotnet/**'
+    branches: [ "main" ]
   push:
-    branches: [ "dotnet" ]
+    branches: [ "main" ]
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -21,28 +21,100 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    name: Build
+  paths-filter:
     runs-on: ubuntu-latest
+    outputs:
+      hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            dotnet:
+              - "dotnet/**"
+            workflows:
+              - ".github/workflows/**"
+      - name: dotnet has changes
+        run: echo "dotnet has changes"
+        if: steps.filter.outputs.dotnet == 'true'
+      - name: workflows has changes
+        run: echo "workflows has changes"
+        if: steps.filter.outputs.workflows == 'true'
+  build:
+    name: Dotnet Build
+    needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
       run:
         working-directory: dotnet
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install jupyter and ipykernel
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install jupyter
+        python -m pip install ipykernel
+    - name: list available kernels
+      run: |
+        python -m jupyter kernelspec list
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: dotnet/global.json
+        dotnet-version: '8.0.x'
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
+        dotnet format --verify-no-changes -v diag --no-restore
     - name: Build
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
+  aot-test: # this make sure the AutoGen.Core is aot compatible
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        os: [ ubuntu-latest ]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetching all
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: publish AOT testApp, assert static analysis warning count, and run the app
+      shell: pwsh
+      run: ./.tools/test-aot-compatibility.ps1 ${{ matrix.version }}
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
@@ -50,10 +122,24 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
-    needs: build
+    if: success() && (github.ref == 'refs/heads/main')
+    needs: aot-test
     steps:
     - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+    - name: Install jupyter and ipykernel
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install jupyter
+        python -m pip install ipykernel
+    - name: list available kernels
+      run: |
+        python -m jupyter kernelspec list
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -125,12 +211,14 @@ jobs:
       env:
         AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+      continue-on-error: true
     - name: Publish nightly package to github package
       run: |
         echo "Publish nightly package to github package"
         echo "ls output directory"
         ls -R ./output/nightly
         dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/microsoft/index.json" ./output/nightly/*.nupkg --skip-duplicate
+      continue-on-error: true
     - name: Publish nightly package to agentchat myget feed
       run: |
         echo "Publish nightly package to agentchat myget feed"
@@ -139,4 +227,5 @@ jobs:
         dotnet nuget push --api-key ${{ secrets.MYGET_TOKEN }} --source "https://www.myget.org/F/agentchat/api/v3/index.json" ./output/nightly/*.nupkg --skip-duplicate
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
-
+      continue-on-error: true
+      

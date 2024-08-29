@@ -13,7 +13,8 @@ on:
       - "notebook/agentchat_function_call.ipynb"
       - "notebook/agentchat_groupchat_finite_state_machine.ipynb"
       - ".github/workflows/openai.yml"
-permissions: {}
+permissions:
+  {}
   # actions: read
   # checks: read
   # contents: read
@@ -49,7 +50,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e.
           python -c "import autogen"
-          pip install coverage pytest-asyncio
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
         run: |
@@ -63,8 +64,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --durations=10 --durations-min=1.0
-          coverage xml
+          pytest test --ignore=test/agentchat/contrib --durations=10 --durations-min=1.0
       - name: Coverage and check notebook outputs
         if: matrix.python-version != '3.9'
         env:
@@ -75,8 +75,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/test_notebook.py --durations=10 --durations-min=1.0
-          coverage xml
+          pytest test/test_notebook.py --durations=10 --durations-min=1.0
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

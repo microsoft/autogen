@@ -21,10 +21,17 @@ from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
-REASON = "requested to skip openai tests"
+
+gpt4_config_list = [
+    {"model": "gpt-4"},
+    {"model": "gpt-4-turbo"},
+    {"model": "gpt-4-32k"},
+    {"model": "gpt-4o"},
+    {"model": "gpt-4o-mini"},
+]
 
 
 @pytest.fixture
@@ -503,7 +510,7 @@ async def test_a_generate_reply_with_messages_and_sender_none(conversable_agent)
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         def exec_python(cell: str) -> None:
             pass
@@ -657,9 +664,9 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -730,9 +737,9 @@ def test_register_for_llm():
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": gpt4_config_list})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": gpt4_config_list})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": gpt4_config_list})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -801,7 +808,7 @@ def test_register_for_llm_api_style_function():
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
 
         with pytest.raises(ValueError) as e:
 
@@ -878,7 +885,7 @@ def test_register_for_execution():
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": gpt4_config_list})
         user_proxy = UserProxyAgent(name="user_proxy")
 
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
@@ -918,13 +925,13 @@ def test_register_functions():
 
 @pytest.mark.skipif(
     skip_openai,
-    reason=REASON,
+    reason=reason,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["tool"],
         },
         file_location=KEY_LOC,
     )
@@ -995,14 +1002,14 @@ def test_function_registration_e2e_sync() -> None:
 
 @pytest.mark.skipif(
     skip_openai,
-    reason=REASON,
+    reason=reason,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
         file_location=KEY_LOC,
     )
@@ -1071,15 +1078,15 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         max_consecutive_auto_reply=10,
-        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+        llm_config={"config_list": config_list},
     )
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
@@ -1093,7 +1100,7 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_message_func():
     import random
 
@@ -1149,7 +1156,7 @@ def test_message_func():
     print(chat_res_play.summary)
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_summary():
     import random
 
@@ -1161,8 +1168,7 @@ def test_summary():
             return random.randint(0, 100)
 
     config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]}
     )
 
     def my_message_play(sender, recipient, context):
@@ -1313,6 +1319,208 @@ def test_messages_with_carryover():
     assert len(generated_message["content"]) == 2
 
 
+def test_chat_history():
+    alice = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+
+    charlie = autogen.ConversableAgent(
+        "charlie",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is charlie speaking.",
+    )
+
+    max_turns = 2
+
+    def bob_initiate_chat(agent: ConversableAgent, text: Literal["past", "future"]):
+        _ = agent.initiate_chat(
+            alice,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
+        )
+        _ = agent.initiate_chat(
+            charlie,
+            message=f"This is bob from the {text} speaking.",
+            max_turns=max_turns,
+            clear_history=False,
+            silent=True,
+        )
+
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the past speaking.",
+    )
+    bob_initiate_chat(bob, "past")
+    context = bob.chat_messages
+
+    del bob
+
+    # Test agent with chat history
+    bob = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob from the future speaking.",
+        chat_messages=context,
+    )
+
+    assert bool(bob.chat_messages)
+    assert bob.chat_messages == context
+
+    # two times the max turns due to bob replies
+    assert len(bob.chat_messages[alice]) == 2 * max_turns
+    assert len(bob.chat_messages[charlie]) == 2 * max_turns
+
+    bob_initiate_chat(bob, "future")
+    assert len(bob.chat_messages[alice]) == 4 * max_turns
+    assert len(bob.chat_messages[charlie]) == 4 * max_turns
+
+    assert bob.chat_messages[alice][0]["content"] == "This is bob from the past speaking."
+    assert bob.chat_messages[charlie][0]["content"] == "This is bob from the past speaking."
+
+    assert bob.chat_messages[alice][-2]["content"] == "This is bob from the future speaking."
+    assert bob.chat_messages[charlie][-2]["content"] == "This is bob from the future speaking."
+
+
+def test_http_client():
+
+    import httpx
+
+    with pytest.raises(TypeError):
+        config_list = [
+            {
+                "model": "my-gpt-4-deployment",
+                "api_key": "",
+                "http_client": httpx.Client(),
+            }
+        ]
+
+        autogen.ConversableAgent(
+            "test_agent",
+            human_input_mode="NEVER",
+            llm_config={"config_list": config_list},
+            default_auto_reply="This is alice speaking.",
+        )
+
+
+def test_adding_duplicate_function_warning():
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+
+    agent = autogen.ConversableAgent(
+        "jtoy",
+        llm_config={"config_list": config_base},
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
+
+
+def test_process_gemini_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover_content = "How can I help you?"
+    gemini_kwargs = {"carryover": [{"content": carryover_content}]}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=gemini_kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover_content, "Incorrect carryover processing"
+
+
+def test_process_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover = "How can I help you?"
+    kwargs = {"carryover": carryover}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    carryover_l = ["How can I help you?"]
+    kwargs = {"carryover": carryover_l}
+    proc_content = dummy_agent_1._process_carryover(content=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    proc_content_empty_carryover = dummy_agent_1._process_carryover(content=content, kwargs={"carryover": None})
+    assert proc_content_empty_carryover == content, "Incorrect carryover processing"
+
+
+def test_handle_gemini_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant"
+    carryover_content = "How can I help you?"
+    gemini_kwargs = {"carryover": [{"content": carryover_content}]}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=gemini_kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover_content, "Incorrect carryover processing"
+
+
+def test_handle_carryover():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    content = "I am your assistant."
+    carryover = "How can I help you?"
+    kwargs = {"carryover": carryover}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    carryover_l = ["How can I help you?"]
+    kwargs = {"carryover": carryover_l}
+    proc_content = dummy_agent_1._handle_carryover(message=content, kwargs=kwargs)
+    assert proc_content == content + "\nContext: \n" + carryover, "Incorrect carryover processing"
+
+    proc_content_empty_carryover = dummy_agent_1._handle_carryover(message=content, kwargs={"carryover": None})
+    assert proc_content_empty_carryover == content, "Incorrect carryover processing"
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1322,5 +1530,11 @@ if __name__ == "__main__":
     # test_no_llm_config()
     # test_max_turn()
     # test_process_before_send()
-    test_message_func()
+    # test_message_func()
+
     test_summary()
+    test_adding_duplicate_function_warning()
+    # test_function_registration_e2e_sync()
+
+    test_process_gemini_carryover()
+    test_process_carryover()

@@ -259,12 +259,30 @@ user_proxy = autogen.UserProxyAgent(
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
 
-## Migrating from `CompressibleAgent` and `TransformChatHistory` to `TransformMessages`
+### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?
 
-### Why migrate to `TransformMessages`?
+This error typically occurs when using Autogen version earlier than 0.2.27 in combination with OpenAI library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the OpenAI API.
+To resolve this issue, you need to upgrade your Autogen library to version 0.2.27 or higher that ensures compatibility between Autogen and the OpenAI library.
 
-Migrating enhances flexibility, modularity, and customization in handling chat message transformations. `TransformMessages` introduces an improved, extensible approach for pre-processing messages for conversational agents.
+```python
+pip install --upgrade autogen
+```
 
-### How to migrate?
+## None of the devcontainers are building due to "Hash sum mismatch", what should I do?
 
-To ensure a smooth migration process, simply follow the detailed guide provided in [Handling Long Context Conversations with Transform Messages](/docs/topics/long_contexts.md).
+This is an intermittent issue that appears to be caused by some combination of mirror and proxy issues.
+If it arises, try to replace the `apt-get update` step with the following:
+
+```bash
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy    true;" >> /etc/apt/apt.conf.d/99custom
+
+RUN apt-get clean && \
+    rm -r /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get -y update && \
+    apt-get install sudo git npm # and whatever packages need to be installed in this specific version of the devcontainer
+```
+
+This is a combination of StackOverflow suggestions [here](https://stackoverflow.com/a/48777773/2114580) and [here](https://stackoverflow.com/a/76092743/2114580).

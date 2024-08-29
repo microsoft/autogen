@@ -21,6 +21,9 @@ docs/topics/prompting-and-reasoning/*.mdx
 docs/topics/non-openai-models/*.mdx
 docs/topics/non-openai-models/**/*.py
 docs/topics/non-openai-models/**/*.svg
+docs/topics/code-execution/*.mdx
+docs/topics/groupchat/customized_speaker_selection.mdx
+cell-*-output-*.png
 
 # Misc
 .DS_Store

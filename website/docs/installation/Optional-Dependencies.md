@@ -44,10 +44,20 @@ Example notebooks:
 
 ## retrievechat
 
-`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it with ChromaDB.
 
 ```bash
 pip install "pyautogen[retrievechat]"
+```
+
+Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
+
+```bash
+pip install "pyautogen[retrievechat-pgvector]"
+```
+
+```bash
+pip install "pyautogen[retrievechat-qdrant]"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process
@@ -65,7 +75,7 @@ Example notebooks:
 
 [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
 
-[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
+[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
 
 ## Teachability
 
@@ -75,7 +85,7 @@ To use Teachability, please install AutoGen with the [teachable] option.
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook: [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## Large Multimodal Model (LMM) Agents
 
@@ -105,9 +115,16 @@ Example notebooks:
 
 To use a graph in `GroupChat`, particularly for graph visualization, please install AutoGen with the [graph] option.
 
-
 ```bash
 pip install "pyautogen[graph]"
 ```
 
-Example notebook:  [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
+
+## Long Context Handling
+
+AutoGen includes support for handling long textual contexts by leveraging the LLMLingua library for text compression. To enable this functionality, please install AutoGen with the `[long-context]` option:
+
+```bash
+pip install "pyautogen[long-context]"
+```

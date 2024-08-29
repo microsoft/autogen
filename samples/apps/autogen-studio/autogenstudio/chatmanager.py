@@ -1,17 +1,14 @@
 import asyncio
-import json
 import os
-import time
 from datetime import datetime
 from queue import Queue
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
-from .datamodel import AgentWorkFlowConfig, Message, SocketMessage
-from .utils import extract_successful_code_blocks, get_modified_files, summarize_chat_history
-from .workflowmanager import AutoGenWorkFlowManager
+from .datamodel import Message
+from .workflowmanager import WorkflowManager
 
 
 class AutoGenChatManager:
@@ -41,7 +38,7 @@ class AutoGenChatManager:
         self,
         message: Message,
         history: List[Dict[str, Any]],
-        flow_config: Optional[AgentWorkFlowConfig] = None,
+        workflow: Any = None,
         connection_id: Optional[str] = None,
         user_dir: Optional[str] = None,
         **kwargs,
@@ -59,15 +56,19 @@ class AutoGenChatManager:
         """
 
         # create a working director for workflow based on user_dir/session_id/time_hash
-        work_dir = os.path.join(user_dir, message.session_id, datetime.now().strftime("%Y%m%d_%H-%M-%S"))
+        work_dir = os.path.join(
+            user_dir,
+            str(message.session_id),
+            datetime.now().strftime("%Y%m%d_%H-%M-%S"),
+        )
         os.makedirs(work_dir, exist_ok=True)
 
         # if no flow config is provided, use the default
-        if flow_config is None:
-            raise ValueError("flow_config must be specified")
+        if workflow is None:
+            raise ValueError("Workflow must be specified")
 
-        flow = AutoGenWorkFlowManager(
-            config=flow_config,
+        workflow_manager = WorkflowManager(
+            workflow=workflow,
             history=history,
             work_dir=work_dir,
             send_message_function=self.send,
@@ -75,64 +76,11 @@ class AutoGenChatManager:
         )
 
         message_text = message.content.strip()
+        result_message: Message = workflow_manager.run(message=f"{message_text}", clear_history=False, history=history)
 
-        start_time = time.time()
-        flow.run(message=f"{message_text}", clear_history=False)
-        end_time = time.time()
-
-        metadata = {
-            "messages": flow.agent_history,
-            "summary_method": flow_config.summary_method,
-            "time": end_time - start_time,
-            "files": get_modified_files(start_time, end_time, source_dir=work_dir),
-        }
-
-        print("Modified files: ", len(metadata["files"]))
-
-        output = self._generate_output(message_text, flow, flow_config)
-
-        output_message = Message(
-            user_id=message.user_id,
-            root_msg_id=message.root_msg_id,
-            role="assistant",
-            content=output,
-            metadata=json.dumps(metadata),
-            session_id=message.session_id,
-        )
-
-        return output_message
-
-    def _generate_output(
-        self, message_text: str, flow: AutoGenWorkFlowManager, flow_config: AgentWorkFlowConfig
-    ) -> str:
-        """
-        Generates the output response based on the workflow configuration and agent history.
-
-        :param message_text: The text of the incoming message.
-        :param flow: An instance of `AutoGenWorkFlowManager`.
-        :param flow_config: An instance of `AgentWorkFlowConfig`.
-        :return: The output response as a string.
-        """
-
-        output = ""
-        if flow_config.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(flow.agent_history)
-            last_message = flow.agent_history[-1]["message"]["content"] if flow.agent_history else ""
-            successful_code_blocks = "\n\n".join(successful_code_blocks)
-            output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
-        elif flow_config.summary_method == "llm":
-            model = flow.config.receiver.config.llm_config.config_list[0]
-            status_message = SocketMessage(
-                type="agent_status",
-                data={"status": "summarizing", "message": "Generating summary of agent dialogue"},
-                connection_id=flow.connection_id,
-            )
-            self.send(status_message.dict())
-            output = summarize_chat_history(task=message_text, messages=flow.agent_history, model=model)
-
-        elif flow_config.summary_method == "none":
-            output = ""
-        return output
+        result_message.user_id = message.user_id
+        result_message.session_id = message.session_id
+        return result_message
 
 
 class WebSocketConnectionManager:
@@ -141,7 +89,9 @@ class WebSocketConnectionManager:
     """
 
     def __init__(
-        self, active_connections: List[Tuple[WebSocket, str]] = None, active_connections_lock: asyncio.Lock = None
+        self,
+        active_connections: List[Tuple[WebSocket, str]] = None,
+        active_connections_lock: asyncio.Lock = None,
     ) -> None:
         """
         Initializes WebSocketConnectionManager with an optional list of active WebSocket connections.
@@ -185,7 +135,7 @@ class WebSocketConnectionManager:
         for connection, _ in self.active_connections[:]:
             await self.disconnect(connection)
 
-    async def send_message(self, message: Dict, websocket: WebSocket) -> None:
+    async def send_message(self, message: Union[Dict, str], websocket: WebSocket) -> None:
         """
         Sends a JSON message to a single WebSocket connection.
 
@@ -202,7 +152,7 @@ class WebSocketConnectionManager:
             print("Error: WebSocket connection closed normally")
             await self.disconnect(websocket)
         except Exception as e:
-            print(f"Error in sending message: {str(e)}")
+            print(f"Error in sending message: {str(e)}", message)
             await self.disconnect(websocket)
 
     async def broadcast(self, message: Dict) -> None:

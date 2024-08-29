@@ -24,7 +24,7 @@ class ChromaVectorDB(VectorDB):
     """
 
     def __init__(
-        self, *, client=None, path: str = None, embedding_function: Callable = None, metadata: dict = None, **kwargs
+        self, *, client=None, path: str = "tmp/db", embedding_function: Callable = None, metadata: dict = None, **kwargs
     ) -> None:
         """
         Initialize the vector database.
@@ -32,7 +32,7 @@ class ChromaVectorDB(VectorDB):
         Args:
             client: chromadb.Client | The client object of the vector database. Default is None.
                 If provided, it will use the client object directly and ignore other arguments.
-            path: str | The path to the vector database. Default is None.
+            path: str | The path to the vector database. Default is `tmp/db`. The default was `None` for version <=0.2.24.
             embedding_function: Callable | The embedding function used to generate the vector representation
                 of the documents. Default is None, SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2") will be used.
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
@@ -83,7 +83,7 @@ class ChromaVectorDB(VectorDB):
             if self.active_collection and self.active_collection.name == collection_name:
                 collection = self.active_collection
             else:
-                collection = self.client.get_collection(collection_name)
+                collection = self.client.get_collection(collection_name, embedding_function=self.embedding_function)
         except ValueError:
             collection = None
         if collection is None:
@@ -126,7 +126,9 @@ class ChromaVectorDB(VectorDB):
                 )
         else:
             if not (self.active_collection and self.active_collection.name == collection_name):
-                self.active_collection = self.client.get_collection(collection_name)
+                self.active_collection = self.client.get_collection(
+                    collection_name, embedding_function=self.embedding_function
+                )
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:

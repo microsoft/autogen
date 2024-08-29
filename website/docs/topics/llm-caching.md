@@ -3,8 +3,7 @@
 AutoGen supports caching API requests so that they can be reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving.
 
 Since version [`0.2.8`](https://github.com/microsoft/autogen/releases/tag/v0.2.8), a configurable context manager allows you to easily
-configure LLM cache, using either [`DiskCache`](/docs/reference/cache/disk_cache#diskcache) or [`RedisCache`](/docs/reference/cache/redis_cache#rediscache). All agents inside the
-context manager will use the same cache.
+configure LLM cache, using either [`DiskCache`](/docs/reference/cache/disk_cache#diskcache), [`RedisCache`](/docs/reference/cache/redis_cache#rediscache), or Cosmos DB Cache. All agents inside the context manager will use the same cache.
 
 ```python
 from autogen import Cache
@@ -16,6 +15,11 @@ with Cache.redis(redis_url="redis://localhost:6379/0") as cache:
 # Use DiskCache as cache
 with Cache.disk() as cache:
     user.initiate_chat(assistant, message=coding_task, cache=cache)
+
+# Use Azure Cosmos DB as cache
+with Cache.cosmos_db(connection_string="your_connection_string", database_id="your_database_id", container_id="your_container_id") as cache:
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
+
 ```
 
 The cache can also be passed directly to the model client's create call.

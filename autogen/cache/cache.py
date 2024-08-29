@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from types import TracebackType
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, TypedDict, Union
 
 from .abstract_cache_base import AbstractCache
 from .cache_factory import CacheFactory
@@ -26,7 +26,12 @@ class Cache(AbstractCache):
         cache: The cache instance created based on the provided configuration.
     """
 
-    ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root"]
+    ALLOWED_CONFIG_KEYS = [
+        "cache_seed",
+        "redis_url",
+        "cache_path_root",
+        "cosmos_db_config",
+    ]
 
     @staticmethod
     def redis(cache_seed: Union[str, int] = 42, redis_url: str = "redis://localhost:6379/0") -> "Cache":
@@ -56,6 +61,32 @@ class Cache(AbstractCache):
         """
         return Cache({"cache_seed": cache_seed, "cache_path_root": cache_path_root})
 
+    @staticmethod
+    def cosmos_db(
+        connection_string: Optional[str] = None,
+        container_id: Optional[str] = None,
+        cache_seed: Union[str, int] = 42,
+        client: Optional[any] = None,
+    ) -> "Cache":
+        """
+        Create a Cosmos DB cache instance with 'autogen_cache' as database ID.
+
+        Args:
+            connection_string (str, optional): Connection string to the Cosmos DB account.
+            container_id (str, optional): The container ID for the Cosmos DB account.
+            cache_seed (Union[str, int], optional): A seed for the cache.
+            client: Optional[CosmosClient]: Pass an existing Cosmos DB client.
+        Returns:
+            Cache: A Cache instance configured for Cosmos DB.
+        """
+        cosmos_db_config = {
+            "connection_string": connection_string,
+            "database_id": "autogen_cache",
+            "container_id": container_id,
+            "client": client,
+        }
+        return Cache({"cache_seed": str(cache_seed), "cosmos_db_config": cosmos_db_config})
+
     def __init__(self, config: Dict[str, Any]):
         """
         Initialize the Cache with the given configuration.
@@ -69,15 +100,19 @@ class Cache(AbstractCache):
             ValueError: If an invalid configuration key is provided.
         """
         self.config = config
+        # Ensure that the seed is always treated as a string before being passed to any cache factory or stored.
+        self.config["cache_seed"] = str(self.config.get("cache_seed", 42))
+
         # validate config
         for key in self.config.keys():
             if key not in self.ALLOWED_CONFIG_KEYS:
                 raise ValueError(f"Invalid config key: {key}")
         # create cache instance
         self.cache = CacheFactory.cache_factory(
-            self.config.get("cache_seed", "42"),
-            self.config.get("redis_url", None),
-            self.config.get("cache_path_root", None),
+            seed=self.config["cache_seed"],
+            redis_url=self.config.get("redis_url"),
+            cache_path_root=self.config.get("cache_path_root"),
+            cosmosdb_config=self.config.get("cosmos_db_config"),
         )
 
     def __enter__(self) -> "Cache":

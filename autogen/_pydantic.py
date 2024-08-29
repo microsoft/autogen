@@ -64,27 +64,27 @@ else:  # pragma: no cover
         Returns:
             JsonSchemaValue: The JSON schema
         """
-        if PYDANTIC_V1:
-            if t is None:
-                return {"type": "null"}
-            elif get_origin(t) is Union:
-                return {"anyOf": [type2schema(tt) for tt in get_args(t)]}
-            elif get_origin(t) in [Tuple, tuple]:
-                prefixItems = [type2schema(tt) for tt in get_args(t)]
-                return {
-                    "maxItems": len(prefixItems),
-                    "minItems": len(prefixItems),
-                    "prefixItems": prefixItems,
-                    "type": "array",
-                }
 
-        d = schema_of(t)
-        if "title" in d:
-            d.pop("title")
-        if "description" in d:
-            d.pop("description")
+        if t is None:
+            return {"type": "null"}
+        elif get_origin(t) is Union:
+            return {"anyOf": [type2schema(tt) for tt in get_args(t)]}
+        elif get_origin(t) in [Tuple, tuple]:
+            prefixItems = [type2schema(tt) for tt in get_args(t)]
+            return {
+                "maxItems": len(prefixItems),
+                "minItems": len(prefixItems),
+                "prefixItems": prefixItems,
+                "type": "array",
+            }
+        else:
+            d = schema_of(t)
+            if "title" in d:
+                d.pop("title")
+            if "description" in d:
+                d.pop("description")
 
-        return d
+            return d
 
     def model_dump(model: BaseModel) -> Dict[str, Any]:
         """Convert a pydantic model to a dict

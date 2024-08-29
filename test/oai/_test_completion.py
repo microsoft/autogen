@@ -4,7 +4,6 @@ import json
 import os
 import sys
 from functools import partial
-from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
 import datasets
 import numpy as np
@@ -18,6 +17,7 @@ from autogen.code_utils import (
     implement,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
 here = os.path.abspath(os.path.dirname(__file__))
 
