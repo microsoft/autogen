@@ -1,16 +1,10 @@
 import asyncio
-import os
-from datetime import datetime
-from queue import Queue
-from loguru import logger
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
-from ..datamodel import Message
-from ..workflowmanager import WorkflowManager
 
 class WebSocketConnectionManager:
     """
@@ -71,7 +65,7 @@ class WebSocketConnectionManager:
         # often forces you to wait until the timeout even when
         # data = await websocket.receive_json() should have returned.
         # so, as a janky workaround....
-        message = f"exit"
+        message = "exit"
         for i in range(timeout*10):
             try:
                 data = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
@@ -91,7 +85,6 @@ class WebSocketConnectionManager:
             break
 
         return message
-
 
     async def send_message(self, message: Union[Dict, str], websocket: WebSocket) -> None:
         """

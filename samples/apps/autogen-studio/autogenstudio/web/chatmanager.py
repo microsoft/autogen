@@ -1,18 +1,15 @@
 import asyncio
 import os
+import traceback
 from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, List, Optional
 from loguru import logger
-import websockets
-from fastapi import WebSocket, WebSocketDisconnect
 
 from ..datamodel import Message
 from ..workflowmanager import WorkflowManager
 from .websocketmanager import WebSocketConnectionManager
 
-#temp, for troubleshooting
-import traceback
 
 class AutoGenChatManager:
     """
@@ -20,7 +17,7 @@ class AutoGenChatManager:
     using an automated workflow configuration and message queue.
     """
 
-    def __init__(self, message_queue: Queue = None, websocket_manager:WebSocketConnectionManager = None) -> None:
+    def __init__(self, message_queue: Queue = None, websocket_manager: WebSocketConnectionManager = None) -> None:
         """
         Initializes the AutoGenChatManager with a message queue.
 
@@ -123,12 +120,13 @@ class AutoGenChatManager:
         message_text = message.content.strip()
         # Temporary, for troubleshooting
         try:
-            result_message: Message = workflow_manager.run(message=f"{message_text}", clear_history=False, history=history)
-        except Exception as e:
+            result_message: Message = workflow_manager.run(
+                message=f"{message_text}", clear_history=False, history=history
+            )
+        except Exception:
             traceback.print_exc()
             raise
 
         result_message.user_id = message.user_id
         result_message.session_id = message.session_id
         return result_message
-

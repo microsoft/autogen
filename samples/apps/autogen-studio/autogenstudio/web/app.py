@@ -4,20 +4,19 @@ from contextlib import asynccontextmanager
 from typing import Any, Union
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.concurrency import run_in_threadpool
-
 from loguru import logger
 from openai import OpenAIError
 
-from .chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
+from .chatmanager import AutoGenChatManager, WebSocketConnectionManager
 
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
@@ -430,7 +429,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
             user_dir=user_dir,
             workflow=workflow,
             connection_id=message.connection_id,
-            human_input_function=get_human_input
+            human_input_function=get_human_input,
         )
 
         response: Response = dbmanager.upsert(agent_response)

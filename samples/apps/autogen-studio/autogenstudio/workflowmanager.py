@@ -298,14 +298,14 @@ class AutoWorkflowManager:
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
                     human_input_function=self.human_input_function,
-                    connection_id=self.connection_id
+                    connection_id=self.connection_id,
                 )
             elif agent.type == "userproxy":
                 agent = ExtendedConversableAgent(
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
                     human_input_function=self.human_input_function,
-                    connection_id=self.connection_id
+                    connection_id=self.connection_id,
                 )
             else:
                 raise ValueError(f"Unknown agent type: {agent.type}")
