@@ -121,6 +121,7 @@ config = [
     }
 ]
 ```
+Note: AutoGen messages will go through Portkey's AI Gateway following OpenAI's API signature. Some language models may not work properly because messages need to be in a specific role order.
 
 ### Reliability
 
