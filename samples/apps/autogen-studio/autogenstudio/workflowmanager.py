@@ -224,6 +224,12 @@ class AutoWorkflowManager:
         """ """
 
         skills = agent.get("skills", [])
+
+        # When human input mode is not NEVER and no model is attached, the ui is passing bogus llm_config.
+        configured_models = agent.get("models")
+        if not configured_models or len(configured_models) == 0:
+            agent["config"]["llm_config"] = False
+
         agent = Agent.model_validate(agent)
         agent.config.is_termination_msg = agent.config.is_termination_msg or (
             lambda x: "TERMINATE" in x.get("content", "").rstrip()[-20:]

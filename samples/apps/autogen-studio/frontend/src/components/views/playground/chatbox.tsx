@@ -376,6 +376,10 @@ const ChatBox = ({
           setAwaitingUserInput(true); // Set awaiting input state
           textAreaInputRef.current.value = ""
           textAreaInputRef.current.placeholder = data.data.message.content
+          const newsocketMessages = Object.assign([], socketMessages);
+          newsocketMessages.push(data.data);
+          setSocketMessages(newsocketMessages);
+          socketMsgs.push(data.data);
           setTimeout(() => {
             scrollChatBox(socketDivRef);
             scrollChatBox(messageBoxInputRef);
@@ -541,7 +545,6 @@ const ChatBox = ({
       text: userResponse,
       sender: "system",
     };
-    wsMessages.current.push(userMessage);
 
     const messagePayload: IMessage = {
       role: "user",
@@ -582,6 +585,7 @@ const ChatBox = ({
         event.preventDefault();
         if (awaitingUserInput) {
           sendUserResponse(textAreaInputRef.current.value); // New function call for sending user input
+          textAreaInputRef.current.value = "";
         } else {
           runWorkflow(textAreaInputRef.current.value);
         }
