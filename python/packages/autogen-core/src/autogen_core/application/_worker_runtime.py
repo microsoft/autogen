@@ -481,7 +481,7 @@ class WorkerAgentRuntime(AgentRuntime):
         await self._host_connection.send(message)
 
     async def remove_subscription(self, id: str) -> None:
-        raise NotImplementedError("Subscriptions are not yet implemented.")
+        raise NotImplementedError("Subscriptions cannot be removed while using distributed runtime currently.")
 
     async def get(
         self, id_or_type: AgentId | AgentType | str, /, key: str = "default", *, lazy: bool = True

@@ -40,10 +40,8 @@ class SubscriptionManager:
         if any(sub.id == subscription.id for sub in self._subscriptions):
             raise ValueError("Subscription already exists")
 
-        if len(self._seen_topics) > 0:
-            raise NotImplementedError("Cannot add subscription after topics have been seen yet")
-
         self._subscriptions.append(subscription)
+        self._rebuild_subscriptions(self._seen_topics)
 
     async def remove_subscription(self, id: str) -> None:
         # Check if the subscription exists
@@ -70,9 +68,6 @@ class SubscriptionManager:
             self._build_for_new_topic(topic)
 
     def _build_for_new_topic(self, topic: TopicId) -> None:
-        if topic in self._seen_topics:
-            return
-
         self._seen_topics.add(topic)
         for subscription in self._subscriptions:
             if subscription.is_match(topic):

@@ -66,6 +66,7 @@ exclude = ["src/autogen_core/application/protos"]
 
 [tool.poe.tasks]
 fmt = "python run_task_in_pkgs_if_exist.py fmt"
+format.ref = "fmt"
 lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
