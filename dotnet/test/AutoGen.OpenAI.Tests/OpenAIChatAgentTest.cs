@@ -246,7 +246,6 @@ public partial class OpenAIChatAgentTest
         respond.GetContent()?.Should().NotBeNullOrEmpty();
     }
 
-
     private OpenAIClient CreateOpenAIClientFromAzureOpenAI()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
