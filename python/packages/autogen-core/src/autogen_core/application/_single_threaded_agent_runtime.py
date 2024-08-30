@@ -124,14 +124,14 @@ class RunContext:
 
 
 class SingleThreadedAgentRuntime(AgentRuntime):
-    def __init__(self, *, intervention_handler: InterventionHandler | None = None) -> None:
+    def __init__(self, *, intervention_handlers: List[InterventionHandler] | None = None) -> None:
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
-        self._intervention_handler = intervention_handler
+        self._intervention_handlers = intervention_handlers
         self._outstanding_tasks = Counter()
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
@@ -365,19 +365,18 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._intervention_handler is not None:
-                    try:
-                        temp_message = await self._intervention_handler.on_send(
-                            message, sender=sender, recipient=recipient
-                        )
-                    except BaseException as e:
-                        future.set_exception(e)
-                        return
-                    if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                        future.set_exception(MessageDroppedException())
-                        return
+                if self._intervention_handlers is not None:
+                    for handler in self._intervention_handlers:
+                        try:
+                            temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
+                        except BaseException as e:
+                            future.set_exception(e)
+                            return
+                        if temp_message is DropMessage or isinstance(temp_message, DropMessage):
+                            future.set_exception(MessageDroppedException())
+                            return
 
-                    message_envelope.message = temp_message
+                        message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_send(message_envelope))
                 self._background_tasks.add(task)
@@ -386,37 +385,37 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 message=message,
                 sender=sender,
             ):
-                if self._intervention_handler is not None:
-                    try:
-                        temp_message = await self._intervention_handler.on_publish(message, sender=sender)
-                    except BaseException as e:
-                        # TODO: we should raise the intervention exception to the publisher.
-                        logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
-                        return
-                    if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                        # TODO log message dropped
-                        return
+                if self._intervention_handlers is not None:
+                    for handler in self._intervention_handlers:
+                        try:
+                            temp_message = await handler.on_publish(message, sender=sender)
+                        except BaseException as e:
+                            # TODO: we should raise the intervention exception to the publisher.
+                            logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
+                            return
+                        if temp_message is DropMessage or isinstance(temp_message, DropMessage):
+                            # TODO log message dropped
+                            return
 
-                    message_envelope.message = temp_message
+                        message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_publish(message_envelope))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._intervention_handler is not None:
-                    try:
-                        temp_message = await self._intervention_handler.on_response(
-                            message, sender=sender, recipient=recipient
-                        )
-                    except BaseException as e:
-                        # TODO: should we raise the exception to sender of the response instead?
-                        future.set_exception(e)
-                        return
-                    if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                        future.set_exception(MessageDroppedException())
-                        return
+                if self._intervention_handlers is not None:
+                    for handler in self._intervention_handlers:
+                        try:
+                            temp_message = await handler.on_response(message, sender=sender, recipient=recipient)
+                        except BaseException as e:
+                            # TODO: should we raise the exception to sender of the response instead?
+                            future.set_exception(e)
+                            return
+                        if temp_message is DropMessage or isinstance(temp_message, DropMessage):
+                            future.set_exception(MessageDroppedException())
+                            return
 
-                    message_envelope.message = temp_message
+                        message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_response(message_envelope))
                 self._background_tasks.add(task)

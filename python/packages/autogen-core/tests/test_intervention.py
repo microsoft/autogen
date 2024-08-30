@@ -18,7 +18,7 @@ async def test_intervention_count_messages() -> None:
             return message
 
     handler = DebugInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
@@ -39,7 +39,7 @@ async def test_intervention_drop_send() -> None:
             return DropMessage
 
     handler = DropSendInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
@@ -62,7 +62,7 @@ async def test_intervention_drop_response() -> None:
             return DropMessage
 
     handler = DropResponseInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
@@ -85,7 +85,7 @@ async def test_intervention_raise_exception_on_send() -> None:
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")
@@ -110,7 +110,7 @@ async def test_intervention_raise_exception_on_respond() -> None:
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
-    runtime = SingleThreadedAgentRuntime(intervention_handler=handler)
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
     await runtime.register("name", LoopbackAgent)
     loopback = AgentId("name", key="default")

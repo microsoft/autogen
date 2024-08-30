@@ -39,7 +39,7 @@ class ToolInterventionHandler(DefaultInterventionHandler):
 
 async def main() -> None:
     # Create the runtime with the intervention handler.
-    runtime = SingleThreadedAgentRuntime(intervention_handler=ToolInterventionHandler())
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[ToolInterventionHandler()])
     # Define the tools.
     tools: List[Tool] = [
         # A tool that executes Python code.

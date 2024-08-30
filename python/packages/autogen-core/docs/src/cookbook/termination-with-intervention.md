@@ -68,7 +68,7 @@ Finally, we add this handler to the runtime and use it to detect termination and
 async def main() -> None:
     termination_handler = TerminationHandler()
     runtime = SingleThreadedAgentRuntime(
-        intervention_handler=termination_handler
+        intervention_handlers=[termination_handler]
     )
 
     # Add Agents and kick off task
