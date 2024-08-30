@@ -75,6 +75,7 @@ exclude = ["src/autogen_core/application/protos"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "session"
 
 [tool.nbqa.addopts]
 mypy = [
