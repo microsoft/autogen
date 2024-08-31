@@ -12,11 +12,10 @@ Portkey adds 4 core production capabilities to any AutoGen agent:
 ## Getting Started
 
 1. **Install Required Packages:**
-2. 
-   ```bash
+2. ```bash
    pip install -qU pyautogen portkey-ai
    ```
-. **Configure AutoGen with Portkey:**
+   **Configure AutoGen with Portkey:**
 
    ```python
    from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
