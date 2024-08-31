@@ -2067,6 +2067,51 @@ def test_manager_resume_messages():
         return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
 
 
+def test_manager_resume_message_assignment():
+    """Tests that the messages passed in are assigned to agents correctly"""
+
+    # Setup
+    agent_a = AssistantAgent(name="Agent_A", llm_config=None)
+    agent_b = AssistantAgent(name="Agent_B", llm_config=None)
+    agent_c = AssistantAgent(name="Agent_C", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[agent_a, agent_b, agent_c])
+    manager = GroupChatManager(groupchat)
+
+    # Messages representing the previous state (based on agent_a where role will be assistant)
+    prev_messages = [
+        {
+            "content": "Let's build a new app!",
+            "name": "Agent_A",
+            "role": "assistant",
+        },
+        {
+            "content": "This is Agent C's message",
+            "name": "Agent_C",
+            "role": "user",
+        },
+        {
+            "content": "This is Agent A's message",
+            "name": "Agent_A",
+            "role": "assistant",
+        },
+        {
+            "content": "This is Agent B's message",
+            "name": "Agent_B",
+            "role": "user",
+        },
+        {
+            "content": "This is Agent C's message",
+            "name": "Agent_C",
+            "role": "user",
+        },
+    ]
+
+    return_agent, return_message = manager.resume(messages=prev_messages)
+
+    # Compare agent_a's message state to previous messages (excludes last message)
+    assert list(agent_a.chat_messages.values())[0] == prev_messages[:-1]
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -2092,7 +2137,8 @@ if __name__ == "__main__":
     # test_select_speaker_auto_messages()
     # test_manager_messages_to_string()
     # test_manager_messages_from_string()
-    test_manager_resume_functions()
+    # test_manager_resume_functions()
     # test_manager_resume_returns()
     # test_manager_resume_messages()
+    test_manager_resume_message_assignment()
     pass
