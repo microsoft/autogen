@@ -63,6 +63,9 @@ const ChatBox = ({
 
   const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
   const [awaitingUserInput, setAwaitingUserInput] = React.useState(false); // New state for tracking user input
+  const setAreSessionButtonsDisabled = useConfigStore(
+    (state) => state.setAreSessionButtonsDisabled
+  );
 
   const MAX_RETRIES = 10;
   const RETRY_INTERVAL = 2000;
@@ -361,6 +364,7 @@ const ChatBox = ({
       client.onmessage = (message) => {
         const data = JSON.parse(message.data);
         console.log("received message", data);
+        setAreSessionButtonsDisabled(false);
         if (data && data.type === "agent_message") {
           // indicates an intermediate agent message update
           const newsocketMessages = Object.assign([], socketMessages);
@@ -374,6 +378,7 @@ const ChatBox = ({
           // console.log("received message", data, socketMsgs.length);
         } else if (data && data.type === "user_input_request") {
           setAwaitingUserInput(true); // Set awaiting input state
+          setAreSessionButtonsDisabled(true);
           textAreaInputRef.current.value = ""
           textAreaInputRef.current.placeholder = data.data.message.content
           const newsocketMessages = Object.assign([], socketMessages);
