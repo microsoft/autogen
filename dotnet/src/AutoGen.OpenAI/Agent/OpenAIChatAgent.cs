@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
 using global::OpenAI;
 using global::OpenAI.Chat;
+using Json.Schema;
 
 namespace AutoGen.OpenAI;
 
@@ -177,6 +178,14 @@ public class OpenAIChatAgent : IStreamingAgent
             {
                 option.StopSequences.Add(seq);
             }
+        }
+
+        if (options?.OutputSchema is not null)
+        {
+            option.ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                name: options.OutputSchema.GetTitle() ?? throw new ArgumentException("Output schema must have a title"),
+                jsonSchema: BinaryData.FromObjectAsJson(options.OutputSchema),
+                description: options.OutputSchema.GetDescription());
         }
 
         return option;
