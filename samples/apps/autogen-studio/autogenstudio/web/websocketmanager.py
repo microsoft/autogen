@@ -69,6 +69,7 @@ class WebSocketConnectionManager:
         for i in range(timeout*10):
             try:
                 data = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
+                message = data.get("data").get("content")
             except asyncio.TimeoutError:
                 continue
             except WebSocketDisconnect:
@@ -81,7 +82,6 @@ class WebSocketConnectionManager:
                 print(f"Error in sending message: {str(e)}", user_prompt)
                 await self.disconnect(websocket)
 
-            message = data.get("data").get("content")
             break
 
         return message
