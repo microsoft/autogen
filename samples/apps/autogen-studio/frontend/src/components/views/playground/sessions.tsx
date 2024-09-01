@@ -432,7 +432,7 @@ const SessionsView = ({}: any) => {
         <div className="flex gap-x-2">
           <div className="flex-1"></div>
           <LaunchButton
-            className="text-sm p-2 px-3"
+            className={`text-sm p-2 px-3 ${isSessionButtonsDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => {
               setSelectedSession(sampleSession);
               setNewSessionModalVisible(true);
