@@ -16,6 +16,7 @@ from sqlmodel import (
     Enum as SqlEnum,
 )
 
+# added for python3.11 and sqlmodel 0.0.22 incompatibility
 if hasattr(SQLModel, "model_config"):
     SQLModel.model_config["protected_namespaces"] = ()
 elif hasattr(SQLModel, "Config"):
