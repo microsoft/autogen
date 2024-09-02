@@ -9,11 +9,10 @@ using FluentAssertions;
 using Json.Schema;
 using Json.Schema.Generation;
 using OpenAI;
-using OpenAI.Chat;
 
 namespace AutoGen.OpenAI.Sample;
 
-internal class Structural_Output
+public class Structural_Output
 {
     public static async Task RunAsync()
     {
@@ -23,24 +22,25 @@ internal class Structural_Output
 
         var schemaBuilder = new JsonSchemaBuilder().FromType<Person>();
         var schema = schemaBuilder.Build();
-
-        var personSchemaFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            name: "Person",
-            jsonSchema: BinaryData.FromObjectAsJson(schema),
-            description: "Person schema");
-
         var openAIClient = new OpenAIClient(apiKey);
         var openAIClientAgent = new OpenAIChatAgent(
             chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
-            systemMessage: "You are a helpful assistant",
-            responseFormat: personSchemaFormat) // structural output by passing schema to response format
+            systemMessage: "You are a helpful assistant")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent
 
         #region chat_with_agent
-        var reply = await openAIClientAgent.SendAsync("My name is John, I am 25 years old, and I live in Seattle. I like to play soccer and read books.");
+        var prompt = new TextMessage(Role.User, """
+            My name is John, I am 25 years old, and I live in Seattle. I like to play soccer and read books.
+            """);
+        var reply = await openAIClientAgent.GenerateReplyAsync(
+            messages: [prompt],
+            options: new GenerateReplyOptions
+            {
+                OutputSchema = schema,
+            });
 
         var person = JsonSerializer.Deserialize<Person>(reply.GetContent());
         Console.WriteLine($"Name: {person.Name}");
@@ -60,31 +60,34 @@ internal class Structural_Output
         person.City.Should().Be("Seattle");
         person.Hobbies.Count.Should().Be(2);
     }
+
+
+    #region person_class
+    [Title("Person")]
+    public class Person
+    {
+        [JsonPropertyName("name")]
+        [Description("Name of the person")]
+        [Required]
+        public string Name { get; set; }
+
+        [JsonPropertyName("age")]
+        [Description("Age of the person")]
+        [Required]
+        public int Age { get; set; }
+
+        [JsonPropertyName("city")]
+        [Description("City of the person")]
+        public string? City { get; set; }
+
+        [JsonPropertyName("address")]
+        [Description("Address of the person")]
+        public string? Address { get; set; }
+
+        [JsonPropertyName("hobbies")]
+        [Description("Hobbies of the person")]
+        public List<string>? Hobbies { get; set; }
+    }
+    #endregion person_class
+
 }
-
-#region person_class
-public class Person
-{
-    [JsonPropertyName("name")]
-    [Description("Name of the person")]
-    [Required]
-    public string Name { get; set; }
-
-    [JsonPropertyName("age")]
-    [Description("Age of the person")]
-    [Required]
-    public int Age { get; set; }
-
-    [JsonPropertyName("city")]
-    [Description("City of the person")]
-    public string? City { get; set; }
-
-    [JsonPropertyName("address")]
-    [Description("Address of the person")]
-    public string? Address { get; set; }
-
-    [JsonPropertyName("hobbies")]
-    [Description("Hobbies of the person")]
-    public List<string>? Hobbies { get; set; }
-}
-#endregion person_class
