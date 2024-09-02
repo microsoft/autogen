@@ -24,7 +24,7 @@ dependencies = [
     "typer",
     "uvicorn",
     "arxiv",
-    "pyautogen[gemini]>=0.2.0",
+    "pyautogen[gemini,anthropic,mistral]>=0.2.0",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",

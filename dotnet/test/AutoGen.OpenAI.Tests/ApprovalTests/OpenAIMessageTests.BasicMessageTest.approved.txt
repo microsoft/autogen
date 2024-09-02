@@ -1,11 +1,21 @@
-[
+﻿[
   {
     "OriginalMessage": "TextMessage(system, You are a helpful AI assistant, )",
     "ConvertedMessages": [
       {
         "Name": null,
         "Role": "system",
-        "Content": "You are a helpful AI assistant"
+        "Content": [
+          {
+            "Kind": {},
+            "Text": "You are a helpful AI assistant",
+            "Refusal": null,
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          }
+        ]
       }
     ]
   },
@@ -14,9 +24,24 @@
     "ConvertedMessages": [
       {
         "Role": "user",
-        "Content": "Hello",
+        "Content": [
+          {
+            "Kind": {},
+            "Text": "Hello",
+            "Refusal": null,
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          }
+        ],
         "Name": "user",
-        "MultiModaItem": null
+        "MultiModaItem": [
+          {
+            "Type": "Text",
+            "Text": "Hello"
+          }
+        ]
       }
     ]
   },
@@ -25,7 +50,17 @@
     "ConvertedMessages": [
       {
         "Role": "assistant",
-        "Content": "How can I help you?",
+        "Content": [
+          {
+            "Kind": {},
+            "Text": "How can I help you?",
+            "Refusal": null,
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          }
+        ],
         "Name": "assistant",
         "TooCall": [],
         "FunctionCallName": null,
@@ -38,15 +73,22 @@
     "ConvertedMessages": [
       {
         "Role": "user",
-        "Content": null,
+        "Content": [
+          {
+            "Kind": {},
+            "Text": null,
+            "Refusal": null,
+            "ImageUri": "https://example.com/image.png",
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          }
+        ],
         "Name": "user",
         "MultiModaItem": [
           {
             "Type": "Image",
-            "ImageUrl": {
-              "Url": "https://example.com/image.png",
-              "Detail": null
-            }
+            "ImageUrl": "https://example.com/image.png"
           }
         ]
       }
@@ -57,7 +99,26 @@
     "ConvertedMessages": [
       {
         "Role": "user",
-        "Content": null,
+        "Content": [
+          {
+            "Kind": {},
+            "Text": "Hello",
+            "Refusal": null,
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          },
+          {
+            "Kind": {},
+            "Text": null,
+            "Refusal": null,
+            "ImageUri": "https://example.com/image.png",
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "ImageDetail": null
+          }
+        ],
         "Name": "user",
         "MultiModaItem": [
           {
@@ -66,10 +127,7 @@
           },
           {
             "Type": "Image",
-            "ImageUrl": {
-              "Url": "https://example.com/image.png",
-              "Detail": null
-            }
+            "ImageUrl": "https://example.com/image.png"
           }
         ]
       }
@@ -80,7 +138,7 @@
     "ConvertedMessages": [
       {
         "Role": "assistant",
-        "Content": "",
+        "Content": [],
         "Name": "assistant",
         "TooCall": [
           {
@@ -125,7 +183,7 @@
     "ConvertedMessages": [
       {
         "Role": "assistant",
-        "Content": "",
+        "Content": [],
         "Name": "assistant",
         "TooCall": [
           {
@@ -151,7 +209,7 @@
     "ConvertedMessages": [
       {
         "Role": "assistant",
-        "Content": "",
+        "Content": [],
         "Name": "assistant",
         "TooCall": [
           {

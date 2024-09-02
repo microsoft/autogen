@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.Core;
 using AutoGen.WebAPI.OpenAI.DTO;
-
 namespace AutoGen.Server;
 
 internal class OpenAIChatCompletionService
@@ -44,7 +43,7 @@ internal class OpenAIChatCompletionService
             {
                 Message = message,
                 Index = 0,
-                FinishReason = "completed",
+                FinishReason = "stop",
             };
 
             openAIChatCompletion.Choices = [choice];
