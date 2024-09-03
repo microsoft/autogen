@@ -29,15 +29,6 @@ These configurations can be used with Codespaces and locally.
 - **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
 
-### studio
-
-- **Purpose**: Tailored for AutoGen project developers, this Dockerfile, i.e., `./studio/Dockerfile`, includes tools and configurations aiding in development and contribution.
-- **Usage**: Recommended for developers who are contributing to the AutoGen project.
-- **Building the Image**: Run `docker build -f studio/Dockerfile -t autogen_studio_img .`.
-- **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "studio" as devcontainer configuration`.
-- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
-
-
 ## Customizing Dockerfiles
 
 Feel free to modify these Dockerfiles for your specific project needs. Here are some common customizations:
