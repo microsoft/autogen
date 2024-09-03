@@ -1,0 +1,441 @@
+---
+custom_edit_url: https://github.com/microsoft/autogen/edit/main/website\docs\topics\non-openai-models\cloud-groq.ipynb
+source_notebook: /website\docs\topics\non-openai-models\cloud-groq.ipynb
+title: Groq
+---
+# Groq
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microsoft/autogen/blob/main/website\docs\topics\non-openai-models\cloud-groq.ipynb)
+[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/website\docs\topics\non-openai-models\cloud-groq.ipynb)
+
+
+
+
+
+[Groq](https://groq.com/) is a cloud based platform serving a number of
+popular open weight models at high inference speeds. Models include
+Meta’s Llama 3, Mistral AI’s Mixtral, and Google’s Gemma.
+
+Although Groq’s API is aligned well with OpenAI’s, which is the native
+API used by AutoGen, this library provides the ability to set specific
+parameters as well as track API costs.
+
+You will need a Groq account and create an API key. [See their website
+for further details](https://groq.com/).
+
+Groq provides a number of models to use, included below. See the list of
+[models here (requires login)](https://console.groq.com/docs/models).
+
+See the sample `OAI_CONFIG_LIST` below showing how the Groq client class
+is used by specifying the `api_type` as `groq`.
+
+```python
+[
+    {
+        "model": "gpt-35-turbo",
+        "api_key": "your OpenAI Key goes here",
+    },
+    {
+        "model": "gpt-4-vision-preview",
+        "api_key": "your OpenAI Key goes here",
+    },
+    {
+        "model": "dalle",
+        "api_key": "your OpenAI Key goes here",
+    },
+    {
+        "model": "llama3-8b-8192",
+        "api_key": "your Groq API Key goes here",
+        "api_type": "groq"
+    },
+    {
+        "model": "llama3-70b-8192",
+        "api_key": "your Groq API Key goes here",
+        "api_type": "groq"
+    },
+    {
+        "model": "Mixtral 8x7b",
+        "api_key": "your Groq API Key goes here",
+        "api_type": "groq"
+    },
+    {
+        "model": "gemma-7b-it",
+        "api_key": "your Groq API Key goes here",
+        "api_type": "groq"
+    }
+]
+```
+
+As an alternative to the `api_key` key and value in the config, you can
+set the environment variable `GROQ_API_KEY` to your Groq key.
+
+Linux/Mac:
+
+```bash
+export GROQ_API_KEY="your_groq_api_key_here"
+```
+
+Windows:
+
+```bash
+set GROQ_API_KEY=your_groq_api_key_here
+```
+
+## API parameters
+
+The following parameters can be added to your config for the Groq API.
+See [this link](https://console.groq.com/docs/text-chat) for further
+information on them.
+
+-   frequency_penalty (number 0..1)
+-   max_tokens (integer \>= 0)
+-   presence_penalty (number -2..2)
+-   seed (integer)
+-   temperature (number 0..2)
+-   top_p (number)
+
+Example:
+
+```python
+[
+    {
+        "model": "llama3-8b-8192",
+        "api_key": "your Groq API Key goes here",
+        "api_type": "groq",
+        "frequency_penalty": 0.5,
+        "max_tokens": 2048,
+        "presence_penalty": 0.2,
+        "seed": 42,
+        "temperature": 0.5,
+        "top_p": 0.2
+    }
+]
+```
+
+## Two-Agent Coding Example
+
+In this example, we run a two-agent chat with an AssistantAgent
+(primarily a coding agent) to generate code to count the number of prime
+numbers between 1 and 10,000 and then it will be executed.
+
+We’ll use Meta’s Llama 3 model which is suitable for coding.
+
+```python
+import os
+
+config_list = [
+    {
+        # Let's choose the Llama 3 model
+        "model": "llama3-8b-8192",
+        # Put your Groq API key here or put it into the GROQ_API_KEY environment variable.
+        "api_key": os.environ.get("GROQ_API_KEY"),
+        # We specify the API Type as 'groq' so it uses the Groq client class
+        "api_type": "groq",
+    }
+]
+```
+
+Importantly, we have tweaked the system message so that the model
+doesn’t return the termination keyword, which we’ve changed to FINISH,
+with the code block.
+
+```python
+from pathlib import Path
+
+from autogen import AssistantAgent, UserProxyAgent
+from autogen.coding import LocalCommandLineCodeExecutor
+
+# Setting up the code executor
+workdir = Path("coding")
+workdir.mkdir(exist_ok=True)
+code_executor = LocalCommandLineCodeExecutor(work_dir=workdir)
+
+# Setting up the agents
+
+# The UserProxyAgent will execute the code that the AssistantAgent provides
+user_proxy_agent = UserProxyAgent(
+    name="User",
+    code_execution_config={"executor": code_executor},
+    is_termination_msg=lambda msg: "FINISH" in msg.get("content"),
+)
+
+system_message = """You are a helpful AI assistant who writes code and the user executes it.
+Solve tasks using your coding and language skills.
+In the following cases, suggest python code (in a python coding block) for the user to execute.
+Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
+When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
+Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
+If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
+When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
+IMPORTANT: Wait for the user to execute your code and then you can reply with the word "FINISH". DO NOT OUTPUT "FINISH" after your code block."""
+
+# The AssistantAgent, using Groq's model, will take the coding request and return code
+assistant_agent = AssistantAgent(
+    name="Groq Assistant",
+    system_message=system_message,
+    llm_config={"config_list": config_list},
+)
+```
+
+``` text
+/usr/local/lib/python3.11/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+```
+
+```python
+# Start the chat, with the UserProxyAgent asking the AssistantAgent the message
+chat_result = user_proxy_agent.initiate_chat(
+    assistant_agent,
+    message="Provide code to count the number of prime numbers from 1 to 10000.",
+)
+```
+
+```` text
+User (to Groq Assistant):
+
+Provide code to count the number of prime numbers from 1 to 10000.
+
+--------------------------------------------------------------------------------
+Groq Assistant (to User):
+
+Here's the plan to count the number of prime numbers from 1 to 10000:
+
+First, we need to write a helper function to check if a number is prime. A prime number is a number that is divisible only by 1 and itself.
+
+Then, we can use a loop to iterate through all numbers from 1 to 10000, check if each number is prime using our helper function, and count the number of prime numbers found.
+
+Here's the Python code to implement this plan:
+```python
+def is_prime(n):
+    if n <= 1:
+        return False
+    for i in range(2, int(n ** 0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+count = 0
+for i in range(2, 10001):
+    if is_prime(i):
+        count += 1
+
+print(count)
+```
+Please execute this code, and I'll wait for the result.
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> NO HUMAN INPUT RECEIVED.
+
+>>>>>>>> USING AUTO REPLY...
+
+>>>>>>>> EXECUTING CODE BLOCK (inferred language is python)...
+User (to Groq Assistant):
+
+exitcode: 0 (execution succeeded)
+Code output: 1229
+
+
+--------------------------------------------------------------------------------
+Groq Assistant (to User):
+
+FINISH
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> NO HUMAN INPUT RECEIVED.
+````
+
+## Tool Call Example
+
+In this example, instead of writing code, we will show how we can use
+Meta’s Llama 3 model to perform parallel tool calling, where it
+recommends calling more than one tool at a time, using Groq’s cloud
+inference.
+
+We’ll use a simple travel agent assistant program where we have a couple
+of tools for weather and currency conversion.
+
+We start by importing libraries and setting up our configuration to use
+Meta’s Llama 3 model and the `groq` client class.
+
+```python
+import json
+import os
+from typing import Literal
+
+from typing_extensions import Annotated
+
+import autogen
+
+config_list = [
+    {"api_type": "groq", "model": "llama3-8b-8192", "api_key": os.getenv("GROQ_API_KEY"), "cache_seed": None}
+]
+```
+
+Create our two agents.
+
+```python
+# Create the agent for tool calling
+chatbot = autogen.AssistantAgent(
+    name="chatbot",
+    system_message="""For currency exchange and weather forecasting tasks,
+        only use the functions you have been provided with.
+        Output 'HAVE FUN!' when an answer has been provided.""",
+    llm_config={"config_list": config_list},
+)
+
+# Note that we have changed the termination string to be "HAVE FUN!"
+user_proxy = autogen.UserProxyAgent(
+    name="user_proxy",
+    is_termination_msg=lambda x: x.get("content", "") and "HAVE FUN!" in x.get("content", ""),
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=1,
+)
+```
+
+Create the two functions, annotating them so that those descriptions can
+be passed through to the LLM.
+
+We associate them with the agents using `register_for_execution` for the
+user_proxy so it can execute the function and `register_for_llm` for the
+chatbot (powered by the LLM) so it can pass the function definitions to
+the LLM.
+
+```python
+# Currency Exchange function
+
+CurrencySymbol = Literal["USD", "EUR"]
+
+# Define our function that we expect to call
+
+
+def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
+    if base_currency == quote_currency:
+        return 1.0
+    elif base_currency == "USD" and quote_currency == "EUR":
+        return 1 / 1.1
+    elif base_currency == "EUR" and quote_currency == "USD":
+        return 1.1
+    else:
+        raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+
+
+# Register the function with the agent
+
+
+@user_proxy.register_for_execution()
+@chatbot.register_for_llm(description="Currency exchange calculator.")
+def currency_calculator(
+    base_amount: Annotated[float, "Amount of currency in base_currency"],
+    base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
+    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+) -> str:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return f"{format(quote_amount, '.2f')} {quote_currency}"
+
+
+# Weather function
+
+
+# Example function to make available to model
+def get_current_weather(location, unit="fahrenheit"):
+    """Get the weather for some location"""
+    if "chicago" in location.lower():
+        return json.dumps({"location": "Chicago", "temperature": "13", "unit": unit})
+    elif "san francisco" in location.lower():
+        return json.dumps({"location": "San Francisco", "temperature": "55", "unit": unit})
+    elif "new york" in location.lower():
+        return json.dumps({"location": "New York", "temperature": "11", "unit": unit})
+    else:
+        return json.dumps({"location": location, "temperature": "unknown"})
+
+
+# Register the function with the agent
+
+
+@user_proxy.register_for_execution()
+@chatbot.register_for_llm(description="Weather forecast for US cities.")
+def weather_forecast(
+    location: Annotated[str, "City name"],
+) -> str:
+    weather_details = get_current_weather(location=location)
+    weather = json.loads(weather_details)
+    return f"{weather['location']} will be {weather['temperature']} degrees {weather['unit']}"
+```
+
+We pass through our customers message and run the chat.
+
+Finally, we ask the LLM to summarise the chat and print that out.
+
+```python
+# start the conversation
+res = user_proxy.initiate_chat(
+    chatbot,
+    message="What's the weather in New York and can you tell me how much is 123.45 EUR in USD so I can spend it on my holiday? Throw a few holiday tips in as well.",
+    summary_method="reflection_with_llm",
+)
+
+print(f"LLM SUMMARY: {res.summary['content']}")
+```
+
+``` text
+user_proxy (to chatbot):
+
+What's the weather in New York and can you tell me how much is 123.45 EUR in USD so I can spend it on my holiday? Throw a few holiday tips in as well.
+
+--------------------------------------------------------------------------------
+chatbot (to user_proxy):
+
+***** Suggested tool call (call_hg7g): weather_forecast *****
+Arguments: 
+{"location":"New York"}
+*************************************************************
+***** Suggested tool call (call_hrsf): currency_calculator *****
+Arguments: 
+{"base_amount":123.45,"base_currency":"EUR","quote_currency":"USD"}
+****************************************************************
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> EXECUTING FUNCTION weather_forecast...
+
+>>>>>>>> EXECUTING FUNCTION currency_calculator...
+user_proxy (to chatbot):
+
+user_proxy (to chatbot):
+
+***** Response from calling tool (call_hg7g) *****
+New York will be 11 degrees fahrenheit
+**************************************************
+
+--------------------------------------------------------------------------------
+user_proxy (to chatbot):
+
+***** Response from calling tool (call_hrsf) *****
+135.80 USD
+**************************************************
+
+--------------------------------------------------------------------------------
+chatbot (to user_proxy):
+
+***** Suggested tool call (call_ahwk): weather_forecast *****
+Arguments: 
+{"location":"New York"}
+*************************************************************
+
+--------------------------------------------------------------------------------
+LLM SUMMARY: Based on the conversation, it's predicted that New York will be 11 degrees Fahrenheit. You also found out that 123.45 EUR is equal to 135.80 USD. Here are a few holiday tips:
+
+* Pack warm clothing for your visit to New York, as the temperature is expected to be quite chilly.
+* Consider exchanging your money at a local currency exchange or an ATM since the exchange rate might not be as favorable in tourist areas.
+* Make sure to check the estimated expenses for your holiday and adjust your budget accordingly.
+
+I hope you have a great trip!
+```
+
+Using its fast inference, Groq required less than 2 seconds for the
+whole chat!
+
+Additionally, Llama 3 was able to call both tools and pass through the
+right parameters. The `user_proxy` then executed them and this was
+passed back for Llama 3 to summarise the whole conversation.

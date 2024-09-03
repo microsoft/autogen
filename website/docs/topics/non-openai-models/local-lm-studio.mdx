@@ -1,0 +1,110 @@
+---
+custom_edit_url: https://github.com/microsoft/autogen/edit/main/website\docs\topics\non-openai-models\local-lm-studio.ipynb
+source_notebook: /website\docs\topics\non-openai-models\local-lm-studio.ipynb
+title: LM Studio
+---
+# LM Studio
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microsoft/autogen/blob/main/website\docs\topics\non-openai-models\local-lm-studio.ipynb)
+[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/website\docs\topics\non-openai-models\local-lm-studio.ipynb)
+
+
+
+
+
+This notebook shows how to use AutoGen with multiple local models using
+[LM Studio](https://lmstudio.ai/)’s multi-model serving feature, which
+is available since version 0.2.17 of LM Studio.
+
+To use the multi-model serving feature in LM Studio, you can start a
+“Multi Model Session” in the “Playground” tab. Then you select relevant
+models to load. Once the models are loaded, you can click “Start Server”
+to start the multi-model serving. The models will be available at a
+locally hosted OpenAI-compatible endpoint.
+
+## Two Agent Chats
+
+In this example, we create a comedy chat between two agents using two
+different local models, Phi-2 and Gemma it.
+
+We first create configurations for the models.
+
+```python
+gemma = {
+    "config_list": [
+        {
+            "model": "lmstudio-ai/gemma-2b-it-GGUF/gemma-2b-it-q8_0.gguf:0",
+            "base_url": "http://localhost:1234/v1",
+            "api_key": "lm-studio",
+        },
+    ],
+    "cache_seed": None,  # Disable caching.
+}
+
+phi2 = {
+    "config_list": [
+        {
+            "model": "TheBloke/phi-2-GGUF/phi-2.Q4_K_S.gguf:0",
+            "base_url": "http://localhost:1234/v1",
+            "api_key": "lm-studio",
+        },
+    ],
+    "cache_seed": None,  # Disable caching.
+}
+```
+
+Now we create two agents, one for each model.
+
+```python
+from autogen import ConversableAgent
+
+jack = ConversableAgent(
+    "Jack (Phi-2)",
+    llm_config=phi2,
+    system_message="Your name is Jack and you are a comedian in a two-person comedy show.",
+)
+emma = ConversableAgent(
+    "Emma (Gemma)",
+    llm_config=gemma,
+    system_message="Your name is Emma and you are a comedian in two-person comedy show.",
+)
+```
+
+Now we start the conversation.
+
+```python
+chat_result = jack.initiate_chat(emma, message="Emma, tell me a joke.", max_turns=2)
+```
+
+``` text
+Jack (Phi-2) (to Emma (Gemma)):
+
+Emma, tell me a joke.
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> USING AUTO REPLY...
+Emma (Gemma) (to Jack (Phi-2)):
+
+Sure! Here's a joke for you:
+
+What do you call a comedian who's too emotional?
+
+An emotional wreck!
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> USING AUTO REPLY...
+Jack (Phi-2) (to Emma (Gemma)):
+
+LOL, that's a good one, Jack! You're hilarious. 😂👏👏
+
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> USING AUTO REPLY...
+Emma (Gemma) (to Jack (Phi-2)):
+
+Thank you! I'm just trying to make people laugh, you know? And to help them forget about the troubles of the world for a while.
+
+--------------------------------------------------------------------------------
+```
