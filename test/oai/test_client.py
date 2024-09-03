@@ -9,7 +9,7 @@ import pytest
 
 from autogen import OpenAIWrapper, config_list_from_json
 from autogen.cache.cache import Cache
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED, AzureOpenAI, OpenAIClient, PlaceHolderClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -31,7 +31,7 @@ KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -90,7 +90,7 @@ def test_oai_tool_calling_extraction():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -102,7 +102,7 @@ def test_chat_completion():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -115,7 +115,7 @@ def test_completion():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 @pytest.mark.parametrize(
     "cache_seed",
     [
@@ -184,7 +184,7 @@ def test_usage_summary():
     ), "total_cost should be equal to response.cost * 2"
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_legacy_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -253,7 +253,7 @@ def test_legacy_cache():
     assert os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(21)))
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_cache():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -320,6 +320,47 @@ def test_cache():
         # Test legacy cache is not used.
         assert not os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(123)))
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
+def test_register_default_client_with_custom_model_client():
+    config = {
+        "model_client_cls": "CustomModelClient",
+        "api_type": "openai",
+        "default_headers": {"Content-Type": "application/json"},
+    }
+    openai_config = {"base_url": "https://api.openai.com", "api_key": "YOUR_API_KEY"}
+    client = OpenAIWrapper(config_list=[config])
+    client._register_default_client(config, openai_config)
+    assert isinstance(client._clients[0], PlaceHolderClient)
+    assert client._clients[0].config == config
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
+def test_register_default_client_with_azure_api_type():
+    config = {"api_type": "azure", "default_headers": '{"Another-Header": "HEADER_TEST"}'}
+    openai_config = {"base_url": "https://api.openai.com/openai/", "api_key": "YOUR_API_KEY"}
+    client = OpenAIWrapper(config_list=[config])
+    client._register_default_client(config, openai_config)
+    assert client._clients[0].config.default_headers == {"Another-Header": "HEADER_TEST"}
+    assert isinstance(client._clients[0], OpenAIClient)
+    assert isinstance(client._clients[0]._oai_client, AzureOpenAI)
+    assert client._clients[0]._oai_client.base_url == "https://api.openai.com/openai/"
+    assert client._clients[0]._oai_client.api_key == "YOUR_API_KEY"
+    assert client._clients[0]._oai_client.default_headers.get("Another-Header") == "HEADER_TEST"
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
+def test_register_default_client_with_openai_api_type():
+    config = {"api_type": "openai", "default_headers": '{"Another-Header": "HEADER_TEST"}'}
+    openai_config = {"base_url": "https://api.openai.com/v1/", "api_key": "YOUR_API_KEY"}
+    client = OpenAIWrapper(config_list=[config])
+    client._register_default_client(config, openai_config)
+    assert isinstance(client._clients[0], OpenAIClient)
+    assert isinstance(client._clients[0]._oai_client, OpenAI)
+    assert client._clients[0]._oai_client.base_url == "https://api.openai.com/v1/"
+    assert client._clients[0]._oai_client.api_key == "YOUR_API_KEY"
+    assert client._clients[0]._oai_client.default_headers.get("Another-Header") == "HEADER_TEST"
 
 
 if __name__ == "__main__":
