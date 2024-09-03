@@ -2,10 +2,8 @@
 // Tool_Call_With_Ollama_And_LiteLLM.cs
 
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
+using AutoGen.OpenAI.Extension;
+using OpenAI;
 
 namespace AutoGen.OpenAI.Sample;
 
@@ -44,20 +42,17 @@ public class Tool_Call_With_Ollama_And_LiteLLM
         #endregion Create_tools
         #region Create_Agent
         var liteLLMUrl = "http://localhost:4000";
-        using var httpClient = new HttpClient(new CustomHttpClientHandler(liteLLMUrl));
-        var option = new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2024_04_01_Preview)
-        {
-            Transport = new HttpClientTransport(httpClient),
-        };
 
         // api-key is not required for local server
         // so you can use any string here
-        var openAIClient = new OpenAIClient("api-key", option);
+        var openAIClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        {
+            Endpoint = new Uri("http://localhost:4000"),
+        });
 
         var agent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: openAIClient.GetChatClient("dolphincoder:latest"),
             name: "assistant",
-            modelName: "dolphincoder:latest",
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector()
             .RegisterMiddleware(functionMiddleware)

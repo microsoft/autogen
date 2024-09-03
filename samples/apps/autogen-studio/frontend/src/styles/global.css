@@ -289,7 +289,8 @@ iiz__zoom-img {
 .ant-modal-footer {
   @apply border-secondary !important;
 }
-.ant-btn {
+.ant-btn,
+.ant-btn:hover {
   @apply text-primary !important;
 }
 :where(.ant-btn).ant-btn-compact-item.ant-btn-primary:not([disabled])
@@ -331,6 +332,12 @@ iiz__zoom-img {
 .ant-drawer-close,
 .ant-drawer-title {
   @apply bg-primary text-primary !important;
+}
+
+.ant-dropdown-menu {
+  max-height: 250px;
+  overflow: auto;
+  @apply scroll !important;
 }
 
 /* .ant-radio-input::before {

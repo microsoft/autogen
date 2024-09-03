@@ -4,12 +4,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
+using OpenAI;
+using OpenAI.Chat;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.OpenAI.Sample;
 
 public class Use_Json_Mode
 {
@@ -17,16 +17,15 @@ public class Use_Json_Mode
     {
         #region create_agent
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-3.5-turbo";
+        var model = "gpt-4o-mini";
 
         var openAIClient = new OpenAIClient(apiKey);
         var openAIClientAgent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
+            chatClient: openAIClient.GetChatClient(model),
             name: "assistant",
-            modelName: model,
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0, // explicitly set a seed to enable deterministic output
-            responseFormat: ChatCompletionsResponseFormat.JsonObject) // set response format to JSON object to enable JSON mode
+            responseFormat: ChatResponseFormat.JsonObject) // set response format to JSON object to enable JSON mode
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent
@@ -50,18 +49,20 @@ public class Use_Json_Mode
         person.Age.Should().Be(25);
         person.Address.Should().BeNullOrEmpty();
     }
+
+
+    #region person_class
+    public class Person
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("age")]
+        public int Age { get; set; }
+
+        [JsonPropertyName("address")]
+        public string Address { get; set; }
+    }
+    #endregion person_class
 }
 
-#region person_class
-public class Person
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; }
-
-    [JsonPropertyName("age")]
-    public int Age { get; set; }
-
-    [JsonPropertyName("address")]
-    public string Address { get; set; }
-}
-#endregion person_class

@@ -1,30 +1,28 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example02_TwoAgent_MathChat.cs
 
-using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 public static class Example02_TwoAgent_MathChat
 {
     public static async Task RunAsync()
     {
         #region code_snippet_1
-        // get gpt-3.5-turbo config
-        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var gpt4oMini = LLMConfiguration.GetOpenAIGPT4o_mini();
+
 
         // create teacher agent
         // teacher agent will create math questions
-        var teacher = new AssistantAgent(
+        var teacher = new OpenAIChatAgent(
+            chatClient: gpt4oMini,
             name: "teacher",
             systemMessage: @"You are a teacher that create pre-school math question for student and check answer.
         If the answer is correct, you stop the conversation by saying [COMPLETE].
-        If the answer is wrong, you ask student to fix it.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = [gpt35],
-            })
+        If the answer is wrong, you ask student to fix it.")
+            .RegisterMessageConnector()
             .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
                 var reply = await agent.GenerateReplyAsync(msgs, option);
@@ -39,14 +37,11 @@ public static class Example02_TwoAgent_MathChat
 
         // create student agent
         // student agent will answer the math questions
-        var student = new AssistantAgent(
+        var student = new OpenAIChatAgent(
+            chatClient: gpt4oMini,
             name: "student",
-            systemMessage: "You are a student that answer question from teacher",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = [gpt35],
-            })
+            systemMessage: "You are a student that answer question from teacher")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // start the conversation
