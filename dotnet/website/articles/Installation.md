@@ -32,6 +32,11 @@ To consume nightly build, you can add one of the following feeds to your `NuGet.
 - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
 - ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
 
+Also, here is an example of nuget.config with the nightly source added : https://github.com/microsoft/autogen/pkgs/nuget/AutoGen
+
+**Nightly Build Version: **
+You can find the Nigthly Build versions in the github nuget package for AutoGen: https://github.com/microsoft/autogen/pkgs/nuget/AutoGen
+
 To add a local `NuGet.config`, create a file named `NuGet.config` in the root of your project and add the following content:
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
