@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Protocol
 
 from .document import Document
@@ -14,7 +14,7 @@ class GraphStoreQueryResult:
     """
 
     answer: Optional[str] = None
-    results: Optional[List] = []
+    results: list = field(default_factory=list)
 
 
 class GraphQueryEngine(Protocol):

@@ -1,29 +1,29 @@
-from typing import List, Protocol
-
-from autogen.agentchat import ConversableAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen.agentchat.conversable_agent import ConversableAgent
 
 from .graph_query_engine import GraphQueryEngine
 
 
-class GraphRagAgent(ConversableAgent, Protocol):
+class GraphRagCapability(AgentCapability):
     """
-    A graph rag agent is a conversable agent which could query graph database for answers.
+    A graph rag capability uses a graph query engine to give a conversable agent the graph rag ability.
 
-    An implementing agent class would
-    1. create a graph in the underlying database with input documents
-    2. use the retrieve() method to retrieve information.
-    3. use the retrieved information to generate and send back messages.
+    An agent class with graph rag capability could
+    1. create a graph in the underlying database with input documents.
+    2. retrieved relevant information based on messages received by the agent.
+    3. generate answers from retrieved information and send messages back.
 
     For example,
     graph_query_engine = GraphQueryEngine(...)
     graph_query_engine.init_db([Document(doc1), Document(doc2), ...])
 
-    graph_rag_agent = GraphRagAgent(
+    graph_rag_agent = ConversableAgent(
         name="graph_rag_agent",
         max_consecutive_auto_reply=3,
         ...
     )
-    graph_rag_agent.attach_graph_query_engine(graph_query_engine)
+    graph_rag_capability = GraphRagCapbility(graph_query_engine)
+    graph_rag_capability.add_to_agent(graph_rag_agent)
 
     user_proxy = UserProxyAgent(
         name="user_proxy",
@@ -47,6 +47,10 @@ class GraphRagAgent(ConversableAgent, Protocol):
 
     """
 
-    def attach_graph_query_engine(self, graph_query_engine: GraphQueryEngine):
-        """Add a graph query engine to the agent."""
-        pass
+    def __init__(self, query_engine: GraphQueryEngine):
+        """
+        initialize graph rag capability with a graph query engine
+        """
+        ...
+
+    def add_to_agent(self, agent: ConversableAgent): ...
