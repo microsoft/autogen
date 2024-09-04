@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from openai import OpenAIError
 
-from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from ..chatmanager import AutoGenChatManager
+from ..websocket_connection_manager import WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
