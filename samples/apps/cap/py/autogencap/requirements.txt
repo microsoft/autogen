@@ -1,4 +1,0 @@
-pyzmq
-protobuf
-termcolor
-pyautogen

@@ -1,1 +1,0 @@
-.\protoc --pyi_out=. --python_out=. CAP.proto Autogen.proto
