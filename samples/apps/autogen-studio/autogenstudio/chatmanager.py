@@ -3,8 +3,6 @@ from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union
 from loguru import logger
-import websockets
-from fastapi import WebSocket, WebSocketDisconnect
 
 from .datamodel import Message
 from .workflowmanager import WorkflowManager
@@ -18,7 +16,8 @@ class AutoGenChatManager:
 
     def __init__(self,
                  message_queue: Queue,
-                 websocket_manager: WebSocketConnectionManager = None):
+                 websocket_manager: WebSocketConnectionManager = None,
+                 human_input_timeout: int = 180) -> None:
         """
         Initializes the AutoGenChatManager with a message queue.
 
@@ -26,6 +25,7 @@ class AutoGenChatManager:
         """
         self.message_queue = message_queue
         self.websocket_manager = websocket_manager
+        self.a_human_input_timeout = human_input_timeout
 
     def send(self, message: dict) -> None:
         """
@@ -51,6 +51,29 @@ class AutoGenChatManager:
             else:
                 logger.info(
                     f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+                )
+
+    async def a_prompt_for_input(self, prompt: dict, timeout: int = 60) -> str:
+        """
+        Sends the user a prompt and waits for a response asynchronously via the WebSocketManager class
+
+        :param message: The message string to be sent.
+        """
+
+        for connection, socket_client_id in self.websocket_manager.active_connections:
+            if prompt["connection_id"] == socket_client_id:
+                logger.info(
+                    f"Sending message to connection_id: {prompt['connection_id']}. Connection ID: {socket_client_id}"
+                )
+                try:
+                    result = await self.websocket_manager.get_input(prompt, connection, timeout)
+                    return result
+                except Exception as e:
+                    traceback.print_exc()
+                    return f"Error: {e}\nTERMINATE"
+            else:
+                logger.info(
+                    f"Skipping message for connection_id: {prompt['connection_id']}. Connection ID: {socket_client_id}"
                 )
 
     def chat(
@@ -141,6 +164,8 @@ class AutoGenChatManager:
             work_dir=work_dir,
             send_message_function=self.send,
             a_send_message_function=self.a_send,
+            a_human_input_function=self.a_prompt_for_input,
+            a_human_input_timeout=self.a_human_input_timeout,
             connection_id=connection_id,
         )
 

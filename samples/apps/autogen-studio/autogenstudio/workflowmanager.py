@@ -41,6 +41,8 @@ class AutoWorkflowManager:
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
         a_send_message_function: Optional[Coroutine] = None,
+        a_human_input_function: Optional[callable] = None,
+        a_human_input_timeout: Optional[int] = 60,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -53,6 +55,8 @@ class AutoWorkflowManager:
             clear_work_dir (bool): If set to True, clears the working directory.
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
+            a_human_input_function (Optional[callable]): Async coroutine to prompt the user for input.
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -70,6 +74,8 @@ class AutoWorkflowManager:
         self.workflow_skills = []
         self.send_message_function = send_message_function
         self.a_send_message_function = a_send_message_function
+        self.a_human_input_function = a_human_input_function
+        self.a_human_input_timeout = a_human_input_timeout
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         self.code_executor_pool = {
@@ -303,6 +309,12 @@ class AutoWorkflowManager:
         """ """
 
         skills = agent.get("skills", [])
+
+        # When human input mode is not NEVER and no model is attached, the ui is passing bogus llm_config.
+        configured_models = agent.get("models")
+        if not configured_models or len(configured_models) == 0:
+            agent["config"]["llm_config"] = False
+
         agent = Agent.model_validate(agent)
         agent.config.is_termination_msg = agent.config.is_termination_msg or (
             lambda x: "TERMINATE" in x.get("content", "").rstrip()[-20:]
@@ -366,6 +378,9 @@ class AutoWorkflowManager:
                 groupchat=groupchat,
                 message_processor=self.process_message,
                 a_message_processor=self.a_process_message,
+                a_human_input_function=self.a_human_input_function,
+                a_human_input_timeout=self.a_human_input_timeout,
+                connection_id=self.connection_id,
                 llm_config=agent.config.llm_config.model_dump(),
             )
             return agent
@@ -376,12 +391,18 @@ class AutoWorkflowManager:
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
                     a_message_processor=self.a_process_message,
+                    a_human_input_function=self.a_human_input_function,
+                    a_human_input_timeout=self.a_human_input_timeout,
+                    connection_id=self.connection_id,
                 )
             elif agent.type == "userproxy":
                 agent = ExtendedConversableAgent(
                     **self._serialize_agent(agent),
                     message_processor=self.process_message,
                     a_message_processor=self.a_process_message,
+                    a_human_input_function=self.a_human_input_function,
+                    a_human_input_timeout=self.a_human_input_timeout,
+                    connection_id=self.connection_id,
                 )
             else:
                 raise ValueError(f"Unknown agent type: {agent.type}")
@@ -538,6 +559,8 @@ class SequentialWorkflowManager:
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
         a_send_message_function: Optional[Coroutine] = None,
+        a_human_input_function: Optional[callable] = None,
+        a_human_input_timeout: Optional[int] = 60,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -550,6 +573,8 @@ class SequentialWorkflowManager:
             clear_work_dir (bool): If set to True, clears the working directory.
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
+            a_human_input_function (Optional[callable]): Async coroutine to prompt for human input.
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -566,6 +591,8 @@ class SequentialWorkflowManager:
         # TODO - improved typing for workflow
         self.send_message_function = send_message_function
         self.a_send_message_function = a_send_message_function
+        self.a_human_input_function = a_human_input_function
+        self.a_human_input_timeout = a_human_input_timeout
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         if clear_work_dir:
@@ -617,6 +644,7 @@ class SequentialWorkflowManager:
                 clear_work_dir=True,
                 send_message_function=self.send_message_function,
                 a_send_message_function=self.a_send_message_function,
+                a_human_input_timeout=self.a_human_input_timeout,
                 connection_id=self.connection_id,
             )
             task_prompt = (
@@ -679,6 +707,8 @@ class SequentialWorkflowManager:
                 clear_work_dir=True,
                 send_message_function=self.send_message_function,
                 a_send_message_function=self.a_send_message_function,
+                a_human_input_function=self.a_human_input_function,
+                a_human_input_timeout=self.a_human_input_timeout,
                 connection_id=self.connection_id,
             )
             task_prompt = (
@@ -810,6 +840,8 @@ class WorkflowManager:
         clear_work_dir: bool = True,
         send_message_function: Optional[callable] = None,
         a_send_message_function: Optional[Coroutine] = None,
+        a_human_input_function: Optional[callable] = None,
+        a_human_input_timeout: Optional[int] = 60,
         connection_id: Optional[str] = None,
     ) -> None:
         """
@@ -822,6 +854,8 @@ class WorkflowManager:
             clear_work_dir (bool): If set to True, clears the working directory.
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
+            a_human_input_function (Optional[callable]): Async coroutine to prompt for user input.
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -843,6 +877,8 @@ class WorkflowManager:
                 clear_work_dir=clear_work_dir,
                 send_message_function=send_message_function,
                 a_send_message_function=a_send_message_function,
+                a_human_input_function=a_human_input_function,
+                a_human_input_timeout=a_human_input_timeout,
                 connection_id=connection_id,
             )
         elif self.workflow.get("type") == WorkFlowType.sequential.value:
@@ -852,6 +888,9 @@ class WorkflowManager:
                 work_dir=work_dir,
                 clear_work_dir=clear_work_dir,
                 send_message_function=send_message_function,
+                a_send_message_function=a_send_message_function,
+                a_human_input_function=a_human_input_function,
+                a_human_input_timeout=a_human_input_timeout,
                 connection_id=connection_id,
             )
 
@@ -860,11 +899,18 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
     def __init__(self,
                  message_processor=None,
                  a_message_processor=None,
+                 a_human_input_function=None,
+                 a_human_input_timeout: Optional[int] = 60,
+                 connection_id=None,
                  *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
         self.a_message_processor = a_message_processor
+        self.a_human_input_function = a_human_input_function
+        self.a_human_input_response = None
+        self.a_human_input_timeout = a_human_input_timeout
+        self.connection_id = connection_id
 
     def receive(
         self,
@@ -891,14 +937,65 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         await super().a_receive(message, sender, request_reply, silent)
 
 
+    # Strangely, when the response from a_get_human_input == "" (empty string) the libs call into the
+    # sync version.  I guess that's "just in case", but it's odd because replying with an empty string
+    # is the intended way for the user to signal the underlying libs that they want to system to go forward
+    # with whatever funciton call, tool call or AI genrated response the request calls for.  Oh well,
+    # Que Sera Sera.
+    def get_human_input(self, prompt: str) -> str:
+        if self.a_human_input_response == None:
+            return super().get_human_input(prompt)
+        else:
+            response = self.a_human_input_response
+            self.a_human_input_response = None
+            return response
+
+    async def a_get_human_input(self, prompt: str) -> str:
+        if self.message_processor and self.a_human_input_function:
+            message_dict = {
+                "content": prompt,
+                "role": "system",
+                "type": "user-input-request"
+            }
+
+            message_payload = {
+                "recipient": self.name,
+                "sender": "system",
+                "message": message_dict,
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "system",
+                "connection_id": self.connection_id,
+                "message_type": "agent_message"
+            }
+
+            socket_msg = SocketMessage(
+                type="user_input_request",
+                data=message_payload,
+                connection_id=self.connection_id,
+            )
+            self.a_human_input_response = await self.a_human_input_function(socket_msg.dict(), self.a_human_input_timeout)
+            return self.a_human_input_response
+
+        else:
+            result = await super().a_get_human_input(prompt)
+            return result
+
+
 class ExtendedGroupChatManager(autogen.GroupChatManager):
     def __init__(self,
                  message_processor=None,
                  a_message_processor=None,
+                 a_human_input_function=None,
+                 a_human_input_timeout: Optional[int] = 60,
+                 connection_id=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
         self.a_message_processor = a_message_processor
+        self.a_human_input_function = a_human_input_function
+        self.a_human_input_response = None
+        self.a_human_input_timeout = a_human_input_timeout
+        self.connection_id = connection_id
 
     def receive(
         self,
@@ -925,3 +1022,39 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         await super().a_receive(message, sender, request_reply, silent)
 
 
+    def get_human_input(self, prompt: str) -> str:
+        if self.a_human_input_response == None:
+            return super().get_human_input(prompt)
+        else:
+            response = self.a_human_input_response
+            self.a_human_input_response = None
+            return response
+
+    async def a_get_human_input(self, prompt: str) -> str:
+        if self.message_processor and self.a_human_input_function:
+            message_dict = {
+                "content": prompt,
+                "role": "system",
+                "type": "user-input-request"
+            }
+
+            message_payload = {
+                "recipient": self.name,
+                "sender": "system",
+                "message": message_dict,
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "system",
+                "connection_id": self.connection_id,
+                "message_type": "agent_message"
+            }
+            socket_msg = SocketMessage(
+                type="user_input_request",
+                data=message_payload,
+                connection_id=self.connection_id,
+            )
+            result = await self.a_human_input_function(socket_msg.dict(), self.a_human_input_timeout)
+            return result
+
+        else:
+            result = await super().a_get_human_input(prompt)
+            return result

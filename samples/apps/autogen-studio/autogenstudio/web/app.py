@@ -4,7 +4,7 @@ import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
-from typing import Any, Coroutine
+from typing import Any, Union
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,12 +65,14 @@ ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
+HUMAN_INPUT_TIMEOUT_SECONDS = 180
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
     managers["chat"] = AutoGenChatManager(message_queue=message_queue,
-                                          websocket_manager=websocket_manager)
+                                          websocket_manager=websocket_manager,
+                                          human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS)
     dbmanager.create_db_and_tables()
 
     yield
