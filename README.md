@@ -1,9 +1,9 @@
 <a name="readme-top"></a>
 
-[![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
+[![PyPI version](https://badge.fury.io/py/autogen.svg)](https://badge.fury.io/py/autogen)
 [![Build](https://github.com/autogen-ai/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/autogen-ai/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
-[![Downloads](https://static.pepy.tech/badge/pyautogen/month)](https://pepy.tech/project/pyautogen)
+<!-- [![Downloads](https://static.pepy.tech/badge/pyautogen/month)](https://pepy.tech/project/pyautogen) -->
 [![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40Chi_Wang_)](https://x.com/Chi_Wang_)
 
@@ -15,6 +15,15 @@
     <img src="https://github.com/autogen-ai/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
+:fire: Sep 06, 2024: AutoGen now available as `autogen` on PyPI! We're excited to announce a more convenient package name for AutoGen: Starting with version 0.3.0, you can now install AutoGen using:
+```
+pip install autogen
+```
+We extend our sincere gratitude to Simon Mackenzie for generously transferring the `autogen` package name to us.
+
+**Note:** The previous package name `pyautogen` will remain valid for a transitional period. However, we encourage users to switch to the new, more intuitive `autogen` package name, as `pyautogen` will eventually be deprecated.
+
+
 :fire: Aug 24, 2024: A new organization [autogen-ai](https://github.com/autogen-ai) is created to host the development of AutoGen and related projects with open governance. We invite collaborators from all organizations and individuals.
 
 :tada: May 29, 2024: DeepLearning.ai launched a new short course [AI Agentic Design Patterns with AutoGen](https://www.deeplearning.ai/short-courses/ai-agentic-design-patterns-with-autogen), made in collaboration with Microsoft and Penn State University, and taught by AutoGen creators [Chi Wang](https://github.com/sonichi) and [Qingyun Wu](https://github.com/qingyun-wu).
@@ -117,14 +126,14 @@ Find detailed instructions for users [here](https://autogen-ai.github.io/autogen
 AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
 ```bash
-pip install pyautogen
+pip install autogen
 ```
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
 
 <!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
-pip install "pyautogen[blendsearch]"
+pip install "autogen[blendsearch]"
 ``` -->
 
 Find more options in [Installation](https://autogen-ai.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
