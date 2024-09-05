@@ -4,7 +4,7 @@ import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
-from typing import Any, Union
+from typing import Any, Coroutine
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,7 +69,8 @@ dbmanager = DBManager(engine_uri=database_engine_uri)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
-    managers["chat"] = AutoGenChatManager(message_queue=message_queue)
+    managers["chat"] = AutoGenChatManager(message_queue=message_queue,
+                                          websocket_manager=websocket_manager)
     dbmanager.create_db_and_tables()
 
     yield
@@ -450,7 +451,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
-        agent_response: Message = managers["chat"].chat(
+        agent_response: Message = await managers["chat"].a_chat(
             message=message,
             history=user_message_history,
             user_dir=user_dir,
