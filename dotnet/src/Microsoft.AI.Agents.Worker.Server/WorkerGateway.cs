@@ -49,11 +49,11 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
     {
-        (string Type, string Key) agentId = (request.Target.Name, request.Target.Namespace);
+        (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
         {
             // Activate the agent on a compatible worker process.
-            if (_supportedAgentTypes.TryGetValue(request.Target.Name, out var workers))
+            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
             {
                 connection = workers[Random.Shared.Next(workers.Count)];
                 _agentDirectory[agentId] = connection;
@@ -163,7 +163,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         }
 
         /*
-        if (string.Equals("runtime", request.Target.Name, StringComparison.Ordinal))
+        if (string.Equals("runtime", request.Target.Type, StringComparison.Ordinal))
         {
             if (string.Equals("subscribe", request.Method))
             {
@@ -184,7 +184,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
                 var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
                 if (gateway is null)
                 {
-                    return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };  
+                    return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
                 }
 
                 if (isPlacement)

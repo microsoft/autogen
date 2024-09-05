@@ -3,8 +3,14 @@ syntax = "proto3";
 package agents;
 
 message AgentId {
-    string name = 1;
-    string namespace = 2;
+    string type = 1;
+    string key = 2;
+}
+
+message Payload {
+    string data_type = 1;
+    string data_content_type = 2;
+    bytes data = 3;
 }
 
 message RpcRequest {
@@ -12,26 +18,22 @@ message RpcRequest {
     AgentId source = 2;
     AgentId target = 3;
     string method = 4;
-    string data_type = 5;
-    string data = 6;
-    map<string, string> metadata = 7;
+    Payload payload = 5;
+    map<string, string> metadata = 6;
 }
 
 message RpcResponse {
     string request_id = 1;
-    string result_type = 2;
-    string result = 3;
-    string error = 4;
-    map<string, string> metadata = 5;
+    Payload payload = 2;
+    string error = 3;
+    map<string, string> metadata = 4;
 }
 
 message Event {
-    string namespace = 1;
-    string topic_type = 2;
-    string topic_source = 3;
-    string data_type = 4;
-    string data = 5;
-    map<string, string> metadata = 6;
+    string topic_type = 1;
+    string topic_source = 2;
+    Payload payload = 3;
+    map<string, string> metadata = 4;
 }
 
 message RegisterAgentType {

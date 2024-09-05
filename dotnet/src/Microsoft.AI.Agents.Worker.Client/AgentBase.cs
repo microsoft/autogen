@@ -3,6 +3,8 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Diagnostics;
+using System.Text;
+using Google.Protobuf;
 
 namespace Microsoft.AI.Agents.Worker.Client;
 
@@ -80,12 +82,12 @@ public abstract class AgentBase
         {
             case Message.MessageOneofCase.Event:
                 {
-                    var activity = ExtractActivity(msg.Event.DataType, msg.Event.Metadata);
+                    var activity = ExtractActivity(msg.Event.Payload.DataType, msg.Event.Metadata);
                     await InvokeWithActivityAsync(
                         static ((AgentBase Agent, Event Item) state) => state.Agent.HandleEvent(state.Item),
                         (this, msg.Event),
                         activity,
-                        msg.Event.DataType).ConfigureAwait(false);
+                        msg.Event.Payload.DataType).ConfigureAwait(false);
                 }
                 break;
             case Message.MessageOneofCase.Request:
@@ -143,7 +145,12 @@ public abstract class AgentBase
             Target = target,
             RequestId = requestId,
             Method = method,
-            Data = JsonSerializer.Serialize(parameters)
+            Payload = new Payload{
+                DataType = "application/json",
+                Data = ByteString.CopyFrom(JsonSerializer.Serialize(parameters), Encoding.UTF8),
+                DataContentType = "application/json"
+
+            }
         };
 
         var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Context ?? default);
@@ -175,8 +182,8 @@ public abstract class AgentBase
 
     protected async ValueTask PublishEvent(Event item)
     {
-        var activity = s_source.StartActivity($"PublishEvent '{item.DataType}'", ActivityKind.Client, Activity.Current?.Context ?? default);
-        activity?.SetTag("peer.service", $"{item.DataType}/{item.Namespace}");
+        var activity = s_source.StartActivity($"PublishEvent '{item.Payload.DataType}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        activity?.SetTag("peer.service", $"{item.Payload.DataType}/{item.TopicSource}");
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
@@ -187,7 +194,7 @@ public abstract class AgentBase
             },
             (this, item, completion),
             activity,
-            item.DataType).ConfigureAwait(false);
+            item.Payload.DataType).ConfigureAwait(false);
     }
 
     protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
@@ -224,7 +231,7 @@ public abstract class AgentBase
                 activity.SetTag("exception.type", e.GetType().FullName);
                 activity.SetTag("exception.message", e.Message);
 
-                // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property. 
+                // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property.
                 // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
                 // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
                 activity.SetTag("exception.stacktrace", e.ToString());

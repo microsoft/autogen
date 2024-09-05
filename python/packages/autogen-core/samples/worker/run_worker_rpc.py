@@ -4,7 +4,13 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MESSAGE_TYPE_REGISTRY, AgentId, AgentInstantiationContext, MessageContext
+from autogen_core.base import (
+    MESSAGE_TYPE_REGISTRY,
+    AgentId,
+    AgentInstantiationContext,
+    MessageContext,
+    try_get_known_codecs_for_type,
+)
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
 
@@ -55,9 +61,9 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = WorkerAgentRuntime()
-    MESSAGE_TYPE_REGISTRY.add_type(Greeting)
-    MESSAGE_TYPE_REGISTRY.add_type(AskToGreet)
-    MESSAGE_TYPE_REGISTRY.add_type(Feedback)
+    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(Greeting))
+    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(AskToGreet))
+    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(Feedback))
     await runtime.start(host_connection_string="localhost:50051")
 
     await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])

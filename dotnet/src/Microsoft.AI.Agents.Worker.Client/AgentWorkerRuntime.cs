@@ -143,7 +143,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable
                             var item = message.Event;
                             foreach (var (typeName, _) in _agentTypes)
                             {
-                                var agent = GetOrActivateAgent(new AgentId(typeName, item.Namespace));
+                                var agent = GetOrActivateAgent(new AgentId(typeName, item.TopicSource));
                                 agent.ReceiveMessage(message);
                             }
 
@@ -200,17 +200,17 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable
 
     private AgentBase GetOrActivateAgent(AgentId agentId)
     {
-        if (!_agents.TryGetValue((agentId.Name, agentId.Namespace), out var agent))
+        if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
-            if (_agentTypes.TryGetValue(agentId.Name, out var agentType))
+            if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
                 var context = new AgentContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
                 agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
-                _agents.TryAdd((agentId.Name, agentId.Namespace), agent);
+                _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else
             {
-                throw new InvalidOperationException($"Agent type '{agentId.Name}' is unknown.");
+                throw new InvalidOperationException($"Agent type '{agentId.Type}' is unknown.");
             }
         }
 

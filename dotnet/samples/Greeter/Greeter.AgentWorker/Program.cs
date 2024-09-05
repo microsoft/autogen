@@ -1,4 +1,5 @@
 using Agents;
+using Google.Protobuf;
 using Greeter.AgentWorker;
 using Microsoft.AI.Agents.Worker.Client;
 using AgentId = Microsoft.AI.Agents.Worker.Client.AgentId;
@@ -30,7 +31,11 @@ internal sealed class GreetingAgent(IAgentContext context, ILogger<GreetingAgent
     protected override Task<RpcResponse> HandleRequest(RpcRequest request)
     {
         logger.LogInformation("[{Id}] Received request: '{Request}'.", AgentId, request);
-        return Task.FromResult(new RpcResponse() { Result = "Okay!" });
+        return Task.FromResult(new RpcResponse() { Payload = new Payload {
+            DataContentType = "text/plain",
+            Data = ByteString.CopyFromUtf8("Hello, agents!"),
+            DataType = "text"
+        }});
     }
 }
 

@@ -8,7 +8,7 @@ from ..base._agent_id import AgentId
 from ..base._agent_instantiation import AgentInstantiationContext
 from ..base._agent_metadata import AgentMetadata
 from ..base._agent_runtime import AgentRuntime
-from ..base._serialization import MESSAGE_TYPE_REGISTRY
+from ..base._serialization import JSON_DATA_CONTENT_TYPE, MESSAGE_TYPE_REGISTRY, try_get_known_codecs_for_type
 from ..base.exceptions import CantHandleException
 from ._type_helpers import get_types
 
@@ -59,9 +59,10 @@ class ClosureAgent(Agent):
         self._id: AgentId = id
         self._description = description
         subscription_types = get_subscriptions_from_closure(closure)
+        # TODO fold this into runtime
         for message_type in subscription_types:
-            if not MESSAGE_TYPE_REGISTRY.is_registered(MESSAGE_TYPE_REGISTRY.type_name(message_type)):
-                MESSAGE_TYPE_REGISTRY.add_type(message_type)
+            MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(message_type))
+
         self._subscriptions = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscription_types]
         self._closure = closure
 

@@ -28,6 +28,8 @@ import grpc
 from grpc.aio import StreamStreamCall
 from typing_extensions import Self
 
+from autogen_core.base import JSON_DATA_CONTENT_TYPE
+
 from ..base import (
     MESSAGE_TYPE_REGISTRY,
     Agent,
@@ -247,14 +249,19 @@ class WorkerAgentRuntime(AgentRuntime):
         self._pending_requests[request_id_str] = future
         sender = cast(AgentId, sender)
         data_type = MESSAGE_TYPE_REGISTRY.type_name(message)
-        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=data_type)
+        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(
+            message, type_name=data_type, data_content_type=JSON_DATA_CONTENT_TYPE
+        )
         runtime_message = agent_worker_pb2.Message(
             request=agent_worker_pb2.RpcRequest(
                 request_id=request_id_str,
-                target=agent_worker_pb2.AgentId(name=recipient.type, namespace=recipient.key),
-                source=agent_worker_pb2.AgentId(name=sender.type, namespace=sender.key),
-                data_type=data_type,
-                data=serialized_message,
+                target=agent_worker_pb2.AgentId(type=recipient.type, key=recipient.key),
+                source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key),
+                payload=agent_worker_pb2.Payload(
+                    data_type=data_type,
+                    data=serialized_message,
+                    data_content_type=JSON_DATA_CONTENT_TYPE,
+                ),
             )
         )
         # TODO: Find a way to handle timeouts/errors
@@ -277,10 +284,18 @@ class WorkerAgentRuntime(AgentRuntime):
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
-        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(message, type_name=message_type)
+        serialized_message = MESSAGE_TYPE_REGISTRY.serialize(
+            message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
+        )
         runtime_message = agent_worker_pb2.Message(
             event=agent_worker_pb2.Event(
-                topic_type=topic_id.type, topic_source=topic_id.source, data_type=message_type, data=serialized_message
+                topic_type=topic_id.type,
+                topic_source=topic_id.source,
+                payload=agent_worker_pb2.Payload(
+                    data_type=message_type,
+                    data=serialized_message,
+                    data_content_type=JSON_DATA_CONTENT_TYPE,
+                ),
             )
         )
         task = asyncio.create_task(self._host_connection.send(runtime_message))
@@ -305,13 +320,17 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest) -> None:
         assert self._host_connection is not None
-        target = AgentId(request.target.name, request.target.namespace)
-        source = AgentId(request.source.name, request.source.namespace)
+        target = AgentId(request.target.type, request.target.key)
+        source = AgentId(request.source.type, request.source.key)
 
         logging.info(f"Processing request from {source} to {target}")
 
         # Deserialize the message.
-        message = MESSAGE_TYPE_REGISTRY.deserialize(request.data, type_name=request.data_type)
+        message = MESSAGE_TYPE_REGISTRY.deserialize(
+            request.payload.data,
+            type_name=request.payload.data_type,
+            data_content_type=request.payload.data_content_type,
+        )
 
         # Get the target agent and prepare the message context.
         target_agent = await self._get_agent(target)
@@ -339,14 +358,19 @@ class WorkerAgentRuntime(AgentRuntime):
 
         # Serialize the result.
         result_type = MESSAGE_TYPE_REGISTRY.type_name(result)
-        serialized_result = MESSAGE_TYPE_REGISTRY.serialize(result, type_name=result_type)
+        serialized_result = MESSAGE_TYPE_REGISTRY.serialize(
+            result, type_name=result_type, data_content_type=JSON_DATA_CONTENT_TYPE
+        )
 
         # Create the response message.
         response_message = agent_worker_pb2.Message(
             response=agent_worker_pb2.RpcResponse(
                 request_id=request.request_id,
-                result_type=result_type,
-                result=serialized_result,
+                payload=agent_worker_pb2.Payload(
+                    data_type=result_type,
+                    data=serialized_result,
+                    data_content_type=JSON_DATA_CONTENT_TYPE,
+                ),
             )
         )
 
@@ -355,7 +379,11 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse) -> None:
         # Deserialize the result.
-        result = MESSAGE_TYPE_REGISTRY.deserialize(response.result, type_name=response.result_type)
+        result = MESSAGE_TYPE_REGISTRY.deserialize(
+            response.payload.data,
+            type_name=response.payload.data_type,
+            data_content_type=response.payload.data_content_type,
+        )
         # Get the future and set the result.
         future = self._pending_requests.pop(response.request_id)
         if len(response.error) > 0:
@@ -364,7 +392,9 @@ class WorkerAgentRuntime(AgentRuntime):
             future.set_result(result)
 
     async def _process_event(self, event: agent_worker_pb2.Event) -> None:
-        message = MESSAGE_TYPE_REGISTRY.deserialize(event.data, type_name=event.data_type)
+        message = MESSAGE_TYPE_REGISTRY.deserialize(
+            event.payload.data, type_name=event.payload.data_type, data_content_type=event.payload.data_content_type
+        )
         topic_id = TopicId(event.topic_type, event.topic_source)
         # Get the recipients for the topic.
         recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)

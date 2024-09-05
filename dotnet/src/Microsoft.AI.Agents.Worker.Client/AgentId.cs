@@ -2,14 +2,14 @@ using RpcAgentId = Agents.AgentId;
 
 namespace Microsoft.AI.Agents.Worker.Client;
 
-public sealed record class AgentId(string Name, string Namespace)
+public sealed record class AgentId(string Type, string Key)
 {
     public static implicit operator RpcAgentId(AgentId agentId) => new()
     {
-        Name = agentId.Name,
-        Namespace = agentId.Namespace
+        Type = agentId.Type,
+        Key = agentId.Key
     };
 
-    public static implicit operator AgentId(RpcAgentId agentId) => new(agentId.Name, agentId.Namespace);
-    public override string ToString() => $"{Name}/{Namespace}";
+    public static implicit operator AgentId(RpcAgentId agentId) => new(agentId.Type, agentId.Key);
+    public override string ToString() => $"{Type}/{Key}";
 }

@@ -125,9 +125,9 @@ class HostRuntimeServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: int) -> None:
         # Deliver the message to a client given the target agent type.
         async with self._agent_type_to_client_id_lock:
-            target_client_id = self._agent_type_to_client_id.get(request.target.name)
+            target_client_id = self._agent_type_to_client_id.get(request.target.type)
         if target_client_id is None:
-            logger.error(f"Agent {request.target.name} not found, failed to deliver message.")
+            logger.error(f"Agent {request.target.type} not found, failed to deliver message.")
             return
         target_send_queue = self._send_queues.get(target_client_id)
         if target_send_queue is None:
