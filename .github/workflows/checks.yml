@@ -120,3 +120,26 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} pyright
         working-directory: ./python
+
+  check-proto-changes-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: uv sync
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe gen-proto
+        working-directory: ./python
+      - name: Evaluate if there are changes
+        run: |
+          if [[ `git status --porcelain` ]]; then
+            echo "There are changes that need to be generated and commit for the proto files"
+            exit 1
+          fi
+        shell: bash
