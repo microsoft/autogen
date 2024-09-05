@@ -4,4 +4,4 @@
 #
 # Portions derived from  https://github.com/microsoft/autogen are under the MIT License.
 # SPDX-License-Identifier: MIT
-__version__ = "0.3.0b4"
+__version__ = "0.3.0"
