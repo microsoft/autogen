@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MIT
 import os
 import platform
+import sys
 
 import setuptools
 
@@ -101,8 +102,17 @@ extra_require = {
     "bedrock": ["boto3>=1.34.149"],
 }
 
+
+if "--name" in sys.argv:
+    index = sys.argv.index("--name")
+    sys.argv.pop(index)  # Removes --name
+    package_name = sys.argv.pop(index)  # Removes the value after --name
+else:
+    package_name = "autogen"
+
+
 setuptools.setup(
-    name="pyautogen",
+    name=package_name,
     version=__version__,
     author="Chi Wang & Qingyun Wu",
     author_email="auto-gen@outlook.com",
