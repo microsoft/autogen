@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import copy
 from datetime import datetime
 from typing import Any, Coroutine, Dict, List, Optional, Union
 
@@ -93,6 +94,75 @@ class AutoWorkflowManager:
         self.sender = None
         self.receiver = None
 
+
+    def _connect_agent_skills(self, skills_module, caller_configs, caller, executor):
+        if caller.llm_config is not False:
+            for skill in caller_configs.get("skills", []):
+                func_name = skill.name
+                func = getattr(skills_module, func_name)
+                # f = caller.register_for_llm(name=func_name, description=skill.description, api_style="function")(func)
+                f = caller.register_for_llm(name=func_name, description=skill.description)(func)
+                executor.register_for_execution(name=func_name)(f)
+
+    def _connect_group_chat_skills(self, skills_module, group_configs, group_chat_manager):
+        agent_configs = group_configs.get("agents", [])
+        group = group_chat_manager.groupchat
+        admin_name = group.admin_name
+        admin_agent = group.agent_by_name(admin_name)
+        count_agents = len(agent_configs)
+        for i in range(count_agents):
+            agent_config = agent_configs[i]
+            agent_name = agent_config["config"].get("name")
+            agent = group.agent_by_name(agent_name)
+            # For some reason I don't yet understand, the group chat manager isn't given the correct name, so
+            # group.agent_by_name(agent_name) fails.
+            if agent == None:
+                # Ideally, every nested group within the group will have it's own unique name, but just in case...
+                groups = [agent for agent in group.agents
+                          if isinstance(agent, ExtendedGroupChatManager) and agent.manager_name == agent_name]
+                group_configs_list = [agent_config for agent_config in agent_configs if
+                                 agent_config.get("config", {}).get("name") == agent_name]
+                for j in range(len(groups)):
+                    self._connect_group_chat_skills(skills_module, group_configs_list[j], groups[j])
+            elif isinstance(agent, autogen.GroupChatManager):
+                self._connect_group_chat_skills(skills_module, agent_config, agent)
+            else:
+                if admin_agent:
+                    self._connect_agent_skills(skills_module, agent_config, agent, admin_agent)
+                else:
+                    # when setting up tool calls, you just need any other agent,
+                    # beside the current one.
+                    next_agent = i + 1
+                    if next_agent >= count_agents:
+                        next_agent = 0
+                    executor_name = agent_configs[next_agent].get("config").get("name")
+                    executor = group.agent_by_name(executor_name)
+                    self._connect_agent_skills(skills_module, agent_config, agent, executor)
+
+    def _connect_tools(self, sender_configs, receiver_configs):
+        import importlib.util
+        import sys
+
+        # import the skills as proper tools
+        # TODO: This may all be a bit too "wild west".
+        if self.work_dir not in sys.path:
+            sys.path.append(self.work_dir)  # TODO: Is it necessary?
+
+        spec = importlib.util.spec_from_file_location("skills", os.path.join(self.work_dir, "skills.py"))
+        skills_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(skills_module)
+        globals().update(vars(skills_module))  # TODO: Is it necessary?
+
+        if isinstance(self.sender, autogen.GroupChatManager):
+            self._connect_group_chat_skills(skills_module, sender_configs, self.sender)
+        else:
+            self._connect_agent_skills(skills_module, sender_configs, self.sender, self.receiver)
+
+        if isinstance(self.receiver, autogen.GroupChatManager):
+            self._connect_group_chat_skills(skills_module, receiver_configs, self.receiver)
+        else:
+            self._connect_agent_skills(skills_module, receiver_configs, self.receiver, self.sender)
+
     def _run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
         """
         Runs the workflow based on the provided configuration.
@@ -105,12 +175,18 @@ class AutoWorkflowManager:
         """
         for agent in self.workflow.get("agents", []):
             if agent.get("link").get("agent_type") == "sender":
-                self.sender = self.load(agent.get("agent"))
+                sender_configs = agent.get("agent")
+                self.sender = self.load(sender_configs)
             elif agent.get("link").get("agent_type") == "receiver":
-                self.receiver = self.load(agent.get("agent"))
+                receiver_configs = agent.get("agent")
+                self.receiver = self.load(receiver_configs)
+
         if self.sender and self.receiver:
             # save all agent skills to skills.py
             save_skills_to_file(self.workflow_skills, self.work_dir)
+
+            self._connect_tools(sender_configs, receiver_configs)
+
             if history:
                 self._populate_history(history)
             self.sender.initiate_chat(
@@ -135,12 +211,17 @@ class AutoWorkflowManager:
         """
         for agent in self.workflow.get("agents", []):
             if agent.get("link").get("agent_type") == "sender":
-                self.sender = self.load(agent.get("agent"))
+                sender_configs = agent.get("agent")
+                self.sender = self.load(sender_configs)
             elif agent.get("link").get("agent_type") == "receiver":
-                self.receiver = self.load(agent.get("agent"))
+                receiver_configs = agent.get("agent")
+                self.receiver = self.load(receiver_configs)
         if self.sender and self.receiver:
             # save all agent skills to skills.py
             save_skills_to_file(self.workflow_skills, self.work_dir)
+
+            self._connect_tools(sender_configs, receiver_configs)
+
             if history:
                 self._populate_history(history)
             await self.sender.a_initiate_chat(
@@ -317,9 +398,16 @@ class AutoWorkflowManager:
             agent["config"]["llm_config"] = False
 
         agent = Agent.model_validate(agent)
-        agent.config.is_termination_msg = agent.config.is_termination_msg or (
-            lambda x: "TERMINATE" in x.get("content", "").rstrip()[-20:]
-        )
+
+        # When using tool calls, the "content" of a message
+        # can sometimes be null.  Not sure why.  Handle it here.
+        def check_for_termination_message(x):
+            content = x.get("content", "")
+            if content is None:
+                x["content"] = "Tool is executing..."
+            return content is not None and "TERMINATE" in content.rstrip()[-20:]
+
+        agent.config.is_termination_msg = agent.config.is_termination_msg or check_for_termination_message
 
         def get_default_system_message(agent_type: str) -> str:
             if agent_type == "assistant":
@@ -346,7 +434,10 @@ class AutoWorkflowManager:
             for skill in skills:
                 self.workflow_skills.append(skill)
             skills_prompt = ""
-            skills_prompt = get_skills_prompt(skills, self.work_dir)
+			# TODO: This is brittle, just relying on whether or not we have a send_message_function isn't quite the same 
+			#       as knowing for sure if we're being called from the UI or the CLI.
+            if not self.send_message_function:
+                skills_prompt = get_skills_prompt(skills, self.work_dir)
             if agent.config.system_message:
                 agent.config.system_message = agent.config.system_message + "\n\n" + skills_prompt
             else:
@@ -383,6 +474,7 @@ class AutoWorkflowManager:
                 a_human_input_timeout=self.a_human_input_timeout,
                 connection_id=self.connection_id,
                 llm_config=agent.config.llm_config.model_dump(),
+                manager_name=agent.config.name
             )
             return agent
 
@@ -620,7 +712,7 @@ class SequentialWorkflowManager:
         user_proxy = {
             "config": {
                 "name": "user_proxy",
-                "human_input_mode": "NEVER",
+                "human_input_mode": "TERMINATE",
                 "max_consecutive_auto_reply": 25,
                 "code_execution_config": "local",
                 "default_auto_reply": "TERMINATE",
@@ -931,7 +1023,23 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         silent: Optional[bool] = False,
     ):
         if self.message_processor:
-            self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+            if isinstance(message, dict) and message.get("tool_calls"):
+                tool_calls = [
+                    {
+                        "name": func["name"],
+                        "arguments": ', '.join(f'{key}: {value}' for key, value in json.loads(func["arguments"]).items())
+                    }
+                    for func in [tc.get("function") for tc in message["tool_calls"]]
+                ]
+                tool_call_msgs = [f"requested tool call: {func.get("name")}({func.get("arguments")})" for func in tool_calls]
+                if not message.get("content") == None:
+                    tool_call_msgs.insert(0, message.get("content"))
+                new_message = copy.deepcopy(message)
+                new_message["content"] = "\n".join(tool_call_msgs)
+                self.message_processor(sender, self, new_message, request_reply, silent, sender_type="agent")
+            else:
+                self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+
         super().receive(message, sender, request_reply, silent)
 
     async def a_receive(
@@ -942,9 +1050,27 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         silent: Optional[bool] = False,
     ) -> None:
         if self.a_message_processor:
-            await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+            if isinstance(message, dict) and message.get("tool_calls"):
+                tool_calls = [
+                    {
+                        "name": func["name"],
+                        #"arguments": ', '.join(f'{key}: {value}' for key, value in json.loads(func["arguments"]).items())
+                    }
+                    for func in [tc.get("function") for tc in message["tool_calls"]]
+                ]
+                #tool_call_msgs = [f"requested tool call: {func.get("name")}({func.get("arguments")})" for func in tool_calls]
+                tool_call_msgs = [f"requested tool call: {func.get("name")}" for func in tool_calls]
+                if not message.get("content") == None:
+                    tool_call_msgs.insert(0, message.get("content"))
+                new_message = copy.deepcopy(message)
+                new_message["content"] = "\n".join(tool_call_msgs)
+                await self.a_message_processor(sender, self, new_message, request_reply, silent, sender_type="agent")
+            else:
+                await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+				
         elif self.message_processor:
             self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+
         await super().a_receive(message, sender, request_reply, silent)
 
     # Strangely, when the response from a_get_human_input == "" (empty string) the libs call into the
@@ -991,7 +1117,8 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
 
 class ExtendedGroupChatManager(autogen.GroupChatManager):
     def __init__(
-        self,
+	    self,
+        manager_name="group_chat_manager",
         message_processor=None,
         a_message_processor=None,
         a_human_input_function=None,
@@ -1007,6 +1134,7 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         self.a_human_input_response = None
         self.a_human_input_timeout = a_human_input_timeout
         self.connection_id = connection_id
+        self.manager_name = manager_name
 
     def receive(
         self,
@@ -1027,9 +1155,27 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         silent: Optional[bool] = False,
     ) -> None:
         if self.a_message_processor:
-            await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+            if isinstance(message, dict) and message.get("tool_calls"):
+                tool_calls = [
+                    {
+                        "name": func["name"],
+                        # "arguments": ', '.join(f'{key}: {value}' for key, value in json.loads(func["arguments"]).items())
+                    }
+                    for func in [tc.get("function") for tc in message["tool_calls"]]
+                ]
+                #tool_call_msgs = [f"requested tool call: {func.get("name")}({func.get("arguments")})" for func in tool_calls]
+                tool_call_msgs = [f"requested tool call: {func.get("name")}" for func in tool_calls]
+                if not message.get("content") == None:
+                    tool_call_msgs.insert(0, message.get("content"))
+                new_message = copy.deepcopy(message)
+                new_message["content"] = "\n".join(tool_call_msgs)
+                await self.a_message_processor(sender, self, new_message, request_reply, silent, sender_type="groupchat")
+            else:
+                await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         elif self.message_processor:
-            self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+	        self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+
+
         await super().a_receive(message, sender, request_reply, silent)
 
     def get_human_input(self, prompt: str) -> str:
