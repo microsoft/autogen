@@ -188,7 +188,7 @@ After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/autogen-ai/autogen/blob/main/website/static/img/chat_example.png)
 
-Alternatively, the [sample code](https://github.com/autogen-ai/autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
+Alternatively, the [sample code](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
 Please find more [code examples](https://autogen-ai.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
@@ -243,6 +243,12 @@ In addition, you can find:
     ↑ Back to Top ↑
   </a>
 </p>
+
+## CookBook
+
+Explore detailed implementations with sample code and applications to help you get started with AutoGen.
+[Cookbook](https://github.com/autogen-ai/build-with-autogen)
+
 
 ## Related Papers
 

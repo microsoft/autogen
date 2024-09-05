@@ -1,9 +1,0 @@
-$schema: https://azuremlschemas.azureedge.net/promptflow/latest/CustomConnection.schema.json
-name: "redis_connection_url"
-type: custom
-configs:
-  key1: "test1"
-secrets:
-  # Use'<no-change>' to keep original value or '<user-input>' to update it when the application runs.
-  key2: "test2"
-  redis_url: "<user-input>"
