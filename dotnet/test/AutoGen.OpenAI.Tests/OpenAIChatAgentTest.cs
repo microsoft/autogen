@@ -27,6 +27,12 @@ public partial class OpenAIChatAgentTest
         return $"The weather in {location} is sunny.";
     }
 
+    [Function]
+    public async Task<string> CalculateTaxAsync(string location, double income)
+    {
+        return $"[CalculateTax] The tax in {location} for income {income} is 1000.";
+    }
+
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicConversationTestAsync()
     {
@@ -244,6 +250,65 @@ public partial class OpenAIChatAgentTest
 
         var respond = await openAIChatAgent.SendAsync("hello");
         respond.GetContent()?.Should().NotBeNullOrEmpty();
+    }
+
+
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
+    public async Task ItProduceValidContentAfterFunctionCall()
+    {
+        // https://github.com/microsoft/autogen/issues/3437
+        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var openaiClient = CreateOpenAIClientFromAzureOpenAI();
+        var options = new ChatCompletionOptions()
+        {
+            Temperature = 0.7f,
+            MaxTokens = 1,
+        };
+
+        var agentName = "assistant";
+
+        var getWeatherToolCall = new ToolCall(this.GetWeatherAsyncFunctionContract.Name, "{\"location\":\"Seattle\"}");
+        var getWeatherToolCallResult = new ToolCall(this.GetWeatherAsyncFunctionContract.Name, "{\"location\":\"Seattle\"}", "The weather in Seattle is sunny.");
+        var getWeatherToolCallMessage = new ToolCallMessage([getWeatherToolCall], from: agentName);
+        var getWeatherToolCallResultMessage = new ToolCallResultMessage([getWeatherToolCallResult], from: agentName);
+        var getWeatherAggregateMessage = new ToolCallAggregateMessage(getWeatherToolCallMessage, getWeatherToolCallResultMessage, from: agentName);
+
+        var calculateTaxToolCall = new ToolCall(this.CalculateTaxAsyncFunctionContract.Name, "{\"location\":\"Seattle\",\"income\":1000}");
+        var calculateTaxToolCallResult = new ToolCall(this.CalculateTaxAsyncFunctionContract.Name, "{\"location\":\"Seattle\",\"income\":1000}", "The tax in Seattle for income 1000 is 1000.");
+        var calculateTaxToolCallMessage = new ToolCallMessage([calculateTaxToolCall], from: agentName);
+        var calculateTaxToolCallResultMessage = new ToolCallResultMessage([calculateTaxToolCallResult], from: agentName);
+        var calculateTaxAggregateMessage = new ToolCallAggregateMessage(calculateTaxToolCallMessage, calculateTaxToolCallResultMessage, from: agentName);
+
+        var chatHistory = new List<IMessage>()
+        {
+            new TextMessage(Role.User, "What's the weather in Seattle", from: "user"),
+            getWeatherAggregateMessage,
+            new TextMessage(Role.User, "The weather in Seattle is sunny, now check the tax in seattle", from: "admin"),
+            calculateTaxAggregateMessage,
+            new TextMessage(Role.User, "what's the weather in Paris", from: "user"),
+            getWeatherAggregateMessage,
+            new TextMessage(Role.User, "The weather in Paris is sunny, now check the tax in Paris", from: "admin"),
+            calculateTaxAggregateMessage,
+            new TextMessage(Role.User, "what's the weather in New York", from: "user"),
+            getWeatherAggregateMessage,
+            new TextMessage(Role.User, "The weather in New York is sunny, now check the tax in New York", from: "admin"),
+            calculateTaxAggregateMessage,
+            new TextMessage(Role.User, "what's the weather in London", from: "user"),
+            getWeatherAggregateMessage,
+            new TextMessage(Role.User, "The weather in London is sunny, now check the tax in London", from: "admin"),
+        };
+
+        var agent = new OpenAIChatAgent(
+            chatClient: openaiClient.GetChatClient(deployName),
+            name: "assistant",
+            options: options)
+            .RegisterMessageConnector();
+
+        var res = await agent.GenerateReplyAsync(chatHistory, new GenerateReplyOptions
+        {
+            MaxToken = 1024,
+            Functions = [this.GetWeatherAsyncFunctionContract, this.CalculateTaxAsyncFunctionContract],
+        });
     }
 
     private OpenAIClient CreateOpenAIClientFromAzureOpenAI()
