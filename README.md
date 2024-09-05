@@ -3,7 +3,6 @@
 [![PyPI version](https://badge.fury.io/py/autogen.svg)](https://badge.fury.io/py/autogen)
 [![Build](https://github.com/autogen-ai/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/autogen-ai/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
-<!-- [![Downloads](https://static.pepy.tech/badge/pyautogen/month)](https://pepy.tech/project/pyautogen) -->
 [![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40Chi_Wang_)](https://x.com/Chi_Wang_)
 
