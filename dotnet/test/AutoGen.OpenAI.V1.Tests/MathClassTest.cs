@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.V1.Extension;
@@ -45,7 +46,11 @@ namespace AutoGen.OpenAI.V1.Tests
                 _output.WriteLine($"agent name: {agent.Name}");
                 foreach (var message in messages)
                 {
-                    _output.WriteLine(message.FormatMessage());
+                    if (message is IMessage<object> envelope)
+                    {
+                        var json = JsonSerializer.Serialize(envelope.Content, new JsonSerializerOptions { WriteIndented = true });
+                        _output.WriteLine(json);
+                    }
                 }
 
                 throw;
@@ -149,9 +154,9 @@ You create math question and ask student to answer it.
 Then you check if the answer is correct.
 If the answer is wrong, you ask student to fix it",
                 modelName: model)
-                .RegisterMessageConnector()
-                .RegisterStreamingMiddleware(functionCallMiddleware)
-                .RegisterMiddleware(Print);
+                .RegisterMiddleware(Print)
+                .RegisterMiddleware(new OpenAIChatRequestMessageConnector())
+                .RegisterMiddleware(functionCallMiddleware);
 
             return teacher;
         }
