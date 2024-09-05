@@ -8,7 +8,8 @@
 
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
 
-# AutoGen
+# [AutoGen](https://github.com/autogen-ai/autogen)
+
 [📚 Cite paper](#related-papers).
 <!-- <p align="center">
     <img src="https://github.com/autogen-ai/autogen/blob/main/website/static/img/flaml.svg"  width=200>
