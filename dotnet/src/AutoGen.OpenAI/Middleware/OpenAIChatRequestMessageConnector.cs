@@ -322,7 +322,10 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
         var toolCallParts = message.ToolCalls.Select((tc, i) => ChatToolCall.CreateFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
         var textContent = message.GetContent() ?? null;
-        var chatRequestMessage = new AssistantChatMessage(toolCallParts, textContent) { ParticipantName = message.From };
+
+        // Don't set participant name for assistant when it is tool call
+        // fix https://github.com/microsoft/autogen/issues/3437
+        var chatRequestMessage = new AssistantChatMessage(toolCallParts, textContent);
 
         return [chatRequestMessage];
     }
