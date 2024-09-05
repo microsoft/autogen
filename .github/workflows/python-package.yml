@@ -43,14 +43,24 @@ jobs:
       # - name: Conda list
       #   shell: pwsh
       #   run: conda list
-      - name: Build
+      - name: Build autogen
         shell: pwsh
         run: |
           pip install twine
-          python setup.py sdist bdist_wheel
-      - name: Publish to PyPI
+          python setup.py sdist bdist_wheel --name "autogen"
+      - name: Publish autogen to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_USERNAME: ${{ secrets.AUTOGEN_PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.AUTOGEN_PYPI_PASSWORD }}
         shell: pwsh
-        run: twine upload dist/*
+        run: twine upload dist/autogen*
+      - name: Build pyautogen
+        shell: pwsh
+        run: |
+          python setup.py sdist bdist_wheel --name "pyautogen"
+      - name: Publish pyautogen to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYAUTOGEN_PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYAUTOGEN_PYPI_PASSWORD }}
+        shell: pwsh
+        run: twine upload dist/*pyautogen*
