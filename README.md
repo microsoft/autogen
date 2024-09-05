@@ -14,7 +14,7 @@
     <img src="https://github.com/autogen-ai/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: :fire: Sep 06, 2024: AutoGen now available as `autogen` on PyPI! We're excited to announce a more convenient package name for AutoGen: Starting with version 0.3.0, you can now install AutoGen using:
+:fire: :tada: Sep 06, 2024: AutoGen now available as `autogen` on PyPI! We're excited to announce a more convenient package name for AutoGen: Starting with version 0.3.0, you can now install AutoGen using:
 ```
 pip install autogen
 ```
