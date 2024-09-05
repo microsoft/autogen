@@ -19,7 +19,7 @@
 ```
 pip install autogen
 ```
-We extend our sincere gratitude to Simon Mackenzie for generously transferring the `autogen` package name to us.
+We extend our sincere gratitude to the original owner of `autogen` pypi package for generously transferring it to us.
 
 **Note:** The previous package name `pyautogen` will remain valid for a transitional period. However, we encourage users to switch to the new, more intuitive `autogen` package name, as `pyautogen` will eventually be deprecated.
 
