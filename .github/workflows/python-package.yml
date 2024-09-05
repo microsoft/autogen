@@ -48,7 +48,7 @@ jobs:
         run: |
           pip install twine
           python setup.py sdist bdist_wheel --name "autogen"
-       - name: Build pyautogen
+      - name: Build pyautogen
         shell: pwsh
         run: |
           pip install twine
