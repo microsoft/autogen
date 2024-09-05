@@ -22,7 +22,7 @@ We extend our sincere gratitude to Simon Mackenzie for generously transferring t
 
 **Note:** The previous package name `pyautogen` will remain valid for a transitional period. However, we encourage users to switch to the new, more intuitive `autogen` package name, as `pyautogen` will eventually be deprecated.
 
-📄 **License Change**
+📄 **License Change:**
 With this new release and package name, we are officially switching to the Apache 2.0 license. This enhances our commitment to open-source collaboration while providing additional protections for contributors and users alike.
 
 :fire: Aug 24, 2024: A new organization [autogen-ai](https://github.com/autogen-ai) is created to host the development of AutoGen and related projects with open governance. We invite collaborators from all organizations and individuals.
