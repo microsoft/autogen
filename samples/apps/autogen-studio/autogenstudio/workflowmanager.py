@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Coroutine
+from typing import Any, Coroutine, Dict, List, Optional, Union
 
 import autogen
 
@@ -56,7 +56,7 @@ class AutoWorkflowManager:
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
             a_human_input_function (Optional[callable]): Async coroutine to prompt the user for input.
-            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -121,7 +121,9 @@ class AutoWorkflowManager:
         else:
             raise ValueError("Sender and receiver agents are not defined in the workflow configuration.")
 
-    async def _a_run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
+    async def _a_run_workflow(
+        self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False
+    ) -> None:
         """
         Asynchronously runs the workflow based on the provided configuration.
 
@@ -278,7 +280,6 @@ class AutoWorkflowManager:
                 await self.a_send_message_function(socket_msg.dict())
             elif self.send_message_function:  # send over the message queue
                 self.send_message_function(socket_msg.dict())
-
 
     def _populate_history(self, history: List[Message]) -> None:
         """
@@ -514,7 +515,9 @@ class AutoWorkflowManager:
         )
         return result_message
 
-    async def a_run(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> Message:
+    async def a_run(
+        self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False
+    ) -> Message:
         """
         Asynchronously initiates a chat between the sender and receiver agents with an initial message
         and an option to clear the history.
@@ -546,6 +549,7 @@ class AutoWorkflowManager:
         )
         return result_message
 
+
 class SequentialWorkflowManager:
     """
     WorkflowManager class to load agents from a provided configuration and run a chat between them sequentially.
@@ -574,7 +578,7 @@ class SequentialWorkflowManager:
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
             a_human_input_function (Optional[callable]): Async coroutine to prompt for human input.
-            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -666,7 +670,9 @@ class SequentialWorkflowManager:
             print(f"======== end of sequence === {i}============")
             self.agent_history.extend(result.meta.get("messages", []))
 
-    async def _a_run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
+    async def _a_run_workflow(
+        self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False
+    ) -> None:
         """
         Asynchronously runs the workflow based on the provided configuration.
 
@@ -798,7 +804,9 @@ class SequentialWorkflowManager:
         )
         return result_message
 
-    async def a_run(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> Message:
+    async def a_run(
+        self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False
+    ) -> Message:
         """
         Asynchronously initiates a chat between the sender and receiver agents with an initial message
         and an option to clear the history.
@@ -855,7 +863,7 @@ class WorkflowManager:
             send_message_function (Optional[callable]): The function to send messages.
             a_send_message_function (Optional[Coroutine]): Async coroutine to send messages.
             a_human_input_function (Optional[callable]): Async coroutine to prompt for user input.
-            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.  
+            a_human_input_timeout (Optional[int]): A time (in seconds) to wait for user input.  After this time, the a_human_input_function will timeout and end the conversation.
             connection_id (Optional[str]): The connection identifier.
         """
         if isinstance(workflow, str):
@@ -896,13 +904,16 @@ class WorkflowManager:
 
 
 class ExtendedConversableAgent(autogen.ConversableAgent):
-    def __init__(self,
-                 message_processor=None,
-                 a_message_processor=None,
-                 a_human_input_function=None,
-                 a_human_input_timeout: Optional[int] = 60,
-                 connection_id=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        message_processor=None,
+        a_message_processor=None,
+        a_human_input_function=None,
+        a_human_input_timeout: Optional[int] = 60,
+        connection_id=None,
+        *args,
+        **kwargs,
+    ):
 
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
@@ -924,11 +935,11 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         super().receive(message, sender, request_reply, silent)
 
     async def a_receive(
-            self,
-            message: Union[Dict, str],
-            sender: autogen.Agent,
-            request_reply: Optional[bool] = None,
-            silent: Optional[bool] = False,
+        self,
+        message: Union[Dict, str],
+        sender: autogen.Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
     ) -> None:
         if self.a_message_processor:
             await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
@@ -936,14 +947,13 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
             self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
         await super().a_receive(message, sender, request_reply, silent)
 
-
     # Strangely, when the response from a_get_human_input == "" (empty string) the libs call into the
     # sync version.  I guess that's "just in case", but it's odd because replying with an empty string
     # is the intended way for the user to signal the underlying libs that they want to system to go forward
-    # with whatever funciton call, tool call or AI genrated response the request calls for.  Oh well,
+    # with whatever function call, tool call or AI generated response the request calls for.  Oh well,
     # Que Sera Sera.
     def get_human_input(self, prompt: str) -> str:
-        if self.a_human_input_response == None:
+        if self.a_human_input_response is None:
             return super().get_human_input(prompt)
         else:
             response = self.a_human_input_response
@@ -952,11 +962,7 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
 
     async def a_get_human_input(self, prompt: str) -> str:
         if self.message_processor and self.a_human_input_function:
-            message_dict = {
-                "content": prompt,
-                "role": "system",
-                "type": "user-input-request"
-            }
+            message_dict = {"content": prompt, "role": "system", "type": "user-input-request"}
 
             message_payload = {
                 "recipient": self.name,
@@ -965,7 +971,7 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "system",
                 "connection_id": self.connection_id,
-                "message_type": "agent_message"
+                "message_type": "agent_message",
             }
 
             socket_msg = SocketMessage(
@@ -973,7 +979,9 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
                 data=message_payload,
                 connection_id=self.connection_id,
             )
-            self.a_human_input_response = await self.a_human_input_function(socket_msg.dict(), self.a_human_input_timeout)
+            self.a_human_input_response = await self.a_human_input_function(
+                socket_msg.dict(), self.a_human_input_timeout
+            )
             return self.a_human_input_response
 
         else:
@@ -982,13 +990,16 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
 
 
 class ExtendedGroupChatManager(autogen.GroupChatManager):
-    def __init__(self,
-                 message_processor=None,
-                 a_message_processor=None,
-                 a_human_input_function=None,
-                 a_human_input_timeout: Optional[int] = 60,
-                 connection_id=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        message_processor=None,
+        a_message_processor=None,
+        a_human_input_function=None,
+        a_human_input_timeout: Optional[int] = 60,
+        connection_id=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
         self.a_message_processor = a_message_processor
@@ -1009,11 +1020,11 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         super().receive(message, sender, request_reply, silent)
 
     async def a_receive(
-            self,
-            message: Union[Dict, str],
-            sender: autogen.Agent,
-            request_reply: Optional[bool] = None,
-            silent: Optional[bool] = False,
+        self,
+        message: Union[Dict, str],
+        sender: autogen.Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
     ) -> None:
         if self.a_message_processor:
             await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
@@ -1021,9 +1032,8 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
             self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
         await super().a_receive(message, sender, request_reply, silent)
 
-
     def get_human_input(self, prompt: str) -> str:
-        if self.a_human_input_response == None:
+        if self.a_human_input_response is None:
             return super().get_human_input(prompt)
         else:
             response = self.a_human_input_response
@@ -1032,11 +1042,7 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
 
     async def a_get_human_input(self, prompt: str) -> str:
         if self.message_processor and self.a_human_input_function:
-            message_dict = {
-                "content": prompt,
-                "role": "system",
-                "type": "user-input-request"
-            }
+            message_dict = {"content": prompt, "role": "system", "type": "user-input-request"}
 
             message_payload = {
                 "recipient": self.name,
@@ -1045,7 +1051,7 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "system",
                 "connection_id": self.connection_id,
-                "message_type": "agent_message"
+                "message_type": "agent_message",
             }
             socket_msg = SocketMessage(
                 type="user_input_request",

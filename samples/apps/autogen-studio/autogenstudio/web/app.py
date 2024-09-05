@@ -13,13 +13,13 @@ from loguru import logger
 from openai import OpenAIError
 
 from ..chatmanager import AutoGenChatManager
-from ..websocket_connection_manager import WebSocketConnectionManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
+from ..websocket_connection_manager import WebSocketConnectionManager
 
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
@@ -67,12 +67,15 @@ dbmanager = DBManager(engine_uri=database_engine_uri)
 
 HUMAN_INPUT_TIMEOUT_SECONDS = 180
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
-    managers["chat"] = AutoGenChatManager(message_queue=message_queue,
-                                          websocket_manager=websocket_manager,
-                                          human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS)
+    managers["chat"] = AutoGenChatManager(
+        message_queue=message_queue,
+        websocket_manager=websocket_manager,
+        human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS,
+    )
     dbmanager.create_db_and_tables()
 
     yield

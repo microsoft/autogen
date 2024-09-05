@@ -2,11 +2,13 @@ import os
 from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union
+
 from loguru import logger
 
 from .datamodel import Message
-from .workflowmanager import WorkflowManager
 from .websocket_connection_manager import WebSocketConnectionManager
+from .workflowmanager import WorkflowManager
+
 
 class AutoGenChatManager:
     """
@@ -14,10 +16,9 @@ class AutoGenChatManager:
     using an automated workflow configuration and message queue.
     """
 
-    def __init__(self,
-                 message_queue: Queue,
-                 websocket_manager: WebSocketConnectionManager = None,
-                 human_input_timeout: int = 180) -> None:
+    def __init__(
+        self, message_queue: Queue, websocket_manager: WebSocketConnectionManager = None, human_input_timeout: int = 180
+    ) -> None:
         """
         Initializes the AutoGenChatManager with a message queue.
 
@@ -69,7 +70,6 @@ class AutoGenChatManager:
                     result = await self.websocket_manager.get_input(prompt, connection, timeout)
                     return result
                 except Exception as e:
-                    traceback.print_exc()
                     return f"Error: {e}\nTERMINATE"
             else:
                 logger.info(
@@ -170,7 +170,9 @@ class AutoGenChatManager:
         )
 
         message_text = message.content.strip()
-        result_message: Message = await workflow_manager.a_run(message=f"{message_text}", clear_history=False, history=history)
+        result_message: Message = await workflow_manager.a_run(
+            message=f"{message_text}", clear_history=False, history=history
+        )
 
         result_message.user_id = message.user_id
         result_message.session_id = message.session_id

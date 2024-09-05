@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
+
 class WebSocketConnectionManager:
     """
     Manages WebSocket connections including sending, broadcasting, and managing the lifecycle of connections.
@@ -76,7 +77,7 @@ class WebSocketConnectionManager:
             print(f"Error in sending message: {str(e)}", message)
             await self.disconnect(websocket)
 
-    async def get_input(self, prompt: Union[Dict, str], websocket: WebSocket, timeout: int=60) -> str:
+    async def get_input(self, prompt: Union[Dict, str], websocket: WebSocket, timeout: int = 60) -> str:
         """
         Sends a JSON message to a single WebSocket connection as a prompt for user input.
         Waits on a user response or until the given timeout elapses.
