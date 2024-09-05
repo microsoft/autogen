@@ -10,9 +10,7 @@ IMPORT_ERROR: Optional[Exception] = None
 try:
     import llmlingua
 except ImportError:
-    IMPORT_ERROR = ImportError(
-        "LLMLingua is not installed. Please install it with `pip install pyautogen[long-context]`"
-    )
+    IMPORT_ERROR = ImportError("LLMLingua is not installed. Please install it with `pip install autogen[long-context]`")
     PromptCompressor = object
 else:
     from llmlingua import PromptCompressor

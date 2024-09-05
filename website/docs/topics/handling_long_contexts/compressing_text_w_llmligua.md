@@ -5,10 +5,10 @@ Text compression is crucial for optimizing interactions with LLMs, especially wh
 This guide introduces LLMLingua's integration with AutoGen, demonstrating how to use this tool to compress text, thereby optimizing the usage of LLMs for various applications.
 
 :::info Requirements
-Install `pyautogen[long-context]` and `PyMuPDF`:
+Install `autogen[long-context]` and `PyMuPDF`:
 
 ```bash
-pip install "pyautogen[long-context]" PyMuPDF
+pip install "autogen[long-context]" PyMuPDF
 ```
 
 For more information, please refer to the [installation guide](/docs/installation/).

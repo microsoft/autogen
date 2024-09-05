@@ -13,10 +13,10 @@ Why do we need to handle long contexts? The problem arises from several constrai
 The `TransformMessages` capability is designed to modify incoming messages before they are processed by the LLM agent. This can include limiting the number of messages, truncating messages to meet token limits, and more.
 
 :::info Requirements
-Install `pyautogen`:
+Install `autogen`:
 
 ```bash
-pip install pyautogen
+pip install autogen
 ```
 
 For more information, please refer to the [installation guide](/docs/installation/).
