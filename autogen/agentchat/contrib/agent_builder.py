@@ -103,7 +103,7 @@ Answer only YES or NO.
 """
 
     AGENT_NAME_PROMPT = """# Your task
-Suggest no more then {max_agents} experts with their name according to the following user requirement.
+Suggest no more than {max_agents} experts with their name according to the following user requirement.
 
 ## User requirement
 {task}
