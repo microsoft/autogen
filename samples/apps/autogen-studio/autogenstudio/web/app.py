@@ -21,6 +21,11 @@ from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, 
 from ..version import VERSION
 from ..websocket_connection_manager import WebSocketConnectionManager
 
+# These should both probably be handled by some "settings" UI page.
+HUMAN_INPUT_TIMEOUT_SECONDS = 300
+USE_TOOL_CALLS = True
+
+
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
 # Create thread-safe queue for messages between api thread and autogen threads
@@ -65,9 +70,6 @@ ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
-HUMAN_INPUT_TIMEOUT_SECONDS = 180
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
@@ -75,6 +77,7 @@ async def lifespan(app: FastAPI):
         message_queue=message_queue,
         websocket_manager=websocket_manager,
         human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS,
+        use_tool_calls=USE_TOOL_CALLS,
     )
     dbmanager.create_db_and_tables()
 

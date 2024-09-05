@@ -17,7 +17,11 @@ class AutoGenChatManager:
     """
 
     def __init__(
-        self, message_queue: Queue, websocket_manager: WebSocketConnectionManager = None, human_input_timeout: int = 180
+        self,
+        message_queue: Queue,
+        websocket_manager: WebSocketConnectionManager = None,
+        human_input_timeout: int = 180,
+        use_tool_calls = False,
     ) -> None:
         """
         Initializes the AutoGenChatManager with a message queue.
@@ -27,6 +31,7 @@ class AutoGenChatManager:
         self.message_queue = message_queue
         self.websocket_manager = websocket_manager
         self.a_human_input_timeout = human_input_timeout
+        self.use_tool_calls = use_tool_calls
 
     def send(self, message: dict) -> None:
         """
@@ -116,6 +121,7 @@ class AutoGenChatManager:
             send_message_function=self.send,
             a_send_message_function=self.a_send,
             connection_id=connection_id,
+            use_tool_calls=self.use_tool_calls,
         )
 
         message_text = message.content.strip()
@@ -167,6 +173,7 @@ class AutoGenChatManager:
             a_human_input_function=self.a_prompt_for_input,
             a_human_input_timeout=self.a_human_input_timeout,
             connection_id=connection_id,
+            use_tool_calls=self.use_tool_calls,
         )
 
         message_text = message.content.strip()
