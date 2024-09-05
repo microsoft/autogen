@@ -48,17 +48,16 @@ jobs:
         run: |
           pip install twine
           python setup.py sdist bdist_wheel --name "autogen"
-      - name: Build pyautogen
-        shell: pwsh
-        run: |
-          pip install twine
-          python setup.py sdist bdist_wheel --name "pyautogen"
       - name: Publish autogen to PyPI
         env:
           TWINE_USERNAME: ${{ secrets.AUTOGEN_PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.AUTOGEN_PYPI_PASSWORD }}
         shell: pwsh
-        run: twine upload dist/*autogen*
+        run: twine upload dist/autogen*
+      - name: Build pyautogen
+        shell: pwsh
+        run: |
+          python setup.py sdist bdist_wheel --name "pyautogen"
       - name: Publish pyautogen to PyPI
         env:
           TWINE_USERNAME: ${{ secrets.PYAUTOGEN_PYPI_USERNAME }}
