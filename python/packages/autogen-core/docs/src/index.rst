@@ -72,5 +72,5 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     :caption: Other
     :hidden:
 
-    contributing
-
+    other/faqs
+    other/contributing
