@@ -21,8 +21,8 @@ Today we are releasing AutoGenBench - a tool for evaluating AutoGen agents and w
 
 AutoGenBench is a standalone command line tool, installable from PyPI, which handles downloading, configuring, running, and reporting supported benchmarks. AutoGenBench works best when run alongside Docker, since it uses Docker to isolate tests from one another.
 
-- See the [AutoGenBench README](https://github.com/microsoft/autogen/blob/main/samples/tools/autogenbench/README.md) for information on installation and running benchmarks.
-- See the [AutoGenBench CONTRIBUTING guide](https://github.com/microsoft/autogen/blob/main/samples/tools/autogenbench/CONTRIBUTING.md) for information on developing or contributing benchmark datasets.
+- See the [AutoGenBench README](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/tools/autogenbench/README.md) for information on installation and running benchmarks.
+- See the [AutoGenBench CONTRIBUTING guide](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/tools/autogenbench/CONTRIBUTING.md) for information on developing or contributing benchmark datasets.
 
 ### Quick Start
 
@@ -125,7 +125,7 @@ Please do not cite these values in academic work without first inspecting and ve
 
 From this output we can see the results of the three separate repetitions of each task, and final summary statistics of each run. In this case, the results were generated via GPT-4 (as defined in the OAI_CONFIG_LIST that was provided), and used the `TwoAgents` template. **It is important to remember that AutoGenBench evaluates _specific_ end-to-end configurations of agents (as opposed to evaluating a model or cognitive framework more generally).**
 
-Finally, complete execution traces and logs can be found in the `Results` folder. See the [AutoGenBench README](https://github.com/microsoft/autogen/blob/main/samples/tools/autogenbench/README.md) for more details about command-line options and output formats. Each of these commands also offers extensive in-line help via:
+Finally, complete execution traces and logs can be found in the `Results` folder. See the [AutoGenBench README](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/tools/autogenbench/README.md) for more details about command-line options and output formats. Each of these commands also offers extensive in-line help via:
 
 - `autogenbench --help`
 - `autogenbench clone --help`
@@ -145,4 +145,4 @@ For an up to date tracking of our work items on this project, please see [AutoGe
 
 ## Call for Participation
 
-Finally, we want to end this blog post with an open call for contributions. AutoGenBench is still nascent, and has much opportunity for improvement. New benchmarks are constantly being published, and will need to be added. Everyone may have their own distinct set of metrics that they care most about optimizing, and these metrics should be onboarded. To this end, we welcome any and all contributions to this corner of the AutoGen project. If contributing is something that interests you, please see the [contributor’s guide](https://github.com/microsoft/autogen/blob/main/samples/tools/autogenbench/CONTRIBUTING.md) and join our [Discord](https://aka.ms/autogen-dc) discussion in the [#autogenbench](https://discord.com/channels/1153072414184452236/1199851779328847902) channel!
+Finally, we want to end this blog post with an open call for contributions. AutoGenBench is still nascent, and has much opportunity for improvement. New benchmarks are constantly being published, and will need to be added. Everyone may have their own distinct set of metrics that they care most about optimizing, and these metrics should be onboarded. To this end, we welcome any and all contributions to this corner of the AutoGen project. If contributing is something that interests you, please see the [contributor’s guide](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/tools/autogenbench/CONTRIBUTING.md) and join our [Discord](https://aka.ms/autogen-dc) discussion in the [#autogenbench](https://discord.com/channels/1153072414184452236/1199851779328847902) channel!

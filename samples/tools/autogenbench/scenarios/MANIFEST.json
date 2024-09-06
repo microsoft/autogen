@@ -1,8 +1,0 @@
-{
-    "scenarios": {
-        "HumanEval": "HumanEval/",
-        "GAIA": "GAIA/",
-        "AutoGPT": "AutoGPT/",
-        "MATH": "MATH/"
-    }
-}

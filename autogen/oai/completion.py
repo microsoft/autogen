@@ -580,7 +580,7 @@ class Completion(openai_Completion):
             tune.ExperimentAnalysis: The tuning results.
         """
         logger.warning(
-            "tuning via Completion.tune is deprecated in pyautogen v0.2 and openai>=1. "
+            "tuning via Completion.tune is deprecated in autogen, pyautogen v0.2 and openai>=1. "
             "flaml.tune supports tuning more generically."
         )
         if ERROR:
@@ -792,7 +792,7 @@ class Completion(openai_Completion):
                 - `pass_filter`: whether the response passes the filter function. None if no filter is provided.
         """
         logger.warning(
-            "Completion.create is deprecated in pyautogen v0.2 and openai>=1. "
+            "Completion.create is deprecated in autogen, pyautogen v0.2 and openai>=1. "
             "The new openai requires initiating a client for inference. "
             "Please refer to https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification"
         )
@@ -1183,7 +1183,7 @@ class Completion(openai_Completion):
             reset_counter (bool): whether to reset the counter of the number of API calls.
         """
         logger.warning(
-            "logging via Completion.start_logging is deprecated in pyautogen v0.2. "
+            "logging via Completion.start_logging is deprecated in autogen and pyautogen v0.2. "
             "logging via OpenAIWrapper will be added back in a future release."
         )
         if ERROR:

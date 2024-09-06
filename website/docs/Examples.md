@@ -40,7 +40,7 @@ Links to notebook examples:
 
 - Automated Continual Learning from New Data - [View Notebook](/docs/notebooks/agentchat_stream)
 <!-- - [OptiGuide](https://github.com/microsoft/optiguide) - Coding, Tool Using, Safeguarding & Question Answering for Supply Chain Optimization -->
-- [AutoAnny](https://github.com/autogen-ai/autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
+- [AutoAnny](https://github.com/autogen-ai/build-with-autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
 
 ### Tool Use
 
@@ -59,7 +59,7 @@ Links to notebook examples:
 
 ### Human Involvement
 
-- Simple example in ChatGPT style [View example](https://github.com/autogen-ai/autogen/blob/main/samples/simple_chat.py)
+- Simple example in ChatGPT style [View example](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/simple_chat.py)
 - Auto Code Generation, Execution, Debugging and **Human Feedback** - [View Notebook](/docs/notebooks/agentchat_human_feedback)
 - Automated Task Solving with GPT-4 + **Multiple Human Users** - [View Notebook](/docs/notebooks/agentchat_two_users)
 - Agent Chat with **Async Human Inputs** - [View Notebook](/docs/notebooks/async_human_input)

@@ -29,15 +29,6 @@ These configurations can be used with Codespaces and locally.
 - **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
 
-### studio
-
-- **Purpose**: Tailored for AutoGen project developers, this Dockerfile, i.e., `./studio/Dockerfile`, includes tools and configurations aiding in development and contribution.
-- **Usage**: Recommended for developers who are contributing to the AutoGen project.
-- **Building the Image**: Run `docker build -f studio/Dockerfile -t autogen_studio_img .`.
-- **Using with Codespaces**: `Code > Codespaces > Click on ...> New with options > Choose "studio" as devcontainer configuration`.
-- **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://autogen-ai.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
-
-
 ## Customizing Dockerfiles
 
 Feel free to modify these Dockerfiles for your specific project needs. Here are some common customizations:
@@ -49,7 +40,7 @@ Feel free to modify these Dockerfiles for your specific project needs. Here are 
 - **Setting Environment Variables**: Add environment variables using the `ENV` command for any application-specific configurations. We have prestaged the line needed to inject your OpenAI_key into the docker environment as a environmental variable. Others can be staged in the same way. Just uncomment the line.
     `# ENV OPENAI_API_KEY="{OpenAI-API-Key}"` to `ENV OPENAI_API_KEY="{OpenAI-API-Key}"`
 - **Need a less "Advanced" Autogen build**: If the `./full/Dockerfile` is to much but you need more than advanced then update this line in the Dockerfile file.
-`RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra` to install just what you need. `RUN pip install pyautogen[retrievechat,blendsearch] autogenra`
+`RUN pip install autogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra` to install just what you need. `RUN pip install autogen[retrievechat,blendsearch] autogenra`
 - **Can't Dev without your favorite CLI tool**: if you need particular OS tools to be installed in your Docker container you can add those packages here right after the sudo for the `./base/Dockerfile` and `./full/Dockerfile` files. In the example below we are installing net-tools and vim to the environment.
 
     ```code
