@@ -3,7 +3,7 @@
 ## Migrating to 0.2
 
 openai v1 is a total rewrite of the library with many breaking changes. For example, the inference requires instantiating a client, instead of using a global class method.
-Therefore, some changes are required for users of `pyautogen<0.2`.
+Therefore, some changes are required for users of `autogen<0.2`.
 
 - `api_base` -> `base_url`, `request_timeout` -> `timeout` in `llm_config` and `config_list`. `max_retry_period` and `retry_wait_time` are deprecated. `max_retries` can be set for each client.
 - MathChat is unsupported until it is tested in future release.
