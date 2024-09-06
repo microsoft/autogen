@@ -22,6 +22,7 @@ permissions:
   # contents: read
   # deployments: read
 jobs:
+<<<<<<< HEAD
   GraphRagUnitTest:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -61,6 +62,8 @@ jobs:
           file: ./coverage.xml
           flags: unittests
 
+=======
+>>>>>>> 53214b0f72 (Implement FalkorGraphQueryEngine)
   GraphRagIntegrationTest-FalkorDB-Ubuntu:
     runs-on: ubuntu-latest
     strategy:
@@ -90,6 +93,14 @@ jobs:
         run: |
           echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
       - name: Coverage
+<<<<<<< HEAD
+=======
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+>>>>>>> 53214b0f72 (Implement FalkorGraphQueryEngine)
         run: |
           pip install pytest-cov>=5
           pytest test/agentchat/contrib/graph_rag/test_falkor_graph_rag.py --skip-openai

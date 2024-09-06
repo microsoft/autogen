@@ -6,7 +6,7 @@ from graphrag_sdk import KnowledgeGraph, Source
 from graphrag_sdk.schema import Schema
 
 from .document import Document
-from .graph_query_engine import GraphQueryEngine, GraphStoreQueryResult
+from .graph_query_engine import GraphStoreQueryResult
 
 
 class FalkorGraphQueryResult(GraphStoreQueryResult):
