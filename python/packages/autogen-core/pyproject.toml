@@ -19,8 +19,8 @@ dependencies = [
     "aiohttp",
     "typing-extensions",
     "pydantic>=1.10,<3",
-    "grpcio~=1.66.0",
-    "protobuf~=5.27.0",
+    "grpcio~=1.62.0",
+    "protobuf~=4.25.1",
     "tiktoken",
     "azure-core"
 ]

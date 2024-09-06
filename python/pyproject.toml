@@ -15,7 +15,7 @@ dev-dependencies = [
     "pytest_mock",
     "poethepoet",
     "packaging",
-    "grpcio-tools~=1.66.0",
+    "grpcio-tools~=1.62.0",
     "mypy-protobuf",
     "cookiecutter"
 ]
