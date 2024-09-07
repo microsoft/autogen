@@ -1,0 +1,10 @@
+# -*- tcl -*-
+# Tcl package index file, version 1.1
+#
+if {[package vsatisfies [package provide Tcl] 9.0-]} {
+    package ifneeded sqlite3 @PACKAGE_VERSION@ \
+	    [list load [file join $dir @PKG_LIB_FILE9@] sqlite3]
+} else {
+    package ifneeded sqlite3 @PACKAGE_VERSION@ \
+	    [list load [file join $dir @PKG_LIB_FILE8@] sqlite3]
+}
