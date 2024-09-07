@@ -21,11 +21,40 @@
 
 # AutoGen
 
-[📚 Cite paper](#related-papers).
-<!-- <p align="center">
-    <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
-    <br>
-</p> -->
+
+
+
+AutoGen is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AutoGen aims to streamline the development and research of agentic AI, much like PyTorch does for Deep Learning. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
+
+> [!IMPORTANT]
+> *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the official repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
+>
+> -_Maintainers (Sept 6th, 2024)_
+
+
+![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
+
+- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+- It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+  the number of agents, and agent conversation topology.
+- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
+- AutoGen provides [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
+
+AutoGen was created out of collaborative [research](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
+
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
+  <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
+    ↑ Back to Top ↑
+  </a>
+</p>
+
+
+
+## News
+<details>
+
+<summary>Expand</summary>
+
 :fire: June 6, 2024: WIRED publishes a new article on AutoGen: [Chatbot Teamwork Makes the AI Dream Work](https://www.wired.com/story/chatbot-teamwork-makes-the-ai-dream-work/) based on interview with [Adam Fourney](https://github.com/afourney).
 
 :fire: June 4th, 2024: Microsoft Research Forum publishes new update and video on [AutoGen and Complex Tasks](https://www.microsoft.com/en-us/research/video/autogen-update-complex-tasks-and-agents/) presented by [Adam Fourney](https://github.com/afourney).
@@ -38,7 +67,7 @@
 
 :fire: May 11, 2024: [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation](https://openreview.net/pdf?id=uAjxFFing2) received the best paper award at the [ICLR 2024 LLM Agents Workshop](https://llmagents.github.io/).
 
-:fire: Apr 26, 2024: [AutoGen.NET](https://microsoft.github.io/autogen-for-net/) is available for .NET developers!
+:fire: Apr 26, 2024: [AutoGen.NET](https://microsoft.github.io/autogen-for-net/) is available for .NET developers! Thanks [XiaoYun Zhang](https://www.linkedin.com/in/xiaoyun-zhang-1b531013a/)
 
 :fire: Apr 17, 2024: Andrew Ng cited AutoGen in [The Batch newsletter](https://www.deeplearning.ai/the-batch/issue-245/) and [What's next for AI agentic workflows](https://youtu.be/sal78ACtGTc?si=JduUzN_1kDnMq0vF) at Sequoia Capital's AI Ascent (Mar 26).
 
@@ -73,33 +102,7 @@
 
 :fire: FLAML supports Code-First AutoML & Tuning – Private Preview in [Microsoft Fabric Data Science](https://learn.microsoft.com/en-us/fabric/data-science/). -->
 
-<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
-  <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
-    ↑ Back to Top ↑
-  </a>
-</p>
-
-## What is AutoGen
-
-AutoGen is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AutoGen aims to streamline the development and research of agentic AI, much like PyTorch does for Deep Learning. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
-
-We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
-
-![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
-
-- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
-- It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
-  the number of agents, and agent conversation topology.
-- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
-- AutoGen provides [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
-
-AutoGen is created out of collaborative [research](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
-
-<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
-  <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
-    ↑ Back to Top ↑
-  </a>
-</p>
+</details>
 
 ## Roadmaps
 
