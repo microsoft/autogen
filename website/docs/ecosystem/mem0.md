@@ -1,4 +1,4 @@
-# Mem0: Empower your AI applications with long-term memory and personalization
+# Mem0: Long-Term Memory and Personalization for Agents
 
 <img src="https://github.com/mem0ai/mem0/blob/main/docs/images/mem0-bg.png?raw=true" alt="Mem0 logo" style="width: 40%;" />
 
@@ -103,7 +103,6 @@ conversation = [
         "role": "user",
         "content": "Seeing horizontal lines on our tv. TV model: Sony - 77\" Class BRAVIA XR A80K OLED 4K UHD Smart Google TV"
     },
-    ........
 ]
 
 memory.add(messages=conversation, user_id="customer_service_bot")
