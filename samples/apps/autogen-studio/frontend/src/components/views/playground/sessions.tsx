@@ -379,6 +379,7 @@ const SessionsView = ({}: any) => {
         <WorkflowSelector
           workflow={workflow}
           setWorkflow={setWorkflow}
+          workflow_id={selectedSession?.workflow_id}
           disabled={sessionExists}
         />
         <div className="my-2 text-xs"> Session Name </div>
