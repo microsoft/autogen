@@ -51,6 +51,10 @@ const SessionsView = ({}: any) => {
   const session = useConfigStore((state) => state.session);
   const setSession = useConfigStore((state) => state.setSession);
 
+  const isSessionButtonsDisabled = useConfigStore(
+    (state) => state.areSessionButtonsDisabled
+  );
+
   const deleteSession = (session: IChatSession) => {
     setError(null);
     setLoading(true);
@@ -284,7 +288,9 @@ const SessionsView = ({}: any) => {
     return (
       <div
         key={"sessionsrow" + index}
-        className="group relative  mb-2 pb-1  border-b border-dashed "
+        className={`group relative  mb-2 pb-1  border-b border-dashed ${
+          isSessionButtonsDisabled ? "opacity-50 pointer-events-none" : ""
+        }`}
       >
         {items.length > 0 && (
           <div className="  absolute right-2 top-2 group-hover:opacity-100 opacity-0 ">
@@ -295,8 +301,10 @@ const SessionsView = ({}: any) => {
           className={`rounded p-2 cursor-pointer ${rowClass}`}
           role="button"
           onClick={() => {
-            setSession(data);
             // setWorkflowConfig(data.flow_config);
+            if (!isSessionButtonsDisabled) {
+              setSession(data);
+            }
           }}
         >
           <div className="text-xs mt-1">
@@ -424,7 +432,7 @@ const SessionsView = ({}: any) => {
         <div className="flex gap-x-2">
           <div className="flex-1"></div>
           <LaunchButton
-            className="text-sm p-2 px-3"
+            className={`text-sm p-2 px-3 ${isSessionButtonsDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => {
               setSelectedSession(sampleSession);
               setNewSessionModalVisible(true);
