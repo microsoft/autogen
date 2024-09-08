@@ -1,4 +1,4 @@
-# Mem0: Agent's Long-term Memory and Personalization
+# Mem0: Long-Term Memory and Personalization for Agents
 
 <img src="https://github.com/mem0ai/mem0/blob/main/docs/images/mem0-bg.png?raw=true" alt="Mem0 logo" style="width: 40%;" />
 
