@@ -432,6 +432,7 @@ def test_is_valid_api_key():
     assert is_valid_api_key("sk-aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
     assert is_valid_api_key("sk-aut0--gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
     assert not is_valid_api_key("sk-aut0-gen--asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
+    assert not is_valid_api_key("sk-abc_def-ghijklmnopqrstuvwxyz0123456789ABCDEFGH")
     assert not is_valid_api_key("sk--aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
     assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
