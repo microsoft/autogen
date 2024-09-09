@@ -139,7 +139,7 @@
       {
         "Role": "assistant",
         "Content": [],
-        "Name": "assistant",
+        "Name": null,
         "TooCall": [
           {
             "Type": "Function",
@@ -184,7 +184,7 @@
       {
         "Role": "assistant",
         "Content": [],
-        "Name": "assistant",
+        "Name": null,
         "TooCall": [
           {
             "Type": "Function",
@@ -210,7 +210,7 @@
       {
         "Role": "assistant",
         "Content": [],
-        "Name": "assistant",
+        "Name": null,
         "TooCall": [
           {
             "Type": "Function",
