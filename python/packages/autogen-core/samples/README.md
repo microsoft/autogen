@@ -50,6 +50,7 @@ We provide interactive demos that showcase applications that can be built using 
 - [`software_consultancy.py`](demos/software_consultancy.py): a demonstration of multi-agent interaction using
     the group chat pattern.
 - [`chest_game.py`](demos/chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
+- [`slow_human_in_loop.py`](demos/slow_human_in_loop.py): an example showing human-in-the-loop which waits for human input before making the tool call.
 
 ## Bring Your Own Agent
 

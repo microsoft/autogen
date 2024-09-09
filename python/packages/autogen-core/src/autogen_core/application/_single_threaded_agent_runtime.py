@@ -386,7 +386,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                             future.set_exception(MessageDroppedException())
                             return
-
                         message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_send(message_envelope))
@@ -407,7 +406,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                             # TODO log message dropped
                             return
-
                         message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_publish(message_envelope))
@@ -425,7 +423,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                             future.set_exception(MessageDroppedException())
                             return
-
                         message_envelope.message = temp_message
                 self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_response(message_envelope))

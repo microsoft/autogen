@@ -15,8 +15,8 @@ class BufferedChatMemory(ChatMemory[Message]):
 
     """
 
-    def __init__(self, buffer_size: int) -> None:
-        self._messages: List[Message] = []
+    def __init__(self, buffer_size: int, initial_messages: List[Message] | None = None) -> None:
+        self._messages: List[Message] = initial_messages or []
         self._buffer_size = buffer_size
 
     async def add_message(self, message: Message) -> None:

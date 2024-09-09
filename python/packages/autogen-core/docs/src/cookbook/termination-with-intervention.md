@@ -62,7 +62,7 @@ class TerminationHandler(DefaultInterventionHandler):
         return self.termination_value is not None
 ```
 
-Finally, we add this handler to the runtime and use it to detect termination and cease running the `process_next` loop once it has encountered termination.
+Finally, we add this handler to the runtime and use it to detect termination and stop the runtime when the termination message is received.
 
 ```python
 async def main() -> None:
@@ -73,8 +73,8 @@ async def main() -> None:
 
     # Add Agents and kick off task
 
-    while not termination_handler.has_terminated:
-        await runtime.process_next()
+    runtime.start()
+    await runtime.stop_when(lambda: termination_handler.has_terminated)
 
     print(termination_handler.termination_value)
 
