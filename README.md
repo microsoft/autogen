@@ -21,6 +21,6 @@ Your best place to start is the [Documentation](https://microsoft.github.io/agne
 
 - [Documentation](http://microsoft.github.io/agnext) for the core concepts and Python API references (.NET coming).
 - [Python README](https://github.com/microsoft/agnext/tree/main/python/README.md) for how to develop and test the Python package.
-- [Python Examples](https://github.com/microsoft/agnext/tree/main/python/samples) for examples of how to use the Python package and multi-agent patterns.
+- [Python Examples](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core/samples) for examples of how to use the Python package and multi-agent patterns.
 - [.NET](https://github.com/microsoft/agnext/tree/main/dotnet)
 - [.NET Examples](https://github.com/microsoft/agnext/tree/main/dotnet/samples)
