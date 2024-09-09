@@ -9,7 +9,7 @@ from autogen_core.base import (
     AgentId,
     AgentInstantiationContext,
     MessageContext,
-    try_get_known_codecs_for_type,
+    try_get_known_serializers_for_type,
 )
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
@@ -61,9 +61,9 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = WorkerAgentRuntime()
-    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(Greeting))
-    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(AskToGreet))
-    MESSAGE_TYPE_REGISTRY.add_codec(try_get_known_codecs_for_type(Feedback))
+    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Greeting))
+    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(AskToGreet))
+    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Feedback))
     await runtime.start(host_connection_string="localhost:50051")
 
     await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])

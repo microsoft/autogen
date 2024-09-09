@@ -17,10 +17,10 @@ from ._message_handler_context import MessageHandlerContext
 from ._serialization import (
     JSON_DATA_CONTENT_TYPE,
     MESSAGE_TYPE_REGISTRY,
-    MessageCodec,
+    MessageSerializer,
     Serialization,
     UnknownPayload,
-    try_get_known_codecs_for_type,
+    try_get_known_serializers_for_type,
 )
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
@@ -45,7 +45,7 @@ __all__ = [
     "SubscriptionInstantiationContext",
     "MessageHandlerContext",
     "JSON_DATA_CONTENT_TYPE",
-    "MessageCodec",
-    "try_get_known_codecs_for_type",
+    "MessageSerializer",
+    "try_get_known_serializers_for_type",
     "UnknownPayload",
 ]

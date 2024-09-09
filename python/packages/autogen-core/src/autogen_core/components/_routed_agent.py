@@ -17,7 +17,7 @@ from typing import (
     runtime_checkable,
 )
 
-from autogen_core.base import try_get_known_codecs_for_type
+from autogen_core.base import try_get_known_serializers_for_type
 
 from ..base import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
 from ..base.exceptions import CantHandleException
@@ -146,8 +146,8 @@ class RoutedAgent(BaseAgent):
                         self._handlers[target_type] = message_handler
 
         for message_type in self._handlers.keys():
-            for codec in try_get_known_codecs_for_type(message_type):
-                MESSAGE_TYPE_REGISTRY.add_codec(codec)
+            for serializer in try_get_known_serializers_for_type(message_type):
+                MESSAGE_TYPE_REGISTRY.add_serializer(serializer)
 
         super().__init__(description)
 

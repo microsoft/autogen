@@ -7,7 +7,7 @@ from pydantic import BaseModel
 T = TypeVar("T")
 
 
-class MessageCodec(Protocol[T]):
+class MessageSerializer(Protocol[T]):
     @property
     def data_content_type(self) -> str: ...
 
@@ -45,7 +45,7 @@ DataclassT = TypeVar("DataclassT", bound=IsDataclass)
 JSON_DATA_CONTENT_TYPE = "application/json"
 
 
-class DataclassJsonMessageCodec(MessageCodec[IsDataclass]):
+class DataclassJsonMessageSerializer(MessageSerializer[IsDataclass]):
     def __init__(self, cls: type[IsDataclass]) -> None:
         self.cls = cls
 
@@ -71,7 +71,7 @@ class DataclassJsonMessageCodec(MessageCodec[IsDataclass]):
 PydanticT = TypeVar("PydanticT", bound=BaseModel)
 
 
-class PydanticJsonMessageCodec(MessageCodec[PydanticT]):
+class PydanticJsonMessageSerializer(MessageSerializer[PydanticT]):
     def __init__(self, cls: type[PydanticT]) -> None:
         self.cls = cls
 
@@ -108,46 +108,46 @@ def _type_name(cls: type[Any] | Any) -> str:
 V = TypeVar("V")
 
 
-def try_get_known_codecs_for_type(cls: type[Any]) -> list[MessageCodec[Any]]:
+def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer[Any]]:
     # TODO: Support protobuf types
-    codecs: List[MessageCodec[Any]] = []
+    serializers: List[MessageSerializer[Any]] = []
     if issubclass(cls, BaseModel):
-        codecs.append(PydanticJsonMessageCodec(cls))
+        serializers.append(PydanticJsonMessageSerializer(cls))
     elif isinstance(cls, IsDataclass):
-        codecs.append(DataclassJsonMessageCodec(cls))
+        serializers.append(DataclassJsonMessageSerializer(cls))
 
-    return codecs
+    return serializers
 
 
 class Serialization:
     def __init__(self) -> None:
-        # type_name, data_content_type -> codec
-        self._codecs: dict[tuple[str, str], MessageCodec[Any]] = {}
+        # type_name, data_content_type -> serializer
+        self._serializers: dict[tuple[str, str], MessageSerializer[Any]] = {}
 
-    def add_codec(self, codec: MessageCodec[Any] | List[MessageCodec[Any]]) -> None:
-        if isinstance(codec, list):
-            for c in codec:
-                self.add_codec(c)
+    def add_serializer(self, serializer: MessageSerializer[Any] | List[MessageSerializer[Any]]) -> None:
+        if isinstance(serializer, list):
+            for c in serializer:
+                self.add_serializer(c)
             return
 
-        self._codecs[(codec.type_name, codec.data_content_type)] = codec
+        self._serializers[(serializer.type_name, serializer.data_content_type)] = serializer
 
     def deserialize(self, payload: bytes, *, type_name: str, data_content_type: str) -> Any:
-        codec = self._codecs.get((type_name, data_content_type))
-        if codec is None:
+        serializer = self._serializers.get((type_name, data_content_type))
+        if serializer is None:
             return UnknownPayload(type_name, data_content_type, payload)
 
-        return codec.deserialize(payload)
+        return serializer.deserialize(payload)
 
     def serialize(self, message: Any, *, type_name: str, data_content_type: str) -> bytes:
-        codec = self._codecs.get((type_name, data_content_type))
-        if codec is None:
+        serializer = self._serializers.get((type_name, data_content_type))
+        if serializer is None:
             raise ValueError(f"Unknown type {type_name} with content type {data_content_type}")
 
-        return codec.serialize(message)
+        return serializer.serialize(message)
 
     def is_registered(self, type_name: str, data_content_type: str) -> bool:
-        return (type_name, data_content_type) in self._codecs
+        return (type_name, data_content_type) in self._serializers
 
     def type_name(self, message: Any) -> str:
         return _type_name(message)
