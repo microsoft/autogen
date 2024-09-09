@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -93,7 +93,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: uv sync
+      - run: uv sync --locked
         working-directory: ./python
       - name: Run task
         run: |
