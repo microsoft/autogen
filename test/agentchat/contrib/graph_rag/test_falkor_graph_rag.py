@@ -30,6 +30,12 @@ reason = "do not run on MacOS or windows OR dependency is not installed OR " + r
     reason=reason,
 )
 def test_falkor_db_query_engine():
+    """
+    Test Falkor DB Query Engine.
+    1. create a test Falkor DB Query Engine with a schema.
+    2. Initialize it with an input txt file.
+    3. Query it with a question and verify the result contains the critical information.
+    """
     # Arrange
     test_schema = Schema()
     actor = test_schema.add_entity("Actor").add_attribute("name", str, unique=True)
@@ -50,3 +56,9 @@ def test_falkor_db_query_engine():
 
     # Assert
     assert query_result.answer.find("Keanu Reeves") >= 0
+    for message in query_result.messages:
+        if isinstance(message, dict) and "role" in message and message["role"] == "user":
+            assert "content" in message
+            assert message["content"] is question
+            return
+    pytest.fail("Question not found in message history.")

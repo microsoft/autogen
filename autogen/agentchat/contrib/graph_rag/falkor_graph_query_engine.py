@@ -14,6 +14,9 @@ class FalkorGraphQueryResult(GraphStoreQueryResult):
 
 
 class FalkorGraphQueryEngine:
+    """
+    This is a wrapper for Falkor DB KnowledgeGraph.
+    """
 
     def __init__(
         self,
@@ -29,6 +32,9 @@ class FalkorGraphQueryEngine:
         self.knowledge_graph = KnowledgeGraph(name, host, port, username, password, model, schema)
 
     def init_db(self, input_doc: List[Document] | None):
+        """
+        Build the knowledge graph with input documents.
+        """
         sources = []
         for doc in input_doc:
             if os.path.exists(doc.path_or_url):
@@ -41,6 +47,17 @@ class FalkorGraphQueryEngine:
         raise NotImplementedError("This method is not supported by Falkor DB SDK yet.")
 
     def query(self, question: str, n_results: int = 1, **kwargs) -> FalkorGraphQueryResult:
+        """
+        Query the knowledage graph with a question and optional message history.
+
+        Args:
+        question: a human input question.
+        n_results: number of returned results.
+        kwargs:
+            messages: a list of message history.
+
+        Returns: FalkorGraphQueryResult
+        """
         messages = kwargs.pop("messages", [])
         answer, messages = self.knowledge_graph.ask(question, messages)
         return FalkorGraphQueryResult(answer=answer, results=[], messages=messages)
