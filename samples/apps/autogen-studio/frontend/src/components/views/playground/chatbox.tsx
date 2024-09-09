@@ -62,6 +62,10 @@ const ChatBox = ({
   const [workflow, setWorkflow] = React.useState<IWorkflow | null>(null);
 
   const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
+  const [awaitingUserInput, setAwaitingUserInput] = React.useState(false); // New state for tracking user input
+  const setAreSessionButtonsDisabled = useConfigStore(
+    (state) => state.setAreSessionButtonsDisabled
+  );
 
   const MAX_RETRIES = 10;
   const RETRY_INTERVAL = 2000;
@@ -102,7 +106,7 @@ const ChatBox = ({
     try {
       meta = JSON.parse(message.meta);
     } catch (e) {
-      meta = message.meta;
+      meta = message?.meta;
     }
     const msg: IChatMessage = {
       text: message.content,
@@ -122,7 +126,6 @@ const ChatBox = ({
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
     wsMessages.current = initMsgs;
-    socketMsgs = [];
   }, [initMessages]);
 
   const promptButtons = examplePrompts.map((prompt, i) => {
@@ -141,7 +144,7 @@ const ChatBox = ({
     );
   });
 
-  const messageListView = messages?.map((message: IChatMessage, i: number) => {
+  const messageListView = messages && messages?.map((message: IChatMessage, i: number) => {
     const isUser = message.sender === "user";
     const css = isUser ? "bg-accent text-white  " : "bg-light";
     // console.log("message", message);
@@ -209,7 +212,7 @@ const ChatBox = ({
 
     return (
       <div
-        className={`align-right ${isUser ? "text-righpt" : ""}  mb-2 border-b`}
+        id={"message" + i} className={`align-right ${isUser ? "text-righpt" : ""}  mb-2 border-b`}
         key={"message" + i}
       >
         {" "}
@@ -294,10 +297,10 @@ const ChatBox = ({
     }, 500);
   }, [messages]);
 
-  const textAreaDefaultHeight = "50px";
+  const textAreaDefaultHeight = "64px";
   // clear text box if loading has just changed to false and there is no error
   React.useEffect(() => {
-    if (loading === false && textAreaInputRef.current) {
+    if ((awaitingUserInput || loading === false) && textAreaInputRef.current) {
       if (textAreaInputRef.current) {
         if (error === null || (error && error.status === false)) {
           textAreaInputRef.current.value = "";
@@ -372,6 +375,19 @@ const ChatBox = ({
             scrollChatBox(messageBoxInputRef);
           }, 200);
           // console.log("received message", data, socketMsgs.length);
+        } else if (data && data.type === "user_input_request") {
+          setAwaitingUserInput(true); // Set awaiting input state
+          textAreaInputRef.current.value = ""
+          textAreaInputRef.current.placeholder = data.data.message.content
+          const newsocketMessages = Object.assign([], socketMessages);
+          newsocketMessages.push(data.data);
+          setSocketMessages(newsocketMessages);
+          socketMsgs.push(data.data);
+          setTimeout(() => {
+            scrollChatBox(socketDivRef);
+            scrollChatBox(messageBoxInputRef);
+          }, 200);
+          ToastMessage.info(data.data.message)
         } else if (data && data.type === "agent_status") {
           // indicates a status message update
           const agentStatusSpan = document.getElementById("agentstatusspan");
@@ -380,6 +396,8 @@ const ChatBox = ({
           }
         } else if (data && data.type === "agent_response") {
           // indicates a final agent response
+          setAwaitingUserInput(false); // Set awaiting input state
+          setAreSessionButtonsDisabled(false);
           processAgentResponse(data.data);
         }
       };
@@ -408,11 +426,13 @@ const ChatBox = ({
       wsMessages.current.push(msg);
       setMessages(wsMessages.current);
       setLoading(false);
+      setAwaitingUserInput(false);
     } else {
       console.log("error", data);
       // setError(data);
       ToastMessage.error(data.message);
       setLoading(false);
+      setAwaitingUserInput(false);
     }
   };
 
@@ -442,6 +462,7 @@ const ChatBox = ({
 
   const runWorkflow = (query: string) => {
     setError(null);
+    setAreSessionButtonsDisabled(true);
     socketMsgs = [];
     let messageHolder = Object.assign([], messages);
 
@@ -519,6 +540,43 @@ const ChatBox = ({
     }
   };
 
+  const sendUserResponse = (userResponse: string) => {
+    setAwaitingUserInput(false);
+    setError(null);
+    setLoading(true);
+
+    textAreaInputRef.current.placeholder = "Write message here..."
+
+    const userMessage: IChatMessage = {
+      text: userResponse,
+      sender: "system",
+    };
+
+    const messagePayload: IMessage = {
+      role: "user",
+      content: userResponse,
+      user_id: user?.email || "",
+      session_id: session?.id,
+      workflow_id: session?.workflow_id,
+      connection_id: connectionId,
+    };
+
+    // check if socket connected,
+    if (wsClient.current && wsClient.current.readyState === 1) {
+      wsClient.current.send(
+        JSON.stringify({
+          connection_id: connectionId,
+          data: messagePayload,
+          type: "user_message",
+          session_id: session?.id,
+          workflow_id: session?.workflow_id,
+        })
+      );
+    } else {
+        console.err("websocket client error")
+    }
+  };
+
   const handleTextChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ): void => {
@@ -529,9 +587,14 @@ const ChatBox = ({
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ): void => {
     if (event.key === "Enter" && !event.shiftKey) {
-      if (textAreaInputRef.current && !loading) {
+      if (textAreaInputRef.current &&(awaitingUserInput || !loading)) {
         event.preventDefault();
-        runWorkflow(textAreaInputRef.current.value);
+        if (awaitingUserInput) {
+          sendUserResponse(textAreaInputRef.current.value); // New function call for sending user input
+          textAreaInputRef.current.value = "";
+        } else {
+          runWorkflow(textAreaInputRef.current.value);
+        }
       }
     }
   };
@@ -554,7 +617,7 @@ const ChatBox = ({
 
   const WorkflowView = ({ workflow }: { workflow: IWorkflow }) => {
     return (
-      <div className="text-xs cursor-pointer  inline-block">
+      <div id="workflow-view" className="text-xs cursor-pointer  inline-block">
         {" "}
         {workflow.name}
       </div>
@@ -563,11 +626,13 @@ const ChatBox = ({
 
   return (
     <div
+      id="chatbox-main"
       style={{ height: "calc(100vh - " + heightOffset + "px)" }}
       className="text-primary    relative   rounded  "
       ref={mainDivRef}
     >
       <div
+        id="workflow-name"
         style={{ zIndex: 100 }}
         className=" absolute right-3 bg-primary   rounded  text-secondary -top-6  p-2"
       >
@@ -576,17 +641,18 @@ const ChatBox = ({
       </div>
 
       <div
+        id="message-box"
         ref={messageBoxInputRef}
         className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
         style={{ minHeight: "30px", height: "calc(100vh - 310px)" }}
       >
-        <div className="scroll-gradient h-10">
+        <div id="scroll-gradient" className="scroll-gradient h-10">
           {" "}
           <span className="  inline-block h-6"></span>{" "}
         </div>
         <div className="flex-1  boder mt-4"></div>
         {!messages && messages !== null && (
-          <div className="w-full text-center boder mt-4">
+          <div id="loading-messages" className="w-full text-center boder mt-4">
             <div>
               {" "}
               <BounceLoader />
@@ -596,15 +662,15 @@ const ChatBox = ({
         )}
 
         {messages && messages?.length === 0 && (
-          <div className="ml-2 text-sm text-secondary ">
+          <div id="no-messages" className="ml-2 text-sm text-secondary ">
             <InformationCircleIcon className="inline-block h-6 mr-2" />
             No messages in the current session. Start a conversation to begin.
           </div>
         )}
-        <div className="ml-2"> {messageListView}</div>
 
-        {loading && (
-          <div className={` inline-flex gap-2 duration-300 `}>
+        <div id="message-list" className="ml-2"> {messageListView}</div>
+        {(loading || awaitingUserInput) && (
+          <div id="loading-bar" className={` inline-flex gap-2 duration-300 `}>
             <div className=""></div>
             <div className="font-semibold text-secondary text-sm w-16">
               AGENTS
@@ -632,6 +698,7 @@ const ChatBox = ({
 
               {socketMsgs.length > 0 && (
                 <div
+                  id="agent-messages"
                   ref={socketDivRef}
                   style={{
                     minHeight: "300px",
@@ -661,10 +728,11 @@ const ChatBox = ({
         )}
       </div>
       {editable && (
-        <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
+        <div id="input-area" className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
           <div
+            id="input-form"
             className={`rounded p-2 shadow-lg flex mb-1  gap-2 ${
-              loading ? " opacity-50 pointer-events-none" : ""
+              loading && !awaitingUserInput ? " opacity-50 pointer-events-none" : ""
             }`}
           >
             {/* <input className="flex-1 p-2 ring-2" /> */}
@@ -683,7 +751,7 @@ const ChatBox = ({
                 onChange={handleTextChange}
                 placeholder="Write message here..."
                 ref={textAreaInputRef}
-                className="flex items-center w-full resize-none text-gray-600 bg-white p-2 ring-2 rounded-sm pl-5 pr-16"
+                className="flex items-center w-full resize-none text-gray-600 bg-white p-2 ring-2 rounded-sm pl-5 pr-16 h-64"
                 style={{
                   maxHeight: "120px",
                   overflowY: "auto",
@@ -691,23 +759,28 @@ const ChatBox = ({
                 }}
               />
               <div
+                id="send-button"
                 role={"button"}
                 style={{ width: "45px", height: "35px" }}
                 title="Send message"
                 onClick={() => {
-                  if (textAreaInputRef.current && !loading) {
-                    runWorkflow(textAreaInputRef.current.value);
+                  if (textAreaInputRef.current && (awaitingUserInput || !loading)) {
+                    if (awaitingUserInput) {
+                      sendUserResponse(textAreaInputRef.current.value); // Use the new function for user input
+                    } else {
+                      runWorkflow(textAreaInputRef.current.value);
+                    }
                   }
                 }}
                 className="absolute right-3 bottom-2 bg-accent hover:brightness-75 transition duration-300 rounded cursor-pointer flex justify-center items-center"
               >
                 {" "}
-                {!loading && (
+                {(awaitingUserInput || !loading) && (
                   <div className="inline-block  ">
                     <PaperAirplaneIcon className="h-6 w-6 text-white " />{" "}
                   </div>
                 )}
-                {loading && (
+                {loading && !awaitingUserInput && (
                   <div className="inline-block   ">
                     <Cog6ToothIcon className="text-white animate-spin rounded-full h-6 w-6" />
                   </div>
@@ -728,15 +801,16 @@ const ChatBox = ({
             </div>
 
             <div
+              id="prompt-buttons"
               className={`mt-2 inline-flex gap-2 flex-wrap  ${
-                loading ? "brightness-75 pointer-events-none" : ""
+                (loading && !awaitingUserInput) ? "brightness-75 pointer-events-none" : ""
               }`}
             >
               {promptButtons}
             </div>
           </div>
           {error && !error.status && (
-            <div className="p-2   rounded mt-4 text-orange-500 text-sm">
+            <div id="error-message" className="p-2   rounded mt-4 text-orange-500 text-sm">
               {" "}
               <ExclamationTriangleIcon className="h-5 text-orange-500 inline-block mr-2" />{" "}
               {error.message}
