@@ -278,7 +278,7 @@ async def main() -> None:
     runtime.start()
     await runtime.publish_message(
         message=CodeWritingTask(
-            task="Write a function to find the directory with the largest number of files using multi-processing."
+            task="Write a program to implement depth first search for a tree. Also implement the tree structure."
         ),
         topic_id=DefaultTopicId(),
     )
