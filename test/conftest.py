@@ -4,7 +4,7 @@ skip_openai = False
 skip_redis = False
 skip_docker = False
 reason = "requested to skip"
-MOCK_OPEN_AI_API_KEY = "sk-mockopenaiAPIkeyinexpectedformatfortestingonly"  # ggignore
+MOCK_OPEN_AI_API_KEY = "sk-mockopenaiAPIkeyinexpectedformatfortestingonly"
 
 
 # Registers command-line options like '--skip-openai' and '--skip-redis' via pytest hook.
