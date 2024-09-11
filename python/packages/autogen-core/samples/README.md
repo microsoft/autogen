@@ -64,11 +64,6 @@ We provide examples on how to integrate other agents with the platform:
 ### Prerequisites
 
 First, you need a shell with AGNext and required dependencies installed.
-To do this, in the samples directory, run:
-
-```bash
-hatch shell
-```
 
 ### Using Azure OpenAI API
 
@@ -76,7 +71,7 @@ For Azure OpenAI API, you need to set the following environment variables:
 
 ```bash
 export OPENAI_API_TYPE=azure
-export AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
+export AZURE_OPENAI_API_ENDPOINT=your_azure_openai_endpoint
 export AZURE_OPENAI_API_VERSION=your_azure_openai_api_version
 ```
 
@@ -87,6 +82,12 @@ use API key authentication by setting the following environment variables:
 
 ```bash
 export AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+```
+
+This requires azure-identity installation:
+
+```bash
+pip install azure-identity
 ```
 
 ### Using OpenAI API
