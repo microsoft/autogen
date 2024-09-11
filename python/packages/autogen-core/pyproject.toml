@@ -22,7 +22,8 @@ dependencies = [
     "grpcio~=1.62.0",
     "protobuf~=4.25.1",
     "tiktoken",
-    "azure-core"
+    "azure-core",
+    "opentelemetry-api~=1.27.0"
 ]
 
 [tool.uv]
@@ -59,6 +60,7 @@ dev-dependencies = [
     "types-protobuf",
     "types-requests",
     "wikipedia",
+    "opentelemetry-sdk>=1.27.0",
 ]
 
 

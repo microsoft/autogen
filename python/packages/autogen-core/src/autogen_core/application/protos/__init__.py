@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         "AgentRpcAsyncStub",
         "AgentRpcStub",
         "Message",
-        "AgentId",
+        "AgentId"
     ]
 else:
     __all__ = ["RpcRequest", "RpcResponse", "Event", "RegisterAgentType", "AgentRpcStub", "Message", "AgentId"]

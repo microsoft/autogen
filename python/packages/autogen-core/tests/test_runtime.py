@@ -1,12 +1,25 @@
 import asyncio
+
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.components import TypeSubscription, DefaultTopicId, DefaultSubscription
-from autogen_core.base import AgentId, AgentInstantiationContext
-from autogen_core.base import TopicId
-from autogen_core.base import Subscription
-from autogen_core.base import SubscriptionInstantiationContext
+from autogen_core.base import (
+    AgentId,
+    AgentInstantiationContext,
+    Subscription,
+    SubscriptionInstantiationContext,
+    TopicId,
+)
+from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSubscription
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
+from test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
+
+test_exporter = TestExporter()
+
+@pytest.fixture
+def tracer_provider() -> TracerProvider:
+    test_exporter.clear()
+    return get_test_tracer_provider(test_exporter)
 
 
 @pytest.mark.asyncio
@@ -29,8 +42,8 @@ async def test_agent_names_must_be_unique() -> None:
 
 
 @pytest.mark.asyncio
-async def test_register_receives_publish() -> None:
-    runtime = SingleThreadedAgentRuntime()
+async def test_register_receives_publish(tracer_provider: TracerProvider) -> None:
+    runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
 
     await runtime.register("name", LoopbackAgent)
     runtime.start()
@@ -48,6 +61,11 @@ async def test_register_receives_publish() -> None:
     # Agent in other namespace should not have received the message
     other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(AgentId("name", key="other"), type=LoopbackAgent)
     assert other_long_running_agent.num_calls == 0
+
+    exported_spans = test_exporter.get_exported_spans()
+    assert len(exported_spans) == 3
+    span_names = [span.name for span in exported_spans]
+    assert span_names == ["autogen create default.(default)-T", "autogen process name.(default)-A", "autogen publish default.(default)-T"]
 
 
 @pytest.mark.asyncio
