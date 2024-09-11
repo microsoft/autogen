@@ -126,6 +126,7 @@ class LLMConfig(SQLModel, table=False):
 
 class ModelTypes(str, Enum):
     openai = "open_ai"
+    cerebras = "cerebras"
     google = "google"
     azure = "azure"
     anthropic = "anthropic"
