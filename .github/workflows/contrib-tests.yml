@@ -474,6 +474,46 @@ jobs:
           file: ./coverage.xml
           flags: unittests
 
+  CerebrasTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest-cov>=5
+      - name: Install packages and dependencies for Cerebras
+        run: |
+          pip install -e .[cerebras_cloud_sdk,test]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pytest test/oai/test_cerebras.py --skip-openai
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
   MistralTest:
     runs-on: ${{ matrix.os }}
     strategy:
