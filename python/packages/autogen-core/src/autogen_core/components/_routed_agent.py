@@ -6,6 +6,7 @@ from typing import (
     Callable,
     Coroutine,
     Dict,
+    List,
     Literal,
     Protocol,
     Sequence,
@@ -25,18 +26,21 @@ from ._type_helpers import AnyType, get_types
 
 logger = logging.getLogger("autogen_core")
 
-ReceivesT = TypeVar("ReceivesT", contravariant=True)
+ReceivesT = TypeVar("ReceivesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
 
 # TODO: Generic typevar bound binding U to agent type
 # Can't do because python doesnt support it
 
 
+# Pyright and mypy disagree on the variance of ReceivesT. Mypy thinks it should be contravariant here.
+# Revisit this later to see if we can remove the ignore.
 @runtime_checkable
-class MessageHandler(Protocol[ReceivesT, ProducesT]):
+class MessageHandler(Protocol[ReceivesT, ProducesT]):  # type: ignore
     target_types: Sequence[type]
     produces_types: Sequence[type]
     is_message_handler: Literal[True]
+    router: Callable[[ReceivesT, MessageContext], bool]
 
     async def __call__(self, message: ReceivesT, ctx: MessageContext) -> ProducesT: ...
 
@@ -55,6 +59,19 @@ def message_handler(
 def message_handler(
     func: None = None,
     *,
+    match: None = ...,
+    strict: bool = ...,
+) -> Callable[
+    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    MessageHandler[ReceivesT, ProducesT],
+]: ...
+
+
+@overload
+def message_handler(
+    func: None = None,
+    *,
+    match: Callable[[ReceivesT, MessageContext], bool],
     strict: bool = ...,
 ) -> Callable[
     [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
@@ -66,6 +83,7 @@ def message_handler(
     func: None | Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
     *,
     strict: bool = True,
+    match: None | Callable[[ReceivesT, MessageContext], bool] = None,
 ) -> (
     Callable[
         [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
@@ -118,6 +136,7 @@ def message_handler(
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
+        wrapper_handler.router = match or (lambda _message, _ctx: True)
 
         return wrapper_handler
 
@@ -134,16 +153,17 @@ class RoutedAgent(BaseAgent):
         # Self is already bound to the handlers
         self._handlers: Dict[
             Type[Any],
-            Callable[[Any, MessageContext], Coroutine[Any, Any, Any | None]],
+            List[MessageHandler[Any, Any]],
         ] = {}
 
+        # Iterate over all attributes in alphabetical order and find message handlers.
         for attr in dir(self):
             if callable(getattr(self, attr, None)):
                 handler = getattr(self, attr)
                 if hasattr(handler, "is_message_handler"):
                     message_handler = cast(MessageHandler[Any, Any], handler)
                     for target_type in message_handler.target_types:
-                        self._handlers[target_type] = message_handler
+                        self._handlers.setdefault(target_type, []).append(message_handler)
 
         for message_type in self._handlers.keys():
             for serializer in try_get_known_serializers_for_type(message_type):
@@ -153,11 +173,14 @@ class RoutedAgent(BaseAgent):
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
         key_type: Type[Any] = type(message)  # type: ignore
-        handler = self._handlers.get(key_type)  # type: ignore
-        if handler is not None:
-            return await handler(message, ctx)
-        else:
-            return await self.on_unhandled_message(message, ctx)  # type: ignore
+        handlers = self._handlers.get(key_type)  # type: ignore
+        if handlers is not None:
+            # Iterate over all handlers for this matching message type.
+            # Call the first handler whose router returns True and then return the result.
+            for h in handlers:
+                if h.router(message, ctx):
+                    return await h(message, ctx)
+        return await self.on_unhandled_message(message, ctx)  # type: ignore
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         logger.info(f"Unhandled message: {message}")

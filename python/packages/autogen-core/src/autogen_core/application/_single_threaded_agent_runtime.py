@@ -32,6 +32,10 @@ from ._helpers import SubscriptionManager, get_impl
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
 
+# We use a type parameter in some functions which shadows the built-in `type` function.
+# This is a workaround to avoid shadowing the built-in `type` function.
+type_func_alias = type
+
 
 @dataclass(kw_only=True)
 class PublishMessageEnvelope:
@@ -546,7 +550,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         agent_instance = await self._get_agent(id)
 
         if not isinstance(agent_instance, type):
-            raise TypeError(f"Agent with name {id.type} is not of type {type.__name__}")
+            raise TypeError(
+                f"Agent with name {id.type} is not of type {type.__name__}. It is of type {type_func_alias(agent_instance).__name__}"
+            )
 
         return agent_instance
 
