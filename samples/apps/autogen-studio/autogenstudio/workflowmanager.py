@@ -1027,9 +1027,9 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         silent: Optional[bool] = False,
     ) -> None:
         if self.a_message_processor:
-            await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+            await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         elif self.message_processor:
-            self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
+            self.message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         await super().a_receive(message, sender, request_reply, silent)
 
     def get_human_input(self, prompt: str) -> str:
