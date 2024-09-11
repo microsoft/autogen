@@ -13,6 +13,10 @@
       "description": "OpenAI model configuration"
     },
     {
+      "model": "gpt-4o-mini",
+      "description": "OpenAI gpt-4o-mini model configuration"
+    },
+    {
       "model": "TheBloke/zephyr-7B-alpha-AWQ",
       "api_key": "EMPTY",
       "base_url": "http://localhost:8000/v1",
