@@ -1,7 +1,7 @@
 # AutoGen Core
 
 - [Documentation](http://microsoft.github.io/agnext)
-- [Examples](https://github.com/microsoft/agnext/tree/main/python/samples)
+- [Examples](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core/samples)
 
 ## Package layering
 
