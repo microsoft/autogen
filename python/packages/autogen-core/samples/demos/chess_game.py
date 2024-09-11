@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentInstantiationContext, AgentRuntime
 from autogen_core.components import DefaultSubscription, DefaultTopicId
+from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import SystemMessage
 from autogen_core.components.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
@@ -21,7 +22,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from autogen_core.base import AgentId
 from common.agents._chat_completion_agent import ChatCompletionAgent
-from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
 from common.types import TextMessage
 from common.utils import get_chat_completion_client_from_envs
@@ -170,7 +170,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                     "Think about your strategy and call make_move(thinking, move) to make a move."
                 ),
             ],
-            memory=BufferedChatMemory(buffer_size=10),
+            model_context=BufferedChatCompletionContext(buffer_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=black_tools,
         ),
@@ -188,7 +188,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                     "Think about your strategy and call make_move(thinking, move) to make a move."
                 ),
             ],
-            memory=BufferedChatMemory(buffer_size=10),
+            model_context=BufferedChatCompletionContext(buffer_size=10),
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=white_tools,
         ),
@@ -200,12 +200,13 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         "ChessGame",
         lambda: GroupChatManager(
             description="A chess game between two agents.",
-            memory=BufferedChatMemory(buffer_size=10),
+            model_context=BufferedChatCompletionContext(buffer_size=10),
             participants=[
                 AgentId("PlayerWhite", AgentInstantiationContext.current_agent_id().key),
                 AgentId("PlayerBlack", AgentInstantiationContext.current_agent_id().key),
             ],  # white goes first
         ),
+        lambda: [DefaultSubscription()],
     )
 
 

@@ -24,23 +24,22 @@ slow external system that the agent needs to interact with.
 """
 
 import asyncio
+import datetime
 import json
 import os
 import sys
-import datetime
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.base.intervention import DefaultInterventionHandler
-from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
-from autogen_core.components import FunctionCall
+from autogen_core.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
+from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
     SystemMessage,
     UserMessage,
 )
@@ -49,7 +48,6 @@ from pydantic import BaseModel, Field
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from common.memory import BufferedChatMemory
 from common.types import TextMessage
 from common.utils import get_chat_completion_client_from_envs
 
@@ -95,24 +93,24 @@ class SlowUserProxyAgent(RoutedAgent):
         description: str,
     ) -> None:
         super().__init__(description)
-        self._memory = BufferedChatMemory(buffer_size=5)
+        self._model_context = BufferedChatCompletionContext(buffer_size=5)
         self._name = name
 
     @message_handler
     async def handle_message(self, message: AssistantTextMessage, ctx: MessageContext) -> None:
-        await self._memory.add_message(message)
+        await self._model_context.add_message(AssistantMessage(content=message.content, source=message.source))
         await self.publish_message(
             GetSlowUserMessage(content=message.content), topic_id=DefaultTopicId("scheduling_assistant_conversation")
         )
 
     def save_state(self) -> Mapping[str, Any]:
         state_to_save = {
-            "memory": self._memory.save_state(),
+            "memory": self._model_context.save_state(),
         }
         return state_to_save
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._memory.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
+        self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
 
 
 class ScheduleMeetingInput(BaseModel):
@@ -148,8 +146,11 @@ class SchedulingAssistantAgent(RoutedAgent):
         initial_message: AssistantTextMessage | None = None,
     ) -> None:
         super().__init__(description)
-        self._memory = BufferedChatMemory(
-            buffer_size=5, initial_messages=[initial_message] if initial_message else None
+        self._model_context = BufferedChatCompletionContext(
+            buffer_size=5,
+            initial_messages=[UserMessage(content=initial_message.content, source=initial_message.source)]
+            if initial_message
+            else None,
         )
         self._name = name
         self._model_client = model_client
@@ -164,20 +165,12 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
 
     @message_handler
     async def handle_message(self, message: UserTextMessage, ctx: MessageContext) -> None:
-        await self._memory.add_message(message)
-        llm_messages: List[LLMMessage] = []
-        memory_messages = await self._memory.get_messages()
-        for m in memory_messages:
-            assert isinstance(m, TextMessage), f"Expected TextMessage, but got {
-                type(m)}"
-            if m.source == self.metadata["type"]:
-                llm_messages.append(AssistantMessage(content=m.content, source=self.metadata["type"]))
-            else:
-                llm_messages.append(UserMessage(content=m.content, source=m.source))
-        llm_messages.append(UserMessage(content=message.content, source=message.source))
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
         tools = [ScheduleMeetingTool()]
-        response = await self._model_client.create(self._system_messages + llm_messages, tools=tools)
+        response = await self._model_client.create(
+            self._system_messages + (await self._model_context.get_messages()), tools=tools
+        )
 
         if isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
             for call in response.content:
@@ -194,17 +187,17 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
 
         assert isinstance(response.content, str)
         speech = AssistantTextMessage(content=response.content, source=self.metadata["type"])
-        await self._memory.add_message(speech)
+        await self._model_context.add_message(AssistantMessage(content=response.content, source=self.metadata["type"]))
 
         await self.publish_message(speech, topic_id=DefaultTopicId("scheduling_assistant_conversation"))
 
     def save_state(self) -> Mapping[str, Any]:
         return {
-            "memory": self._memory.save_state(),
+            "memory": self._model_context.save_state(),
         }
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._memory.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
+        self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
 
 
 class NeedsUserInputHandler(DefaultInterventionHandler):

@@ -1,13 +1,12 @@
 from typing import Any, List, Mapping
 
-from autogen_core.components.memory import ChatMemory
-from autogen_core.components.models import FunctionExecutionResultMessage
+from .._types import FunctionCall
+from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
+from ._chat_completion_context import ChatCompletionContext
 
-from ..types import FunctionCallMessage, Message, TextMessage
 
-
-class HeadAndTailChatMemory(ChatMemory[Message]):
-    """A chat memory that keeps a view of the first n and last m messages,
+class HeadAndTailChatCompletionContext(ChatCompletionContext):
+    """A chat completion context that keeps a view of the first n and last m messages,
     where n is the head size and m is the tail size. The head and tail sizes
     are set at initialization.
 
@@ -17,19 +16,24 @@ class HeadAndTailChatMemory(ChatMemory[Message]):
     """
 
     def __init__(self, head_size: int, tail_size: int) -> None:
-        self._messages: List[Message] = []
+        self._messages: List[LLMMessage] = []
         self._head_size = head_size
         self._tail_size = tail_size
 
-    async def add_message(self, message: Message) -> None:
+    async def add_message(self, message: LLMMessage) -> None:
         """Add a message to the memory."""
         self._messages.append(message)
 
-    async def get_messages(self) -> List[Message]:
+    async def get_messages(self) -> List[LLMMessage]:
         """Get at most `head_size` recent messages and `tail_size` oldest messages."""
         head_messages = self._messages[: self._head_size]
         # Handle the last message is a function call message.
-        if head_messages and isinstance(head_messages[-1], FunctionCallMessage):
+        if (
+            head_messages
+            and isinstance(head_messages[-1], AssistantMessage)
+            and isinstance(head_messages[-1].content, list)
+            and all(isinstance(item, FunctionCall) for item in head_messages[-1].content)
+        ):
             # Remove the last message from the head.
             head_messages = head_messages[:-1]
 
@@ -45,7 +49,7 @@ class HeadAndTailChatMemory(ChatMemory[Message]):
             # return all messages.
             return self._messages
 
-        placeholder_messages = [TextMessage(content=f"Skipped {num_skipped} messages.", source="System")]
+        placeholder_messages = [UserMessage(content=f"Skipped {num_skipped} messages.", source="System")]
         return head_messages + placeholder_messages + tail_messages
 
     async def clear(self) -> None:

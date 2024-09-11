@@ -8,7 +8,8 @@ from autogen_core.components import (
     RoutedAgent,
     message_handler,
 )
-from autogen_core.components.memory import ChatMemory
+from autogen_core.components.model_context import ChatCompletionContext
+from autogen_core.components.models import AssistantMessage, UserMessage
 
 from ..types import (
     Message,
@@ -25,7 +26,8 @@ class ImageGenerationAgent(RoutedAgent):
 
     Args:
         description (str): The description of the agent.
-        memory (ChatMemory[Message]): The memory to store and retrieve messages.
+        model_context (ChatCompletionContext): The context manager for storing
+            and retrieving ChatCompletion messages.
         client (openai.AsyncClient): The client to use for the OpenAI API.
         model (Literal["dall-e-2", "dall-e-3"], optional): The DALL-E model to use. Defaults to "dall-e-2".
     """
@@ -33,23 +35,23 @@ class ImageGenerationAgent(RoutedAgent):
     def __init__(
         self,
         description: str,
-        memory: ChatMemory[Message],
+        model_context: ChatCompletionContext,
         client: openai.AsyncClient,
         model: Literal["dall-e-2", "dall-e-3"] = "dall-e-2",
     ):
         super().__init__(description)
         self._client = client
         self._model = model
-        self._memory = memory
+        self._model_context = model_context
 
     @message_handler
     async def on_text_message(self, message: TextMessage, ctx: MessageContext) -> None:
         """Handle a text message. This method adds the message to the memory."""
-        await self._memory.add_message(message)
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
     @message_handler
     async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
-        await self._memory.clear()
+        await self._model_context.clear()
 
     @message_handler
     async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
@@ -61,14 +63,14 @@ class ImageGenerationAgent(RoutedAgent):
         await self.publish_message(response, topic_id=DefaultTopicId())
 
     async def _generate_response(self, cancellation_token: CancellationToken) -> MultiModalMessage:
-        messages = await self._memory.get_messages()
+        messages = await self._model_context.get_messages()
         if len(messages) == 0:
             return MultiModalMessage(
                 content=["I need more information to generate an image."], source=self.metadata["type"]
             )
         prompt = ""
         for m in messages:
-            assert isinstance(m, TextMessage)
+            assert isinstance(m.content, str)
             prompt += m.content + "\n"
         prompt.strip()
         response = await self._client.images.generate(model=self._model, prompt=prompt, response_format="b64_json")

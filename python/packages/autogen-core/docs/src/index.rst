@@ -53,7 +53,6 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     cookbook/type-routed-agent
     cookbook/azure-openai-with-aad-auth
     cookbook/termination-with-intervention
-    cookbook/buffered-memory
     cookbook/extracting-results-with-an-agent
     cookbook/openai-assistant-agent
     cookbook/langgraph-agent

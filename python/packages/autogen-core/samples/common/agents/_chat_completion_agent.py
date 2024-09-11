@@ -9,12 +9,14 @@ from autogen_core.components import (
     RoutedAgent,
     message_handler,
 )
-from autogen_core.components.memory import ChatMemory
+from autogen_core.components.model_context import ChatCompletionContext
 from autogen_core.components.models import (
+    AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     SystemMessage,
+    UserMessage,
 )
 from autogen_core.components.tools import Tool
 
@@ -30,7 +32,6 @@ from ..types import (
     ToolApprovalRequest,
     ToolApprovalResponse,
 )
-from ..utils import convert_messages_to_llm_messages
 
 
 class ChatCompletionAgent(RoutedAgent):
@@ -41,7 +42,8 @@ class ChatCompletionAgent(RoutedAgent):
         description (str): The description of the agent.
         system_messages (List[SystemMessage]): The system messages to use for
             the ChatCompletion API.
-        memory (ChatMemory[Message]): The memory to store and retrieve messages.
+        model_context (ChatCompletionContext): The context manager for storing
+            and retrieving ChatCompletion messages.
         model_client (ChatCompletionClient): The client to use for the
             ChatCompletion API.
         tools (Sequence[Tool], optional): The tools used by the agent. Defaults
@@ -61,7 +63,7 @@ class ChatCompletionAgent(RoutedAgent):
         self,
         description: str,
         system_messages: List[SystemMessage],
-        memory: ChatMemory[Message],
+        model_context: ChatCompletionContext,
         model_client: ChatCompletionClient,
         tools: Sequence[Tool] = [],
         tool_approver: AgentId | None = None,
@@ -70,7 +72,7 @@ class ChatCompletionAgent(RoutedAgent):
         self._description = description
         self._system_messages = system_messages
         self._client = model_client
-        self._memory = memory
+        self._model_context = model_context
         self._tools = tools
         self._tool_approver = tool_approver
 
@@ -79,20 +81,20 @@ class ChatCompletionAgent(RoutedAgent):
         """Handle a text message. This method adds the message to the memory and
         does not generate any message."""
         # Add a user message.
-        await self._memory.add_message(message)
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
     @message_handler()
     async def on_multi_modal_message(self, message: MultiModalMessage, ctx: MessageContext) -> None:
         """Handle a multimodal message. This method adds the message to the memory
         and does not generate any message."""
         # Add a user message.
-        await self._memory.add_message(message)
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
     @message_handler()
     async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method clears the memory."""
         # Reset the chat messages.
-        await self._memory.clear()
+        await self._model_context.clear()
 
     @message_handler()
     async def on_respond_now(self, message: RespondNow, ctx: MessageContext) -> TextMessage | FunctionCallMessage:
@@ -122,9 +124,6 @@ class ChatCompletionAgent(RoutedAgent):
         returns the results."""
         if len(self._tools) == 0:
             raise ValueError("No tools available")
-
-        # Add a tool call message.
-        await self._memory.add_message(message)
 
         # Execute the tool calls.
         results: List[FunctionExecutionResult] = []
@@ -160,9 +159,6 @@ class ChatCompletionAgent(RoutedAgent):
         # Create a tool call result message.
         tool_call_result_msg = FunctionExecutionResultMessage(content=results)
 
-        # Add tool call result message.
-        await self._memory.add_message(tool_call_result_msg)
-
         # Return the results.
         return tool_call_result_msg
 
@@ -172,12 +168,13 @@ class ChatCompletionAgent(RoutedAgent):
         ctx: MessageContext,
     ) -> TextMessage | FunctionCallMessage:
         # Get a response from the model.
-        hisorical_messages = await self._memory.get_messages()
         response = await self._client.create(
-            self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["type"]),
+            self._system_messages + (await self._model_context.get_messages()),
             tools=self._tools,
             json_output=response_format == ResponseFormat.json_object,
         )
+        # Add the response to the chat messages context.
+        await self._model_context.add_message(AssistantMessage(content=response.content, source=self.metadata["type"]))
 
         # If the agent has function executor, and the response is a list of
         # tool calls, iterate with itself until we get a response that is not a
@@ -193,12 +190,17 @@ class ChatCompletionAgent(RoutedAgent):
                 recipient=self.id,
                 cancellation_token=ctx.cancellation_token,
             )
+            if not isinstance(response, FunctionExecutionResultMessage):
+                raise RuntimeError(f"Expect FunctionExecutionResultMessage but got {response}.")
+            await self._model_context.add_message(response)
             # Make an assistant message from the response.
-            hisorical_messages = await self._memory.get_messages()
             response = await self._client.create(
-                self._system_messages + convert_messages_to_llm_messages(hisorical_messages, self.metadata["type"]),
+                self._system_messages + (await self._model_context.get_messages()),
                 tools=self._tools,
                 json_output=response_format == ResponseFormat.json_object,
+            )
+            await self._model_context.add_message(
+                AssistantMessage(content=response.content, source=self.metadata["type"])
             )
 
         final_response: Message
@@ -210,9 +212,6 @@ class ChatCompletionAgent(RoutedAgent):
             final_response = FunctionCallMessage(content=response.content, source=self.metadata["type"])
         else:
             raise ValueError(f"Unexpected response: {response.content}")
-
-        # Add the response to the chat messages.
-        await self._memory.add_message(final_response)
 
         return final_response
 
@@ -253,10 +252,10 @@ class ChatCompletionAgent(RoutedAgent):
 
     def save_state(self) -> Mapping[str, Any]:
         return {
-            "memory": self._memory.save_state(),
+            "memory": self._model_context.save_state(),
             "system_messages": self._system_messages,
         }
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._memory.load_state(state["memory"])
+        self._model_context.load_state(state["memory"])
         self._system_messages = state["system_messages"]

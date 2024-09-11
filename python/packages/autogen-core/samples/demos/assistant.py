@@ -13,7 +13,8 @@ import aiofiles
 import openai
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentRuntime, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components.model_context import BufferedChatCompletionContext
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
@@ -24,7 +25,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from autogen_core.base import AgentInstantiationContext
 from common.agents import OpenAIAssistantAgent
-from common.memory import BufferedChatMemory
 from common.patterns._group_chat_manager import GroupChatManager
 from common.types import PublishNow, TextMessage
 
@@ -189,6 +189,7 @@ async def assistant_chat(runtime: AgentRuntime) -> str:
             thread_id=thread.id,
             assistant_event_handler_factory=lambda: EventHandler(),
         ),
+        lambda: [DefaultSubscription()],
     )
 
     await runtime.register(
@@ -199,18 +200,20 @@ async def assistant_chat(runtime: AgentRuntime) -> str:
             thread_id=thread.id,
             vector_store_id=vector_store.id,
         ),
+        lambda: [DefaultSubscription()],
     )
     # Create a group chat manager to facilitate a turn-based conversation.
     await runtime.register(
         "GroupChatManager",
         lambda: GroupChatManager(
             description="A group chat manager.",
-            memory=BufferedChatMemory(buffer_size=10),
+            model_context=BufferedChatCompletionContext(buffer_size=10),
             participants=[
                 AgentId("Assistant", AgentInstantiationContext.current_agent_id().key),
                 AgentId("User", AgentInstantiationContext.current_agent_id().key),
             ],
         ),
+        lambda: [DefaultSubscription()],
     )
     return "User"
 

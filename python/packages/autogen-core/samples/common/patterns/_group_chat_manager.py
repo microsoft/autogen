@@ -3,8 +3,8 @@ from typing import Any, Callable, List, Mapping
 
 from autogen_core.base import AgentId, AgentProxy, MessageContext
 from autogen_core.components import RoutedAgent, message_handler
-from autogen_core.components.memory import ChatMemory
-from autogen_core.components.models import ChatCompletionClient
+from autogen_core.components.model_context import ChatCompletionContext
+from autogen_core.components.models import ChatCompletionClient, UserMessage
 
 from ..types import (
     Message,
@@ -26,7 +26,8 @@ class GroupChatManager(RoutedAgent):
         description (str): The description of the agent.
         runtime (AgentRuntime): The runtime to register the agent.
         participants (List[AgentId]): The list of participants in the group chat.
-        memory (ChatMemory[Message]): The memory to store and retrieve messages.
+        model_context (ChatCompletionContext): The context manager for storing
+            and retrieving ChatCompletion messages.
         model_client (ChatCompletionClient, optional): The client to use for the model.
             If provided, the agent will use the model to select the next speaker.
             If not provided, the agent will select the next speaker from the list of participants
@@ -45,14 +46,14 @@ class GroupChatManager(RoutedAgent):
         self,
         description: str,
         participants: List[AgentId],
-        memory: ChatMemory[Message],
+        model_context: ChatCompletionContext,
         model_client: ChatCompletionClient | None = None,
         termination_word: str = "TERMINATE",
         transitions: Mapping[AgentId, List[AgentId]] = {},
         on_message_received: Callable[[TextMessage | MultiModalMessage], None] | None = None,
     ):
         super().__init__(description)
-        self._memory = memory
+        self._model_context = model_context
         self._client = model_client
         self._participants = participants
         self._participant_proxies = dict((p, AgentProxy(p, self.runtime)) for p in participants)
@@ -78,7 +79,7 @@ class GroupChatManager(RoutedAgent):
     @message_handler()
     async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method clears the memory."""
-        await self._memory.clear()
+        await self._model_context.clear()
 
     @message_handler()
     async def on_new_message(self, message: TextMessage | MultiModalMessage, ctx: MessageContext) -> None:
@@ -94,7 +95,7 @@ class GroupChatManager(RoutedAgent):
             return
 
         # Save the message to chat memory.
-        await self._memory.add_message(message)
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
         # Get the last speaker.
         last_speaker_name = message.source
@@ -132,7 +133,7 @@ class GroupChatManager(RoutedAgent):
             else:
                 # If a model client is provided, select the speaker based on the transitions and the model.
                 speaker_index = await select_speaker(
-                    self._memory, self._client, [self._participant_proxies[c] for c in candidates]
+                    self._model_context, self._client, [self._participant_proxies[c] for c in candidates]
                 )
                 speaker = candidates[speaker_index]
 
@@ -144,10 +145,10 @@ class GroupChatManager(RoutedAgent):
 
     def save_state(self) -> Mapping[str, Any]:
         return {
-            "memory": self._memory.save_state(),
+            "chat_history": self._model_context.save_state(),
             "termination_word": self._termination_word,
         }
 
     def load_state(self, state: Mapping[str, Any]) -> None:
-        self._memory.load_state(state["memory"])
+        self._model_context.load_state(state["chat_history"])
         self._termination_word = state["termination_word"]

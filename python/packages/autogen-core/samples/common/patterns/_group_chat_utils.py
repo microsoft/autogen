@@ -4,20 +4,18 @@ import re
 from typing import Dict, List
 
 from autogen_core.base import AgentProxy
-from autogen_core.components.memory import ChatMemory
-from autogen_core.components.models import ChatCompletionClient, SystemMessage
-
-from ..types import Message, TextMessage
+from autogen_core.components.model_context import ChatCompletionContext
+from autogen_core.components.models import ChatCompletionClient, SystemMessage, UserMessage
 
 
-async def select_speaker(memory: ChatMemory[Message], client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
+async def select_speaker(context: ChatCompletionContext, client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
     """Selects the next speaker in a group chat using a ChatCompletion client."""
     # TODO: Handle multi-modal messages.
 
     # Construct formated current message history.
     history_messages: List[str] = []
-    for msg in await memory.get_messages():
-        assert isinstance(msg, TextMessage)
+    for msg in await context.get_messages():
+        assert isinstance(msg, UserMessage) and isinstance(msg.content, str)
         history_messages.append(f"{msg.source}: {msg.content}")
     history = "\n".join(history_messages)
 

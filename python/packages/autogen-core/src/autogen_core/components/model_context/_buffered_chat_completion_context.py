@@ -1,17 +1,11 @@
-# Buffered Memory
-
-Here is an example of a custom memory implementation that keeps a view of the
-last N messages:
-
-```python
 from typing import Any, List, Mapping
 
-from autogen_core.components.memory import ChatMemory
-from autogen_core.components.models import FunctionExecutionResultMessage, LLMMessage
+from ..models import FunctionExecutionResultMessage, LLMMessage
+from ._chat_completion_context import ChatCompletionContext
 
 
-class BufferedChatMemory(ChatMemory[LLMMessage]):
-    """A buffered chat memory that keeps a view of the last n messages,
+class BufferedChatCompletionContext(ChatCompletionContext):
+    """A buffered chat completion context that keeps a view of the last n messages,
     where n is the buffer size. The buffer size is set at initialization.
 
     Args:
@@ -19,8 +13,8 @@ class BufferedChatMemory(ChatMemory[LLMMessage]):
 
     """
 
-    def __init__(self, buffer_size: int) -> None:
-        self._messages: List[LLMMessage] = []
+    def __init__(self, buffer_size: int, initial_messages: List[LLMMessage] | None = None) -> None:
+        self._messages: List[LLMMessage] = initial_messages or []
         self._buffer_size = buffer_size
 
     async def add_message(self, message: LLMMessage) -> None:
