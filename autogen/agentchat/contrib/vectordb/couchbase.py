@@ -25,11 +25,6 @@ TEXT_KEY = "content"
 EMBEDDING_KEY = "embedding"
 
 
-def with_id_rename(docs: Iterable) -> List[Dict[str, Any]]:
-    """Utility changes id field from Couchbase into id for Document."""
-    return [{**{k: v for k, v in d.items() if k != "id"}, "id": d["id"]} for d in docs]
-
-
 class CouchbaseVectorDB(VectorDB):
     """
     A vector database implementation that uses Couchbase as the backend.
