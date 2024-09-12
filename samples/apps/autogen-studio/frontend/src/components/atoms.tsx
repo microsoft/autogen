@@ -49,7 +49,7 @@ export const SectionHeader = ({
   icon,
 }: IProps) => {
   return (
-    <div className="mb-4">
+    <div id="section-header" className="mb-4">
       <h1 className="text-primary text-2xl">
         {/* {count !== null && <span className="text-accent mr-1">{count}</span>} */}
         {icon && <>{icon}</>}
@@ -72,6 +72,7 @@ export const IconButton = ({
 }: IProps) => {
   return (
     <span
+      id="icon-button"
       role={"button"}
       onClick={onClick}
       className={`inline-block mr-2 hover:text-accent transition duration-300 ${className} ${
@@ -90,6 +91,7 @@ export const LaunchButton = ({
 }: any) => {
   return (
     <button
+      id="launch-button"
       role={"button"}
       className={` focus:ring ring-accent  ring-l-none  rounded  cursor-pointer hover:brightness-110 bg-accent transition duration-500    text-white ${className} `}
       onClick={onClick}
@@ -102,6 +104,7 @@ export const LaunchButton = ({
 export const SecondaryButton = ({ children, onClick, className }: any) => {
   return (
     <button
+      id="secondary-button"
       role={"button"}
       className={` ${className}   focus:ring ring-accent  p-2 px-5 rounded  cursor-pointer hover:brightness-90 bg-secondary transition duration-500    text-primary`}
       onClick={onClick}
@@ -128,6 +131,7 @@ export const Card = ({
 
   return (
     <button
+      id="card"
       tabIndex={0}
       onClick={onClick}
       role={"button"}
@@ -157,6 +161,7 @@ export const CollapseBox = ({
   const chevronClass = "h-4 cursor-pointer inline-block mr-1";
   return (
     <div
+      id="collapse-box"
       onMouseDown={(e) => {
         if (e.detail > 1) {
           e.preventDefault();
@@ -192,7 +197,7 @@ export const CollapseBox = ({
 };
 
 export const HighLight = ({ children }: IProps) => {
-  return <span className="border-b border-accent">{children}</span>;
+  return <span id="highlight" className="border-b border-accent">{children}</span>;
 };
 
 export const LoadBox = ({
@@ -200,8 +205,7 @@ export const LoadBox = ({
   className = "my-2 text-accent ",
 }: IProps) => {
   return (
-    <div className={`${className} `}>
-      {" "}
+    <div id="load-box" className={`${className} `}>
       <span className="mr-2 ">
         {" "}
         <Icon size={5} icon="loading" />
@@ -214,7 +218,7 @@ export const LoadBox = ({
 export const LoadingBar = ({ children }: IProps) => {
   return (
     <>
-      <div className="rounded bg-secondary  p-3">
+      <div id="loading-bar" className="rounded bg-secondary  p-3">
         <span className="inline-block h-6 w-6 relative mr-2">
           <Cog8ToothIcon className="animate-ping text-accent absolute inline-flex h-full w-full rounded-ful  opacity-75" />
           <Cog8ToothIcon className="relative text-accent animate-spin  inline-flex rounded-full h-6 w-6" />
@@ -239,6 +243,7 @@ export const MessageBox = ({ title, children, className }: IProps) => {
 
   return (
     <div
+      id="message-box"
       ref={messageBox}
       className={`${className} p-3  rounded  bg-secondary transition duration-1000 ease-in-out  overflow-hidden`}
     >
@@ -272,7 +277,7 @@ export const GroupView = ({
   className = "text-primary bg-primary ",
 }: any) => {
   return (
-    <div className={`rounded mt-4  border-secondary   ${className}`}>
+    <div id="group-view" className={`rounded mt-4  border-secondary   ${className}`}>
       <div className="mt-4 p-2 rounded border relative">
         <div className={`absolute  -top-3 inline-block ${className}`}>
           {title}
@@ -297,6 +302,7 @@ export const ExpandView = ({
   const minImageWidth = 400;
   return (
     <div
+      id="expand-view"
       style={{
         minHeight: "100px",
       }}
@@ -347,6 +353,7 @@ export const LoadingOverlay = ({ children, loading }: IProps) => {
       {loading && (
         <>
           <div
+            id="loading-overlay"
             className="absolute inset-0 bg-secondary flex  pointer-events-none"
             style={{ opacity: 0.5 }}
           >
@@ -376,7 +383,11 @@ export const MarkdownView = ({
   showCode?: boolean;
 }) => {
   function processString(inputString: string): string {
-    inputString = inputString.replace(/\n/g, "  \n");
+    // TODO: Had to add this temp measure while debugging.  Why is it null?
+    if (!inputString) {
+        console.log("inputString is null!")
+    }
+    inputString = inputString && inputString.replace(/\n/g, "  \n");
     const markdownPattern = /```markdown\s+([\s\S]*?)\s+```/g;
     return inputString?.replace(markdownPattern, (match, content) => content);
   }
@@ -449,6 +460,7 @@ export const MarkdownView = ({
 
   return (
     <div
+      id="markdown-view"
       className={` w-full   chatbox prose dark:prose-invert text-primary rounded   ${className}`}
     >
       <ReactMarkdown
@@ -499,7 +511,7 @@ export const CodeBlock = ({
 
   const [showCopied, setShowCopied] = React.useState(false);
   return (
-    <div className="relative">
+    <div id="code-block" className="relative">
       <div className="  rounded absolute right-5 top-4 z-10 ">
         <div className="relative border border-transparent w-full h-full">
           <div
@@ -566,7 +578,7 @@ export const ControlRowView = ({
   truncateLength?: number;
 }) => {
   return (
-    <div className={`${className}`}>
+    <div id="control-row-view" className={`${className}`}>
       <div>
         <span className="text-primary inline-block">{title} </span>
         <span className="text-xs ml-1 text-accent -mt-2 inline-block">
@@ -590,7 +602,7 @@ export const BounceLoader = ({
   title?: string;
 }) => {
   return (
-    <div className="inline-block">
+    <div id="bounce-loader" className="inline-block">
       <div className="inline-flex gap-2">
         <span className="  rounded-full bg-accent h-2 w-2  inline-block"></span>
         <span className="animate-bounce rounded-full bg-accent h-3 w-3  inline-block"></span>
@@ -611,10 +623,10 @@ export const ImageLoader = ({
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div className="w-full rounded relative">
+    <div id="image-loader" className="w-full rounded relative">
       {isLoading && (
         <div className="absolute h-24 inset-0 flex items-center justify-center">
-          <BounceLoader title=" loading .." />{" "}
+          <BounceLoader title=" loading .." />
         </div>
       )}
       <img
@@ -685,7 +697,7 @@ export const CsvLoader = ({
   const scrollX = columns.length * 150;
 
   return (
-    <div className={`CsvLoader ${className}`}>
+    <div id="csv-loader" className={`CsvLoader ${className}`}>
       <Table
         dataSource={data}
         columns={columns}
@@ -720,7 +732,7 @@ export const CodeLoader = ({
   }, [url]);
 
   return (
-    <div className={`w-full rounded relative ${className}`}>
+    <div id="code-loader" className={`w-full rounded relative ${className}`}>
       {isLoading && (
         <div className="absolute h-24 inset-0 flex items-center justify-center">
           <BounceLoader />
@@ -743,7 +755,7 @@ export const PdfViewer = ({ url }: { url: string }) => {
 
   // Render the PDF viewer
   return (
-    <div className="h-full">
+    <div id="pdf-viewer" className="h-full">
       {loading && <p>Loading PDF...</p>}
       {!loading && (
         <object
@@ -779,7 +791,7 @@ export const MonacoEditor = ({
     setIsEditorReady(true);
   };
   return (
-    <div className="h-full rounded">
+    <div id="monaco-editor" className="h-full rounded">
       <Editor
         height="100%"
         className="h-full rounded"
@@ -820,6 +832,7 @@ export const CardHoverBar = ({
     return (
       <div
         key={"cardhoverrow" + i}
+        id={`card-hover-bar-item-${i}`}
         role="button"
         className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
         onClick={item.onClick}
@@ -832,6 +845,7 @@ export const CardHoverBar = ({
   });
   return (
     <div
+      id="card-hover-bar"
       onMouseEnter={(e) => {
         e.stopPropagation();
       }}
