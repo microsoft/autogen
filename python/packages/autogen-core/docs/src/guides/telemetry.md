@@ -1,4 +1,4 @@
-# Telemetry
+# Open Telemetry
 
 AGNext has native support for [open telemetry](https://opentelemetry.io/). This allows you to collect telemetry data from your application and send it to a telemetry backend of your choosing.
 

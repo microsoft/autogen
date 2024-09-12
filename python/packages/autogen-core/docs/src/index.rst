@@ -44,6 +44,7 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     :hidden:
 
     guides/logging
+    guides/telemetry
     guides/worker-protocol
 
 .. toctree::
