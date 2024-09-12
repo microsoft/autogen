@@ -1188,7 +1188,7 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
                     tool_call_msgs.insert(0, message.get("content"))
                 new_message = copy.deepcopy(message)
                 new_message["content"] = "\n".join(tool_call_msgs)
-            await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
+                await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
             else:
                 await self.a_message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         elif self.message_processor:
