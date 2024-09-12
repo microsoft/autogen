@@ -91,6 +91,27 @@ def message_handler(
     ]
     | MessageHandler[ReceivesT, ProducesT]
 ):
+    """Decorator for message handlers.
+
+    Add this decorator to methods in a :class:`RoutedAgent` class that are intended to handle messages.
+    These methods must have a specific signature that needs to be followed for it to be valid:
+
+    - The method must be an `async` method.
+    - The method must be decorated with the `@message_handler` decorator.
+    - The method must have exactly 3 arguments:
+        1. `self`
+        2. `message`: The message to be handled, this must be type-hinted with the message type that it is intended to handle.
+        3. `ctx`: A :class:`autogen_core.base.MessageContext` object.
+    - The method must be type hinted with what message types it can return as a response, or it can return `None` if it does not return anything.
+
+    Handlers can handle more than one message type by accepting a Union of the message types. It can also return more than one message type by returning a Union of the message types.
+
+    Args:
+        func: The function to be decorated.
+        strict: If `True`, the handler will raise an exception if the message type or return type is not in the target types. If `False`, it will log a warning instead.
+        match: A function that takes the message and the context as arguments and returns a boolean. This is used for secondary routing after the message type. For handlers addressing the same message type, the match function is applied in alphabetical order of the handlers and the first matching handler will be called while the rest are skipped. If `None`, the first handler in alphabetical order matching the same message type will be called.
+    """
+
     def decorator(
         func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
     ) -> MessageHandler[ReceivesT, ProducesT]:
@@ -149,6 +170,34 @@ def message_handler(
 
 
 class RoutedAgent(BaseAgent):
+    """A base class for agents that route messages to handlers based on the type of the message
+    and optional matching functions.
+
+    To create a routed agent, subclass this class and add message handlers as methods decorated with
+    the :func:`message_handler` decorator.
+
+    Example:
+
+    .. code-block:: python
+
+        from autogen_core.base import MessageContext
+        from autogen_core.components import RoutedAgent, message_handler
+        # Assume Message, MessageWithContent, and Response are defined elsewhere.
+
+
+        class MyAgent(RoutedAgent):
+            def __init__(self):
+                super().__init__("MyAgent")
+
+            @message_handler
+            async def handle_message(self, message: Message, ctx: MessageContext) -> Response:
+                return Response()
+
+            @message_handler(match=lambda message, ctx: message.content == "special")
+            async def handle_special_message(self, message: MessageWithContent, ctx: MessageContext) -> Response:
+                return Response()
+    """
+
     def __init__(self, description: str) -> None:
         # Self is already bound to the handlers
         self._handlers: Dict[
@@ -172,6 +221,9 @@ class RoutedAgent(BaseAgent):
         super().__init__(description)
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
+        """Handle a message by routing it to the appropriate message handler.
+        Do not override this method in subclasses. Instead, add message handlers as methods decorated with
+        the :func:`message_handler` decorator."""
         key_type: Type[Any] = type(message)  # type: ignore
         handlers = self._handlers.get(key_type)  # type: ignore
         if handlers is not None:
@@ -183,11 +235,15 @@ class RoutedAgent(BaseAgent):
         return await self.on_unhandled_message(message, ctx)  # type: ignore
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
+        """Called when a message is received that does not have a matching message handler.
+        The default implementation logs an info message."""
         logger.info(f"Unhandled message: {message}")
 
 
 # Deprecation warning for TypeRoutedAgent
 class TypeRoutedAgent(RoutedAgent):
+    """Deprecated. Use :class:`RoutedAgent` instead."""
+
     def __init__(self, description: str) -> None:
         warnings.warn("TypeRoutedAgent is deprecated. Use RoutedAgent instead.", DeprecationWarning, stacklevel=2)
         super().__init__(description)

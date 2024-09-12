@@ -50,7 +50,6 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     :caption: Cookbook
     :hidden:
 
-    cookbook/type-routed-agent
     cookbook/azure-openai-with-aad-auth
     cookbook/termination-with-intervention
     cookbook/extracting-results-with-an-agent
