@@ -1,9 +1,7 @@
 import json
 import time
-from copy import deepcopy
 from datetime import timedelta
-from time import monotonic, sleep
-from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Tuple, Union
 
 import numpy as np
 from couchbase import search
@@ -15,7 +13,6 @@ from couchbase.management.search import SearchIndex
 from couchbase.vector_search import VectorQuery, VectorSearch
 
 from sentence_transformers import SentenceTransformer
-from couchbase.management.collections import CollectionManager
 
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import get_logger
@@ -24,7 +21,6 @@ logger = get_logger(__name__)
 
 DEFAULT_BATCH_SIZE = 1000
 _SAMPLE_SENTENCE = ["The weather is lovely today in paradise."]
-_DELAY = 0.5
 TEXT_KEY = "content"
 EMBEDDING_KEY = "embedding"
 
@@ -66,6 +62,7 @@ class CouchbaseVectorDB(VectorDB):
             wait_until_index_ready (float | None): Blocking call to wait until the database indexes are ready. None means no wait. Default is None.
             wait_until_document_ready (float | None): Blocking call to wait until the database documents are ready. None means no wait. Default is None.
         """
+        print("CouchbaseVectorDB", connection_string, username, password, bucket_name, scope_name, collection_name, index_name)
         self.embedding_function = embedding_function
         self.index_name = index_name
 
@@ -117,12 +114,14 @@ class CouchbaseVectorDB(VectorDB):
             self.delete_collection(collection_name)
 
         try:
-            collection_mgr = CollectionManager(self.cluster, self.bucket.name)
+            collection_mgr = self.bucket.collections()
             collection_mgr.create_collection(self.scope.name, collection_name)
 
         except Exception:
             if not get_or_create:
                 raise ValueError(f"Collection {collection_name} already exists.")
+            else:
+                logger.debug(f"Collection {collection_name} already exists. Getting the collection.")
 
         collection = self.scope.collection(collection_name)
         self.create_index_if_not_exists(index_name=self.index_name, collection=collection)
@@ -169,11 +168,11 @@ class CouchbaseVectorDB(VectorDB):
         Args:
             collection_name: str | The name of the collection.
         """
-        search_index_mgr = self.scope.search_indexes()
-        search_index_mgr.drop_index(self.index_name)
-
-        collection_mgr = CollectionManager(self.cluster, self.bucket.name)
-        collection_mgr.drop_collection(self.scope.name, collection_name)
+        try:
+            collection_mgr = self.bucket.collections()
+            collection_mgr.drop_collection(self.scope.name, collection_name)
+        except Exception as e:
+            logger.error(f"Error deleting collection: {e}")
 
     def create_vector_search_index(
         self,
@@ -184,7 +183,6 @@ class CouchbaseVectorDB(VectorDB):
         """Create a vector search index in the collection."""
         search_index_mgr = self.scope.search_indexes()
         dims = self._get_embedding_size()
-
         index_definition = {
             "type": "fulltext-index",
             "name": index_name,
@@ -210,7 +208,7 @@ class CouchbaseVectorDB(VectorDB):
                     "store_dynamic": True,
                     "type_field": "_type",
                     "types": {
-                        f"{self.scope.name}.{self.collection.name}": {
+                        f"{self.scope.name}.{collection.name}": {
                             "dynamic": False,
                             "enabled": True,
                             "properties": {
@@ -229,14 +227,14 @@ class CouchbaseVectorDB(VectorDB):
                                     ],
                                 },
                                 "metadata": {"dynamic": True, "enabled": True},
-                                "text": {
+                                "content": {
                                     "dynamic": False,
                                     "enabled": True,
                                     "fields": [
                                         {
                                             "include_in_all": True,
                                             "index": True,
-                                            "name": "text",
+                                            "name": "content",
                                             "store": True,
                                             "type": "text",
                                         }
@@ -278,19 +276,18 @@ class CouchbaseVectorDB(VectorDB):
 
         for i in range(0, len(docs), batch_size):
             batch = docs[i:i + batch_size]
-
             docs_to_upsert = dict()
             for doc in batch:
                 doc_id = doc["id"]
                 embedding = self.embedding_function(
-                    [doc["content"]])  # Gets new embedding even in case of document update
+                    [doc["content"]]).tolist()  # Gets new embedding even in case of document update
+                
                 doc_content = {
                     TEXT_KEY: doc["content"],
                     "metadata": doc.get("metadata", {}),
                     EMBEDDING_KEY: embedding
                 }
                 docs_to_upsert[doc_id] = doc_content
-
             collection.upsert_multi(docs_to_upsert)
 
     def insert_docs(
@@ -301,16 +298,12 @@ class CouchbaseVectorDB(VectorDB):
             batch_size=DEFAULT_BATCH_SIZE,
             **kwargs,
     ) -> None:
-        """Insert Documents and Vector Embeddings into the collection of the vector database."""
+        """Insert Documents and Vector Embeddings into the collection of the vector database. Documents are upserted in all cases."""
         if not docs:
             logger.info("No documents to insert.")
             return
 
         collection = self.get_collection(collection_name)
-        # if upsert:
-        #     self.update_docs(docs, collection.name, upsert=True)
-        # else:
-        # Sanity checking the first document
         self.upsert_docs(docs, collection, batch_size=batch_size)
 
     def update_docs(self, docs: List[Document], collection_name: str = None, batch_size=DEFAULT_BATCH_SIZE,
@@ -329,7 +322,7 @@ class CouchbaseVectorDB(VectorDB):
 
     def get_docs_by_ids(
             self, ids: List[ItemID] | None = None, collection_name: str = None, include: List[str] | None = None,
-            batch_size=DEFAULT_BATCH_SIZE, **kwargs
+            **kwargs
     ) -> List[Document]:
         """Retrieve documents from the collection of the vector database based on the ids."""
         if include is None:
@@ -393,7 +386,7 @@ class CouchbaseVectorDB(VectorDB):
             )
         )
 
-        search_options = SearchOptions(limit=n_results)
+        search_options = SearchOptions(limit=n_results, fields=["*"])
         result = self.scope.search(
             self.index_name,
             search_req,
@@ -404,6 +397,7 @@ class CouchbaseVectorDB(VectorDB):
 
         for row in result.rows():
             doc = row.fields
+            doc["id"] = row.id
             score = row.score
             
             docs_with_score.append((doc, score))
