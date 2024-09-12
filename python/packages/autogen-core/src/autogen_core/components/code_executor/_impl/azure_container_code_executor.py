@@ -456,7 +456,7 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
         return CodeResult(exit_code=exitcode, output=logs_all)
 
-    def restart(self) -> None:
+    async def restart(self) -> None:
         """(Experimental) Restart the code executor."""
         self._session_id = str(uuid4())
         self._setup_functions_complete = False

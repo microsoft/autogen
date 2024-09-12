@@ -81,6 +81,8 @@ $functions"""
                 a default working directory will be used. The default working
                 directory is the current directory ".".
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+            functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+
         """
 
         if timeout < 1:
@@ -288,7 +290,7 @@ $functions"""
         code_file = str(file_names[0]) if len(file_names) > 0 else None
         return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
 
-    def restart(self) -> None:
+    async def restart(self) -> None:
         """(Experimental) Restart the code executor."""
         warnings.warn(
             "Restarting local command line code executor is not supported. No action is taken.",

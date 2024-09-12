@@ -23,6 +23,7 @@ dependencies = [
     "protobuf~=4.25.1",
     "tiktoken",
     "azure-core",
+    "docker~=7.0",
     "opentelemetry-api~=1.27.0"
 ]
 
@@ -59,6 +60,7 @@ dev-dependencies = [
     "types-pillow",
     "types-protobuf",
     "types-requests",
+    "types-docker",
     "wikipedia",
     "opentelemetry-sdk>=1.27.0",
 ]

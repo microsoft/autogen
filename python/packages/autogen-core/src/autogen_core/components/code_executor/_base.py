@@ -49,7 +49,7 @@ class CodeExecutor(Protocol):
         """
         ...
 
-    def restart(self) -> None:
+    async def restart(self) -> None:
         """Restart the code executor.
 
         This method should be implemented by the code executor.
