@@ -51,7 +51,6 @@ import google.generativeai as genai
 import requests
 import vertexai
 from google.ai.generativelanguage import Content, Part
-from google.api_core.exceptions import InternalServerError
 from google.auth.credentials import Credentials
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
@@ -222,30 +221,9 @@ class GeminiClient:
                 )
                 genai.configure(api_key=self.api_key)
                 chat = model.start_chat(history=gemini_messages[:-1])
-            max_retries = 5
-            for attempt in range(max_retries):
-                ans = None
-                try:
-                    response = chat.send_message(
-                        gemini_messages[-1].parts, stream=stream, safety_settings=safety_settings
-                    )
-                except InternalServerError:
-                    delay = 5 * (2**attempt)
-                    warnings.warn(
-                        f"InternalServerError `500` occurs when calling Gemini's chat model. Retry in {delay} seconds...",
-                        UserWarning,
-                    )
-                    time.sleep(delay)
-                except Exception as e:
-                    raise RuntimeError(f"Google GenAI exception occurred while calling Gemini API: {e}")
-                else:
-                    # `ans = response.text` is unstable. Use the following code instead.
-                    ans: str = chat.history[-1].parts[0].text
-                    break
 
-            if ans is None:
-                raise RuntimeError(f"Fail to get response from Google AI after retrying {attempt + 1} times.")
-
+            response = chat.send_message(gemini_messages[-1].parts, stream=stream, safety_settings=safety_settings)
+            ans: str = chat.history[-1].parts[0].text
             prompt_tokens = model.count_tokens(chat.history[:-1]).total_tokens
             completion_tokens = model.count_tokens(ans).total_tokens
         elif model_name == "gemini-pro-vision":

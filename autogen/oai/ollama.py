@@ -11,6 +11,7 @@ Example:
     agent = autogen.AssistantAgent("my_agent", llm_config=llm_config)
 
 Install Ollama's python library using: pip install --upgrade ollama
+Install fix-busted-json library: pip install --upgrade fix-busted-json
 
 Resources:
 - https://github.com/ollama/ollama-python
@@ -225,34 +226,30 @@ class OllamaClient:
         total_tokens = 0
 
         ans = None
-        try:
-            if "client_host" in params:
-                client = Client(host=params["client_host"])
-                response = client.chat(**ollama_params)
-            else:
-                response = ollama.chat(**ollama_params)
-        except Exception as e:
-            raise RuntimeError(f"Ollama exception occurred: {e}")
+        if "client_host" in params:
+            client = Client(host=params["client_host"])
+            response = client.chat(**ollama_params)
         else:
+            response = ollama.chat(**ollama_params)
 
-            if ollama_params["stream"]:
-                # Read in the chunks as they stream, taking in tool_calls which may be across
-                # multiple chunks if more than one suggested
-                ans = ""
-                for chunk in response:
-                    ans = ans + (chunk["message"]["content"] or "")
+        if ollama_params["stream"]:
+            # Read in the chunks as they stream, taking in tool_calls which may be across
+            # multiple chunks if more than one suggested
+            ans = ""
+            for chunk in response:
+                ans = ans + (chunk["message"]["content"] or "")
 
-                    if "done_reason" in chunk:
-                        prompt_tokens = chunk["prompt_eval_count"] if "prompt_eval_count" in chunk else 0
-                        completion_tokens = chunk["eval_count"] if "eval_count" in chunk else 0
-                        total_tokens = prompt_tokens + completion_tokens
-            else:
-                # Non-streaming finished
-                ans: str = response["message"]["content"]
+                if "done_reason" in chunk:
+                    prompt_tokens = chunk["prompt_eval_count"] if "prompt_eval_count" in chunk else 0
+                    completion_tokens = chunk["eval_count"] if "eval_count" in chunk else 0
+                    total_tokens = prompt_tokens + completion_tokens
+        else:
+            # Non-streaming finished
+            ans: str = response["message"]["content"]
 
-                prompt_tokens = response["prompt_eval_count"] if "prompt_eval_count" in response else 0
-                completion_tokens = response["eval_count"] if "eval_count" in response else 0
-                total_tokens = prompt_tokens + completion_tokens
+            prompt_tokens = response["prompt_eval_count"] if "prompt_eval_count" in response else 0
+            completion_tokens = response["eval_count"] if "eval_count" in response else 0
+            total_tokens = prompt_tokens + completion_tokens
 
         if response is not None:
 

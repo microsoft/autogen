@@ -157,47 +157,40 @@ class GroqClient:
         streaming_tool_calls = []
 
         ans = None
-        try:
-            response = client.chat.completions.create(**groq_params)
-        except Exception as e:
-            raise RuntimeError(f"Groq exception occurred: {e}")
-        else:
+        response = client.chat.completions.create(**groq_params)
+        if groq_params["stream"]:
+            # Read in the chunks as they stream, taking in tool_calls which may be across
+            # multiple chunks if more than one suggested
+            ans = ""
+            for chunk in response:
+                ans = ans + (chunk.choices[0].delta.content or "")
 
-            if groq_params["stream"]:
-                # Read in the chunks as they stream, taking in tool_calls which may be across
-                # multiple chunks if more than one suggested
-                ans = ""
-                for chunk in response:
-                    ans = ans + (chunk.choices[0].delta.content or "")
-
-                    if chunk.choices[0].delta.tool_calls:
-                        # We have a tool call recommendation
-                        for tool_call in chunk.choices[0].delta.tool_calls:
-                            streaming_tool_calls.append(
-                                ChatCompletionMessageToolCall(
-                                    id=tool_call.id,
-                                    function={
-                                        "name": tool_call.function.name,
-                                        "arguments": tool_call.function.arguments,
-                                    },
-                                    type="function",
-                                )
+                if chunk.choices[0].delta.tool_calls:
+                    # We have a tool call recommendation
+                    for tool_call in chunk.choices[0].delta.tool_calls:
+                        streaming_tool_calls.append(
+                            ChatCompletionMessageToolCall(
+                                id=tool_call.id,
+                                function={
+                                    "name": tool_call.function.name,
+                                    "arguments": tool_call.function.arguments,
+                                },
+                                type="function",
                             )
+                        )
 
-                    if chunk.choices[0].finish_reason:
-                        prompt_tokens = chunk.x_groq.usage.prompt_tokens
-                        completion_tokens = chunk.x_groq.usage.completion_tokens
-                        total_tokens = chunk.x_groq.usage.total_tokens
-            else:
-                # Non-streaming finished
-                ans: str = response.choices[0].message.content
-
-                prompt_tokens = response.usage.prompt_tokens
-                completion_tokens = response.usage.completion_tokens
-                total_tokens = response.usage.total_tokens
+                if chunk.choices[0].finish_reason:
+                    prompt_tokens = chunk.x_groq.usage.prompt_tokens
+                    completion_tokens = chunk.x_groq.usage.completion_tokens
+                    total_tokens = chunk.x_groq.usage.total_tokens
+        else:
+            # Non-streaming finished
+            ans: str = response.choices[0].message.content
+            prompt_tokens = response.usage.prompt_tokens
+            completion_tokens = response.usage.completion_tokens
+            total_tokens = response.usage.total_tokens
 
         if response is not None:
-
             if isinstance(response, Stream):
                 # Streaming response
                 if chunk.choices[0].finish_reason == "tool_calls":

@@ -49,59 +49,106 @@ else:
     ERROR = None
 
 try:
+    from google.api_core.exceptions import (  # noqa
+        InternalServerError as gemini_InternalServerError,
+        ResourceExhausted as gemini_ResourceExhausted,
+    )
+
     from autogen.oai.gemini import GeminiClient
 
     gemini_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    gemini_InternalServerError = gemini_ResourceExhausted = Exception
     gemini_import_exception = e
 
 try:
+    from anthropic import (  # noqa
+        InternalServerError as anthorpic_InternalServerError,
+        RateLimitError as anthorpic_RateLimitError,
+    )
+
     from autogen.oai.anthropic import AnthropicClient
 
     anthropic_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    anthorpic_InternalServerError = anthorpic_RateLimitError = Exception
     anthropic_import_exception = e
 
 try:
+    from mistralai.models import (  # noqa
+        HTTPValidationError as mistral_HTTPValidationError,
+        SDKError as mistral_SDKError,
+    )
+
     from autogen.oai.mistral import MistralAIClient
 
     mistral_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    mistral_SDKError = mistral_HTTPValidationError = Exception
     mistral_import_exception = e
 
 try:
+    from together.error import TogetherException as together_TogetherException
+
     from autogen.oai.together import TogetherClient
 
     together_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    together_TogetherException = Exception
     together_import_exception = e
 
 try:
+    from groq import (  # noqa
+        APIConnectionError as groq_APIConnectionError,
+        InternalServerError as groq_InternalServerError,
+        RateLimitError as groq_RateLimitError,
+    )
+
     from autogen.oai.groq import GroqClient
 
     groq_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    groq_InternalServerError = groq_RateLimitError = groq_APIConnectionError = Exception
     groq_import_exception = e
 
 try:
+    from cohere.errors import (  # noqa
+        InternalServerError as cohere_InternalServerError,
+        ServiceUnavailableError as cohere_ServiceUnavailableError,
+        TooManyRequestsError as cohere_TooManyRequestsError,
+    )
+
     from autogen.oai.cohere import CohereClient
 
     cohere_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    cohere_InternalServerError = cohere_TooManyRequestsError = cohere_ServiceUnavailableError = Exception
     cohere_import_exception = e
 
 try:
+    from ollama import (  # noqa
+        RequestError as ollama_RequestError,
+        ResponseError as ollama_ResponseError,
+    )
+
     from autogen.oai.ollama import OllamaClient
 
     ollama_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    ollama_RequestError = ollama_ResponseError = Exception
     ollama_import_exception = e
 
 try:
+    from botocore.exceptions import (  # noqa
+        BotoCoreError as bedrock_BotoCoreError,
+        ClientError as bedrock_ClientError,
+    )
+
     from autogen.oai.bedrock import BedrockClient
 
     bedrock_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    bedrock_BotoCoreError = bedrock_ClientError = Exception
     bedrock_import_exception = e
 
 logger = logging.getLogger(__name__)
@@ -544,7 +591,7 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("ollama"):
                 if ollama_import_exception:
-                    raise ImportError("Please install `ollama` to use the Ollama API.")
+                    raise ImportError("Please install `ollama` and `fix-busted-json` to use the Ollama API.")
                 client = OllamaClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
@@ -788,6 +835,28 @@ class OpenAIWrapper:
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
+                logger.debug(f"config {i} failed", exc_info=True)
+                if i == last:
+                    raise
+            except (
+                gemini_InternalServerError,
+                gemini_ResourceExhausted,
+                anthorpic_InternalServerError,
+                anthorpic_RateLimitError,
+                mistral_SDKError,
+                mistral_HTTPValidationError,
+                together_TogetherException,
+                groq_InternalServerError,
+                groq_RateLimitError,
+                groq_APIConnectionError,
+                cohere_InternalServerError,
+                cohere_TooManyRequestsError,
+                cohere_ServiceUnavailableError,
+                ollama_RequestError,
+                ollama_ResponseError,
+                bedrock_BotoCoreError,
+                bedrock_ClientError,
+            ):
                 logger.debug(f"config {i} failed", exc_info=True)
                 if i == last:
                     raise

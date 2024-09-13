@@ -204,13 +204,7 @@ class BedrockClient:
         if len(tool_config["tools"]) > 0:
             request_args["toolConfig"] = tool_config
 
-        try:
-            response = self.bedrock_runtime.converse(
-                **request_args,
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to get response from Bedrock: {e}")
-
+        response = self.bedrock_runtime.converse(**request_args)
         if response is None:
             raise RuntimeError(f"Failed to get response from Bedrock after retrying {self._retries} times.")
 
