@@ -59,10 +59,12 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
     ):
-        """(Experimental) A code executor class that executes code through a local command line
+        """A code executor class that executes code through a local command line
         environment.
 
-        **This will execute LLM generated code on the local machine.**
+        .. danger::
+
+            This will execute code on the local machine. If being used with LLM generated code, caution should be used.
 
         Each code block is saved as a file and executed in a separate process in
         the working directory, and a unique file is generated and saved in the
