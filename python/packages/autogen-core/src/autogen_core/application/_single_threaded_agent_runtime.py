@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from opentelemetry.trace import NoOpTracerProvider, TracerProvider
+from opentelemetry.trace import TracerProvider
 
 from ..base import (
     Agent,
@@ -30,7 +30,7 @@ from ..base import (
 from ..base.exceptions import MessageDroppedException
 from ..base.intervention import DropMessage, InterventionHandler
 from ._helpers import SubscriptionManager, get_impl
-from .telemetry import EnvelopeMetadata, get_telemetry_envelope_metadata, trace_block
+from .telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -151,7 +151,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         intervention_handlers: List[InterventionHandler] | None = None,
         tracer_provider: TracerProvider | None = None,
     ) -> None:
-        self._tracer = (tracer_provider if tracer_provider else NoOpTracerProvider()).get_tracer(__name__)
+        self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
         self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._agent_factories: Dict[
@@ -200,7 +200,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         #     )
         # )
 
-        with trace_block(self._tracer, "create", recipient, parent=None):
+        with self._tracer_helper.trace_block(
+            "create",
+            recipient,
+            parent=None,
+            extraAttributes={"message_type": type(message).__name__},
+        ):
             future = asyncio.get_event_loop().create_future()
             if recipient.type not in self._known_agent_names:
                 future.set_exception(Exception("Recipient not found"))
@@ -231,7 +236,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
-        with trace_block(self._tracer, "create", topic_id, parent=None):
+        with self._tracer_helper.trace_block(
+            "create",
+            topic_id,
+            parent=None,
+            extraAttributes={"message_type": type(message).__name__},
+        ):
             if cancellation_token is None:
                 cancellation_token = CancellationToken()
             content = message.__dict__ if hasattr(message, "__dict__") else message
@@ -270,7 +280,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
-        with trace_block(self._tracer, "send", message_envelope.recipient, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
             recipient = message_envelope.recipient
             # todo: check if recipient is in the known namespaces
             # assert recipient in self._agents
@@ -319,7 +329,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             self._outstanding_tasks.decrement()
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
-        with trace_block(self._tracer, "publish", message_envelope.topic_id, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
             responses: List[Awaitable[Any]] = []
             recipients = await self._subscription_manager.get_subscribed_recipients(message_envelope.topic_id)
             for agent_id in recipients:
@@ -352,7 +362,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 agent = await self._get_agent(agent_id)
 
                 async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                    with trace_block(self._tracer, "process", agent.id, parent=None):
+                    with self._tracer_helper.trace_block("process", agent.id, parent=None):
                         return await agent.on_message(
                             message_envelope.message,
                             ctx=message_context,
@@ -375,7 +385,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
-        with trace_block(self._tracer, "ack", message_envelope.recipient, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=message_envelope.metadata):
             content = (
                 message_envelope.message.__dict__
                 if hasattr(message_envelope.message, "__dict__")
@@ -409,8 +419,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
                 if self._intervention_handlers is not None:
                     for handler in self._intervention_handlers:
-                        with trace_block(
-                            self._tracer, "intercept", handler.__class__.__name__, parent=message_envelope.metadata
+                        with self._tracer_helper.trace_block(
+                            "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
                                 temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
@@ -432,8 +442,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             ):
                 if self._intervention_handlers is not None:
                     for handler in self._intervention_handlers:
-                        with trace_block(
-                            self._tracer, "intercept", handler.__class__.__name__, parent=message_envelope.metadata
+                        with self._tracer_helper.trace_block(
+                            "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
                                 temp_message = await handler.on_publish(message, sender=sender)

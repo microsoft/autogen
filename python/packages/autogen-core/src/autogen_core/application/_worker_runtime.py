@@ -50,7 +50,7 @@ from ..base import (
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
-from .telemetry import get_telemetry_grpc_metadata, trace_block
+from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 
 if TYPE_CHECKING:
     from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
@@ -157,7 +157,7 @@ class HostConnection:
 
 class WorkerAgentRuntime(AgentRuntime):
     def __init__(self, tracer_provider: TracerProvider | None = None) -> None:
-        self._tracer = (tracer_provider if tracer_provider else NoOpTracerProvider()).get_tracer(__name__)
+        self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
         self._per_type_subscribers: DefaultDict[tuple[str, str], Set[AgentId]] = defaultdict(set)
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
@@ -241,7 +241,7 @@ class WorkerAgentRuntime(AgentRuntime):
     ) -> None:
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
-        with trace_block(self._tracer, send_type, recipient, parent=telemetry_metadata):
+        with self._trace_helper.trace_block(send_type, recipient, parent=telemetry_metadata):
             await self._host_connection.send(runtime_message)
 
     async def send_message(
@@ -257,7 +257,9 @@ class WorkerAgentRuntime(AgentRuntime):
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
         data_type = MESSAGE_TYPE_REGISTRY.type_name(message)
-        with trace_block(self._tracer, "create", recipient, parent=None, attributes={"message_type": data_type}):
+        with self._trace_helper.trace_block(
+            "create", recipient, parent=None, extraAttributes={"message_type": data_type, "message_size": len(message)}
+        ):
             # create a new future for the result
             future = asyncio.get_event_loop().create_future()
             async with self._pending_requests_lock:
@@ -304,7 +306,9 @@ class WorkerAgentRuntime(AgentRuntime):
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
         message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
-        with trace_block(self._tracer, "create", topic_id, parent=None, attributes={"message_type": message_type}):
+        with self._trace_helper.trace_block(
+            "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
+        ):
             serialized_message = MESSAGE_TYPE_REGISTRY.serialize(
                 message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
             )
@@ -368,12 +372,12 @@ class WorkerAgentRuntime(AgentRuntime):
         # Call the target agent.
         try:
             with MessageHandlerContext.populate_context(target_agent.id):
-                with trace_block(
-                    self._tracer,
+                with self._trace_helper.trace_block(
                     "process",
                     target_agent.id,
                     parent=request.metadata,
                     attributes={"request_id": request.request_id},
+                    extraAttributes={"message_type": request.payload.data_type},
                 ):
                     result = await target_agent.on_message(message, ctx=message_context)
         except BaseException as e:
@@ -411,8 +415,12 @@ class WorkerAgentRuntime(AgentRuntime):
         await self._host_connection.send(response_message)
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse) -> None:
-        with trace_block(
-            self._tracer, "ack", None, parent=response.metadata, attributes={"request_id": response.request_id}
+        with self._trace_helper.trace_block(
+            "ack",
+            None,
+            parent=response.metadata,
+            attributes={"request_id": response.request_id},
+            extraAttributes={"message_type": response.payload.data_type},
         ):
             # Deserialize the result.
             result = MESSAGE_TYPE_REGISTRY.deserialize(
@@ -448,7 +456,12 @@ class WorkerAgentRuntime(AgentRuntime):
             with MessageHandlerContext.populate_context(agent.id):
 
                 async def send_message(agent: Agent, message_context: MessageContext) -> Any:
-                    with trace_block(self._tracer, "process", agent.id, parent=event.metadata):
+                    with self._trace_helper.trace_block(
+                        "process",
+                        agent.id,
+                        parent=event.metadata,
+                        extraAttributes={"message_type": event.payload.data_type},
+                    ):
                         await agent.on_message(message, ctx=message_context)
 
                 future = send_message(agent, message_context)
