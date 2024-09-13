@@ -1,4 +1,4 @@
-# Mem0: Empower your AI applications with long-term memory and personalization
+# Mem0: Long-Term Memory and Personalization for Agents
 
 <img src="https://github.com/mem0ai/mem0/blob/main/docs/images/mem0-bg.png?raw=true" alt="Mem0 logo" style="width: 40%;" />
 
@@ -69,9 +69,9 @@ After initializing Mem0, you can start using its memory management features in y
 
 ## Mem0 Platform Examples
 
-### Autogen with Mem0 Example
+### AutoGen with Mem0 Example
 
-This example demonstrates how to use Mem0 with Autogen to create a conversational AI system with memory capabilities.
+This example demonstrates how to use Mem0 with AutoGen to create a conversational AI system with memory capabilities.
 
 ```python
 import os
@@ -103,7 +103,6 @@ conversation = [
         "role": "user",
         "content": "Seeing horizontal lines on our tv. TV model: Sony - 77\" Class BRAVIA XR A80K OLED 4K UHD Smart Google TV"
     },
-    ........
 ]
 
 memory.add(messages=conversation, user_id="customer_service_bot")
@@ -154,10 +153,10 @@ Question: {data}
 result = manager.send(prompt, customer_bot, request_reply=True)
 ```
 
-Access the complete code from this notebook: [Mem0 with Autogen](https://colab.research.google.com/drive/1NZEwC9w6V2S6hYmK7l2SQ9jhQrG1uKk8?usp=sharing)
+Access the complete code from this notebook: [Mem0 with AutoGen](https://colab.research.google.com/drive/1NZEwC9w6V2S6hYmK7l2SQ9jhQrG1uKk8?usp=sharing)
 
 This example showcases:
-1. Setting up Autogen agents and Mem0 memory
+1. Setting up AutoGen agents and Mem0 memory
 2. Adding a conversation to Mem0 memory
 3. Using Mem0 to retrieve relevant memories for agent inference
 4. Implementing a multi-agent conversation with memory-augmented context
