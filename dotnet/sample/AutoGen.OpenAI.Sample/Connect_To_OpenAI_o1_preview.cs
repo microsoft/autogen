@@ -14,8 +14,8 @@ public class Connect_To_OpenAI_o1_preview
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("Please set environment variable OPENAI_API_KEY");
         var openAIClient = new OpenAIClient(apiKey);
 
-        // as of 2024/09/12
-        // openai o1-preview doesn't support systemMessage, temperature, maxTokens and streaming output
+        // until 2024/09/12
+        // openai o1-preview doesn't support systemMessage, temperature, maxTokens, streaming output
         // so in order to use OpenAIChatAgent with o1-preview, you need to set those parameters to null
         var agent = new OpenAIChatAgent(
             chatClient: openAIClient.GetChatClient("o1-preview"),
