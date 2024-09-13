@@ -46,7 +46,13 @@ def message_handler():
                 logger.info(
                     f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
                 )
-                asyncio.run(websocket_manager.send_message(message, connection))
+                coro = websocket_manager.send_message(message, connection)
+                try:
+                    loop = asyncio.get_running_loop()
+                    asyncio.run_coroutine_threadsafe(coro, loop)
+                except RuntimeError:
+                    asyncio.run(coro)
+
             else:
                 logger.info(
                     f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
