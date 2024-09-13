@@ -22,7 +22,7 @@ from typing import Dict, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
+from autogen_core.components.code_executor import CodeBlock, CodeExecutor, DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -194,7 +194,7 @@ async def main(task: str, temp_dir: str) -> None:
     )
     await runtime.register(
         "executor",
-        lambda: Executor(executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)),
+        lambda: Executor(executor=DockerCommandLineCodeExecutor(work_dir=temp_dir)),
         lambda: [DefaultSubscription()],
     )
     runtime.start()

@@ -21,7 +21,7 @@ from typing import Dict, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -187,7 +187,7 @@ async def main() -> None:
     # Define the tools.
     tools: List[Tool] = [
         PythonCodeExecutionTool(
-            LocalCommandLineCodeExecutor(),
+            DockerCommandLineCodeExecutor(),
         )
     ]
     # Register agents.

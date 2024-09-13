@@ -2,7 +2,7 @@ import re
 from typing import List, Optional, Tuple, Union
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor, LocalCommandLineCodeExecutor
+from autogen_core.components.code_executor import CodeBlock, CodeExecutor, DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
@@ -62,7 +62,7 @@ class Executor(BaseWorker):
         check_last_n_message: int = 5,
     ) -> None:
         super().__init__(description)
-        self._executor = executor or LocalCommandLineCodeExecutor()
+        self._executor = executor or DockerCommandLineCodeExecutor()
         self._check_last_n_message = check_last_n_message
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:

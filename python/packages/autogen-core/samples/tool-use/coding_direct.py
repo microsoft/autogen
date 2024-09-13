@@ -19,7 +19,7 @@ from typing import List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext
 from autogen_core.components import FunctionCall, RoutedAgent, message_handler
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -103,7 +103,7 @@ async def main() -> None:
     tools: List[Tool] = [
         # A tool that executes Python code.
         PythonCodeExecutionTool(
-            LocalCommandLineCodeExecutor(),
+            DockerCommandLineCodeExecutor(),
         )
     ]
     # Register agents.

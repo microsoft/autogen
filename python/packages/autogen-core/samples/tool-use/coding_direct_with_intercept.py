@@ -14,7 +14,7 @@ from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext
 from autogen_core.base.intervention import DefaultInterventionHandler, DropMessage
 from autogen_core.components import FunctionCall
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import SystemMessage
 from autogen_core.components.tool_agent import ToolAgent, ToolException
 from autogen_core.components.tools import PythonCodeExecutionTool, Tool
@@ -44,7 +44,7 @@ async def main() -> None:
     tools: List[Tool] = [
         # A tool that executes Python code.
         PythonCodeExecutionTool(
-            LocalCommandLineCodeExecutor(),
+            DockerCommandLineCodeExecutor(),
         )
     ]
     # Register agents.
