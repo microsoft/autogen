@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MESSAGE_TYPE_REGISTRY, MessageContext, try_get_known_serializers_for_type
+from autogen_core.base import MESSAGE_TYPE_REGISTRY, AgentId, MessageContext, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
 
@@ -66,25 +66,20 @@ class GreeterAgent(RoutedAgent):
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime()
+    runtime = WorkerAgentRuntime(host_address="localhost:50051")
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Greeting))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(AskToGreet))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Feedback))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(ReturnedGreeting))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(ReturnedFeedback))
-    await runtime.start(host_connection_string="localhost:50051")
+    runtime.start()
 
     await runtime.register("receiver", ReceiveAgent, lambda: [DefaultSubscription()])
     await runtime.register("greeter", GreeterAgent, lambda: [DefaultSubscription()])
 
     await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
-    # Just to keep the runtime running
-    try:
-        await asyncio.sleep(1000000)
-    except KeyboardInterrupt:
-        pass
-    await runtime.stop()
+    await runtime.stop_when_signal()
 
 
 if __name__ == "__main__":

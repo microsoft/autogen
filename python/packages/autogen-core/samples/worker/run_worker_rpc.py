@@ -60,11 +60,11 @@ class GreeterAgent(RoutedAgent):
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime()
+    runtime = WorkerAgentRuntime(host_address="localhost:50051")
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Greeting))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(AskToGreet))
     MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Feedback))
-    await runtime.start(host_connection_string="localhost:50051")
+    runtime.start()
 
     await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])
     await runtime.register(
@@ -74,12 +74,7 @@ async def main() -> None:
     )
     await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
-    # Just to keep the runtime running
-    try:
-        await asyncio.sleep(1000000)
-    except KeyboardInterrupt:
-        pass
-    await runtime.stop()
+    await runtime.stop_when_signal()
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ message Payload {
 
 message RpcRequest {
     string request_id = 1;
-    AgentId source = 2;
+    optional AgentId source = 2;
     AgentId target = 3;
     string method = 4;
     Payload payload = 5;
@@ -32,8 +32,9 @@ message RpcResponse {
 message Event {
     string topic_type = 1;
     string topic_source = 2;
-    Payload payload = 3;
-    map<string, string> metadata = 4;
+    optional AgentId source = 3;
+    Payload payload = 4;
+    map<string, string> metadata = 5;
 }
 
 message RegisterAgentType {

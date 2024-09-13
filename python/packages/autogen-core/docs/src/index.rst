@@ -44,8 +44,8 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     :hidden:
 
     guides/logging
+    guides/distributed-agent-runtime
     guides/telemetry
-    guides/worker-protocol
 
 .. toctree::
     :caption: Cookbook
