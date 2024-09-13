@@ -453,11 +453,11 @@ class WorkerAgentRuntime(AgentRuntime):
 
                 future = send_message(agent, message_context)
             responses.append(future)
-            # Wait for all responses.
-            try:
-                await asyncio.gather(*responses)
-            except BaseException as e:
-                logger.error("Error handling event", exc_info=e)
+        # Wait for all responses.
+        try:
+            await asyncio.gather(*responses)
+        except BaseException as e:
+            logger.error("Error handling event", exc_info=e)
 
     async def register(
         self,
