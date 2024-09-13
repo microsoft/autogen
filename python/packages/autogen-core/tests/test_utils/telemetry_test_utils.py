@@ -23,6 +23,7 @@ class TestExporter(SpanExporter):
         """Returns the list of exported spans."""
         return self.exported_spans
 
+
 def get_test_tracer_provider(exporter: TestExporter) -> TracerProvider:
     tracer_provider = TracerProvider()
     tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))

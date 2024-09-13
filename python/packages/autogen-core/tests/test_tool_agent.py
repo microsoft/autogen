@@ -3,15 +3,16 @@ import json
 from typing import Any, AsyncGenerator, List
 
 import pytest
-from openai.resources.chat.completions import AsyncCompletions
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
-from openai.types.completion_usage import CompletionUsage
-
 from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, CancellationToken
 from autogen_core.components import FunctionCall
+from autogen_core.components.models import (
+    AssistantMessage,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    OpenAIChatCompletionClient,
+    UserMessage,
+)
 from autogen_core.components.tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
@@ -20,15 +21,12 @@ from autogen_core.components.tool_agent import (
     tool_agent_caller_loop,
 )
 from autogen_core.components.tools import FunctionTool, Tool
-from autogen_core.base import CancellationToken, AgentId
-from autogen_core.components.models import (
-    AssistantMessage,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    OpenAIChatCompletionClient,
-    UserMessage,
-)
-from autogen_core.components.tools import FunctionTool
+from openai.resources.chat.completions import AsyncCompletions
+from openai.types.chat.chat_completion import ChatCompletion, Choice
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
+from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
+from openai.types.completion_usage import CompletionUsage
 
 
 def _pass_function(input: str) -> str:
@@ -150,7 +148,7 @@ async def test_caller_loop(monkeypatch: pytest.MonkeyPatch) -> None:
     mock = _MockChatCompletion(model="gpt-4o-2024-05-13")
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key="api_key")
-    tools : List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]
+    tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]
     runtime = SingleThreadedAgentRuntime()
     await runtime.register(
         "tool_agent",
@@ -162,11 +160,7 @@ async def test_caller_loop(monkeypatch: pytest.MonkeyPatch) -> None:
     agent = AgentId("tool_agent", "default")
     runtime.start()
     messages = await tool_agent_caller_loop(
-        runtime,
-        agent,
-        client,
-        [UserMessage(content="Hello", source="user")],
-        tool_schema=tools
+        runtime, agent, client, [UserMessage(content="Hello", source="user")], tool_schema=tools
     )
     assert len(messages) == 3
     assert isinstance(messages[0], AssistantMessage)

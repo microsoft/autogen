@@ -4,23 +4,23 @@
 import os
 import tempfile
 
-
 import polars
 import pytest
-from azure.identity import DefaultAzureCredential
+from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import (
+    AzureContainerCodeExecutor,
     CodeBlock,
     FunctionWithRequirements,
     LocalCommandLineCodeExecutor,
-    AzureContainerCodeExecutor,
     with_requirements,
 )
-from autogen_core.base import CancellationToken
+from azure.identity import DefaultAzureCredential
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 
 DUMMY_POOL_ENDPOINT = "DUMMY_POOL_ENDPOINT"
 POOL_ENDPOINT = os.getenv(ENVIRON_KEY_AZURE_POOL_ENDPOINT)
+
 
 def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
@@ -60,9 +60,7 @@ def function_missing_reqs() -> "polars.DataFrame":
 async def test_can_load_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
-        executor = LocalCommandLineCodeExecutor(
-            work_dir=temp_dir, functions=[load_data]
-        )
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[load_data])
         code = f"""from {executor.functions_module} import load_data
 import polars
 
@@ -74,10 +72,11 @@ print(data['name'][0])"""
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
         assert result.output == "John\n"
         assert result.exit_code == 0
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -91,7 +90,7 @@ async def test_azure_can_load_function_with_reqs() -> None:
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[load_data]
     )
     # AzureContainerCodeExecutor doesn't use the functions module import
-    code = f"""import polars
+    code = """import polars
 
 # Get first row's name
 data = load_data()
@@ -101,18 +100,17 @@ print(data['name'][0])"""
         code_blocks=[
             CodeBlock(language="python", code=code),
         ],
-        cancellation_token=cancellation_token
+        cancellation_token=cancellation_token,
     )
     assert azure_result.output == "John\n"
     assert azure_result.exit_code == 0
+
 
 @pytest.mark.asyncio
 async def test_can_load_function() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
-        executor = LocalCommandLineCodeExecutor(
-            work_dir=temp_dir, functions=[add_two_numbers]
-        )
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[add_two_numbers])
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
@@ -120,7 +118,7 @@ print(add_two_numbers(1, 2))"""
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
         assert result.output == "3\n"
         assert result.exit_code == 0
@@ -139,24 +137,23 @@ async def test_azure_can_load_function() -> None:
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[add_two_numbers]
     )
     # AzureContainerCodeExecutor doesn't use the functions module import
-    code = f"""print(add_two_numbers(1, 2))"""
+    code = """print(add_two_numbers(1, 2))"""
 
     azure_result = await azure_executor.execute_code_blocks(
         code_blocks=[
             CodeBlock(language="python", code=code),
         ],
-        cancellation_token=cancellation_token
+        cancellation_token=cancellation_token,
     )
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
+
 
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_import() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
-        executor = LocalCommandLineCodeExecutor(
-            work_dir=temp_dir, functions=[function_incorrect_import]
-        )
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[function_incorrect_import])
         code = f"""from {executor.functions_module} import function_incorrect_import
 function_incorrect_import()"""
 
@@ -165,8 +162,9 @@ function_incorrect_import()"""
                 code_blocks=[
                     CodeBlock(language="python", code=code),
                 ],
-                cancellation_token=cancellation_token
+                cancellation_token=cancellation_token,
             )
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -177,25 +175,26 @@ async def test_azure_fails_for_function_incorrect_import() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
     azure_executor = AzureContainerCodeExecutor(
-        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[function_incorrect_import]
+        pool_management_endpoint=POOL_ENDPOINT,
+        credential=DefaultAzureCredential(),
+        functions=[function_incorrect_import],
     )
-    code = f"""function_incorrect_import()"""
+    code = """function_incorrect_import()"""
 
     with pytest.raises(ValueError):
         await azure_executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
+
 
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_dep() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
-        executor = LocalCommandLineCodeExecutor(
-            work_dir=temp_dir, functions=[function_incorrect_dep]
-        )
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[function_incorrect_dep])
         code = f"""from {executor.functions_module} import function_incorrect_dep
 function_incorrect_dep()"""
 
@@ -204,8 +203,9 @@ function_incorrect_dep()"""
                 code_blocks=[
                     CodeBlock(language="python", code=code),
                 ],
-                cancellation_token=cancellation_token
+                cancellation_token=cancellation_token,
             )
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -218,34 +218,34 @@ async def test_azure_fails_for_function_incorrect_dep() -> None:
     azure_executor = AzureContainerCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[function_incorrect_dep]
     )
-    code = f"""function_incorrect_dep()"""
+    code = """function_incorrect_dep()"""
 
     with pytest.raises(ValueError):
         await azure_executor.execute_code_blocks(
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
+
 
 def test_formatted_prompt() -> None:
     assert_str = '''def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(
-            work_dir=temp_dir, functions=[add_two_numbers]
-        )
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[add_two_numbers])
 
         result = executor.format_functions_for_prompt()
-        assert (assert_str in result)
+        assert assert_str in result
 
     azure_executor = AzureContainerCodeExecutor(
         pool_management_endpoint=DUMMY_POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[add_two_numbers]
     )
 
     azure_result = azure_executor.format_functions_for_prompt()
-    assert (assert_str in azure_result)
+    assert assert_str in azure_result
+
 
 def test_formatted_prompt_str_func() -> None:
     func = FunctionWithRequirements.from_str(
@@ -254,25 +254,25 @@ def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
 '''
-        )
+    )
 
     assert_str = '''def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
 
     with tempfile.TemporaryDirectory() as temp_dir:
-
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[func])
 
         result = executor.format_functions_for_prompt()
-        assert (assert_str in result)
+        assert assert_str in result
 
     azure_executor = AzureContainerCodeExecutor(
         pool_management_endpoint=DUMMY_POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
 
     azure_result = azure_executor.format_functions_for_prompt()
-    assert (assert_str in azure_result)
+    assert assert_str in azure_result
+
 
 @pytest.mark.asyncio
 async def test_can_load_str_function_with_reqs() -> None:
@@ -294,10 +294,11 @@ print(add_two_numbers(1, 2))"""
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
         assert result.output == "3\n"
         assert result.exit_code == 0
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -317,19 +318,19 @@ def add_two_numbers(a: int, b: int) -> int:
     azure_executor = AzureContainerCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
-    code = f"""print(add_two_numbers(1, 2))"""
+    code = """print(add_two_numbers(1, 2))"""
 
     azure_result = await azure_executor.execute_code_blocks(
         code_blocks=[
             CodeBlock(language="python", code=code),
         ],
-        cancellation_token=cancellation_token
+        cancellation_token=cancellation_token,
     )
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
 
-def test_cant_load_broken_str_function_with_reqs() -> None:
 
+def test_cant_load_broken_str_function_with_reqs() -> None:
     with pytest.raises(ValueError):
         _ = FunctionWithRequirements.from_str(
             '''
@@ -360,10 +361,11 @@ print(add_two_numbers(object(), False))"""
             code_blocks=[
                 CodeBlock(language="python", code=code),
             ],
-            cancellation_token=cancellation_token
+            cancellation_token=cancellation_token,
         )
         assert "TypeError: unsupported operand type(s) for +:" in result.output
         assert result.exit_code == 1
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -384,15 +386,15 @@ def add_two_numbers(a: int, b: int) -> int:
     azure_executor = AzureContainerCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
-    code = f"""print(add_two_numbers(object(), False))"""
+    code = """print(add_two_numbers(object(), False))"""
 
     azure_result = await azure_executor.execute_code_blocks(
         code_blocks=[
             CodeBlock(language="python", code=code),
         ],
-        cancellation_token=cancellation_token
+        cancellation_token=cancellation_token,
     )
-    #result.output = result.output.encode().decode('unicode_escape')
+    # result.output = result.output.encode().decode('unicode_escape')
     print(azure_result.output)
     assert "TypeError: unsupported operand type(s) for +:" in azure_result.output
     assert azure_result.exit_code == 1

@@ -10,10 +10,10 @@ from typing import AsyncGenerator, TypeAlias
 
 import pytest
 import pytest_asyncio
+from aiofiles import open
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock, DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
 
-from aiofiles import open
 
 def docker_tests_enabled() -> bool:
     if os.environ.get("SKIP_DOCKER", "unset").lower() == "true":
@@ -190,5 +190,5 @@ async def test_docker_commandline_code_executor_start_stop_context_manager() -> 
         pytest.skip("Docker tests are disabled")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as exec:
+        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as _exec:
             pass

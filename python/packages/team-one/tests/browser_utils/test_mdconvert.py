@@ -5,8 +5,8 @@ import shutil
 
 import pytest
 import requests
-
 from team_one.markdown_browser import MarkdownConverter
+
 skip_all = False
 
 skip_exiftool = shutil.which("exiftool") is None
@@ -119,30 +119,30 @@ def test_mdconvert_local() -> None:
     # Test XLSX processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test.xlsx"))
     for test_string in XLSX_TEST_STRINGS:
-        text_content = result.text_content.replace('\\','')
+        text_content = result.text_content.replace("\\", "")
         assert test_string in text_content
 
     # Test DOCX processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test.docx"))
     for test_string in DOCX_TEST_STRINGS:
-        text_content = result.text_content.replace('\\','')
+        text_content = result.text_content.replace("\\", "")
         assert test_string in text_content
 
     # Test PPTX processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test.pptx"))
     for test_string in PPTX_TEST_STRINGS:
-        text_content = result.text_content.replace('\\','')
+        text_content = result.text_content.replace("\\", "")
         assert test_string in text_content
 
     # Test HTML processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_blog.html"), url=BLOG_TEST_URL)
     for test_string in BLOG_TEST_STRINGS:
-        text_content = result.text_content.replace('\\','')
+        text_content = result.text_content.replace("\\", "")
         assert test_string in text_content
 
     # Test Wikipedia processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_wikipedia.html"), url=WIKIPEDIA_TEST_URL)
-    text_content = result.text_content.replace('\\','')
+    text_content = result.text_content.replace("\\", "")
     for test_string in WIKIPEDIA_TEST_EXCLUDES:
         assert test_string not in text_content
     for test_string in WIKIPEDIA_TEST_STRINGS:
@@ -150,7 +150,7 @@ def test_mdconvert_local() -> None:
 
     # Test Bing processing
     result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_serp.html"), url=SERP_TEST_URL)
-    text_content = result.text_content.replace('\\','')
+    text_content = result.text_content.replace("\\", "")
     for test_string in SERP_TEST_EXCLUDES:
         assert test_string not in text_content
     for test_string in SERP_TEST_STRINGS:

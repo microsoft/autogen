@@ -90,6 +90,7 @@ class RoutedAgentMessageCustomMatch(RoutedAgent):
     async def handler_two(self, message: TestMessage, ctx: MessageContext) -> None:
         self.handler_two_called = True
 
+
 @pytest.mark.asyncio
 async def test_routed_agent_message_matching() -> None:
     runtime = SingleThreadedAgentRuntime()
@@ -98,19 +99,19 @@ async def test_routed_agent_message_matching() -> None:
 
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
     assert agent is not None
-    assert agent.handler_one_called == False
-    assert agent.handler_two_called == False
+    assert agent.handler_one_called is False
+    assert agent.handler_two_called is False
 
     runtime.start()
     await runtime.send_message(TestMessage("one"), recipient=agent_id)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
-    assert agent.handler_one_called == True
-    assert agent.handler_two_called == False
+    assert agent.handler_one_called is True
+    assert agent.handler_two_called is False
 
     runtime.start()
     await runtime.send_message(TestMessage("two"), recipient=agent_id)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
-    assert agent.handler_one_called == True
-    assert agent.handler_two_called == True
+    assert agent.handler_one_called is True
+    assert agent.handler_two_called is True

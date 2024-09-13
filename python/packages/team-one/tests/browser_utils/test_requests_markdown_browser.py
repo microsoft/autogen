@@ -8,6 +8,7 @@ import re
 
 import pytest
 import requests
+from team_one.markdown_browser import BingMarkdownSearch, RequestsMarkdownBrowser
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -37,7 +38,7 @@ LOCAL_FILE_TEST_STRINGS = [
     BLOG_POST_FIND_ON_PAGE_MATCH,
 ]
 
-from team_one.markdown_browser import BingMarkdownSearch, RequestsMarkdownBrowser
+
 skip_all = False
 
 
@@ -49,9 +50,11 @@ def _rm_folder(path: str) -> None:
             os.unlink(fpath)
     os.rmdir(path)
 
+
 def normalize_text(text: str) -> str:
     text = "\n".join([line.rstrip() for line in re.split(r"\r?\n", text)])
     return re.sub(r"\n{3,}", "\n\n", text)
+
 
 @pytest.mark.skipif(
     skip_all,
@@ -77,7 +80,7 @@ def test_requests_markdown_browser() -> None:
     assert browser.viewport == top_viewport
     assert browser.page_title is not None
     assert browser.page_title.strip() == BLOG_POST_TITLE.strip()
-    page_content = browser.page_content.replace('\\','')
+    page_content = browser.page_content.replace("\\", "")
     assert BLOG_POST_STRING in page_content
 
     # Check if page splitting works
@@ -98,7 +101,7 @@ def test_requests_markdown_browser() -> None:
         browser.page_down()
         assert browser.viewport_current_page == i
     # Test scrolloing beyond the limits
-    for i in range(0, 5):
+    for _ in range(0, 5):
         browser.page_down()
         assert browser.viewport_current_page == len(browser.viewport_pages) - 1
 
@@ -107,7 +110,7 @@ def test_requests_markdown_browser() -> None:
         browser.page_up()
         assert browser.viewport_current_page == i
     # Test scrolloing beyond the limits
-    for i in range(0, 5):
+    for _ in range(0, 5):
         browser.page_up()
         assert browser.viewport_current_page == 0
 
@@ -118,12 +121,12 @@ def test_requests_markdown_browser() -> None:
     # Visit a plain-text file
     response = requests.get(PLAIN_TEXT_URL)
     response.raise_for_status()
-    expected_results = re.sub(r"\s+", " ", response.text, re.DOTALL).strip()
+    expected_results = re.sub(r"\s+", " ", string=response.text, flags=re.DOTALL).strip()
     # Run the normalize code that the markdown request module uses
     expected_results = normalize_text(expected_results)
 
     browser.visit_page(PLAIN_TEXT_URL)
-    assert re.sub(r"\s+", " ", browser.page_content, re.DOTALL).strip() == expected_results
+    assert re.sub(r"\s+", " ", string=browser.page_content, flags=re.DOTALL).strip() == expected_results
 
     # Disrectly download a ZIP file and compute its md5
     response = requests.get(DOWNLOAD_URL, stream=True)
@@ -157,7 +160,7 @@ def test_requests_markdown_browser() -> None:
     assert find_viewport is not None
 
     # Find next using the same query
-    for i in range(0, 10):
+    for _ in range(0, 10):
         find_viewport = browser.find_on_page("LLM app*")
         assert find_viewport is not None
 
@@ -166,7 +169,7 @@ def test_requests_markdown_browser() -> None:
         loc = new_loc
 
     # Find next using find_next
-    for i in range(0, 10):
+    for _ in range(0, 10):
         find_viewport = browser.find_next()
         assert find_viewport is not None
 
@@ -207,25 +210,25 @@ def test_local_file_browsing() -> None:
     # Directory listing via open_local_file
     viewport = browser.open_local_file(directory)
     for target_string in DIR_TEST_STRINGS:
-        viewport = viewport.replace('\\','')
+        viewport = viewport.replace("\\", "")
         assert target_string in viewport
 
     # Directory listing via file URI
     viewport = browser.visit_page(pathlib.Path(os.path.abspath(directory)).as_uri())
     for target_string in DIR_TEST_STRINGS:
-        viewport = viewport.replace('\\','')
+        viewport = viewport.replace("\\", "")
         assert target_string in viewport
 
     # File access via file open_local_file
     browser.open_local_file(test_file)
     for target_string in LOCAL_FILE_TEST_STRINGS:
-        page_content = browser.page_content.replace('\\','')
+        page_content = browser.page_content.replace("\\", "")
         assert target_string in page_content
 
     # File access via file URI
     browser.visit_page(pathlib.Path(os.path.abspath(test_file)).as_uri())
     for target_string in LOCAL_FILE_TEST_STRINGS:
-        page_content = browser.page_content.replace('\\','')
+        page_content = browser.page_content.replace("\\", "")
         assert target_string in page_content
 
 

@@ -1,9 +1,9 @@
 from types import NoneType
 from typing import Any, Optional, Union
 
+from autogen_core.base import MessageContext
 from autogen_core.components._routed_agent import message_handler
 from autogen_core.components._type_helpers import AnyType, get_types
-from autogen_core.base import MessageContext
 
 
 def test_get_types() -> None:
@@ -18,7 +18,6 @@ def test_get_types() -> None:
 
 
 def test_handler() -> None:
-
     class HandlerClass:
         @message_handler()
         async def handler(self, message: int, ctx: MessageContext) -> Any:
@@ -33,6 +32,7 @@ def test_handler() -> None:
 
     assert HandlerClass.handler2.target_types == [str, bool]
     assert HandlerClass.handler2.produces_types == [NoneType]
+
 
 class HandlerClass:
     @message_handler()

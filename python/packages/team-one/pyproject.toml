@@ -68,9 +68,10 @@ exclude = ["build", "dist", "page_script.js"]
 include = [
     "src/**",
     "examples/*.py",
+    "tests/**/*.py",
 ]
 
 
 [tool.pyright]
 extend = "../../pyproject.toml"
-include = ["src", "tests"]
+include = ["src", "tests", "examples"]

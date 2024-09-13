@@ -42,8 +42,7 @@ agbench = "agbench.cli:main"
 extend = "../../pyproject.toml"
 exclude = ["build", "dist", "page_script.js", "src/agbench/res/Dockerfile", "src/agbench/template/global_init.sh"]
 include = [
-    "src/**",
-    "examples/*.py",
+    "src/**"
 ]
 
 [tool.pyright]

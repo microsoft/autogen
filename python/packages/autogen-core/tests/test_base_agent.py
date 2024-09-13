@@ -1,9 +1,7 @@
 import pytest
+from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime
 from pytest_mock import MockerFixture
-from autogen_core.base import AgentRuntime, AgentInstantiationContext, AgentId
-
 from test_utils import NoopAgent
-
 
 
 @pytest.mark.asyncio
@@ -15,4 +13,3 @@ async def test_base_agent_create(mocker: MockerFixture) -> None:
         agent = NoopAgent()
         assert agent.runtime == runtime
         assert agent.id == AgentId("name", "namespace")
-

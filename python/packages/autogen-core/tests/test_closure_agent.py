@@ -1,25 +1,16 @@
-
-
+import asyncio
 from dataclasses import dataclass
 
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
-
-from autogen_core.components._type_subscription import TypeSubscription
-from autogen_core.base import AgentRuntime, AgentId
-
+from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
 from autogen_core.components import ClosureAgent
+from autogen_core.components._type_subscription import TypeSubscription
 
-
-import asyncio
-
-from autogen_core.base import MessageContext
-from autogen_core.base import TopicId
 
 @dataclass
 class Message:
     content: str
-
 
 
 @pytest.mark.asyncio
@@ -40,7 +31,6 @@ async def test_register_receives_publish() -> None:
     await runtime.publish_message(Message("first message"), topic_id=topic_id)
     await runtime.publish_message(Message("second message"), topic_id=topic_id)
     await runtime.publish_message(Message("third message"), topic_id=topic_id)
-
 
     await runtime.stop_when_idle()
 

@@ -1,23 +1,17 @@
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.components import TypeSubscription
-from autogen_core.base import TopicId, AgentId
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.components import TypeSubscription, DefaultTopicId
-from autogen_core.base import AgentId
-from autogen_core.base import TopicId
+from autogen_core.base import AgentId, TopicId
+from autogen_core.base.exceptions import CantHandleException
+from autogen_core.components import DefaultTopicId, TypeSubscription
 from test_utils import LoopbackAgent, MessageType
 
-import pytest
-
-from autogen_core.base.exceptions import CantHandleException
 
 def test_type_subscription_match() -> None:
     sub = TypeSubscription(topic_type="t1", agent_type="a1")
 
-    assert sub.is_match(TopicId(type="t0", source="s1")) == False
-    assert sub.is_match(TopicId(type="t1", source="s1")) == True
-    assert sub.is_match(TopicId(type="t1", source="s2")) == True
+    assert sub.is_match(TopicId(type="t0", source="s1")) is False
+    assert sub.is_match(TopicId(type="t1", source="s1")) is True
+    assert sub.is_match(TopicId(type="t1", source="s2")) is True
 
 
 def test_type_subscription_map() -> None:
@@ -39,7 +33,9 @@ async def test_non_default_default_subscription() -> None:
     await runtime.stop_when_idle()
 
     # Not subscribed
-    agent_instance = await runtime.try_get_underlying_agent_instance(AgentId("MyAgent", key="default"), type=LoopbackAgent)
+    agent_instance = await runtime.try_get_underlying_agent_instance(
+        AgentId("MyAgent", key="default"), type=LoopbackAgent
+    )
     assert agent_instance.num_calls == 0
 
     # Subscribed
@@ -84,4 +80,3 @@ async def test_non_default_default_subscription() -> None:
     await runtime.stop_when_idle()
 
     assert agent_instance.num_calls == 3
-

@@ -5,7 +5,6 @@ from autogen_core.application.logging.events import LLMCallEvent
 
 
 def test_llm_usage() -> None:
-
     # Set up the logging configuration to use the custom handler
     logger = logging.getLogger(EVENT_LOGGER_NAME)
     logger.setLevel(logging.INFO)

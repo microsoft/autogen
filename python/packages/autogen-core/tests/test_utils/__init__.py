@@ -1,25 +1,23 @@
 from dataclasses import dataclass
 from typing import Any
 
-from autogen_core.components import RoutedAgent, message_handler
-from autogen_core.components import DefaultTopicId
-from autogen_core.base import BaseAgent
-from autogen_core.base import MessageContext
+from autogen_core.base import BaseAgent, MessageContext
+from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 
 
 @dataclass
-class MessageType:
-    ...
+class MessageType: ...
+
 
 @dataclass
 class CascadingMessageType:
     round: int
 
+
 class LoopbackAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("A loop back agent.")
         self.num_calls = 0
-
 
     @message_handler
     async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
@@ -28,7 +26,6 @@ class LoopbackAgent(RoutedAgent):
 
 
 class CascadingAgent(RoutedAgent):
-
     def __init__(self, max_rounds: int) -> None:
         super().__init__("A cascading agent.")
         self.num_calls = 0
@@ -40,6 +37,7 @@ class CascadingAgent(RoutedAgent):
         if message.round == self.max_rounds:
             return
         await self.publish_message(CascadingMessageType(round=message.round + 1), topic_id=DefaultTopicId())
+
 
 class NoopAgent(BaseAgent):
     def __init__(self) -> None:

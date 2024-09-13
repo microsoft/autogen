@@ -2,7 +2,6 @@ from autogen_core.components.code_executor import extract_markdown_code_blocks
 
 
 def test_extract_markdown_code_blocks() -> None:
-
     text = """# This is a markdown text
 ```python
 print("Hello World")
@@ -14,7 +13,6 @@ print("Hello World")
     assert len(code_blocks) == 1
     assert code_blocks[0].language == "python"
     assert code_blocks[0].code == 'print("Hello World")\n'
-
 
     text = """More markdown text
 ```python

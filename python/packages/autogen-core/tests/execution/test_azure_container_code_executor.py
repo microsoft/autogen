@@ -5,12 +5,12 @@ import asyncio
 import os
 import sys
 import tempfile
-from anyio import open_file
 
 import pytest
-from azure.identity import DefaultAzureCredential
-from autogen_core.components.code_executor import CodeBlock, AzureContainerCodeExecutor
+from anyio import open_file
 from autogen_core.base import CancellationToken
+from autogen_core.components.code_executor import AzureContainerCodeExecutor, CodeBlock
+from azure.identity import DefaultAzureCredential
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
@@ -19,6 +19,7 @@ PYTHON_VARIANTS = ["python", "Python", "py"]
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 
 POOL_ENDPOINT = os.getenv(ENVIRON_KEY_AZURE_POOL_ENDPOINT)
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -41,11 +42,7 @@ async def test_execute_code() -> None:
         CodeBlock(code="a = 100 + 100; print(a)", language="python"),
     ]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-    assert (
-        code_result.exit_code == 0
-        and "hello world!" in code_result.output
-        and "200" in code_result.output
-    )
+    assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
 
     # Test bash script.
     if sys.platform not in ["win32"]:
@@ -58,11 +55,8 @@ async def test_execute_code() -> None:
     file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
     code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-    assert (
-        code_result.exit_code == 0
-        and "hello world!" in code_result.output
-        and "200" in code_result.output
-    )
+    assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -72,10 +66,13 @@ async def test_execute_code() -> None:
 async def test_azure_container_code_executor_timeout() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), timeout=1)
+    executor = AzureContainerCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), timeout=1
+    )
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     with pytest.raises(asyncio.TimeoutError):
         await executor.execute_code_blocks(code_blocks, cancellation_token)
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -111,7 +108,9 @@ async def test_upload_files() -> None:
     cancellation_token = CancellationToken()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir)
+        executor = AzureContainerCodeExecutor(
+            pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
+        )
 
         async with await open_file(os.path.join(temp_dir, test_file_1), "w") as f:
             await f.write(test_file_1_contents)
@@ -124,12 +123,17 @@ async def test_upload_files() -> None:
     assert test_file_1 in file_list
     assert test_file_2 in file_list
 
-    code_blocks = [CodeBlock(code=f"""
+    code_blocks = [
+        CodeBlock(
+            code=f"""
 with open("{test_file_1}") as f:
     print(f.read())
 with open("{test_file_2}") as f:
     print(f.read())
-""", language="python")]
+""",
+            language="python",
+        )
+    ]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     assert code_result.exit_code == 0
     assert test_file_1_contents in code_result.output
@@ -150,15 +154,20 @@ async def test_download_files() -> None:
     cancellation_token = CancellationToken()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir)
+        executor = AzureContainerCodeExecutor(
+            pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
+        )
 
         code_blocks = [
-            CodeBlock(code=f"""
+            CodeBlock(
+                code=f"""
 with open("{test_file_1}", "w") as f:
     f.write("{test_file_1_contents}")
 with open("{test_file_2}", "w") as f:
     f.write("{test_file_2_contents}")
-""", language="python"),
+""",
+                language="python",
+            ),
         ]
         code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
         assert code_result.exit_code == 0

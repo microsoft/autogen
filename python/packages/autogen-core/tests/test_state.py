@@ -2,8 +2,7 @@ from typing import Any, Mapping
 
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import BaseAgent, MessageContext
-from autogen_core.base import AgentId
+from autogen_core.base import AgentId, BaseAgent, MessageContext
 
 
 class StatefulAgent(BaseAgent):
@@ -40,6 +39,7 @@ async def test_agent_can_save_state() -> None:
     agent1.load_state(agent1_state)
     assert agent1.state == 1
 
+
 @pytest.mark.asyncio
 async def test_runtime_can_save_state() -> None:
     runtime = SingleThreadedAgentRuntime()
@@ -60,6 +60,3 @@ async def test_runtime_can_save_state() -> None:
 
     await runtime2.load_state(runtime_state)
     assert agent2.state == 1
-
-
-

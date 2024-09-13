@@ -2,8 +2,8 @@
 import os
 
 import pytest
-
 from team_one.markdown_browser import BingMarkdownSearch
+
 skip_all = False
 
 bing_api_key = None

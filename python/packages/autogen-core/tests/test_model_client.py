@@ -2,6 +2,7 @@ import asyncio
 from typing import Any, AsyncGenerator, List
 
 import pytest
+from autogen_core.base import CancellationToken
 from autogen_core.components import Image
 from autogen_core.components.models import (
     AssistantMessage,
@@ -16,7 +17,6 @@ from autogen_core.components.models import (
 )
 from autogen_core.components.models._model_info import resolve_model
 from autogen_core.components.tools import FunctionTool
-from autogen_core.base import CancellationToken
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
@@ -48,9 +48,7 @@ async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatC
         )
 
 
-async def _mock_create(
-    *args: Any, **kwargs: Any
-) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
     stream = kwargs.get("stream", False)
     model = resolve_model(kwargs.get("model", "gpt-4o"))
     if not stream:
@@ -67,6 +65,7 @@ async def _mock_create(
         )
     else:
         return _mock_create_stream(*args, **kwargs)
+
 
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client() -> None:

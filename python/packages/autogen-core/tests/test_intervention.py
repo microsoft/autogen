@@ -8,7 +8,6 @@ from test_utils import LoopbackAgent, MessageType
 
 @pytest.mark.asyncio
 async def test_intervention_count_messages() -> None:
-
     class DebugInterventionHandler(DefaultInterventionHandler):
         def __init__(self) -> None:
             self.num_messages = 0
@@ -31,11 +30,13 @@ async def test_intervention_count_messages() -> None:
     loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 1
 
+
 @pytest.mark.asyncio
 async def test_intervention_drop_send() -> None:
-
     class DropSendInterventionHandler(DefaultInterventionHandler):
-        async def on_send(self, message: MessageType, *, sender: AgentId | None, recipient: AgentId) -> MessageType | type[DropMessage]:
+        async def on_send(
+            self, message: MessageType, *, sender: AgentId | None, recipient: AgentId
+        ) -> MessageType | type[DropMessage]:
             return DropMessage
 
     handler = DropSendInterventionHandler()
@@ -56,9 +57,10 @@ async def test_intervention_drop_send() -> None:
 
 @pytest.mark.asyncio
 async def test_intervention_drop_response() -> None:
-
     class DropResponseInterventionHandler(DefaultInterventionHandler):
-        async def on_response(self, message: MessageType, *, sender: AgentId, recipient: AgentId | None) -> MessageType | type[DropMessage]:
+        async def on_response(
+            self, message: MessageType, *, sender: AgentId, recipient: AgentId | None
+        ) -> MessageType | type[DropMessage]:
             return DropMessage
 
     handler = DropResponseInterventionHandler()
@@ -76,12 +78,13 @@ async def test_intervention_drop_response() -> None:
 
 @pytest.mark.asyncio
 async def test_intervention_raise_exception_on_send() -> None:
-
     class InterventionException(Exception):
         pass
 
-    class ExceptionInterventionHandler(DefaultInterventionHandler): # type: ignore
-        async def on_send(self, message: MessageType, *, sender: AgentId | None, recipient: AgentId) -> MessageType | type[DropMessage]: # type: ignore
+    class ExceptionInterventionHandler(DefaultInterventionHandler):  # type: ignore
+        async def on_send(
+            self, message: MessageType, *, sender: AgentId | None, recipient: AgentId
+        ) -> MessageType | type[DropMessage]:  # type: ignore
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
@@ -99,14 +102,16 @@ async def test_intervention_raise_exception_on_send() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert long_running_agent.num_calls == 0
 
+
 @pytest.mark.asyncio
 async def test_intervention_raise_exception_on_respond() -> None:
-
     class InterventionException(Exception):
         pass
 
-    class ExceptionInterventionHandler(DefaultInterventionHandler): # type: ignore
-        async def on_response(self, message: MessageType, *, sender: AgentId, recipient: AgentId | None) -> MessageType | type[DropMessage]: # type: ignore
+    class ExceptionInterventionHandler(DefaultInterventionHandler):  # type: ignore
+        async def on_response(
+            self, message: MessageType, *, sender: AgentId, recipient: AgentId | None
+        ) -> MessageType | type[DropMessage]:  # type: ignore
             raise InterventionException
 
     handler = ExceptionInterventionHandler()
