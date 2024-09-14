@@ -1,12 +1,9 @@
-import os
 import sys
 
 import pytest
+from conftest import reason, skip_openai  # noqa: E402
 from graphrag_sdk import KnowledgeGraph, Source
 from graphrag_sdk.schema import Schema
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
-from conftest import reason, skip_openai  # noqa: E402
 
 try:
     from autogen.agentchat.contrib.graph_rag.document import (

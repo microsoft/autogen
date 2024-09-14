@@ -28,7 +28,19 @@ class FalkorGraphQueryEngine:
         model: str = "gpt-4-1106-preview",
         schema: Schema | None = None,
     ):
+        """
+        Initialize a Falkor DB knowledge graph.
+        Please also refer to https://github.com/FalkorDB/GraphRAG-SDK/blob/main/graphrag_sdk/kg.py
 
+        Args:
+            name (str): Knowledge graph name.
+            host (str): FalkorDB hostname.
+            port (int): FalkorDB port number.
+            username (str|None): FalkorDB username.
+            password (str|None): FalkorDB password.
+            model (str): OpenAI model to use for Falkor DB to build and retrieve from the graph.
+            schema: Falkor DB knowledge graph schema (ontology), https://github.com/FalkorDB/GraphRAG-SDK/blob/main/graphrag_sdk/schema/schema.py
+        """
         self.knowledge_graph = KnowledgeGraph(name, host, port, username, password, model, schema)
 
     def init_db(self, input_doc: List[Document] | None):
