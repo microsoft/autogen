@@ -359,6 +359,22 @@ class OpenAIClient:
         }
 
 
+class OpenAI_O1(OpenAIClient):
+
+    def __init__(self, **kwargs):
+        super().__init__(OpenAI(**kwargs))
+
+    def create(self, params: Dict[str, Any]) -> ChatCompletion:
+        print(params["messages"])
+        # replace any message with the role "system" to role "assistant" to avoid errors
+        for message in params["messages"]:
+            if message["role"] == "system":
+                message["role"] = "assistant"
+
+        # pass the message to the create method of the parent class
+        return super().create(params)
+
+
 class OpenAIWrapper:
     """A wrapper class for openai client."""
 
@@ -508,6 +524,9 @@ class OpenAIWrapper:
                 if anthropic_import_exception:
                     raise ImportError("Please install `anthropic` to use Anthropic API.")
                 client = AnthropicClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("openai-o1"):
+                client = OpenAI_O1(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("mistral"):
                 if mistral_import_exception:
