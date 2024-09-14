@@ -40,6 +40,7 @@ class FalkorGraphQueryEngine:
             password (str|None): FalkorDB password.
             model (str): OpenAI model to use for Falkor DB to build and retrieve from the graph.
             schema: Falkor DB knowledge graph schema (ontology), https://github.com/FalkorDB/GraphRAG-SDK/blob/main/graphrag_sdk/schema/schema.py
+                    If None, Falkor DB will auto generate a schema from the input docs.
         """
         self.knowledge_graph = KnowledgeGraph(name, host, port, username, password, model, schema)
 
