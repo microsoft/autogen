@@ -46,6 +46,7 @@ from `Agent and Multi-Agent Application <core-concepts/agent-and-multi-agent-app
     guides/logging
     guides/distributed-agent-runtime
     guides/telemetry
+    guides/command-line-code-executors
 
 .. toctree::
     :caption: Cookbook
