@@ -24,4 +24,4 @@ class ReflexAgent(RoutedAgent):
         )
         topic_id = TopicId("default", self.id.key)
 
-        await self.publish_message(BroadcastMessage(response_message), topic_id=topic_id)
+        await self.publish_message(BroadcastMessage(content=response_message), topic_id=topic_id)

@@ -21,8 +21,8 @@ from typing import (
 from autogen_core.base import try_get_known_serializers_for_type
 
 from ..base import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
+from ..base._type_helpers import AnyType, get_types
 from ..base.exceptions import CantHandleException
-from ._type_helpers import AnyType, get_types
 
 logger = logging.getLogger("autogen_core")
 

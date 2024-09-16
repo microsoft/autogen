@@ -4,10 +4,13 @@ import base64
 import re
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import aiohttp
 from openai.types.chat import ChatCompletionContentPartImageParam
 from PIL import Image as PILImage
+from pydantic import BaseModel, GetCoreSchemaHandler, ValidationInfo
+from pydantic_core import core_schema
 from typing_extensions import Literal
 
 
@@ -39,6 +42,12 @@ class Image:
     def from_base64(cls, base64_str: str) -> Image:
         return cls(PILImage.open(BytesIO(base64.b64decode(base64_str))))
 
+    def to_base64(self) -> str:
+        buffered = BytesIO()
+        self.image.save(buffered, format="PNG")
+        content = buffered.getvalue()
+        return base64.b64encode(content).decode("utf-8")
+
     @classmethod
     def from_file(cls, file_path: Path) -> Image:
         return cls(PILImage.open(file_path))
@@ -49,13 +58,34 @@ class Image:
 
     @property
     def data_uri(self) -> str:
-        buffered = BytesIO()
-        self.image.save(buffered, format="PNG")
-        content = buffered.getvalue()
-        return _convert_base64_to_data_uri(base64.b64encode(content).decode("utf-8"))
+        return _convert_base64_to_data_uri(self.to_base64())
 
     def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> ChatCompletionContentPartImageParam:
         return {"type": "image_url", "image_url": {"url": self.data_uri, "detail": detail}}
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        # Custom validation
+        def validate(value: Any, validation_info: ValidationInfo) -> Image:
+            if isinstance(value, dict):
+                base_64 = value.get("data")
+                if base_64 is None:
+                    raise ValueError("Expected 'data' key in the dictionary")
+                return cls.from_base64(base_64)
+            elif isinstance(value, cls):
+                return value
+            else:
+                raise TypeError(f"Expected dict or {cls.__name__} instance, got {type(value)}")
+
+        # Custom serialization
+        def serialize(value: Image) -> dict[str, Any]:
+            return {"data": value.to_base64()}
+
+        return core_schema.with_info_after_validator_function(
+            validate,
+            core_schema.any_schema(),  # Accept any type; adjust if needed
+            serialization=core_schema.plain_serializer_function_ser_schema(serialize),
+        )
 
 
 def _convert_base64_to_data_uri(base64_image: str) -> str:

@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Union
 
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, LLMMessage
+from pydantic import BaseModel
 
 # Convenience type
 UserContent = Union[str, List[Union[str, Image]]]
@@ -11,8 +12,7 @@ FunctionExecutionContent = List[FunctionExecutionResult]
 SystemContent = str
 
 
-@dataclass
-class BroadcastMessage:
+class BroadcastMessage(BaseModel):
     content: LLMMessage
     request_halt: bool = False
 

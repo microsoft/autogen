@@ -30,7 +30,7 @@ async def main() -> None:
 
     task_message = UserMessage(content="Test Message", source="User")
     runtime.start()
-    await runtime.publish_message(BroadcastMessage(task_message), topic_id=DefaultTopicId())
+    await runtime.publish_message(BroadcastMessage(content=task_message), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

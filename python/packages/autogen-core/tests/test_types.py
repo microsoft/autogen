@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 from types import NoneType
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
 from autogen_core.base import MessageContext
+from autogen_core.base._serialization import has_nested_base_model
+from autogen_core.base._type_helpers import AnyType, get_types
 from autogen_core.components._routed_agent import message_handler
-from autogen_core.components._type_helpers import AnyType, get_types
+from pydantic import BaseModel
 
 
 def test_get_types() -> None:
@@ -38,3 +41,44 @@ class HandlerClass:
     @message_handler()
     async def handler(self, message: int, ctx: MessageContext) -> Any:
         return None
+
+
+def test_nested_data_model() -> None:
+    class MyBaseModel(BaseModel):
+        message: str
+
+    @dataclass
+    class NestedBaseModel:
+        nested: MyBaseModel
+
+    @dataclass
+    class NestedBaseModelList:
+        nested: List[MyBaseModel]
+
+    @dataclass
+    class NestedBaseModelList2:
+        nested: list[MyBaseModel]
+
+    @dataclass
+    class NestedBaseModelList3:
+        nested: list[list[MyBaseModel]]
+
+    @dataclass
+    class NestedBaseModelList4:
+        nested: list[list[list[list[list[list[MyBaseModel]]]]]]
+
+    @dataclass
+    class NestedBaseModelUnion:
+        nested: Union[MyBaseModel, str]
+
+    @dataclass
+    class NestedBaseModelUnion2:
+        nested: MyBaseModel | str
+
+    assert has_nested_base_model(NestedBaseModel)
+    assert has_nested_base_model(NestedBaseModelList)
+    assert has_nested_base_model(NestedBaseModelList2)
+    assert has_nested_base_model(NestedBaseModelList3)
+    assert has_nested_base_model(NestedBaseModelList4)
+    assert has_nested_base_model(NestedBaseModelUnion)
+    assert has_nested_base_model(NestedBaseModelUnion2)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 
 import pytest
 from autogen_core.base import (
@@ -7,6 +8,9 @@ from autogen_core.base import (
     Serialization,
     try_get_known_serializers_for_type,
 )
+from autogen_core.base._serialization import DataclassJsonMessageSerializer, PydanticJsonMessageSerializer
+from autogen_core.components import Image
+from PIL import Image as PILImage
 from pydantic import BaseModel
 
 
@@ -75,22 +79,33 @@ def test_dataclass() -> None:
 
 def test_nesting_dataclass_dataclass() -> None:
     serde = Serialization()
-    serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
-
-    message = NestingDataclassMessage(message="hello", nested=DataclassMessage(message="world"))
-    name = serde.type_name(message)
     with pytest.raises(ValueError):
-        _json = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+        serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
+
+
+@dataclass
+class DataclassNestedUnionSyntaxOldMessage:
+    message: Union[str, int]
+
+
+@dataclass
+class DataclassNestedUnionSyntaxNewMessage:
+    message: str | int
+
+
+@pytest.mark.parametrize("cls", [DataclassNestedUnionSyntaxOldMessage, DataclassNestedUnionSyntaxNewMessage])
+def test_nesting_union_old_syntax_dataclass(
+    cls: type[DataclassNestedUnionSyntaxOldMessage | DataclassNestedUnionSyntaxNewMessage],
+) -> None:
+    with pytest.raises(ValueError):
+        _serializer = DataclassJsonMessageSerializer(cls)
 
 
 def test_nesting_dataclass_pydantic() -> None:
     serde = Serialization()
-    serde.add_serializer(try_get_known_serializers_for_type(NestingPydanticDataclassMessage))
 
-    message = NestingPydanticDataclassMessage(message="hello", nested=PydanticMessage(message="world"))
-    name = serde.type_name(message)
     with pytest.raises(ValueError):
-        _json = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+        serde.add_serializer(try_get_known_serializers_for_type(NestingPydanticDataclassMessage))
 
 
 def test_invalid_type() -> None:
@@ -126,3 +141,22 @@ def test_custom_type() -> None:
     assert json == b'"hello"'
     deserialized = serde.deserialize(json, type_name="custom_str", data_content_type="str")
     assert deserialized == message
+
+
+def test_image_type() -> None:
+    pil_image = PILImage.new("RGB", (100, 100))
+
+    image = Image(pil_image)
+
+    class PydanticImageMessage(BaseModel):
+        image: Image
+
+    serializer = PydanticJsonMessageSerializer(PydanticImageMessage)
+
+    json = serializer.serialize(PydanticImageMessage(image=image))
+
+    deserialized = serializer.deserialize(json)
+
+    assert deserialized.image.image.size == (100, 100)
+    assert deserialized.image.image.mode == "RGB"
+    assert deserialized.image.image == image.image

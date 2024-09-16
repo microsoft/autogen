@@ -1,8 +1,10 @@
 import json
-from dataclasses import asdict, dataclass
-from typing import Any, ClassVar, Dict, List, Protocol, TypeVar, cast, runtime_checkable
+from dataclasses import asdict, dataclass, fields
+from typing import Any, ClassVar, Dict, List, Protocol, TypeVar, cast, get_args, get_origin, runtime_checkable
 
 from pydantic import BaseModel
+
+from autogen_core.base._type_helpers import is_union
 
 T = TypeVar("T")
 
@@ -27,7 +29,7 @@ class IsDataclass(Protocol):
 
 
 def is_dataclass(cls: type[Any]) -> bool:
-    return isinstance(cls, IsDataclass)
+    return hasattr(cls, "__dataclass_fields__")
 
 
 def has_nested_dataclass(cls: type[IsDataclass]) -> bool:
@@ -35,9 +37,54 @@ def has_nested_dataclass(cls: type[IsDataclass]) -> bool:
     return any(is_dataclass(f.type) for f in cls.__dataclass_fields__.values())
 
 
+def contains_a_union(cls: type[IsDataclass]) -> bool:
+    return any(is_union(f.type) for f in cls.__dataclass_fields__.values())
+
+
 def has_nested_base_model(cls: type[IsDataclass]) -> bool:
-    # iterate fields and check if any of them are basebodels
-    return any(issubclass(f.type, BaseModel) for f in cls.__dataclass_fields__.values())
+    for f in fields(cls):
+        field_type = f.type
+        # Resolve forward references and other annotations
+        origin = get_origin(field_type)
+        args = get_args(field_type)
+
+        # If the field type is directly a subclass of BaseModel
+        if isinstance(field_type, type) and issubclass(field_type, BaseModel):
+            return True
+
+        # If the field type is a generic type like List[BaseModel], Tuple[BaseModel, ...], etc.
+        if origin is not None and args:
+            for arg in args:
+                # Recursively check the argument types
+                if isinstance(arg, type) and issubclass(arg, BaseModel):
+                    return True
+                elif get_origin(arg) is not None:
+                    # Handle nested generics like List[List[BaseModel]]
+                    if has_nested_base_model_in_type(arg):
+                        return True
+        # Handle Union types
+        elif args:
+            for arg in args:
+                if isinstance(arg, type) and issubclass(arg, BaseModel):
+                    return True
+                elif get_origin(arg) is not None:
+                    if has_nested_base_model_in_type(arg):
+                        return True
+    return False
+
+
+def has_nested_base_model_in_type(tp: Any) -> bool:
+    """Helper function to check if a type or its arguments is a BaseModel subclass."""
+    origin = get_origin(tp)
+    args = get_args(tp)
+
+    if isinstance(tp, type) and issubclass(tp, BaseModel):
+        return True
+    if origin is not None and args:
+        for arg in args:
+            if has_nested_base_model_in_type(arg):
+                return True
+    return False
 
 
 DataclassT = TypeVar("DataclassT", bound=IsDataclass)
@@ -45,8 +92,16 @@ DataclassT = TypeVar("DataclassT", bound=IsDataclass)
 JSON_DATA_CONTENT_TYPE = "application/json"
 
 
-class DataclassJsonMessageSerializer(MessageSerializer[IsDataclass]):
-    def __init__(self, cls: type[IsDataclass]) -> None:
+class DataclassJsonMessageSerializer(MessageSerializer[DataclassT]):
+    def __init__(self, cls: type[DataclassT]) -> None:
+        if contains_a_union(cls):
+            raise ValueError("Dataclass has a union type, which is not supported. To use a union, use a Pydantic model")
+
+        if has_nested_dataclass(cls) or has_nested_base_model(cls):
+            raise ValueError(
+                "Dataclass has nested dataclasses or base models, which are not supported. To use nested types, use a Pydantic model"
+            )
+
         self.cls = cls
 
     @property
@@ -57,14 +112,11 @@ class DataclassJsonMessageSerializer(MessageSerializer[IsDataclass]):
     def type_name(self) -> str:
         return _type_name(self.cls)
 
-    def deserialize(self, payload: bytes) -> IsDataclass:
+    def deserialize(self, payload: bytes) -> DataclassT:
         message_str = payload.decode("utf-8")
         return self.cls(**json.loads(message_str))
 
-    def serialize(self, message: IsDataclass) -> bytes:
-        if has_nested_dataclass(type(message)) or has_nested_base_model(type(message)):
-            raise ValueError("Dataclass has nested dataclasses or base models, which are not supported")
-
+    def serialize(self, message: DataclassT) -> bytes:
         return json.dumps(asdict(message)).encode("utf-8")
 
 

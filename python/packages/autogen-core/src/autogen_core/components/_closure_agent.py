@@ -9,8 +9,8 @@ from ..base._agent_instantiation import AgentInstantiationContext
 from ..base._agent_metadata import AgentMetadata
 from ..base._agent_runtime import AgentRuntime
 from ..base._serialization import JSON_DATA_CONTENT_TYPE, MESSAGE_TYPE_REGISTRY, try_get_known_serializers_for_type
+from ..base._type_helpers import get_types
 from ..base.exceptions import CantHandleException
-from ._type_helpers import get_types
 
 T = TypeVar("T")
 
