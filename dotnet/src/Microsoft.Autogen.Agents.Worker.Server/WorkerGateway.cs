@@ -40,7 +40,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _workers)
         {
-            tasks.Add(connection.SendMessage(new Message { Event = evt }));
+            tasks.Add(connection.SendMessage(new Message { CloudEvent = evt }));
         }
 
         await Task.WhenAll(tasks);
@@ -126,8 +126,8 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
             case Message.MessageOneofCase.Response:
                 DispatchResponse(connection, message.Response);
                 break;
-            case Message.MessageOneofCase.Event:
-                await DispatchEventAsync(message.Event);
+            case Message.MessageOneofCase.CloudEvent:
+                await DispatchEventAsync(message.CloudEvent);
                 break;
             case Message.MessageOneofCase.RegisterAgentType:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentType);
@@ -139,10 +139,10 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentType msg)
     {
-        connection.AddSupportedType(msg.AgentType);
-        _supportedAgentTypes.GetOrAdd(msg.AgentType, _ => []).Add(connection);
+        connection.AddSupportedType(msg.Type);
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg.AgentType, _reference);
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
 
     async ValueTask DispatchEventAsync(CloudEvent evt)

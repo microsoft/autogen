@@ -86,15 +86,15 @@ public abstract class AgentBase
     {
         switch (msg.MessageCase)
         {
-            case Message.MessageOneofCase.Event:
+            case Message.MessageOneofCase.CloudEvent:
                 {
                     // TODO: fix activity extraction
                     var activity = default(Activity); // ExtractActivity(msg.Event.Type, msg.Event.Attributes);
                     await this.InvokeWithActivityAsync(
                         static ((AgentBase Agent, CloudEvent Item) state) => state.Agent.CallHandler(state.Item),
-                        (this, msg.Event),
+                        (this, msg.CloudEvent),
                         activity,
-                        msg.Event.Type).ConfigureAwait(false);
+                        msg.CloudEvent.Type).ConfigureAwait(false);
                 }
                 break;
             case Message.MessageOneofCase.Request:

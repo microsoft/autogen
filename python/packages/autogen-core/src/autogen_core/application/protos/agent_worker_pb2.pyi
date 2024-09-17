@@ -4,6 +4,7 @@ isort:skip_file
 """
 
 import builtins
+import cloudevent_pb2
 import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
@@ -11,6 +12,24 @@ import google.protobuf.message
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+
+@typing.final
+class TopicId(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TYPE_FIELD_NUMBER: builtins.int
+    SOURCE_FIELD_NUMBER: builtins.int
+    type: builtins.str
+    source: builtins.str
+    def __init__(
+        self,
+        *,
+        type: builtins.str = ...,
+        source: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["source", b"source", "type", b"type"]) -> None: ...
+
+global___TopicId = TopicId
 
 @typing.final
 class AgentId(google.protobuf.message.Message):
@@ -271,6 +290,7 @@ class Message(google.protobuf.message.Message):
     EVENT_FIELD_NUMBER: builtins.int
     REGISTERAGENTTYPE_FIELD_NUMBER: builtins.int
     ADDSUBSCRIPTION_FIELD_NUMBER: builtins.int
+    CLOUDEVENT_FIELD_NUMBER: builtins.int
     @property
     def request(self) -> global___RpcRequest: ...
     @property
@@ -281,6 +301,8 @@ class Message(google.protobuf.message.Message):
     def registerAgentType(self) -> global___RegisterAgentType: ...
     @property
     def addSubscription(self) -> global___AddSubscription: ...
+    @property
+    def cloudEvent(self) -> cloudevent_pb2.CloudEvent: ...
     def __init__(
         self,
         *,
@@ -289,9 +311,10 @@ class Message(google.protobuf.message.Message):
         event: global___Event | None = ...,
         registerAgentType: global___RegisterAgentType | None = ...,
         addSubscription: global___AddSubscription | None = ...,
+        cloudEvent: cloudevent_pb2.CloudEvent | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "event", "registerAgentType", "addSubscription"] | None: ...
+    def HasField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "cloudEvent", b"cloudEvent", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["addSubscription", b"addSubscription", "cloudEvent", b"cloudEvent", "event", b"event", "message", b"message", "registerAgentType", b"registerAgentType", "request", b"request", "response", b"response"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "event", "registerAgentType", "addSubscription", "cloudEvent"] | None: ...
 
 global___Message = Message

@@ -46,10 +46,7 @@ message Event {
 }
 
 message RegisterAgentType {
-    string agentType = 1;
-    repeated string topicTypes = 2;
-    repeated string events = 3;
-    string stateType = 4;
+    string type = 1;
 }
 
 message TypeSubscription {
@@ -75,9 +72,10 @@ message Message {
     oneof message {
         RpcRequest request = 1;
         RpcResponse response = 2;
-        cloudevent.CloudEvent event = 3;
+        Event event = 3;
         RegisterAgentType registerAgentType = 4;
         AddSubscription addSubscription = 5;
+        cloudevent.CloudEvent cloudEvent = 6;
     }
 }
 

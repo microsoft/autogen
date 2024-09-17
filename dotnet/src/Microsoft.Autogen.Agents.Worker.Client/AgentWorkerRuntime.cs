@@ -86,7 +86,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             // where AgentId = (namespace: event.Namespace, name: agentType)
                             // i.e, assume each agent type implicitly subscribes to each event.
 
-                            var item = message.Event;
+                            var item = message.CloudEvent;
                             
                             foreach (var (typeName, _) in _agentTypes)
                             {
@@ -178,10 +178,10 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             {
                 RegisterAgentType = new RegisterAgentType
                 {
-                    AgentType = type,
-                    TopicTypes = { topicTypes },
-                    StateType = state?.Name,
-                    Events = { events }
+                    Type = type,
+                    //TopicTypes = { topicTypes },
+                    //StateType = state?.Name,
+                    //Events = { events }
                 }
             }).ConfigureAwait(false);
         }
@@ -204,7 +204,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
 
     public async ValueTask PublishEvent(CloudEvent @event)
     {
-        await WriteChannelAsync(new Message { Event = @event }).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { CloudEvent = @event }).ConfigureAwait(false);
     }
 
     private async Task WriteChannelAsync(Message message)
