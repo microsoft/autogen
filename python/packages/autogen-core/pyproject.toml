@@ -63,6 +63,9 @@ dev-dependencies = [
     "types-docker",
     "wikipedia",
     "opentelemetry-sdk>=1.27.0",
+    "sphinx-design",
+    "pydata-sphinx-theme",
+    "sphinx-copybutton",
 ]
 
 
@@ -99,3 +102,4 @@ mypy.sequence = [
 docs-build = "sphinx-build docs/src docs/build"
 docs-serve = "sphinx-autobuild --watch src docs/src docs/build"
 docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
+docs-clean = "rm -rf docs/build && rm -rf docs/src/reference/python/"
