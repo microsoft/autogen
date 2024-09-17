@@ -32,24 +32,15 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.graphviz",
     "sphinx_design",
-    "sphinxcontrib.apidoc",
     "sphinx_copybutton",
     "_extension.gallery_directive",
     "myst_nb",
 ]
 suppress_warnings = ["myst.header"]
 
-apidoc_module_dir = "../../src/autogen_core"
-apidoc_output_dir = "reference/python"
-apidoc_template_dir = "_apidoc_templates"
-apidoc_separate_modules = True
-apidoc_toc_file = "index"
-apidoc_extra_args = ["--no-toc"]
 napoleon_custom_sections = [("Returns", "params_style")]
-apidoc_excluded_paths = ["./application/protos/"]
 
 templates_path = ["_templates"]
-exclude_patterns = ["reference/python/autogen_core.rst"]
 
 autoclass_content = "init"
 
@@ -112,9 +103,12 @@ html_theme_options = {
             "icon": "fa-custom fa-pydata",
         },
     ],
-
 }
 
+html_sidebars = {
+    "reference/index": [],
+    "packages/index": [],
+}
 
 html_context = {
     'display_github': True,

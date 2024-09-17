@@ -3,7 +3,6 @@ myst:
   html_meta:
     "description lang=en": |
       AGNext packages provide a set of functionality for building multi-agent applications with AI agents.
-html_theme.nosidebar: true
 ---
 
 <style>
@@ -30,7 +29,7 @@ Implements the core functionality of the AGNext framework, providing basic build
 pip install autogen-core
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
 :::
 
 :::{card} {fas}`people-group;pst-color-primary` AutoGen AgentChat
@@ -42,7 +41,7 @@ Library that is at a similar level of abstraction as AutoGen 0.2, including defa
 pip install autogen-agentchat
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
 :::
 
 

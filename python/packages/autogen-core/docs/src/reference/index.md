@@ -5,15 +5,51 @@ myst:
       AGNext is a community-driven project. Learn how to get involved, contribute, and connect with the community.
 ---
 
+<style>
+.api-card {
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.api-card svg {
+  font-size: 2rem;
+}
+
+
+</style>
+
 # API Reference
 
-This section contains the API reference for the AGNext core package.
+```{toctree}
+:hidden:
+:caption: AutoGen Core
+
+python/autogen_core/autogen_core
+```
 
 ```{toctree}
-:caption: Python API Reference
-:maxdepth: 1
+:hidden:
+:caption: AutoGen AgentChat
 
-python/autogen_core.components
-python/autogen_core.application
-python/autogen_core.base
+python/autogen_agentchat/autogen_agentchat
 ```
+
+::::{grid} 1 2 2 3
+:margin: 4 4 0 0
+:gutter: 1
+
+:::{grid-item-card} {fas}`cube;pst-color-primary` <br> AutoGen Core
+:link: python/autogen_core/autogen_core
+:link-type: doc
+:class-item: api-card
+:::
+
+:::{grid-item-card} {fas}`people-group;pst-color-primary` <br> AutoGen AgentChat
+:link: python/autogen_agentchat/autogen_agentchat
+:link-type: doc
+:class-item: api-card
+:::
+
+
+::::
+

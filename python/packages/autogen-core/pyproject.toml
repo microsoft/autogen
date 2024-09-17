@@ -99,7 +99,41 @@ mypy.sequence = [
     "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos src tests",
     "nbqa mypy docs/src --config-file ../../pyproject.toml",
 ]
-docs-build = "sphinx-build docs/src docs/build"
-docs-serve = "sphinx-autobuild --watch src docs/src docs/build"
-docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
+
+# Docs
 docs-clean = "rm -rf docs/build && rm -rf docs/src/reference/python/"
+
+docs-apidoc-core = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_core src/autogen_core src/autogen_core/application/protos/"
+docs-apidoc-agentchat = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_agentchat ../autogen-agentchat/src/autogen_agentchat"
+docs-apidoc-all = [
+    "docs-apidoc-core",
+    "docs-apidoc-agentchat"
+]
+
+# Inline tables are WAY easier to read but for some reason they break pyright. So we have to write it out this way.
+# Example of inline table:
+# docs-build = [
+#     "docs-apidoc-all",
+#     { cmd = "sphinx-build docs/src docs/build" }
+# ]
+
+[[tool.poe.tasks.docs-build.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-build.sequence]]
+cmd = "sphinx-build docs/src docs/build"
+
+[[tool.poe.tasks.docs-serve.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-serve.sequence]]
+cmd = "sphinx-autobuild --watch src docs/src docs/build"
+
+[[tool.poe.tasks.docs-check.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-check.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-check.sequence]]
+cmd = "sphinx-build --fail-on-warning docs/src docs/build"
