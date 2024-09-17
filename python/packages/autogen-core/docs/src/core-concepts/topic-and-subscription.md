@@ -42,6 +42,12 @@ silos.
 
 A subscription maps topic to agent IDs.
 
+![Subscription](subscription.svg)
+
+The diagram above shows the relationship between topic and subscription.
+An agent runtime keeps track of the subscriptions and uses them to deliver
+messages to agents.
+
 If a topic has no subscription, messages published to this topic will
 not be delivered to any agent.
 If a topic has many subscriptions, messages will be delivered
@@ -52,7 +58,7 @@ Applications can add or remove subscriptions using agent runtime's API.
 
 A type-based subscription maps a topic type to an agent type
 (see [agent ID](./agent-identity-and-lifecycle.md#agent-id)).
-It declares a mapping from topics to agent IDs without knowing the
+It declares an unbounded mapping from topics to agent IDs without knowing the
 exact topic sources and agent keys.
 The mechanism is simple: any topic matching the type-based subscription's
 topic type will be mapped to an agent ID with the subscription's agent type
@@ -62,14 +68,16 @@ and the agent key assigned to the value of the topic source.
 Type-Based Subscription = Topic Type --> Agent Type
 ```
 
-For example, a type-based subscription maps topic type `"GitHub_Issues"`
-to agent type `"Triage_Agent"`.
+For example, a type-based subscription maps topic type `"github_issues"`
+to agent type `"triage_agent"`.
 When a broadcast message is published to the topic
-`("GitHub_Issues", "github.com/microsoft/autogen/issues/99"),
-the subscription maps the topic to an agent instance with ID
-`("Triage_Agent", "github.com/microsoft/autogen/issues/99")`,
+`("gitHub_issues", "github.com/microsoft/autogen/issues/1")`,
+a subscription will be created to map the topic to an agent instance with ID
+`("triage_agent", "github.com/microsoft/autogen/issues/1")`,
 and the runtime will deliver the message to that agent, creating it
 if not exist.
+
+![Type-Based Subscription](type-subscription.svg)
 
 Generally speaking, type-based subscription is the preferred way to delcare
 subscriptions. It is portable and data-independent:
