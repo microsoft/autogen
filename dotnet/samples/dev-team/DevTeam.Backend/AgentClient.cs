@@ -3,11 +3,14 @@ using Agents;
 using Microsoft.AI.Agents.Worker.Client;
 using AgentId = Microsoft.AI.Agents.Worker.Client.AgentId;
 
-namespace Greeter.AgentWorker;
+namespace DevTeam.Backend;
 
-public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator, EventTypes typeRegistry) : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), typeRegistry)
+// TODO: Extract this to be part of the Client
+public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator,
+    [FromKeyedServices("EventTypes")] EventTypes eventTypes)
+    : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), eventTypes )
 {
-    public async ValueTask PublishEventAsync(CloudEvent @event) => await PublishEvent(@event);
+    public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
     public async ValueTask<RpcResponse> SendRequestAsync(AgentId target, string method, Dictionary<string, string> parameters) => await RequestAsync(target, method, parameters);
 
     private sealed class ClientContext(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator) : IAgentContext

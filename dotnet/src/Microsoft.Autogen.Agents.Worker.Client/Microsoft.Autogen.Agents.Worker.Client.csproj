@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageId>AGNext.Worker.Client</PackageId>
+		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
+		<Authors>Microsoft</Authors>
+		<Description>AGNext Worker Client Library</Description>
+		<Tags>ai-agents;event-driven-agents</Tags>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Microsoft.Autogen.Agents/Microsoft.Autogen.Agents.csproj" />
+	</ItemGroup>
+
+</Project>

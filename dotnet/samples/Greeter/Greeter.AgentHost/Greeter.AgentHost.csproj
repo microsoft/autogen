@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AI.Agents.Worker.Server\Microsoft.AI.Agents.Worker.Server.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.Autogen.Agents.Worker.Server/Microsoft.Autogen.Agents.Worker.Server.csproj" />
     <ProjectReference Include="..\Greeter.ServiceDefaults\Greeter.ServiceDefaults.csproj" />
   </ItemGroup>
 

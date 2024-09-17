@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>AGNext.Core</PackageId>
+		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
+		<Authors>Microsoft</Authors>
+		<Description>AGNext Core Library</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\..\..\protos\agent_worker.proto" GrpcServices="Client;Server" Link="Protos\agent_worker.proto" />
+    <Protobuf Include="..\..\..\protos\cloudevent.proto" GrpcServices="Client;Server" Link="Protos\cloudevent.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SemanticKernel" />
+  </ItemGroup>
+
+</Project>

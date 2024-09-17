@@ -27,9 +27,13 @@
     <PackageVersion Include="Elsa.Workflows.Core" Version="3.1.3" />
     <PackageVersion Include="Elsa.Workflows.Designer" Version="3.0.0-preview.727" />
     <PackageVersion Include="Elsa.Workflows.Management" Version="3.1.3" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.63.0" />
-    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.63.0" />
-    <PackageVersion Include="Grpc.Tools" Version="2.64.0" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.65.0" />
+    <PackageVersion Include="Grpc.Core" Version="2.46.6" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.65.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.65.0" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.65.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.27.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.4" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />

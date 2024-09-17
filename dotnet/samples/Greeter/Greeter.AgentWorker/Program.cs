@@ -20,14 +20,8 @@ app.MapDefaultEndpoints();
 
 app.Run();
 
-internal sealed class GreetingAgent(IAgentContext context, ILogger<GreetingAgent> logger) : AgentBase(context)
+internal sealed class GreetingAgent(IAgentContext context, EventTypes typeRegistry, ILogger<GreetingAgent> logger) : AgentBase(context, typeRegistry)
 {
-    protected override Task HandleEvent(Event @event)
-    {
-        logger.LogInformation("[{Id}] Received event: '{Event}'.", AgentId, @event);
-        return base.HandleEvent(@event);
-    }
-
     protected override Task<RpcResponse> HandleRequest(RpcRequest request)
     {
         logger.LogInformation("[{Id}] Received request: '{Request}'.", AgentId, request);

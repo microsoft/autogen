@@ -2,6 +2,14 @@ syntax = "proto3";
 
 package agents;
 
+import "cloudevent.proto";
+import "google/protobuf/any.proto";
+
+message TopicId {
+  string type = 1;
+  string source = 2;
+}
+
 message AgentId {
     string type = 1;
     string key = 2;
@@ -38,7 +46,10 @@ message Event {
 }
 
 message RegisterAgentType {
-    string type = 1;
+    string agentType = 1;
+    repeated string topicTypes = 2;
+    repeated string events = 3;
+    string stateType = 4;
 }
 
 message TypeSubscription {
@@ -64,7 +75,7 @@ message Message {
     oneof message {
         RpcRequest request = 1;
         RpcResponse response = 2;
-        Event event = 3;
+        cloudevent.CloudEvent event = 3;
         RegisterAgentType registerAgentType = 4;
         AddSubscription addSubscription = 5;
     }

@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package cloudevent;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Agents";
+
+
+message CloudEvent {
+
+  // -- CloudEvent Context Attributes
+
+  // Required Attributes
+  string id = 1;
+  string source = 2; // URI-reference
+  string spec_version = 3;
+  string type = 4;
+
+  // Optional & Extension Attributes
+  map<string, CloudEventAttributeValue> attributes = 5;
+
+  // -- CloudEvent Data (Bytes, Text, or Proto)
+  oneof  data {
+    bytes binary_data = 6;
+    string text_data = 7;
+    google.protobuf.Any proto_data = 8;
+  }
+
+  /**
+   * The CloudEvent specification defines
+   * seven attribute value types...
+   */
+
+  message CloudEventAttributeValue {
+
+    oneof attr {
+      bool ce_boolean = 1;
+      int32 ce_integer = 2;
+      string ce_string = 3;
+      bytes ce_bytes = 4;
+      string ce_uri = 5;
+      string ce_uri_ref = 6;
+      google.protobuf.Timestamp ce_timestamp = 7;
+    }
+  }
+}
