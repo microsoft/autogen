@@ -20,6 +20,7 @@ from typing import List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components._default_subscription import DefaultSubscription
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -121,6 +122,7 @@ async def main() -> None:
             system_messages=[SystemMessage("You are a data scientist.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
+        lambda: [DefaultSubscription()],
     )
 
     await runtime.register(
@@ -130,6 +132,7 @@ async def main() -> None:
             system_messages=[SystemMessage("You are an engineer.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
+        lambda: [DefaultSubscription()],
     )
     await runtime.register(
         "Artist",
@@ -138,6 +141,7 @@ async def main() -> None:
             system_messages=[SystemMessage("You are an artist.")],
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
         ),
+        lambda: [DefaultSubscription()],
     )
 
     # Register the group chat manager.
@@ -152,6 +156,7 @@ async def main() -> None:
             ],
             num_rounds=3,
         ),
+        lambda: [DefaultSubscription()],
     )
 
     # Start the runtime.
