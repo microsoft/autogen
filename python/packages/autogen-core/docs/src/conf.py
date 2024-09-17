@@ -62,6 +62,12 @@ nb_execution_timeout = 60
 
 myst_heading_anchors = 5
 
+myst_enable_extensions = [
+    "colon_fence",
+    "linkify",
+    "strikethrough",
+]
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
