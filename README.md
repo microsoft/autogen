@@ -16,24 +16,26 @@
 
 # AutoGen
 
-AutoGen is an open-source programming framework OSS framework for developing intelligent applications using AI Agents patterns. It offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems.  AutoGen aims to streamline the development and research of agentic AI. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
+AutoGen is an open-source framework for building intelligent, agent-based systems using AI. It simplifies the creation of event-driven, distributed, scalable, and resilient AI applications. With AutoGen, you can easily design systems where AI agents collaborate, interact, and perform tasks autonomously or with human oversight.
 
-You can build and run your agent system locally and easily move to a distributed system in the cloud when you are ready.
+AutoGen is built to streamline AI development and research, enabling the use of multiple large language models (LLMs), integrated tools, and advanced multi-agent communication workflows.
+You can develop and test your agent systems locally, then seamlessly scale to a distributed cloud environment as your needs grow.
 
 > [!IMPORTANT]
 > *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the official repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
 >
-> -_*Maintainers (Sept 6th, 2024)*
+> -*Maintainers (Sept 6th, 2024)*
 
 AutoGen was created out of collaborative [research](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
-## Key Aspects
+## Key Features
 
-- Asynchronous messaging: Agents communicate with each other through asynchronous messages, enabling event-driven and request/response communication models.
-- Scalable & Distributed: Enable complex scenarios with networks of agents across org boundaries
-- Modular, extensible & highly customizable: E.g. custom agents, memory as a service, tools registry, model library
-- x-lang support: Python & Dotnet interoperating agents today, others coming soon
-- Observable, traceable & debuggable
+- **Asynchronous Messaging**: Agents communicate via asynchronous messages, supporting both event-driven and request/response interaction patterns.
+- **Scalable & Distributed**: Design complex, distributed agent networks that can operate across organizational boundaries.
+- **Modular & Extensible**: Customize your system with pluggable components, including custom agents, memory services, tool registries, and model libraries.
+- **Cross-Language Support**: Interoperate agents across different programming languages. Currently supports Python and .NET, with more languages coming soon.
+- **Observability & Debugging**: Built-in tools for tracking, tracing, and debugging agent interactions and workflows.
+
 
 ## Getting Started
 
