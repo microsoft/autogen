@@ -20,6 +20,7 @@ AutoGen is an open-source framework for building intelligent, agent-based system
 * [Features](#features)
 * [Using Autogen](#using-autogen)
 * [Roadmap](#roadmap)
+* [FAQs](#faqs)
 
 AutoGen is built to streamline AI development and research, enabling the use of multiple large language models (LLMs), integrated tools, and advanced multi-agent communication workflows.
 You can develop and test your agent systems locally, then seamlessly scale to a distributed cloud environment as your needs grow.
@@ -110,7 +111,7 @@ In addition, you can find:
   - [ ] Add support for more base agents and patterns
   - [ ] Add compatibility with Bot Framework Activity Protocol
 
-# FAQ
+# FAQs
 
 ### What is AutoGen 0.5?
 
