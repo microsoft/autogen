@@ -1,32 +1,28 @@
-# Agent and Multi-Agent Application
+# Agent and Multi-Agent Applications
 
-An agent is a software entity that
-communicates via messages, maintains a state,
-and performs actions in response to messages or a change in its state.
-Actions can result in changes to the agent's state and external effects,
-for example, updating message history, sending a message, executing code,
-or making external API calls.
+An **agent** is a software entity that communicates via messages, maintains its own state, and performs actions in response to received messages or changes in its state. These actions may modify the agent’s state and produce external effects, such as updating message logs, sending new messages, executing code, or making API calls.
 
-A wide variety of software applications can be modeled as a collection of independent
-agents that communicate with each other:
-sensors on a factory floor,
-distributed services powering web applications,
-business workflows involving multiple stakeholders,
-and more recently, artificial intelligence (AI) agents powered by language models
-(e.g., GPT-4) that can write code and interact with
-other software systems.
-We refer to them as multi-agent applications.
+Many software systems can be modeled as a collection of independent agents that interact with one another. Examples include:
 
-```{note}
-AI agents make use of language models as part of
-their software stacks to perform actions. 
-```
+- Sensors on a factory floor
+- Distributed services powering web applications
+- Business workflows involving multiple stakeholders
+- AI agents, such as those powered by language models (e.g., GPT-4), which can write code, interface with external systems, and communicate with other agents.
 
-In a multi-agent application, agents can live in the same process, on the same machine,
-or on different machines and across organizational boundaries.
-They can be implemented using different AI models, instructions, and programming languages.
-They can collaborate and work toward a common goal.
+These systems, composed of multiple interacting agents, are referred to as **multi-agent applications**.
 
-Each agent is a self-contained unit:
-developers can build, test and deploy it independently, and reuse it for different scenarios.
-Agents are composable: simple agents can form complex applications.
+> **Note:**  
+> AI agents typically use language models as part of their software stack to interpret messages, perform reasoning, and execute actions.
+
+## Characteristics of Multi-Agent Applications
+
+In multi-agent applications, agents may:
+
+- Run within the same process or on the same machine
+- Operate across different machines or organizational boundaries
+- Be implemented in diverse programming languages and make use of different AI models or instructions
+- Work together towards a shared goal, coordinating their actions through messaging
+
+Each agent is a self-contained unit that can be developed, tested, and deployed independently. This modular design allows agents to be reused across different scenarios and composed into more complex systems.
+
+Agents are inherently **composable**: simple agents can be combined to form complex, adaptable applications, where each agent contributes a specific function or service to the overall system.
