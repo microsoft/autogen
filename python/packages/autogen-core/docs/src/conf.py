@@ -94,17 +94,13 @@ html_theme_options = {
         },
         {
             "name": "PyPI",
-            "url": "https://pypi.org/project/autogen-core",
+            "url": "/packages",
             "icon": "fa-custom fa-pypi",
-        },
-        {
-            "name": "PyData",
-            "url": "https://pydata.org",
-            "icon": "fa-custom fa-pydata",
         },
     ],
 }
 
+html_js_files = ["custom-icon.js"]
 html_sidebars = {
     "reference/index": [],
     "packages/index": [],
