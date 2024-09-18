@@ -26,6 +26,7 @@ members = [
     "agbench",
     "autogen-agentchat",
     "autogen-core",
+    "autogen-ext",
     "team-one",
 ]
 requirements = [
@@ -410,6 +411,17 @@ dev = [
     { name = "types-requests" },
     { name = "wikipedia" },
 ]
+
+[[package]]
+name = "autogen-ext"
+version = "0.3.0.dev0"
+source = { editable = "packages/autogen-ext" }
+dependencies = [
+    { name = "autogen-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autopep8"

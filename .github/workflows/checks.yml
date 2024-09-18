@@ -46,7 +46,7 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench"]
+          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench", "./packages/autogen-ext"]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -66,7 +66,7 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench"]
+          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench", "./packages/autogen-ext"]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -86,7 +86,7 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one"]
+          ["./packages/autogen-core", "./packages/team-one",  "./packages/autogen-ext"]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh

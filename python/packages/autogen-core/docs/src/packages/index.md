@@ -54,7 +54,7 @@ Implementations of core components that interface with external services, or use
 pip install autogen-ext
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-ext)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-ext)
 :::
 
 

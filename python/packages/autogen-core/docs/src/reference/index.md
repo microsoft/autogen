@@ -34,6 +34,14 @@ python/autogen_core/autogen_core
 python/autogen_agentchat/autogen_agentchat
 ```
 
+```{toctree}
+:hidden:
+:caption: AutoGen Extensions
+
+python/autogen_ext/autogen_ext
+python/autogen_ext/autogen_ext.tools
+```
+
 ::::{grid} 1 2 2 3
 :margin: 4 4 0 0
 :gutter: 1
@@ -50,6 +58,11 @@ python/autogen_agentchat/autogen_agentchat
 :class-item: api-card
 :::
 
+:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` <br> AutoGen Extensions
+:link: python/autogen_ext/autogen_ext
+:link-type: doc
+:class-item: api-card
+:::
 
 ::::
 
