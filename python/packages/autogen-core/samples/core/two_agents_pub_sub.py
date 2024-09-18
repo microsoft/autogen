@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId
+from autogen_core.base import AgentId, MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from autogen_core.components.models import (
     AssistantMessage,
@@ -29,7 +29,6 @@ from autogen_core.components.models import (
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from autogen_core.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
@@ -71,10 +70,9 @@ class ChatCompletionAgent(RoutedAgent):
         response = await self._model_client.create(self._system_messages + llm_messages)
         assert isinstance(response.content, str)
 
-        if ctx.topic_id is not None:
-            await self.publish_message(
-                Message(content=response.content, source=self.metadata["type"]), topic_id=DefaultTopicId()
-            )
+        await self.publish_message(
+            Message(content=response.content, source=self.metadata["type"]), topic_id=DefaultTopicId()
+        )
 
 
 async def main() -> None:
@@ -88,7 +86,9 @@ async def main() -> None:
             description="Jack a comedian",
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             system_messages=[
-                SystemMessage("You are a comedian likes to make jokes. " "When you are done talking, say 'TERMINATE'.")
+                SystemMessage(
+                    "You are a comedian that likes to make jokes. " "After multiple turns, respond with 'TERMINATE'"
+                )
             ],
             termination_word="TERMINATE",
         ),
@@ -100,7 +100,9 @@ async def main() -> None:
             description="Cathy a poet",
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             system_messages=[
-                SystemMessage("You are a poet likes to write poems. " "When you are done talking, say 'TERMINATE'.")
+                SystemMessage(
+                    "You are a poet likes that to write poems. " "After multiple turns, respond with 'TERMINATE'"
+                )
             ],
             termination_word="TERMINATE",
         ),
@@ -111,7 +113,7 @@ async def main() -> None:
 
     # Send a message to Jack to start the conversation.
     message = Message(content="Can you tell me something fun about SF?", source="User")
-    await runtime.send_message(message, AgentId("jack", "default"))
+    await runtime.send_message(message, AgentId("Jack", "default"))
 
     # Process messages.
     await runtime.stop_when_idle()

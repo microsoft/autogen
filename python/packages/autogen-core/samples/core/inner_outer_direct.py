@@ -46,7 +46,7 @@ class Outer(RoutedAgent):
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
     await runtime.register("inner", Inner)
-    await runtime.register("outer", lambda: Outer(AgentId("outer", AgentInstantiationContext.current_agent_id().key)))
+    await runtime.register("outer", lambda: Outer(AgentId("inner", AgentInstantiationContext.current_agent_id().key)))
     outer = AgentId("outer", "default")
 
     runtime.start()
