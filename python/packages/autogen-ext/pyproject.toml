@@ -29,7 +29,7 @@ extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
 
 [tool.pyright]
-extend = "../../pyproject.toml"
+extends = "../../pyproject.toml"
 include = ["src", "tests"]
 
 [tool.pytest.ini_options]
