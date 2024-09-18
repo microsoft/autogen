@@ -1,6 +1,8 @@
 import asyncio
-from typing import Any, AsyncGenerator, List
+from typing import Any, AsyncGenerator, List, Tuple
+from unittest.mock import MagicMock, patch
 
+from autogen_core.components.models._openai_client import calculate_vision_tokens
 import pytest
 from autogen_core.base import CancellationToken
 from autogen_core.components import Image
@@ -136,7 +138,7 @@ async def test_openai_chat_completion_client_create_stream_cancel(monkeypatch: p
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_count_tokens() -> None:
+async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.MonkeyPatch) -> None:
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     messages: List[LLMMessage] = [
         SystemMessage(content="Hello"),
@@ -161,8 +163,40 @@ async def test_openai_chat_completion_client_count_tokens() -> None:
         return str(test1) + str(test2)
 
     tools = [FunctionTool(tool1, description="example tool 1"), FunctionTool(tool2, description="example tool 2")]
+
+    mockcalculate_vision_tokens = MagicMock()
+    monkeypatch.setattr(
+        "autogen_core.components.models._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens
+    )
+
     num_tokens = client.count_tokens(messages, tools=tools)
     assert num_tokens
 
+    # Check that calculate_vision_tokens was called
+    mockcalculate_vision_tokens.assert_called_once()
+
     remaining_tokens = client.remaining_tokens(messages, tools=tools)
     assert remaining_tokens
+
+
+@pytest.mark.parametrize(
+    "mock_size, expected_num_tokens",
+    [
+        ((1, 1), 255),
+        ((512, 512), 255),
+        ((2048, 512), 765),
+        ((2048, 2048), 765),
+        ((512, 1024), 425),
+    ],
+)
+def test_openai_count_image_tokens(mock_size: Tuple[int, int], expected_num_tokens: int) -> None:
+    # Step 1: Mock the Image class with only the 'image' attribute
+    mock_image_attr = MagicMock()
+    mock_image_attr.size = mock_size
+
+    mock_image = MagicMock()
+    mock_image.image = mock_image_attr
+
+    # Directly call calculate_vision_tokens and check the result
+    calculated_tokens = calculate_vision_tokens(mock_image, detail="auto")
+    assert calculated_tokens == expected_num_tokens

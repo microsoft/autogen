@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import json
 import logging
+import math
 import re
 import warnings
 from typing import (
@@ -204,6 +205,55 @@ def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
         return [assistant_message_to_oai(message)]
     else:
         return tool_message_to_oai(message)
+
+
+def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
+    MAX_LONG_EDGE = 2048
+    BASE_TOKEN_COUNT = 85
+    TOKENS_PER_TILE = 170
+    MAX_SHORT_EDGE = 768
+    TILE_SIZE = 512
+
+    if detail == "low":
+        return BASE_TOKEN_COUNT
+
+    width, height = image.image.size
+
+    # Scale down to fit within a MAX_LONG_EDGE x MAX_LONG_EDGE square if necessary
+
+    if width > MAX_LONG_EDGE or height > MAX_LONG_EDGE:
+        aspect_ratio = width / height
+        if aspect_ratio > 1:
+            # Width is greater than height
+            width = MAX_LONG_EDGE
+            height = int(MAX_LONG_EDGE / aspect_ratio)
+        else:
+            # Height is greater than or equal to width
+            height = MAX_LONG_EDGE
+            width = int(MAX_LONG_EDGE * aspect_ratio)
+
+    # Resize such that the shortest side is MAX_SHORT_EDGE if both dimensions exceed MAX_SHORT_EDGE
+    aspect_ratio = width / height
+    if width > MAX_SHORT_EDGE and height > MAX_SHORT_EDGE:
+        if aspect_ratio > 1:
+            # Width is greater than height
+            height = MAX_SHORT_EDGE
+            width = int(MAX_SHORT_EDGE * aspect_ratio)
+        else:
+            # Height is greater than or equal to width
+            width = MAX_SHORT_EDGE
+            height = int(MAX_SHORT_EDGE / aspect_ratio)
+
+    # Calculate the number of tiles based on TILE_SIZE
+
+    tiles_width = math.ceil(width / TILE_SIZE)
+    tiles_height = math.ceil(height / TILE_SIZE)
+    total_tiles = tiles_width * tiles_height
+    # Calculate the total tokens based on the number of tiles and the base token count
+
+    total_tokens = BASE_TOKEN_COUNT + TOKENS_PER_TILE * total_tiles
+
+    return total_tokens
 
 
 def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
@@ -604,15 +654,37 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for key, value in oai_message_part.items():
                     if value is None:
                         continue
-                    if not isinstance(value, str):
-                        try:
-                            value = json.dumps(value)
-                        except TypeError:
-                            trace_logger.warning(f"Could not convert {value} to string, skipping.")
-                            continue
-                    num_tokens += len(encoding.encode(value))
-                    if key == "name":
-                        num_tokens += tokens_per_name
+
+                    if isinstance(message, UserMessage) and isinstance(value, list):
+                        typed_message_value = cast(List[ChatCompletionContentPartParam], value)
+
+                        assert len(typed_message_value) == len(
+                            message.content
+                        ), "Mismatch in message content and typed message value"
+
+                        # We need image properties that are only in the original message
+                        for part, content_part in zip(typed_message_value, message.content, strict=False):
+                            if isinstance(content_part, Image):
+                                # TODO: add detail parameter
+                                num_tokens += calculate_vision_tokens(content_part)
+                            elif isinstance(part, str):
+                                num_tokens += len(encoding.encode(part))
+                            else:
+                                try:
+                                    serialized_part = json.dumps(part)
+                                    num_tokens += len(encoding.encode(serialized_part))
+                                except TypeError:
+                                    trace_logger.warning(f"Could not convert {part} to string, skipping.")
+                    else:
+                        if not isinstance(value, str):
+                            try:
+                                value = json.dumps(value)
+                            except TypeError:
+                                trace_logger.warning(f"Could not convert {value} to string, skipping.")
+                                continue
+                        num_tokens += len(encoding.encode(value))
+                        if key == "name":
+                            num_tokens += tokens_per_name
         num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
 
         # Tool tokens.
