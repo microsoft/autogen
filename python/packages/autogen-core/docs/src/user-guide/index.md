@@ -67,6 +67,7 @@ cookbook/extracting-results-with-an-agent
 cookbook/openai-assistant-agent
 cookbook/langgraph-agent
 cookbook/llamaindex-agent
+cookbook/local-llms-ollama-litellm
 
 ```
 
