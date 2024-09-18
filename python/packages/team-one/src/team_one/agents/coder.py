@@ -58,11 +58,12 @@ class Executor(BaseWorker):
     def __init__(
         self,
         description: str = DEFAULT_DESCRIPTION,
-        executor: Optional[CodeExecutor] = None,
         check_last_n_message: int = 5,
+        *,
+        executor: CodeExecutor,
     ) -> None:
         super().__init__(description)
-        self._executor = executor or DockerCommandLineCodeExecutor()
+        self._executor = executor
         self._check_last_n_message = check_last_n_message
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:

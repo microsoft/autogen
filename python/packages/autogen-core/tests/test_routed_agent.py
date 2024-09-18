@@ -5,7 +5,7 @@ from typing import Callable, cast
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, MessageContext, TopicId
-from autogen_core.components import RoutedAgent, TypeSubscription, message_handler, event, rpc
+from autogen_core.components import RoutedAgent, TypeSubscription, event, message_handler, rpc
 from test_utils import LoopbackAgent
 
 

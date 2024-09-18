@@ -40,42 +40,43 @@ class ToolInterventionHandler(DefaultInterventionHandler):
 async def main() -> None:
     # Create the runtime with the intervention handler.
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[ToolInterventionHandler()])
-    # Define the tools.
-    tools: List[Tool] = [
-        # A tool that executes Python code.
-        PythonCodeExecutionTool(
-            DockerCommandLineCodeExecutor(),
+    async with DockerCommandLineCodeExecutor() as executor:
+        # Define the tools.
+        tools: List[Tool] = [
+            # A tool that executes Python code.
+            PythonCodeExecutionTool(
+                executor=executor,
+            )
+        ]
+        # Register agents.
+        await runtime.register(
+            "tool_executor_agent",
+            lambda: ToolAgent(
+                description="Tool Executor Agent",
+                tools=tools,
+            ),
         )
-    ]
-    # Register agents.
-    await runtime.register(
-        "tool_executor_agent",
-        lambda: ToolAgent(
-            description="Tool Executor Agent",
-            tools=tools,
-        ),
-    )
-    await runtime.register(
-        "tool_enabled_agent",
-        lambda: ToolUseAgent(
-            description="Tool Use Agent",
-            system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
-            tool_schema=[tool.schema for tool in tools],
-            tool_agent=AgentId("tool_executor_agent", AgentInstantiationContext.current_agent_id().key),
-        ),
-    )
+        await runtime.register(
+            "tool_enabled_agent",
+            lambda: ToolUseAgent(
+                description="Tool Use Agent",
+                system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
+                model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
+                tool_schema=[tool.schema for tool in tools],
+                tool_agent=AgentId("tool_executor_agent", AgentInstantiationContext.current_agent_id().key),
+            ),
+        )
 
-    runtime.start()
+        runtime.start()
 
-    # Send a task to the tool user.
-    response = await runtime.send_message(
-        Message("Run the following Python code: print('Hello, World!')"), AgentId("tool_enabled_agent", "default")
-    )
-    print(response.content)
+        # Send a task to the tool user.
+        response = await runtime.send_message(
+            Message("Run the following Python code: print('Hello, World!')"), AgentId("tool_enabled_agent", "default")
+        )
+        print(response.content)
 
-    # Run the runtime until the task is completed.
-    await runtime.stop()
+        # Run the runtime until the task is completed.
+        await runtime.stop()
 
 
 if __name__ == "__main__":

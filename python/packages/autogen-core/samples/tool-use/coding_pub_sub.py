@@ -184,35 +184,37 @@ class ToolUseAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
-    # Define the tools.
-    tools: List[Tool] = [
-        PythonCodeExecutionTool(
-            DockerCommandLineCodeExecutor(),
+
+    async with DockerCommandLineCodeExecutor() as executor:
+        # Define the tools.
+        tools: List[Tool] = [
+            PythonCodeExecutionTool(
+                executor=executor,
+            )
+        ]
+        # Register agents.
+        await runtime.register(
+            "tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools), lambda: [DefaultSubscription()]
         )
-    ]
-    # Register agents.
-    await runtime.register(
-        "tool_executor", lambda: ToolExecutorAgent("Tool Executor", tools), lambda: [DefaultSubscription()]
-    )
-    await runtime.register(
-        "tool_use_agent",
-        lambda: ToolUseAgent(
-            description="Tool Use Agent",
-            system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
-            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
-            tools=tools,
-        ),
-        lambda: [DefaultSubscription()],
-    )
+        await runtime.register(
+            "tool_use_agent",
+            lambda: ToolUseAgent(
+                description="Tool Use Agent",
+                system_messages=[SystemMessage("You are a helpful AI Assistant. Use your tools to solve problems.")],
+                model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
+                tools=tools,
+            ),
+            lambda: [DefaultSubscription()],
+        )
 
-    runtime.start()
+        runtime.start()
 
-    # Publish a task.
-    await runtime.publish_message(
-        UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=DefaultTopicId()
-    )
+        # Publish a task.
+        await runtime.publish_message(
+            UserRequest("Run the following Python code: print('Hello, World!')"), topic_id=DefaultTopicId()
+        )
 
-    await runtime.stop_when_idle()
+        await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

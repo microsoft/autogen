@@ -186,23 +186,24 @@ async def main(task: str, temp_dir: str) -> None:
     # Create the runtime with the termination handler.
     runtime = SingleThreadedAgentRuntime()
 
-    # Register the agents.
-    await runtime.register(
-        "coder",
-        lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")),
-        lambda: [DefaultSubscription()],
-    )
-    await runtime.register(
-        "executor",
-        lambda: Executor(executor=DockerCommandLineCodeExecutor(work_dir=temp_dir)),
-        lambda: [DefaultSubscription()],
-    )
-    runtime.start()
+    async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
+        # Register the agents.
+        await runtime.register(
+            "coder",
+            lambda: Coder(model_client=get_chat_completion_client_from_envs(model="gpt-4-turbo")),
+            lambda: [DefaultSubscription()],
+        )
+        await runtime.register(
+            "executor",
+            lambda: Executor(executor=executor),
+            lambda: [DefaultSubscription()],
+        )
+        runtime.start()
 
-    # Publish the task message.
-    await runtime.publish_message(TaskMessage(content=task), topic_id=DefaultTopicId())
+        # Publish the task message.
+        await runtime.publish_message(TaskMessage(content=task), topic_id=DefaultTopicId())
 
-    await runtime.stop_when_idle()
+        await runtime.stop_when_idle()
 
 
 if __name__ == "__main__":

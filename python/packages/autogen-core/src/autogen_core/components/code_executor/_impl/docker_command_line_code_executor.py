@@ -16,6 +16,8 @@ from types import TracebackType
 from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Type, Union
 
 import docker
+import docker.models
+import docker.models.containers
 from docker.errors import ImageNotFound, NotFound
 
 from ....base._cancellation_token import CancellationToken
@@ -150,6 +152,9 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
+        self._container: docker.models.containers.Container | None = None
+        self._running = False
+
     @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
@@ -201,6 +206,9 @@ $functions"""
     async def _execute_code_dont_check_setup(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CommandLineCodeResult:
+        if self._container is None or not self._running:
+            raise ValueError("Container is not running. Must first be started with either start or a context manager.")
+
         if len(code_blocks) == 0:
             raise ValueError("No code blocks to execute.")
 
@@ -265,6 +273,9 @@ $functions"""
         return await self._execute_code_dont_check_setup(code_blocks, cancellation_token)
 
     async def restart(self) -> None:
+        if self._container is None or not self._running:
+            raise ValueError("Container is not running. Must first be started with either start or a context manager.")
+
         """(Experimental) Restart the code executor."""
         await asyncio.to_thread(self._container.restart)
         if self._container.status != "running":

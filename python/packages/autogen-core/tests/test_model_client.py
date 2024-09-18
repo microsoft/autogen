@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, AsyncGenerator, List, Tuple
 from unittest.mock import MagicMock, patch
 
-from autogen_core.components.models._openai_client import calculate_vision_tokens
 import pytest
 from autogen_core.base import CancellationToken
 from autogen_core.components import Image
@@ -18,6 +17,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.models._model_info import resolve_model
+from autogen_core.components.models._openai_client import calculate_vision_tokens
 from autogen_core.components.tools import FunctionTool
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
