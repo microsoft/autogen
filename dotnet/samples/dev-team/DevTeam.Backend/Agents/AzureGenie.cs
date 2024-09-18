@@ -1,7 +1,7 @@
 using DevTeam.Backend;
 using DevTeam.Shared;
-using Microsoft.AI.Agents.Abstractions;
-using Microsoft.AI.Agents.Worker.Client;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Worker.Client;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 namespace Microsoft.AI.DevTeam;

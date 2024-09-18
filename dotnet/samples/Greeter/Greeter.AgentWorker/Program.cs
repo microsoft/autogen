@@ -1,8 +1,8 @@
 using Agents;
 using Google.Protobuf;
 using Greeter.AgentWorker;
-using Microsoft.AI.Agents.Worker.Client;
-using AgentId = Microsoft.AI.Agents.Worker.Client.AgentId;
+using Microsoft.AutoGen.Agents.Worker.Client;
+using AgentId = Microsoft.AutoGen.Agents.Worker.Client.AgentId;
 
 var builder = WebApplication.CreateBuilder(args);
 

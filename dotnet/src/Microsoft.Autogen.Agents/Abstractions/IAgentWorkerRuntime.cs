@@ -2,7 +2,7 @@
 
 using Agents;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 public interface IAgentWorkerRuntime
 {
     ValueTask PublishEvent(CloudEvent evt);

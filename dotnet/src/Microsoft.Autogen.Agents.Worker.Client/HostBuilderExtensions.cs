@@ -9,9 +9,9 @@ using System.Reflection;
 using Google.Protobuf.Reflection;
 using Google.Protobuf;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Abstractions;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public static class HostBuilderExtensions
 {

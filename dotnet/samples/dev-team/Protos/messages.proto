@@ -12,7 +12,10 @@ message NewAsk {
 }
 
 message ReadmeRequested {
-      string ask = 1;
+   string org = 1;
+   string repo = 2;
+   int64 issue_number = 3;
+   string ask = 4;
 }
 message ReadmeChainClosed {
       string ask = 1;
@@ -35,11 +38,17 @@ message CodeChainClosed {
 }
 
 message CodeGenerationRequested {
-  string ask = 1;
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string ask = 4;
 }
 
 message DevPlanRequested {
-  string ask = 1;
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string ask = 4;
 }
 
 message DevPlanGenerated {

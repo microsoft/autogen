@@ -1,6 +1,6 @@
 using RpcAgentId = Agents.AgentId;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public sealed record class AgentId(string Type, string Key)
 {

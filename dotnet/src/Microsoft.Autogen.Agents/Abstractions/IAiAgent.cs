@@ -2,7 +2,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-namespace Microsoft.AI.Agents.Abstractions;
+namespace Microsoft.AutoGen.Agents.Abstractions;
 
 public interface IAiAgent : IAgent
 {

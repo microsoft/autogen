@@ -2,7 +2,7 @@ using Agents;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
 {

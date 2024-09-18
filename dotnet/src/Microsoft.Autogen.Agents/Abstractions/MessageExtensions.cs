@@ -2,7 +2,7 @@ using Agents;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Microsoft.AI.Agents.Abstractions;
+namespace Microsoft.AutoGen.Agents.Abstractions;
 
 public static class MessageExtensions
 {

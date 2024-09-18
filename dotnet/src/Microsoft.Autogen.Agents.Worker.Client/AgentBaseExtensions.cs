@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public static class AgentBaseExtensions
 {

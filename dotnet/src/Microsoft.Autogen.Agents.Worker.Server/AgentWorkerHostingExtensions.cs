@@ -5,7 +5,7 @@ using Orleans.Serialization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Diagnostics;
 
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 public static class AgentWorkerHostingExtensions
 {

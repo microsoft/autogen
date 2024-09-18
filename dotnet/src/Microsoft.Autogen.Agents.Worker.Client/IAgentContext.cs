@@ -2,7 +2,7 @@ using Agents;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public interface IAgentContext
 {

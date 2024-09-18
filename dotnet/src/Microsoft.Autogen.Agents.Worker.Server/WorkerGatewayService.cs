@@ -1,7 +1,7 @@
 using Grpc.Core;
 using Agents;
 
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 // gRPC service which handles communication between the agent worker and the cluster.
 internal sealed class WorkerGatewayService(WorkerGateway agentWorker) : AgentRpc.AgentRpcBase 

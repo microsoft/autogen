@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Channels;
 using System.Diagnostics;
-using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Abstractions;
 using System.Reflection;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWorkerRuntime
 {

@@ -11,7 +11,7 @@ Each event in the system is defined using the [CloudEvents Specification](https:
 
 ## Event Handlers
 
-Each agent has a set of event handlers, that are bound to a specific match against a CloudEvents *type*. Event Handlers could match against an exact type or match for a pattern of events of a particular level in the type heirarchy (eg: *com.Microsoft.AI.Agents.System.\** for all Events in the *System* namespace) Each event handler is a function that can change state, call models, access memory, call external tools, emit other events, and flow data to/from other systems. Each event handler can be a simple function or a more complex function that uses a state machine or other control logic.
+Each agent has a set of event handlers, that are bound to a specific match against a CloudEvents *type*. Event Handlers could match against an exact type or match for a pattern of events of a particular level in the type heirarchy (eg: *com.Microsoft.AutoGen.Agents.System.\** for all Events in the *System* namespace) Each event handler is a function that can change state, call models, access memory, call external tools, emit other events, and flow data to/from other systems. Each event handler can be a simple function or a more complex function that uses a state machine or other control logic.
 
 ## Orchestrating Agents
 

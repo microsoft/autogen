@@ -1,6 +1,7 @@
 using System.Globalization;
-using System.Text.Json;
 using Agents;
+using DevTeam.Shared;
+using Microsoft.AutoGen.Agents.Abstractions;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;
@@ -52,12 +53,12 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
             if (issuesEvent.Action == IssuesAction.Opened)
             {
                 _logger.LogInformation("Processing HandleNewAsk");
-                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
+                await HandleNewAsk(issueNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
             else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue?.User.Type.Value == UserType.Bot)
             {
                 _logger.LogInformation("Processing HandleClosingIssue");
-                await HandleClosingIssue(issueNumber, parentNumber, skillName, labels[skillName], suffix, org, repo);
+                await HandleClosingIssue(issueNumber, skillName, labels[skillName], suffix);
             }
         }
         catch (Exception ex)
@@ -95,7 +96,7 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
             // we only respond to non-bot comments
             if (issueCommentEvent.Sender!.Type.Value != UserType.Bot)
             {
-                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
+                await HandleNewAsk(issueNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
         }
         catch (Exception ex)
@@ -106,63 +107,37 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
 
     }
 
-    private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string org, string repo)
+    private async Task HandleClosingIssue(long issueNumber,  string skillName, string functionName, string suffix)
     {
         var subject = suffix + issueNumber.ToString();
 
-        var eventType = (skillName, functionName) switch
+        var evt = (skillName, functionName) switch
         {
-            //("PM", "Readme") => nameof(EventTypes.ReadmeChainClosed),
-            //("DevLead", "Plan") => nameof(EventTypes.DevPlanChainClosed),
-            //("Developer", "Implement") => nameof(EventTypes.CodeChainClosed),
-            _ => "asd"
+            ("PM", "Readme") => new ReadmeChainClosed {  }.ToCloudEvent(subject),
+            ("DevLead", "Plan") => new DevPlanChainClosed {  }.ToCloudEvent(subject),
+            ("Developer", "Implement") => new CodeChainClosed { }.ToCloudEvent(subject),
+            _ => new CloudEvent() // TODO: default event
         };
-        var data = new Dictionary<string, string>
-        {
-            ["org"] = org,
-            ["repo"] = repo,
-            ["issueNumber"] = issueNumber.ToString(),
-            ["parentNumber"] = (parentNumber ?? 0).ToString()
-        };
-        await _client.PublishEventAsync(new CloudEvent
-        {
-            Source = subject,
-            Type = eventType,
-            TextData = JsonSerializer.Serialize(data),
-        });
-        await Task.CompletedTask;
+
+        await _client.PublishEventAsync(evt);
     }
 
-    private async Task HandleNewAsk(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
+    private async Task HandleNewAsk(long issueNumber,string skillName, string functionName, string suffix, string input, string org, string repo)
     {
         try
         {
             _logger.LogInformation("Handling new ask");
             var subject = suffix + issueNumber.ToString();
 
-            var eventType = (skillName, functionName) switch
+            var evt = (skillName, functionName) switch
             {
-                //("Do", "It") => nameof(EventTypes.NewAsk),
-                //("PM", "Readme") => nameof(EventTypes.ReadmeRequested),
-                //("DevLead", "Plan") => nameof(EventTypes.DevPlanRequested),
-                //("Developer", "Implement") => nameof(EventTypes.CodeGenerationRequested),
-                _ => "nameof(EventTypes.NewAsk)"
+                ("Do", "It") => new NewAsk { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                ("PM", "Readme") => new ReadmeRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                ("DevLead", "Plan") => new DevPlanRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                ("Developer", "Implement") => new CodeGenerationRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                _ => new CloudEvent()
             };
-            var data = new Dictionary<string, string>
-            {
-                { "org", org },
-                { "repo", repo },
-                { "issueNumber", issueNumber.ToString() },
-                { "parentNumber", (parentNumber ?? 0).ToString()},
-                { "input", input}
-
-            };
-            await _client.PublishEventAsync(new CloudEvent
-            {
-                Source = subject,
-                Type = eventType,
-                TextData = JsonSerializer.Serialize(data),
-            });
+            await _client.PublishEventAsync(evt);
         }
         catch (Exception ex)
         {

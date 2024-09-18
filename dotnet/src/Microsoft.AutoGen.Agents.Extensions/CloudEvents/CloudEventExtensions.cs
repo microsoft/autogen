@@ -2,7 +2,7 @@ using Agents;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 public static class CloudEventExtensions
 

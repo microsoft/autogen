@@ -5,9 +5,9 @@ using System.Text.Json;
 using System.Diagnostics;
 using System.Text;
 using Google.Protobuf;
-using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Abstractions;
 
-namespace Microsoft.AI.Agents.Worker.Client;
+namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public abstract class AgentBase
 {

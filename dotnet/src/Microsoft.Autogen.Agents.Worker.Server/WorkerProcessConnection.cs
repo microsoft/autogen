@@ -2,7 +2,7 @@ using Grpc.Core;
 using Agents;
 using System.Threading.Channels;
 
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 internal sealed class WorkerProcessConnection : IAsyncDisposable
 {

@@ -10,7 +10,7 @@
    
     <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Autogen.Agents.Worker.Client\Microsoft.Autogen.Agents.Worker.Client.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj" />
   </ItemGroup>
 
 </Project>

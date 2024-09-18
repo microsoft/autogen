@@ -120,3 +120,21 @@ As the last step, we also need to [load the WAF into the vector DB](#load-the-wa
 
 If you are running the app locally, we have [Qdrant](https://qdrant.tech/) setup in the Codespace and if you are running in Azure, Qdrant is deployed to ACA.
 The loader is a project in the `samples` folder, called `seed-memory`. We need to fill in the `appsettings.json` (after renaming `appsettings.template.json` in `appsettings.json`) file in the `config` folder with the OpenAI details and the Qdrant endpoint, then just run the loader with `dotnet run` and you are ready to go.
+
+
+
+### WIP Local setup
+
+```
+dotnet user-secrets set "OpenAI:Key" "your_key"
+
+dotnet user-secrets set "OpenAI:Endpoint" "https://your_endpoint.openai.azure.com/"
+
+dotnet user-secrets set "Github:AppId" "gh_app_id"
+
+dotnet user-secrets set "Github:InstallationId" "gh_inst_id"
+
+dotnet user-secrets set "Github:WebhookSecret" "webhook_secret"
+
+dotnet user-secrets set "Github:AppKey" "gh_app_key"
+```

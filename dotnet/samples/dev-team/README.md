@@ -67,10 +67,3 @@ graph TD;
     SRM --> SRF([SandboxRunFinished event]);
     SRF --> |Hubber| SRCC[Code files commited to branch];
 ```
-
-dotnet user-secrets set "OpenAI:Key" "your_key"
-dotnet user-secrets set "OpenAI:Endpoint" "https://your_endpoint.openai.azure.com/"
-dotnet user-secrets set "Github:AppId" "your_key"
-dotnet user-secrets set "Github:InstallationId" "https://your_endpoint.openai.azure.com/"
-dotnet user-secrets set "Github:WebhookSecret" "your_key"
-dotnet user-secrets set "Github:AppKey" "https://your_endpoint.openai.azure.com/"

@@ -249,7 +249,7 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]], env_file: str 
     Return a dictionary of environment variables needed to run a scenario.
 
     Args:
-        config_list (list): An Autogen OAI_CONFIG_LIST to be used when running scenarios.
+        config_list (list): An AutoGen OAI_CONFIG_LIST to be used when running scenarios.
         env_file (str): The path to the env_file to read. (default: DEFAULT_ENV_FILE)
 
     Returns: A dictionary of keys and values that need to be added to the system environment.

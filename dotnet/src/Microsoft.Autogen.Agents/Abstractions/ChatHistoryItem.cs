@@ -1,4 +1,4 @@
-namespace Microsoft.AI.Agents.Abstractions;
+namespace Microsoft.AutoGen.Agents.Abstractions;
 
 [Serializable]
 public class ChatHistoryItem

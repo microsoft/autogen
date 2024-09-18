@@ -1,4 +1,4 @@
-﻿namespace Microsoft.AI.Agents.Worker;
+﻿namespace Microsoft.AutoGen.Agents.Worker;
 
 internal interface IAgentStateGrain : IGrainWithStringKey
 {

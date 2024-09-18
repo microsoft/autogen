@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Agents;
-using Microsoft.AI.Agents.Worker.Client;
-using AgentId = Microsoft.AI.Agents.Worker.Client.AgentId;
+using Microsoft.AutoGen.Agents.Worker.Client;
+using AgentId = Microsoft.AutoGen.Agents.Worker.Client.AgentId;
 
 namespace Greeter.AgentWorker;
 

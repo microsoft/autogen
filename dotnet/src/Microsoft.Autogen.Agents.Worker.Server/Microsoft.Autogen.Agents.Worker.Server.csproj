@@ -12,7 +12,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="../Microsoft.Autogen.Agents/Microsoft.Autogen.Agents.csproj" />
+		<ProjectReference Include="../Microsoft.AutoGen.Agents/Microsoft.AutoGen.Agents.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

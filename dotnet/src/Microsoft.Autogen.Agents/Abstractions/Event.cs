@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Microsoft.AI.Agents.Abstractions;
+namespace Microsoft.AutoGen.Agents.Abstractions;
 
 /// <summary>
 /// Base class for all events

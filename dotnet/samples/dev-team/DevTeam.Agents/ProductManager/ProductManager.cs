@@ -1,6 +1,6 @@
 using DevTeam.Shared;
-using Microsoft.AI.Agents.Abstractions;
-using Microsoft.AI.Agents.Worker.Client;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Worker.Client;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
@@ -27,7 +27,10 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
         var readme = await CreateReadme(item.Ask);
         var evt = new ReadmeGenerated
         {
-            Readme = readme
+            Readme = readme,
+            Org = item.Org,
+            Repo = item.Repo,
+            IssueNumber = item.IssueNumber
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt);
     }

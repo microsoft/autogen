@@ -1,4 +1,4 @@
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 internal sealed class AgentStateGrain([PersistentState("state", "agent-state")] IPersistentState<Dictionary<string, object>> state) : Grain, IAgentStateGrain
 {

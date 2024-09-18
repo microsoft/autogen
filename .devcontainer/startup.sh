@@ -2,6 +2,7 @@
 
 # dotnet setup
 dotnet workload update
+dotnet dev-certs https --trust
 
 # python setup
 pushd python

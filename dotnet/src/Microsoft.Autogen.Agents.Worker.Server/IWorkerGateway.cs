@@ -1,6 +1,6 @@
 using Agents;
 
-namespace Microsoft.AI.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Worker;
 
 public interface IWorkerGateway : IGrainObserver
 {

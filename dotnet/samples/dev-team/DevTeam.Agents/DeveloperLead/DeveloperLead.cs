@@ -1,6 +1,6 @@
 using DevTeam.Shared;
-using Microsoft.AI.Agents.Abstractions;
-using Microsoft.AI.Agents.Worker.Client;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Worker.Client;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
@@ -18,6 +18,9 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
         var plan = await CreatePlan(item.Ask);
         var evt = new DevPlanGenerated
         {
+            Org = item.Org,
+            Repo = item.Repo,
+            IssueNumber = item.IssueNumber,
             Plan = plan
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt);
