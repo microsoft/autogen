@@ -1,8 +1,8 @@
 import uuid
+from typing import TypeVar
 
-from autogen_core.base.exceptions import CantHandleException
-
-from ..base import AgentId, Subscription, TopicId
+from ..base import AgentId, BaseAgent, Subscription, TopicId
+from ..base.exceptions import CantHandleException
 
 
 class TypeSubscription(Subscription):
@@ -51,3 +51,6 @@ class TypeSubscription(Subscription):
             raise CantHandleException("TopicId does not match the subscription")
 
         return AgentId(type=self._agent_type, key=topic_id.source)
+
+
+BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")

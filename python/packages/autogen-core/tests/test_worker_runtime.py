@@ -3,7 +3,6 @@ import asyncio
 import pytest
 from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
 from autogen_core.base import (
-    MESSAGE_TYPE_REGISTRY,
     AgentId,
     AgentInstantiationContext,
     TopicId,
@@ -19,8 +18,6 @@ async def test_agent_names_must_be_unique() -> None:
     host_address = "localhost:50051"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(MessageType))
 
     worker = WorkerAgentRuntime(host_address=host_address)
     worker.start()
@@ -53,9 +50,8 @@ async def test_register_receives_publish() -> None:
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
 
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(MessageType))
-
     worker = WorkerAgentRuntime(host_address=host_address)
+    worker.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     worker.start()
 
     await worker.register("name", LoopbackAgent)
@@ -87,8 +83,9 @@ async def test_register_receives_publish_cascade() -> None:
     host_address = "localhost:50053"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(CascadingMessageType))
     runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    runtime.add_message_serializer(try_get_known_serializers_for_type(CascadingMessageType))
     runtime.start()
 
     num_agents = 5
@@ -125,8 +122,8 @@ async def test_default_subscription() -> None:
     host_address = "localhost:50054"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(MessageType))
     runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     runtime.start()
 
     await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])
@@ -155,8 +152,8 @@ async def test_non_default_default_subscription() -> None:
     host_address = "localhost:50055"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(MessageType))
     runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     runtime.start()
 
     await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription(topic_type="Other")])
@@ -185,8 +182,8 @@ async def test_non_publish_to_other_source() -> None:
     host_address = "localhost:50056"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(MessageType))
     runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     runtime.start()
 
     await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])

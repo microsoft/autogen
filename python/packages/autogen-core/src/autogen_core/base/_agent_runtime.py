@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
+from collections.abc import Sequence
+from typing import Any, Awaitable, Callable, List, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
+
+from typing_extensions import deprecated
 
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._agent_type import AgentType
 from ._cancellation_token import CancellationToken
+from ._serialization import MessageSerializer
 from ._subscription import Subscription
 from ._topic import TopicId
 
@@ -67,6 +71,9 @@ class AgentRuntime(Protocol):
         """
         ...
 
+    @deprecated(
+        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
+    )
     async def register(
         self,
         type: str,
@@ -82,6 +89,34 @@ class AgentRuntime(Protocol):
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
             subscriptions (Callable[[], list[Subscription]] | list[Subscription] | None, optional): The subscriptions that the agent should be subscribed to. Defaults to None.
 
+        Example:
+            .. code-block:: python
+
+                runtime.register(
+                    "chat_agent",
+                    lambda: ChatCompletionAgent(
+                        description="A generic chat agent.",
+                        system_messages=[SystemMessage("You are a helpful assistant")],
+                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
+                        memory=BufferedChatMemory(buffer_size=10),
+                    ),
+                )
+
+        """
+        ...
+
+    async def register_factory(
+        self,
+        *,
+        type: AgentType,
+        agent_factory: Callable[[], T | Awaitable[T]],
+        expected_class: type[T],
+    ) -> AgentType:
+        """Register an agent factory with the runtime associated with a specific type. The type must be unique.
+
+        Args:
+            type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
+            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
 
         Example:
             .. code-block:: python
@@ -97,7 +132,6 @@ class AgentRuntime(Protocol):
                 )
 
         """
-
         ...
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
@@ -197,5 +231,15 @@ class AgentRuntime(Protocol):
 
         Raises:
             LookupError: If the subscription does not exist
+        """
+        ...
+
+    def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
+        """Add a new message serialization serializer to the runtime
+
+        Note: This will deduplicate serializers based on the type_name and data_content_type properties
+
+        Args:
+            serializer (MessageSerializer[Any] | Sequence[MessageSerializer[Any]]): The serializer/s to add
         """
         ...

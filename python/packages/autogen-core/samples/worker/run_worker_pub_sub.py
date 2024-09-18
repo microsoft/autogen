@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MESSAGE_TYPE_REGISTRY, AgentId, MessageContext, try_get_known_serializers_for_type
-from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.base import MessageContext
+from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
 
 
 @dataclass
@@ -33,6 +33,7 @@ class ReturnedFeedback:
     content: str
 
 
+@default_subscription
 class ReceiveAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("Receive Agent")
@@ -49,6 +50,7 @@ class ReceiveAgent(RoutedAgent):
         print(f"Unhandled message: {message}")
 
 
+@default_subscription
 class GreeterAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("Greeter Agent")
@@ -67,15 +69,10 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = WorkerAgentRuntime(host_address="localhost:50051")
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Greeting))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(AskToGreet))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Feedback))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(ReturnedGreeting))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(ReturnedFeedback))
     runtime.start()
 
-    await runtime.register("receiver", ReceiveAgent, lambda: [DefaultSubscription()])
-    await runtime.register("greeter", GreeterAgent, lambda: [DefaultSubscription()])
+    await ReceiveAgent.register(runtime, "receiver", ReceiveAgent)
+    await GreeterAgent.register(runtime, "greeter", GreeterAgent)
 
     await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 

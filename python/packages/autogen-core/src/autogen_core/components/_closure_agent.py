@@ -1,21 +1,25 @@
 import inspect
-from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar, get_type_hints
+from typing import Any, Awaitable, Callable, List, Mapping, Sequence, TypeVar, cast, get_type_hints
 
-from autogen_core.base import MessageContext
-
-from ..base._agent import Agent
-from ..base._agent_id import AgentId
-from ..base._agent_instantiation import AgentInstantiationContext
-from ..base._agent_metadata import AgentMetadata
-from ..base._agent_runtime import AgentRuntime
-from ..base._serialization import JSON_DATA_CONTENT_TYPE, MESSAGE_TYPE_REGISTRY, try_get_known_serializers_for_type
+from ..base import (
+    Agent,
+    AgentId,
+    AgentInstantiationContext,
+    AgentMetadata,
+    AgentRuntime,
+    AgentType,
+    MessageContext,
+    Subscription,
+    SubscriptionInstantiationContext,
+    try_get_known_serializers_for_type,
+)
 from ..base._type_helpers import get_types
 from ..base.exceptions import CantHandleException
 
 T = TypeVar("T")
 
 
-def get_subscriptions_from_closure(
+def get_handled_types_from_closure(
     closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]],
 ) -> Sequence[type]:
     args = inspect.getfullargspec(closure)[0]
@@ -58,12 +62,8 @@ class ClosureAgent(Agent):
         self._runtime: AgentRuntime = runtime
         self._id: AgentId = id
         self._description = description
-        subscription_types = get_subscriptions_from_closure(closure)
-        # TODO fold this into runtime
-        for message_type in subscription_types:
-            MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(message_type))
-
-        self._subscriptions = [MESSAGE_TYPE_REGISTRY.type_name(message_type) for message_type in subscription_types]
+        handled_types = get_handled_types_from_closure(closure)
+        self._expected_types = handled_types
         self._closure = closure
 
     @property
@@ -84,9 +84,9 @@ class ClosureAgent(Agent):
         return self._runtime
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
-        if MESSAGE_TYPE_REGISTRY.type_name(message) not in self._subscriptions:
+        if type(message) not in self._expected_types:
             raise CantHandleException(
-                f"Message type {type(message)} not in target types {self._subscriptions} of {self.id}"
+                f"Message type {type(message)} not in target types {self._expected_types} of {self.id}"
             )
         return await self._closure(self._runtime, self._id, message, ctx)
 
@@ -95,3 +95,39 @@ class ClosureAgent(Agent):
 
     def load_state(self, state: Mapping[str, Any]) -> None:
         raise ValueError("load_state not implemented for ClosureAgent")
+
+    @classmethod
+    async def register(
+        cls,
+        runtime: AgentRuntime,
+        type: str,
+        closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]],
+        *,
+        description: str = "",
+        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]] | None = None,
+    ) -> AgentType:
+        agent_type = AgentType(type)
+        subscriptions_list: List[Subscription] = []
+        if subscriptions is not None:
+            with SubscriptionInstantiationContext.populate_context(agent_type):
+                subscriptions_list_result = subscriptions()
+                if inspect.isawaitable(subscriptions_list_result):
+                    subscriptions_list.extend(cast(List[Subscription], await subscriptions_list_result))
+                else:
+                    subscriptions_list.extend(cast(List[Subscription], subscriptions_list_result))
+
+        agent_type = await runtime.register_factory(
+            type=agent_type,
+            agent_factory=lambda: ClosureAgent(description=description, closure=closure),
+            expected_class=cls,
+        )
+        for subscription in subscriptions_list:
+            await runtime.add_subscription(subscription)
+
+        handled_types = get_handled_types_from_closure(closure)
+        for message_type in handled_types:
+            # TODO: support custom serializers
+            serializer = try_get_known_serializers_for_type(message_type)
+            runtime.add_message_serializer(serializer)
+
+        return agent_type

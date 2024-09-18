@@ -1,7 +1,9 @@
-from typing import Protocol, runtime_checkable
+from __future__ import annotations
 
-from autogen_core.base import AgentId
+from typing import Any, Awaitable, Callable, Protocol, runtime_checkable
 
+from ._agent_id import AgentId
+from ._agent_type import AgentType
 from ._topic import TopicId
 
 
@@ -58,3 +60,7 @@ class Subscription(Protocol):
             CantHandleException: If the subscription cannot handle the topic_id.
         """
         ...
+
+
+# Helper alias to represent the lambdas used to define subscriptions
+UnboundSubscription = Callable[[], list[Subscription] | Awaitable[list[Subscription]]]

@@ -5,7 +5,6 @@ from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.base import (
-    MESSAGE_TYPE_REGISTRY,
     AgentId,
     AgentInstantiationContext,
     MessageContext,
@@ -61,9 +60,6 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = WorkerAgentRuntime(host_address="localhost:50051")
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Greeting))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(AskToGreet))
-    MESSAGE_TYPE_REGISTRY.add_serializer(try_get_known_serializers_for_type(Feedback))
     runtime.start()
 
     await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])

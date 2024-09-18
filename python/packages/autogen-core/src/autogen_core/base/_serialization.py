@@ -1,8 +1,9 @@
 import json
 from dataclasses import asdict, dataclass, fields
-from typing import Any, ClassVar, Dict, List, Protocol, TypeVar, cast, get_args, get_origin, runtime_checkable
+from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable
 
 from pydantic import BaseModel
+from typing_extensions import deprecated
 
 from autogen_core.base._type_helpers import is_union
 
@@ -171,13 +172,13 @@ def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer
     return serializers
 
 
-class Serialization:
+class SerializationRegistry:
     def __init__(self) -> None:
         # type_name, data_content_type -> serializer
         self._serializers: dict[tuple[str, str], MessageSerializer[Any]] = {}
 
-    def add_serializer(self, serializer: MessageSerializer[Any] | List[MessageSerializer[Any]]) -> None:
-        if isinstance(serializer, list):
+    def add_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
+        if isinstance(serializer, Sequence):
             for c in serializer:
                 self.add_serializer(c)
             return
@@ -203,6 +204,3 @@ class Serialization:
 
     def type_name(self, message: Any) -> str:
         return _type_name(message)
-
-
-MESSAGE_TYPE_REGISTRY = Serialization()

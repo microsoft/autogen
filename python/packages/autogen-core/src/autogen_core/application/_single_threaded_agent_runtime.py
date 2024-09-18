@@ -12,6 +12,9 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
+from typing_extensions import deprecated
+
+from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
 
 from ..base import (
     Agent,
@@ -163,6 +166,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._run_context: RunContext | None = None
+        self._serialization_registry = SerializationRegistry()
 
     @property
     def unprocessed_messages(
@@ -522,6 +526,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         (await self._get_agent(agent)).load_state(state)
 
+    @deprecated(
+        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
+    )
     async def register(
         self,
         type: str,
@@ -549,6 +556,29 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         self._agent_factories[type] = agent_factory
         return AgentType(type)
+
+    async def register_factory(
+        self,
+        *,
+        type: AgentType,
+        agent_factory: Callable[[], T | Awaitable[T]],
+        expected_class: type[T],
+    ) -> AgentType:
+        async def factory_wrapper() -> T:
+            maybe_agent_instance = agent_factory()
+            if inspect.isawaitable(maybe_agent_instance):
+                agent_instance = await maybe_agent_instance
+            else:
+                agent_instance = maybe_agent_instance
+
+            if type_func_alias(agent_instance) != expected_class:
+                raise ValueError("Factory registered using the wrong type.")
+
+            return agent_instance
+
+        self._agent_factories[type.type] = factory_wrapper
+
+        return type
 
     async def _invoke_agent_factory(
         self,
@@ -616,3 +646,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             lazy=lazy,
             instance_getter=self._get_agent,
         )
+
+    def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
+        self._serialization_registry.add_serializer(serializer)

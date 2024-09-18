@@ -30,12 +30,12 @@ from typing import (
 import grpc
 from grpc.aio import StreamStreamCall
 from opentelemetry.trace import NoOpTracerProvider, TracerProvider
-from typing_extensions import Self
+from typing_extensions import Self, deprecated
 
 from autogen_core.base import JSON_DATA_CONTENT_TYPE
+from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
 
 from ..base import (
-    MESSAGE_TYPE_REGISTRY,
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -62,6 +62,8 @@ event_logger = logging.getLogger("autogen_core.events")
 
 P = ParamSpec("P")
 T = TypeVar("T", bound=Agent)
+
+type_func_alias = type
 
 
 class QueueAsyncIterable(AsyncIterator[Any], AsyncIterable[Any]):
@@ -166,6 +168,7 @@ class WorkerAgentRuntime(AgentRuntime):
         self._host_connection: HostConnection | None = None
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
+        self._serialization_registry = SerializationRegistry()
 
     def start(self) -> None:
         """Start the runtime in a background task."""
@@ -286,7 +289,7 @@ class WorkerAgentRuntime(AgentRuntime):
             raise ValueError("Runtime must be running when sending message.")
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
-        data_type = MESSAGE_TYPE_REGISTRY.type_name(message)
+        data_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", recipient, parent=None, extraAttributes={"message_type": data_type, "message_size": len(message)}
         ):
@@ -297,7 +300,7 @@ class WorkerAgentRuntime(AgentRuntime):
                 request_id = self._next_request_id
             request_id_str = str(request_id)
             self._pending_requests[request_id_str] = future
-            serialized_message = MESSAGE_TYPE_REGISTRY.serialize(
+            serialized_message = self._serialization_registry.serialize(
                 message, type_name=data_type, data_content_type=JSON_DATA_CONTENT_TYPE
             )
             telemetry_metadata = get_telemetry_grpc_metadata()
@@ -334,11 +337,11 @@ class WorkerAgentRuntime(AgentRuntime):
             raise ValueError("Runtime must be running when publishing message.")
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
-        message_type = MESSAGE_TYPE_REGISTRY.type_name(message)
+        message_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
         ):
-            serialized_message = MESSAGE_TYPE_REGISTRY.serialize(
+            serialized_message = self._serialization_registry.serialize(
                 message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
             )
             telemetry_metadata = get_telemetry_grpc_metadata()
@@ -387,7 +390,7 @@ class WorkerAgentRuntime(AgentRuntime):
             logging.info(f"Processing request from unknown source to {recipient}")
 
         # Deserialize the message.
-        message = MESSAGE_TYPE_REGISTRY.deserialize(
+        message = self._serialization_registry.deserialize(
             request.payload.data,
             type_name=request.payload.data_type,
             data_content_type=request.payload.data_content_type,
@@ -426,8 +429,8 @@ class WorkerAgentRuntime(AgentRuntime):
             return
 
         # Serialize the result.
-        result_type = MESSAGE_TYPE_REGISTRY.type_name(result)
-        serialized_result = MESSAGE_TYPE_REGISTRY.serialize(
+        result_type = self._serialization_registry.type_name(result)
+        serialized_result = self._serialization_registry.serialize(
             result, type_name=result_type, data_content_type=JSON_DATA_CONTENT_TYPE
         )
 
@@ -456,7 +459,7 @@ class WorkerAgentRuntime(AgentRuntime):
             extraAttributes={"message_type": response.payload.data_type},
         ):
             # Deserialize the result.
-            result = MESSAGE_TYPE_REGISTRY.deserialize(
+            result = self._serialization_registry.deserialize(
                 response.payload.data,
                 type_name=response.payload.data_type,
                 data_content_type=response.payload.data_content_type,
@@ -469,7 +472,7 @@ class WorkerAgentRuntime(AgentRuntime):
                 future.set_result(result)
 
     async def _process_event(self, event: agent_worker_pb2.Event) -> None:
-        message = MESSAGE_TYPE_REGISTRY.deserialize(
+        message = self._serialization_registry.deserialize(
             event.payload.data, type_name=event.payload.data_type, data_content_type=event.payload.data_content_type
         )
         sender: AgentId | None = None
@@ -509,6 +512,9 @@ class WorkerAgentRuntime(AgentRuntime):
         except BaseException as e:
             logger.error("Error handling event", exc_info=e)
 
+    @deprecated(
+        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
+    )
     async def register(
         self,
         type: str,
@@ -541,6 +547,29 @@ class WorkerAgentRuntime(AgentRuntime):
                 await self.add_subscription(subscription)
 
         return AgentType(type)
+
+    async def register_factory(
+        self,
+        *,
+        type: AgentType,
+        agent_factory: Callable[[], T | Awaitable[T]],
+        expected_class: type[T],
+    ) -> AgentType:
+        async def factory_wrapper() -> T:
+            maybe_agent_instance = agent_factory()
+            if inspect.isawaitable(maybe_agent_instance):
+                agent_instance = await maybe_agent_instance
+            else:
+                agent_instance = maybe_agent_instance
+
+            if type_func_alias(agent_instance) != expected_class:
+                raise ValueError("Factory registered using the wrong type.")
+
+            return agent_instance
+
+        self._agent_factories[type.type] = factory_wrapper
+
+        return type
 
     async def _invoke_agent_factory(
         self,
@@ -622,3 +651,6 @@ class WorkerAgentRuntime(AgentRuntime):
             lazy=lazy,
             instance_getter=self._get_agent,
         )
+
+    def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
+        self._serialization_registry.add_serializer(serializer)

@@ -5,6 +5,8 @@ import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
 from autogen_core.components import ClosureAgent
+from autogen_core.components._default_subscription import DefaultSubscription
+from autogen_core.components._default_topic import DefaultTopicId
 from autogen_core.components._type_subscription import TypeSubscription
 
 
@@ -23,14 +25,12 @@ async def test_register_receives_publish() -> None:
         key = id.key
         await queue.put((key, message.content))
 
-    await runtime.register("name", lambda: ClosureAgent("my_agent", log_message))
-    await runtime.add_subscription(TypeSubscription("default", "name"))
-    topic_id = TopicId("default", "default")
+    await ClosureAgent.register(runtime, "name", log_message, subscriptions=lambda: [DefaultSubscription()])
     runtime.start()
 
-    await runtime.publish_message(Message("first message"), topic_id=topic_id)
-    await runtime.publish_message(Message("second message"), topic_id=topic_id)
-    await runtime.publish_message(Message("third message"), topic_id=topic_id)
+    await runtime.publish_message(Message("first message"), topic_id=DefaultTopicId())
+    await runtime.publish_message(Message("second message"), topic_id=DefaultTopicId())
+    await runtime.publish_message(Message("third message"), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
 

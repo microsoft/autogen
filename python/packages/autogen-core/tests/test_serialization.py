@@ -5,7 +5,7 @@ import pytest
 from autogen_core.base import (
     JSON_DATA_CONTENT_TYPE,
     MessageSerializer,
-    Serialization,
+    SerializationRegistry,
     try_get_known_serializers_for_type,
 )
 from autogen_core.base._serialization import DataclassJsonMessageSerializer, PydanticJsonMessageSerializer
@@ -41,7 +41,7 @@ class NestingPydanticDataclassMessage:
 
 
 def test_pydantic() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
     serde.add_serializer(try_get_known_serializers_for_type(PydanticMessage))
 
     message = PydanticMessage(message="hello")
@@ -54,7 +54,7 @@ def test_pydantic() -> None:
 
 
 def test_nested_pydantic() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
     serde.add_serializer(try_get_known_serializers_for_type(NestingPydanticMessage))
 
     message = NestingPydanticMessage(message="hello", nested=PydanticMessage(message="world"))
@@ -66,7 +66,7 @@ def test_nested_pydantic() -> None:
 
 
 def test_dataclass() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
     serde.add_serializer(try_get_known_serializers_for_type(DataclassMessage))
 
     message = DataclassMessage(message="hello")
@@ -78,7 +78,7 @@ def test_dataclass() -> None:
 
 
 def test_nesting_dataclass_dataclass() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
     with pytest.raises(ValueError):
         serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
 
@@ -102,14 +102,13 @@ def test_nesting_union_old_syntax_dataclass(
 
 
 def test_nesting_dataclass_pydantic() -> None:
-    serde = Serialization()
-
+    serde = SerializationRegistry()
     with pytest.raises(ValueError):
         serde.add_serializer(try_get_known_serializers_for_type(NestingPydanticDataclassMessage))
 
 
 def test_invalid_type() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
     try:
         serde.add_serializer(try_get_known_serializers_for_type(str))
     except ValueError as e:
@@ -117,7 +116,7 @@ def test_invalid_type() -> None:
 
 
 def test_custom_type() -> None:
-    serde = Serialization()
+    serde = SerializationRegistry()
 
     class CustomStringTypeSerializer(MessageSerializer[str]):
         @property

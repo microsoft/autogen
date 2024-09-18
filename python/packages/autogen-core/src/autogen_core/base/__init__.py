@@ -10,15 +10,14 @@ from ._agent_props import AgentChildren
 from ._agent_proxy import AgentProxy
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
-from ._base_agent import BaseAgent
+from ._base_agent import BaseAgent, subscription_factory
 from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._serialization import (
     JSON_DATA_CONTENT_TYPE,
-    MESSAGE_TYPE_REGISTRY,
     MessageSerializer,
-    Serialization,
+    SerializationRegistry,
     UnknownPayload,
     try_get_known_serializers_for_type,
 )
@@ -36,11 +35,10 @@ __all__ = [
     "CancellationToken",
     "AgentChildren",
     "AgentInstantiationContext",
-    "MESSAGE_TYPE_REGISTRY",
     "TopicId",
     "Subscription",
     "MessageContext",
-    "Serialization",
+    "SerializationRegistry",
     "AgentType",
     "SubscriptionInstantiationContext",
     "MessageHandlerContext",
@@ -48,4 +46,5 @@ __all__ = [
     "MessageSerializer",
     "try_get_known_serializers_for_type",
     "UnknownPayload",
+    "subscription_factory",
 ]

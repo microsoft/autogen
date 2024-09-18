@@ -1,6 +1,7 @@
-from autogen_core.base.exceptions import CantHandleException
+from typing import Callable, Type, TypeVar, overload
 
-from ..base import SubscriptionInstantiationContext
+from ..base import BaseAgent, SubscriptionInstantiationContext, subscription_factory
+from ..base.exceptions import CantHandleException
 from ._type_subscription import TypeSubscription
 
 
@@ -30,3 +31,27 @@ class DefaultSubscription(TypeSubscription):
                 ) from e
 
         super().__init__(topic_type, agent_type)
+
+
+BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")
+
+
+@overload
+def default_subscription() -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]]: ...
+
+
+@overload
+def default_subscription(cls: Type[BaseAgentType]) -> Type[BaseAgentType]: ...
+
+
+def default_subscription(
+    cls: Type[BaseAgentType] | None = None,
+) -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]] | Type[BaseAgentType]:
+    if cls is None:
+        return subscription_factory(lambda: [DefaultSubscription()])
+    else:
+        return subscription_factory(lambda: [DefaultSubscription()])(cls)
+
+
+def type_subscription(topic_type: str) -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]]:
+    return subscription_factory(lambda: [DefaultSubscription(topic_type=topic_type)])

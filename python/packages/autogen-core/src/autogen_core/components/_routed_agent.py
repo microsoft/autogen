@@ -5,11 +5,12 @@ from typing import (
     Any,
     Callable,
     Coroutine,
-    Dict,
+    DefaultDict,
     List,
     Literal,
     Protocol,
     Sequence,
+    Tuple,
     Type,
     TypeVar,
     cast,
@@ -18,14 +19,15 @@ from typing import (
     runtime_checkable,
 )
 
-from autogen_core.base import try_get_known_serializers_for_type
+from typing_extensions import Self
 
-from ..base import MESSAGE_TYPE_REGISTRY, BaseAgent, MessageContext
+from ..base import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
 from ..base._type_helpers import AnyType, get_types
 from ..base.exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
 
+AgentT = TypeVar("AgentT")
 ReceivesT = TypeVar("ReceivesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
 
@@ -36,23 +38,25 @@ ProducesT = TypeVar("ProducesT", covariant=True)
 # Pyright and mypy disagree on the variance of ReceivesT. Mypy thinks it should be contravariant here.
 # Revisit this later to see if we can remove the ignore.
 @runtime_checkable
-class MessageHandler(Protocol[ReceivesT, ProducesT]):  # type: ignore
+class MessageHandler(Protocol[AgentT, ReceivesT, ProducesT]):  # type: ignore
     target_types: Sequence[type]
     produces_types: Sequence[type]
     is_message_handler: Literal[True]
     router: Callable[[ReceivesT, MessageContext], bool]
 
-    async def __call__(self, message: ReceivesT, ctx: MessageContext) -> ProducesT: ...
+    # agent_instance binds to self in the method
+    @staticmethod
+    async def __call__(agent_instance: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT: ...
 
 
 # NOTE: this works on concrete types and not inheritance
-# TODO: Use a protocl for the outer function to check checked arg names
+# TODO: Use a protocol for the outer function to check checked arg names
 
 
 @overload
 def message_handler(
-    func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
-) -> MessageHandler[ReceivesT, ProducesT]: ...
+    func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+) -> MessageHandler[AgentT, ReceivesT, ProducesT]: ...
 
 
 @overload
@@ -62,8 +66,8 @@ def message_handler(
     match: None = ...,
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-    MessageHandler[ReceivesT, ProducesT],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
 
@@ -74,22 +78,22 @@ def message_handler(
     match: Callable[[ReceivesT, MessageContext], bool],
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-    MessageHandler[ReceivesT, ProducesT],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
 
 def message_handler(
-    func: None | Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
+    func: None | Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
     *,
     strict: bool = True,
     match: None | Callable[[ReceivesT, MessageContext], bool] = None,
 ) -> (
     Callable[
-        [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-        MessageHandler[ReceivesT, ProducesT],
+        [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+        MessageHandler[AgentT, ReceivesT, ProducesT],
     ]
-    | MessageHandler[ReceivesT, ProducesT]
+    | MessageHandler[AgentT, ReceivesT, ProducesT]
 ):
     """Decorator for generic message handlers.
 
@@ -113,8 +117,8 @@ def message_handler(
     """
 
     def decorator(
-        func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
-    ) -> MessageHandler[ReceivesT, ProducesT]:
+        func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+    ) -> MessageHandler[AgentT, ReceivesT, ProducesT]:
         type_hints = get_type_hints(func)
         if "message" not in type_hints:
             raise AssertionError("message parameter not found in function signature")
@@ -136,7 +140,7 @@ def message_handler(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: Any, message: ReceivesT, ctx: MessageContext) -> ProducesT:
+        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
@@ -153,7 +157,7 @@ def message_handler(
 
             return return_value
 
-        wrapper_handler = cast(MessageHandler[ReceivesT, ProducesT], wrapper)
+        wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -171,8 +175,8 @@ def message_handler(
 
 @overload
 def event(
-    func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]],
-) -> MessageHandler[ReceivesT, None]: ...
+    func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]],
+) -> MessageHandler[AgentT, ReceivesT, None]: ...
 
 
 @overload
@@ -182,8 +186,8 @@ def event(
     match: None = ...,
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
-    MessageHandler[ReceivesT, None],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
+    MessageHandler[AgentT, ReceivesT, None],
 ]: ...
 
 
@@ -194,22 +198,22 @@ def event(
     match: Callable[[ReceivesT, MessageContext], bool],
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
-    MessageHandler[ReceivesT, None],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
+    MessageHandler[AgentT, ReceivesT, None],
 ]: ...
 
 
 def event(
-    func: None | Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]] = None,
+    func: None | Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]] = None,
     *,
     strict: bool = True,
     match: None | Callable[[ReceivesT, MessageContext], bool] = None,
 ) -> (
     Callable[
-        [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
-        MessageHandler[ReceivesT, None],
+        [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]]],
+        MessageHandler[AgentT, ReceivesT, None],
     ]
-    | MessageHandler[ReceivesT, None]
+    | MessageHandler[AgentT, ReceivesT, None]
 ):
     """Decorator for event message handlers.
 
@@ -233,8 +237,8 @@ def event(
     """
 
     def decorator(
-        func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, None]],
-    ) -> MessageHandler[ReceivesT, None]:
+        func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, None]],
+    ) -> MessageHandler[AgentT, ReceivesT, None]:
         type_hints = get_type_hints(func)
         if "message" not in type_hints:
             raise AssertionError("message parameter not found in function signature")
@@ -255,7 +259,7 @@ def event(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: Any, message: ReceivesT, ctx: MessageContext) -> None:
+        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> None:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
@@ -272,7 +276,7 @@ def event(
 
             return None
 
-        wrapper_handler = cast(MessageHandler[ReceivesT, None], wrapper)
+        wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, None], wrapper)
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -291,8 +295,8 @@ def event(
 
 @overload
 def rpc(
-    func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
-) -> MessageHandler[ReceivesT, ProducesT]: ...
+    func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+) -> MessageHandler[AgentT, ReceivesT, ProducesT]: ...
 
 
 @overload
@@ -302,8 +306,8 @@ def rpc(
     match: None = ...,
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-    MessageHandler[ReceivesT, ProducesT],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
 
@@ -314,22 +318,22 @@ def rpc(
     match: Callable[[ReceivesT, MessageContext], bool],
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-    MessageHandler[ReceivesT, ProducesT],
+    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
 
 def rpc(
-    func: None | Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
+    func: None | Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
     *,
     strict: bool = True,
     match: None | Callable[[ReceivesT, MessageContext], bool] = None,
 ) -> (
     Callable[
-        [Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
-        MessageHandler[ReceivesT, ProducesT],
+        [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+        MessageHandler[AgentT, ReceivesT, ProducesT],
     ]
-    | MessageHandler[ReceivesT, ProducesT]
+    | MessageHandler[AgentT, ReceivesT, ProducesT]
 ):
     """Decorator for RPC message handlers.
 
@@ -353,8 +357,8 @@ def rpc(
     """
 
     def decorator(
-        func: Callable[[Any, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
-    ) -> MessageHandler[ReceivesT, ProducesT]:
+        func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+    ) -> MessageHandler[AgentT, ReceivesT, ProducesT]:
         type_hints = get_type_hints(func)
         if "message" not in type_hints:
             raise AssertionError("message parameter not found in function signature")
@@ -376,7 +380,7 @@ def rpc(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: Any, message: ReceivesT, ctx: MessageContext) -> ProducesT:
+        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
@@ -393,7 +397,7 @@ def rpc(
 
             return return_value
 
-        wrapper_handler = cast(MessageHandler[ReceivesT, ProducesT], wrapper)
+        wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -440,23 +444,15 @@ class RoutedAgent(BaseAgent):
 
     def __init__(self, description: str) -> None:
         # Self is already bound to the handlers
-        self._handlers: Dict[
+        self._handlers: DefaultDict[
             Type[Any],
-            List[MessageHandler[Any, Any]],
-        ] = {}
+            List[MessageHandler[RoutedAgent, Any, Any]],
+        ] = DefaultDict(list)
 
-        # Iterate over all attributes in alphabetical order and find message handlers.
-        for attr in dir(self):
-            if callable(getattr(self, attr, None)):
-                handler = getattr(self, attr)
-                if hasattr(handler, "is_message_handler"):
-                    message_handler = cast(MessageHandler[Any, Any], handler)
-                    for target_type in message_handler.target_types:
-                        self._handlers.setdefault(target_type, []).append(message_handler)
-
-        for message_type in self._handlers.keys():
-            for serializer in try_get_known_serializers_for_type(message_type):
-                MESSAGE_TYPE_REGISTRY.add_serializer(serializer)
+        handlers = self._discover_handlers()
+        for message_handler in handlers:
+            for target_type in message_handler.target_types:
+                self._handlers[target_type].append(message_handler)
 
         super().__init__(description)
 
@@ -471,13 +467,40 @@ class RoutedAgent(BaseAgent):
             # Call the first handler whose router returns True and then return the result.
             for h in handlers:
                 if h.router(message, ctx):
-                    return await h(message, ctx)
+                    return await h(self, message, ctx)
         return await self.on_unhandled_message(message, ctx)  # type: ignore
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         """Called when a message is received that does not have a matching message handler.
         The default implementation logs an info message."""
         logger.info(f"Unhandled message: {message}")
+
+    @classmethod
+    def _discover_handlers(cls) -> Sequence[MessageHandler[Any, Any, Any]]:
+        handlers = []
+        for attr in dir(cls):
+            if callable(getattr(cls, attr, None)):
+                # Since we are getting it from the class, self is not bound
+                handler = getattr(cls, attr)
+                if hasattr(handler, "is_message_handler"):
+                    handlers.append(cast(MessageHandler[Any, Any, Any], handler))
+        return handlers
+
+    @classmethod
+    def _handles_types(cls) -> List[Tuple[Type[Any], List[MessageSerializer[Any]]]]:
+        # TODO handle deduplication
+        handlers = cls._discover_handlers()
+        types: List[Tuple[Type[Any], List[MessageSerializer[Any]]]] = []
+        types.extend(cls._extra_handles_types)
+        for handler in handlers:
+            for t in handler.target_types:
+                # TODO: support different serializers
+                serializers = try_get_known_serializers_for_type(t)
+                if len(serializers) == 0:
+                    raise ValueError(f"No serializers found for type {t}.")
+
+                types.append((t, try_get_known_serializers_for_type(t)))
+        return types
 
 
 # Deprecation warning for TypeRoutedAgent
