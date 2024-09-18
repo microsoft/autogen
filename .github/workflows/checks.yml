@@ -16,7 +16,7 @@ jobs:
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -32,7 +32,7 @@ jobs:
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -46,13 +46,19 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench", "./packages/autogen-ext"]
+          [
+            "./packages/autogen-core",
+            "./packages/team-one",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -66,13 +72,19 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one", "./packages/agbench", "./packages/autogen-ext"]
+          [
+            "./packages/autogen-core",
+            "./packages/team-one",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -86,13 +98,18 @@ jobs:
     strategy:
       matrix:
         package:
-          ["./packages/autogen-core", "./packages/team-one",  "./packages/autogen-ext"]
+          [
+            "./packages/autogen-core",
+            "./packages/team-one",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -105,14 +122,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package:
-          ["./packages/autogen-core"]
+        package: ["./packages/autogen-core"]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
@@ -128,7 +144,7 @@ jobs:
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: uv sync --locked
         working-directory: ./python
       - name: Run task
