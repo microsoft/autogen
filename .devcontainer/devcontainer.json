@@ -22,7 +22,6 @@
 			"installTools": true,
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers-contrib/features/hatch:2": {},
 		"ghcr.io/devcontainers/features/dotnet:2": {
 			"version": "8.0.302"
 		},
