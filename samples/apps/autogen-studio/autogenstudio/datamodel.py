@@ -284,6 +284,15 @@ class Workflow(SQLModel, table=True):
     sample_tasks: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
 
 
+class Criteria(SQLModel, table=True):
+    __tablename__ = "criteria"
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Optional[int] = Field(default=None, primary_key=True)
+    task_name: Optional[str]
+    task_description: Optional[str]
+    criteria: str = Field(sa_column=Column(JSON))
+    
+
 class Response(SQLModel):
     message: str
     status: bool

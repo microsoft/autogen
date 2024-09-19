@@ -6,7 +6,13 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any, Union
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from autogenstudio.utils.utils import sanitize_model
+from pydantic import BaseModel
+
+from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
+from autogen.agentchat.contrib.agent_eval.criterion import Criterion
+from autogen.agentchat.contrib.agent_eval.task import Task
+from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -15,7 +21,7 @@ from openai import OpenAIError
 from ..chatmanager import AutoGenChatManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
-from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
+from ..datamodel import Agent, Criteria, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
@@ -471,6 +477,126 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
         }
+
+
+@api.get("/agenteval/criteria")
+async def criteria():
+    return list_entity(Criteria, return_json=True)
+
+
+@api.delete("/agenteval/criteria/delete/{criteria_id}")
+async def delete_agenteval_criteria(criteria_id: int):
+    filters = {"id": criteria_id}
+    return delete_entity(Criteria, filters=filters)
+
+
+class AgentEvalGenerate(BaseModel):
+    user_id: str
+    model_id: int
+    task_name: str
+    task_description: str
+    success_session_id: int = (None,)
+    failure_session_id: int = (None,)
+    additonal_instructions: str = ""
+    max_round: int = 5
+    use_subcritic: bool = False
+
+
+@api.post("/agenteval/criteria/generate")
+async def generate_agenteval_criteria(params: AgentEvalGenerate):
+    if not params.success_session_id and not params.failure_session_id:
+        response: Response = Response(
+            message="At least one session is required to be selected.",
+            status=False,
+        )
+        return response
+    
+    task = Task(name=params.task_name, description=params.task_description, successful_response="", failed_response="")
+    if params.success_session_id:
+        task.successful_response = get_session(params.user_id, params.success_session_id)
+    if params.failure_session_id:
+        task.failed_response = get_session(params.user_id, params.failure_session_id)
+
+    model = get_model(params.model_id)
+    if(type(model) is Response):
+        return model
+
+    criteria = generate_criteria(
+        llm_config=model,
+        task=task,
+        additional_instructions=params.additonal_instructions,
+        max_round=params.max_round,
+        use_subcritic=params.use_subcritic,
+    )
+
+    criteria = Criterion.write_json(criteria)
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
+    create_entity(criteria_entry, Criteria)
+    return criteria
+
+
+@api.post("/agenteval/criteria/create")
+async def create_agenteval_criteria(criteria: list[Criterion], task: Task):
+    criteria = Criterion.write_json(criteria)
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
+    create_entity(criteria_entry, Criteria)
+    return criteria
+
+
+@api.post("/agenteval/criteria/update/{criteria_id}")
+async def update_agenteval_criteria(criteria: list[Criterion], task: Task, criteria_id: int):
+    filters = {"id": criteria_id}
+    delete_entity(Criteria, filters=filters)
+    criteria = Criterion.write_json(criteria)
+    criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
+    create_entity(criteria_entry, Criteria)
+    return criteria
+
+
+@api.post("/agenteval/criteria/validate")
+async def validate_agenteval_criteria(criteria: str = Body(...)):
+    try:
+        criteria = Criterion.parse_json_str(criteria)
+    except ValueError as ex:
+        return {
+            "status": False,
+            "message": "Invalid json: " + str(ex),
+        }
+    except Exception as ex:
+        return {"status": False, "message": str(ex)}
+    return {"status": True}
+
+
+@api.post("/agenteval/quantify")
+async def quantify_agenteval_criteria(criteria_id: int, model_id: int, task: Task, test_session_id: int, user_id: str):
+    filters = {"id": criteria_id}
+    criteria = list_entity(Criteria, filters=filters).data[0]
+    criteria = Criterion.parse_json_str(criteria["criteria"])
+
+    model = get_model(model_id)
+    test_case = get_session(user_id=user_id, session_id=test_session_id)
+    return quantify_criteria(llm_config=model, criteria=criteria, task=task, test_case=test_case)
+
+
+def get_session(user_id: int, session_id: int):
+    filters = {"user_id": user_id, "session_id": session_id}
+    session = list_entity(Message, filters=filters, order="asc", return_json=True).data
+    return str(session)
+
+
+def get_model(model_id: int):
+    filters = {"id": model_id}
+    model = list_entity(Model, filters=filters).data
+    if model and len(model) > 0:
+        model = model[0]
+    else:
+        response: Response = Response(
+            message="Invalid model id",
+            status=False,
+        )
+        return response
+
+    return sanitize_model(model)
 
 
 @api.get("/version")

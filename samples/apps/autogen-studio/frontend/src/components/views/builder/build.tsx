@@ -4,12 +4,14 @@ import AgentsView from "./agents";
 import WorkflowView from "./workflow";
 import { Tabs } from "antd";
 import {
+  BeakerIcon,
   BugAntIcon,
   CpuChipIcon,
   Square2StackIcon,
   Square3Stack3DIcon,
 } from "@heroicons/react/24/outline";
 import ModelsView from "./models";
+import LabsView from "./labs";
 
 const BuildView = () => {
   return (
@@ -68,6 +70,16 @@ const BuildView = () => {
               ),
               key: "4",
               children: <WorkflowView />,
+            },
+            {
+              label: (
+                <>
+                  <BeakerIcon className="h-4 w-4 inline-block mr-1" />
+                  Labs
+                </>
+              ),
+              key: "5",
+              children: <LabsView />,
             },
           ]}
         />

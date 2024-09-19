@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import List
+from typing import List, Optional
 
 import pydantic_core
 from pydantic import BaseModel
@@ -15,8 +15,8 @@ class Criterion(BaseModel):
 
     name: str
     description: str
-    accepted_values: List[str]
-    sub_criteria: List[Criterion] = list()
+    accepted_values: Optional[List[str]] = None
+    sub_criteria: Optional[List[Criterion]] = None
 
     @staticmethod
     def parse_json_str(criteria: str):
@@ -27,7 +27,13 @@ class Criterion(BaseModel):
         returns:
             [Criterion]: A list of Criterion objects that represents the json criteria information.
         """
-        return [Criterion(**crit) for crit in json.loads(criteria)]
+        def parse_dict(crit: dict):
+            if "sub_criteria" in crit:
+                crit["sub_criteria"] = [parse_dict(c) for c in crit["sub_criteria"]]
+            return Criterion(**crit)
+
+        criteria_list = json.loads(criteria)
+        return [parse_dict(crit) for crit in criteria_list]
 
     @staticmethod
     def write_json(criteria):
@@ -38,4 +44,4 @@ class Criterion(BaseModel):
         Returns:
             str: A json string that represents the list of Criterion objects.
         """
-        return json.dumps([crit.model_dump() for crit in criteria], indent=2)
+        return json.dumps([crit.dict(exclude_unset=True) for crit in criteria], indent=2, default=str)

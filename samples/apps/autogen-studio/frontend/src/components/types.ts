@@ -105,6 +105,27 @@ export interface IChatSession {
   name: string;
 }
 
+export interface IAgentEvalCriteria {
+  id?: number;
+  task_name: string;
+  task_description: string;
+  criteria: string;
+  model_id?: number;
+  execution_session_id?: number;
+}
+
+export interface IAgentEvalGenerate {
+  user_id: string;
+  model_id: number;
+  task_name: string;
+  task_description: string;
+  success_session_id: number;
+  failure_session_id: number;
+  additional_instructions: string;
+  max_round: number;
+  use_subcritic: boolean;
+}
+
 export interface IGalleryItem {
   id: number;
   messages: Array<IMessage>;
