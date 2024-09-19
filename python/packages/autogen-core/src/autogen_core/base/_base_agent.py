@@ -58,6 +58,12 @@ class BaseAgent(ABC, Agent):
     _unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
     _extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # Automatically set class_variable in each subclass so that they are not shared between subclasses
+        cls._extra_handles_types = []
+        cls._unbound_subscriptions_list = []
+
     @classmethod
     def _handles_types(cls) -> List[Tuple[Type[Any], List[MessageSerializer[Any]]]]:
         return cls._extra_handles_types
