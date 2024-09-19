@@ -1,4 +1,4 @@
-name: '[AGNext nuget] Publish nuget package'
+name: '[AutoGen nuget] Publish nuget package'
 
 on:
   workflow_call:
@@ -31,5 +31,5 @@ jobs:
     - name: Publish package
       run: |
         cd dotnet/src/${{ inputs.path }}
-        dotnet pack -o packages /p:PackageVersion=${{ inputs.version-prefix }}-alpha.${{ inputs.version-suffix }}
+        dotnet pack -o packages /p:PackageVersion=${{ inputs.version-prefix }}-alpha.${{ inputs.version-suffix }} 
         dotnet nuget push $GITHUB_WORKSPACE/dotnet/src/${{ inputs.path }}/packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://api.nuget.org/v3/index.json

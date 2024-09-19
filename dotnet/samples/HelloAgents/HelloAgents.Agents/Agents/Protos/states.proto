@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package devteam;
+
+option csharp_namespace = "HelloAgents.Agents";
+
+message HelloAgentState {
+  string understanding = 1;
+}

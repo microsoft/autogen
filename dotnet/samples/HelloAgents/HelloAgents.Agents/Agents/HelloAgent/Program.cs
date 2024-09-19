@@ -1,6 +1,6 @@
+using HelloAgents.Agents;
 using Microsoft.AutoGen.Agents.Worker.Client;
 using Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
-using DevTeam.Agents;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +9,7 @@ builder.AddServiceDefaults();
 builder.ConfigureSemanticKernel();
 
 builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
-    .AddAgent<Dev>(nameof(Dev))
-    .AddAgent<ProductManager>(nameof(ProductManager))
-    .AddAgent<DeveloperLead>(nameof(DeveloperLead));
+    .AddAgent<HelloAgent>(nameof(HelloAgent));
 
 var app = builder.Build();
 

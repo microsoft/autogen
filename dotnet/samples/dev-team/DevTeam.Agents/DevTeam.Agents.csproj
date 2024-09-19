@@ -11,6 +11,7 @@
     <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents.Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj" />
   </ItemGroup>
 
 </Project>

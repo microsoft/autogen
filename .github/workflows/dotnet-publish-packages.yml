@@ -1,4 +1,4 @@
-name: '[AGNext nuget] Publish all packages'
+name: '[AutoGen nuget] Publish all packages'
 
 on:
    push:

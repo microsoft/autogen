@@ -1,4 +1,4 @@
-name: '[AGNext nuget] Build and test'
+name: '[AutoGen nuget] Build and test'
 
 on:
   workflow_call:
@@ -24,8 +24,8 @@ jobs:
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore AutoGen.sln
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build AutoGen.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal AutoGen.sln

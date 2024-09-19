@@ -3,19 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9CFC5A2B-AE61-4840-9E1B-FC490EF4C99B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DC5E7967-F187-4E42-9B71-835E79501288}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Client", "src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj", "{38494BE5-9E87-47E3-8439-D828FBAB0C7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Client", "src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj", "{687DA41E-83A6-418A-918B-8E2C20C6D1E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Server", "src\Microsoft.AutoGen.Agents.Worker.Server\Microsoft.AutoGen.Agents.Worker.Server.csproj", "{6D11A33E-644C-47FC-B0C5-4697B9AE598E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Server", "src\Microsoft.AutoGen.Agents.Worker.Server\Microsoft.AutoGen.Agents.Worker.Server.csproj", "{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen.Agents\Microsoft.AutoGen.Agents.csproj", "{A2864CB0-C745-4B59-8219-74AD403BC68F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen.Agents\Microsoft.AutoGen.Agents.csproj", "{E6171E39-6DE2-46C9-9978-E2F946530CBA}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.AutoGen.Agents.Extensions", "Microsoft.AutoGen.Agents.Extensions", "{2AFA283F-345A-4E3D-BF60-FBD727B841BE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.AutoGen.Agents.Extensions", "Microsoft.AutoGen.Agents.Extensions", "{2CF811BD-3513-4A1B-8020-645C0315CDB4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.CloudEvents", "src\Microsoft.AutoGen.Agents.Extensions\CloudEvents\Microsoft.AutoGen.Agents.Extensions.CloudEvents.csproj", "{286218DA-7A24-4EA1-9073-20B2E266511F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.CloudEvents", "src\Microsoft.AutoGen.Agents.Extensions\CloudEvents\Microsoft.AutoGen.Agents.Extensions.CloudEvents.csproj", "{351CFFFB-6418-4C81-A697-BA24D1D43307}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.SemanticKernel", "src\Microsoft.AutoGen.Agents.Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj", "{32E844CB-C1C5-4C44-9105-34A24EF76EE7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.SemanticKernel", "src\Microsoft.AutoGen.Agents.Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj", "{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,33 +26,34 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{38494BE5-9E87-47E3-8439-D828FBAB0C7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{38494BE5-9E87-47E3-8439-D828FBAB0C7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{38494BE5-9E87-47E3-8439-D828FBAB0C7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{38494BE5-9E87-47E3-8439-D828FBAB0C7A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D11A33E-644C-47FC-B0C5-4697B9AE598E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D11A33E-644C-47FC-B0C5-4697B9AE598E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D11A33E-644C-47FC-B0C5-4697B9AE598E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D11A33E-644C-47FC-B0C5-4697B9AE598E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A2864CB0-C745-4B59-8219-74AD403BC68F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A2864CB0-C745-4B59-8219-74AD403BC68F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A2864CB0-C745-4B59-8219-74AD403BC68F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A2864CB0-C745-4B59-8219-74AD403BC68F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{286218DA-7A24-4EA1-9073-20B2E266511F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{286218DA-7A24-4EA1-9073-20B2E266511F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{286218DA-7A24-4EA1-9073-20B2E266511F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{286218DA-7A24-4EA1-9073-20B2E266511F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{32E844CB-C1C5-4C44-9105-34A24EF76EE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{32E844CB-C1C5-4C44-9105-34A24EF76EE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{32E844CB-C1C5-4C44-9105-34A24EF76EE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{32E844CB-C1C5-4C44-9105-34A24EF76EE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{687DA41E-83A6-418A-918B-8E2C20C6D1E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{687DA41E-83A6-418A-918B-8E2C20C6D1E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{687DA41E-83A6-418A-918B-8E2C20C6D1E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{687DA41E-83A6-418A-918B-8E2C20C6D1E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6171E39-6DE2-46C9-9978-E2F946530CBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6171E39-6DE2-46C9-9978-E2F946530CBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6171E39-6DE2-46C9-9978-E2F946530CBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6171E39-6DE2-46C9-9978-E2F946530CBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{351CFFFB-6418-4C81-A697-BA24D1D43307}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{351CFFFB-6418-4C81-A697-BA24D1D43307}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{351CFFFB-6418-4C81-A697-BA24D1D43307}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{351CFFFB-6418-4C81-A697-BA24D1D43307}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{38494BE5-9E87-47E3-8439-D828FBAB0C7A} = {9CFC5A2B-AE61-4840-9E1B-FC490EF4C99B}
-		{6D11A33E-644C-47FC-B0C5-4697B9AE598E} = {9CFC5A2B-AE61-4840-9E1B-FC490EF4C99B}
-		{A2864CB0-C745-4B59-8219-74AD403BC68F} = {9CFC5A2B-AE61-4840-9E1B-FC490EF4C99B}
-		{2AFA283F-345A-4E3D-BF60-FBD727B841BE} = {9CFC5A2B-AE61-4840-9E1B-FC490EF4C99B}
-		{286218DA-7A24-4EA1-9073-20B2E266511F} = {2AFA283F-345A-4E3D-BF60-FBD727B841BE}
-		{32E844CB-C1C5-4C44-9105-34A24EF76EE7} = {2AFA283F-345A-4E3D-BF60-FBD727B841BE}
+		{687DA41E-83A6-418A-918B-8E2C20C6D1E3} = {DC5E7967-F187-4E42-9B71-835E79501288}
+		{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09} = {DC5E7967-F187-4E42-9B71-835E79501288}
+		{E6171E39-6DE2-46C9-9978-E2F946530CBA} = {DC5E7967-F187-4E42-9B71-835E79501288}
+		{2CF811BD-3513-4A1B-8020-645C0315CDB4} = {DC5E7967-F187-4E42-9B71-835E79501288}
+		{351CFFFB-6418-4C81-A697-BA24D1D43307} = {2CF811BD-3513-4A1B-8020-645C0315CDB4}
+		{2E6E731B-2CFE-4F74-B3C4-EE0E2EF02FB9} = {2CF811BD-3513-4A1B-8020-645C0315CDB4}
 	EndGlobalSection
 EndGlobal
+
