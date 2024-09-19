@@ -564,6 +564,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         agent_factory: Callable[[], T | Awaitable[T]],
         expected_class: type[T],
     ) -> AgentType:
+        if type.type in self._agent_factories:
+            raise ValueError(f"Agent with type {type} already exists.")
+
         async def factory_wrapper() -> T:
             maybe_agent_instance = agent_factory()
             if inspect.isawaitable(maybe_agent_instance):

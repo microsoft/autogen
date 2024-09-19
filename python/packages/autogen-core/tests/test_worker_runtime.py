@@ -9,7 +9,13 @@ from autogen_core.base import (
     TopicId,
     try_get_known_serializers_for_type,
 )
-from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSubscription
+from autogen_core.components import (
+    DefaultSubscription,
+    DefaultTopicId,
+    TypeSubscription,
+    default_subscription,
+    type_subscription,
+)
 from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
 
 
@@ -190,83 +196,107 @@ async def test_default_subscription() -> None:
     host_address = "localhost:50054"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
-    runtime = WorkerAgentRuntime(host_address=host_address)
-    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
-    runtime.start()
+    worker = WorkerAgentRuntime(host_address=host_address)
+    worker.start()
+    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    publisher.start()
 
-    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])
-    agent_id = AgentId("name", key="default")
-    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+    @default_subscription
+    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
+
+    await LoopbackAgentWithDefaultSubscription.register(worker, "name", lambda: LoopbackAgentWithDefaultSubscription())
+
+    await publisher.publish_message(MessageType(), topic_id=DefaultTopicId())
 
     await asyncio.sleep(2)
 
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    # Agent in default topic source should have received the message.
+    long_running_agent = await worker.try_get_underlying_agent_instance(
+        AgentId("name", "default"), type=LoopbackAgentWithDefaultSubscription
+    )
     assert long_running_agent.num_calls == 1
 
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
+    # Agent in other topic source should not have received the message.
+    other_long_running_agent = await worker.try_get_underlying_agent_instance(
+        AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 0
 
-    await runtime.stop()
+    await worker.stop()
+    await publisher.stop()
     await host.stop()
 
 
 @pytest.mark.asyncio
-async def test_non_default_default_subscription() -> None:
-    host_address = "localhost:50055"
-    host = WorkerAgentRuntimeHost(address=host_address)
-    host.start()
-    runtime = WorkerAgentRuntime(host_address=host_address)
-    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
-    runtime.start()
-
-    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription(topic_type="Other")])
-    agent_id = AgentId("name", key="default")
-    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId(type="Other"))
-
-    await asyncio.sleep(2)
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-    await runtime.stop()
-    await host.stop()
-
-
-@pytest.mark.asyncio
-async def test_non_publish_to_other_source() -> None:
+async def test_default_subscription_other_source() -> None:
     host_address = "localhost:50056"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     runtime = WorkerAgentRuntime(host_address=host_address)
-    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     runtime.start()
+    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    publisher.start()
 
-    await runtime.register("name", LoopbackAgent, lambda: [DefaultSubscription()])
-    agent_id = AgentId("name", key="default")
-    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId(source="other"))
+    @default_subscription
+    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
+
+    await LoopbackAgentWithDefaultSubscription.register(runtime, "name", lambda: LoopbackAgentWithDefaultSubscription())
+
+    await publisher.publish_message(MessageType(), topic_id=DefaultTopicId(source="other"))
 
     await asyncio.sleep(2)
 
     # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    long_running_agent = await runtime.try_get_underlying_agent_instance(
+        AgentId("name", "default"), type=LoopbackAgentWithDefaultSubscription
+    )
     assert long_running_agent.num_calls == 0
 
     # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
+    other_long_running_agent = await runtime.try_get_underlying_agent_instance(
+        AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 1
 
     await runtime.stop()
+    await publisher.stop()
+    await host.stop()
+
+
+@pytest.mark.asyncio
+async def test_type_subscription() -> None:
+    host_address = "localhost:50055"
+    host = WorkerAgentRuntimeHost(address=host_address)
+    host.start()
+    worker = WorkerAgentRuntime(host_address=host_address)
+    worker.start()
+    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    publisher.start()
+
+    @type_subscription("Other")
+    class LoopbackAgentWithSubscription(LoopbackAgent): ...
+
+    await LoopbackAgentWithSubscription.register(worker, "name", lambda: LoopbackAgentWithSubscription())
+
+    await publisher.publish_message(MessageType(), topic_id=TopicId(type="Other", source="default"))
+
+    await asyncio.sleep(2)
+
+    # Agent in default topic source should have received the message.
+    long_running_agent = await worker.try_get_underlying_agent_instance(
+        AgentId("name", "default"), type=LoopbackAgentWithSubscription
+    )
+    assert long_running_agent.num_calls == 1
+
+    # Agent in other topic source should not have received the message.
+    other_long_running_agent = await worker.try_get_underlying_agent_instance(
+        AgentId("name", key="other"), type=LoopbackAgentWithSubscription
+    )
+    assert other_long_running_agent.num_calls == 0
+
+    await worker.stop()
+    await publisher.stop()
     await host.stop()
