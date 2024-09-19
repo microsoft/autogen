@@ -1,4 +1,4 @@
-# AGNext Application Stack
+# Application Stack
 
 AGNext is designed to be an unopinionated framework that can be used to build
 a wide variety of multi-agent applications. It is not tied to any specific
@@ -13,13 +13,13 @@ enable agents to communicate with each other. These are managed by the
 agent runtime, and for most applications, developers only need to interact
 with the high-level APIs provided by the runtime (see [Agent and Agent Runtime](../getting-started/agent-and-agent-runtime.ipynb)).
 
-On top of the communication stack, developers need to define the
-types of the messages that agents exchange. A set of message types
+At the top of the stack, developers need to define the
+types of the messages that agents exchange. This set of message types
 forms a behavior contract that agents must adhere to, and the
 implementation of the contracts determines how agents handle messages.
-The behavior contract is sometimes referred to as the message protocol.
+The behavior contract is also sometimes referred to as the message protocol.
 It is the developer's responsibility to implement the behavior contract.
-Multi-agent patterns are design patterns that emerge from behavior contracts
+Multi-agent patterns emerge from these behavior contracts
 (see [Multi-Agent Design Patterns](../getting-started/multi-agent-design-patterns.md)).
 
 ## An Example Application
@@ -46,6 +46,6 @@ if approved, it sends a `CodingResultMsg` to the application,
 otherwise, it sends a `ReviewMsg` to the Coder Agent for another round of
 code generation.
 
-This behavior contract is a case of a multi-agent pattern called Reflection,
+This behavior contract is a case of a multi-agent pattern called _reflection_,
 where a generation result is reviewed by another round of generation,
 to improve the overall quality.
