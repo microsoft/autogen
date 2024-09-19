@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from autogen_core.base import BaseAgent, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
 
 
 @dataclass
@@ -25,6 +25,7 @@ class LoopbackAgent(RoutedAgent):
         return message
 
 
+@default_subscription
 class CascadingAgent(RoutedAgent):
     def __init__(self, max_rounds: int) -> None:
         super().__init__("A cascading agent.")

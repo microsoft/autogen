@@ -45,8 +45,15 @@ message Event {
     map<string, string> metadata = 5;
 }
 
-message RegisterAgentType {
-    string type = 1;
+message RegisterAgentTypeRequest {
+    string request_id = 1;
+    string type = 2;
+}
+
+message RegisterAgentTypeResponse {
+    string request_id = 1;
+    bool success = 2;
+    optional string error = 3;
 }
 
 message TypeSubscription {
@@ -60,8 +67,15 @@ message Subscription {
     }
 }
 
-message AddSubscription {
-    Subscription subscription = 1;
+message AddSubscriptionRequest {
+    string request_id = 1;
+    Subscription subscription = 2;
+}
+
+message AddSubscriptionResponse {
+    string request_id = 1;
+    bool success = 2;
+    optional string error = 3;
 }
 
 service AgentRpc {
@@ -73,9 +87,11 @@ message Message {
         RpcRequest request = 1;
         RpcResponse response = 2;
         Event event = 3;
-        RegisterAgentType registerAgentType = 4;
-        AddSubscription addSubscription = 5;
-        cloudevent.CloudEvent cloudEvent = 6;
+        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
+        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
+        AddSubscriptionRequest addSubscriptionRequest = 6;
+        AddSubscriptionResponse addSubscriptionResponse = 7;
+        cloudevent.CloudEvent cloudEvent = 8;
     }
 }
 

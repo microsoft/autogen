@@ -22,4 +22,5 @@ __all__ = [
     "TypeSubscription",
     "DefaultSubscription",
     "DefaultTopicId",
+    "default_subscription",
 ]
