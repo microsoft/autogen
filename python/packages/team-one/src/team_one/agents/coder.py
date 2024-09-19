@@ -1,8 +1,9 @@
 import re
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor, DockerCommandLineCodeExecutor
+from autogen_core.components import default_subscription
+from autogen_core.components.code_executor import CodeBlock, CodeExecutor
 from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
@@ -14,6 +15,7 @@ from ..utils import message_content_to_str
 from .base_worker import BaseWorker
 
 
+@default_subscription
 class Coder(BaseWorker):
     """An agent that uses tools to write, execute, and debug Python code."""
 
@@ -52,6 +54,7 @@ Reply "TERMINATE" in the end when everything is done.""")
         return "TERMINATE" in response.content, response.content
 
 
+@default_subscription
 class Executor(BaseWorker):
     DEFAULT_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)"
 

@@ -96,7 +96,8 @@ async def test_web_surfer() -> None:
     # Register agents.
 
     # Register agents.
-    await runtime.register(
+    await MultimodalWebSurfer.register(
+        runtime,
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
@@ -168,18 +169,22 @@ async def test_web_surfer_oai() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    await runtime.register(
+    await MultimodalWebSurfer.register(
+        runtime,
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )
     web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
 
-    await runtime.register(
+    await UserProxy.register(
+        runtime,
         "UserProxy",
         lambda: UserProxy(),
     )
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
-    await runtime.register("orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]))
+    await RoundRobinOrchestrator.register(
+        runtime, "orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy])
+    )
     runtime.start()
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
@@ -233,9 +238,8 @@ async def test_web_surfer_bing() -> None:
     client = create_completion_client_from_env(env)
 
     # Register agents.
-
-    # Register agents.
-    await runtime.register(
+    await MultimodalWebSurfer.register(
+        runtime,
         "WebSurfer",
         lambda: MultimodalWebSurfer(),
     )

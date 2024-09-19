@@ -1,10 +1,11 @@
 from autogen_core.base import MessageContext, TopicId
-from autogen_core.components import RoutedAgent, message_handler
+from autogen_core.components import RoutedAgent, default_subscription, message_handler
 from autogen_core.components.models import UserMessage
 
 from ..messages import BroadcastMessage, RequestReplyMessage
 
 
+@default_subscription
 class ReflexAgent(RoutedAgent):
     def __init__(self, description: str) -> None:
         super().__init__(description)

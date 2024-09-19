@@ -3,7 +3,7 @@ import time
 from typing import List, Optional, Tuple
 
 from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
+from autogen_core.components import FunctionCall, default_subscription
 from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
@@ -17,6 +17,7 @@ from ..base_worker import BaseWorker
 from ._tools import TOOL_FIND_NEXT, TOOL_FIND_ON_PAGE_CTRL_F, TOOL_OPEN_LOCAL_FILE, TOOL_PAGE_DOWN, TOOL_PAGE_UP
 
 
+@default_subscription
 class FileSurfer(BaseWorker):
     """An agent that uses tools to read and navigate local files."""
 

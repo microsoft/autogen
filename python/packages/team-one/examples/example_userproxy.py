@@ -12,7 +12,6 @@ from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
 
 # from typing import Any, Dict, List, Tuple, Union
-from autogen_core.components import DefaultSubscription
 from team_one.agents.coder import Coder
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -28,15 +27,13 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    await runtime.register("Coder", lambda: Coder(model_client=client), lambda: [DefaultSubscription()])
+    await Coder.register(runtime, "Coder", lambda: Coder(model_client=client))
     coder = AgentProxy(AgentId("Coder", "default"), runtime)
 
-    await runtime.register("UserProxy", lambda: UserProxy(), lambda: [DefaultSubscription()])
+    await UserProxy.register(runtime, "UserProxy", lambda: UserProxy())
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
-    await runtime.register(
-        "orchestrator", lambda: RoundRobinOrchestrator([coder, user_proxy]), lambda: [DefaultSubscription()]
-    )
+    await RoundRobinOrchestrator.register(runtime, "orchestrator", lambda: RoundRobinOrchestrator([coder, user_proxy]))
 
     runtime.start()
     await runtime.send_message(RequestReplyMessage(), user_proxy.id)

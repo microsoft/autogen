@@ -8,7 +8,6 @@ import logging
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import DefaultSubscription
 from team_one.agents.file_surfer import FileSurfer
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -24,14 +23,14 @@ async def main() -> None:
     client = create_completion_client_from_env()
 
     # Register agents.
-    await runtime.register("file_surfer", lambda: FileSurfer(model_client=client), lambda: [DefaultSubscription()])
+    await FileSurfer.register(runtime, "file_surfer", lambda: FileSurfer(model_client=client))
     file_surfer = AgentProxy(AgentId("file_surfer", "default"), runtime)
 
-    await runtime.register("UserProxy", lambda: UserProxy(), lambda: [DefaultSubscription()])
+    await UserProxy.register(runtime, "UserProxy", lambda: UserProxy())
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
-    await runtime.register(
-        "orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy]), lambda: [DefaultSubscription()]
+    await RoundRobinOrchestrator.register(
+        runtime, "orchestrator", lambda: RoundRobinOrchestrator([file_surfer, user_proxy])
     )
 
     runtime.start()

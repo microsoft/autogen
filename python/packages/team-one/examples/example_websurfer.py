@@ -10,7 +10,6 @@ import os
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import DefaultSubscription
 from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from team_one.agents.orchestrator import RoundRobinOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -28,14 +27,14 @@ async def main() -> None:
     client = create_completion_client_from_env(model="gpt-4o")
 
     # Register agents.
-    await runtime.register("WebSurfer", lambda: MultimodalWebSurfer(), lambda: [DefaultSubscription()])
+    await MultimodalWebSurfer.register(runtime, "WebSurfer", MultimodalWebSurfer)
     web_surfer = AgentProxy(AgentId("WebSurfer", "default"), runtime)
 
-    await runtime.register("UserProxy", lambda: UserProxy(), lambda: [DefaultSubscription()])
+    await UserProxy.register(runtime, "UserProxy", UserProxy)
     user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
-    await runtime.register(
-        "orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy]), lambda: [DefaultSubscription()]
+    await RoundRobinOrchestrator.register(
+        runtime, "orchestrator", lambda: RoundRobinOrchestrator([web_surfer, user_proxy])
     )
 
     runtime.start()

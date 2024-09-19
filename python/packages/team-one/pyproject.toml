@@ -74,5 +74,5 @@ include = [
 
 
 [tool.pyright]
-extend = "../../pyproject.toml"
+extends = "../../pyproject.toml"
 include = ["src", "tests", "examples"]

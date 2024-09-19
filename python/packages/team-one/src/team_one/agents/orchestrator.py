@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from autogen_core.base import AgentProxy, MessageContext, TopicId
+from autogen_core.components import default_subscription
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -23,6 +24,7 @@ from .orchestrator_prompts import (
 )
 
 
+@default_subscription
 class RoundRobinOrchestrator(BaseOrchestrator):
     def __init__(
         self,
@@ -37,6 +39,7 @@ class RoundRobinOrchestrator(BaseOrchestrator):
         return self._agents[self._current_index]
 
 
+@default_subscription
 class LedgerOrchestrator(BaseOrchestrator):
     DEFAULT_SYSTEM_MESSAGES = [
         SystemMessage(ORCHESTRATOR_SYSTEM_MESSAGE),

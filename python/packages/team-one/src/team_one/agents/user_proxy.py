@@ -2,11 +2,13 @@ import asyncio
 from typing import Tuple
 
 from autogen_core.base import CancellationToken
+from autogen_core.components import default_subscription
 
 from ..messages import UserContent
 from .base_worker import BaseWorker
 
 
+@default_subscription
 class UserProxy(BaseWorker):
     """An agent that allows the user to play the role of an agent in the conversation."""
 

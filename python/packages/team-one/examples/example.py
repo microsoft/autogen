@@ -10,7 +10,6 @@ import logging
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import DefaultSubscription
 from autogen_core.components.code_executor._impl.docker_command_line_code_executor import DockerCommandLineCodeExecutor
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import LedgerOrchestrator
@@ -25,32 +24,30 @@ async def main() -> None:
 
     async with DockerCommandLineCodeExecutor() as code_executor:
         # Register agents.
-        await runtime.register(
-            "Coder", lambda: Coder(model_client=create_completion_client_from_env()), lambda: [DefaultSubscription()]
-        )
+        await Coder.register(runtime, "Coder", lambda: Coder(model_client=create_completion_client_from_env()))
         coder = AgentProxy(AgentId("Coder", "default"), runtime)
 
-        await runtime.register(
+        await Executor.register(
+            runtime,
             "Executor",
             lambda: Executor("A agent for executing code", executor=code_executor),
-            lambda: [DefaultSubscription()],
         )
         executor = AgentProxy(AgentId("Executor", "default"), runtime)
 
-        await runtime.register(
+        await UserProxy.register(
+            runtime,
             "UserProxy",
             lambda: UserProxy(description="The current user interacting with you."),
-            lambda: [DefaultSubscription()],
         )
         user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
         # TODO: doesn't work for more than default key
-        await runtime.register(
+        await LedgerOrchestrator.register(
+            runtime,
             "orchestrator",
             lambda: LedgerOrchestrator(
                 model_client=create_completion_client_from_env(), agents=[coder, executor, user_proxy]
             ),
-            lambda: [DefaultSubscription()],
         )
 
         runtime.start()
