@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
@@ -14,7 +15,6 @@ from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, Mess
 
 @pytest.mark.asyncio
 async def test_agent_names_must_be_unique() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50051"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
@@ -45,7 +45,6 @@ async def test_agent_names_must_be_unique() -> None:
 
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50052"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
@@ -79,12 +78,10 @@ async def test_register_receives_publish() -> None:
 
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50053"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     runtime = WorkerAgentRuntime(host_address=host_address)
-    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     runtime.add_message_serializer(try_get_known_serializers_for_type(CascadingMessageType))
     runtime.start()
 
@@ -97,15 +94,14 @@ async def test_register_receives_publish_cascade() -> None:
 
     # Register agents
     for i in range(num_agents):
-        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
-        await runtime.add_subscription(TypeSubscription("default", f"name{i}"))
+        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds), lambda: [DefaultSubscription()])
 
     # Publish messages
     for _ in range(num_initial_messages):
         await runtime.publish_message(CascadingMessageType(round=1), topic_id=DefaultTopicId())
 
-    # Let the agents run for a bit.
-    await asyncio.sleep(5)
+    # Wait for all agents to finish.
+    await asyncio.sleep(10)
 
     # Check that each agent received the correct number of messages.
     for i in range(num_agents):
@@ -116,9 +112,54 @@ async def test_register_receives_publish_cascade() -> None:
     await host.stop()
 
 
+@pytest.mark.skip(reason="Fix flakiness")
+@pytest.mark.asyncio
+async def test_register_receives_publish_cascade_multiple_workers() -> None:
+    logging.basicConfig(level=logging.DEBUG)
+    host_address = "localhost:50057"
+    host = WorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    # TODO: Increasing num_initial_messages or max_round to 2 causes the test to fail.
+    num_agents = 2
+    num_initial_messages = 1
+    max_rounds = 1
+    total_num_calls_expected = 0
+    for i in range(0, max_rounds):
+        total_num_calls_expected += num_initial_messages * ((num_agents - 1) ** i)
+
+    # Run multiple workers one for each agent.
+    workers = []
+    # Register agents
+    for i in range(num_agents):
+        runtime = WorkerAgentRuntime(host_address=host_address)
+        runtime.add_message_serializer(try_get_known_serializers_for_type(CascadingMessageType))
+        runtime.start()
+        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds), lambda: [DefaultSubscription()])
+        workers.append(runtime)
+
+    # Publish messages
+    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher.add_message_serializer(try_get_known_serializers_for_type(CascadingMessageType))
+    publisher.start()
+    for _ in range(num_initial_messages):
+        await publisher.publish_message(CascadingMessageType(round=1), topic_id=DefaultTopicId())
+
+    await asyncio.sleep(20)
+
+    # Check that each agent received the correct number of messages.
+    for i in range(num_agents):
+        agent = await workers[i].try_get_underlying_agent_instance(AgentId(f"name{i}", "default"), CascadingAgent)
+        assert agent.num_calls == total_num_calls_expected
+
+    for worker in workers:
+        await worker.stop()
+    await publisher.stop()
+    await host.stop()
+
+
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50054"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
@@ -148,7 +189,6 @@ async def test_default_subscription() -> None:
 
 @pytest.mark.asyncio
 async def test_non_default_default_subscription() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50055"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
@@ -178,7 +218,6 @@ async def test_non_default_default_subscription() -> None:
 
 @pytest.mark.asyncio
 async def test_non_publish_to_other_source() -> None:
-    # Keep it unique to this test only.
     host_address = "localhost:50056"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()

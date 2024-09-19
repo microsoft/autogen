@@ -87,8 +87,7 @@ async def test_register_receives_publish_cascade() -> None:
 
     # Register agents
     for i in range(num_agents):
-        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds))
-        await runtime.add_subscription(TypeSubscription("default", f"name{i}"))
+        await runtime.register(f"name{i}", lambda: CascadingAgent(max_rounds), lambda: [DefaultSubscription()])
 
     runtime.start()
 

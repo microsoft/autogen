@@ -24,7 +24,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
         self._send_queues: Dict[int, asyncio.Queue[agent_worker_pb2.Message]] = {}
         self._agent_type_to_client_id_lock = asyncio.Lock()
         self._agent_type_to_client_id: Dict[str, int] = {}
-        self._pending_requests: Dict[int, Dict[str, Future[Any]]] = {}
+        self._pending_responses: Dict[int, Dict[str, Future[Any]]] = {}
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
 
@@ -65,7 +65,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
             # Clean up the client connection.
             del self._send_queues[client_id]
             # Cancel pending requests sent to this client.
-            for future in self._pending_requests.pop(client_id, {}).values():
+            for future in self._pending_responses.pop(client_id, {}).values():
                 future.cancel()
             # Remove the client id from the agent type to client id mapping.
             async with self._agent_type_to_client_id_lock:
@@ -137,7 +137,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
 
         # Create a future to wait for the response from the target.
         future = asyncio.get_event_loop().create_future()
-        self._pending_requests.setdefault(target_client_id, {})[request.request_id] = future
+        self._pending_responses.setdefault(target_client_id, {})[request.request_id] = future
 
         # Create a task to wait for the response and send it back to the client.
         send_response_task = asyncio.create_task(self._wait_and_send_response(future, client_id))
@@ -156,7 +156,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse, client_id: int) -> None:
         # Setting the result of the future will send the response back to the original sender.
-        future = self._pending_requests[client_id].pop(response.request_id)
+        future = self._pending_responses[client_id].pop(response.request_id)
         future.set_result(response)
 
     async def _process_event(self, event: agent_worker_pb2.Event) -> None:

@@ -291,7 +291,7 @@ class WorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Host connection is not set.")
         data_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
-            "create", recipient, parent=None, extraAttributes={"message_type": data_type, "message_size": len(message)}
+            "create", recipient, parent=None, extraAttributes={"message_type": data_type}
         ):
             # create a new future for the result
             future = asyncio.get_event_loop().create_future()
@@ -555,6 +555,11 @@ class WorkerAgentRuntime(AgentRuntime):
         agent_factory: Callable[[], T | Awaitable[T]],
         expected_class: type[T],
     ) -> AgentType:
+        if type.type in self._agent_factories:
+            raise ValueError(f"Agent with type {type} already exists.")
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
+
         async def factory_wrapper() -> T:
             maybe_agent_instance = agent_factory()
             if inspect.isawaitable(maybe_agent_instance):
@@ -568,6 +573,9 @@ class WorkerAgentRuntime(AgentRuntime):
             return agent_instance
 
         self._agent_factories[type.type] = factory_wrapper
+
+        message = agent_worker_pb2.Message(registerAgentType=agent_worker_pb2.RegisterAgentType(type=type.type))
+        await self._host_connection.send(message)
 
         return type
 
