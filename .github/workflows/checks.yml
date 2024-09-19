@@ -134,7 +134,7 @@ jobs:
       - name: Run task
         run: |
           source ${{ github.workspace }}/python/.venv/bin/activate
-          poe --directory ${{ matrix.package }} pyright
+          poe --directory ${{ matrix.package }} docs-check
         working-directory: ./python
 
   check-proto-changes-python:
