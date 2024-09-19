@@ -1,3 +1,9 @@
+"""This example demonstrates a human user interacting with a coder agent and a executor agent
+to generate and execute code snippets. An ledger orchestrator agent orchestrates the interaction
+between the user, coder, and executor agents.
+At each step, the orchestrator agent decides which user or agent to perform the next action.
+The code snippets are executed inside a docker container."""
+
 import asyncio
 import logging
 

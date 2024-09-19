@@ -1,3 +1,6 @@
+"""This example demonstrates three mock agents taking turn to reflect recieved message
+by publishing it verbatim. The agents are orchestrated by a round-robin orchestrator agent."""
+
 import asyncio
 import logging
 

@@ -1,3 +1,9 @@
+"""This example demonstrates a human user interacting with a coder agent and a executor agent
+to generate and execute code snippets. The user and the agents take turn sequentially
+to write input, generate code snippets and execute them, orchestrated by an
+round-robin orchestrator agent. The code snippets are executed inside a docker container.
+"""
+
 import asyncio
 import logging
 

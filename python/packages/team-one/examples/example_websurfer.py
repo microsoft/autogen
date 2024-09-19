@@ -1,3 +1,8 @@
+"""This example demonstrates a human user interacting with a web surfer agent
+to navigate the web through an embedded incognito browser.
+The human user and the web surfer agent takes turn to write input or perform actions,
+orchestrated by an round-robin orchestrator agent."""
+
 import asyncio
 import logging
 import os
@@ -20,7 +25,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
-    client = create_completion_client_from_env()
+    client = create_completion_client_from_env(model="gpt-4o")
 
     # Register agents.
     await runtime.register("WebSurfer", lambda: MultimodalWebSurfer(), lambda: [DefaultSubscription()])

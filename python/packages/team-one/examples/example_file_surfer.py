@@ -1,3 +1,7 @@
+"""This example demonstrates a human user interacting with a file surfer agent
+to navigate the file system. The human user and the file surfer agent takes turn
+to write input or perform actions, orchestrated by an round-robin orchestrator agent."""
+
 import asyncio
 import logging
 

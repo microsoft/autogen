@@ -1,3 +1,9 @@
+"""This example demonstrates a human user interacting with a coder agent
+which uses a model to generate code snippets. The user and the coder agent
+takes turn to write input or generate code snippets, orchestrated by an
+round-robin orchestrator agent.
+The code snippets are not executed in this example."""
+
 import asyncio
 import logging
 
