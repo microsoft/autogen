@@ -1,5 +1,5 @@
 import re
-from typing import List, Tuple, Union
+from typing import Awaitable, Callable, List, Literal, Tuple, Union
 
 from autogen_core.base import CancellationToken
 from autogen_core.components import default_subscription
@@ -54,6 +54,10 @@ Reply "TERMINATE" in the end when everything is done.""")
         return "TERMINATE" in response.content, response.content
 
 
+# True if the user confirms the code, False otherwise
+ConfirmCode = Callable[[CodeBlock], Awaitable[bool]]
+
+
 @default_subscription
 class Executor(BaseWorker):
     DEFAULT_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)"
@@ -64,10 +68,12 @@ class Executor(BaseWorker):
         check_last_n_message: int = 5,
         *,
         executor: CodeExecutor,
+        confirm_execution: ConfirmCode | Literal["ACCEPT_ALL"],
     ) -> None:
         super().__init__(description)
         self._executor = executor
         self._check_last_n_message = check_last_n_message
+        self._confirm_execution = confirm_execution
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
@@ -88,18 +94,24 @@ class Executor(BaseWorker):
                 if code_lang == "py":
                     code_lang = "python"
                 execution_requests = [CodeBlock(code=code_block, language=code_lang)]
-                result = await self._executor.execute_code_blocks(execution_requests, cancellation_token)
+                if self._confirm_execution == "ACCEPT_ALL" or await self._confirm_execution(execution_requests[0]):  # type: ignore
+                    result = await self._executor.execute_code_blocks(execution_requests, cancellation_token)
 
-                if result.output.strip() == "":
-                    # Sometimes agents forget to print(). Remind the to print something
-                    return (
-                        False,
-                        f"The script ran but produced no output to console. The Unix exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout.",
-                    )
+                    if result.output.strip() == "":
+                        # Sometimes agents forget to print(). Remind the to print something
+                        return (
+                            False,
+                            f"The script ran but produced no output to console. The Unix exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout.",
+                        )
+                    else:
+                        return (
+                            False,
+                            f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
+                        )
                 else:
                     return (
                         False,
-                        f"The script ran, then exited with Unix exit code: {result.exit_code}\nIts output was:\n{result.output}",
+                        "The code block was not confirmed by the user and so was not run.",
                     )
             else:
                 n_messages_checked += 1

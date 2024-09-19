@@ -6,13 +6,11 @@ The code snippets are executed inside a docker container."""
 
 import asyncio
 import logging
-from typing import Any
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from autogen_core.base.intervention import DefaultInterventionHandler, DropMessage
-from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
+from autogen_core.components.code_executor import CodeBlock, DockerCommandLineCodeExecutor
 from team_one.agents.coder import Coder, Executor
 from team_one.agents.orchestrator import LedgerOrchestrator
 from team_one.agents.user_proxy import UserProxy
@@ -20,20 +18,17 @@ from team_one.messages import RequestReplyMessage
 from team_one.utils import LogHandler, create_completion_client_from_env
 
 
-class ConfirmCode(DefaultInterventionHandler):
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any | type[DropMessage]:
-        if sender is not None and sender.type == "Coder":
-            print("Coder has generated the following code:")
-            print(message)
-            response = await asyncio.to_thread(input, "Do you want to proceed? (yes/no): ")
-            if response.lower() != "yes":
-                raise ValueError("User has rejected the message.")
-        return message
+async def confirm_code(code: CodeBlock) -> bool:
+    response = await asyncio.to_thread(
+        input,
+        f"Executor is about to execute code (lang: {code.language}):\n{code.code}\n\nDo you want to proceed? (yes/no): ",
+    )
+    return response.lower() == "yes"
 
 
 async def main() -> None:
     # Create the runtime.
-    runtime = SingleThreadedAgentRuntime(intervention_handlers=[ConfirmCode()])
+    runtime = SingleThreadedAgentRuntime()
 
     async with DockerCommandLineCodeExecutor() as code_executor:
         # Register agents.
@@ -43,7 +38,7 @@ async def main() -> None:
         await Executor.register(
             runtime,
             "Executor",
-            lambda: Executor("A agent for executing code", executor=code_executor),
+            lambda: Executor("A agent for executing code", executor=code_executor, confirm_execution=confirm_code),
         )
         executor = AgentProxy(AgentId("Executor", "default"), runtime)
 
