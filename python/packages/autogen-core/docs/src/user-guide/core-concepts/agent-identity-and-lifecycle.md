@@ -1,6 +1,6 @@
 # Agent Identity and Lifecycle
 
-In AGNext, the agent runtime manages agents' identities
+The agent runtime manages agents' identities
 and lifecycles.
 Application does not create agents directly, rather,
 it registers an agent type with a factory function for
@@ -48,6 +48,8 @@ with an agent ID, `("code_reviewer", review_request_id)`.
 When a runtime delivers a message to an agent instance given its ID,
 it either fetches the instance,
 or creates it if it does not exist.
+
+![Agent Lifecycle](agent-lifecycle.svg)
 
 The runtime is also responsible for "paging in" or "out" agent instances
 to conserve resources and balance load across multiple machines.

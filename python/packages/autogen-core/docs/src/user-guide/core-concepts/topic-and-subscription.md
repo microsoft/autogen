@@ -1,6 +1,6 @@
 # Topic and Subscription in Broadcast
 
-In AGNext, there are two ways for runtime to deliver messages,
+There are two ways for runtime to deliver messages,
 direct messaging or broadcast. Direct messaging is one to one: the sender
 must provide the recipient's agent ID. On the other hand,
 broadcast is one to many and the sender does not provide recpients'
@@ -15,7 +15,7 @@ This section focuses on the core concepts in broadcast: topic and subscription.
 ## Topic
 
 A topic defines the scope of a broadcast message.
-In essence, AGNext agent runtime implements a publish-subscribe model through
+In essence, agent runtime implements a publish-subscribe model through
 its broadcast API: when publishing a message, the topic mus be specified.
 It is an indirection over agent IDs.
 

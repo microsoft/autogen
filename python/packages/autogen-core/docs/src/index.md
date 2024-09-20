@@ -40,7 +40,7 @@ Key features of AGNext include:
 - Observable, traceable & debuggable -->
 
 ```{seealso}
-To start quickly, read the [Quick Start](user-guide/getting-started/quickstart) guide and follow the tutorial sections. To learn about the core concepts of AGNext, begin with [Agent and Multi-Agent Application](user-guide/core-concepts/agent-and-multi-agent-application).
+To start quickly, read the [Quick Start](user-guide/guides/quickstart) guide and follow the tutorial sections. To learn about the core concepts of AGNext, begin with [Agent and Multi-Agent Application](user-guide/core-concepts/agent-and-multi-agent-application).
 ```
 
 ```{toctree}

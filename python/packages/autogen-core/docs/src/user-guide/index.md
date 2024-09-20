@@ -7,7 +7,7 @@ myst:
 
 # User Guide
 
-AGNext is a flexible framework for building multi-agent systems. Begin with the [installation](getting-started/installation.md) guide to set up the framework on your machine. Then, follow the [quickstart](getting-started/quickstart) guide to get started with building your first multi-agent application.
+AGNext is a flexible framework for building multi-agent systems. Begin with the [installation](guides/installation.md) guide to set up the framework on your machine. Then, follow the [quickstart](guides/quickstart) guide to get started with building your first multi-agent application.
 
 ```{danger}
 This project and documentation is a work in progress. If you have any questions or need help, please reach out to us on GitHub.
@@ -18,8 +18,8 @@ This project and documentation is a work in progress. If you have any questions 
 :maxdepth: 1
 :hidden:
 
-getting-started/installation
-getting-started/quickstart
+guides/installation
+guides/quickstart
 ```
 
 ```{toctree}
@@ -30,6 +30,7 @@ getting-started/quickstart
 
 core-concepts/agent-and-multi-agent-application
 core-concepts/architecture
+core-concepts/api-layers
 core-concepts/application-stack
 core-concepts/agent-identity-and-lifecycle
 core-concepts/topic-and-subscription
@@ -41,26 +42,32 @@ core-concepts/faqs
 :caption: Framework
 :maxdepth: 1
 :hidden:
-getting-started/agent-and-agent-runtime
-getting-started/message-and-communication
-getting-started/model-clients
-getting-started/tools
 
+guides/agent-and-agent-runtime
+guides/message-and-communication
+guides/model-clients
+guides/tools
+guides/logging
+guides/distributed-agent-runtime
+guides/telemetry
+guides/command-line-code-executors
 ```
 
 ```{toctree}
 :caption: Multi-Agent Design Patterns
 :maxdepth: 1
 :hidden:
-getting-started/multi-agent-design-patterns
-getting-started/group-chat
-getting-started/reflection
+
+guides/multi-agent-design-patterns
+guides/group-chat
+guides/reflection
 ```
 
 ```{toctree}
 :caption: Cookbook
 :maxdepth: 1
 :hidden:
+
 cookbook/azure-openai-with-aad-auth
 cookbook/termination-with-intervention
 cookbook/extracting-results-with-an-agent
@@ -68,16 +75,5 @@ cookbook/openai-assistant-agent
 cookbook/langgraph-agent
 cookbook/llamaindex-agent
 cookbook/local-llms-ollama-litellm
-
-```
-
-```{toctree}
-:caption: Guides
-:maxdepth: 1
-:hidden:
-guides/logging
-guides/distributed-agent-runtime
-guides/telemetry
-guides/command-line-code-executors
 
 ```
