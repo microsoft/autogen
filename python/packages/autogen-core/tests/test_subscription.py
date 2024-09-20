@@ -80,3 +80,19 @@ async def test_non_default_default_subscription() -> None:
     await runtime.stop_when_idle()
 
     assert agent_instance.num_calls == 3
+
+
+@pytest.mark.asyncio
+async def test_skipped_class_subscriptions() -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    await LoopbackAgent.register(runtime, "MyAgent", LoopbackAgent, skip_class_subscriptions=True)
+    runtime.start()
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+    await runtime.stop_when_idle()
+
+    # Not subscribed
+    agent_instance = await runtime.try_get_underlying_agent_instance(
+        AgentId("MyAgent", key="default"), type=LoopbackAgent
+    )
+    assert agent_instance.num_calls == 0
