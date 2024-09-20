@@ -4,12 +4,12 @@ import base64
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 from openai.types.chat import ChatCompletionContentPartImageParam
 from PIL import Image as PILImage
-from pydantic import BaseModel, GetCoreSchemaHandler, ValidationInfo
+from pydantic import GetCoreSchemaHandler, ValidationInfo
 from pydantic_core import core_schema
 from typing_extensions import Literal
 
@@ -68,7 +68,7 @@ class Image:
         # Custom validation
         def validate(value: Any, validation_info: ValidationInfo) -> Image:
             if isinstance(value, dict):
-                base_64 = value.get("data")
+                base_64 = cast(str | None, value.get("data"))  # type: ignore
                 if base_64 is None:
                     raise ValueError("Expected 'data' key in the dictionary")
                 return cls.from_base64(base_64)

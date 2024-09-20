@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Protocol, runtime_checkable
+from typing import Any, Mapping, Protocol, runtime_checkable
 
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata

@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Awaitable, Callable, List, Mapping, Sequence, TypeVar, cast, get_type_hints
+from typing import Any, Awaitable, Callable, List, Mapping, Sequence, TypeVar, get_type_hints
 
 from ..base import (
     Agent,
@@ -112,9 +112,10 @@ class ClosureAgent(Agent):
             with SubscriptionInstantiationContext.populate_context(agent_type):
                 subscriptions_list_result = subscriptions()
                 if inspect.isawaitable(subscriptions_list_result):
-                    subscriptions_list.extend(cast(List[Subscription], await subscriptions_list_result))
+                    subscriptions_list.extend(await subscriptions_list_result)
                 else:
-                    subscriptions_list.extend(cast(List[Subscription], subscriptions_list_result))
+                    # just ignore mypy here
+                    subscriptions_list.extend(subscriptions_list_result)  # type: ignore
 
         agent_type = await runtime.register_factory(
             type=agent_type,

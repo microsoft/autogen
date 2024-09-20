@@ -19,8 +19,6 @@ from typing import (
     runtime_checkable,
 )
 
-from typing_extensions import Self
-
 from ..base import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
 from ..base._type_helpers import AnyType, get_types
 from ..base.exceptions import CantHandleException
@@ -477,7 +475,7 @@ class RoutedAgent(BaseAgent):
 
     @classmethod
     def _discover_handlers(cls) -> Sequence[MessageHandler[Any, Any, Any]]:
-        handlers = []
+        handlers: List[MessageHandler[Any, Any, Any]] = []
         for attr in dir(cls):
             if callable(getattr(cls, attr, None)):
                 # Since we are getting it from the class, self is not bound
@@ -491,7 +489,7 @@ class RoutedAgent(BaseAgent):
         # TODO handle deduplication
         handlers = cls._discover_handlers()
         types: List[Tuple[Type[Any], List[MessageSerializer[Any]]]] = []
-        types.extend(cls._extra_handles_types)
+        types.extend(cls.internal_extra_handles_types)
         for handler in handlers:
             for t in handler.target_types:
                 # TODO: support different serializers

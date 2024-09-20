@@ -9,10 +9,9 @@ from autogen_core.components import (
     message_handler,
 )
 from autogen_core.components.model_context import ChatCompletionContext
-from autogen_core.components.models import AssistantMessage, UserMessage
+from autogen_core.components.models import UserMessage
 
 from ..types import (
-    Message,
     MultiModalMessage,
     PublishNow,
     Reset,

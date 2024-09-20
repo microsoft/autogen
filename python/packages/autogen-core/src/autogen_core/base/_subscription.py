@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Protocol, runtime_checkable
+from typing import Awaitable, Callable, Protocol, runtime_checkable
 
 from ._agent_id import AgentId
-from ._agent_type import AgentType
 from ._topic import TopicId
 
 

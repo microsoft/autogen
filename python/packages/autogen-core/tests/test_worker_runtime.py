@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import List
 
 import pytest
 from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
@@ -10,7 +11,6 @@ from autogen_core.base import (
     try_get_known_serializers_for_type,
 )
 from autogen_core.components import (
-    DefaultSubscription,
     DefaultTopicId,
     TypeSubscription,
     default_subscription,
@@ -163,7 +163,7 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
         total_num_calls_expected += num_initial_messages * ((num_agents - 1) ** i)
 
     # Run multiple workers one for each agent.
-    workers = []
+    workers: List[WorkerAgentRuntime] = []
     # Register agents
     for i in range(num_agents):
         runtime = WorkerAgentRuntime(host_address=host_address)

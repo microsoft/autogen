@@ -75,9 +75,10 @@ exclude = ["build", "dist", "src/autogen_core/application/protos"]
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 
 [tool.pyright]
-extend = "../../pyproject.toml"
+extends = "../../pyproject.toml"
 include = ["src", "tests", "samples"]
 exclude = ["src/autogen_core/application/protos"]
+reportDeprecated = false
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -3,7 +3,6 @@ from dataclasses import asdict, dataclass, fields
 from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable
 
 from pydantic import BaseModel
-from typing_extensions import deprecated
 
 from autogen_core.base._type_helpers import is_union
 

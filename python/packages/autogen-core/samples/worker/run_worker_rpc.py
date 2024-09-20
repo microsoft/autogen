@@ -8,7 +8,6 @@ from autogen_core.base import (
     AgentId,
     AgentInstantiationContext,
     MessageContext,
-    try_get_known_serializers_for_type,
 )
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 

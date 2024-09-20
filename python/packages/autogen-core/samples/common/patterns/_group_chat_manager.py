@@ -7,7 +7,6 @@ from autogen_core.components.model_context import ChatCompletionContext
 from autogen_core.components.models import ChatCompletionClient, UserMessage
 
 from ..types import (
-    Message,
     MultiModalMessage,
     PublishNow,
     Reset,

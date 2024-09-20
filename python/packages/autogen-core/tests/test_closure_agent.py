@@ -3,11 +3,10 @@ from dataclasses import dataclass
 
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
+from autogen_core.base import AgentId, AgentRuntime, MessageContext
 from autogen_core.components import ClosureAgent
 from autogen_core.components._default_subscription import DefaultSubscription
 from autogen_core.components._default_topic import DefaultTopicId
-from autogen_core.components._type_subscription import TypeSubscription
 
 
 @dataclass

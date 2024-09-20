@@ -12,7 +12,6 @@ from autogen_core.base import (
     try_get_known_serializers_for_type,
 )
 from autogen_core.components import (
-    DefaultSubscription,
     DefaultTopicId,
     TypeSubscription,
     default_subscription,

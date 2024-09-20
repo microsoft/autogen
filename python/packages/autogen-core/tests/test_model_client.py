@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any, AsyncGenerator, List, Tuple
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from autogen_core.base import CancellationToken

@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from hashlib import md5
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Type, Union
+from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
 
 import docker
 import docker.models
@@ -212,8 +212,8 @@ $functions"""
         if len(code_blocks) == 0:
             raise ValueError("No code blocks to execute.")
 
-        outputs = []
-        files = []
+        outputs: List[str] = []
+        files: List[Path] = []
         last_exit_code = 0
         for code_block in code_blocks:
             lang = code_block.language.lower()
@@ -237,7 +237,7 @@ $functions"""
 
             command = ["timeout", str(self._timeout), lang_to_cmd(lang), filename]
 
-            result = await asyncio.to_thread(self._container.exec_run, command)
+            result = await asyncio.to_thread(self._container.exec_run, command)  # type: ignore
             exit_code = result.exit_code
             output = result.output.decode("utf-8")
             if exit_code == 124:
@@ -277,7 +277,7 @@ $functions"""
             raise ValueError("Container is not running. Must first be started with either start or a context manager.")
 
         """(Experimental) Restart the code executor."""
-        await asyncio.to_thread(self._container.restart)
+        await asyncio.to_thread(self._container.restart)  # type: ignore
         if self._container.status != "running":
             self._running = False
             logs_str = self._container.logs().decode("utf-8")

@@ -125,6 +125,8 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                     logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
+                case other:
+                    logger.error(f"Received unexpected message: {other}")
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: int) -> None:
         # Deliver the message to a client given the target agent type.

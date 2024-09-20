@@ -4,8 +4,7 @@ import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from re import S
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, overload
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar
 
 from typing_extensions import Self
 
@@ -18,7 +17,7 @@ from ._agent_type import AgentType
 from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
 from ._serialization import MessageSerializer, try_get_known_serializers_for_type
-from ._subscription import UnboundSubscription
+from ._subscription import Subscription, UnboundSubscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
 
@@ -30,7 +29,7 @@ BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")
 # Decorator for adding an unbound subscription to an agent
 def subscription_factory(subscription: UnboundSubscription) -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]]:
     def decorator(cls: Type[BaseAgentType]) -> Type[BaseAgentType]:
-        cls._unbound_subscriptions_list.append(subscription)
+        cls.internal_unbound_subscriptions_list.append(subscription)
         return cls
 
     return decorator
@@ -48,29 +47,29 @@ def handles(
         if len(serializer_list) == 0:
             raise ValueError(f"No serializers found for type {type}. Please provide an explicit serializer.")
 
-        cls._extra_handles_types.append((type, serializer_list))
+        cls.internal_extra_handles_types.append((type, serializer_list))
         return cls
 
     return decorator
 
 
 class BaseAgent(ABC, Agent):
-    _unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
-    _extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
+    internal_unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
+    internal_extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         # Automatically set class_variable in each subclass so that they are not shared between subclasses
-        cls._extra_handles_types = []
-        cls._unbound_subscriptions_list = []
+        cls.internal_extra_handles_types = []
+        cls.internal_unbound_subscriptions_list = []
 
     @classmethod
     def _handles_types(cls) -> List[Tuple[Type[Any], List[MessageSerializer[Any]]]]:
-        return cls._extra_handles_types
+        return cls.internal_extra_handles_types
 
     @classmethod
     def _unbound_subscriptions(cls) -> List[UnboundSubscription]:
-        return cls._unbound_subscriptions_list
+        return cls.internal_unbound_subscriptions_list
 
     @property
     def metadata(self) -> AgentMetadata:
@@ -155,7 +154,7 @@ class BaseAgent(ABC, Agent):
         agent_type = await runtime.register_factory(type=agent_type, agent_factory=factory, expected_class=cls)
         if not skip_class_subscriptions:
             with SubscriptionInstantiationContext.populate_context(agent_type):
-                subscriptions = []
+                subscriptions: List[Subscription] = []
                 for unbound_subscription in cls._unbound_subscriptions():
                     subscriptions_list_result = unbound_subscription()
                     if inspect.isawaitable(subscriptions_list_result):

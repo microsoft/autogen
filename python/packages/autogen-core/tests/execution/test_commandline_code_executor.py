@@ -33,7 +33,7 @@ def docker_tests_enabled() -> bool:
         return False
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")  # type: ignore
 async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
 ) -> AsyncGenerator[tuple[LocalCommandLineCodeExecutor | DockerCommandLineCodeExecutor, str], None]:
@@ -55,7 +55,7 @@ ExecutorFixture: TypeAlias = tuple[LocalCommandLineCodeExecutor | DockerCommandL
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
 async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
-    executor, temp_dir = executor_and_temp_dir
+    executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
 
     # Test single code block.
@@ -138,7 +138,7 @@ async def test_local_commandline_code_executor_restart() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
 async def test_invalid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
-    executor, temp_dir = executor_and_temp_dir
+    executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     code = """# filename: /tmp/test.py
 

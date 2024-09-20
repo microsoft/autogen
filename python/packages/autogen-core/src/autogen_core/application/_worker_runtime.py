@@ -113,8 +113,7 @@ class HostConnection:
         if self._connection_task is None:
             raise RuntimeError("Connection is not open.")
         await self._channel.close()
-        if self._connection_task is not None:
-            await self._connection_task
+        await self._connection_task
 
     @staticmethod
     async def _connect(  # type: ignore
@@ -227,6 +226,8 @@ class WorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
+                    case other:
+                        logger.error(f"Unknown message type: {other}")
             except Exception as e:
                 logger.error("Error in read loop", exc_info=e)
 
