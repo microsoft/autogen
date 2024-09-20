@@ -176,7 +176,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             
             await WriteChannelAsync(new Message
             {
-                RegisterAgentType = new RegisterAgentType
+                RegisterAgentTypeRequest = new RegisterAgentTypeRequest
                 {
                     Type = type,
                     //TopicTypes = { topicTypes },

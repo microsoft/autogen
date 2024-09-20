@@ -11,7 +11,7 @@ namespace Microsoft.AutoGen.Agents.Worker.Client;
 
 public abstract class AgentBase
 {
-    public static readonly ActivitySource s_source = new("Starfleet.Agent");
+    public static readonly ActivitySource s_source = new("AutoGen.Agent");
     private readonly object _lock = new();
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
     

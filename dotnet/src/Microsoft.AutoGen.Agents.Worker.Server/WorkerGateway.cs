@@ -129,15 +129,15 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
             case Message.MessageOneofCase.CloudEvent:
                 await DispatchEventAsync(message.CloudEvent);
                 break;
-            case Message.MessageOneofCase.RegisterAgentType:
-                await RegisterAgentTypeAsync(connection, message.RegisterAgentType);
+            case Message.MessageOneofCase.RegisterAgentTypeRequest:
+                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
                 break;
             default:
                 throw new InvalidOperationException($"Unknown message type for message '{message}'.");
         };
     }
 
-    async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentType msg)
+    async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);

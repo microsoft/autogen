@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package helloagents;
+
+option csharp_namespace = "Microsoft.AutoGen.Agents.Worker.Client";
+
+message Input {
+      string message = 1;
+}
+
+message InputProcessed {
+      string route = 1;
+}
+message Output {
+      string message = 1;
+}
+
+message OutputProcessed {
+      string route = 1;
+}
