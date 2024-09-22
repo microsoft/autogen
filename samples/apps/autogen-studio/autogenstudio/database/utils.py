@@ -175,6 +175,13 @@ def init_db_samples(dbmanager: Any):
         model="gpt-4-1106-preview", description="OpenAI GPT-4 model", user_id="guestuser@gmail.com", api_type="open_ai"
     )
 
+    anthropic_sonnet_model = Model(
+        model="claude-3-5-sonnet-20240620",
+        description="Anthropic's Claude 3.5 Sonnet model",
+        api_type="anthropic",
+        user_id="guestuser@gmail.com",
+    )
+
     # skills
     generate_pdf_skill = Skill(
         name="generate_and_save_pdf",
@@ -303,6 +310,7 @@ def init_db_samples(dbmanager: Any):
         session.add(google_gemini_model)
         session.add(azure_model)
         session.add(gpt_4_model)
+        session.add(anthropic_sonnet_model)
         session.add(generate_image_skill)
         session.add(generate_pdf_skill)
         session.add(user_proxy)
