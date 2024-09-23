@@ -84,12 +84,19 @@ try:
 except ImportError as e:
     cohere_import_exception = e
 
-try : 
+try:
     from autogen.oai.aiinference import AzureAIInferenceClient
 
-    aiinference_import_exception : Optional[ImportError] = None
+    aiinference_import_exception: Optional[ImportError] = None
 except ImportError as e:
     aiinference_import_exception = e
+
+try:
+    from autogen.oai.bedrock import BedrockClient
+
+    bedrock_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    bedrock_import_exception = e
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -464,7 +471,7 @@ class OpenAIWrapper:
     def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Update openai_config with AWS credentials from config."""
         required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
-        optional_keys = ["aws_session_token"]
+        optional_keys = ["aws_session_token", "aws_profile_name"]
         for key in required_keys:
             if key in config:
                 openai_config[key] = config[key]
@@ -526,7 +533,7 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("cohere"):
                 if cohere_import_exception:
-                    raise ImportError("Please install `cohere` to use the Groq API.")
+                    raise ImportError("Please install `cohere` to use the Cohere API.")
                 client = CohereClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("aiinference"):
@@ -534,7 +541,12 @@ class OpenAIWrapper:
                     raise ImportError("Please install `azure-ai-inference` to use Azure Ai Inference API.")
                 client = AzureAIInferenceClient(**openai_config)
                 self._clients.append(client)
-
+            elif api_type is not None and api_type.startswith("bedrock"):
+                self._configure_openai_config_for_bedrock(config, openai_config)
+                if bedrock_import_exception:
+                    raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
+                client = BedrockClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))

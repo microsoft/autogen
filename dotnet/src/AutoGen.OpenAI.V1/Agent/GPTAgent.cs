@@ -5,10 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI.V1.Extension;
 using Azure.AI.OpenAI;
 
-namespace AutoGen.OpenAI;
+namespace AutoGen.OpenAI.V1;
 
 /// <summary>
 /// GPT agent that can be used to connect to OpenAI chat models like GPT-3.5, GPT-4, etc.
@@ -27,6 +27,7 @@ namespace AutoGen.OpenAI;
 /// <para>- <see cref="ToolCallMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
+[Obsolete("Use OpenAIChatAgent instead")]
 public class GPTAgent : IStreamingAgent
 {
     private readonly OpenAIClient openAIClient;

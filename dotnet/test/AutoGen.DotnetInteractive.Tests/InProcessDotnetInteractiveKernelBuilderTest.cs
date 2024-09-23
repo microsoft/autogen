@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// DotnetInteractiveKernelBuilderTest.cs
+// InProcessDotnetInteractiveKernelBuilderTest.cs
 
 using AutoGen.DotnetInteractive.Extension;
 using FluentAssertions;
@@ -7,13 +7,14 @@ using Xunit;
 
 namespace AutoGen.DotnetInteractive.Tests;
 
-public class DotnetInteractiveKernelBuilderTest
+[Collection("Sequential")]
+public class InProcessDotnetInteractiveKernelBuilderTest
 {
     [Fact]
     public async Task ItAddCSharpKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
-            .CreateEmptyBuilder()
+        using var kernel = DotnetInteractiveKernelBuilder
+            .CreateEmptyInProcessKernelBuilder()
             .AddCSharpKernel()
             .Build();
 
@@ -22,15 +23,15 @@ public class DotnetInteractiveKernelBuilderTest
             Console.WriteLine("Hello, World!");
             """;
 
-        var result = await kernel.RunSubmitCodeCommandAsync(csharpCode, "C#");
+        var result = await kernel.RunSubmitCodeCommandAsync(csharpCode, "csharp");
         result.Should().Contain("Hello, World!");
     }
 
     [Fact]
     public async Task ItAddPowershellKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
-            .CreateEmptyBuilder()
+        using var kernel = DotnetInteractiveKernelBuilder
+            .CreateEmptyInProcessKernelBuilder()
             .AddPowershellKernel()
             .Build();
 
@@ -45,8 +46,8 @@ public class DotnetInteractiveKernelBuilderTest
     [Fact]
     public async Task ItAddFSharpKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
-            .CreateEmptyBuilder()
+        using var kernel = DotnetInteractiveKernelBuilder
+            .CreateEmptyInProcessKernelBuilder()
             .AddFSharpKernel()
             .Build();
 
@@ -55,15 +56,15 @@ public class DotnetInteractiveKernelBuilderTest
             printfn "Hello, World!"
             """;
 
-        var result = await kernel.RunSubmitCodeCommandAsync(fsharpCode, "F#");
+        var result = await kernel.RunSubmitCodeCommandAsync(fsharpCode, "fsharp");
         result.Should().Contain("Hello, World!");
     }
 
     [Fact]
     public async Task ItAddPythonKernelTestAsync()
     {
-        var kernel = DotnetInteractiveKernelBuilder
-            .CreateEmptyBuilder()
+        using var kernel = DotnetInteractiveKernelBuilder
+            .CreateEmptyInProcessKernelBuilder()
             .AddPythonKernel("python3")
             .Build();
 

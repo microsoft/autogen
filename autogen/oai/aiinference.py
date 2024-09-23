@@ -15,9 +15,10 @@ from autogen.oai.client_utils import validate_parameter
 
 logger = logging.getLogger(__name__)
 
+
 class AzureAIInferenceClient:
     """Azure AI Inference Client
-    
+
     This class provides an interface to interact with Azure AI Inference API for natural language processing tasks.
     It supports various language models and handles API requests, response processing, and error handling.
 
@@ -94,7 +95,7 @@ class AzureAIInferenceClient:
         self.endpoint_url = "https://models.inference.ai.azure.com/chat/completions"
         self.model = kwargs.get("model")
         self.api_key = kwargs.get("api_key") or os.environ.get("AZURE_API_KEY")
-        
+
         if not self.api_key:
             raise ValueError("AZURE_API_KEY is not set in environment variables or provided in kwargs.")
 
@@ -183,6 +184,7 @@ class AzureAIInferenceClient:
             "cost": response.cost if hasattr(response, "cost") else 0,
             "model": response.model,
         }
+
 
 class AzureAIInferenceWrapper:
     """Wrapper for Azure AI Inference Client"""
