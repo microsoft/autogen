@@ -4,7 +4,7 @@ authors: thinkall
 tags: [LLM, RAG]
 ---
 
-*Last update: August 14, 2024; AutoGen version: v0.2.35*
+*Last update: September 23, 2024; AutoGen version: v0.2.35*
 
 ![RAG Architecture](img/retrievechat-arch.png)
 
@@ -56,6 +56,8 @@ Please install pyautogen with the [retrievechat] option before using RAG agents.
 ```bash
 pip install "pyautogen[retrievechat]"
 ```
+
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 RetrieveChat can handle various types of documents. By default, it can process
 plain text and PDF files, including formats such as 'txt', 'json', 'csv', 'tsv',
