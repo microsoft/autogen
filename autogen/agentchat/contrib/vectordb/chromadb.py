@@ -1,8 +1,6 @@
 import os
 from typing import Callable, List
 
-import chromadb.errors
-
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import chroma_results_to_query_results, filter_results_by_distance, get_logger
 
@@ -15,6 +13,11 @@ try:
     from chromadb.api.models.Collection import Collection
 except ImportError:
     raise ImportError("Please install chromadb: `pip install chromadb`")
+
+try:
+    from chromadb.errors import ChromaError
+except ImportError:
+    ChromaError = Exception
 
 CHROMADB_MAX_BATCH_SIZE = os.environ.get("CHROMADB_MAX_BATCH_SIZE", 40000)
 logger = get_logger(__name__)
@@ -86,7 +89,7 @@ class ChromaVectorDB(VectorDB):
                 collection = self.active_collection
             else:
                 collection = self.client.get_collection(collection_name, embedding_function=self.embedding_function)
-        except (ValueError, chromadb.errors.ChromaError):
+        except (ValueError, ChromaError):
             collection = None
         if collection is None:
             return self.client.create_collection(
