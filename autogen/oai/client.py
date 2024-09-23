@@ -85,18 +85,17 @@ except ImportError as e:
     cohere_import_exception = e
 
 try:
-    from autogen.oai.aiinference import AzureAIInferenceClient
-
-    aiinference_import_exception: Optional[ImportError] = None
-except ImportError as e:
-    aiinference_import_exception = e
-
-try:
     from autogen.oai.bedrock import BedrockClient
 
     bedrock_import_exception: Optional[ImportError] = None
 except ImportError as e:
     bedrock_import_exception = e
+try : 
+    from autogen.oai.aiinference import AzureAIInferenceClient
+
+    aiinference_import_exception : Optional[ImportError] = None
+except ImportError as e:
+    aiinference_import_exception = e
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
