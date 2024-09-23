@@ -2,7 +2,7 @@
 myst:
   html_meta:
     "description lang=en": |
-      Top-level documentation for AutoGen, a framework for building multi-agent applications with AI agents.
+      Top-level documentation for AutoGen, a framework for developing applications using AI agents
 html_theme.sidebar_secondary.remove: false
 ---
 
@@ -22,7 +22,7 @@ html_theme.sidebar_secondary.remove: false
 AutoGen
 </h1>
 <h3>
-A framework for developing intelligent applications using AI agent patterns.
+A framework for developing applications using AI agents
 </h3>
 </div>
 </div>
