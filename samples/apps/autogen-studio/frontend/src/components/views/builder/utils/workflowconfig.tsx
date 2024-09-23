@@ -165,7 +165,7 @@ export const WorkflowViewConfig = ({
         )}
         {workflow?.id && (
           <Button
-            className="ml-2"
+            className="ml-2 text-primary"
             type="primary"
             onClick={() => {
               setDrawerOpen(true);
@@ -176,7 +176,7 @@ export const WorkflowViewConfig = ({
         )}
         <Button
           className="ml-2"
-          key="close"
+          key="close  text-primary"
           type="default"
           onClick={() => {
             close();
@@ -258,7 +258,7 @@ export const WorflowViewer = ({
         key: "2",
         children: (
           <>
-            <WorkflowAgentSelector workflowId={workflow.id} />{" "}
+            <WorkflowAgentSelector workflow={workflow} />{" "}
           </>
         ),
       });
