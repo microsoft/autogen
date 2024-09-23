@@ -318,7 +318,7 @@ if __name__ == "__main__":
     # import logging
 
     # logging.basicConfig(level=logging.WARNING)
-    # logging.getLogger("agnext").setLevel(logging.DEBUG)
+    # logging.getLogger("autogen_core").setLevel(logging.DEBUG)
 
     # if os.path.exists("state.json"):
     #     os.remove("state.json")

@@ -1,5 +1,5 @@
 FROM python:3.11
-MAINTAINER AGNext
+MAINTAINER AutoGen
 
 # Install packages
 # ffmpeg and exiftool are needed for mdconvert

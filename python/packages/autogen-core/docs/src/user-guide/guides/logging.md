@@ -1,6 +1,6 @@
 # Logging
 
-AGNext uses Python's built-in [`logging`](https://docs.python.org/3/library/logging.html) module.
+AutoGen uses Python's built-in [`logging`](https://docs.python.org/3/library/logging.html) module.
 
 There are two kinds of logging:
 

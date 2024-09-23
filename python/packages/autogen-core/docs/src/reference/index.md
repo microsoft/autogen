@@ -2,7 +2,7 @@
 myst:
   html_meta:
     "description lang=en": |
-      AGNext is a community-driven project. Learn how to get involved, contribute, and connect with the community.
+      AutoGen is a community-driven project. Learn how to get involved, contribute, and connect with the community.
 ---
 
 <style>

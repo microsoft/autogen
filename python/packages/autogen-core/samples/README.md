@@ -1,18 +1,18 @@
 # Examples
 
-This directory contains examples and demos of how to use AGNext.
+This directory contains examples and demos of how to use AutoGen core.
 
 - `common`: Contains common implementations and utilities used by the examples.
-- `core`: Contains examples that illustrate the core concepts of AGNext.
-- `tool-use`: Contains examples that illustrate tool use in AGNext.
-- `patterns`: Contains examples that illustrate how multi-agent patterns can be implemented in AGNext.
-- `demos`: Contains interactive demos that showcase applications that can be built using AGNext.
+- `core`: Contains examples that illustrate the core concepts of AutoGen core.
+- `tool-use`: Contains examples that illustrate tool use in AutoGen core.
+- `patterns`: Contains examples that illustrate how multi-agent patterns can be implemented in AutoGen core.
+- `demos`: Contains interactive demos that showcase applications that can be built using AutoGen core.
 
 See [Running the examples](#running-the-examples) for instructions on how to run the examples.
 
 ## Core examples
 
-We provide examples to illustrate the core concepts of AGNext: agents, runtime, and message passing.
+We provide examples to illustrate the core concepts of AutoGen core: agents, runtime, and message passing.
 
 - [`one_agent_direct.py`](core/one_agent_direct.py): A simple example of how to create a single agent powered by ChatCompletion model client. Communicate with the agent using direct communication.
 - [`inner_outer_direct.py`](core/inner_outer_direct.py): A simple example of how to create an agent that calls an inner agent using direct communication.
@@ -20,7 +20,7 @@ We provide examples to illustrate the core concepts of AGNext: agents, runtime, 
 
 ## Tool use examples
 
-We provide examples to illustrate how to use tools in AGNext:
+We provide examples to illustrate how to use tools in AutoGen core:
 
 - [`coding_direct.py`](tool-use/coding_direct.py): a code execution example with one agent that calls and executes tools to demonstrate tool use and reflection on tool use. This example uses direct communication.
 - [`coding_pub_sub.py`](tool-use/coding_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses broadcast communication.
@@ -29,7 +29,7 @@ We provide examples to illustrate how to use tools in AGNext:
 
 ## Pattern examples
 
-We provide examples to illustrate how multi-agent patterns can be implemented in AGNext:
+We provide examples to illustrate how multi-agent patterns can be implemented in AutoGen core:
 
 - [`coder_executor.py`](patterns/coder_executor.py): An example of how to create a coder-executor reflection pattern. This example creates a plot of stock prices using the Yahoo Finance API.
 - [`coder_reviewer.py`](patterns/coder_reviewer.py): An example of how to create a coder-reviewer reflection pattern.
@@ -39,7 +39,7 @@ We provide examples to illustrate how multi-agent patterns can be implemented in
 
 ## Demos
 
-We provide interactive demos that showcase applications that can be built using AGNext:
+We provide interactive demos that showcase applications that can be built using AutoGen core:
 
 - [`assistant.py`](demos/assistant.py): a demonstration of how to use the OpenAI Assistant API to create
     a ChatGPT agent.
@@ -63,7 +63,7 @@ We provide examples on how to integrate other agents with the platform:
 
 ### Prerequisites
 
-First, you need a shell with AGNext and required dependencies installed.
+First, you need a shell with AutoGen core and required dependencies installed.
 
 ### Using Azure OpenAI API
 
@@ -75,7 +75,7 @@ export AZURE_OPENAI_API_ENDPOINT=your_azure_openai_endpoint
 export AZURE_OPENAI_API_VERSION=your_azure_openai_api_version
 ```
 
-By default, we use Azure Active Directory (AAD) for authentication. 
+By default, we use Azure Active Directory (AAD) for authentication.
 You need to run `az login` first to authenticate with Azure.
 You can also
 use API key authentication by setting the following environment variables:

@@ -13,6 +13,6 @@ For example, the [tool-equiped agent](./tools.ipynb#tool-equipped-agent) in
 the previous section employs a design pattern called ReAct,
 which involves an agent interacting with tools.
 
-You can implement any multi-agent design pattern using AGNext agents.
+You can implement any multi-agent design pattern using AutoGen agents.
 In the next two sections, we will discuss two common design patterns:
 group chat for task decomposition, and reflection for robustness.

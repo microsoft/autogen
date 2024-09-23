@@ -2,12 +2,12 @@
 myst:
   html_meta:
     "description lang=en": |
-      User Guide for AGNext, a framework for building multi-agent applications with AI agents.
+      User Guide for AutoGen, a framework for building multi-agent applications with AI agents.
 ---
 
 # User Guide
 
-AGNext is a flexible framework for building multi-agent systems. Begin with the [installation](guides/installation.md) guide to set up the framework on your machine. Then, follow the [quickstart](guides/quickstart) guide to get started with building your first multi-agent application.
+AutoGen is a flexible framework for building multi-agent systems. Begin with the [installation](guides/installation.md) guide to set up the framework on your machine. Then, follow the [quickstart](guides/quickstart) guide to get started with building your first multi-agent application.
 
 ```{danger}
 This project and documentation is a work in progress. If you have any questions or need help, please reach out to us on GitHub.

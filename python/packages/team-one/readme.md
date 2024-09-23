@@ -160,7 +160,7 @@ Team One agents can emit several log events that can be consumed by a log handle
 - OrchestrationEvent : emitted by a an [Orchestrator](src/team_one/agents/base_orchestrator.py) agent.
 - WebSurferEvent : emitted by a [WebSurfer](src/team_one/agents/multimodal_web_surfer/multimodal_web_surfer.py) agent.
 
-In addition, developers can also handle and process logs generated from the AGNext core library (e.g., LLMCallEvent etc). See  the example log handler in [utils.py](src/team_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
+In addition, developers can also handle and process logs generated from the AutoGen core library (e.g., LLMCallEvent etc). See  the example log handler in [utils.py](src/team_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
 
 
 # Setup

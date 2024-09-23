@@ -2,16 +2,16 @@
 myst:
   html_meta:
     "description lang=en": |
-      Top-level documentation for AGNext, a framework for building multi-agent applications with AI agents.
+      Top-level documentation for AutoGen, a framework for building multi-agent applications with AI agents.
 html_theme.sidebar_secondary.remove: false
 ---
 
-# AGNext
+# AutoGen
 
-AGNext is a OSS framework for developing intelligent applications using AI Agents patterns.
+AutoGen is an OSS framework for developing intelligent applications using AI Agents patterns.
 It offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems. Agents are developed by using the [Actor model](https://en.wikipedia.org/wiki/Actor_model). You can build and run your agent system locally and easily move to a distributed system in the cloud when you are ready.
 
-Key features of AGNext are summarized below.
+Key features of AutoGen are summarized below.
 
 ```{gallery-grid}
 :grid-columns: 1 2 2 3
@@ -31,7 +31,7 @@ Key features of AGNext are summarized below.
 ```
 
 <!--
-Key features of AGNext include:
+Key features of AutoGen include:
 
 - Asynchronous messaging: Agents communicate with each other through asynchronous messages, enabling event-driven and request/response communication models.
 - Scalable & Distributed: Enable complex scenarios with networks of agents across org boundaries
@@ -40,7 +40,7 @@ Key features of AGNext include:
 - Observable, traceable & debuggable -->
 
 ```{seealso}
-To start quickly, read the [Quick Start](user-guide/guides/quickstart) guide and follow the tutorial sections. To learn about the core concepts of AGNext, begin with [Agent and Multi-Agent Application](user-guide/core-concepts/agent-and-multi-agent-application).
+To start quickly, read the [Quick Start](user-guide/guides/quickstart) guide and follow the tutorial sections. To learn about the core concepts of AutoGen, begin with [Agent and Multi-Agent Application](user-guide/core-concepts/agent-and-multi-agent-application).
 ```
 
 ```{toctree}
@@ -52,7 +52,7 @@ user-guide/index
 
 <!-- ## Community
 
-Information about the community that leads, supports, and develops AGNext.
+Information about the community that leads, supports, and develops AutoGen.
 
 ```{toctree}
 :maxdepth: 2
@@ -72,8 +72,3 @@ packages/index
 reference/index
 ```
 
-<!-- ````{toctree}
-:hidden:
-
-Changelog <https://github.com/your-org/agnext/releases>
-```   -->

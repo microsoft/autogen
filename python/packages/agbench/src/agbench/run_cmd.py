@@ -486,7 +486,7 @@ echo RUN.SH COMPLETE !#!#
 
     if agnext_repo_base is None:
         raise ValueError(
-            "Could not find AGNext repo base. Please set the environment variable AGNEXT_REPO_BASE to the correct value."
+            "Could not find AutoGen repo base. Please set the environment variable AGNEXT_REPO_BASE to the correct value."
         )
 
     agnext_repo_base = os.path.join(agnext_repo_base, "python")

@@ -2,7 +2,7 @@
 myst:
   html_meta:
     "description lang=en": |
-      AGNext packages provide a set of functionality for building multi-agent applications with AI agents.
+      AutoGen packages provide a set of functionality for building multi-agent applications with AI agents.
 ---
 
 <style>
@@ -23,7 +23,7 @@ myst:
 :::{card} {fas}`cube;pst-color-primary` AutoGen Core
 :class-title: card-title
 
-Implements the core functionality of the AGNext framework, providing basic building blocks for creating multi-agent systems.
+Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
 
 ```sh
 pip install autogen-core

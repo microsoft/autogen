@@ -1,6 +1,6 @@
 # Open Telemetry
 
-AGNext has native support for [open telemetry](https://opentelemetry.io/). This allows you to collect telemetry data from your application and send it to a telemetry backend of your choosing.
+AutoGen has native support for [open telemetry](https://opentelemetry.io/). This allows you to collect telemetry data from your application and send it to a telemetry backend of your choosing.
 
 These are the components that are currently instrumented:
 - Runtime (Single Threaded Agent Runtime, Worker Agent Runtime)
@@ -12,7 +12,7 @@ To instrument your application, you will need an sdk and an exporter. You may al
 pip install opentelemetry-sdk
 ```
 
-Depending on your open telemetry collector, you can use grpc or http to export your telemetry. 
+Depending on your open telemetry collector, you can use grpc or http to export your telemetry.
 
 ```bash
 # Pick one of the following
@@ -35,7 +35,7 @@ def configure_oltp_tracing(endpoint: str = None) -> trace.TracerProvider:
     processor = BatchSpanProcessor(OTLPSpanExporter())
     tracer_provider.add_span_processor(processor)
     trace.set_tracer_provider(tracer_provider)
-    
+
     return tracer_provider
 ```
 

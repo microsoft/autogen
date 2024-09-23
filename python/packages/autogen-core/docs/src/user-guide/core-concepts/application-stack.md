@@ -1,6 +1,6 @@
 # Application Stack
 
-AGNext is designed to be an unopinionated framework that can be used to build
+AutoGen core is designed to be an unopinionated framework that can be used to build
 a wide variety of multi-agent applications. It is not tied to any specific
 agent abstraction or multi-agent pattern.
 

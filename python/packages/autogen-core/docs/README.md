@@ -1,6 +1,6 @@
-## Building the AGNext Documentation
+## Building the AutoGen Documentation
 
-AGNext documentation is based on the sphinx documentation system and uses the myst-parser to render markdown files. It uses the [pydata-sphinx-theme](https://pydata-sphinx-theme.readthedocs.io/en/latest/) to style the documentation.
+AutoGen documentation is based on the sphinx documentation system and uses the myst-parser to render markdown files. It uses the [pydata-sphinx-theme](https://pydata-sphinx-theme.readthedocs.io/en/latest/) to style the documentation.
 
 ### Prerequisites
 
