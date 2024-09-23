@@ -1,6 +1,8 @@
 import os
 from typing import Callable, List
 
+import chromadb.errors
+
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import chroma_results_to_query_results, filter_results_by_distance, get_logger
 
@@ -84,7 +86,7 @@ class ChromaVectorDB(VectorDB):
                 collection = self.active_collection
             else:
                 collection = self.client.get_collection(collection_name, embedding_function=self.embedding_function)
-        except ValueError:
+        except (ValueError, chromadb.errors.ChromaError):
             collection = None
         if collection is None:
             return self.client.create_collection(
