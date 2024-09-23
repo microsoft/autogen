@@ -8,6 +8,10 @@ These are the components that are currently instrumented:
 ## Instrumenting your application
 To instrument your application, you will need an sdk and an exporter. You may already have these if your application is already instrumented with open telemetry.
 
+## Clean instrumentation
+
+If you do not have open telemetry set up in your application, you can follow these steps to instrument your application.
+
 ```bash
 pip install opentelemetry-sdk
 ```
@@ -41,8 +45,25 @@ def configure_oltp_tracing(endpoint: str = None) -> trace.TracerProvider:
 
 Now you can send the trace_provider when creating your runtime:
 ```python
-single_threaded_runtime = SingleThreadedAgentRuntime(tracer_provider=provider)
-worker_runtime = WorkerAgentRuntime(tracer_provider=provider)
+# for single threaded runtime
+single_threaded_runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
+# or for worker runtime
+worker_runtime = WorkerAgentRuntime(tracer_provider=tracer_provider)
 ```
 
 And that's it! Your application is now instrumented with open telemetry. You can now view your telemetry data in your telemetry backend.
+
+### Exisiting instrumentation
+
+If you have open telemetry already set up in your application, you can pass the tracer provider to the runtime when creating it:
+```python
+from opentelemetry import trace
+
+# Get the tracer provider from your application
+tracer_provider = trace.get_tracer_provider()
+
+# for single threaded runtime
+single_threaded_runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
+# or for worker runtime
+worker_runtime = WorkerAgentRuntime(tracer_provider=tracer_provider)
+```
