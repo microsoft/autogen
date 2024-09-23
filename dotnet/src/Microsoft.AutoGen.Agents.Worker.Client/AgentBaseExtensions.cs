@@ -70,7 +70,7 @@ public static class AgentBaseExtensions
             activity.Start();
 
             // rpc attributes from https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
-            activity.SetTag("rpc.system", "starfleet");
+            activity.SetTag("rpc.system", "autogen");
             activity.SetTag("rpc.service", agent.AgentId.ToString());
             activity.SetTag("rpc.method", methodName);
         }
