@@ -501,7 +501,7 @@ class GeminiClient:
             # If this is first message or the role is different from the previous role then append the parts
             else:
                 # If the previous text message is empty then update the text to "empty" as Gemini does not support empty messages
-                if len(rst) > 0 and rst[-1].parts[0].text == "":
+                if (len(rst) > 0) and ("text" in rst[-1].parts[0]._raw_part) and (rst[-1].parts[0].text == ""):
                     append_text_to_last("empty")
                 append_parts(parts, role)
 
