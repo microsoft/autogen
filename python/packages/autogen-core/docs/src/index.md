@@ -4,6 +4,7 @@ myst:
     "description lang=en": |
       Top-level documentation for AutoGen, a framework for developing applications using AI agents
 html_theme.sidebar_secondary.remove: false
+sd_hide_title: true
 ---
 
 <style>
@@ -13,6 +14,8 @@ html_theme.sidebar_secondary.remove: false
   margin: 2rem auto 0;
 }
 </style>
+
+# AutoGen
 
 <div class="container">
 
