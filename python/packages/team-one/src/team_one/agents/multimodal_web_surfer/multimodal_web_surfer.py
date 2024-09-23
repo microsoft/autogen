@@ -196,7 +196,7 @@ setInterval(function() {{
 """.strip(),
             )
         await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
-        print(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
+        logger.info(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
 
     async def _reset(self, cancellation_token: CancellationToken) -> None:
         assert self._page is not None

@@ -33,7 +33,7 @@ target-version = "py310"
 docstring-code-format = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "B", "Q", "I", "ASYNC"]
+select = ["E", "F", "W", "B", "Q", "I", "ASYNC", "T20"]
 ignore = ["F401", "E501"]
 
 [tool.ruff.lint.flake8-tidy-imports]

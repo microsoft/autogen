@@ -74,6 +74,10 @@ extend = "../../pyproject.toml"
 exclude = ["build", "dist", "src/autogen_core/application/protos"]
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 
+[tool.ruff.lint.per-file-ignores]
+"samples/**.py" = ["T20"]
+"docs/**.ipynb" = ["T20"]
+
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests", "samples"]

@@ -2,8 +2,7 @@ import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, TopicId
 from autogen_core.base.exceptions import CantHandleException
-from autogen_core.components import DefaultTopicId, TypeSubscription
-from autogen_core.components import DefaultSubscription
+from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSubscription
 from test_utils import LoopbackAgent, MessageType
 
 

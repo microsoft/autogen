@@ -395,6 +395,5 @@ def add_two_numbers(a: int, b: int) -> int:
         cancellation_token=cancellation_token,
     )
     # result.output = result.output.encode().decode('unicode_escape')
-    print(azure_result.output)
     assert "TypeError: unsupported operand type(s) for +:" in azure_result.output
     assert azure_result.exit_code == 1

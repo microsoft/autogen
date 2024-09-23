@@ -45,6 +45,10 @@ include = [
     "src/**"
 ]
 
+[tool.ruff.lint]
+# Allow prints in this package
+ignore = ["T20"]
+
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src"]
