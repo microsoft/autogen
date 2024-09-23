@@ -5,7 +5,7 @@ import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentRuntime, MessageContext
 from autogen_core.components import ClosureAgent
-from autogen_core.components._default_subscription import DefaultSubscription
+from autogen_core.components import DefaultSubscription
 from autogen_core.components._default_topic import DefaultTopicId
 
 

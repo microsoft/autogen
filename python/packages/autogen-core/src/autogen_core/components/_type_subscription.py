@@ -52,5 +52,11 @@ class TypeSubscription(Subscription):
 
         return AgentId(type=self._agent_type, key=topic_id.source)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TypeSubscription):
+            return False
+
+        return self.id == other.id or (self.agent_type == other.agent_type and self.topic_type == other.topic_type)
+
 
 BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")

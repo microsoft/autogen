@@ -20,7 +20,7 @@ from typing import List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
-from autogen_core.components._default_subscription import DefaultSubscription
+from autogen_core.components import DefaultSubscription
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,

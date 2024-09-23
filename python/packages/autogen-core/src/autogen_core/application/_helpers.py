@@ -37,7 +37,7 @@ class SubscriptionManager:
 
     async def add_subscription(self, subscription: Subscription) -> None:
         # Check if the subscription already exists
-        if any(sub.id == subscription.id for sub in self._subscriptions):
+        if any(sub == subscription for sub in self._subscriptions):
             raise ValueError("Subscription already exists")
 
         self._subscriptions.append(subscription)

@@ -3,6 +3,7 @@ from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, TopicId
 from autogen_core.base.exceptions import CantHandleException
 from autogen_core.components import DefaultTopicId, TypeSubscription
+from autogen_core.components import DefaultSubscription
 from test_utils import LoopbackAgent, MessageType
 
 
@@ -96,3 +97,22 @@ async def test_skipped_class_subscriptions() -> None:
         AgentId("MyAgent", key="default"), type=LoopbackAgent
     )
     assert agent_instance.num_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_subscription_deduplication() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    agent_type = "MyAgent"
+
+    # Test TypeSubscription
+    type_subscription_1 = TypeSubscription("default", agent_type)
+    type_subscription_2 = TypeSubscription("default", agent_type)
+
+    await runtime.add_subscription(type_subscription_1)
+    with pytest.raises(ValueError, match="Subscription already exists"):
+        await runtime.add_subscription(type_subscription_2)
+
+    # Test DefaultSubscription
+    default_subscription = DefaultSubscription(agent_type=agent_type)
+    with pytest.raises(ValueError, match="Subscription already exists"):
+        await runtime.add_subscription(default_subscription)
