@@ -84,6 +84,13 @@ try:
 except ImportError as e:
     cohere_import_exception = e
 
+try : 
+    from autogen.oai.aiinference import AzureAIInferenceClient
+
+    aiinference_import_exception : Optional[ImportError] = None
+except ImportError as e:
+    aiinference_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -522,6 +529,12 @@ class OpenAIWrapper:
                     raise ImportError("Please install `cohere` to use the Groq API.")
                 client = CohereClient(**openai_config)
                 self._clients.append(client)
+            elif api_type is not None and api_type.startswith("aiinference"):
+                if aiinference_import_exception:
+                    raise ImportError("Please install `azure-ai-inference` to use Azure Ai Inference API.")
+                client = AzureAIInferenceClient(**openai_config)
+                self._clients.append(client)
+
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))

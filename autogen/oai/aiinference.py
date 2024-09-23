@@ -1,28 +1,3 @@
-"""Create a Github LLM Client with Azure Fallback.
-
-# Usage example:
-if __name__ == "__main__":
-    config = {
-        "model": "gpt-4o",
-        "system_prompt": "You are a knowledgeable history teacher.",
-        "use_azure_fallback": True
-    }
-
-    wrapper = GithubWrapper(config_list=[config])
-
-    response = wrapper.create(messages=[{"role": "user", "content": "What is the capital of France?"}])
-    print(wrapper.message_retrieval(response)[0])
-
-    conversation = [
-        {"role": "user", "content": "Tell me about the French Revolution."},
-        {"role": "assistant", "content": "The French Revolution was a period of major social and political upheaval in France that began in 1789 with the Storming of the Bastille and ended in the late 1790s with the ascent of Napoleon Bonaparte."},
-        {"role": "user", "content": "What were the main causes?"}
-    ]
-
-    response = wrapper.create(messages=conversation)
-    print(wrapper.message_retrieval(response)[0])
-"""
-
 from __future__ import annotations
 
 import json
@@ -36,14 +11,61 @@ from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 from openai.types.completion_usage import CompletionUsage
 
-from autogen.cache import Cache
-from autogen.oai.client_utils import should_hide_tools, validate_parameter
+from autogen.oai.client_utils import validate_parameter
 
 logger = logging.getLogger(__name__)
 
+class AzureAIInferenceClient:
+    """Azure AI Inference Client
+    
+    This class provides an interface to interact with Azure AI Inference API for natural language processing tasks.
+    It supports various language models and handles API requests, response processing, and error handling.
 
-class GithubClient:
-    """GitHub LLM Client with Azure Fallback"""
+    Key Features:
+    1. Supports multiple AI models provided by Azure AI Inference.
+    2. Handles authentication using API keys.
+    3. Provides methods for creating chat completions.
+    4. Processes and formats API responses into standardized ChatCompletion objects.
+    5. Implements rate limiting and error handling for robust API interactions.
+    6. Calculates usage statistics and estimated costs for API calls.
+
+    Usage:
+    - Initialize the client with the desired model and API key.
+    - Use the 'create' method to generate chat completions.
+    - Retrieve messages and usage information from the responses.
+
+    Note: Ensure that the AZURE_API_KEY is set in the environment variables or provided during initialization.
+
+    # Example usage
+    if __name__ == "__main__":
+    import os
+    import autogen
+
+    config_list = [
+        {
+            "model": "gpt-4o",
+            "api_key": os.getenv("AZURE_API_KEY"),
+        }
+    ]
+
+    assistant = autogen.AssistantAgent(
+        "assistant",
+        llm_config={"config_list": config_list, "cache_seed": 42},
+    )
+
+    human = autogen.UserProxyAgent(
+        "human",
+        human_input_mode="TERMINATE",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"work_dir": "coding"},
+        llm_config={"config_list": config_list, "cache_seed": 42},
+    )
+
+    human.initiate_chat(
+        assistant,
+        message="Would I be better off deploying multiple models on cloud or at home?",
+    )
+    """
 
     SUPPORTED_MODELS = [
         "AI21-Jamba-Instruct",
@@ -69,25 +91,27 @@ class GithubClient:
     ]
 
     def __init__(self, **kwargs):
-        self.github_endpoint_url = "https://models.inference.ai.azure.com/chat/completions"
+        self.endpoint_url = "https://models.inference.ai.azure.com/chat/completions"
         self.model = kwargs.get("model")
-        self.system_prompt = kwargs.get("system_prompt", "You are a helpful assistant.")
-        self.use_azure_fallback = kwargs.get("use_azure_fallback", True)
-        self.rate_limit_reset_time = 0
-        self.request_count = 0
-        self.max_requests_per_minute = 15
-        self.max_requests_per_day = 150
-
-        self.github_token = os.environ.get("GITHUB_TOKEN")
-        self.azure_api_key = os.environ.get("AZURE_API_KEY")
-
-        if not self.github_token:
-            raise ValueError("GITHUB_TOKEN environment variable is not set.")
-        if self.use_azure_fallback and not self.azure_api_key:
-            raise ValueError("AZURE_API_KEY environment variable is not set.")
+        self.api_key = kwargs.get("api_key") or os.environ.get("AZURE_API_KEY")
+        
+        if not self.api_key:
+            raise ValueError("AZURE_API_KEY is not set in environment variables or provided in kwargs.")
 
         if self.model.lower() not in [model.lower() for model in self.SUPPORTED_MODELS]:
             raise ValueError(f"Model {self.model} is not supported. Please choose from {self.SUPPORTED_MODELS}")
+
+    def load_config(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Load the configuration for the Azure AI Inference client."""
+        config = {}
+        config["model"] = params.get("model", self.model)
+        config["temperature"] = validate_parameter(params, "temperature", (float, int), False, 1.0, (0.0, 2.0), None)
+        config["max_tokens"] = validate_parameter(params, "max_tokens", int, False, 4096, (1, None), None)
+        config["top_p"] = validate_parameter(params, "top_p", (float, int), True, None, (0.0, 1.0), None)
+        config["stop"] = validate_parameter(params, "stop", (str, list), True, None, None, None)
+        config["stream"] = validate_parameter(params, "stream", bool, False, False, None, None)
+
+        return config
 
     def message_retrieval(self, response: ChatCompletion) -> List[str]:
         """Retrieve the messages from the response."""
@@ -95,48 +119,26 @@ class GithubClient:
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config."""
+        config = self.load_config(params)
         messages = params.get("messages", [])
 
-        if "system" not in [m["role"] for m in messages]:
-            messages.insert(0, {"role": "system", "content": self.system_prompt})
+        data = {
+            "messages": messages,
+            "model": config["model"],
+            "temperature": config["temperature"],
+            "max_tokens": config["max_tokens"],
+            "top_p": config["top_p"],
+            "stop": config["stop"],
+            "stream": config["stream"],
+        }
 
-        data = {"messages": messages, "model": self.model, **params}
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"}
 
-        if self._check_rate_limit():
-            try:
-                headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.github_token}"}
-
-                response = self._call_api(self.github_endpoint_url, headers, data)
-                self._increment_request_count()
-                return self._process_response(response)
-            except (requests.exceptions.RequestException, ValueError) as e:
-                logger.warning(f"GitHub API call failed: {str(e)}. Falling back to Azure.")
-
-        if self.use_azure_fallback:
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.azure_api_key}"}
-
-            response = self._call_api(self.github_endpoint_url, headers, data)
-            return self._process_response(response)
-        else:
-            raise ValueError("Rate limit reached and Azure fallback is disabled.")
-
-    def _check_rate_limit(self) -> bool:
-        """Check if the rate limit has been reached."""
-        current_time = time.time()
-        if current_time < self.rate_limit_reset_time:
-            return False
-        if self.request_count >= self.max_requests_per_minute:
-            self.rate_limit_reset_time = current_time + 60
-            self.request_count = 0
-            return False
-        return True
-
-    def _increment_request_count(self):
-        """Increment the request count."""
-        self.request_count += 1
+        response = self._call_api(self.endpoint_url, headers, data)
+        return self._process_response(response)
 
     def _call_api(self, endpoint_url: str, headers: Dict[str, str], data: Dict[str, Any]) -> Dict[str, Any]:
-        """Make an API call to either GitHub or Azure."""
+        """Make an API call to Azure AI Inference."""
         response = requests.post(endpoint_url, headers=headers, json=data)
         response.raise_for_status()
         return response.json()
@@ -169,8 +171,8 @@ class GithubClient:
 
     def cost(self, response: ChatCompletion) -> float:
         """Calculate the cost of the response."""
-        # Pass
-        return 0.0  # Placeholder
+        # Implement cost calculation logic here if needed
+        return 0.0
 
     @staticmethod
     def get_usage(response: ChatCompletion) -> Dict:
@@ -182,9 +184,8 @@ class GithubClient:
             "model": response.model,
         }
 
-
-class GithubWrapper:
-    """Wrapper for GitHub LLM Client"""
+class AzureAIInferenceWrapper:
+    """Wrapper for Azure AI Inference Client"""
 
     def __init__(self, config_list: Optional[List[Dict[str, Any]]] = None, **kwargs):
         self._clients = []
@@ -199,7 +200,7 @@ class GithubWrapper:
             self._config_list = [kwargs]
 
     def _register_client(self, config: Dict[str, Any]):
-        client = GithubClient(**config)
+        client = AzureAIInferenceClient(**config)
         self._clients.append(client)
 
     def create(self, **params: Any) -> ChatCompletion:
@@ -225,4 +226,4 @@ class GithubWrapper:
     @staticmethod
     def get_usage(response: ChatCompletion) -> Dict:
         """Get usage information from the response."""
-        return GithubClient.get_usage(response)
+        return AzureAIInferenceClient.get_usage(response)
