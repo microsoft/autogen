@@ -4,8 +4,6 @@
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure;
-using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample.CodeSnippet;
 
@@ -15,8 +13,8 @@ internal class PrintMessageMiddlewareCodeSnippet
     {
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var endpoint = new Uri(config.Endpoint);
-        var openaiClient = new OpenAIClient(endpoint, new AzureKeyCredential(config.ApiKey));
-        var agent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
+        var agent = new OpenAIChatAgent(gpt4o, "assistant", config.DeploymentName)
             .RegisterMessageConnector();
 
         #region PrintMessageMiddleware
@@ -31,10 +29,10 @@ internal class PrintMessageMiddlewareCodeSnippet
     {
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var endpoint = new Uri(config.Endpoint);
-        var openaiClient = new OpenAIClient(endpoint, new AzureKeyCredential(config.ApiKey));
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
         #region print_message_streaming
-        var streamingAgent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
+        var streamingAgent = new OpenAIChatAgent(gpt4o, "assistant")
             .RegisterMessageConnector()
             .RegisterPrintMessage();
 

@@ -3,7 +3,6 @@
 
 using AutoGen;
 using AutoGen.Core;
-using AutoGen.OpenAI;
 using FluentAssertions;
 
 public partial class FunctionCallCodeSnippet

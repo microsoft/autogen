@@ -16,8 +16,30 @@ from sqlmodel import (
     Enum as SqlEnum,
 )
 
-SQLModel.model_config["protected_namespaces"] = ()
+# added for python3.11 and sqlmodel 0.0.22 incompatibility
+if hasattr(SQLModel, "model_config"):
+    SQLModel.model_config["protected_namespaces"] = ()
+elif hasattr(SQLModel, "Config"):
+
+    class CustomSQLModel(SQLModel):
+        class Config:
+            protected_namespaces = ()
+
+    SQLModel = CustomSQLModel
+else:
+    print("Warning: Unable to set protected_namespaces.")
+
 # pylint: disable=protected-access
+
+
+class MessageMeta(SQLModel, table=False):
+    task: Optional[str] = None
+    messages: Optional[List[Dict[str, Any]]] = None
+    summary_method: Optional[str] = "last"
+    files: Optional[List[dict]] = None
+    time: Optional[datetime] = None
+    log: Optional[List[dict]] = None
+    usage: Optional[List[dict]] = None
 
 
 class Message(SQLModel, table=True):
@@ -38,7 +60,7 @@ class Message(SQLModel, table=True):
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
     connection_id: Optional[str] = None
-    meta: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
 
 class Session(SQLModel, table=True):
@@ -82,11 +104,12 @@ class Skill(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     name: str
     content: str
     description: Optional[str] = None
-    secrets: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
-    libraries: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    secrets: Optional[List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
+    libraries: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="skills", link_model=AgentSkillLink)
 
 
@@ -97,7 +120,7 @@ class LLMConfig(SQLModel, table=False):
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
-    max_tokens: Optional[int] = 1000
+    max_tokens: Optional[int] = 2048
     extra_body: Optional[dict] = None
 
 
@@ -105,6 +128,10 @@ class ModelTypes(str, Enum):
     openai = "open_ai"
     google = "google"
     azure = "azure"
+    anthropic = "anthropic"
+    mistral = "mistral"
+    together = "together"
+    groq = "groq"
 
 
 class Model(SQLModel, table=True):
@@ -119,6 +146,7 @@ class Model(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     model: str
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -164,6 +192,7 @@ class WorkflowAgentType(str, Enum):
     sender = "sender"
     receiver = "receiver"
     planner = "planner"
+    sequential = "sequential"
 
 
 class WorkflowAgentLink(SQLModel, table=True):
@@ -174,6 +203,7 @@ class WorkflowAgentLink(SQLModel, table=True):
         default=WorkflowAgentType.sender,
         sa_column=Column(SqlEnum(WorkflowAgentType), primary_key=True),
     )
+    sequence_id: Optional[int] = Field(default=0, primary_key=True)
 
 
 class AgentLink(SQLModel, table=True):
@@ -194,8 +224,9 @@ class Agent(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     type: AgentType = Field(default=AgentType.assistant, sa_column=Column(SqlEnum(AgentType)))
-    config: AgentConfig = Field(default_factory=AgentConfig, sa_column=Column(JSON))
+    config: Union[AgentConfig, dict] = Field(default_factory=AgentConfig, sa_column=Column(JSON))
     skills: List[Skill] = Relationship(back_populates="agents", link_model=AgentSkillLink)
     models: List[Model] = Relationship(back_populates="agents", link_model=AgentModelLink)
     workflows: List["Workflow"] = Relationship(link_model=WorkflowAgentLink, back_populates="agents")
@@ -215,11 +246,12 @@ class Agent(SQLModel, table=True):
             secondaryjoin="Agent.id==AgentLink.agent_id",
         ),
     )
+    task_instruction: Optional[str] = None
 
 
 class WorkFlowType(str, Enum):
-    twoagents = "twoagents"
-    groupchat = "groupchat"
+    autonomous = "autonomous"
+    sequential = "sequential"
 
 
 class WorkFlowSummaryMethod(str, Enum):
@@ -240,14 +272,16 @@ class Workflow(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     name: str
     description: str
     agents: List[Agent] = Relationship(back_populates="workflows", link_model=WorkflowAgentLink)
-    type: WorkFlowType = Field(default=WorkFlowType.twoagents, sa_column=Column(SqlEnum(WorkFlowType)))
+    type: WorkFlowType = Field(default=WorkFlowType.autonomous, sa_column=Column(SqlEnum(WorkFlowType)))
     summary_method: Optional[WorkFlowSummaryMethod] = Field(
         default=WorkFlowSummaryMethod.last,
         sa_column=Column(SqlEnum(WorkFlowSummaryMethod)),
     )
+    sample_tasks: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
 
 
 class Response(SQLModel):
