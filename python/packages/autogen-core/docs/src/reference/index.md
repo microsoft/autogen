@@ -22,16 +22,16 @@ myst:
 
 ```{toctree}
 :hidden:
-:caption: AutoGen Core
+:caption: AutoGen AgentChat
 
-python/autogen_core/autogen_core
+python/autogen_agentchat/autogen_agentchat
 ```
 
 ```{toctree}
 :hidden:
-:caption: AutoGen AgentChat
+:caption: AutoGen Core
 
-python/autogen_agentchat/autogen_agentchat
+python/autogen_core/autogen_core
 ```
 
 ```{toctree}
@@ -46,14 +46,14 @@ python/autogen_ext/autogen_ext.tools
 :margin: 4 4 0 0
 :gutter: 1
 
-:::{grid-item-card} {fas}`cube;pst-color-primary` <br> AutoGen Core
-:link: python/autogen_core/autogen_core
+:::{grid-item-card} {fas}`people-group;pst-color-primary` <br> AutoGen AgentChat
+:link: python/autogen_agentchat/autogen_agentchat
 :link-type: doc
 :class-item: api-card
 :::
 
-:::{grid-item-card} {fas}`people-group;pst-color-primary` <br> AutoGen AgentChat
-:link: python/autogen_agentchat/autogen_agentchat
+:::{grid-item-card} {fas}`cube;pst-color-primary` <br> AutoGen Core
+:link: python/autogen_core/autogen_core
 :link-type: doc
 :class-item: api-card
 :::

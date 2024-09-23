@@ -20,18 +20,6 @@ myst:
 
 # Packages
 
-:::{card} {fas}`cube;pst-color-primary` AutoGen Core
-:class-title: card-title
-
-Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
-
-```sh
-pip install autogen-core
-```
-
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
-:::
-
 :::{card} {fas}`people-group;pst-color-primary` AutoGen AgentChat
 :class-title: card-title
 
@@ -44,6 +32,17 @@ pip install autogen-agentchat
 [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
 :::
 
+:::{card} {fas}`cube;pst-color-primary` AutoGen Core
+:class-title: card-title
+
+Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
+
+```sh
+pip install autogen-core
+```
+
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
+:::
 
 :::{card} {fas}`puzzle-piece;pst-color-primary` AutoGen Extensions
 :class-title: card-title

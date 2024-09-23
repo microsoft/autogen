@@ -6,29 +6,77 @@ myst:
 html_theme.sidebar_secondary.remove: false
 ---
 
-# AutoGen
+<style>
+.hero-title {
+  font-size: 60px;
+  font-weight: bold;
+  margin: 2rem auto 0;
+}
+</style>
 
-AutoGen is an OSS framework for developing intelligent applications using AI Agents patterns.
-It offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems. Agents are developed by using the [Actor model](https://en.wikipedia.org/wiki/Actor_model). You can build and run your agent system locally and easily move to a distributed system in the cloud when you are ready.
+<div class="container">
 
-Key features of AutoGen are summarized below.
+<div class="row text-center">
+<div class="col-sm-12">
+<h1 class="hero-title">
+AutoGen
+</h1>
+<h3>
+A framework for developing intelligent applications using AI agent patterns.
+</h3>
+</div>
+</div>
 
-```{gallery-grid}
-:grid-columns: 1 2 2 3
 
-- header: "{fas}`network-wired;pst-color-primary` Asynchronous Messaging"
-  content: "Agents communicate through asynchronous messages, enabling event-driven and request/response communication models."
-- header: "{fas}`cube;pst-color-primary` Scalable & Distributed"
-  content: "Enable complex scenarios with networks of agents across organizational boundaries."
-- header: "{fas}`code;pst-color-primary` Multi-Language Support"
-  content: "Python & Dotnet interoperating agents today, with more languages coming soon."
-- header: "{fas}`globe;pst-color-primary` Modular & Extensible"
-  content: "Highly customizable with features like custom agents, memory as a service, tools registry, and model library."
-- header: "{fas}`puzzle-piece;pst-color-primary` Observable & Debuggable"
-  content: "Easily trace and debug your agent systems."
-- header: "{fas}`project-diagram;pst-color-primary` Event-Driven Architecture"
-  content: "Build event-driven, distributed, scalable, and resilient AI agent systems."
+<div class="row">
+
+<div class="col-sm">
+<h2 class="text-center">
+
+{fas}`people-group;pst-color-primary` AgentChat
+
+</h2>
+
+<p>
+Task driven, high level APIs for building multi-agent systems. Including group chat, pre-built agents, and more.
+
+Built with <i>core</i>.
+<p>
+
+```sh
+pip install autogen-agentchat
 ```
+
+<button onclick="location.href='agentchat-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
+<button onclick="location.href='reference/python/autogen_agentchat/autogen_agentchat.html'" type="button" class="btn btn-outline-secondary">API Reference</button>
+
+<div class="versionadded">
+<p>Start here if you are looking for an API similar to AutoGen 0.2</p>
+</div>
+
+</div>
+<div class="col-sm">
+<h2 class="text-center">
+
+{fas}`cube;pst-color-primary` Core
+
+</h2>
+
+<p>
+Primitive building blocks for creating asynchronous, event driven multi-agent systems.
+<p>
+
+```sh
+pip install autogen-core
+```
+
+<button onclick="location.href='core-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
+<button onclick="location.href='reference/python/autogen_core/autogen_core.html'" type="button" class="btn btn-outline-secondary">API Reference</button>
+
+</div>
+
+</div>
+</div>
 
 <!--
 Key features of AutoGen include:
@@ -39,15 +87,12 @@ Key features of AutoGen include:
 - x-lang support: Python & Dotnet interoperating agents today, others coming soon
 - Observable, traceable & debuggable -->
 
-```{seealso}
-To start quickly, read the [Quick Start](user-guide/guides/quickstart) guide and follow the tutorial sections. To learn about the core concepts of AutoGen, begin with [Agent and Multi-Agent Application](user-guide/core-concepts/agent-and-multi-agent-application).
-```
-
 ```{toctree}
 :maxdepth: 1
 :hidden:
 
-user-guide/index
+agentchat-user-guide/index
+core-user-guide/index
 ```
 
 <!-- ## Community
