@@ -49,7 +49,9 @@ Reply "TERMINATE" in the end when everything is done.""")
         """Respond to a reply request."""
 
         # Make an inference to the model.
-        response = await self._model_client.create(self._system_messages + self._chat_history)
+        response = await self._model_client.create(
+            self._system_messages + self._chat_history, cancellation_token=cancellation_token
+        )
         assert isinstance(response.content, str)
         return "TERMINATE" in response.content, response.content
 

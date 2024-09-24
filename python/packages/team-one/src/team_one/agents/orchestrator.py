@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from autogen_core.base import AgentProxy, MessageContext, TopicId
+from autogen_core.base import AgentProxy, MessageContext, TopicId, CancellationToken
 from autogen_core.components import default_subscription
 from autogen_core.components.models import (
     AssistantMessage,
@@ -12,7 +12,7 @@ from autogen_core.components.models import (
 )
 
 from ..messages import BroadcastMessage, OrchestrationEvent, ResetMessage
-from .base_orchestrator import BaseOrchestrator, logger
+from .base_orchestrator import BaseOrchestrator
 from .orchestrator_prompts import (
     ORCHESTRATOR_CLOSED_BOOK_PROMPT,
     ORCHESTRATOR_LEDGER_PROMPT,
@@ -128,7 +128,7 @@ class LedgerOrchestrator(BaseOrchestrator):
             assert len(result) > 0
         return result
 
-    async def _initialize_task(self, task: str) -> None:
+    async def _initialize_task(self, task: str, cancellation_token: Optional[CancellationToken] = None) -> None:
         self._task = task
         self._team_description = await self._get_team_description()
 
@@ -140,7 +140,9 @@ class LedgerOrchestrator(BaseOrchestrator):
         planning_conversation.append(
             UserMessage(content=self._get_closed_book_prompt(self._task), source=self.metadata["type"])
         )
-        response = await self._model_client.create(self._system_messages + planning_conversation)
+        response = await self._model_client.create(
+            self._system_messages + planning_conversation, cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -151,14 +153,16 @@ class LedgerOrchestrator(BaseOrchestrator):
         planning_conversation.append(
             UserMessage(content=self._get_plan_prompt(self._team_description), source=self.metadata["type"])
         )
-        response = await self._model_client.create(self._system_messages + planning_conversation)
+        response = await self._model_client.create(
+            self._system_messages + planning_conversation, cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._plan = response.content
 
         # At this point, the planning conversation is dropped.
 
-    async def _update_facts_and_plan(self) -> None:
+    async def _update_facts_and_plan(self, cancellation_token: Optional[CancellationToken] = None) -> None:
         # Shallow-copy the conversation
         planning_conversation = [m for m in self._chat_history]
 
@@ -166,7 +170,9 @@ class LedgerOrchestrator(BaseOrchestrator):
         planning_conversation.append(
             UserMessage(content=self._get_update_facts_prompt(self._task, self._facts), source=self.metadata["type"])
         )
-        response = await self._model_client.create(self._system_messages + planning_conversation)
+        response = await self._model_client.create(
+            self._system_messages + planning_conversation, cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -176,14 +182,16 @@ class LedgerOrchestrator(BaseOrchestrator):
         planning_conversation.append(
             UserMessage(content=self._get_update_plan_prompt(self._team_description), source=self.metadata["type"])
         )
-        response = await self._model_client.create(self._system_messages + planning_conversation)
+        response = await self._model_client.create(
+            self._system_messages + planning_conversation, cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._plan = response.content
 
         # At this point, the planning conversation is dropped.
 
-    async def update_ledger(self) -> Dict[str, Any]:
+    async def update_ledger(self, cancellation_token: Optional[CancellationToken] = None) -> Dict[str, Any]:
         max_json_retries = 10
 
         team_description = await self._get_team_description()
@@ -197,6 +205,7 @@ class LedgerOrchestrator(BaseOrchestrator):
             ledger_response = await self._model_client.create(
                 self._system_messages + self._chat_history + ledger_user_messages,
                 json_output=True,
+                cancellation_token=cancellation_token,
             )
             ledger_str = ledger_response.content
 
@@ -230,7 +239,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                     continue
                 return ledger_dict
             except json.JSONDecodeError as e:
-                logger.info(
+                self.logger.info(
                     OrchestrationEvent(
                         f"{self.metadata['type']} (error)",
                         f"Failed to parse ledger information: {ledger_str}",
@@ -244,10 +253,12 @@ class LedgerOrchestrator(BaseOrchestrator):
         self._chat_history.append(message.content)
         await super()._handle_broadcast(message, ctx)
 
-    async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
+    async def _select_next_agent(
+        self, message: LLMMessage, cancellation_token: Optional[CancellationToken] = None
+    ) -> Optional[AgentProxy]:
         # Check if the task is still unset, in which case this message contains the task string
         if len(self._task) == 0:
-            await self._initialize_task(self._get_message_str(message))
+            await self._initialize_task(self._get_message_str(message), cancellation_token)
 
             # At this point the task, plan and facts shouls all be set
             assert len(self._task) > 0
@@ -263,9 +274,10 @@ class LedgerOrchestrator(BaseOrchestrator):
             await self.publish_message(
                 BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"])),
                 topic_id=topic_id,
+                cancellation_token=cancellation_token,
             )
 
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (thought)",
                     f"Initial plan:\n{synthesized_prompt}",
@@ -279,11 +291,11 @@ class LedgerOrchestrator(BaseOrchestrator):
             self._chat_history.append(synthesized_message)
 
             # Answer from this synthesized message
-            return await self._select_next_agent(synthesized_message)
+            return await self._select_next_agent(synthesized_message, cancellation_token)
 
         # Orchestrate the next step
-        ledger_dict = await self.update_ledger()
-        logger.info(
+        ledger_dict = await self.update_ledger(cancellation_token)
+        self.logger.info(
             OrchestrationEvent(
                 f"{self.metadata['type']} (thought)",
                 f"Updated Ledger:\n{json.dumps(ledger_dict, indent=2)}",
@@ -292,7 +304,7 @@ class LedgerOrchestrator(BaseOrchestrator):
 
         # Task is complete
         if ledger_dict["is_request_satisfied"]["answer"] is True:
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (thought)",
                     "Request satisfied.",
@@ -312,7 +324,7 @@ class LedgerOrchestrator(BaseOrchestrator):
 
                 # We exceeded our replan counter
                 if self._replan_counter > self._max_replans:
-                    logger.info(
+                    self.logger.info(
                         OrchestrationEvent(
                             f"{self.metadata['type']} (thought)",
                             "Replan counter exceeded... Terminating.",
@@ -321,7 +333,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                     return None
                 # Let's create a new plan
                 else:
-                    logger.info(
+                    self.logger.info(
                         OrchestrationEvent(
                             f"{self.metadata['type']} (thought)",
                             "Stalled.... Replanning...",
@@ -329,24 +341,24 @@ class LedgerOrchestrator(BaseOrchestrator):
                     )
 
                     # Update our plan.
-                    await self._update_facts_and_plan()
+                    await self._update_facts_and_plan(cancellation_token)
 
                     # Reset everyone, then rebroadcast the new plan
                     self._chat_history = [self._chat_history[0]]
                     topic_id = TopicId("default", self.id.key)
-                    await self.publish_message(ResetMessage(), topic_id=topic_id)
+                    await self.publish_message(ResetMessage(), topic_id=topic_id, cancellation_token=cancellation_token)
 
                     # Send everyone the NEW plan
                     synthesized_prompt = self._get_synthesize_prompt(
                         self._task, self._team_description, self._facts, self._plan
                     )
-                    topic_id = TopicId("default", self.id.key)
                     await self.publish_message(
                         BroadcastMessage(content=UserMessage(content=synthesized_prompt, source=self.metadata["type"])),
                         topic_id=topic_id,
+                        cancellation_token=cancellation_token,
                     )
 
-                    logger.info(
+                    self.logger.info(
                         OrchestrationEvent(
                             f"{self.metadata['type']} (thought)",
                             f"New plan:\n{synthesized_prompt}",
@@ -357,7 +369,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                     self._chat_history.append(synthesized_message)
 
                     # Answer from this synthesized message
-                    return await self._select_next_agent(synthesized_message)
+                    return await self._select_next_agent(synthesized_message, cancellation_token)
 
         # If we goit this far, we were not starting, done, or stuck
         next_agent_name = ledger_dict["next_speaker"]["answer"]
@@ -367,12 +379,13 @@ class LedgerOrchestrator(BaseOrchestrator):
                 instruction = ledger_dict["instruction_or_question"]["answer"]
                 user_message = UserMessage(content=instruction, source=self.metadata["type"])
                 assistant_message = AssistantMessage(content=instruction, source=self.metadata["type"])
-                logger.info(OrchestrationEvent(f"{self.metadata['type']} (-> {next_agent_name})", instruction))
+                self.logger.info(OrchestrationEvent(f"{self.metadata['type']} (-> {next_agent_name})", instruction))
                 self._chat_history.append(assistant_message)  # My copy
                 topic_id = TopicId("default", self.id.key)
                 await self.publish_message(
                     BroadcastMessage(content=user_message, request_halt=False),
                     topic_id=topic_id,
+                    cancellation_token=cancellation_token,
                 )  # Send to everyone else
                 return agent
 

@@ -10,8 +10,6 @@ from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage
 from ..utils import message_content_to_str
 from .base_agent import TeamOneBaseAgent
 
-logger = logging.getLogger(EVENT_LOGGER_NAME + ".orchestrator")
-
 
 class BaseOrchestrator(TeamOneBaseAgent):
     def __init__(
@@ -28,6 +26,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         self._max_time = max_time
         self._num_rounds = 0
         self._start_time: float = -1.0
+        self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.id.key}.orchestrator")
 
     async def _handle_broadcast(self, message: BroadcastMessage, ctx: MessageContext) -> None:
         """Handle an incoming message."""
@@ -42,11 +41,11 @@ class BaseOrchestrator(TeamOneBaseAgent):
 
         content = message_content_to_str(message.content.content)
 
-        logger.info(OrchestrationEvent(source, content))
+        self.logger.info(OrchestrationEvent(source, content))
 
         # Termination conditions
         if self._num_rounds >= self._max_rounds:
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (termination condition)",
                     f"Max rounds ({self._max_rounds}) reached.",
@@ -55,7 +54,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
             return
 
         if time.time() - self._start_time >= self._max_time:
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (termination condition)",
                     f"Max time ({self._max_time}s) reached.",
@@ -64,7 +63,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
             return
 
         if message.request_halt:
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (termination condition)",
                     f"{source} requested halt.",
@@ -74,7 +73,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
 
         next_agent = await self._select_next_agent(message.content)
         if next_agent is None:
-            logger.info(
+            self.logger.info(
                 OrchestrationEvent(
                     f"{self.metadata['type']} (termination condition)",
                     "No agent selected.",
@@ -84,7 +83,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         request_reply_message = RequestReplyMessage()
         # emit an event
 
-        logger.info(
+        self.logger.info(
             OrchestrationEvent(
                 source=f"{self.metadata['type']} (thought)",
                 message=f"Next speaker {(await next_agent.metadata)['type']}" "",
@@ -92,7 +91,7 @@ class BaseOrchestrator(TeamOneBaseAgent):
         )
 
         self._num_rounds += 1  # Call before sending the message
-        await self.send_message(request_reply_message, next_agent.id)
+        await self.send_message(request_reply_message, next_agent.id, cancellation_token=ctx.cancellation_token)
 
     async def _select_next_agent(self, message: LLMMessage) -> Optional[AgentProxy]:
         raise NotImplementedError()

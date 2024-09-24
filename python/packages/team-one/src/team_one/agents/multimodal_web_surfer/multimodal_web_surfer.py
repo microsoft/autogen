@@ -7,7 +7,7 @@ import os
 import pathlib
 import re
 import traceback
-from typing import Any, BinaryIO, Dict, List, Tuple, Union, cast  # Any, Callable, Dict, List, Literal, Tuple
+from typing import Any, BinaryIO, Dict, List, Tuple, Union, cast, Optional  # Any, Callable, Dict, List, Literal, Tuple
 from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlunparse
 
 import aiofiles
@@ -67,8 +67,6 @@ MLM_WIDTH = 1224
 
 SCREENSHOT_TOKENS = 1105
 
-logger = logging.getLogger(EVENT_LOGGER_NAME + ".MultimodalWebSurfer")
-
 
 # Sentinels
 class DEFAULT_CHANNEL(metaclass=SentinelMeta):
@@ -96,6 +94,7 @@ class MultimodalWebSurfer(BaseWorker):
         self._page: Page | None = None
         self._last_download: Download | None = None
         self._prior_metadata_hash: str | None = None
+        self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.id.key}.MultimodalWebSurfer")
 
         # Read page_script
         self._page_script: str = ""
@@ -196,7 +195,7 @@ setInterval(function() {{
 """.strip(),
             )
         await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
-        logger.info(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
+        self.logger.info(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
 
     async def _reset(self, cancellation_token: CancellationToken) -> None:
         assert self._page is not None
@@ -205,7 +204,7 @@ setInterval(function() {{
         await self._visit_page(self.start_page)
         if self.debug_dir:
             await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
-        logger.info(
+        self.logger.info(
             WebSurferEvent(
                 source=self.metadata["type"],
                 url=self._page.url,
@@ -250,13 +249,18 @@ setInterval(function() {{
             return False, f"Web surfing error:\n\n{traceback.format_exc()}"
 
     async def _execute_tool(
-        self, message: List[FunctionCall], rects: Dict[str, InteractiveRegion], tool_names: str, use_ocr: bool = True
+        self,
+        message: List[FunctionCall],
+        rects: Dict[str, InteractiveRegion],
+        tool_names: str,
+        use_ocr: bool = True,
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> Tuple[bool, UserContent]:
         name = message[0].name
         args = json.loads(message[0].arguments)
         action_description = ""
         assert self._page is not None
-        logger.info(
+        self.logger.info(
             WebSurferEvent(
                 source=self.metadata["type"],
                 url=self._page.url,
@@ -340,11 +344,11 @@ setInterval(function() {{
         elif name == "answer_question":
             question = str(args.get("question"))
             # Do Q&A on the DOM. No need to take further action. Browser state does not change.
-            return False, await self._summarize_page(question=question)
+            return False, await self._summarize_page(question=question, cancellation_token=cancellation_token)
 
         elif name == "summarize_page":
             # Summarize the DOM. No need to take further action. Browser state does not change.
-            return False, await self._summarize_page()
+            return False, await self._summarize_page(cancellation_token=cancellation_token)
 
         elif name == "sleep":
             action_description = "I am waiting a short period of time before taking further action."
@@ -394,7 +398,9 @@ setInterval(function() {{
             async with aiofiles.open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as file:
                 await file.write(new_screenshot)
 
-        ocr_text = await self._get_ocr_text(new_screenshot) if use_ocr is True else ""
+        ocr_text = (
+            await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token) if use_ocr is True else ""
+        )
 
         # Return the complete observation
         message_content = ""  # message.content or ""
@@ -518,7 +524,7 @@ When deciding between tools, consider if the request can be best addressed by:
             UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.metadata["type"])
         )
         response = await self._model_client.create(
-            history, tools=tools, extra_create_args={"tool_choice": "auto"}
+            history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
         message = response.content
 
@@ -529,7 +535,7 @@ When deciding between tools, consider if the request can be best addressed by:
             return False, message
         elif isinstance(message, list):
             # Take an action
-            return await self._execute_tool(message, rects, tool_names)
+            return await self._execute_tool(message, rects, tool_names, cancellation_token=cancellation_token)
         else:
             # Not sure what happened here
             raise AssertionError(f"Unknown response format '{message}'")
@@ -668,7 +674,7 @@ When deciding between tools, consider if the request can be best addressed by:
                 assert isinstance(new_page, Page)
                 await self._on_new_page(new_page)
 
-                logger.info(
+                self.logger.info(
                     WebSurferEvent(
                         source=self.metadata["type"],
                         url=self._page.url,
@@ -716,7 +722,12 @@ When deciding between tools, consider if the request can be best addressed by:
     """
         )
 
-    async def _summarize_page(self, question: str | None = None, token_limit: int = 100000) -> str:
+    async def _summarize_page(
+        self,
+        question: str | None = None,
+        token_limit: int = 100000,
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> str:
         assert self._page is not None
 
         page_markdown: str = await self._get_page_markdown()
@@ -780,12 +791,14 @@ When deciding between tools, consider if the request can be best addressed by:
         )
 
         # Generate the response
-        response = await self._model_client.create(messages)
+        response = await self._model_client.create(messages, cancellation_token=cancellation_token)
         scaled_screenshot.close()
         assert isinstance(response.content, str)
         return response.content
 
-    async def _get_ocr_text(self, image: bytes | io.BufferedIOBase | Image.Image) -> str:
+    async def _get_ocr_text(
+        self, image: bytes | io.BufferedIOBase | Image.Image, cancellation_token: Optional[CancellationToken] = None
+    ) -> str:
         scaled_screenshot = None
         if isinstance(image, Image.Image):
             scaled_screenshot = image.resize((MLM_WIDTH, MLM_HEIGHT))
@@ -810,7 +823,7 @@ When deciding between tools, consider if the request can be best addressed by:
                 source=self.metadata["type"],
             )
         )
-        response = await self._model_client.create(messages)
+        response = await self._model_client.create(messages, cancellation_token=cancellation_token)
         scaled_screenshot.close()
         assert isinstance(response.content, str)
         return response.content

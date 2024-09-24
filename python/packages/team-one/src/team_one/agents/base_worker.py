@@ -46,7 +46,11 @@ class BaseWorker(TeamOneBaseAgent):
 
         user_message = UserMessage(content=response, source=self.metadata["type"])
         topic_id = TopicId("default", self.id.key)
-        await self.publish_message(BroadcastMessage(content=user_message, request_halt=request_halt), topic_id=topic_id)
+        await self.publish_message(
+            BroadcastMessage(content=user_message, request_halt=request_halt),
+            topic_id=topic_id,
+            cancellation_token=ctx.cancellation_token,
+        )
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Returns (request_halt, response_message)"""

@@ -90,7 +90,7 @@ class FileSurfer(BaseWorker):
         )
 
         create_result = await self._model_client.create(
-            messages=history + [context_message, task_message], tools=self._tools
+            messages=history + [context_message, task_message], tools=self._tools, cancellation_token=cancellation_token
         )
 
         response = create_result.content

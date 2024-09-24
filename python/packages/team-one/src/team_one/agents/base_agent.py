@@ -15,8 +15,6 @@ from team_one.messages import (
     TeamOneMessages,
 )
 
-logger = logging.getLogger(EVENT_LOGGER_NAME + ".agent")
-
 
 class TeamOneBaseAgent(RoutedAgent):
     """An agent that optionally ensures messages are handled non-concurrently in the order they arrive."""
@@ -29,6 +27,7 @@ class TeamOneBaseAgent(RoutedAgent):
         super().__init__(description)
         self._handle_messages_concurrently = handle_messages_concurrently
         self._enabled = True
+        self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.id.key}.agent")
 
         if not self._handle_messages_concurrently:
             # TODO: make it possible to stop
@@ -40,6 +39,7 @@ class TeamOneBaseAgent(RoutedAgent):
             message, ctx, future = await self._message_queue.get()
             if ctx.cancellation_token.is_cancelled():
                 # TODO: Do we need to resolve the future here?
+                future.cancel()
                 continue
 
             try:
@@ -54,6 +54,8 @@ class TeamOneBaseAgent(RoutedAgent):
                 else:
                     raise ValueError("Unknown message type.")
                 future.set_result(None)
+            except asyncio.CancelledError:
+                future.cancel()
             except Exception as e:
                 future.set_exception(e)
 
@@ -92,9 +94,19 @@ class TeamOneBaseAgent(RoutedAgent):
     async def _handle_deactivate(self, message: DeactivateMessage, ctx: MessageContext) -> None:
         """Handle a deactivate message."""
         self._enabled = False
-        logger.info(
+        self.logger.info(
             AgentEvent(
                 f"{self.metadata['type']} (deactivated)",
                 "",
             )
         )
+
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
+        """Drop the message, with a log."""
+        # self.logger.info(
+        #     AgentEvent(
+        #         f"{self.metadata['type']} (unhandled message)",
+        #         f"Unhandled message type: {type(message)}",
+        #     )
+        # )
+        pass
