@@ -56,6 +56,7 @@ ragproxyagent.initiate_chat(
     assistant, message=ragproxyagent.message_generator, problem=code_problem, search_string="spark"
 )  # search_string is used as an extra filter for the embeddings search, in this case, we only want to search documents that contain "spark".
 ```
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 ## Example Setup: RAG with Retrieval Augmented Agents with PGVector
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:

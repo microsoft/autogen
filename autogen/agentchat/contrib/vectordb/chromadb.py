@@ -14,6 +14,11 @@ try:
 except ImportError:
     raise ImportError("Please install chromadb: `pip install chromadb`")
 
+try:
+    from chromadb.errors import ChromaError
+except ImportError:
+    ChromaError = Exception
+
 CHROMADB_MAX_BATCH_SIZE = os.environ.get("CHROMADB_MAX_BATCH_SIZE", 40000)
 logger = get_logger(__name__)
 
@@ -84,7 +89,7 @@ class ChromaVectorDB(VectorDB):
                 collection = self.active_collection
             else:
                 collection = self.client.get_collection(collection_name, embedding_function=self.embedding_function)
-        except ValueError:
+        except (ValueError, ChromaError):
             collection = None
         if collection is None:
             return self.client.create_collection(
