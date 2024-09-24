@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 using System.Globalization;
-using Agents;
+using Microsoft.AutoGen.Agents.Abstractions;
 
 namespace DevTeam;
 

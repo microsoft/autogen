@@ -1,4 +1,4 @@
-using Microsoft.AutoGen.Agents.Worker.Client;
+using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
 using Microsoft.AI.DevTeam;
 using DevTeam.Backend;

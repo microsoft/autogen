@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen.Agents.Client/Microsoft.AutoGen.Agents.Client.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -20,8 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Protos\messages.proto" Link="Protos\messages.proto"  />
-    <Protobuf Include="..\Protos\states.proto" Link="Protos\states.proto"  />
+    <Protobuf Include="..\Protos\messages.proto" Link="Protos\messages.proto" />
+    <Protobuf Include="..\Protos\states.proto" Link="Protos\states.proto" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@ package cloudevent;
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option csharp_namespace = "Agents";
+option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
 
 
 message CloudEvent {

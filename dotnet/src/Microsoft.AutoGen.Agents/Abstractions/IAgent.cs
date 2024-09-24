@@ -2,6 +2,6 @@ namespace Microsoft.AutoGen.Agents.Abstractions;
 
 public interface IAgent
 {
-    Task HandleEvent(Event item);
-    Task PublishEvent(Event item);
+    Task HandleEvent(CloudEvent item);
+    Task PublishEvent(CloudEvent item);
 }

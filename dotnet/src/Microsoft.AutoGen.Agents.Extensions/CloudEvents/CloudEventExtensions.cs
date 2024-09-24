@@ -1,8 +1,8 @@
-using Agents;
+using Microsoft.AutoGen.Agents.Abstractions;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Microsoft.AutoGen.Agents.Worker;
+namespace Microsoft.AutoGen.Agents.Runtime;
 
 public static class CloudEventExtensions
 

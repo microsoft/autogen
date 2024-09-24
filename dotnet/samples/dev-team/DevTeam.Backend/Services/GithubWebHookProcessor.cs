@@ -1,12 +1,12 @@
 using System.Globalization;
-using Agents;
-using DevTeam.Shared;
 using Microsoft.AutoGen.Agents.Abstractions;
+using DevTeam.Shared;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
+using Microsoft.AutoGen.Agents.Client;
 
 namespace DevTeam.Backend;
 

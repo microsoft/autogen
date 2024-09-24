@@ -5,9 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DC5E7967-F187-4E42-9B71-835E79501288}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Client", "src\Microsoft.AutoGen.Agents.Worker.Client\Microsoft.AutoGen.Agents.Worker.Client.csproj", "{687DA41E-83A6-418A-918B-8E2C20C6D1E3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Client", "src\Microsoft.AutoGen.Agents.Client\Microsoft.AutoGen.Agents.Client.csproj", "{687DA41E-83A6-418A-918B-8E2C20C6D1E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Worker.Server", "src\Microsoft.AutoGen.Agents.Worker.Server\Microsoft.AutoGen.Agents.Worker.Server.csproj", "{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Runtime", "src\Microsoft.AutoGen.Agents.Runtime\Microsoft.AutoGen.Agents.Runtime.csproj", "{D4EC36E1-E197-47C2-A45A-CAAFEB6B9F09}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen.Agents\Microsoft.AutoGen.Agents.csproj", "{E6171E39-6DE2-46C9-9978-E2F946530CBA}"
 EndProject
