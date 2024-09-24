@@ -316,6 +316,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         message_envelope.message,
                         ctx=message_context,
                     )
+            except CancelledError as e:
+                if not message_envelope.future.cancelled():
+                    message_envelope.future.set_exception(e)
+                self._outstanding_tasks.decrement()
+                return
             except BaseException as e:
                 message_envelope.future.set_exception(e)
                 self._outstanding_tasks.decrement()
@@ -381,7 +386,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             except BaseException as e:
                 # Ignore cancelled errors from logs
                 if isinstance(e, CancelledError):
-                    self._outstanding_tasks.decrement()
                     return
                 logger.error("Error processing publish message", exc_info=True)
             finally:
@@ -408,7 +412,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #     )
             # )
             self._outstanding_tasks.decrement()
-            message_envelope.future.set_result(message_envelope.message)
+            if not message_envelope.future.cancelled():
+                message_envelope.future.set_result(message_envelope.message)
 
     async def process_next(self) -> None:
         """Process the next message in the queue."""
