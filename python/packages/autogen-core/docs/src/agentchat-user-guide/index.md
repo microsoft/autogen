@@ -7,6 +7,14 @@ myst:
 
 # AgentChat
 
-```{note}
+```{warning}
 🚧 Under construction 🚧
+```
+
+```{toctree}
+:caption: Getting Started
+:maxdepth: 1
+:hidden:
+
+guides/quickstart
 ```

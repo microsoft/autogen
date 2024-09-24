@@ -37,7 +37,6 @@ Key features of AutoGen core include:
 :maxdepth: 1
 :hidden:
 
-guides/installation
 guides/quickstart
 ```
 

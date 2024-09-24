@@ -98,6 +98,7 @@ html_theme_options = {
             "icon": "fa-custom fa-pypi",
         },
     ],
+    "announcement": '🚧 AutoGen 0.4 is a <a href="#">work in progress</a>, learn more about what\'s new and different <a href="#">here</a>. To continue using the latest stable version, please visit the <a href="#">0.3 documentation</a>. 🚧',
 }
 
 html_js_files = ["custom-icon.js"]
@@ -118,6 +119,8 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
 }
+
+
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
