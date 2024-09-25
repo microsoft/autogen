@@ -202,8 +202,8 @@ ragproxyagent = RetrieveUserProxyAgent(
 
 
 ### Customizing Vector Database
-We are using chromadb as the default vector database, you can also use mongodb, pgvectordb and qdrantdb
-by simply set `vector_db` to `mongodb`, `pgvector` and `qdrant` in `retrieve_config`, respectively.
+We are using chromadb as the default vector database, you can also use mongodb, pgvectordb, qdrantdb and couchbase
+by simply set `vector_db` to `mongodb`, `pgvector`, `qdrant` and `couchbase` in `retrieve_config`, respectively.
 
 To plugin any other dbs, you can also extend class `agentchat.contrib.vectordb.base`,
 check out the code [here](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/vectordb/base.py).
