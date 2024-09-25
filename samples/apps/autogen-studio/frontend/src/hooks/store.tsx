@@ -14,6 +14,8 @@ interface ConfigState {
   setVersion: (version: string) => void;
   connectionId: string;
   setConnectionId: (connectionId: string) => void;
+  areSessionButtonsDisabled: boolean;
+  setAreSessionButtonsDisabled: (disabled: boolean) => void;
 }
 
 export const useConfigStore = create<ConfigState>()((set) => ({
@@ -27,4 +29,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   setVersion: (version) => set({ version }),
   connectionId: uuidv4(),
   setConnectionId: (connectionId) => set({ connectionId }),
+  areSessionButtonsDisabled: false,
+  setAreSessionButtonsDisabled: (disabled) => set({ areSessionButtonsDisabled: disabled }),
 }));
