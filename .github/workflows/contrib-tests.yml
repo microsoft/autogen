@@ -91,6 +91,17 @@ jobs:
         image: mongodb/mongodb-atlas-local:latest
         ports:
           - 27017:27017
+      couchbase:
+        image: couchbase:enterprise-7.6.3
+        ports:
+          - "8091-8095:8091-8095"
+          - "11210:11210"
+          - "9102:9102"
+        healthcheck: # checks couchbase server is up
+          test: ["CMD", "curl", "-v", "http://localhost:8091/pools"]
+          interval: 20s
+          timeout: 20s
+          retries: 5
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -111,6 +122,9 @@ jobs:
       - name: Install mongodb when on linux
         run: |
           pip install -e .[retrievechat-mongodb]
+      - name: Install couchbase when on linux
+        run: |
+          pip install -e .[retrievechat-couchbase]
       - name: Install unstructured when python-version is 3.9 and on linux
         if: matrix.python-version == '3.9'
         run: |
