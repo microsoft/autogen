@@ -2,6 +2,7 @@
 import io
 import os
 import shutil
+
 import pytest
 import requests
 
@@ -43,7 +44,7 @@ XLSX_TEST_STRINGS = [
 
 DOCX_TEST_STRINGS = [
     "314b0a30-5b04-470b-b9f7-eed2c2bec74a",
-    "49e168b7-d2ae-407f-a055-2167576f39a1", 
+    "49e168b7-d2ae-407f-a055-2167576f39a1",
     "## d666f1f7-46cb-42bd-9a39-9a39cf2a509f",
     "# Abstract",
     "# Introduction",

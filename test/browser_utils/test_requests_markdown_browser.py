@@ -116,12 +116,11 @@ def test_requests_markdown_browser():
     assert WIKIPEDIA_TITLE.strip() == browser.page_title.strip()
 
     # Visit a plain-text file
-    response = requests.get(PLAIN_TEXT_URL)
-    response.raise_for_status()
-    expected_results = re.sub(r"\s+", " ", response.text, re.DOTALL).strip()
-
-#    browser.visit_page(PLAIN_TEXT_URL)
-#    assert re.sub(r"\s+", " ", browser.page_content, re.DOTALL).strip() == expected_results
+    # response = requests.get(PLAIN_TEXT_URL)
+    # response.raise_for_status()
+    # expected_results = re.sub(r"\s+", " ", response.text, re.DOTALL).strip()
+    # browser.visit_page(PLAIN_TEXT_URL)
+    # assert re.sub(r"\s+", " ", browser.page_content, re.DOTALL).strip() == expected_results
 
     # Disrectly download a ZIP file and compute its md5
     response = requests.get(DOWNLOAD_URL, stream=True)
