@@ -80,6 +80,7 @@ guides/multi-agent-design-patterns
 guides/group-chat
 guides/reflection
 guides/mixture-of-agents
+guides/multi-agent-debate
 ```
 
 ```{toctree}
