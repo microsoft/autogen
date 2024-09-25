@@ -79,6 +79,7 @@ guides/command-line-code-executors
 guides/multi-agent-design-patterns
 guides/group-chat
 guides/reflection
+guides/mixture-of-agents
 ```
 
 ```{toctree}
