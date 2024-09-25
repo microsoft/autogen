@@ -49,6 +49,7 @@ Example notebooks:
 ```bash
 pip install "pyautogen[retrievechat]"
 ```
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
 
