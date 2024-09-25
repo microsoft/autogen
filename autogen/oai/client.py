@@ -279,7 +279,12 @@ class OpenAIClient:
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
-            prompt_tokens = count_token(params["messages"], model)
+            try:
+                prompt_tokens = count_token(params["messages"], model)
+            except NotImplementedError as e:
+                # Catch token calculation error if streaming with customized models.
+                logger.warning(str(e))
+                prompt_tokens = 0
             response = ChatCompletion(
                 id=chunk.id,
                 model=chunk.model,
