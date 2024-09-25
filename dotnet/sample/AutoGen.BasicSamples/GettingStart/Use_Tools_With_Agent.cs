@@ -5,9 +5,9 @@
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
 #endregion Using
 using FluentAssertions;
+using OpenAI;
 
 namespace AutoGen.BasicSample;
 
@@ -50,12 +50,11 @@ public class Use_Tools_With_Agent
 
         #region Create_Agent
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-3.5-turbo";
+        var model = "gpt-4o-mini";
         var openaiClient = new OpenAIClient(apiKey);
         var agent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: openaiClient.GetChatClient(model),
             name: "agent",
-            modelName: model,
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector(); // convert OpenAI message to AutoGen message
         #endregion Create_Agent
