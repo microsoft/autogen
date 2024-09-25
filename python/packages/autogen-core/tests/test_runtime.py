@@ -41,7 +41,9 @@ async def test_agent_type_must_be_unique() -> None:
         assert agent.id == id
         return agent
 
-    await runtime.register_factory(type=AgentType("name1"), agent_factory=agent_factory, expected_class=NoopAgent)
+    await NoopAgent.register(runtime, "name1", agent_factory)
+
+    # await runtime.register_factory(type=AgentType("name1"), agent_factory=agent_factory, expected_class=NoopAgent)
 
     with pytest.raises(ValueError):
         await runtime.register_factory(type=AgentType("name1"), agent_factory=agent_factory, expected_class=NoopAgent)

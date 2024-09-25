@@ -372,13 +372,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
                 async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
                     with self._tracer_helper.trace_block("process", agent.id, parent=None):
-                        return await agent.on_message(
-                            message_envelope.message,
-                            ctx=message_context,
-                        )
+                        with MessageHandlerContext.populate_context(agent.id):
+                            return await agent.on_message(
+                                message_envelope.message,
+                                ctx=message_context,
+                            )
 
-                with MessageHandlerContext.populate_context(agent.id):
-                    future = _on_message(agent, message_context)
+                future = _on_message(agent, message_context)
                 responses.append(future)
 
             try:
