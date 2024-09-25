@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from autogen.cache import Cache
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
-from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
@@ -165,11 +165,7 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
-        if (
-            not isinstance(client, openai.AzureOpenAI)
-            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
-            and not is_valid_api_key(self._oai_client.api_key)
-        ):
+        if not isinstance(client, openai.AzureOpenAI) and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX):
             logger.warning(
                 "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
             )
