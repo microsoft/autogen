@@ -90,7 +90,7 @@ class FileLogger(BaseLogger):
         thread_id = threading.get_ident()
         source_name = None
         if isinstance(source, str):
-            source_name = source
+            source_name = getattr(source, "name", "unknown")
         else:
             source_name = source.name
         try:

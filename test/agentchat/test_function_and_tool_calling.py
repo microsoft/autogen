@@ -33,6 +33,7 @@ async def _a_tool_func_error(arg1: str, arg2: str) -> str:
 _tool_use_message_1 = {
     "role": "assistant",
     "content": None,
+    "function_call": None,
     "tool_calls": [
         {
             "id": "1",
@@ -56,6 +57,7 @@ _tool_use_message_1 = {
 _tool_use_message_1_bad_json = {
     "role": "assistant",
     "content": None,
+    "function_call": None,
     "tool_calls": [
         {
             "id": "1",
