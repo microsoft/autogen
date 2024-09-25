@@ -134,6 +134,9 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
+      - name: Install packages and dependencies for WebSurfer and browser_utils
+        run: |
+          pip install -e .[test,websurfer]
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
@@ -275,7 +278,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
+          pytest test/browser_utils test/agentchat/contrib/test_web_surfer.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
