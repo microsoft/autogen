@@ -13,7 +13,7 @@ public class ChatMessage
     /// </summary>
     /// <param name="role">role.</param>
     /// <param name="content">content.</param>
-    public ChatMessage(RoleEnum? role = default(RoleEnum?), string? content = null)
+    public ChatMessage(RoleEnum? role = default, string? content = null)
     {
         this.Role = role;
         this.Content = content;

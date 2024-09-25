@@ -9,7 +9,7 @@ the option `redis`:
 pip install "pyautogen[redis]"
 ```
 
-See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
+See [LLM Caching](/docs/topics/llm-caching) for details.
 
 ## IPython Code Executor
 
@@ -49,6 +49,7 @@ Example notebooks:
 ```bash
 pip install "pyautogen[retrievechat]"
 ```
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
 
@@ -75,7 +76,7 @@ Example notebooks:
 
 [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
 
-[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
+[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat_qdrant.ipynb)
 
 ## Teachability
 
@@ -119,7 +120,7 @@ To use a graph in `GroupChat`, particularly for graph visualization, please inst
 pip install "pyautogen[graph]"
 ```
 
-Example notebook: [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
 
 ## Long Context Handling
 

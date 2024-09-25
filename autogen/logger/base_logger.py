@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, TypeVar, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -11,6 +11,7 @@ from openai.types.chat import ChatCompletion
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
 
+F = TypeVar("F", bound=Callable[..., Any])
 ConfigItem = Dict[str, Union[str, List[str]]]
 LLMConfig = Dict[str, Union[None, float, int, ConfigItem, List[ConfigItem]]]
 
@@ -32,6 +33,7 @@ class BaseLogger(ABC):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
+        source: Union[str, Agent],
         request: Dict[str, Union[float, str, List[Dict[str, str]]]],
         response: Union[str, ChatCompletion],
         is_cached: int,
@@ -49,9 +51,10 @@ class BaseLogger(ABC):
             invocation_id (uuid):               A unique identifier for the invocation to the OpenAIWrapper.create method call
             client_id (int):                    A unique identifier for the underlying OpenAI client instance
             wrapper_id (int):                   A unique identifier for the OpenAIWrapper instance
-            request (dict):                     A dictionary representing the the request or call to the OpenAI client endpoint
+            source (str or Agent):              The source/creator of the event as a string name or an Agent instance
+            request (dict):                     A dictionary representing the request or call to the OpenAI client endpoint
             response (str or ChatCompletion):   The response from OpenAI
-            is_chached (int):                   1 if the response was a cache hit, 0 otherwise
+            is_cached (int):                    1 if the response was a cache hit, 0 otherwise
             cost(float):                        The cost for OpenAI response
             start_time (str):                   A string representing the moment the request was initiated
         """
@@ -103,6 +106,18 @@ class BaseLogger(ABC):
             init_args (dict):           The arguments passed to the construct the client
         """
         ...
+
+    @abstractmethod
+    def log_function_use(self, source: Union[str, Agent], function: F, args: Dict[str, Any], returns: Any) -> None:
+        """
+        Log the use of a registered function (could be a tool)
+
+        Args:
+            source (str or Agent):      The source/creator of the event as a string name or an Agent instance
+            function (F):               The function information
+            args (dict):                The function args to log
+            returns (any):              The return
+        """
 
     @abstractmethod
     def stop(self) -> None:

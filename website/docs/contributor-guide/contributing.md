@@ -1,6 +1,6 @@
 # Contributing to AutoGen
 
-This project welcomes and encourages all forms of contributions, including but not limited to:
+The project welcomes contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. Together, we can build something truly remarkable. Possible contributions include but not limited to:
 
 - Pushing patches.
 - Code review of pull requests.

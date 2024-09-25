@@ -25,7 +25,7 @@ public static class MessageExtension
             ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.FormatMessage(),
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.FormatMessage(),
             _ => message.ToString(),
-        };
+        } ?? string.Empty;
     }
 
     public static string FormatMessage(this TextMessage message)

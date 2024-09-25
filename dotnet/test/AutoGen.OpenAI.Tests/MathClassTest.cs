@@ -10,6 +10,7 @@ using AutoGen.OpenAI.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI;
 using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.Tests
@@ -96,26 +97,24 @@ teacher, please create the next math question";
         }
 
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
         public async Task OpenAIAgentMathChatTestAsync()
         {
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-
-            var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(key));
-            var model = "gpt-35-turbo-16k";
-            var teacher = await CreateTeacherAgentAsync(openaiClient, model);
-            var student = await CreateStudentAssistantAgentAsync(openaiClient, model);
+            var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
+            var openaiClient = new AzureOpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(key));
+            var teacher = await CreateTeacherAgentAsync(openaiClient, deployName);
+            var student = await CreateStudentAssistantAgentAsync(openaiClient, deployName);
 
             var adminFunctionMiddleware = new FunctionCallMiddleware(
                 functions: [this.UpdateProgressFunctionContract],
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
-                    { this.UpdateProgressFunction.Name!, this.UpdateProgressWrapper },
+                    { this.UpdateProgressFunctionContract.Name, this.UpdateProgressWrapper },
                 });
             var admin = new OpenAIChatAgent(
-                openAIClient: openaiClient,
-                modelName: model,
+                chatClient: openaiClient.GetChatClient(deployName),
                 name: "Admin",
                 systemMessage: $@"You are admin. You update progress after each question is answered.")
                 .RegisterMessageConnector()
@@ -123,8 +122,7 @@ teacher, please create the next math question";
                 .RegisterMiddleware(Print);
 
             var groupAdmin = new OpenAIChatAgent(
-                openAIClient: openaiClient,
-                modelName: model,
+                chatClient: openaiClient.GetChatClient(deployName),
                 name: "GroupAdmin",
                 systemMessage: "You are group admin. You manage the group chat.")
                 .RegisterMessageConnector()
@@ -143,13 +141,12 @@ teacher, please create the next math question";
                 });
 
             var teacher = new OpenAIChatAgent(
-                openAIClient: client,
+                chatClient: client.GetChatClient(model),
                 name: "Teacher",
                 systemMessage: @"You are a preschool math teacher.
 You create math question and ask student to answer it.
 Then you check if the answer is correct.
-If the answer is wrong, you ask student to fix it",
-                modelName: model)
+If the answer is wrong, you ask student to fix it")
                 .RegisterMessageConnector()
                 .RegisterStreamingMiddleware(functionCallMiddleware)
                 .RegisterMiddleware(Print);
@@ -166,9 +163,8 @@ If the answer is wrong, you ask student to fix it",
                     { this.AnswerQuestionFunctionContract.Name!, this.AnswerQuestionWrapper },
                 });
             var student = new OpenAIChatAgent(
-                openAIClient: client,
+                chatClient: client.GetChatClient(model),
                 name: "Student",
-                modelName: model,
                 systemMessage: @"You are a student. You answer math question from teacher.")
                 .RegisterMessageConnector()
                 .RegisterStreamingMiddleware(functionCallMiddleware)

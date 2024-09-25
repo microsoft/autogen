@@ -8,7 +8,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
     - id: check-added-large-files
     - id: check-ast
@@ -23,20 +23,21 @@ repos:
     - id: end-of-file-fixer
     - id: no-commit-to-branch
   - repo: https://github.com/psf/black
-    rev: 24.3.0
+    rev: 24.4.2
     hooks:
     - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
+    rev: v0.4.8
     hooks:
       - id: ruff
         types_or: [ python, pyi, jupyter ]
         args: ["--fix", "--ignore=E402"]
+        exclude: notebook/agentchat_databricks_dbrx.ipynb
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
-        args: ["-L", "ans,linar,nam,tread,ot,"]
+        args: ["-L", "ans,linar,nam,tread,ot,assertIn,dependin,socio-economic"]
         exclude: |
             (?x)^(
               pyproject.toml |

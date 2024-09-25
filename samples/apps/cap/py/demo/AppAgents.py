@@ -5,9 +5,10 @@ to retrieve information.
 """
 
 from autogencap.Actor import Actor
+from autogencap.actor_runtime import IRuntime
 from autogencap.ActorConnector import ActorConnector
-from autogencap.ComponentEnsemble import ComponentEnsemble
 from autogencap.DebugLog import Debug, Info, shorten
+from autogencap.runtime_factory import RuntimeFactory
 
 
 class GreeterAgent(Actor):
@@ -17,10 +18,11 @@ class GreeterAgent(Actor):
 
     def __init__(
         self,
+        start_thread=True,
         agent_name="Greeter",
         description="This is the greeter agent, who knows how to greet people.",
     ):
-        super().__init__(agent_name, description)
+        super().__init__(agent_name, description, start_thread=start_thread)
 
 
 class FidelityAgent(Actor):
@@ -135,7 +137,7 @@ class PersonalAssistant(Actor):
         self.quant: ActorConnector = None
         self.risk_manager: ActorConnector = None
 
-    def on_connect(self, network: ComponentEnsemble):
+    def on_connect(self, network: IRuntime):
         """
         Connects the personal assistant to the specified local actor network.
 
@@ -149,7 +151,7 @@ class PersonalAssistant(Actor):
         self.risk_manager = network.find_by_name("Risk Manager")
         Debug(self.actor_name, "connected")
 
-    def disconnect_network(self, network: ComponentEnsemble):
+    def disconnect_network(self, network: IRuntime):
         """
         Disconnects the personal assistant from the specified local actor network.
 

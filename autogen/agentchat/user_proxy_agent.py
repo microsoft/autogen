@@ -35,6 +35,7 @@ class UserProxyAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
         description: Optional[str] = None,
+        **kwargs,
     ):
         """
         Args:
@@ -79,6 +80,8 @@ class UserProxyAgent(ConversableAgent):
                 Only used when llm_config is not False. Use it to reprogram the agent.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            **kwargs (dict): Please refer to other kwargs in
+                [ConversableAgent](conversable_agent#__init__).
         """
         super().__init__(
             name=name,
@@ -93,6 +96,7 @@ class UserProxyAgent(ConversableAgent):
             description=(
                 description if description is not None else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode]
             ),
+            **kwargs,
         )
 
         if logging_enabled():
