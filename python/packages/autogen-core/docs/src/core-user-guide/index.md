@@ -94,5 +94,5 @@ cookbook/langgraph-agent
 cookbook/llamaindex-agent
 cookbook/local-llms-ollama-litellm
 cookbook/instrumenting
-
+cookbook/topic-subscription-scenarios
 ```
