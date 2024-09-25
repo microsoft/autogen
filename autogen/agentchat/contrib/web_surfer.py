@@ -34,13 +34,14 @@ class WebSurferAgent(ConversableAgent):
         description: Optional[str] = DEFAULT_DESCRIPTION,
         is_termination_msg: Optional[Callable[[Dict[str, Any]], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "TERMINATE",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         browser_config: Optional[Union[Dict, None]] = None,
+        **kwargs,
     ):
         super().__init__(
             name=name,
@@ -53,6 +54,7 @@ class WebSurferAgent(ConversableAgent):
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
+            **kwargs,
         )
 
         self._create_summarizer_client(summarizer_llm_config, llm_config)
@@ -111,7 +113,9 @@ class WebSurferAgent(ConversableAgent):
             self.summarizer_llm_config = summarizer_llm_config  # type: ignore[assignment]
 
         # Create the summarizer client
-        self.summarization_client = None if self.summarizer_llm_config is False else OpenAIWrapper(**self.summarizer_llm_config)  # type: ignore[arg-type]
+        self.summarization_client = (
+            None if self.summarizer_llm_config is False else OpenAIWrapper(**self.summarizer_llm_config)
+        )  # type: ignore[arg-type]
 
     def _register_functions(self) -> None:
         """Register the functions for the inner assistant and user proxy."""
@@ -250,7 +254,7 @@ class WebSurferAgent(ConversableAgent):
             def _summarize_page(
                 url: Annotated[
                     Optional[str], "[Optional] The url of the page to summarize. (Defaults to current page)"
-                ] = None
+                ] = None,
             ) -> str:
                 return _answer_from_page(url=url, question=None)
 

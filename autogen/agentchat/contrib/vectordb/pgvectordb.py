@@ -1,7 +1,7 @@
 import os
 import re
 import urllib.parse
-from typing import Callable, List
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -32,10 +32,11 @@ class Collection:
         client: The PGVector client.
         collection_name (str): The name of the collection. Default is "documents".
         embedding_function (Callable): The embedding function used to generate the vector representation.
+            Default is None. SentenceTransformer("all-MiniLM-L6-v2").encode will be used when None.
+            Models can be chosen from:
+            https://huggingface.co/models?library=sentence-transformers
         metadata (Optional[dict]): The metadata of the collection.
         get_or_create (Optional): The flag indicating whether to get or create the collection.
-        model_name: (Optional str) | Sentence embedding model to use. Models can be chosen from:
-            https://huggingface.co/models?library=sentence-transformers
     """
 
     def __init__(
@@ -45,7 +46,6 @@ class Collection:
         embedding_function: Callable = None,
         metadata=None,
         get_or_create=None,
-        model_name="all-MiniLM-L6-v2",
     ):
         """
         Initialize the Collection object.
@@ -56,30 +56,26 @@ class Collection:
             embedding_function: The embedding function used to generate the vector representation.
             metadata: The metadata of the collection.
             get_or_create: The flag indicating whether to get or create the collection.
-            model_name: | Sentence embedding model to use. Models can be chosen from:
-                https://huggingface.co/models?library=sentence-transformers
         Returns:
             None
         """
         self.client = client
-        self.embedding_function = embedding_function
-        self.model_name = model_name
         self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
-        try:
-            self.embedding_function = (
-                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-            )
-        except Exception as e:
-            logger.error(
-                f"Validate the model name entered: {self.model_name} "
-                f"from https://huggingface.co/models?library=sentence-transformers\nError: {e}"
-            )
-            raise e
+        if embedding_function:
+            self.embedding_function = embedding_function
+        else:
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
+        # This will get the model dimension size by computing the embeddings dimensions
+        sentences = [
+            "The weather is lovely today in paradise.",
+        ]
+        embeddings = self.embedding_function(sentences)
+        self.dimension = len(embeddings[0])
 
     def set_collection_name(self, collection_name) -> str:
         name = re.sub("-", "_", collection_name)
@@ -115,14 +111,14 @@ class Collection:
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, metadata, embedding, document))
             sql_string = (
                 f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n" f"VALUES (%s, %s, %s, %s);\n"
             )
         else:
             for doc_id, document in zip(ids, documents):
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, document, embedding))
             sql_string = f"INSERT INTO {self.name} (id, documents, embedding)\n" f"VALUES (%s, %s, %s);\n"
         logger.debug(f"Add SQL String:\n{sql_string}\n{sql_values}")
@@ -166,7 +162,7 @@ class Collection:
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, metadata, embedding, document, metadata, document, embedding))
             sql_string = (
                 f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
@@ -176,7 +172,7 @@ class Collection:
             )
         else:
             for doc_id, document in zip(ids, documents):
-                embedding = self.embedding_function.encode(document)
+                embedding = self.embedding_function(document)
                 sql_values.append((doc_id, document, embedding, document))
             sql_string = (
                 f"INSERT INTO {self.name} (id, documents, embedding)\n"
@@ -231,7 +227,14 @@ class Collection:
         exists = cursor.fetchone()[0]
         return exists
 
-    def get(self, ids=None, include=None, where=None, limit=None, offset=None) -> List[Document]:
+    def get(
+        self,
+        ids: Optional[str] = None,
+        include: Optional[str] = None,
+        where: Optional[str] = None,
+        limit: Optional[Union[int, str]] = None,
+        offset: Optional[Union[int, str]] = None,
+    ) -> List[Document]:
         """
         Retrieve documents from the collection.
 
@@ -272,7 +275,6 @@ class Collection:
 
         # Construct the full query
         query = f"{select_clause} {from_clause} {where_clause} {limit_clause} {offset_clause}"
-
         retrieved_documents = []
         try:
             # Execute the query with the appropriate values
@@ -298,7 +300,7 @@ class Collection:
                 )
         except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn) as e:
             logger.info(f"Error executing select on non-existent table: {self.name}. Creating it instead. Error: {e}")
-            self.create_collection(collection_name=self.name)
+            self.create_collection(collection_name=self.name, dimension=self.dimension)
             logger.info(f"Created table {self.name}")
 
         cursor.close()
@@ -380,11 +382,11 @@ class Collection:
     def query(
         self,
         query_texts: List[str],
-        collection_name: str = None,
-        n_results: int = 10,
-        distance_type: str = "euclidean",
-        distance_threshold: float = -1,
-        include_embedding: bool = False,
+        collection_name: Optional[str] = None,
+        n_results: Optional[int] = 10,
+        distance_type: Optional[str] = "euclidean",
+        distance_threshold: Optional[float] = -1,
+        include_embedding: Optional[bool] = False,
     ) -> QueryResults:
         """
         Query documents in the collection.
@@ -413,7 +415,7 @@ class Collection:
         cursor = self.client.cursor()
         results = []
         for query_text in query_texts:
-            vector = self.embedding_function.encode(query_text, convert_to_tensor=False).tolist()
+            vector = self.embedding_function(query_text, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
                 index_function = "<=>"
             elif distance_type.lower() == "euclidean":
@@ -450,7 +452,7 @@ class Collection:
         return results
 
     @staticmethod
-    def convert_string_to_array(array_string) -> List[float]:
+    def convert_string_to_array(array_string: str) -> List[float]:
         """
         Convert a string representation of an array to a list of floats.
 
@@ -467,7 +469,7 @@ class Collection:
         array = [float(num) for num in array_string.split()]
         return array
 
-    def modify(self, metadata, collection_name: str = None) -> None:
+    def modify(self, metadata, collection_name: Optional[str] = None) -> None:
         """
         Modify metadata for the collection.
 
@@ -486,7 +488,7 @@ class Collection:
         )
         cursor.close()
 
-    def delete(self, ids: List[ItemID], collection_name: str = None) -> None:
+    def delete(self, ids: List[ItemID], collection_name: Optional[str] = None) -> None:
         """
         Delete documents from the collection.
 
@@ -504,7 +506,7 @@ class Collection:
         cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({id_placeholders});", ids)
         cursor.close()
 
-    def delete_collection(self, collection_name: str = None) -> None:
+    def delete_collection(self, collection_name: Optional[str] = None) -> None:
         """
         Delete the entire collection.
 
@@ -520,22 +522,31 @@ class Collection:
         cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.close()
 
-    def create_collection(self, collection_name: str = None) -> None:
+    def create_collection(
+        self, collection_name: Optional[str] = None, dimension: Optional[Union[str, int]] = None
+    ) -> None:
         """
         Create a new collection.
 
         Args:
             collection_name (Optional[str]): The name of the new collection.
+            dimension (Optional[Union[str, int]]): The dimension size of the sentence embedding model
 
         Returns:
             None
         """
         if collection_name:
             self.name = collection_name
+
+        if dimension:
+            self.dimension = dimension
+        elif self.dimension is None:
+            self.dimension = 384
+
         cursor = self.client.cursor()
         cursor.execute(
             f"CREATE TABLE {self.name} ("
-            f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));"
+            f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector({self.dimension}));"
             f"CREATE INDEX "
             f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
             f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
@@ -557,16 +568,16 @@ class PGVectorDB(VectorDB):
     def __init__(
         self,
         *,
-        connection_string: str = None,
-        host: str = None,
-        port: int = None,
-        dbname: str = None,
-        username: str = None,
-        password: str = None,
-        connect_timeout: int = 10,
+        conn: Optional[psycopg.Connection] = None,
+        connection_string: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+        dbname: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        connect_timeout: Optional[int] = 10,
         embedding_function: Callable = None,
-        metadata: dict = None,
-        model_name: str = "all-MiniLM-L6-v2",
+        metadata: Optional[dict] = None,
     ) -> None:
         """
         Initialize the vector database.
@@ -574,6 +585,9 @@ class PGVectorDB(VectorDB):
         Note: connection_string or host + port + dbname must be specified
 
         Args:
+            conn: psycopg.Connection | A customer connection object to connect to the database.
+                A connection object may include additional key/values:
+                https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
             connection_string: "postgresql://username:password@hostname:port/database" | The PGVector connection string. Default is None.
             host: str | The host to connect to. Default is None.
             port: int | The port to connect to. Default is None.
@@ -581,58 +595,112 @@ class PGVectorDB(VectorDB):
             username: str | The database username to use. Default is None.
             password: str | The database user password to use. Default is None.
             connect_timeout: int | The timeout to set for the connection. Default is 10.
-            embedding_function: Callable | The embedding function used to generate the vector representation
-                of the documents. Default is None.
+            embedding_function: Callable | The embedding function used to generate the vector representation.
+                Default is None. SentenceTransformer("all-MiniLM-L6-v2").encode will be used when None.
+                Models can be chosen from:
+                https://huggingface.co/models?library=sentence-transformers
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
                 setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 16}. Creates Index on table
                 using hnsw (embedding vector_l2_ops) WITH (m = hnsw:M) ef_construction = "hnsw:construction_ef".
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
-            model_name: str | Sentence embedding model to use. Models can be chosen from:
-                https://huggingface.co/models?library=sentence-transformers
-
         Returns:
             None
         """
+        self.client = self.establish_connection(
+            conn=conn,
+            connection_string=connection_string,
+            host=host,
+            port=port,
+            dbname=dbname,
+            username=username,
+            password=password,
+            connect_timeout=connect_timeout,
+        )
+        if embedding_function:
+            self.embedding_function = embedding_function
+        else:
+            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
+        self.metadata = metadata
+        register_vector(self.client)
+        self.active_collection = None
+
+    def establish_connection(
+        self,
+        conn: Optional[psycopg.Connection] = None,
+        connection_string: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+        dbname: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        connect_timeout: Optional[int] = 10,
+    ) -> psycopg.Connection:
+        """
+        Establishes a connection to a PostgreSQL database using psycopg.
+
+        Args:
+            conn: An existing psycopg connection object. If provided, this connection will be used.
+            connection_string: A string containing the connection information. If provided, a new connection will be established using this string.
+            host: The hostname of the PostgreSQL server. Used if connection_string is not provided.
+            port: The port number to connect to at the server host. Used if connection_string is not provided.
+            dbname: The database name. Used if connection_string is not provided.
+            username: The username to connect as. Used if connection_string is not provided.
+            password: The user's password. Used if connection_string is not provided.
+            connect_timeout: Maximum wait for connection, in seconds. The default is 10 seconds.
+
+        Returns:
+            A psycopg.Connection object representing the established connection.
+
+        Raises:
+            PermissionError if no credentials are supplied
+            psycopg.Error: If an error occurs while trying to connect to the database.
+        """
         try:
-            if connection_string:
+            if conn:
+                self.client = conn
+            elif connection_string:
                 parsed_connection = urllib.parse.urlparse(connection_string)
                 encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
                 encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
+                encoded_password = f":{encoded_password}@"
                 encoded_host = urllib.parse.quote(parsed_connection.hostname, safe="")
+                encoded_port = f":{parsed_connection.port}"
                 encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe="")
                 connection_string_encoded = (
-                    f"{parsed_connection.scheme}://{encoded_username}:{encoded_password}"
-                    f"@{encoded_host}:{parsed_connection.port}/{encoded_database}"
+                    f"{parsed_connection.scheme}://{encoded_username}{encoded_password}"
+                    f"{encoded_host}{encoded_port}/{encoded_database}"
                 )
                 self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
-            elif host and port and dbname:
+            elif host:
+                connection_string = ""
+                if host:
+                    encoded_host = urllib.parse.quote(host, safe="")
+                    connection_string += f"host={encoded_host} "
+                if port:
+                    connection_string += f"port={port} "
+                if dbname:
+                    encoded_database = urllib.parse.quote(dbname, safe="")
+                    connection_string += f"dbname={encoded_database} "
+                if username:
+                    encoded_username = urllib.parse.quote(username, safe="")
+                    connection_string += f"user={encoded_username} "
+                if password:
+                    encoded_password = urllib.parse.quote(password, safe="")
+                    connection_string += f"password={encoded_password} "
+
                 self.client = psycopg.connect(
-                    host=host,
-                    port=port,
-                    dbname=dbname,
-                    username=username,
-                    password=password,
+                    conninfo=connection_string,
                     connect_timeout=connect_timeout,
                     autocommit=True,
                 )
+            else:
+                logger.error("Credentials were not supplied...")
+                raise PermissionError
+            self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
         except psycopg.Error as e:
             logger.error("Error connecting to the database: ", e)
             raise e
-        self.model_name = model_name
-        try:
-            self.embedding_function = (
-                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-            )
-        except Exception as e:
-            logger.error(
-                f"Validate the model name entered: {self.model_name} "
-                f"from https://huggingface.co/models?library=sentence-transformers\nError: {e}"
-            )
-            raise e
-        self.metadata = metadata
-        self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        register_vector(self.client)
-        self.active_collection = None
+        return self.client
 
     def create_collection(
         self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
@@ -666,7 +734,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -679,7 +746,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -693,7 +759,6 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
-                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -725,7 +790,6 @@ class PGVectorDB(VectorDB):
                     client=self.client,
                     collection_name=collection_name,
                     embedding_function=self.embedding_function,
-                    model_name=self.model_name,
                 )
         return self.active_collection
 

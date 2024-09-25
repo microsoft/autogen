@@ -221,7 +221,12 @@ $functions"""
             cmd = [py_executable, "-m", "pip", "install"] + required_packages
             try:
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                    cmd,
+                    cwd=self._work_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=float(self._timeout),
+                    encoding="utf-8",
                 )
             except subprocess.TimeoutExpired as e:
                 raise ValueError("Pip install timed out") from e
@@ -294,15 +299,22 @@ $functions"""
             env = os.environ.copy()
 
             if self._virtual_env_context:
-                path_with_virtualenv = rf"{self._virtual_env_context.bin_path}{os.pathsep}{env['PATH']}"
+                virtual_env_abs_path = os.path.abspath(self._virtual_env_context.bin_path)
+                path_with_virtualenv = rf"{virtual_env_abs_path}{os.pathsep}{env['PATH']}"
                 env["PATH"] = path_with_virtualenv
                 if WIN32:
-                    activation_script = os.path.join(self._virtual_env_context.bin_path, "activate.bat")
+                    activation_script = os.path.join(virtual_env_abs_path, "activate.bat")
                     cmd = [activation_script, "&&", *cmd]
 
             try:
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env
+                    cmd,
+                    cwd=self._work_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=float(self._timeout),
+                    env=env,
+                    encoding="utf-8",
                 )
             except subprocess.TimeoutExpired:
                 logs_all += "\n" + TIMEOUT_MSG

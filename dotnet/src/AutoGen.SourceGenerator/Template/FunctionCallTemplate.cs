@@ -36,7 +36,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 
 ");
 if (!String.IsNullOrEmpty(NameSpace)) {
@@ -107,7 +106,7 @@ if (functionContract.Name != null) {
 }
 if (functionContract.Description != null) {
             this.Write("                Description = @\"");
-            this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.Description));
+            this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.Description.Replace("\"", "\"\"")));
             this.Write("\",\r\n");
 }
 if (functionContract.ReturnType != null) {
@@ -121,7 +120,8 @@ if (functionContract.ReturnDescription != null) {
             this.Write("\",\r\n");
 }
 if (functionContract.Parameters != null) {
-            this.Write("                Parameters = new []\r\n                {\r\n");
+            this.Write("                Parameters = new global::AutoGen.Core.FunctionParameterContract[]" +
+                    "\r\n                {\r\n");
 foreach (var parameter in functionContract.Parameters) {
             this.Write("                    new FunctionParameterContract\r\n                    {\r\n");
 if (parameter.Name != null) {
@@ -131,7 +131,7 @@ if (parameter.Name != null) {
 }
 if (parameter.Description != null) {
             this.Write("                        Description = @\"");
-            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Description));
+            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Description.Replace("\"", "\"\"")));
             this.Write("\",\r\n");
 }
 if (parameter.Type != null) {
@@ -151,12 +151,7 @@ if (parameter.DefaultValue != null) {
 }
             this.Write("                },\r\n");
 }
-            this.Write("            };\r\n        }\r\n\r\n        public global::Azure.AI.OpenAI.FunctionDefin" +
-                    "ition ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.GetFunctionDefinitionName()));
-            this.Write("\r\n        {\r\n            get => this.");
-            this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.GetFunctionContractName()));
-            this.Write(".ToOpenAIFunctionDefinition();\r\n        }\r\n");
+            this.Write("            };\r\n        }\r\n");
 }
             this.Write("    }\r\n");
 if (!String.IsNullOrEmpty(NameSpace)) {

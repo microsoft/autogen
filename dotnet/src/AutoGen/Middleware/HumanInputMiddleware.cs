@@ -18,7 +18,7 @@ public class HumanInputMiddleware : IMiddleware
     private readonly string prompt;
     private readonly string exitKeyword;
     private Func<IEnumerable<IMessage>, CancellationToken, Task<bool>> isTermination;
-    private Func<string> getInput = Console.ReadLine;
+    private Func<string?> getInput = Console.ReadLine;
     private Action<string> writeLine = Console.WriteLine;
     public string? Name => nameof(HumanInputMiddleware);
 
@@ -27,7 +27,7 @@ public class HumanInputMiddleware : IMiddleware
         string exitKeyword = "exit",
         HumanInputMode mode = HumanInputMode.AUTO,
         Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? isTermination = null,
-        Func<string>? getInput = null,
+        Func<string?>? getInput = null,
         Action<string>? writeLine = null)
     {
         this.prompt = prompt;
@@ -56,6 +56,8 @@ public class HumanInputMiddleware : IMiddleware
                 return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
             }
 
+            input ??= string.Empty;
+
             return new TextMessage(Role.Assistant, input, agent.Name);
         }
 
@@ -74,6 +76,8 @@ public class HumanInputMiddleware : IMiddleware
                 return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
             }
 
+            input ??= string.Empty;
+
             return new TextMessage(Role.Assistant, input, agent.Name);
         }
 
@@ -85,7 +89,7 @@ public class HumanInputMiddleware : IMiddleware
         return messages?.Last().IsGroupChatTerminateMessage() is true;
     }
 
-    private string GetInput()
+    private string? GetInput()
     {
         return Console.ReadLine();
     }
