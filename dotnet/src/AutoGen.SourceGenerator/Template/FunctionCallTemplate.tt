@@ -13,7 +13,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
 using AutoGen.Core;
-using AutoGen.OpenAI.Extension;
 
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>
 namespace <#=NameSpace#>
@@ -63,7 +62,7 @@ namespace <#=NameSpace#>
                 Name = @"<#=functionContract.Name#>",
 <#}#>
 <#if (functionContract.Description != null) {#>
-                Description = @"<#=functionContract.Description#>",
+                Description = @"<#=functionContract.Description.Replace("\"", "\"\"")#>",
 <#}#>
 <#if (functionContract.ReturnType != null) {#>
                 ReturnType = typeof(<#=functionContract.ReturnType#>),
@@ -81,7 +80,7 @@ namespace <#=NameSpace#>
                         Name = @"<#=parameter.Name#>",
 <#}#>
 <#if (parameter.Description != null) {#>
-                        Description = @"<#=parameter.Description#>",
+                        Description = @"<#= parameter.Description.Replace("\"", "\"\"") #>",
 <#}#>
 <#if (parameter.Type != null) {#>
                         ParameterType = typeof(<#=parameter.Type#>),
@@ -95,11 +94,6 @@ namespace <#=NameSpace#>
                 },
 <#}#>
             };
-        }
-
-        public global::Azure.AI.OpenAI.FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
-        {
-            get => this.<#=functionContract.GetFunctionContractName()#>.ToOpenAIFunctionDefinition();
         }
 <#}#>
     }

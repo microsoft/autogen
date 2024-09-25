@@ -35,7 +35,7 @@ public class FunctionContract
     /// <summary>
     /// The name of the function.
     /// </summary>
-    public string? Name { get; set; }
+    public string Name { get; set; } = null!;
 
     /// <summary>
     /// The description of the function.

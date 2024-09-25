@@ -78,7 +78,7 @@ public class MistralClientAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletionResponse>(response, from: this.Name);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -97,6 +97,7 @@ public class MistralClientAgent : IStreamingAgent
         var chatHistory = BuildChatHistory(messages);
         var chatRequest = new ChatCompletionRequest(model: _model, messages: chatHistory.ToList(), temperature: options?.Temperature, randomSeed: _randomSeed)
         {
+            Stop = options?.StopSequence,
             MaxTokens = options?.MaxToken,
             ResponseFormat = _jsonOutput ? new ResponseFormat() { ResponseFormatType = "json_object" } : null,
         };

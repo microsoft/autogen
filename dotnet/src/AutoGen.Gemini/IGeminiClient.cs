@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// IVertexGeminiClient.cs
+// IGeminiClient.cs
 
 using System.Collections.Generic;
 using System.Threading;

@@ -3,10 +3,10 @@ import { IAgent, IModelConfig, ISkill, IWorkflow } from "../../../types";
 import { Card } from "../../../atoms";
 import {
   fetchJSON,
+  getSampleWorkflow,
   getServerUrl,
   obscureString,
   sampleAgentConfig,
-  sampleWorkflowConfig,
   truncateText,
 } from "../../../utils";
 import {
@@ -19,6 +19,8 @@ import {
   theme,
 } from "antd";
 import {
+  ArrowLongRightIcon,
+  ChatBubbleLeftRightIcon,
   CodeBracketSquareIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -354,7 +356,7 @@ export const AgentTypeSelector = ({
 
   return (
     <>
-      <div className="pb-3">Select Agent Type</div>
+      <div className="pb-3 text-primary">Select Agent Type</div>
       <ul className="inline-flex gap-2">{agentTypeRows}</ul>
     </>
   );
@@ -370,10 +372,18 @@ export const WorkflowTypeSelector = ({
   const iconClass = "h-6 w-6 inline-block ";
   const workflowTypes = [
     {
-      label: "Default",
-      value: "default",
-      description: <> Includes a sender and receiver. </>,
-      icon: <UserCircleIcon className={iconClass} />,
+      label: "Autonomous (Chat)",
+      value: "autonomous",
+      description:
+        "Includes an initiator and receiver. The initiator is typically a user proxy agent, while the receiver could be any agent type (assistant or groupchat",
+      icon: <ChatBubbleLeftRightIcon className={iconClass} />,
+    },
+    {
+      label: "Sequential",
+      value: "sequential",
+      description:
+        " Includes a list of agents in a given order. Each agent should have an nstruction and will summarize and pass on the results of their work to the next agent",
+      icon: <ArrowLongRightIcon className={iconClass} />,
     },
   ];
   const [seletectedWorkflowType, setSelectedWorkflowType] = React.useState<
@@ -390,7 +400,7 @@ export const WorkflowTypeSelector = ({
           onClick={() => {
             setSelectedWorkflowType(workflowType.value);
             if (workflow) {
-              const sampleWorkflow = sampleWorkflowConfig();
+              const sampleWorkflow = getSampleWorkflow(workflowType.value);
               setWorkflow(sampleWorkflow);
             }
           }}
@@ -398,9 +408,12 @@ export const WorkflowTypeSelector = ({
           <div style={{ minHeight: "35px" }} className="my-2   break-words">
             {" "}
             <div className="mb-2">{workflowType.icon}</div>
-            <span className="text-secondary  tex-sm">
+            <span
+              className="text-secondary  tex-sm"
+              title={workflowType.description}
+            >
               {" "}
-              {workflowType.description}
+              {truncateText(workflowType.description, 60)}
             </span>
           </div>
         </Card>
@@ -410,7 +423,7 @@ export const WorkflowTypeSelector = ({
 
   return (
     <>
-      <div className="pb-3">Select Workflow Type</div>
+      <div className="pb-3 text-primary">Select Workflow Type</div>
       <ul className="inline-flex gap-2">{workflowTypeRows}</ul>
     </>
   );
@@ -964,17 +977,15 @@ export const ModelSelector = ({ agentId }: { agentId: number }) => {
 };
 
 export const WorkflowAgentSelector = ({
-  workflowId,
+  workflow,
 }: {
-  workflowId: number;
+  workflow: IWorkflow;
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [agents, setAgents] = useState<IAgent[]>([]);
-  const [senderTargetAgents, setSenderTargetAgents] = useState<IAgent[]>([]);
-  const [receiverTargetAgents, setReceiverTargetAgents] = useState<IAgent[]>(
-    []
-  );
+  const [linkedAgents, setLinkedAgents] = useState<any[]>([]);
+
   const serverUrl = getServerUrl();
   const { user } = React.useContext(appContext);
 
@@ -1008,11 +1019,8 @@ export const WorkflowAgentSelector = ({
     fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
   };
 
-  const fetchTargetAgents = (
-    setTarget: (arg0: any) => void,
-    agentType: string
-  ) => {
-    const listTargetAgentsUrl = `${serverUrl}/workflows/link/agent/${workflowId}/${agentType}`;
+  const fetchLinkedAgents = () => {
+    const listTargetAgentsUrl = `${serverUrl}/workflows/link/agent/${workflow.id}`;
     setError(null);
     setLoading(true);
     const payLoad = {
@@ -1024,7 +1032,8 @@ export const WorkflowAgentSelector = ({
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        setTarget(data.data);
+        setLinkedAgents(data.data);
+        console.log("linked agents", data.data);
       } else {
         message.error(data.message);
       }
@@ -1042,7 +1051,8 @@ export const WorkflowAgentSelector = ({
   const linkWorkflowAgent = (
     workflowId: number,
     targetAgentId: number,
-    agentType: string
+    agentType: string,
+    sequenceId?: number
   ) => {
     setError(null);
     setLoading(true);
@@ -1052,15 +1062,15 @@ export const WorkflowAgentSelector = ({
         "Content-Type": "application/json",
       },
     };
-    const linkAgentUrl = `${serverUrl}/workflows/link/agent/${workflowId}/${targetAgentId}/${agentType}`;
+    let linkAgentUrl;
+    linkAgentUrl = `${serverUrl}/workflows/link/agent/${workflowId}/${targetAgentId}/${agentType}`;
+    if (agentType === "sequential") {
+      linkAgentUrl = `${serverUrl}/workflows/link/agent/${workflowId}/${targetAgentId}/${agentType}/${sequenceId}`;
+    }
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        if (agentType === "sender") {
-          fetchTargetAgents(setSenderTargetAgents, "sender");
-        } else {
-          fetchTargetAgents(setReceiverTargetAgents, "receiver");
-        }
+        fetchLinkedAgents();
       } else {
         message.error(data.message);
       }
@@ -1076,11 +1086,7 @@ export const WorkflowAgentSelector = ({
     fetchJSON(linkAgentUrl, payLoad, onSuccess, onError);
   };
 
-  const unlinkWorkflowAgent = (
-    workflowId: number,
-    targetAgentId: number,
-    agentType: string
-  ) => {
+  const unlinkWorkflowAgent = (agent: IAgent, link: any) => {
     setError(null);
     setLoading(true);
     const payLoad = {
@@ -1089,16 +1095,17 @@ export const WorkflowAgentSelector = ({
         "Content-Type": "application/json",
       },
     };
-    const unlinkAgentUrl = `${serverUrl}/workflows/link/agent/${workflowId}/${targetAgentId}/${agentType}`;
+
+    let unlinkAgentUrl;
+    unlinkAgentUrl = `${serverUrl}/workflows/link/agent/${workflow.id}/${agent.id}/${link.agent_type}`;
+    if (link.agent_type === "sequential") {
+      unlinkAgentUrl = `${serverUrl}/workflows/link/agent/${workflow.id}/${agent.id}/${link.agent_type}/${link.sequence_id}`;
+    }
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        if (agentType === "sender") {
-          fetchTargetAgents(setSenderTargetAgents, "sender");
-        } else {
-          fetchTargetAgents(setReceiverTargetAgents, "receiver");
-        }
+        fetchLinkedAgents();
       } else {
         message.error(data.message);
       }
@@ -1116,8 +1123,7 @@ export const WorkflowAgentSelector = ({
 
   useEffect(() => {
     fetchAgents();
-    fetchTargetAgents(setSenderTargetAgents, "sender");
-    fetchTargetAgents(setReceiverTargetAgents, "receiver");
+    fetchLinkedAgents();
   }, []);
 
   const agentItems: MenuProps["items"] =
@@ -1145,9 +1151,26 @@ export const WorkflowAgentSelector = ({
   const receiverOnclick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
     let selectedAgent = agents[selectedIndex];
+    if (selectedAgent && selectedAgent.id && workflow.id) {
+      linkWorkflowAgent(workflow.id, selectedAgent.id, "receiver");
+    }
+  };
 
-    if (selectedAgent && selectedAgent.id) {
-      linkWorkflowAgent(workflowId, selectedAgent.id, "receiver");
+  const sequenceOnclick: MenuProps["onClick"] = ({ key }) => {
+    const selectedIndex = parseInt(key.toString());
+    let selectedAgent = agents[selectedIndex];
+
+    if (selectedAgent && selectedAgent.id && workflow.id) {
+      const sequenceId =
+        linkedAgents.length > 0
+          ? linkedAgents[linkedAgents.length - 1].link.sequence_id + 1
+          : 0;
+      linkWorkflowAgent(
+        workflow.id,
+        selectedAgent.id,
+        "sequential",
+        sequenceId
+      );
     }
   };
 
@@ -1155,18 +1178,16 @@ export const WorkflowAgentSelector = ({
     const selectedIndex = parseInt(key.toString());
     let selectedAgent = agents[selectedIndex];
 
-    if (selectedAgent && selectedAgent.id) {
-      linkWorkflowAgent(workflowId, selectedAgent.id, "sender");
+    if (selectedAgent && selectedAgent.id && workflow.id) {
+      linkWorkflowAgent(workflow.id, selectedAgent.id, "sender");
     }
   };
 
-  const handleRemoveAgent = (index: number, agentType: string) => {
-    const targetAgents =
-      agentType === "sender" ? senderTargetAgents : receiverTargetAgents;
-    const agent = targetAgents[index];
-    if (agent && agent.id) {
-      unlinkWorkflowAgent(workflowId, agent.id, agentType);
+  const handleRemoveAgent = (agent: IAgent, link: any) => {
+    if (agent && agent.id && workflow.id) {
+      unlinkWorkflowAgent(agent, link);
     }
+    console.log(link);
   };
 
   const { token } = useToken();
@@ -1185,9 +1206,11 @@ export const WorkflowAgentSelector = ({
     onClick: MenuProps["onClick"];
     agentType: string;
   }) => {
-    const targetAgents =
-      agentType === "sender" ? senderTargetAgents : receiverTargetAgents;
-    const agentButtons = targetAgents.map((agent, i) => {
+    const targetAgents = linkedAgents.filter(
+      (row) => row.link.agent_type === agentType
+    );
+
+    const agentButtons = targetAgents.map(({ agent, link }, i) => {
       const tooltipText = (
         <>
           <div>{agent.config.name}</div>
@@ -1197,32 +1220,38 @@ export const WorkflowAgentSelector = ({
         </>
       );
       return (
-        <div
-          key={"agentrow_" + i}
-          className="mr-1 mb-1 p-1 px-2 rounded border"
-        >
-          <div className="inline-flex">
+        <div key={"agentrow_" + i}>
+          <div className="mr-1 mb-1 p-1 px-2 rounded border inline-block">
             {" "}
-            <Tooltip title={tooltipText}>
-              <div>{agent.config.name}</div>{" "}
-            </Tooltip>
-            <div
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent opening the modal to edit
-                handleRemoveAgent(i, agentType);
-              }}
-              className="ml-1 text-primary hover:text-accent duration-300"
-            >
-              <XMarkIcon className="w-4 h-4 inline-block" />
+            <div className="inline-flex">
+              {" "}
+              <Tooltip title={tooltipText}>
+                <div>{agent.config.name}</div>{" "}
+              </Tooltip>
+              <div
+                role="button"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent opening the modal to edit
+                  handleRemoveAgent(agent, link);
+                }}
+                className="ml-1 text-primary hover:text-accent duration-300"
+              >
+                <XMarkIcon className="w-4 h-4 inline-block" />
+              </div>
             </div>
           </div>
+          {link.agent_type === "sequential" &&
+            i !== targetAgents.length - 1 && (
+              <div className="inline-block mx-2">
+                <ArrowLongRightIcon className="w-4 h-4 text-secondary inline-block  " />{" "}
+              </div>
+            )}
         </div>
       );
     });
 
     return (
-      <div>
+      <div className="text-primary">
         <div>
           {(!targetAgents || targetAgents.length === 0) && (
             <div className="text-sm border rounded text-secondary p-2 my-2">
@@ -1239,13 +1268,14 @@ export const WorkflowAgentSelector = ({
             remove current agents and add new ones.
           </div>
         )}
-        {targetAgents && targetAgents.length < 1 && (
+        {((targetAgents.length < 1 && agentType !== "sequential") ||
+          agentType === "sequential") && (
           <Dropdown
             menu={{ items: agentItems, onClick: onClick }}
             placement="bottomRight"
             trigger={["click"]}
             dropdownRender={(menu) => (
-              <div style={contentStyle}>
+              <div className="h-64" style={contentStyle}>
                 {React.cloneElement(menu as React.ReactElement, {
                   style: { boxShadow: "none" },
                 })}
@@ -1268,7 +1298,7 @@ export const WorkflowAgentSelector = ({
             <div className="pt-2 border-dashed border-t mt-2">
               {" "}
               <div
-                className=" inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+                className=" inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent text-primary duration-300 hover:text-accent"
                 role="button"
               >
                 Add {title} <PlusIcon className="w-4 h-4 inline-block mt-1" />
@@ -1282,33 +1312,48 @@ export const WorkflowAgentSelector = ({
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <h3 className="text-sm mb-2">
-            Initiator{" "}
-            <Tooltip title={"Agent that initiates the conversation"}>
-              <InformationCircleIcon className="h-4 w-4 inline-block" />
-            </Tooltip>
-          </h3>
+      {workflow.type === "autonomous" && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <h3 className="text-sm mb-2">
+              Initiator{" "}
+              <Tooltip title={"Agent that initiates the conversation"}>
+                <InformationCircleIcon className="h-4 w-4 inline-block" />
+              </Tooltip>
+            </h3>
+            <ul>
+              <AddAgentDropDown
+                title="Sender"
+                onClick={senderOnClick}
+                agentType="sender"
+              />
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm mb-2">Receiver</h3>
+            <ul>
+              <AddAgentDropDown
+                title="Receiver"
+                onClick={receiverOnclick}
+                agentType="receiver"
+              />
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {workflow.type === "sequential" && (
+        <div className="text-primary">
+          <div className="text-sm mb-2">Agents</div>
           <ul>
             <AddAgentDropDown
-              title="Sender"
-              onClick={senderOnClick}
-              agentType="sender"
+              title="Agent"
+              onClick={sequenceOnclick}
+              agentType="sequential"
             />
           </ul>
         </div>
-        <div>
-          <h3 className="text-sm mb-2">Receiver</h3>
-          <ul>
-            <AddAgentDropDown
-              title="Receiver"
-              onClick={receiverOnclick}
-              agentType="receiver"
-            />
-          </ul>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

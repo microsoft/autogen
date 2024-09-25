@@ -65,7 +65,7 @@ public class SemanticKernelAgent : IStreamingAgent
         return new MessageEnvelope<ChatMessageContent>(reply.First(), from: this.Name);
     }
 
-    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -106,7 +106,6 @@ public class SemanticKernelAgent : IStreamingAgent
             MaxTokens = options?.MaxToken ?? 1024,
             StopSequences = options?.StopSequence,
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            ResultsPerPrompt = 1,
         };
     }
 

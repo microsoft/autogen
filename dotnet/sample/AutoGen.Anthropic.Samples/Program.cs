@@ -7,6 +7,6 @@ internal static class Program
 {
     public static async Task Main(string[] args)
     {
-        await AnthropicSamples.RunAsync();
+        await Anthropic_Agent_With_Prompt_Caching.RunAsync();
     }
 }

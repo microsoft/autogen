@@ -98,7 +98,8 @@ Some LLM models support parallel tool call, which returns multiple tool calls in
 [!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=parallel_tool_call)]
 
 ## Further Reading
-- [Function-call-with-openai](../articles/OpenAIChatAgent-use-function-call.md)
-- [Function-call-with-gemini](../articles/AutoGen.Gemini/Function-call-with-gemini.md)
+- [Function call with openai](../articles/OpenAIChatAgent-use-function-call.md)
+- [Function call with gemini](../articles/AutoGen.Gemini/Function-call-with-gemini.md)
+- [Function call with local model](../articles/Function-call-with-ollama-and-litellm.md)
 - [Use kernel plugin in other agents](../articles/AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md)
 - [function call in mistral](../articles/MistralChatAgent-use-function-call.md)

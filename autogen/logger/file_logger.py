@@ -18,7 +18,10 @@ from .base_logger import LLMConfig
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.bedrock import BedrockClient
+    from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
     from autogen.oai.mistral import MistralAIClient
     from autogen.oai.together import TogetherClient
 
@@ -87,7 +90,7 @@ class FileLogger(BaseLogger):
         thread_id = threading.get_ident()
         source_name = None
         if isinstance(source, str):
-            source_name = source
+            source_name = getattr(source, "name", "unknown")
         else:
             source_name = source.name
         try:
@@ -204,7 +207,17 @@ class FileLogger(BaseLogger):
 
     def log_new_client(
         self,
-        client: AzureOpenAI | OpenAI | GeminiClient | AnthropicClient | MistralAIClient | TogetherClient,
+        client: (
+            AzureOpenAI
+            | OpenAI
+            | GeminiClient
+            | AnthropicClient
+            | MistralAIClient
+            | TogetherClient
+            | GroqClient
+            | CohereClient
+            | BedrockClient
+        ),
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],
     ) -> None:
