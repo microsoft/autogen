@@ -6,27 +6,22 @@ import asyncio
 import logging
 import os
 import re
-import sys
 from typing import List
 
 import aiofiles
 import openai
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentRuntime, MessageContext
+from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from autogen_core.components.model_context import BufferedChatCompletionContext
+from common.agents import OpenAIAssistantAgent
+from common.patterns._group_chat_manager import GroupChatManager
+from common.types import PublishNow, TextMessage
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.thread import ToolResources
 from openai.types.beta.threads import Message, Text, TextDelta
 from openai.types.beta.threads.runs import RunStep, RunStepDelta
 from typing_extensions import override
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from autogen_core.base import AgentInstantiationContext
-from common.agents import OpenAIAssistantAgent
-from common.patterns._group_chat_manager import GroupChatManager
-from common.types import PublishNow, TextMessage
 
 sep = "-" * 50
 

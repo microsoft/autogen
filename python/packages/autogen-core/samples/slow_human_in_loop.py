@@ -26,8 +26,6 @@ slow external system that the agent needs to interact with.
 import asyncio
 import datetime
 import json
-import os
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
@@ -44,12 +42,9 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import BaseTool
-from pydantic import BaseModel, Field
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from common.types import TextMessage
 from common.utils import get_chat_completion_client_from_envs
+from pydantic import BaseModel, Field
 
 
 @dataclass

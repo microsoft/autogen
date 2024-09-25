@@ -5,22 +5,16 @@ and make moves, and using a group chat manager to orchestrate the conversation."
 import argparse
 import asyncio
 import logging
-import os
-import sys
 from typing import Annotated, Literal
 
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentInstantiationContext, AgentRuntime
+from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime
 from autogen_core.components import DefaultSubscription, DefaultTopicId
 from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import SystemMessage
 from autogen_core.components.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from autogen_core.base import AgentId
 from common.agents._chat_completion_agent import ChatCompletionAgent
 from common.patterns._group_chat_manager import GroupChatManager
 from common.types import TextMessage

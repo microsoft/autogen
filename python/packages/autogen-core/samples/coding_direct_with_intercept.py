@@ -6,8 +6,6 @@ before it is sent out, and prompt the user for permission to execute the tool.
 """
 
 import asyncio
-import os
-import sys
 from typing import Any, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
@@ -18,9 +16,6 @@ from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import SystemMessage
 from autogen_core.components.tool_agent import ToolAgent, ToolException
 from autogen_core.components.tools import PythonCodeExecutionTool, Tool
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from coding_direct import Message, ToolUseAgent
 from common.utils import get_chat_completion_client_from_envs
 

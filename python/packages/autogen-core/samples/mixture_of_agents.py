@@ -8,8 +8,6 @@ The reference agents handle each task independently and return the results to th
 """
 
 import asyncio
-import os
-import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
@@ -18,9 +16,6 @@ from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from autogen_core.components.models import ChatCompletionClient, SystemMessage, UserMessage
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from common.utils import get_chat_completion_client_from_envs
 
 

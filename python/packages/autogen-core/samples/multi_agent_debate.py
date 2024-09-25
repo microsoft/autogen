@@ -32,14 +32,13 @@ to sample a random number of neighbors' responses to use.
 
 import asyncio
 import logging
-import os
 import re
-import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 from autogen_core.components.models import (
     AssistantMessage,
@@ -48,10 +47,6 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from autogen_core.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 logger = logging.getLogger(__name__)

@@ -13,13 +13,12 @@ the results back to the tool use agent.
 
 import asyncio
 import json
-import os
-import sys
 import uuid
 from dataclasses import dataclass
 from typing import Dict, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
 from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
@@ -32,10 +31,6 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import PythonCodeExecutionTool, Tool
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from autogen_core.base import MessageContext
 from common.utils import get_chat_completion_client_from_envs
 
 
