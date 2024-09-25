@@ -4,12 +4,13 @@ from autogen import GroupChatManager
 from autogencap.ActorConnector import ActorConnector
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
-from autogencap.ComponentEnsemble import ComponentEnsemble
+
+from ..actor_runtime import IRuntime
 
 
 class CAPGroupChatManager:
-    def __init__(self, groupchat: CAPGroupChat, llm_config: dict, network: ComponentEnsemble):
-        self._ensemble: ComponentEnsemble = network
+    def __init__(self, groupchat: CAPGroupChat, llm_config: dict, network: IRuntime):
+        self._ensemble: IRuntime = network
         self._cap_group_chat: CAPGroupChat = groupchat
         self._ag_group_chat_manager: GroupChatManager = GroupChatManager(
             groupchat=self._cap_group_chat, llm_config=llm_config

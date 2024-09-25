@@ -49,6 +49,48 @@ try:
 except ImportError as e:
     gemini_import_exception = e
 
+try:
+    from autogen.oai.anthropic import AnthropicClient
+
+    anthropic_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    anthropic_import_exception = e
+
+try:
+    from autogen.oai.mistral import MistralAIClient
+
+    mistral_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    mistral_import_exception = e
+
+try:
+    from autogen.oai.together import TogetherClient
+
+    together_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    together_import_exception = e
+
+try:
+    from autogen.oai.groq import GroqClient
+
+    groq_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    groq_import_exception = e
+
+try:
+    from autogen.oai.cohere import CohereClient
+
+    cohere_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cohere_import_exception = e
+
+try:
+    from autogen.oai.bedrock import BedrockClient
+
+    bedrock_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    bedrock_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -419,12 +461,23 @@ class OpenAIWrapper:
                 azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
             )
 
+    def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
+        """Update openai_config with AWS credentials from config."""
+        required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
+        optional_keys = ["aws_session_token", "aws_profile_name"]
+        for key in required_keys:
+            if key in config:
+                openai_config[key] = config[key]
+        for key in optional_keys:
+            if key in config:
+                openai_config[key] = config[key]
+
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
         For Azure models/deployment names there's a convenience modification of model removing dots in
-        the it's value (Azure deploment names can't have dots). I.e. if you have Azure deployment name
+        the it's value (Azure deployment names can't have dots). I.e. if you have Azure deployment name
         "gpt-35-turbo" and define model "gpt-3.5-turbo" in the config the function will remove the dot
         from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
@@ -448,6 +501,39 @@ class OpenAIWrapper:
                 if gemini_import_exception:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
                 client = GeminiClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("anthropic"):
+                if "api_key" not in config:
+                    self._configure_openai_config_for_bedrock(config, openai_config)
+                if anthropic_import_exception:
+                    raise ImportError("Please install `anthropic` to use Anthropic API.")
+                client = AnthropicClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("mistral"):
+                if mistral_import_exception:
+                    raise ImportError("Please install `mistralai` to use the Mistral.AI API.")
+                client = MistralAIClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("together"):
+                if together_import_exception:
+                    raise ImportError("Please install `together` to use the Together.AI API.")
+                client = TogetherClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("groq"):
+                if groq_import_exception:
+                    raise ImportError("Please install `groq` to use the Groq API.")
+                client = GroqClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("cohere"):
+                if cohere_import_exception:
+                    raise ImportError("Please install `cohere` to use the Cohere API.")
+                client = CohereClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("bedrock"):
+                self._configure_openai_config_for_bedrock(config, openai_config)
+                if bedrock_import_exception:
+                    raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
+                client = BedrockClient(**openai_config)
                 self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
@@ -735,7 +821,7 @@ class OpenAIWrapper:
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         if n_output_tokens is None:
             n_output_tokens = 0
-        return n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]
+        return (n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]) / 1000
 
     @staticmethod
     def _update_dict_from_chunk(chunk: BaseModel, d: Dict[str, Any], field: str) -> int:

@@ -1,29 +1,37 @@
-# AgentOps 🖇️
+# Agent Monitoring and Debugging with AgentOps
 
-![logo](https://raw.githubusercontent.com/AgentOps-AI/agentops/35d5682866921a9e28d8ef66ae3c3b3d92d8fa6b/img/logo.png)
+<img src="https://github.com/AgentOps-AI/agentops/blob/main/docs/images/external/logo/banner-badge.png?raw=true" style="width: 40%;" alt="AgentOps logo"/>
 
-[AgentOps](https://agentops.ai/?=autogen) provides session replays, metrics, and monitoring for agents.
+[AgentOps](https://agentops.ai/?=autogen) provides session replays, metrics, and monitoring for AI agents.
 
 At a high level, AgentOps gives you the ability to monitor LLM calls, costs, latency, agent failures, multi-agent interactions, tool usage, session-wide statistics, and more. For more info, check out the [AgentOps Repo](https://github.com/AgentOps-AI/agentops).
 
+|                                       |                                                               |
+| ------------------------------------- | ------------------------------------------------------------- |
+| 📊 **Replay Analytics and Debugging** | Step-by-step agent execution graphs                           |
+| 💸 **LLM Cost Management**            | Track spend with LLM foundation model providers               |
+| 🧪 **Agent Benchmarking**             | Test your agents against 1,000+ evals                         |
+| 🔐 **Compliance and Security**        | Detect common prompt injection and data exfiltration exploits |
+| 🤝 **Framework Integrations**         | Native Integrations with CrewAI, AutoGen, & LangChain         |
+
 <details open>
-  <summary>Agent Dashboard</summary>
+  <summary><b><u>Agent Dashboard</u></b></summary>
   <a href="https://app.agentops.ai?ref=gh">
-   <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/158e082a-9a7d-49b7-9b41-51a49a1f7d3d" style="width: 90%;" alt="Agent Dashboard"/>
+   <img src="https://github.com/AgentOps-AI/agentops/blob/main/docs/images/external/app_screenshots/overview.png?raw=true" style="width: 70%;" alt="Agent Dashboard"/>
   </a>
 </details>
 
 <details>
-  <summary>Session Analytics</summary>
+  <summary><b><u>Session Analytics</u></b></summary>
   <a href="https://app.agentops.ai?ref=gh">
-    <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/d7228019-1488-40d3-852f-a61e998658ad" style="width: 90%;" alt="Session Analytics"/>
+    <img src="https://github.com/AgentOps-AI/agentops/blob/main/docs/images/external/app_screenshots/session-overview.png?raw=true" style="width: 70%;" alt="Session Analytics"/>
   </a>
 </details>
 
 <details>
-  <summary>Session Replays</summary>
+  <summary><b><u>Session Replays</u></b></summary>
   <a href="https://app.agentops.ai?ref=gh">
-    <img src="https://github.com/AgentOps-AI/agentops/assets/14807319/561d59f3-c441-4066-914b-f6cfe32a598c" style="width: 90%;" alt="Session Replays"/>
+    <img src="https://github.com/AgentOps-AI/agentops/blob/main/docs/images/external/app_screenshots/session-replay.png?raw=true" style="width: 70%;" alt="Session Replays"/>
   </a>
 </details>
 
@@ -38,7 +46,7 @@ pip install agentops
 ```
 
 2. **Create an API Key:**
-Create a user API key here: [Create API Key](https://app.agentops.ai/account)
+Create a user API key here: [Create API Key](https://app.agentops.ai/settings/projects)
 
 3. **Configure Your Environment:**
 Add your API key to your environment variables

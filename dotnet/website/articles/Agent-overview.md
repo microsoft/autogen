@@ -8,7 +8,6 @@
 - Create an @AutoGen.OpenAI.OpenAIChatAgent: [Create an OpenAI chat agent](./OpenAIChatAgent-simple-chat.md)
 - Create a @AutoGen.SemanticKernel.SemanticKernelAgent: [Create a semantic kernel agent](./AutoGen.SemanticKernel/SemanticKernelAgent-simple-chat.md)
 - Create a @AutoGen.LMStudio.LMStudioAgent: [Connect to LM Studio](./Consume-LLM-server-from-LM-Studio.md)
-- Create your own agent: [Create your own agent](./Create-your-own-agent.md)
 
 ## Chat with an agent
 To chat with an agent, typically you can invoke @AutoGen.Core.IAgent.GenerateReplyAsync*. On top of that, you can also use one of the extension methods like @AutoGen.Core.AgentExtension.SendAsync* as shortcuts.

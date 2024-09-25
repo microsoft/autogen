@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
-using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
+using AutoGen.DotnetInteractive.Extension;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 public partial class Example04_Dynamic_GroupChat_Coding_Task
@@ -14,46 +15,32 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
     {
         var instance = new Example04_Dynamic_GroupChat_Coding_Task();
 
-        // setup dotnet interactive
-        var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
-        if (!Directory.Exists(workDir))
-            Directory.CreateDirectory(workDir);
+        var kernel = DotnetInteractiveKernelBuilder
+            .CreateDefaultInProcessKernelBuilder()
+            .AddPythonKernel("python3")
+            .Build();
 
-        using var service = new InteractiveService(workDir);
-        var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
-        var result = Path.Combine(workDir, "result.txt");
-        if (File.Exists(result))
-            File.Delete(result);
-
-        await service.StartAsync(workDir, default);
-
-        var gptConfig = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-
-        var helperAgent = new GPTAgent(
-            name: "helper",
-            systemMessage: "You are a helpful AI assistant",
-            temperature: 0f,
-            config: gptConfig);
-
-        var groupAdmin = new GPTAgent(
+        var groupAdmin = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "groupAdmin",
-            systemMessage: "You are the admin of the group chat",
-            temperature: 0f,
-            config: gptConfig)
+            systemMessage: "You are the admin of the group chat")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
-        var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
+        var userProxy = new DefaultReplyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE)
             .RegisterPrintMessage();
 
         // Create admin agent
-        var admin = new AssistantAgent(
+        var admin = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "admin",
             systemMessage: """
             You are a manager who takes coding problem from user and resolve problem by splitting them into small tasks and assign each task to the most appropriate agent.
             Here's available agents who you can assign task to:
-            - coder: write dotnet code to resolve task
-            - runner: run dotnet code from coder
+            - coder: write python code to resolve task
+            - runner: run python code from coder
 
             The workflow is as follows:
             - You take the coding problem from user
@@ -79,24 +66,12 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
 
             Once the coding problem is resolved, summarize each steps and results and send the summary to the user using the following format:
             ```summary
-            {
-                "problem": "{coding problem}",
-                "steps": [
-                    {
-                        "step": "{step}",
-                        "result": "{result}"
-                    }
-                ]
-            }
+            @user, <summary of the task>
             ```
 
             Your reply must contain one of [task|ask|summary] to indicate the type of your message.
-            """,
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = [gptConfig],
-            })
+            """)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // create coder agent
@@ -104,30 +79,27 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         // The dotnet coder write dotnet code to resolve the task.
         // The code reviewer review the code block from coder's reply.
         // The nuget agent install nuget packages if there's any.
-        var coderAgent = new GPTAgent(
+        var coderAgent = new OpenAIChatAgent(
             name: "coder",
-            systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
+            chatClient: gpt4o,
+            systemMessage: @"You act as python coder, you write python code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
 Here're some rules to follow on writing dotnet code:
-- put code between ```csharp and ```
-- When creating http client, use `var httpClient = new HttpClient()`. Don't use `using var httpClient = new HttpClient()` because it will cause error when running the code.
-- Try to use `var` instead of explicit type.
-- Try avoid using external library, use .NET Core library instead.
-- Use top level statement to write code.
+- put code between ```python and ```
+- Try avoid using external library
 - Always print out the result to console. Don't write code that doesn't print out anything.
 
-If you need to install nuget packages, put nuget packages in the following format:
-```nuget
-nuget_package_name
+Use the following format to install pip package:
+```python
+%pip install <package_name>
 ```
 
 If your code is incorrect, Fix the error and send the code again.
 
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
-",
-            config: gptConfig,
-            temperature: 0.4f)
+")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // code reviewer agent will review if code block from coder's reply satisfy the following conditions:
@@ -135,14 +107,13 @@ Here's some externel information
         // - The code block is csharp code block
         // - The code block is top level statement
         // - The code block is not using declaration
-        var codeReviewAgent = new GPTAgent(
+        var codeReviewAgent = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "reviewer",
             systemMessage: """
             You are a code reviewer who reviews code from coder. You need to check if the code satisfy the following conditions:
-            - The reply from coder contains at least one code block, e.g ```csharp and ```
-            - There's only one code block and it's csharp code block
-            - The code block is not inside a main function. a.k.a top level statement
-            - The code block is not using declaration when creating http client
+            - The reply from coder contains at least one code block, e.g ```python and ```
+            - There's only one code block and it's python code block
 
             You don't check the code style, only check if the code satisfy the above conditions.
 
@@ -160,23 +131,40 @@ Here's some externel information
             result: REJECTED
             ```
 
-            """,
-            config: gptConfig,
-            temperature: 0f)
+            """)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // create runner agent
         // The runner agent will run the code block from coder's reply.
         // It runs dotnet code using dotnet interactive service hook.
         // It also truncate the output if the output is too long.
-        var runner = new AssistantAgent(
+        var runner = new DefaultReplyAgent(
             name: "runner",
             defaultReply: "No code available, coder, write code please")
-            .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 var mostRecentCoderMessage = msgs.LastOrDefault(x => x.From == "coder") ?? throw new Exception("No coder message found");
-                return await agent.GenerateReplyAsync(new[] { mostRecentCoderMessage }, option, ct);
+
+                if (mostRecentCoderMessage.ExtractCodeBlock("```python", "```") is string code)
+                {
+                    var result = await kernel.RunSubmitCodeCommandAsync(code, "python");
+                    // only keep the first 500 characters
+                    if (result.Length > 500)
+                    {
+                        result = result.Substring(0, 500);
+                    }
+                    result = $"""
+                    # [CODE_BLOCK_EXECUTION_RESULT]
+                    {result}
+                    """;
+
+                    return new TextMessage(Role.Assistant, result, from: agent.Name);
+                }
+                else
+                {
+                    return await agent.GenerateReplyAsync(msgs, option, ct);
+                }
             })
             .RegisterPrintMessage();
 
@@ -247,18 +235,27 @@ Here's some externel information
             workflow: workflow);
 
         // task 1: retrieve the most recent pr from mlnet and save it in result.txt
-        var groupChatManager = new GroupChatManager(groupChat);
-        await userProxy.SendAsync(groupChatManager, "Retrieve the most recent pr from mlnet and save it in result.txt", maxRound: 30);
-        File.Exists(result).Should().BeTrue();
+        var task = """
+            retrieve the most recent pr from mlnet and save it in result.txt
+            """;
+        var chatHistory = new List<IMessage>
+        {
+            new TextMessage(Role.Assistant, task)
+            {
+                From = userProxy.Name
+            }
+        };
+        await foreach (var message in groupChat.SendAsync(chatHistory, maxRound: 10))
+        {
+            if (message.From == admin.Name && message.GetContent().Contains("```summary"))
+            {
+                // Task complete!
+                break;
+            }
+        }
 
-        // task 2: calculate the 39th fibonacci number
-        var answer = 63245986;
-        // clear the result file
-        File.Delete(result);
-
-        var conversationHistory = await userProxy.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number? Save the result in result.txt", maxRound: 10);
+        // check if the result file is created
+        var result = "result.txt";
         File.Exists(result).Should().BeTrue();
-        var resultContent = File.ReadAllText(result);
-        resultContent.Should().Contain(answer.ToString());
     }
 }

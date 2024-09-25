@@ -94,11 +94,11 @@ _tool_use_message_1_bad_json_expected_reply = {
         {
             "tool_call_id": "1",
             "role": "tool",
-            "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.",
+            "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.",
         },
         {"tool_call_id": "2", "role": "tool", "content": "_tool_func_2: value3 value4"},
     ],
-    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.\n\n_tool_func_2: value3 value4",
+    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.\n\n_tool_func_2: value3 value4",
 }
 
 _tool_use_message_1_error_expected_reply = {
@@ -154,7 +154,7 @@ _function_use_message_1_expected_reply = {
 _function_use_message_1_bad_json_expected_reply = {
     "name": "_tool_func_1",
     "role": "function",
-    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.",
+    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.",
 }
 
 _function_use_message_1_error_expected_reply = {

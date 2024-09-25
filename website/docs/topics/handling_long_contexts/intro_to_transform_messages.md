@@ -59,7 +59,28 @@ pprint.pprint(processed_messages)
 {'content': 'very very very very very very long string', 'role': 'user'}]
 ```
 
-By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages.
+By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages. However, if the splitting point is between a "tool_calls" and "tool" pair, the complete pair will be included to obey the OpenAI API call constraints.
+
+```python
+max_msg_transfrom = transforms.MessageHistoryLimiter(max_messages=3)
+
+messages = [
+    {"role": "user", "content": "hello"},
+    {"role": "tool_calls", "content": "calling_tool"},
+    {"role": "tool", "content": "tool_response"},
+    {"role": "user", "content": "how are you"},
+    {"role": "assistant", "content": [{"type": "text", "text": "are you doing?"}]},
+]
+
+processed_messages = max_msg_transfrom.apply_transform(copy.deepcopy(messages))
+pprint.pprint(processed_messages)
+```
+```console
+[{'content': 'calling_tool', 'role': 'tool_calls'},
+{'content': 'tool_response', 'role': 'tool'},
+{'content': 'how are you', 'role': 'user'},
+{'content': [{'text': 'are you doing?', 'type': 'text'}], 'role': 'assistant'}]
+```
 
 #### Example 2: Limiting the Number of Tokens
 
