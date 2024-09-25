@@ -1,17 +1,16 @@
 import json
 import time
 from datetime import timedelta
-from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 import numpy as np
 from couchbase import search
+from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster, ClusterOptions
 from couchbase.collection import Collection
-from couchbase.auth import PasswordAuthenticator
-from couchbase.options import SearchOptions
 from couchbase.management.search import SearchIndex
+from couchbase.options import SearchOptions
 from couchbase.vector_search import VectorQuery, VectorSearch
-
 from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
@@ -31,15 +30,15 @@ class CouchbaseVectorDB(VectorDB):
     """
 
     def __init__(
-            self,
-            connection_string: str = "couchbase://localhost",
-            username: str = "Administrator",
-            password: str = "password",
-            bucket_name: str = "vector_db",
-            embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
-            scope_name: str = "_default",
-            collection_name: str = "_default",
-            index_name: str = None,
+        self,
+        connection_string: str = "couchbase://localhost",
+        username: str = "Administrator",
+        password: str = "password",
+        bucket_name: str = "vector_db",
+        embedding_function: Callable = SentenceTransformer("all-MiniLM-L6-v2").encode,
+        scope_name: str = "_default",
+        collection_name: str = "_default",
+        index_name: str = None,
     ):
         """
         Initialize the vector database.
@@ -57,7 +56,16 @@ class CouchbaseVectorDB(VectorDB):
             wait_until_index_ready (float | None): Blocking call to wait until the database indexes are ready. None means no wait. Default is None.
             wait_until_document_ready (float | None): Blocking call to wait until the database documents are ready. None means no wait. Default is None.
         """
-        print("CouchbaseVectorDB", connection_string, username, password, bucket_name, scope_name, collection_name, index_name)
+        print(
+            "CouchbaseVectorDB",
+            connection_string,
+            username,
+            password,
+            bucket_name,
+            scope_name,
+            collection_name,
+            index_name,
+        )
         self.embedding_function = embedding_function
         self.index_name = index_name
 
@@ -262,36 +270,34 @@ class CouchbaseVectorDB(VectorDB):
 
         logger.info(f"Search index {index_name} created successfully.")
 
-    def upsert_docs(self, docs: List[Document], collection: Collection, batch_size=DEFAULT_BATCH_SIZE,
-                    **kwargs: Any) -> None:
+    def upsert_docs(
+        self, docs: List[Document], collection: Collection, batch_size=DEFAULT_BATCH_SIZE, **kwargs: Any
+    ) -> None:
         if docs[0].get("content") is None:
             raise ValueError("The document content is required.")
         if docs[0].get("id") is None:
             raise ValueError("The document id is required.")
 
         for i in range(0, len(docs), batch_size):
-            batch = docs[i:i + batch_size]
+            batch = docs[i : i + batch_size]
             docs_to_upsert = dict()
             for doc in batch:
                 doc_id = doc["id"]
                 embedding = self.embedding_function(
-                    [doc["content"]]).tolist()  # Gets new embedding even in case of document update
-                
-                doc_content = {
-                    TEXT_KEY: doc["content"],
-                    "metadata": doc.get("metadata", {}),
-                    EMBEDDING_KEY: embedding
-                }
+                    [doc["content"]]
+                ).tolist()  # Gets new embedding even in case of document update
+
+                doc_content = {TEXT_KEY: doc["content"], "metadata": doc.get("metadata", {}), EMBEDDING_KEY: embedding}
                 docs_to_upsert[doc_id] = doc_content
             collection.upsert_multi(docs_to_upsert)
 
     def insert_docs(
-            self,
-            docs: List[Document],
-            collection_name: str = None,
-            upsert: bool = False,
-            batch_size=DEFAULT_BATCH_SIZE,
-            **kwargs,
+        self,
+        docs: List[Document],
+        collection_name: str = None,
+        upsert: bool = False,
+        batch_size=DEFAULT_BATCH_SIZE,
+        **kwargs,
     ) -> None:
         """Insert Documents and Vector Embeddings into the collection of the vector database. Documents are upserted in all cases."""
         if not docs:
@@ -301,8 +307,9 @@ class CouchbaseVectorDB(VectorDB):
         collection = self.get_collection(collection_name)
         self.upsert_docs(docs, collection, batch_size=batch_size)
 
-    def update_docs(self, docs: List[Document], collection_name: str = None, batch_size=DEFAULT_BATCH_SIZE,
-                    **kwargs: Any) -> None:
+    def update_docs(
+        self, docs: List[Document], collection_name: str = None, batch_size=DEFAULT_BATCH_SIZE, **kwargs: Any
+    ) -> None:
         """Update documents, including their embeddings, in the Collection."""
         collection = self.get_collection(collection_name)
         self.upsert_docs(docs, collection, batch_size)
@@ -312,12 +319,11 @@ class CouchbaseVectorDB(VectorDB):
         collection = self.get_collection(collection_name)
         # based on batch size, delete the documents
         for i in range(0, len(ids), batch_size):
-            batch = ids[i:i + batch_size]
+            batch = ids[i : i + batch_size]
             collection.remove_multi(batch)
 
     def get_docs_by_ids(
-            self, ids: List[ItemID] | None = None, collection_name: str = None, include: List[str] | None = None,
-            **kwargs
+        self, ids: List[ItemID] | None = None, collection_name: str = None, include: List[str] | None = None, **kwargs
     ) -> List[Document]:
         """Retrieve documents from the collection of the vector database based on the ids."""
         if include is None:
@@ -340,18 +346,17 @@ class CouchbaseVectorDB(VectorDB):
         return [{k: v for k, v in doc.items() if k in include or k == "id"} for doc in docs]
 
     def retrieve_docs(
-            self,
-            queries: List[str],
-            collection_name: str = None,
-            n_results: int = 10,
-            distance_threshold: float = -1,
-            **kwargs,
+        self,
+        queries: List[str],
+        collection_name: str = None,
+        n_results: int = 10,
+        distance_threshold: float = -1,
+        **kwargs,
     ) -> QueryResults:
         """Retrieve documents from the collection of the vector database based on the queries.
         Note: Distance threshold is not supported in Couchbase FTS.
         """
-        
-        collection = self.get_collection(collection_name)
+
         results: QueryResults = []
         for query_text in queries:
             query_vector = np.array(self.embedding_function([query_text])).tolist()[0]
@@ -363,12 +368,7 @@ class CouchbaseVectorDB(VectorDB):
             results.append(query_result)
         return results
 
-    def _vector_search(
-            self,
-            embedding_vector: List[float],
-            n_results: int = 10,
-            **kwargs
-    ) -> List[Tuple[Dict, float]]:
+    def _vector_search(self, embedding_vector: List[float], n_results: int = 10, **kwargs) -> List[Tuple[Dict, float]]:
         """Core vector search using Couchbase FTS."""
 
         search_req = search.SearchRequest.create(
@@ -382,11 +382,7 @@ class CouchbaseVectorDB(VectorDB):
         )
 
         search_options = SearchOptions(limit=n_results, fields=["*"])
-        result = self.scope.search(
-            self.index_name,
-            search_req,
-            search_options
-        )
+        result = self.scope.search(self.index_name, search_req, search_options)
 
         docs_with_score = []
 
@@ -394,7 +390,7 @@ class CouchbaseVectorDB(VectorDB):
             doc = row.fields
             doc["id"] = row.id
             score = row.score
-            
+
             docs_with_score.append((doc, score))
 
         return docs_with_score

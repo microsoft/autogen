@@ -231,7 +231,7 @@ class VectorDBFactory:
             from .qdrant import QdrantVectorDB
 
             return QdrantVectorDB(**kwargs)
-        if db_type.lower() in ["couchbase", "couchbasedb","capella"]:
+        if db_type.lower() in ["couchbase", "couchbasedb", "capella"]:
             from .couchbase import CouchbaseVectorDB
 
             return CouchbaseVectorDB(**kwargs)
