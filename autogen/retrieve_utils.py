@@ -365,7 +365,7 @@ def create_vector_db_from_dir(
             embedding_function is not None.
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
-            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/guides/embeddings`.
         custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
             Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
         custom_text_types (Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
@@ -448,7 +448,7 @@ def query_vector_db(
             embedding_function is not None.
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
-            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/guides/embeddings`.
 
     Returns:
 
