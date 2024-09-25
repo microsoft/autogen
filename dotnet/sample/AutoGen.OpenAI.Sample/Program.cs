@@ -3,4 +3,4 @@
 
 using AutoGen.OpenAI.Sample;
 
-Tool_Call_With_Ollama_And_LiteLLM.RunAsync().Wait();
+Structural_Output.RunAsync().Wait();

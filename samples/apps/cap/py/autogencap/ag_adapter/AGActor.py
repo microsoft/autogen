@@ -1,7 +1,7 @@
 import zmq
 
 from autogencap.Actor import Actor
-from autogencap.Constants import Termination_Topic
+from autogencap.constants import Termination_Topic
 from autogencap.DebugLog import Debug
 
 

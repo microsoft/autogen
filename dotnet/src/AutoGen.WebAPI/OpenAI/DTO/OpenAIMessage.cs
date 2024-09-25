@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIChatCompletionOption.cs
+// OpenAIMessage.cs
 
 using System.Text.Json.Serialization;
 
-namespace AutoGen.Service.OpenAI.DTO;
+namespace AutoGen.WebAPI.OpenAI.DTO;
 
 [JsonConverter(typeof(OpenAIMessageConverter))]
 internal abstract class OpenAIMessage

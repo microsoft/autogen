@@ -36,6 +36,9 @@ def get_max_token_limit(model: str = "gpt-3.5-turbo-0613") -> int:
         "gpt-4-vision-preview": 128000,
         "gpt-4o": 128000,
         "gpt-4o-2024-05-13": 128000,
+        "gpt-4o-2024-08-06": 128000,
+        "gpt-4o-mini": 128000,
+        "gpt-4o-mini-2024-07-18": 128000,
     }
     return max_token_limit[model]
 
@@ -95,7 +98,7 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
-        print("Warning: model not found. Using cl100k_base encoding.")
+        logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
         encoding = tiktoken.get_encoding("cl100k_base")
     if model in {
         "gpt-3.5-turbo-0613",
@@ -166,7 +169,7 @@ def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613") -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
-        print("Warning: model not found. Using cl100k_base encoding.")
+        logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
         encoding = tiktoken.get_encoding("cl100k_base")
 
     num_tokens = 0
@@ -193,7 +196,7 @@ def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613") -> int:
                                 function_tokens += 3
                                 function_tokens += len(encoding.encode(o))
                         else:
-                            print(f"Warning: not supported field {field}")
+                            logger.warning(f"Not supported field {field}")
                 function_tokens += 11
                 if len(parameters["properties"]) == 0:
                     function_tokens -= 2

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// AnthropicClientAgent.cs
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -61,7 +64,7 @@ public class AnthropicClientAgent : IStreamingAgent
     {
         var chatCompletionRequest = new ChatCompletionRequest()
         {
-            SystemMessage = _systemMessage,
+            SystemMessage = [new SystemMessage { Text = _systemMessage }],
             MaxTokens = options?.MaxToken ?? _maxTokens,
             Model = _modelName,
             Stream = shouldStream,

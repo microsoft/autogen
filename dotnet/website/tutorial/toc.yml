@@ -6,3 +6,6 @@
 
 - name: Create agent with tools
   href: Create-agent-with-tools.md
+
+- name: Use AutoGen.Net agent as model in AG Studio
+  href: Use-AutoGen.Net-agent-as-model-in-AG-Studio.md

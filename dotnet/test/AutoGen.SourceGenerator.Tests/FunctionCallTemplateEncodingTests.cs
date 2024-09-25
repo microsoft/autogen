@@ -1,7 +1,9 @@
-// Using directives
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// FunctionCallTemplateEncodingTests.cs
+
 using System.Text.Json; // Needed for JsonSerializer
-using Xunit; // Needed for Fact and Assert
 using AutoGen.SourceGenerator.Template; // Needed for FunctionCallTemplate
+using Xunit; // Needed for Fact and Assert
 
 namespace AutoGen.SourceGenerator.Tests
 {

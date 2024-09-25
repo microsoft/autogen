@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(TestTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <IsTestProject>True</IsTestProject>
     <NoWarn>$(NoWarn);xUnit1013;SKEXP0110</NoWarn>
@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\src\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
+    <ProjectReference Include="..\AutoGen.Test.Share\AutoGen.Tests.Share.csproj" />
   </ItemGroup>
 
   <ItemGroup>

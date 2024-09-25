@@ -39,7 +39,7 @@ public class Example10_SemanticKernel
     public static async Task RunAsync()
     {
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var modelId = "gpt-3.5-turbo";
+        var modelId = "gpt-4o-mini";
         var builder = Kernel.CreateBuilder()
             .AddOpenAIChatCompletion(modelId: modelId, apiKey: openAIKey);
         var kernel = builder.Build();
