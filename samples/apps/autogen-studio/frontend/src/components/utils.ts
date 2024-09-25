@@ -266,6 +266,18 @@ export const sampleModelConfig = (modelType: string = "open_ai") => {
     description: "Google Gemini Model model",
   };
 
+  const anthropicConfig: IModelConfig = {
+    model: "claude-3-5-sonnet-20240620",
+    api_type: "anthropic",
+    description: "Claude 3.5 Sonnet model",
+  };
+
+  const mistralConfig: IModelConfig = {
+    model: "mistral",
+    api_type: "mistral",
+    description: "Mistral model",
+  };
+
   switch (modelType) {
     case "open_ai":
       return openaiConfig;
@@ -273,6 +285,10 @@ export const sampleModelConfig = (modelType: string = "open_ai") => {
       return azureConfig;
     case "google":
       return googleConfig;
+    case "anthropic":
+      return anthropicConfig;
+    case "mistral":
+      return mistralConfig;
     default:
       return openaiConfig;
   }
@@ -286,13 +302,36 @@ export const getRandomIntFromDateAndSalt = (salt: number = 43444) => {
   return randomInt;
 };
 
+export const getSampleWorkflow = (workflow_type: string = "autonomous") => {
+  const autonomousWorkflow: IWorkflow = {
+    name: "Default Chat Workflow",
+    description: "Autonomous Workflow",
+    type: "autonomous",
+    summary_method: "llm",
+  };
+  const sequentialWorkflow: IWorkflow = {
+    name: "Default Sequential Workflow",
+    description: "Sequential Workflow",
+    type: "sequential",
+    summary_method: "llm",
+  };
+
+  if (workflow_type === "autonomous") {
+    return autonomousWorkflow;
+  } else if (workflow_type === "sequential") {
+    return sequentialWorkflow;
+  } else {
+    return autonomousWorkflow;
+  }
+};
+
 export const sampleAgentConfig = (agent_type: string = "assistant") => {
   const llm_config: ILLMConfig = {
     config_list: [],
     temperature: 0.1,
     timeout: 600,
     cache_seed: null,
-    max_tokens: 1000,
+    max_tokens: 4000,
   };
 
   const userProxyConfig: IAgentConfig = {
@@ -357,90 +396,6 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
   }
 };
 
-export const sampleWorkflowConfig = (type = "twoagents") => {
-  const llm_model_config: IModelConfig[] = [];
-
-  const llm_config: ILLMConfig = {
-    config_list: llm_model_config,
-    temperature: 0.1,
-    timeout: 600,
-    cache_seed: null,
-    max_tokens: 1000,
-  };
-
-  const userProxyConfig: IAgentConfig = {
-    name: "userproxy",
-    human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 15,
-    system_message: "You are a helpful assistant.",
-    default_auto_reply: "TERMINATE",
-    llm_config: false,
-    code_execution_config: "local",
-  };
-  const userProxyFlowSpec: IAgent = {
-    type: "userproxy",
-    config: userProxyConfig,
-  };
-
-  const assistantConfig: IAgentConfig = {
-    name: "primary_assistant",
-    llm_config: llm_config,
-    human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 8,
-    code_execution_config: "none",
-    system_message:
-      "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
-  };
-
-  const assistantFlowSpec: IAgent = {
-    type: "assistant",
-    config: assistantConfig,
-  };
-
-  const workFlowConfig: IWorkflow = {
-    name: "Default Agent Workflow",
-    description: "Default Agent Workflow",
-    sender: userProxyFlowSpec,
-    receiver: assistantFlowSpec,
-    type: "twoagents",
-  };
-
-  const groupChatAssistantConfig = Object.assign(
-    {
-      admin_name: "groupchat_assistant",
-      messages: [],
-      max_round: 10,
-      speaker_selection_method: "auto",
-      allow_repeat_speaker: false,
-      description: "Group Chat Assistant",
-    },
-    assistantConfig
-  );
-  groupChatAssistantConfig.name = "groupchat_assistant";
-  groupChatAssistantConfig.system_message =
-    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
-
-  const groupChatFlowSpec: IAgent = {
-    type: "groupchat",
-    config: groupChatAssistantConfig,
-  };
-
-  const groupChatWorkFlowConfig: IWorkflow = {
-    name: "Default Group Workflow",
-    description: "Default Group  Workflow",
-    sender: userProxyFlowSpec,
-    receiver: groupChatFlowSpec,
-    type: "groupchat",
-  };
-
-  if (type === "twoagents") {
-    return workFlowConfig;
-  } else if (type === "groupchat") {
-    return groupChatWorkFlowConfig;
-  }
-  return workFlowConfig;
-};
-
 export const getSampleSkill = () => {
   const content = `
 from typing import List
@@ -495,7 +450,7 @@ def generate_and_save_images(query: str, image_size: str = "1024x1024") -> List[
   `;
 
   const skill: ISkill = {
-    name: "generate_images",
+    name: "generate_and_save_images",
     description: "Generate and save images based on a user's query.",
     content: content,
   };
@@ -612,7 +567,7 @@ export const fetchVersion = () => {
  */
 export const sanitizeConfig = (
   data: any,
-  keys: string[] = ["api_key", "id", "created_at", "updated_at"]
+  keys: string[] = ["api_key", "id", "created_at", "updated_at", "secrets"]
 ): any => {
   if (Array.isArray(data)) {
     return data.map((item) => sanitizeConfig(item, keys));

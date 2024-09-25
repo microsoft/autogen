@@ -1,12 +1,15 @@
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
+  CodeBracketIcon,
+  CodeBracketSquareIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
+  KeyIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message, MenuProps, Dropdown } from "antd";
+import { Button, Input, Modal, message, MenuProps, Dropdown, Tabs } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -25,6 +28,8 @@ import {
   LoadingOverlay,
   MonacoEditor,
 } from "../../atoms";
+import { SkillSelector } from "./utils/selectors";
+import { SkillConfigView } from "./utils/skillconfig";
 
 const SkillsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -109,38 +114,6 @@ const SkillsView = ({}: any) => {
     fetchJSON(listSkillsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveSkill = (skill: ISkill) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-    skill.user_id = user?.email;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(skill),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        const updatedSkills = [data.data].concat(skills || []);
-        setSkills(updatedSkills);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveSkillsUrl, payLoad, onSuccess, onError);
-  };
-
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
@@ -173,12 +146,8 @@ const SkillsView = ({}: any) => {
         icon: DocumentDuplicateIcon,
         onClick: (e: any) => {
           e.stopPropagation();
-          let newSkill = { ...skill };
-          newSkill.name = `${skill.name} Copy`;
-          newSkill.user_id = user?.email;
-          if (newSkill.id) {
-            delete newSkill.id;
-          }
+          let newSkill = { ...sanitizeConfig(skill) };
+          newSkill.name = `${skill.name}_copy`;
           setNewSkill(newSkill);
           setShowNewSkillModal(true);
         },
@@ -245,6 +214,15 @@ const SkillsView = ({}: any) => {
   }) => {
     const editorRef = React.useRef<any | null>(null);
     const [localSkill, setLocalSkill] = React.useState<ISkill | null>(skill);
+
+    const closeModal = () => {
+      setSkill(null);
+      setShowSkillModal(false);
+      if (handler) {
+        handler(skill);
+      }
+    };
+
     return (
       <Modal
         title={
@@ -258,54 +236,14 @@ const SkillsView = ({}: any) => {
         onCancel={() => {
           setShowSkillModal(false);
         }}
-        footer={[
-          <Button
-            key="back"
-            onClick={() => {
-              setShowSkillModal(false);
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={loading}
-            onClick={() => {
-              setShowSkillModal(false);
-              if (editorRef.current) {
-                const value = editorRef.current.getValue();
-                const updatedSkill = { ...localSkill, content: value };
-                setSkill(updatedSkill);
-                handler(updatedSkill);
-              }
-            }}
-          >
-            Save
-          </Button>,
-        ]}
+        footer={[]}
       >
         {localSkill && (
-          <div style={{ minHeight: "70vh" }}>
-            <div className="mb-2">
-              <Input
-                placeholder="Skill Name"
-                value={localSkill.name}
-                onChange={(e) => {
-                  const updatedSkill = { ...localSkill, name: e.target.value };
-                  setLocalSkill(updatedSkill);
-                }}
-              />
-            </div>
-
-            <div style={{ height: "70vh" }} className="h-full  mt-2 rounded">
-              <MonacoEditor
-                value={localSkill?.content}
-                language="python"
-                editorRef={editorRef}
-              />
-            </div>
-          </div>
+          <SkillConfigView
+            skill={localSkill}
+            setSkill={setLocalSkill}
+            close={closeModal}
+          />
         )}
       </Modal>
     );
@@ -367,17 +305,17 @@ const SkillsView = ({}: any) => {
         showSkillModal={showSkillModal}
         setShowSkillModal={setShowSkillModal}
         handler={(skill: ISkill) => {
-          saveSkill(skill);
+          fetchSkills();
         }}
       />
 
       <SkillModal
-        skill={newSkill}
+        skill={newSkill || sampleSkill}
         setSkill={setNewSkill}
         showSkillModal={showNewSkillModal}
         setShowSkillModal={setShowNewSkillModal}
         handler={(skill: ISkill) => {
-          saveSkill(skill);
+          fetchSkills();
         }}
       />
 

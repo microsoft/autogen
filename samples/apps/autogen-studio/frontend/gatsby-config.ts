@@ -1,5 +1,5 @@
 import type { GatsbyConfig } from "gatsby";
-import fs from 'fs';
+import fs from "fs";
 
 const envFile = `.env.${process.env.NODE_ENV}`;
 
@@ -14,7 +14,7 @@ require("dotenv").config({
 });
 
 const config: GatsbyConfig = {
-  pathPrefix: `${process.env.PREFIX_PATH_VALUE}`,
+  pathPrefix: process.env.PREFIX_PATH_VALUE || '',
   siteMetadata: {
     title: `AutoGen Studio [Beta]`,
     description: `Build Multi-Agent Apps`,
