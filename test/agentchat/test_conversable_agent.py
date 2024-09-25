@@ -689,6 +689,7 @@ def test_register_for_llm():
                             }
                         },
                         "required": ["cell"],
+                        "additionalProperties": False,
                     },
                 },
             }
@@ -722,6 +723,7 @@ def test_register_for_llm():
                             }
                         },
                         "required": ["script"],
+                        "additionalProperties": False,
                     },
                 },
             }
@@ -762,6 +764,7 @@ def test_register_for_llm_api_style_function():
                         }
                     },
                     "required": ["cell"],
+                    "additionalProperties": False,
                 },
             }
         ]
@@ -794,6 +797,7 @@ def test_register_for_llm_api_style_function():
                         }
                     },
                     "required": ["script"],
+                    "additionalProperties": False,
                 },
             }
         ]
@@ -916,6 +920,7 @@ def test_register_functions():
                             }
                         },
                         "required": ["cell"],
+                        "additionalProperties": False,
                     },
                 },
             }
