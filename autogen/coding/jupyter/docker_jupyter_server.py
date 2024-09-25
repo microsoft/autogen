@@ -60,7 +60,6 @@ WORKDIR "${HOME}"
         docker_env: Dict[str, str] = {},
         token: Union[str, GenerateToken] = GenerateToken(),
         **docker_kwargs: Any,
-        
     ):
         """Start a Jupyter kernel gateway server in a Docker container.
 
