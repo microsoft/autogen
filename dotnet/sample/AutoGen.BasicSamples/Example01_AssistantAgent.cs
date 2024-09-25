@@ -4,6 +4,8 @@
 using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.Core;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 /// <summary>
@@ -13,18 +15,12 @@ public static class Example01_AssistantAgent
 {
     public static async Task RunAsync()
     {
-        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
-        var config = new ConversableAgentConfig
-        {
-            Temperature = 0,
-            ConfigList = [gpt35],
-        };
-
-        // create assistant agent
-        var assistantAgent = new AssistantAgent(
+        var gpt4oMini = LLMConfiguration.GetOpenAIGPT4o_mini();
+        var assistantAgent = new OpenAIChatAgent(
+            chatClient: gpt4oMini,
             name: "assistant",
-            systemMessage: "You convert what user said to all uppercase.",
-            llmConfig: config)
+            systemMessage: "You convert what user said to all uppercase.")
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // talk to the assistant agent

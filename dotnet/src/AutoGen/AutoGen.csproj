@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <RootNamespace>AutoGen</RootNamespace>
   </PropertyGroup>
 
@@ -15,8 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoGen.LMStudio\AutoGen.LMStudio.csproj" />
+    <ProjectReference Include="..\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
+    <ProjectReference Include="..\AutoGen.AzureAIInference\AutoGen.AzureAIInference.csproj" />
     <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
+    <ProjectReference Include="..\AutoGen.Ollama\AutoGen.Ollama.csproj" />
+    <ProjectReference Include="..\AutoGen.Gemini\AutoGen.Gemini.csproj" />
     <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
@@ -24,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIV2Version)" />
   </ItemGroup>
   
   <ItemGroup>

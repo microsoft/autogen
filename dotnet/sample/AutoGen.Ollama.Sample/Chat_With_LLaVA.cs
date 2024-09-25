@@ -28,7 +28,7 @@ public class Chat_With_LLaVA
         #endregion Create_Ollama_Agent
 
         #region Send_Message
-        var image = Path.Combine("images", "background.png");
+        var image = Path.Combine("resource", "images", "background.png");
         var binaryData = BinaryData.FromBytes(File.ReadAllBytes(image), "image/png");
         var imageMessage = new ImageMessage(Role.User, binaryData);
         var textMessage = new TextMessage(Role.User, "what's in this image?");

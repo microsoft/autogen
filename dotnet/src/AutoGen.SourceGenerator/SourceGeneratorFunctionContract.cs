@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// FunctionContract.cs
+// SourceGeneratorFunctionContract.cs
 
 namespace AutoGen.SourceGenerator
 {

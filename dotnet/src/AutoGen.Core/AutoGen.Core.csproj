@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <RootNamespace>AutoGen.Core</RootNamespace>
   </PropertyGroup>
 
@@ -17,7 +17,10 @@
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net.Generation" Version="$(JsonSchemaVersion)" />
     <PackageReference Include="System.Memory.Data" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
   </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+   </ItemGroup>
 
 </Project>

@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// ContentConverter.cs
-
-using AutoGen.Anthropic.DTO;
-
+// ContentBaseConverter.cs
 
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AutoGen.Anthropic.DTO;
 namespace AutoGen.Anthropic.Converters;
 
 public sealed class ContentBaseConverter : JsonConverter<ContentBase>
@@ -24,6 +22,10 @@ public sealed class ContentBaseConverter : JsonConverter<ContentBase>
                     return JsonSerializer.Deserialize<TextContent>(text, options) ?? throw new InvalidOperationException();
                 case "image":
                     return JsonSerializer.Deserialize<ImageContent>(text, options) ?? throw new InvalidOperationException();
+                case "tool_use":
+                    return JsonSerializer.Deserialize<ToolUseContent>(text, options) ?? throw new InvalidOperationException();
+                case "tool_result":
+                    return JsonSerializer.Deserialize<ToolResultContent>(text, options) ?? throw new InvalidOperationException();
             }
         }
 
