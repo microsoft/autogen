@@ -14,7 +14,10 @@ from autogen.logger.logger_factory import LoggerFactory
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
+    from autogen.oai.bedrock import BedrockClient
+    from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
+    from autogen.oai.groq import GroqClient
     from autogen.oai.mistral import MistralAIClient
     from autogen.oai.together import TogetherClient
 
@@ -110,7 +113,17 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig
 
 
 def log_new_client(
-    client: Union[AzureOpenAI, OpenAI, GeminiClient, AnthropicClient, MistralAIClient, TogetherClient],
+    client: Union[
+        AzureOpenAI,
+        OpenAI,
+        GeminiClient,
+        AnthropicClient,
+        MistralAIClient,
+        TogetherClient,
+        GroqClient,
+        CohereClient,
+        BedrockClient,
+    ],
     wrapper: OpenAIWrapper,
     init_args: Dict[str, Any],
 ) -> None:

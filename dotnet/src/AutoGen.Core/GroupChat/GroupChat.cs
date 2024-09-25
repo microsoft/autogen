@@ -15,6 +15,7 @@ public class GroupChat : IGroupChat
     private List<IAgent> agents = new List<IAgent>();
     private IEnumerable<IMessage> initializeMessages = new List<IMessage>();
     private Graph? workflow = null;
+    private readonly IOrchestrator orchestrator;
 
     public IEnumerable<IMessage>? Messages { get; private set; }
 
@@ -35,6 +36,37 @@ public class GroupChat : IGroupChat
         this.agents = members.ToList();
         this.initializeMessages = initializeMessages ?? new List<IMessage>();
         this.workflow = workflow;
+
+        if (admin is not null)
+        {
+            this.orchestrator = new RolePlayOrchestrator(admin, workflow);
+        }
+        else if (workflow is not null)
+        {
+            this.orchestrator = new WorkflowOrchestrator(workflow);
+        }
+        else
+        {
+            this.orchestrator = new RoundRobinOrchestrator();
+        }
+
+        this.Validation();
+    }
+
+    /// <summary>
+    /// Create a group chat which uses the <paramref name="orchestrator"/> to decide the next speaker(s).
+    /// </summary>
+    /// <param name="members"></param>
+    /// <param name="orchestrator"></param>
+    /// <param name="initializeMessages"></param>
+    public GroupChat(
+        IEnumerable<IAgent> members,
+        IOrchestrator orchestrator,
+        IEnumerable<IMessage>? initializeMessages = null)
+    {
+        this.agents = members.ToList();
+        this.initializeMessages = initializeMessages ?? new List<IMessage>();
+        this.orchestrator = orchestrator;
 
         this.Validation();
     }
@@ -64,12 +96,6 @@ public class GroupChat : IGroupChat
                 throw new Exception("All agents in the workflow must be in the group chat.");
             }
         }
-
-        // must provide one of admin or workflow
-        if (this.admin == null && this.workflow == null)
-        {
-            throw new Exception("Must provide one of admin or workflow.");
-        }
     }
 
     /// <summary>
@@ -81,6 +107,7 @@ public class GroupChat : IGroupChat
     /// <param name="currentSpeaker">current speaker</param>
     /// <param name="conversationHistory">conversation history</param>
     /// <returns>next speaker.</returns>
+    [Obsolete("Please use RolePlayOrchestrator or WorkflowOrchestrator")]
     public async Task<IAgent> SelectNextSpeakerAsync(IAgent currentSpeaker, IEnumerable<IMessage> conversationHistory)
     {
         var agentNames = this.agents.Select(x => x.Name).ToList();
@@ -140,37 +167,40 @@ From {agentNames.First()}:
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
-        IEnumerable<IMessage>? conversationWithName = null,
+        IEnumerable<IMessage>? chatHistory = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
         var conversationHistory = new List<IMessage>();
-        if (conversationWithName != null)
+        conversationHistory.AddRange(this.initializeMessages);
+        if (chatHistory != null)
         {
-            conversationHistory.AddRange(conversationWithName);
+            conversationHistory.AddRange(chatHistory);
         }
+        var roundLeft = maxRound;
 
-        var lastSpeaker = conversationHistory.LastOrDefault()?.From switch
+        while (roundLeft > 0)
         {
-            null => this.agents.First(),
-            _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),
-        };
-        var round = 0;
-        while (round < maxRound)
-        {
-            var currentSpeaker = await this.SelectNextSpeakerAsync(lastSpeaker, conversationHistory);
-            var processedConversation = this.ProcessConversationForAgent(this.initializeMessages, conversationHistory);
-            var result = await currentSpeaker.GenerateReplyAsync(processedConversation) ?? throw new Exception("No result is returned.");
-            conversationHistory.Add(result);
-
-            // if message is terminate message, then terminate the conversation
-            if (result?.IsGroupChatTerminateMessage() ?? false)
+            var orchestratorContext = new OrchestrationContext
+            {
+                Candidates = this.agents,
+                ChatHistory = conversationHistory,
+            };
+            var nextSpeaker = await this.orchestrator.GetNextSpeakerAsync(orchestratorContext, ct);
+            if (nextSpeaker == null)
             {
                 break;
             }
 
-            lastSpeaker = currentSpeaker;
-            round++;
+            var result = await nextSpeaker.GenerateReplyAsync(conversationHistory, cancellationToken: ct);
+            conversationHistory.Add(result);
+
+            if (result.IsGroupChatTerminateMessage())
+            {
+                return conversationHistory;
+            }
+
+            roundLeft--;
         }
 
         return conversationHistory;

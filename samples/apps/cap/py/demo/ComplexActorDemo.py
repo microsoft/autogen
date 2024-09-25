@@ -1,7 +1,7 @@
 import time
 
 from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, RiskManager
-from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.runtime_factory import RuntimeFactory
 from termcolor import colored
 
 
@@ -14,7 +14,7 @@ def complex_actor_demo():
     sends them to the personal assistant agent, and terminates
     when the user enters "quit".
     """
-    ensemble = ComponentEnsemble()
+    ensemble = RuntimeFactory.get_runtime("ZMQ")
     # Register agents
     ensemble.register(PersonalAssistant())
     ensemble.register(FidelityAgent())

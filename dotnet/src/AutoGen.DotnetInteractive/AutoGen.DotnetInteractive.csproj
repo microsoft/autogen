@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AutoGen.DotnetInteractive</RootNamespace>
@@ -27,12 +27,14 @@
 	  <EmbeddedResource Include="RestoreInteractive.config" />
 	</ItemGroup>
 
-  <ItemGroup>
-		<PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotnetInteractive)" />
+    <PackageReference Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotnetInteractive)" />
+  </ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

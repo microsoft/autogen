@@ -34,7 +34,10 @@ public partial class SemanticKernelAgentTest
         var builder = Kernel.CreateBuilder()
             .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
+
         var kernel = builder.Build();
+
+        kernel.GetRequiredService<IChatCompletionService>();
 
         var skAgent = new SemanticKernelAgent(kernel, "assistant");
 
@@ -223,11 +226,10 @@ public partial class SemanticKernelAgentTest
             Kernel = kernel,
             Name = "assistant",
             Instructions = "You are a helpful AI assistant",
-            ExecutionSettings =
-                new OpenAIPromptExecutionSettings()
-                {
-                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-                }
+            Arguments = new KernelArguments(new OpenAIPromptExecutionSettings()
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            })
         };
         var skAgent =
             new SemanticKernelChatCompletionAgent(agent).RegisterMiddleware(
