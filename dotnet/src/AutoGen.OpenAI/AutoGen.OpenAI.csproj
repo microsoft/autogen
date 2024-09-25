@@ -11,11 +11,12 @@
     <Title>AutoGen.OpenAI</Title>
     <Description>
       OpenAI Intergration for AutoGen.
+      If your project still depends on Azure.AI.OpenAI v1, please use AutoGen.OpenAI.V1 package instead.
     </Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
+    <PackageReference Include="OpenAI" Version="$(OpenAISDKVersion)" />
   </ItemGroup>
 
   <ItemGroup>

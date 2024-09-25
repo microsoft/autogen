@@ -31,7 +31,7 @@ namespace AutoGen.Tests
             await Example02_TwoAgent_MathChat.RunAsync();
         }
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
+        [ApiKeyFact("OPENAI_API_KEY")]
         public async Task AgentFunctionCallTestAsync()
         {
             await Example03_Agent_FunctionCall.RunAsync();
