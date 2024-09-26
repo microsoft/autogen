@@ -46,7 +46,8 @@ repos:
               website/docs/tutorial/code-executors.ipynb |
               website/docs/topics/code-execution/custom-executor.ipynb |
               website/docs/topics/non-openai-models/cloud-gemini.ipynb |
-              notebook/.*
+              notebook/.* |
+              test/browser_utils/test_files/.*
             )$
   # See https://jaredkhan.com/blog/mypy-pre-commit
   - repo: local

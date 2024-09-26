@@ -81,7 +81,20 @@ extra_require = {
     "graph": ["networkx", "matplotlib"],
     "gemini": ["google-generativeai>=0.5,<1", "google-cloud-aiplatform", "google-auth", "pillow", "pydantic"],
     "together": ["together>=1.2"],
-    "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+    "websurfer": [
+        "beautifulsoup4",
+        "markdownify",
+        "pathvalidate",
+        # for mdconvert
+        "puremagic",  # File identification
+        "binaryornot",  # More file identification
+        "pdfminer.six",  # Pdf
+        "mammoth",  # Docx
+        "python-pptx",  # Ppts
+        "pandas",  # Xlsx
+        "openpyxl",
+        "youtube_transcript_api==0.6.0",  # Transcription
+    ],
     "redis": ["redis"],
     "cosmosdb": ["azure-cosmos>=4.2.0"],
     "websockets": ["websockets>=12.0,<13"],
