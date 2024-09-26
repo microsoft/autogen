@@ -81,16 +81,9 @@ def test_web_surfer() -> None:
             response = function_map["page_down"]()
         assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
 
-        # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["informational_web_search"](BING_QUERY)
-
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["navigational_web_search"](BING_QUERY)
-
         # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
         with pytest.raises(IndexError):
-            response = function_map["answer_from_page"]("When was it founded?")
+            response = function_map["read_page_and_answer"]("When was it founded?")
 
         with pytest.raises(IndexError):
             response = function_map["summarize_page"]()
@@ -155,7 +148,7 @@ def test_web_surfer_bing() -> None:
             "config_list": [
                 {
                     "model": "gpt-3.5-turbo-16k",
-                    "api_key": "sk-PLACEHOLDER_KEY",
+                    "api_key": MOCK_OPEN_AI_API_KEY,
                 }
             ]
         },
@@ -167,7 +160,7 @@ def test_web_surfer_bing() -> None:
 
     # Test informational queries
     response = function_map["informational_web_search"](BING_QUERY)
-    assert f"Address: bing: {BING_QUERY}" in response
+    assert f"Address: search: {BING_QUERY}" in response
     assert f"Title: {BING_QUERY} - Search" in response
     assert "Viewport position: Showing page 1 of 1." in response
     assert f"A Bing search for '{BING_QUERY}' found " in response

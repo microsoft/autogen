@@ -3,10 +3,10 @@
 
 #region Using
 using AutoGen.Core;
-using AutoGen.OpenAI.V1;
-using AutoGen.OpenAI.V1.Extension;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Microsoft.SemanticKernel;
+using OpenAI;
 #endregion Using
 
 namespace AutoGen.SemanticKernel.Sample;
@@ -17,7 +17,7 @@ public class Use_Kernel_Functions_With_Other_Agent
     {
         #region Create_plugin
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var modelId = "gpt-3.5-turbo";
+        var modelId = "gpt-4o-mini";
         var kernelBuilder = Kernel.CreateBuilder();
         var kernel = kernelBuilder.Build();
         var getWeatherFunction = KernelFunctionFactory.CreateFromMethod(
@@ -33,9 +33,8 @@ public class Use_Kernel_Functions_With_Other_Agent
 
         var openAIClient = new OpenAIClient(openAIKey);
         var openAIAgent = new OpenAIChatAgent(
-            openAIClient: openAIClient,
-            name: "assistant",
-            modelName: modelId)
+            chatClient: openAIClient.GetChatClient(modelId),
+            name: "assistant")
             .RegisterMessageConnector() // register message connector so it support AutoGen built-in message types like TextMessage.
             .RegisterMiddleware(kernelPluginMiddleware) // register the middleware to handle the plugin functions
             .RegisterPrintMessage(); // pretty print the message to the console

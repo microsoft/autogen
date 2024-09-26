@@ -209,10 +209,12 @@ class GPTAssistantAgent(ConversableAgent):
         for message in pending_messages:
             if message["content"].strip() == "":
                 continue
+            # Convert message roles to 'user' or 'assistant', by calling _map_role_for_api, to comply with OpenAI API spec
+            api_role = self._map_role_for_api(message["role"])
             self._openai_client.beta.threads.messages.create(
                 thread_id=assistant_thread.id,
                 content=message["content"],
-                role=message["role"],
+                role=api_role,
             )
 
         # Create a new run to get responses from the assistant
@@ -239,6 +241,28 @@ class GPTAssistantAgent(ConversableAgent):
 
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
         return True, response
+
+    def _map_role_for_api(self, role: str) -> str:
+        """
+        Maps internal message roles to the roles expected by the OpenAI Assistant API.
+
+        Args:
+            role (str): The role from the internal message.
+
+        Returns:
+            str: The mapped role suitable for the API.
+        """
+        if role in ["function", "tool"]:
+            return "assistant"
+        elif role == "system":
+            return "system"
+        elif role == "user":
+            return "user"
+        elif role == "assistant":
+            return "assistant"
+        else:
+            # Default to 'assistant' for any other roles not recognized by the API
+            return "assistant"
 
     def _get_run_response(self, thread, run):
         """

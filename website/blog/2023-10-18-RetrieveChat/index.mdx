@@ -4,7 +4,7 @@ authors: thinkall
 tags: [LLM, RAG]
 ---
 
-*Last update: August 14, 2024; AutoGen version: v0.2.35*
+*Last update: September 23, 2024; AutoGen version: v0.2.35*
 
 ![RAG Architecture](img/retrievechat-arch.png)
 
@@ -56,6 +56,8 @@ Please install pyautogen with the [retrievechat] option before using RAG agents.
 ```bash
 pip install "pyautogen[retrievechat]"
 ```
+
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 RetrieveChat can handle various types of documents. By default, it can process
 plain text and PDF files, including formats such as 'txt', 'json', 'csv', 'tsv',
@@ -174,7 +176,7 @@ huggingface_ef = embedding_functions.HuggingFaceEmbeddingFunction(
 )
 ```
 
-More examples can be found [here](https://docs.trychroma.com/embeddings).
+More examples can be found [here](https://docs.trychroma.com/guides/embeddings).
 
 ### Customizing Text Split Function
 Before we can store the documents into a vector database, we need to split the texts into chunks. Although
@@ -200,8 +202,8 @@ ragproxyagent = RetrieveUserProxyAgent(
 
 
 ### Customizing Vector Database
-We are using chromadb as the default vector database, you can also use mongodb, pgvectordb and qdrantdb
-by simply set `vector_db` to `mongodb`, `pgvector` and `qdrant` in `retrieve_config`, respectively.
+We are using chromadb as the default vector database, you can also use mongodb, pgvectordb, qdrantdb and couchbase
+by simply set `vector_db` to `mongodb`, `pgvector`, `qdrant` and `couchbase` in `retrieve_config`, respectively.
 
 To plugin any other dbs, you can also extend class `agentchat.contrib.vectordb.base`,
 check out the code [here](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/vectordb/base.py).

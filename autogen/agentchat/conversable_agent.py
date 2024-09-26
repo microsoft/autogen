@@ -1658,8 +1658,8 @@ class ConversableAgent(LLMAgent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if "function_call" in message:
-            func_call = message["function_call"]
+        func_call = message.get("function_call")
+        if func_call:
             func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
             if func and inspect.iscoroutinefunction(func):

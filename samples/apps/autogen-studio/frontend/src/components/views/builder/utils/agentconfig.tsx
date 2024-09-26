@@ -63,7 +63,7 @@ export const AgentConfigView = ({
   const llm_config: ILLMConfig = agent?.config?.llm_config || {
     config_list: [],
     temperature: 0.1,
-    max_tokens: 1000,
+    max_tokens: 4000,
   };
 
   const createAgent = (agent: IAgent) => {
@@ -193,8 +193,8 @@ export const AgentConfigView = ({
                   options={
                     [
                       { label: "NEVER", value: "NEVER" },
-                      // { label: "TERMINATE", value: "TERMINATE" },
-                      // { label: "ALWAYS", value: "ALWAYS" },
+                      { label: "TERMINATE", value: "TERMINATE" },
+                      { label: "ALWAYS", value: "ALWAYS" },
                     ] as any
                   }
                 />

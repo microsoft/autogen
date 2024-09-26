@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" Version="$(SemanticKernelVersion)" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="$(SemanticKernelExperimentalVersion)" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="$(SemanticKernelVersion)" />
   </ItemGroup>
 
   <ItemGroup>
