@@ -18,7 +18,7 @@ RUN pip install openai pillow aiohttp typing-extensions pydantic types-aiofiles 
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pytest
 
 # Pre-load packages needed for mdconvert file utils
-RUN pip install python-docx pdfminer.six python-pptx SpeechRecognition openpyxl pydub mammoth puremagic youtube_transcript_api==0.6.0 easyocr
+RUN pip install python-docx pdfminer.six python-pptx SpeechRecognition openpyxl pydub mammoth puremagic youtube_transcript_api==0.6.0
 
 # Pre-load Playwright
 RUN pip install playwright
@@ -27,9 +27,6 @@ RUN playwright install --with-deps chromium
 # Fix an incompatibility with numpy
 RUN pip uninstall --yes numpy
 RUN pip install "numpy<2.0"
-
-# Pre-load the OCR model
-RUN /usr/bin/echo -e "import easyocr\nreader = easyocr.Reader(['en'])" | python
 
 # Webarena (evaluation code)
 RUN pip install beartype aiolimiter

@@ -18,6 +18,7 @@ classifiers = [
 
 dependencies = [
     "autogen-core",
+    "beautifulsoup4",
     "aiofiles",
     "requests",
     "mammoth",
@@ -25,21 +26,15 @@ dependencies = [
     "numpy",
     "python-pptx",
     "pandas",
+    "openpyxl",
     "pdfminer.six",
     "puremagic",
-    "binaryornot",
     "pydub",
     "youtube-transcript-api",
     "SpeechRecognition",
     "pathvalidate",
     "playwright",
     "pydantic<3.0.0,>=2.0.0",
-]
-
-[project.optional-dependencies]
-ocr = [
-    "easyocr",
-    "torchvision>=0.12",
 ]
 
 [tool.uv]
