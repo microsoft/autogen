@@ -6,17 +6,17 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any, Union
 
-from autogenstudio.utils.utils import sanitize_model
-from pydantic import BaseModel
-
-from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
-from autogen.agentchat.contrib.agent_eval.criterion import Criterion
-from autogen.agentchat.contrib.agent_eval.task import Task
 from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from openai import OpenAIError
+from pydantic import BaseModel
+
+from autogen.agentchat.contrib.agent_eval.agent_eval import generate_criteria, quantify_criteria
+from autogen.agentchat.contrib.agent_eval.criterion import Criterion
+from autogen.agentchat.contrib.agent_eval.task import Task
+from autogenstudio.utils.utils import sanitize_model
 
 from ..chatmanager import AutoGenChatManager
 from ..database import workflow_from_id
@@ -504,7 +504,7 @@ class AgentEvalGenerate(BaseModel):
 
 @api.post("/agenteval/criteria/generate")
 async def generate_agenteval_criteria(params: AgentEvalGenerate):
-    if params.task_name=="" or str.isspace(params.task_name):
+    if params.task_name == "" or str.isspace(params.task_name):
         response: Response = Response(
             message="Task name is required.",
             status=False,
@@ -516,7 +516,7 @@ async def generate_agenteval_criteria(params: AgentEvalGenerate):
             status=False,
         )
         return response
-    
+
     task = Task(name=params.task_name, description=params.task_description, successful_response="", failed_response="")
     if params.success_session_id:
         task.successful_response = get_session(params.user_id, params.success_session_id)
@@ -524,7 +524,7 @@ async def generate_agenteval_criteria(params: AgentEvalGenerate):
         task.failed_response = get_session(params.user_id, params.failure_session_id)
 
     model = get_model(params.model_id)
-    if(type(model) is Response):
+    if type(model) is Response:
         return model
 
     criteria = generate_criteria(

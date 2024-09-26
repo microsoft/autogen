@@ -27,6 +27,7 @@ class Criterion(BaseModel):
         returns:
             [Criterion]: A list of Criterion objects that represents the json criteria information.
         """
+
         def parse_dict(crit: dict):
             if "sub_criteria" in crit:
                 crit["sub_criteria"] = [parse_dict(c) for c in crit["sub_criteria"]]

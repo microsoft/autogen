@@ -291,7 +291,7 @@ class Criteria(SQLModel, table=True):
     task_name: Optional[str]
     task_description: Optional[str]
     criteria: str = Field(sa_column=Column(JSON))
-    
+
 
 class Response(SQLModel):
     message: str
