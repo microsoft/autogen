@@ -28,19 +28,7 @@ import pptx
 # File-format detection
 import puremagic
 import requests
-from binaryornot.check import is_binary
 from bs4 import BeautifulSoup
-
-# Optional OCR support
-IS_OCR_CAPABLE = False
-try:
-    import easyocr
-    import numpy as np
-    import PIL
-
-    IS_OCR_CAPABLE = True
-except ModuleNotFoundError:
-    pass
 
 # Optional Transcription support
 IS_AUDIO_TRANSCRIPTION_CAPABLE = False
@@ -155,10 +143,9 @@ class PlainTextConverter(DocumentConverter):
         # Guess the content type from any file extension that might be around
         content_type, encoding = mimetypes.guess_type("__placeholder" + kwargs.get("file_extension", ""))
 
+        # Only work with text
         if content_type is None:
-            # No content type, so peek at the file and see if it's binary
-            if is_binary(local_path):
-                return None
+            return None
         elif "text/" not in content_type.lower():
             return None
 
@@ -725,8 +712,6 @@ class ImageConverter(MediaConverter):
         if extension.lower() not in [".jpg", ".jpeg", ".png"]:
             return None
 
-        ocr_min_confidence = kwargs.get("ocr_min_confidence", 0.25)
-
         md_content = ""
 
         # Add metadata
@@ -755,25 +740,6 @@ class ImageConverter(MediaConverter):
                 + self._get_mlm_description(local_path, extension, mlm_client, prompt=kwargs.get("mlm_prompt")).strip()
                 + "\n"
             )
-
-        if IS_OCR_CAPABLE:
-            image = PIL.Image.open(local_path)
-            # Remove transparency
-            if image.mode in ("RGBA", "P"):
-                image = image.convert("RGB")
-
-            reader = easyocr.Reader(["en"])  # specify the language(s)
-            output = reader.readtext(np.array(image))  # local_path)
-            # The output is a list of tuples, each containing the coordinates of the text and the text itself.
-            # We join all the text pieces together to get the final text.
-            ocr_text = " "
-            for item in output:
-                if item[2] >= ocr_min_confidence:
-                    ocr_text += item[1] + " "
-            ocr_text = ocr_text.strip()
-
-            if len(ocr_text) > 0:
-                md_content += "\n# Text detected by OCR:\n" + ocr_text
 
         return DocumentConverterResult(
             title=None,
