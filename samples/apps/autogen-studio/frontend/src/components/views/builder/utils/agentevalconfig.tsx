@@ -64,19 +64,17 @@ export const JsonCriteriaViewConfig = ({
     };
 
     const onSuccess = (data: any) => {
-      if (data) {
+      if (data.status) {
         const newCriteria = data;
         setCriteria(newCriteria);
+        close();
       } else {
         message.error(data.message);
       }
-      setLoading(false);
-      close();
     };
     const onError = (err: any) => {
       setError(err);
       message.error(err.message);
-      setLoading(false);
     };
     const onFinal = () => {
       setLoading(false);
@@ -349,14 +347,16 @@ export const CriteriaGenerateConfig = ({
     };
 
     const onSuccess = (data: any) => {
-      message.success("New criteria successfully generated.")
-      setLoading(false);
-      close();
+      if(data.status){
+        message.success("New criteria successfully generated.")
+        close();
+      } else {
+        message.error(data.message);
+      }
     };
     const onError = (err: any) => {
       setError(err);
       message.error(err.message);
-      setLoading(false);
     };
     const onFinal = () => {
       setLoading(false);
@@ -455,7 +455,6 @@ export const CriteriaGenerateConfig = ({
             <Select
               className="mt-2 w-full"
               onChange={(selectedValue: any) => {
-                console.log("SelectedValue: " + selectedValue)
                 setGenerateParams({...generateParams, model_id: selectedValue});
                 const selectedModel = models.find(model => model.id === selectedValue);
                 setSelectedModel(selectedModel ? selectedModel.model : "");
@@ -531,7 +530,6 @@ export const CriteriaGenerateConfig = ({
             type="primary"
             onClick={() => {
               generateCriteria(generateParams);
-              close();
             }}
             loading={loading}
           >
@@ -719,7 +717,6 @@ export const QuantifyCriteria = ({
             <Select
               className="mt-2 w-full"
               onChange={(selectedValue: any) => {
-                console.log("SelectedValue: " + selectedValue)
                 const selectedModel = models.find(model => model.id === selectedValue);
                 criteria.model_id = selectedModel?.id
                 setSelectedModel(selectedModel ? selectedModel.model : "");

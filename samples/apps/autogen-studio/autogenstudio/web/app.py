@@ -504,6 +504,12 @@ class AgentEvalGenerate(BaseModel):
 
 @api.post("/agenteval/criteria/generate")
 async def generate_agenteval_criteria(params: AgentEvalGenerate):
+    if params.task_name=="" or str.isspace(params.task_name):
+        response: Response = Response(
+            message="Task name is required.",
+            status=False,
+        )
+        return response
     if not params.success_session_id and not params.failure_session_id:
         response: Response = Response(
             message="At least one session is required to be selected.",
@@ -531,12 +537,18 @@ async def generate_agenteval_criteria(params: AgentEvalGenerate):
 
     criteria = Criterion.write_json(criteria)
     criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
-    create_entity(criteria_entry, Criteria)
+    criteria = create_entity(criteria_entry, Criteria)
     return criteria
 
 
 @api.post("/agenteval/criteria/create")
 async def create_agenteval_criteria(criteria: list[Criterion], task: Task):
+    if not task.name or str.isspace(task.name):
+        response: Response = Response(
+            message="Task name is required.",
+            status=False,
+        )
+        return response
     criteria = Criterion.write_json(criteria)
     criteria_entry = Criteria(task_name=task.name, task_description=task.description, criteria=criteria)
     create_entity(criteria_entry, Criteria)
@@ -591,7 +603,7 @@ def get_model(model_id: int):
         model = model[0]
     else:
         response: Response = Response(
-            message="Invalid model id",
+            message="Invalid model",
             status=False,
         )
         return response

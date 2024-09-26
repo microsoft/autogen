@@ -45,7 +45,6 @@ const AgentEvalView = ({ onBack }: any) => {
 
     const onSuccess = (data: any) => {
       if (data) {
-        console.log(data)
         setCriteria(data.data);
       } else {
         message.error(data.message);
@@ -89,11 +88,8 @@ const AgentEvalView = ({ onBack }: any) => {
   };
 
   React.useEffect(() => {
-    console.log("user: " + user)
     if (user) {
-      console.log("fetching messages", message);
       fetchCriteria();
-      console.log("done fetching", message);
     }
   }, []);
 
@@ -349,7 +345,7 @@ const AgentEvalView = ({ onBack }: any) => {
             <div className="  w-full text-center">
               {" "}
               <BounceLoader />{" "}
-              <span className="inline-block"> loading .. </span>
+              <span className="inline-block">loading .. </span>
             </div>
           )}
         </div>
