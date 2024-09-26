@@ -712,8 +712,6 @@ class ImageConverter(MediaConverter):
         if extension.lower() not in [".jpg", ".jpeg", ".png"]:
             return None
 
-        ocr_min_confidence = kwargs.get("ocr_min_confidence", 0.25)
-
         md_content = ""
 
         # Add metadata
