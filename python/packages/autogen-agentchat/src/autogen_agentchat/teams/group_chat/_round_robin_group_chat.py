@@ -8,9 +8,9 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.models import UserMessage
 
 from ...agents import BaseChatAgent
-from .._base_chat_agent_container import BaseChatAgentContainer
 from .._base_team import BaseTeam, TeamRunResult
-from .._messages import ContentPublishEvent, ContentRequestEvent
+from ._base_chat_agent_container import BaseChatAgentContainer
+from ._messages import ContentPublishEvent, ContentRequestEvent
 from ._round_robin_group_chat_manager import RoundRobinGroupChatManager
 
 

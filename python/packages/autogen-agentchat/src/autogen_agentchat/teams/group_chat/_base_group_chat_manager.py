@@ -5,7 +5,7 @@ from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import RoutedAgent, event
 from autogen_core.components.models import AssistantMessage, UserMessage
 
-from .._messages import ContentPublishEvent, ContentRequestEvent
+from ._messages import ContentPublishEvent, ContentRequestEvent
 
 
 class BaseGroupChatManager(RoutedAgent):

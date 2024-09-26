@@ -3,13 +3,14 @@ from typing import List
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, event
 
-from ..agents import BaseChatAgent, ChatMessage
+from ...agents import BaseChatAgent, ChatMessage
 from ._messages import ContentPublishEvent, ContentRequestEvent
 
 
 class BaseChatAgentContainer(RoutedAgent):
     """A core agent class that delegates message handling to an
-    :class:`autogen_agentchat.agents.BaseChatAgent` so that it can be used in a team.
+    :class:`autogen_agentchat.agents.BaseChatAgent` so that it can be used in a
+    group chat team.
 
     Args:
         parent_topic_type (str): The topic type of the parent orchestrator.
