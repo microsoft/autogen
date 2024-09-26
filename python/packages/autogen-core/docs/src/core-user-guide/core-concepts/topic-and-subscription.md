@@ -38,6 +38,13 @@ as the topic source to uniquely identifies the topic.
 Topic source allows the publisher to limit the scope of messages and create
 silos.
 
+Topic IDs can be converted to and from strings. the format of this string is:
+```{note}
+Topic_Type/Topic_Source
+```
+Types are considered valid if they are in UTF8 and only contain alphanumeric letters (a-z) and (0-9), or underscores (_). A valid identifier cannot start with a number, or contain any spaces.
+Sources are considered valid if they are in UTF8 and only contain characters between (inclusive) ascii 32 (space) and 126 (~).
+
 ## Subscription
 
 A subscription maps topic to agent IDs.

@@ -18,7 +18,7 @@ class AgentId:
         return hash((self._type, self._key))
 
     def __str__(self) -> str:
-        return f"{self._type}:{self._key}"
+        return f"{self._type}/{self._key}"
 
     def __repr__(self) -> str:
         return f'AgentId(type="{self._type}", key="{self._key}")'
@@ -30,7 +30,7 @@ class AgentId:
 
     @classmethod
     def from_str(cls, agent_id: str) -> Self:
-        items = agent_id.split(":", maxsplit=1)
+        items = agent_id.split("/", maxsplit=1)
         if len(items) != 2:
             raise ValueError(f"Invalid agent id: {agent_id}")
         type, key = items[0], items[1]

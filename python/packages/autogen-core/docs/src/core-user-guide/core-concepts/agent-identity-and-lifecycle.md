@@ -27,6 +27,11 @@ For example, different factory functions can produce the same
 agent class but with different constructor perameters.
 The agent key is an instance identifier
 for the given agent type.
+Agent IDs can be converted to and from strings. the format of this string is:
+```{note}
+Agent_Type/Agent_Key
+```
+Types and Keys are considered valid if they only contain alphanumeric letters (a-z) and (0-9), or underscores (_). A valid identifier cannot start with a number, or contain any spaces.
 
 In a multi-agent application, agent types are
 typically defined directly by the application, i.e., they
