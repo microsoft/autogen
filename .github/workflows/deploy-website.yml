@@ -17,7 +17,8 @@ on:
   merge_group:
     types: [checks_requested]
 permissions:
-  contents: write
+  id-token: write
+  pages: write
 jobs:
   checks:
     if: github.event_name != 'push'
