@@ -97,4 +97,5 @@ cookbook/llamaindex-agent
 cookbook/local-llms-ollama-litellm
 cookbook/instrumenting
 cookbook/topic-subscription-scenarios
+cookbook/azure-container-code-executor
 ```
