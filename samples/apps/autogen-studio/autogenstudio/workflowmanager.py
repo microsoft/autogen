@@ -930,7 +930,7 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
     ):
-        if self.message_processor:
+        if self.message_processor and not self.a_human_input_function:
             self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
         super().receive(message, sender, request_reply, silent)
 
@@ -1015,7 +1015,7 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
     ):
-        if self.message_processor:
+        if self.message_processor and not self.a_human_input_function:
             self.message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         super().receive(message, sender, request_reply, silent)
 
