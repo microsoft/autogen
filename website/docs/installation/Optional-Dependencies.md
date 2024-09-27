@@ -9,7 +9,7 @@ the option `redis`:
 pip install "pyautogen[redis]"
 ```
 
-See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
+See [LLM Caching](/docs/topics/llm-caching) for details.
 
 ## IPython Code Executor
 
