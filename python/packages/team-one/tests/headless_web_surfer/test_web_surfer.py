@@ -78,10 +78,11 @@ async def make_browser_request(browser: MultimodalWebSurfer, tool: ToolSchema, a
     return str((await browser._execute_tool(req, rects, "", use_ocr=False))[1][0])  # type: ignore
 
 
-@pytest.mark.skipif(
-    skip_all,
-    reason="do not run if dependency is not installed",
-)
+# @pytest.mark.skipif(
+#     skip_all,
+#     reason="do not run if dependency is not installed",
+# )
+@pytest.mark.skip(reason="Need to fix this test to use a local website instead of a public one.")
 @pytest.mark.asyncio
 async def test_web_surfer() -> None:
     env = {
