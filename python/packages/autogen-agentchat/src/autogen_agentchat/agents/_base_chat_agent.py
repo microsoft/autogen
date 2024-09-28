@@ -1,20 +1,56 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import List, Sequence
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.models import AssistantMessage, UserMessage
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResult
 from pydantic import BaseModel
 
 
-class ChatMessage(BaseModel):
-    """A chat message from a user or agent."""
+class BaseMessage(BaseModel):
+    """A base message."""
 
-    content: UserMessage | AssistantMessage
+    source: str
+    """The name of the agent that sent this message."""
+
+
+class TextMessage(BaseMessage):
+    """A text message."""
+
+    content: str
     """The content of the message."""
 
-    request_pause: bool
-    """A flag indicating whether the current conversation session should be
-    paused after processing this message."""
+
+class MultiModalMessage(BaseMessage):
+    """A multimodal message."""
+
+    content: List[str | Image]
+    """The content of the message."""
+
+
+class ToolCallMessage(BaseMessage):
+    """A message containing a list of function calls."""
+
+    content: List[FunctionCall]
+    """The list of function calls."""
+
+
+class ToolCallResultMessage(BaseMessage):
+    """A message containing the results of function calls."""
+
+    content: List[FunctionExecutionResult]
+    """The list of function execution results."""
+
+
+class StopMessage(BaseMessage):
+    """A message requesting stop of a conversation."""
+
+    content: str
+    """The content for the stop message."""
+
+
+ChatMessage = TextMessage | MultiModalMessage | ToolCallMessage | ToolCallResultMessage | StopMessage
+"""A message used by agents in a team."""
 
 
 class BaseChatAgent(ABC):

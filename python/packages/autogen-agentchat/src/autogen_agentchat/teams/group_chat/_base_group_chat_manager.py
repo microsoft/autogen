@@ -3,9 +3,9 @@ from typing import List
 
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import RoutedAgent, event
-from autogen_core.components.models import AssistantMessage, UserMessage
 
-from ._messages import ContentPublishEvent, ContentRequestEvent
+from ...agents import MultiModalMessage, StopMessage, TextMessage
+from ._events import ContentPublishEvent, ContentRequestEvent
 
 
 class BaseGroupChatManager(RoutedAgent):
@@ -47,7 +47,7 @@ class BaseGroupChatManager(RoutedAgent):
             raise ValueError("The group topic type must not be the same as the parent topic type.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[UserMessage | AssistantMessage] = []
+        self._message_thread: List[TextMessage | MultiModalMessage | StopMessage] = []
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
@@ -61,23 +61,27 @@ class BaseGroupChatManager(RoutedAgent):
         group_chat_topic_id = TopicId(type=self._group_topic_type, source=ctx.topic_id.source)
 
         # TODO: use something else other than print.
-        assert isinstance(message.content, UserMessage) or isinstance(message.content, AssistantMessage)
-        sys.stdout.write(f"{'-'*80}\n{message.content.source}:\n{message.content.content}\n")
+        sys.stdout.write(f"{'-'*80}\n{message.agent_message.source}:\n{message.agent_message.content}\n")
 
         # Process event from parent.
         if ctx.topic_id.type == self._parent_topic_type:
-            self._message_thread.append(message.content)
+            self._message_thread.append(message.agent_message)
             await self.publish_message(message, topic_id=group_chat_topic_id)
             return
 
         # Process event from the group chat this agent manages.
         assert ctx.topic_id.type == self._group_topic_type
-        self._message_thread.append(message.content)
+        self._message_thread.append(message.agent_message)
 
-        if message.request_pause:
+        # If the message is a stop message, publish the last message as a TextMessage to the parent topic.
+        # TODO: custom handling the final message.
+        if isinstance(message.agent_message, StopMessage):
             parent_topic_id = TopicId(type=self._parent_topic_type, source=ctx.topic_id.source)
             await self.publish_message(
-                ContentPublishEvent(content=message.content, request_pause=True), topic_id=parent_topic_id
+                ContentPublishEvent(
+                    agent_message=TextMessage(content=message.agent_message.content, source=self.metadata["type"])
+                ),
+                topic_id=parent_topic_id,
             )
             return
 
@@ -100,7 +104,7 @@ class BaseGroupChatManager(RoutedAgent):
         participant_topic_id = TopicId(type=speaker_topic_type, source=ctx.topic_id.source)
         await self.publish_message(ContentRequestEvent(), topic_id=participant_topic_id)
 
-    async def select_speaker(self, thread: List[UserMessage | AssistantMessage]) -> str:
+    async def select_speaker(self, thread: List[TextMessage | MultiModalMessage | StopMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         raise NotImplementedError("Method not implemented")

@@ -3,8 +3,8 @@ from typing import List
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, event
 
-from ...agents import BaseChatAgent, ChatMessage
-from ._messages import ContentPublishEvent, ContentRequestEvent
+from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage
+from ._events import ContentPublishEvent, ContentRequestEvent
 
 
 class BaseChatAgentContainer(RoutedAgent):
@@ -21,20 +21,26 @@ class BaseChatAgentContainer(RoutedAgent):
         super().__init__(description=agent.description)
         self._parent_topic_type = parent_topic_type
         self._agent = agent
-        self._message_buffer: List[ChatMessage] = []
+        self._message_buffer: List[TextMessage | MultiModalMessage | StopMessage] = []
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
         """Handle a content publish event by appending the content to the buffer."""
-        self._message_buffer.append(ChatMessage(content=message.content, request_pause=message.request_pause))
+        if not isinstance(message.agent_message, TextMessage | MultiModalMessage | StopMessage):
+            raise ValueError(
+                f"Unexpected message type: {type(message.agent_message)}. "
+                "The message must be a text, multimodal, or stop message."
+            )
+        self._message_buffer.append(message.agent_message)
 
     @event
     async def handle_content_request(self, message: ContentRequestEvent, ctx: MessageContext) -> None:
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
         response = await self._agent.on_messages(self._message_buffer, ctx.cancellation_token)
+        # TODO: handle tool call messages.
+        assert isinstance(response, TextMessage | MultiModalMessage | StopMessage)
         self._message_buffer.clear()
         await self.publish_message(
-            ContentPublishEvent(content=response.content, request_pause=response.request_pause),
-            topic_id=DefaultTopicId(type=self._parent_topic_type),
+            ContentPublishEvent(agent_message=response), topic_id=DefaultTopicId(type=self._parent_topic_type)
         )

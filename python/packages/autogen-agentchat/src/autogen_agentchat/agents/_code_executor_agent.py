@@ -2,9 +2,8 @@ from typing import List, Sequence
 
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
-from autogen_core.components.models import UserMessage
 
-from .._base_chat_agent import BaseChatAgent, ChatMessage
+from ._base_chat_agent import BaseChatAgent, ChatMessage, TextMessage
 
 
 class CodeExecutorAgent(BaseChatAgent):
@@ -21,14 +20,11 @@ class CodeExecutorAgent(BaseChatAgent):
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:
-            if isinstance(msg.content, UserMessage) and isinstance(msg.content.content, str):
-                code_blocks.extend(extract_markdown_code_blocks(msg.content.content))
+            if isinstance(msg, TextMessage):
+                code_blocks.extend(extract_markdown_code_blocks(msg.content))
         if code_blocks:
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
-            return ChatMessage(content=UserMessage(content=result.output, source=self.name), request_pause=False)
+            return TextMessage(content=result.output, source=self.name)
         else:
-            return ChatMessage(
-                content=UserMessage(content="No code blocks found in the thread.", source=self.name),
-                request_pause=False,
-            )
+            return TextMessage(content="No code blocks found in the thread.", source=self.name)

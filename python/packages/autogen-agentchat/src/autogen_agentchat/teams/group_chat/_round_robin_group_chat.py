@@ -5,12 +5,11 @@ from typing import Callable, List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
 from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components.models import UserMessage
 
-from ...agents import BaseChatAgent
+from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from ._base_chat_agent_container import BaseChatAgentContainer
-from ._messages import ContentPublishEvent, ContentRequestEvent
+from ._events import ContentPublishEvent, ContentRequestEvent
 from ._round_robin_group_chat_manager import RoundRobinGroupChatManager
 
 
@@ -106,7 +105,7 @@ class RoundRobinGroupChat(BaseTeam):
         team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
         group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         await runtime.publish_message(
-            ContentPublishEvent(content=UserMessage(content=task, source="user"), request_pause=False),
+            ContentPublishEvent(agent_message=TextMessage(content=task, source="user")),
             topic_id=team_topic_id,
         )
         await runtime.publish_message(ContentRequestEvent(), topic_id=group_chat_manager_topic_id)
@@ -121,7 +120,7 @@ class RoundRobinGroupChat(BaseTeam):
 
         assert (
             last_message is not None
-            and isinstance(last_message.content, UserMessage)
-            and isinstance(last_message.content.content, str)
+            and isinstance(last_message.agent_message, TextMessage)
+            and isinstance(last_message.agent_message.content, str)
         )
-        return TeamRunResult(last_message.content.content)
+        return TeamRunResult(last_message.agent_message.content)

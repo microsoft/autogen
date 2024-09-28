@@ -1,9 +1,15 @@
 from typing import List, Sequence
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
+from autogen_core.components.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    SystemMessage,
+    UserMessage,
+)
 
-from .._base_chat_agent import BaseChatAgent, ChatMessage
+from ._base_chat_agent import BaseChatAgent, ChatMessage, MultiModalMessage, StopMessage, TextMessage
 
 
 class CodingAssistantAgent(BaseChatAgent):
@@ -27,22 +33,26 @@ Reply "TERMINATE" in the end when everything is done."""
         super().__init__(name=name, description=self.DESCRIPTION)
         self._model_client = model_client
         self._system_messages = [SystemMessage(content=self.SYSTEM_MESSAGE)]
-        self._message_thread: List[UserMessage | AssistantMessage] = []
+        self._model_context: List[LLMMessage] = []
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        # Add messages to the thread.
+        # Add messages to the model context and detect stopping.
         for msg in messages:
-            self._message_thread.append(msg.content)
+            if not isinstance(msg, TextMessage | MultiModalMessage | StopMessage):
+                raise ValueError(f"Unsupported message type: {type(msg)}")
+            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
-        # Generate an inference result based on the thread.
-        llm_messages = self._system_messages + self._message_thread
+        # Generate an inference result based on the current model context.
+        llm_messages = self._system_messages + self._model_context
         result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
         assert isinstance(result.content, str)
 
-        # Add the response to the thread.
-        self._message_thread.append(AssistantMessage(content=result.content, source=self.name))
+        # Add the response to the model context.
+        self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
-        # Detect pause request.
-        request_pause = "terminate" in result.content.strip().lower()
+        # Detect stop request.
+        request_stop = "terminate" in result.content.strip().lower()
+        if request_stop:
+            return StopMessage(content=result.content, source=self.name)
 
-        return ChatMessage(content=UserMessage(content=result.content, source=self.name), request_pause=request_pause)
+        return TextMessage(content=result.content, source=self.name)
