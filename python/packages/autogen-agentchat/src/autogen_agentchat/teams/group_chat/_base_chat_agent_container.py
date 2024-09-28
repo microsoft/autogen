@@ -1,13 +1,14 @@
 from typing import List
 
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, event
+from autogen_core.components import DefaultTopicId, event
 
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage
 from ._events import ContentPublishEvent, ContentRequestEvent
+from ._sequential_routed_agent import SequentialRoutedAgent
 
 
-class BaseChatAgentContainer(RoutedAgent):
+class BaseChatAgentContainer(SequentialRoutedAgent):
     """A core agent class that delegates message handling to an
     :class:`autogen_agentchat.agents.BaseChatAgent` so that it can be used in a
     group chat team.

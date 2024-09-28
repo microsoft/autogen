@@ -2,13 +2,14 @@ import sys
 from typing import List
 
 from autogen_core.base import MessageContext, TopicId
-from autogen_core.components import RoutedAgent, event
+from autogen_core.components import event
 
 from ...agents import MultiModalMessage, StopMessage, TextMessage
 from ._events import ContentPublishEvent, ContentRequestEvent
+from ._sequential_routed_agent import SequentialRoutedAgent
 
 
-class BaseGroupChatManager(RoutedAgent):
+class BaseGroupChatManager(SequentialRoutedAgent):
     """Base class for a group chat manager that manages a group chat with multiple participants.
 
     It is the responsibility of the caller to ensure:
