@@ -1,6 +1,6 @@
 # Programming Model
 
-Understanding your workflow and mapping it to agents is the key to building an agent system in Starfleet.
+Understanding your workflow and mapping it to agents is the key to building an agent system in AutoGen.
 
 The programming model is basically publish-subscribe. Agents subscribe to events they care about and also can publish events that other agents may care about. Agents may also have additonal assets such as Memory, prompts, data sources, and skills (external APIs).
 
@@ -19,11 +19,11 @@ If is possible to build a functional and scalable agent system that only reacts 
 
 ## Built-in Event Types
 
-The Starfleet system comes with a set of built-in event types that are used to manage the system. These include:
+The AutoGen system comes with a set of built-in event types that are used to manage the system. These include:
 
 * System Events - Events that are used to manage the system itself. These include events for starting and stopping the Agents, sending messages to all agents, and other system-level events.
 * ? insert other types here ?
 
 ## Agent Contracts
 
-You may want to leverage more prescriptive agent behavior contracts, and Starfleet also includes base agents that implement different approaches to agent behavior, including layering request/response patterns on top of the event-driven model. For an example of this see the ChatAgents in the Python examples. In this case your agent will have a known set of events which it must implement and specific behaviors expected of those events.
+You may want to leverage more prescriptive agent behavior contracts, and AutoGen also includes base agents that implement different approaches to agent behavior, including layering request/response patterns on top of the event-driven model. For an example of this see the ChatAgents in the Python examples. In this case your agent will have a known set of events which it must implement and specific behaviors expected of those events.

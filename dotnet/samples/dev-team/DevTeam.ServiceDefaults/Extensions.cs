@@ -62,7 +62,7 @@ public static class Extensions
                        //.AddGrpcClientInstrumentation()
                        .AddHttpClientInstrumentation()
                        .AddSource("Microsoft.Orleans.Application")
-                       .AddSource("Starfleet.Agent");
+                       .AddSource("AutoGen.Agent");
             });
 
         builder.AddOpenTelemetryExporters();
