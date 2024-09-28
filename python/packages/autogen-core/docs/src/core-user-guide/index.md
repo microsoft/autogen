@@ -90,6 +90,7 @@ guides/multi-agent-debate
 
 cookbook/azure-openai-with-aad-auth
 cookbook/termination-with-intervention
+cookbook/tool-use-with-intervention
 cookbook/extracting-results-with-an-agent
 cookbook/openai-assistant-agent
 cookbook/langgraph-agent

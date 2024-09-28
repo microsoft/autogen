@@ -1,13 +1,11 @@
 # Examples
 
 This directory contains examples of how to use AutoGen core.
+See [user guide](../docs/src/core-user-guide/guides/) and
+[cookbooks](../docs/src/core-user-guide/cookbook/) for more examples.
 
 See [Running the examples](#running-the-examples) for instructions on how to run the examples.
 
-- [`coding_pub_sub.py`](coding_pub_sub.py): a code execution example with two agents, one for calling tool and one for executing the tool, to demonstrate tool use and reflection on tool use. This example uses broadcast communication.
-- [`coding_direct_with_intercept.py`](coding_direct_with_intercept.py): an example showing human-in-the-loop for approving or denying tool execution.
-- [`assistant.py`](assistant.py): a demonstration of how to use the OpenAI Assistant API to create
-    a ChatGPT agent.
 - [`chest_game.py`](chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 - [`slow_human_in_loop.py`](slow_human_in_loop.py): an example showing human-in-the-loop which waits for human input before making the tool call.
 
