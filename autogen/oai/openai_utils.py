@@ -106,7 +106,9 @@ def get_key(config: Dict[str, Any]) -> str:
 
 
 def is_valid_api_key(api_key: str) -> bool:
-    """Determine if input is valid OpenAI API key.
+    """Determine if input is valid OpenAI API key. As of 2024-09-24 there's no official definition of the key structure
+    so we will allow anything starting with "sk-" and having at least 48 alphanumeric (plus underscore and dash) characters.
+    Keys are known to start with "sk-", "sk-proj", "sk-None", and "sk-svcaat"
 
     Args:
         api_key (str): An input string to be validated.
@@ -114,7 +116,7 @@ def is_valid_api_key(api_key: str) -> bool:
     Returns:
         bool: A boolean that indicates if input is valid OpenAI API key.
     """
-    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
+    api_key_re = re.compile(r"^sk-[A-Za-z0-9_-]{48,}$")
     return bool(re.fullmatch(api_key_re, api_key))
 
 

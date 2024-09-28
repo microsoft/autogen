@@ -49,7 +49,7 @@ jupyter_executor = [
 
 retrieve_chat = [
     "protobuf==4.25.3",
-    "chromadb",
+    "chromadb==0.5.3",
     "sentence_transformers",
     "pypdf",
     "ipython",
