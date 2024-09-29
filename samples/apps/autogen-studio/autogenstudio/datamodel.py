@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 from sqlalchemy import ForeignKey, Integer, orm
 from sqlmodel import (
     JSON,
@@ -306,7 +306,7 @@ class ExportedAgent(BaseModel):
     skills: List[Skill]
     models: List[Model]
     agents: List["ExportedAgent"]
-    task_instruction: Optional[str]  = None
+    task_instruction: Optional[str] = None
 
 
 class ExportedAgentWithLink(BaseModel):
@@ -315,11 +315,11 @@ class ExportedAgentWithLink(BaseModel):
 
 class ExportedWorkflow(BaseModel):
     id: Optional[int] = None
-    user_id: str  = None
+    user_id: str = None
     name: str
     summary_method: str = WorkFlowSummaryMethod.last
     sample_tasks: Optional[List[str]]
-    version: str  = "0.0.1"
+    version: str = "0.0.1"
     description: str
     type: str = WorkFlowType.autonomous
     agents: List[ExportedAgentWithLink]
