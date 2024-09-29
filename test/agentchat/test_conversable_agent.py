@@ -1250,6 +1250,30 @@ def test_process_before_send():
     print_mock.assert_called_once_with(message="hello")
 
 
+@pytest.mark.asyncio
+async def test_a_process_before_send_async():
+    print_mock = unittest.mock.MagicMock()
+
+    # Updated to include sender parameter
+    async def a_send_to_frontend(sender, message, recipient, silent):
+        # Simulating an async operation with asyncio.sleep
+        await asyncio.sleep(1)
+
+        assert sender.name == "dummy_agent_1", "Sender is not the expected agent"
+        if not silent:
+            print(f"Message sent from {sender.name} to {recipient.name}: {message}")
+            print_mock(message=message)
+        return message
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("a_process_message_before_send", a_send_to_frontend)
+    await dummy_agent_1.a_send("hello", dummy_agent_2)
+    print_mock.assert_called_once_with(message="hello")
+    dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
+    print_mock.assert_called_once_with(message="hello")
+
+
 def test_messages_with_carryover():
     agent1 = autogen.ConversableAgent(
         "alice",
