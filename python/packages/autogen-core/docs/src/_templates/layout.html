@@ -16,12 +16,9 @@
         </ul>
       </div>
       <div class="col-6 col-md-4">
-        <h6>Community</h5>
-        <ul class="list-unstyled">
-          <li>
-            <a href="https://x.com/pyautogen" target="_blank">Twitter</a>
-          </li>
-        </ul>
+        <h6>
+          {% trans theme_version=theme_version|e %}Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> {{ theme_version }}.{% endtrans %}
+        </h6>
       </div>
     </div>
   </div>
