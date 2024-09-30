@@ -2905,7 +2905,7 @@ class ConversableAgent(LLMAgent):
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists["process_last_received_message"]
+        hook_list = self.hook_lists["a_process_last_received_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
