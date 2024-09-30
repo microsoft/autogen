@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // FunctionCallCodeSnippet.cs
 
 using AutoGen;
@@ -38,12 +38,11 @@ public partial class FunctionCallCodeSnippet
         var response = await assistantAgent.SendAsync("hello What's the weather in Seattle today? today is 2024-01-01");
         response.Should().BeOfType<ToolCallMessage>();
         var toolCallMessage = (ToolCallMessage)response;
-        toolCallMessage.ToolCalls.Count().Should().Be(1);
+        toolCallMessage.ToolCalls.Count.Should().Be(1);
         toolCallMessage.ToolCalls[0].FunctionName.Should().Be("WeatherReport");
         toolCallMessage.ToolCalls[0].FunctionArguments.Should().Be(@"{""location"":""Seattle"",""date"":""2024-01-01""}");
         #endregion code_snippet_4
     }
-
 
     public async Task CodeSnippet6()
     {

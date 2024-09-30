@@ -9,7 +9,7 @@ namespace AutoGen.DotnetInteractive;
 
 public partial class DotnetInteractiveFunction : IDisposable
 {
-    private readonly InteractiveService? _interactiveService = null;
+    private readonly InteractiveService? _interactiveService;
     private string _notebookPath;
     private readonly KernelInfoCollection _kernelInfoCollection = new KernelInfoCollection();
 
@@ -74,7 +74,7 @@ public partial class DotnetInteractiveFunction : IDisposable
     {
         if (this._interactiveService == null)
         {
-            throw new Exception("InteractiveService is not initialized.");
+            throw new ArgumentException("InteractiveService is not initialized.");
         }
 
         var result = await this._interactiveService.SubmitCSharpCodeAsync(code, default);
@@ -95,7 +95,7 @@ public partial class DotnetInteractiveFunction : IDisposable
             // if result is over 100 characters, only return the first 100 characters.
             if (result.Length > 100)
             {
-                result = result.Substring(0, 100) + " (...too long to present)";
+                result = $"{result.Substring(0, 100)} (...too long to present)";
 
                 return result;
             }
@@ -121,7 +121,7 @@ public partial class DotnetInteractiveFunction : IDisposable
     {
         if (this._interactiveService == null)
         {
-            throw new Exception("InteractiveService is not initialized.");
+            throw new ArgumentException("InteractiveService is not initialized.");
         }
 
         var codeSB = new StringBuilder();

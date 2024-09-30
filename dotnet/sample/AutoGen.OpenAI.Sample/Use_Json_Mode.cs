@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Use_Json_Mode.cs
 
 using System.Text.Json;
@@ -49,7 +49,6 @@ public class Use_Json_Mode
         person.Age.Should().Be(25);
         person.Address.Should().BeNullOrEmpty();
     }
-
 
     #region person_class
     public class Person

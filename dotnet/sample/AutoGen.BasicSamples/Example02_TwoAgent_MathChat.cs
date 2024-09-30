@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example02_TwoAgent_MathChat.cs
 
 using AutoGen.BasicSample;
@@ -12,7 +12,6 @@ public static class Example02_TwoAgent_MathChat
     {
         #region code_snippet_1
         var gpt4oMini = LLMConfiguration.GetOpenAIGPT4o_mini();
-
 
         // create teacher agent
         // teacher agent will create math questions

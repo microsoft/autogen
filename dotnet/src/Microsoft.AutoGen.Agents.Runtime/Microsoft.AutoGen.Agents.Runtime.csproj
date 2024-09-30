@@ -9,6 +9,7 @@
 		<Authors>Microsoft</Authors>
 		<Description>AutoGen Worker Server Library</Description>
 		<Tags>ai-agents;event-driven-agents</Tags>
+		<NoWarn>$(NoWarn);CS8002</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

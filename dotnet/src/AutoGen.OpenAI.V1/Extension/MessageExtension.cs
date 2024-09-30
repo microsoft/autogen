@@ -161,7 +161,6 @@ public static class MessageExtension
                     throw new ArgumentException("System message is not supported when message.From is the same with agent");
                 }
 
-
                 return [new ChatRequestAssistantMessage(textMessage.Content)];
             }
             else if (message is ToolCallMessage toolCallMessage)

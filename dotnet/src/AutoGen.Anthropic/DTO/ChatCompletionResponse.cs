@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatCompletionResponse.cs
 
-
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -36,7 +35,7 @@ public class ChatCompletionResponse
     public Delta? Delta { get; set; }
 
     [JsonPropertyName("message")]
-    public StreamingMessage? streamingMessage { get; set; }
+    public StreamingMessage? StreamingMessage { get; set; }
 }
 
 public class StreamingMessage

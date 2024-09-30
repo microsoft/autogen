@@ -12,7 +12,6 @@ public static class DotnetInteractiveKernelBuilder
         return new InProccessDotnetInteractiveKernelBuilder();
     }
 
-
     public static InProccessDotnetInteractiveKernelBuilder CreateDefaultInProcessKernelBuilder()
     {
         return new InProccessDotnetInteractiveKernelBuilder()

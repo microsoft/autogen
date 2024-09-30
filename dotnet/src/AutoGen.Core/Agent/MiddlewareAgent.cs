@@ -94,7 +94,7 @@ public class MiddlewareAgent : IMiddlewareAgent
         return namesPlusAgentName.Aggregate((a, b) => $"{a} -> {b}");
     }
 
-    private class DelegateAgent : IAgent
+    private sealed class DelegateAgent : IAgent
     {
         private readonly IAgent innerAgent;
         private readonly IMiddleware middleware;

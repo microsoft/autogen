@@ -1,13 +1,6 @@
 {
   "sdk": {
-<<<<<<< HEAD
     "version": "8.0.104",
     "rollForward": "latestMinor"
   }
 }
-=======
-    "rollForward": "major",
-    "version": "8.0.302"
-  }
-}
->>>>>>> agnext_main

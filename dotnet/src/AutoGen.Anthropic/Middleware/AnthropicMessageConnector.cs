@@ -235,7 +235,7 @@ public class AnthropicMessageConnector : IStreamingMiddleware
         };
     }
 
-    private IEnumerable<IMessage> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent agent)
+    private IEnumerable<IMessage> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent _)
     {
         var chatMessage = new ChatMessage("assistant", new List<ContentBase>());
         foreach (var toolCall in toolCallMessage.ToolCalls)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Anthropic_Agent_With_Prompt_Caching.cs
 
 using AutoGen.Anthropic.DTO;
@@ -128,6 +128,6 @@ public class Anthropic_Agent_With_Prompt_Caching
             messageEnvelope,
         };
 
-        var history = await groupChat.SendAsync(chatHistory).ToArrayAsync();
+        await groupChat.SendAsync(chatHistory).ToArrayAsync();
     }
 }

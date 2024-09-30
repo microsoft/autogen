@@ -165,7 +165,7 @@ public sealed class AnthropicClient : IDisposable
         }
     }
 
-    private class ContentBlock
+    private sealed class ContentBlock
     {
         [JsonPropertyName("type")]
         public string? Type { get; set; }
@@ -179,22 +179,23 @@ public sealed class AnthropicClient : IDisposable
         [JsonPropertyName("input")]
         public object? Input { get; set; }
 
-        public string? parameters { get; set; }
+        [JsonPropertyName("parameters")]
+        public string? Parameters { get; set; }
 
         public void AppendDeltaParameters(string deltaParams)
         {
-            StringBuilder sb = new StringBuilder(parameters);
+            StringBuilder sb = new StringBuilder(Parameters);
             sb.Append(deltaParams);
-            parameters = sb.ToString();
+            Parameters = sb.ToString();
         }
 
         public ToolUseContent CreateToolUseContent()
         {
-            return new ToolUseContent { Id = Id, Name = Name, Input = parameters };
+            return new ToolUseContent { Id = Id, Name = Name, Input = Parameters };
         }
     }
 
-    private class DataBlock
+    private sealed class DataBlock
     {
         [JsonPropertyName("content_block")]
         public ContentBlock? ContentBlock { get; set; }

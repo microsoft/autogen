@@ -59,7 +59,7 @@ dotnet_style_prefer_conditional_expression_over_assignment = false
 dotnet_style_prefer_auto_properties = false
 
 # Use language keywords instead of framework type names for type references
-dotnet_style_predefined_type_for_locals_parameters_members = true:error
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
 dotnet_style_predefined_type_for_member_access = true:error
 
 # Prefer read-only on fields
@@ -224,6 +224,14 @@ dotnet_diagnostic.IDE0035.severity = warning # Remove unreachable code
 dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
 
 csharp_style_var_elsewhere = true:suggestion # Prefer 'var' everywhere
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_namespace_declarations = block_scoped:silent
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_prefer_local_over_anonymous_function = true:suggestion
+dotnet_diagnostic.CA2016.severity = suggestion
 
 # disable check for generated code
 [*.generated.cs]
@@ -340,7 +348,7 @@ dotnet_diagnostic.CA1305.severity = suggestion
 dotnet_diagnostic.CA1507.severity = warning
 
 # CA1510: Use ArgumentNullException throw helper
-dotnet_diagnostic.CA1510.severity = warning
+dotnet_diagnostic.CA1510.severity = none
 
 # CA1511: Use ArgumentException throw helper
 dotnet_diagnostic.CA1511.severity = warning
@@ -482,16 +490,16 @@ dotnet_diagnostic.CA2013.severity = warning
 dotnet_diagnostic.CA2014.severity = warning
 
 # CA2016: Forward the 'CancellationToken' parameter to methods that take one
-dotnet_diagnostic.CA2016.severity = warning
+dotnet_diagnostic.CA2016.severity = none
 
 # CA2200: Rethrow to preserve stack details
 dotnet_diagnostic.CA2200.severity = warning
 
 # CA2201: Do not raise reserved exception types
-dotnet_diagnostic.CA2201.severity = warning
+dotnet_diagnostic.CA2201.severity = none
 
 # CA2208: Instantiate argument exceptions correctly
-dotnet_diagnostic.CA2208.severity = warning
+dotnet_diagnostic.CA2208.severity = none
 
 # CA2245: Do not assign a property to itself
 dotnet_diagnostic.CA2245.severity = warning
@@ -575,7 +583,7 @@ dotnet_diagnostic.CA1018.severity = suggestion
 # CA1507: Use nameof to express symbol names
 dotnet_diagnostic.CA1507.severity = suggestion
 # CA1510: Use ArgumentNullException throw helper
-dotnet_diagnostic.CA1510.severity = suggestion
+dotnet_diagnostic.CA1510.severity = none
 # CA1511: Use ArgumentException throw helper
 dotnet_diagnostic.CA1511.severity = suggestion
 # CA1512: Use ArgumentOutOfRangeException throw helper
@@ -641,7 +649,7 @@ dotnet_diagnostic.CA2008.severity = suggestion
 # CA2012: Use ValueTask correctly
 dotnet_diagnostic.CA2012.severity = suggestion
 # CA2201: Do not raise reserved exception types
-dotnet_diagnostic.CA2201.severity = suggestion
+dotnet_diagnostic.CA2201.severity = none
 # CA2249: Use string.Contains instead of string.IndexOf to improve readability.
 dotnet_diagnostic.CA2249.severity = suggestion
 # IDE0005: Remove unnecessary usings
@@ -678,10 +686,10 @@ dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4
 indent_size = 4
 end_of_line = crlf
-dotnet_style_coalesce_expression = true:suggestion
-dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:error
+dotnet_style_null_propagation = true:error
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
-dotnet_style_prefer_auto_properties = true:silent
+dotnet_style_prefer_auto_properties = false:silent
 dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:suggestion
 dotnet_style_prefer_simplified_boolean_expressions = true:suggestion

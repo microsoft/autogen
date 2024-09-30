@@ -48,7 +48,6 @@ namespace AutoGen.SourceGenerator
                     var filePath = ctx.Node.SyntaxTree.FilePath;
                     var fileName = Path.GetFileNameWithoutExtension(filePath);
 
-
                     var classDeclarationSyntax = ctx.Node as ClassDeclarationSyntax;
                     var nameSpace = classDeclarationSyntax?.Parent as NamespaceDeclarationSyntax;
                     var fullClassName = $"{nameSpace?.Name}.{classDeclarationSyntax!.Identifier}";

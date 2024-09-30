@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
       <OutputType>Exe</OutputType>
@@ -13,7 +13,7 @@
       <ProjectReference Include="..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
       <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
       <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
-      <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
+      <PackageReference Include="FluentAssertions" />
     </ItemGroup>
 
 </Project>

@@ -166,7 +166,6 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         }
     }
 
-
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(TextMessage message)
     {
         if (message.Role == Role.System)

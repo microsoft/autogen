@@ -47,11 +47,6 @@ public static class FunctionContractExtension
         propertySchemaBuilder = propertySchemaBuilder.Properties(propertiesSchemas);
         propertySchemaBuilder = propertySchemaBuilder.Required(requiredParameterNames);
 
-        var option = new System.Text.Json.JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        };
-
         functionDefinition.Parameters = propertySchemaBuilder.Build();
 
         return functionDefinition;

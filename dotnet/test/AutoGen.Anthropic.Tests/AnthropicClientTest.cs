@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicClientTest.cs
 
 using System.Text;
@@ -80,8 +80,8 @@ public class AnthropicClientTests
         person.Name.Should().Be("John");
         person.Age.Should().Be(41);
         person.Email.Should().Be("g123456@gmail.com");
-        Assert.NotNull(results.First().streamingMessage);
-        results.First().streamingMessage!.Role.Should().Be("assistant");
+        Assert.NotNull(results.First().StreamingMessage);
+        results.First().StreamingMessage!.Role.Should().Be("assistant");
     }
 
     [ApiKeyFact("ANTHROPIC_API_KEY")]

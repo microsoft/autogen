@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!--orleans doesn't have strong name package-->
+    <NoWarn>$(NoWarn);CS8002</NoWarn> 
   </PropertyGroup>
 
    <ItemGroup>

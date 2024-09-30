@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS8981;CS8600;CS8602;CS8604;CS8618;CS0219;SKEXP0054;SKEXP0050;SKEXP0110</NoWarn>
+    <NoWarn>$(NoWarn);CS8981;CS8600;CS8602;CS8604;CS8618;CS0219;SKEXP0054;SKEXP0050;SKEXP0110;IDE0059;IDE0200;IDE1006;CA1852;CA1854</NoWarn>
     <IncludeResourceFolder>true</IncludeResourceFolder>
   </PropertyGroup>
 
@@ -13,7 +13,7 @@
     <ProjectReference Include="..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
-    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(SemanticKernelExperimentalVersion)" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" />
   </ItemGroup>
 </Project>

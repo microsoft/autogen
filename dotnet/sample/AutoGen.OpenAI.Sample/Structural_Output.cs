@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Structural_Output.cs
 
 using System.Text.Json;
@@ -60,7 +60,6 @@ public class Structural_Output
         person.City.Should().Be("Seattle");
         person.Hobbies.Count.Should().Be(2);
     }
-
 
     #region person_class
     [Title("Person")]

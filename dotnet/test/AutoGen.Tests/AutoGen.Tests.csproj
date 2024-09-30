@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <IsTestProject>True</IsTestProject>
-    <NoWarn>$(NoWarn);xUnit1013;SKEXP0110</NoWarn>
+    <NoWarn>$(NoWarn);xUnit1013;SKEXP0110;CA1829;CA1826</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

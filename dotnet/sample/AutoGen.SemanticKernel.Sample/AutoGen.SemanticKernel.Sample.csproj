@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,7 +12,7 @@
     <ProjectReference Include="..\..\src\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(SemanticKernelExperimentalVersion)" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" />
   </ItemGroup>
 
 </Project>

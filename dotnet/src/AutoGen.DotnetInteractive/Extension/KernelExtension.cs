@@ -24,7 +24,7 @@ public static class KernelExtension
             var displayValues = res.Events.Where(x => x is StandardErrorValueProduced || x is StandardOutputValueProduced || x is ReturnValueProduced || x is DisplayedValueProduced)
                     .SelectMany(x => (x as DisplayEvent)!.FormattedValues);
 
-            if (displayValues is null || displayValues.Count() == 0)
+            if (displayValues is null || !displayValues.Any())
             {
                 return null;
             }
@@ -76,6 +76,6 @@ public static class KernelExtension
         }
     }
 
-    private static Exception GetException(this CommandFailed commandFailedEvent)
-        => new Exception(commandFailedEvent.Message);
+    private static ArgumentException GetException(this CommandFailed commandFailedEvent)
+        => new ArgumentException(commandFailedEvent.Message);
 }

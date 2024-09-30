@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example10_SemanticKernel.cs
 
 using System.ComponentModel;
@@ -12,7 +12,7 @@ namespace AutoGen.BasicSample;
 
 public class LightPlugin
 {
-    public bool IsOn { get; set; } = false;
+    public bool IsOn { get; set; }
 
     [KernelFunction]
     [Description("Gets the state of the light.")]

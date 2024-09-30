@@ -266,7 +266,7 @@ public class GeminiMessageConnector : IStreamingMiddleware
         }
     }
 
-    private IEnumerable<IMessage> ProcessToolCallResultMessage(ToolCallResultMessage toolCallResultMessage, IAgent agent)
+    private IEnumerable<IMessage> ProcessToolCallResultMessage(ToolCallResultMessage toolCallResultMessage, IAgent _)
     {
         var functionCallResultParts = new List<Part>();
         foreach (var toolCallResult in toolCallResultMessage.ToolCalls)

@@ -24,7 +24,7 @@ namespace AutoGen.OpenAI.V1;
 /// </summary>
 public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
 {
-    private bool strictMode = false;
+    private bool strictMode;
 
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatRequestMessageConnector"/>.

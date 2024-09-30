@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example12_TwoAgent_Fill_Application.cs
 
 using System.Text;
@@ -10,11 +10,11 @@ namespace AutoGen.BasicSample;
 
 public partial class TwoAgent_Fill_Application
 {
-    private string? name = null;
-    private string? email = null;
-    private string? phone = null;
-    private string? address = null;
-    private bool? receiveUpdates = null;
+    private string? name;
+    private string? email;
+    private string? phone;
+    private string? address;
+    private bool? receiveUpdates;
 
     [Function]
     public async Task<string> SaveProgress(

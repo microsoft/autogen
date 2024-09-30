@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // CreateAnAgent.cs
 
 using AutoGen;
@@ -87,7 +87,7 @@ public partial class AssistantCodeSnippet
         var response = await assistantAgent.SendAsync("hello");
         response.Should().BeOfType<ToolCallMessage>();
         var toolCallMessage = (ToolCallMessage)response;
-        toolCallMessage.ToolCalls.Count().Should().Be(1);
+        toolCallMessage.ToolCalls.Count.Should().Be(1);
         toolCallMessage.ToolCalls.First().FunctionName.Should().Be("UpperCase");
         #endregion code_snippet_4
     }

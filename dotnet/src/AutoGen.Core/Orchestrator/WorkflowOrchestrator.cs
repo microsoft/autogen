@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // WorkflowOrchestrator.cs
 
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,7 +34,7 @@ public class WorkflowOrchestrator : IOrchestrator
         {
             return null;
         }
-        var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory);
+        var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory, cancellationToken);
         nextAgents = nextAgents.Where(nextAgent => candidates.Any(candidate => candidate.Name == nextAgent.Name));
         candidates = nextAgents.ToList();
         if (!candidates.Any())
@@ -47,7 +48,7 @@ public class WorkflowOrchestrator : IOrchestrator
         }
         else
         {
-            throw new System.Exception("There are more than one available agents from the workflow for the next speaker.");
+            throw new ArgumentException("There are more than one available agents from the workflow for the next speaker.");
         }
     }
 }

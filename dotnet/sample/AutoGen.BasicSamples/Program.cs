@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Program.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 //await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync();
 
@@ -23,7 +22,6 @@ allSamples.Add(new Tuple<string, Func<Task>>("Two Agent - Fill Application", asy
 allSamples.Add(new Tuple<string, Func<Task>>("Mistal Client Agent - Token Count", async () => { await Example14_MistralClientAgent_TokenCount.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("GPT4v - Binary Data Image", async () => { await Example15_GPT4V_BinaryDataImageMessage.RunAsync(); }));
 allSamples.Add(new Tuple<string, Func<Task>>("ReAct Agent", async () => { await Example17_ReActAgent.RunAsync(); }));
-
 
 int idx = 1;
 Dictionary<int, Tuple<string, Func<Task>>> map = new Dictionary<int, Tuple<string, Func<Task>>>();
@@ -54,6 +52,3 @@ while (true)
         await map[val].Item2.Invoke();
     }
 }
-
-
-

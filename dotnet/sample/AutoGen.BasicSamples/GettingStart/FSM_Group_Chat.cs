@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // FSM_Group_Chat.cs
 
 using System.Text;
@@ -15,11 +15,11 @@ namespace AutoGen.BasicSample;
 #region FillFormTool
 public partial class FillFormTool
 {
-    private string? name = null;
-    private string? email = null;
-    private string? phone = null;
-    private string? address = null;
-    private bool? receiveUpdates = null;
+    private string? name;
+    private string? email;
+    private string? phone;
+    private string? address;
+    private bool? receiveUpdates;
 
     [Function]
     public async Task<string> SaveProgress(

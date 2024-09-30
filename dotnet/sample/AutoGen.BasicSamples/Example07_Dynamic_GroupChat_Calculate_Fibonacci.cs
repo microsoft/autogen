@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs
 
 using System.Text;
@@ -87,7 +87,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             defaultReply: "No code available.")
             .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
-                if (msgs.Count() == 0 || msgs.All(msg => msg.From != "coder"))
+                if (msgs.Any() || msgs.All(msg => msg.From != "coder"))
                 {
                     return new TextMessage(Role.Assistant, "No code available. Coder please write code");
                 }
@@ -156,7 +156,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
                 while (maxRetry-- > 0)
                 {
-                    if (reply.GetToolCalls() is var toolCalls && toolCalls.Count() == 1 && toolCalls[0].FunctionName == nameof(ReviewCodeBlock))
+                    if (reply.GetToolCalls() is var toolCalls && toolCalls.Count == 1 && toolCalls[0].FunctionName == nameof(ReviewCodeBlock))
                     {
                         var toolCallResult = reply.GetContent();
                         var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(toolCallResult);

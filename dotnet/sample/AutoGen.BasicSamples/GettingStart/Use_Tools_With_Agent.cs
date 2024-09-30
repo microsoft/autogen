@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Use_Tools_With_Agent.cs
 
 #region Using
@@ -93,13 +93,13 @@ public class Use_Tools_With_Agent
 
         #region verify_parallel_tool_call_reply
         reply.Should().BeOfType<ToolCallAggregateMessage>();
-        (reply as ToolCallAggregateMessage)!.Message1.ToolCalls.Count().Should().Be(3);
+        (reply as ToolCallAggregateMessage)!.Message1.ToolCalls.Count.Should().Be(3);
         #endregion verify_parallel_tool_call_reply
 
         #region Multi_Turn_Parallel_Tool_Call
         finalReply = await agent.SendAsync(chatHistory: [question, reply]);
         finalReply.Should().BeOfType<ToolCallAggregateMessage>();
-        (finalReply as ToolCallAggregateMessage)!.Message1.ToolCalls.Count().Should().Be(3);
+        (finalReply as ToolCallAggregateMessage)!.Message1.ToolCalls.Count.Should().Be(3);
         #endregion Multi_Turn_Parallel_Tool_Call
     }
 
