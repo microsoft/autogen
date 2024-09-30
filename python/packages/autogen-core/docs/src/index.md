@@ -46,11 +46,9 @@ Task driven, high level APIs for building multi-agent systems. Including group c
 Built with <i>core</i>.
 <p>
 
-<div class="highlight-sh notranslate"><div class="highlight"><pre id="codecell1" tabindex="-1">
-<a href="packages/index.html#pkg-info-autogen-agentchat">Installation instructions</a>
-</pre>
-</div>
-</div>
+```sh
+pip install autogen-agentchat==0.4.0dev0
+```
 
 <button onclick="location.href='agentchat-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
 <button onclick="location.href='reference/python/autogen_agentchat/autogen_agentchat.html'" type="button" class="btn btn-outline-secondary">API Reference</button>
@@ -71,11 +69,9 @@ Built with <i>core</i>.
 Primitive building blocks for creating asynchronous, event driven multi-agent systems.
 <p>
 
-<div class="highlight-sh notranslate"><div class="highlight"><pre id="codecell1" tabindex="-1">
-<a href="packages/index.html#pkg-info-autogen-core">Installation instructions</a>
-</pre>
-</div>
-</div>
+```sh
+pip install autogen-core==0.4.0dev0
+```
 
 <button onclick="location.href='core-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
 <button onclick="location.href='reference/python/autogen_core/autogen_core.html'" type="button" class="btn btn-outline-secondary">API Reference</button>

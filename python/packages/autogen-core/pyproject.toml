@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.3.dev0"
+version = "0.4.0dev0"
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
 requires-python = ">=3.10"

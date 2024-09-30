@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-agentchat"
-version = "0.3.0dev0"
+version = "0.4.0dev0"
 description = "AutoGen agent and group chat library"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,8 +13,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["autogen-core",
-
+dependencies = [
+    "autogen-core==0.4.0dev0",
 ]
 
 [tool.uv]

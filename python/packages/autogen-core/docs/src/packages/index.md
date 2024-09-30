@@ -28,9 +28,7 @@ myst:
 Library that is at a similar level of abstraction as AutoGen 0.2, including default agents and group chat.
 
 ```sh
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-core
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-ext
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-agentchat
+pip install autogen-agentchat==0.4.0dev0
 ```
 
 ```{note}
@@ -48,7 +46,7 @@ This package is a work in progress, it will be available on PyPI when it is read
 Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
 
 ```sh
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-core
+pip install autogen-core==0.4.0dev0
 ```
 
 ```{note}
@@ -65,8 +63,7 @@ This package is a work in progress, it will be available on PyPI when it is read
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
 ```sh
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-core
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-ext
+pip install autogen-ext==0.4.0dev0
 ```
 
 ```{note}
@@ -84,8 +81,7 @@ This package is a work in progress, it will be available on PyPI when it is read
 A generalist multi-agent softbot utilizing five agents to tackle intricate tasks involving multi-step planning and real-world actions.
 
 ```sh
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-core
-pip install git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-team-one
+pip install autogen-team-one==0.1.0dev0
 ```
 
 ```{note}
