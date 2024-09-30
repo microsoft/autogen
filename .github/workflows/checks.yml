@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |
@@ -85,14 +85,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} pyright
         working-directory: ./python
-
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -110,7 +109,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+
         working-directory: ./python
       - name: Run task
         run: |
@@ -129,7 +131,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |
@@ -145,7 +147,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
         working-directory: ./python
       - name: Run task
         run: |

@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: |
-          uv sync --locked
+          uv sync --locked --all-extras
           source .venv/bin/activate
           poe --directory ./packages/autogen-core docs-build
           mkdir -p docs-staging/autogen/dev/
