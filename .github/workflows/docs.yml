@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: 'true'
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: actions/setup-python@v5
         with:
