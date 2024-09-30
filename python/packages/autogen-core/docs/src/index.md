@@ -47,7 +47,7 @@ Built with <i>core</i>.
 <p>
 
 <div class="highlight-sh notranslate"><div class="highlight"><pre id="codecell1" tabindex="-1">
-<a href="/packages/index.html#pkg-info-autogen-agentchat">Installation instructions</a>
+<a href="packages/index.html#pkg-info-autogen-agentchat">Installation instructions</a>
 </pre>
 </div>
 </div>
@@ -72,7 +72,7 @@ Primitive building blocks for creating asynchronous, event driven multi-agent sy
 <p>
 
 <div class="highlight-sh notranslate"><div class="highlight"><pre id="codecell1" tabindex="-1">
-<a href="/packages/index.html#pkg-info-autogen-core">Installation instructions</a>
+<a href="packages/index.html#pkg-info-autogen-core">Installation instructions</a>
 </pre>
 </div>
 </div>
