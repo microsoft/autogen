@@ -42,8 +42,9 @@ def test_initialization():
     with pytest.raises(AssertionError) as assertinfo:
         CerebrasClient()  # Should raise an AssertionError due to missing api_key
 
-    assert "Please include the api_key in your config list entry for Cerebras or set the CEREBRAS_API_KEY env variable." in str(
-        assertinfo.value
+    assert (
+        "Please include the api_key in your config list entry for Cerebras or set the CEREBRAS_API_KEY env variable."
+        in str(assertinfo.value)
     )
 
     # Creation works
@@ -137,11 +138,15 @@ def test_cost_calculation(mock_response):
         cost=None,
         model="llama3.1-70b",
     )
-    calculated_cost = calculate_cerebras_cost(response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model)
+    calculated_cost = calculate_cerebras_cost(
+        response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model
+    )
 
     # Convert cost per milliion to cost per token.
-    expected_cost = response.usage["prompt_tokens"] * 0.6 / 1000000 + response.usage["completion_tokens"] * 0.6 / 1000000
-   
+    expected_cost = (
+        response.usage["prompt_tokens"] * 0.6 / 1000000 + response.usage["completion_tokens"] * 0.6 / 1000000
+    )
+
     assert calculated_cost == expected_cost, f"Cost for this should be ${expected_cost} but got ${calculated_cost}"
 
 
@@ -233,7 +238,9 @@ def test_create_response_with_tool_call(mock_chat, cerebras_client):
     ]
 
     # Call the create method
-    response = cerebras_client.create({"messages": cerebras_messages, "tools": converted_functions, "model": "llama3.1-70b"})
+    response = cerebras_client.create(
+        {"messages": cerebras_messages, "tools": converted_functions, "model": "llama3.1-70b"}
+    )
 
     # Assertions to check if the functions and content are included in the response
     assert response.choices[0].message.content == "Sample text about the functions"

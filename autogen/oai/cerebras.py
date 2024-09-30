@@ -42,7 +42,7 @@ CEREBRAS_PRICING_1K = {
 class CerebrasClient:
     """Client for Cerebras's API."""
 
-    def __init__(self, api_key = None, **kwargs):
+    def __init__(self, api_key=None, **kwargs):
         """Requires api_key or environment variable to be set
 
         Args:
@@ -98,7 +98,9 @@ class CerebrasClient:
         cerebras_params["max_tokens"] = validate_parameter(params, "max_tokens", int, True, None, (0, None), None)
         cerebras_params["seed"] = validate_parameter(params, "seed", int, True, None, None, None)
         cerebras_params["stream"] = validate_parameter(params, "stream", bool, True, False, None, None)
-        cerebras_params["temperature"] = validate_parameter(params, "temperature", (int, float), True, 1, (0, 1.5), None)
+        cerebras_params["temperature"] = validate_parameter(
+            params, "temperature", (int, float), True, 1, (0, 1.5), None
+        )
         cerebras_params["top_p"] = validate_parameter(params, "top_p", (int, float), True, None, None, None)
 
         return cerebras_params
