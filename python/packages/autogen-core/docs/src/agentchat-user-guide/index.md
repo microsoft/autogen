@@ -17,4 +17,5 @@ myst:
 :hidden:
 
 guides/quickstart
+guides/tool_use
 ```

@@ -58,6 +58,8 @@ class BaseChatAgent(ABC):
 
     def __init__(self, name: str, description: str) -> None:
         self._name = name
+        if self._name.isidentifier() is False:
+            raise ValueError("The agent name must be a valid Python identifier.")
         self._description = description
 
     @property

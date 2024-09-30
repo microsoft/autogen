@@ -9,11 +9,15 @@ from ._base_chat_agent import BaseChatAgent, ChatMessage, TextMessage
 class CodeExecutorAgent(BaseChatAgent):
     """An agent that executes code snippets and report the results."""
 
-    DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
-
-    def __init__(self, name: str, code_executor: CodeExecutor):
+    def __init__(
+        self,
+        name: str,
+        code_executor: CodeExecutor,
+        *,
+        description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
+    ) -> None:
         """Initialize the agent with a code executor."""
-        super().__init__(name=name, description=self.DESCRIPTION)
+        super().__init__(name=name, description=description)
         self._code_executor = code_executor
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:

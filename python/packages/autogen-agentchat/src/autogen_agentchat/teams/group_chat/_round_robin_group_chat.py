@@ -5,6 +5,8 @@ from typing import Callable, List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
 from autogen_core.components import ClosureAgent, TypeSubscription
+from autogen_core.components.tool_agent import ToolAgent
+from autogen_core.components.tools import Tool
 
 from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
@@ -14,19 +16,60 @@ from ._round_robin_group_chat_manager import RoundRobinGroupChatManager
 
 
 class RoundRobinGroupChat(BaseTeam):
-    def __init__(self, participants: List[BaseChatAgent]):
+    """A team that runs a group chat with participants taking turns in a round-robin fashion.
+
+    If a single participant is in the team, the participant will be the only speaker.
+
+    Args:
+        participants (List[BaseChatAgent]): The participants in the group chat.
+        tools (List[Tool], optional): The tools to use in the group chat. Defaults to None.
+
+    Raises:
+        ValueError: If no participants are provided or if participant names are not unique.
+
+    Examples:
+
+    A team with one participant with tools:
+
+        .. code-block:: python
+
+            from autogen_agentchat.agents import ToolUseAssistantAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+
+            assistant = ToolUseAssistantAgent("Assistant", model_client=..., tool_schema=[...])
+            team = RoundRobinGroupChat([assistant], tools=[...])
+            await team.run("What's the weather in New York?")
+
+    A team with multiple participants:
+
+        .. code-block:: python
+
+            from autogen_agentchat.agents import CodingAssistantAgent, CodeExecutorAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+
+            coding_assistant = CodingAssistantAgent("Coding Assistant", model_client=...)
+            executor_agent = CodeExecutorAgent("Code Executor", code_executor=...)
+            team = RoundRobinGroupChat([coding_assistant, executor_agent])
+            await team.run("Write a program that prints 'Hello, world!'")
+
+    """
+
+    def __init__(self, participants: List[BaseChatAgent], *, tools: List[Tool] | None = None):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
         self._participants = participants
         self._team_id = str(uuid.uuid4())
+        self._tools = tools or []
 
-    def _create_factory(self, parent_topic_type: str, agent: BaseChatAgent) -> Callable[[], BaseChatAgentContainer]:
+    def _create_factory(
+        self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType
+    ) -> Callable[[], BaseChatAgentContainer]:
         def _factory() -> BaseChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent)
+            container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
             assert container.id == id
             return container
 
@@ -43,6 +86,12 @@ class RoundRobinGroupChat(BaseTeam):
         group_topic_type = "round_robin_group_topic"
         team_topic_type = "team_topic"
 
+        # Register the tool agent.
+        tool_agent_type = await ToolAgent.register(
+            runtime, "tool_agent", lambda: ToolAgent("Tool agent for round-robin group chat", self._tools)
+        )
+        # No subscriptions are needed for the tool agent, which will be called via direct messages.
+
         # Register participants.
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
@@ -52,7 +101,7 @@ class RoundRobinGroupChat(BaseTeam):
             topic_type = participant.name
             # Register the participant factory.
             await BaseChatAgentContainer.register(
-                runtime, type=agent_type, factory=self._create_factory(group_topic_type, participant)
+                runtime, type=agent_type, factory=self._create_factory(group_topic_type, participant, tool_agent_type)
             )
             # Add subscriptions for the participant.
             await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
