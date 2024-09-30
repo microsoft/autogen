@@ -156,6 +156,7 @@ jobs:
         run: |
           if [[ `git status --porcelain` ]]; then
             echo "There are changes that need to be generated and commit for the proto files"
+            git --no-pager diff
             exit 1
           fi
         shell: bash
