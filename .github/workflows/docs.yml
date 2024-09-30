@@ -43,6 +43,9 @@ jobs:
           mkdir -p docs-staging/dev
           mv ./packages/autogen-core/docs/build/* docs-staging/dev/
         working-directory: ./python
+      - name: generate redirects
+        run: |
+          python python/packages/autogen-core/docs/redirects/redirects.py python/docs-staging
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
