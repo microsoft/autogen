@@ -59,7 +59,7 @@ myst_enable_extensions = [
     "strikethrough",
 ]
 
-html_baseurl = "/dev/"
+html_baseurl = "/autogen/dev/"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

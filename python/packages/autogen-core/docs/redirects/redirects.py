@@ -37,7 +37,7 @@ def main():
         sys.exit(1)
 
     base_dir = Path(sys.argv[1])
-    generate_redirect("/", "/0.2/", base_dir)
+    generate_redirect("/autogen/", "/autogen/0.2/", base_dir)
 
 if __name__ == '__main__':
     main()
