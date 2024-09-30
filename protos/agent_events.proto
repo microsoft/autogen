@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package agents;
+
+option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
+
+message Input {
+      string message = 1;
+}
+
+message InputProcessed {
+      string route = 1;
+}
+message Output {
+      string message = 1;
+}
+message OutputWritten {
+      string route = 1;
+}
+message IOError {
+      string message = 1;
+}

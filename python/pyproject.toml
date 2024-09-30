@@ -1,0 +1,77 @@
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv]
+dev-dependencies = [
+    "pyright==1.1.378",
+    "mypy==1.10.0",
+    "ruff==0.4.8",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-xdist",
+    "typer",
+    "rich",
+    "polars",
+    "pytest_mock",
+    "poethepoet",
+    "packaging",
+    "grpcio-tools~=1.62.0",
+    "mypy-protobuf",
+    "cookiecutter"
+]
+
+[tool.uv.sources]
+autogen-core = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+fix = true
+
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "Q", "I", "ASYNC", "T20"]
+ignore = ["F401", "E501"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"unittest".msg = "Use `pytest` instead."
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+ignore_missing_imports = true
+
+# from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+show_error_codes = true
+warn_unused_ignores = false
+
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+disallow_any_unimported = true
+
+[tool.pyright]
+include = ["src", "tests", "samples"]
+typeCheckingMode = "strict"
+reportUnnecessaryIsInstance = false
+reportMissingTypeStubs = false
+exclude = ["src/autogen_core/application/protos"]
+
+[tool.poe.tasks]
+fmt = "python run_task_in_pkgs_if_exist.py fmt"
+format.ref = "fmt"
+lint = "python run_task_in_pkgs_if_exist.py lint"
+pyright = "python run_task_in_pkgs_if_exist.py pyright"
+mypy = "python run_task_in_pkgs_if_exist.py mypy"
+test = "python run_task_in_pkgs_if_exist.py test"
+
+check = ["fmt", "lint", "pyright", "mypy", "test"]
+
+gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/src/autogen_core/application/protos --grpc_python_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_grpc_out=./packages/autogen-core/src/autogen_core/application/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"

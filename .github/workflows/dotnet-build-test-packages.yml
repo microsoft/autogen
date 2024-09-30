@@ -1,0 +1,31 @@
+name: '[AutoGen nuget] Build and test'
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dotnet
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+    - name: Restore dependencies
+      run: dotnet restore AutoGen.sln
+    - name: Build
+      run: dotnet build AutoGen.sln
+    - name: Test
+      run: dotnet test --no-build --verbosity normal AutoGen.sln

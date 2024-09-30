@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autogen-ext"
+version = "0.3.0dev0"
+description = "AutoGen extensions library"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["autogen-core",
+
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autogen_ext"]
+
+[tool.uv]
+dev-dependencies = []
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+include = ["src/**", "tests/*.py"]
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src", "tests"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+test = "pytest -n auto"

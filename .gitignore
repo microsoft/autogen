@@ -2,6 +2,9 @@
 node_modules/
 # Project
 /.vs
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+
 .vscode
 
 # Log files

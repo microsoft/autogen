@@ -1,0 +1,26 @@
+name: '[AutoGen nuget] Publish all packages'
+
+on:
+   push:
+     paths:
+     - 'dotnet/src/**'
+     - 'protos/**'
+   workflow_dispatch:
+ 
+permissions:
+    id-token: write
+    contents: read
+jobs:
+    init:
+      runs-on: ubuntu-latest
+      outputs:
+        version_suffix: ${{ steps.set_version_suffix.outputs.VERSION_SUFFIX }}
+        version_prefix: '0.0.1'
+      steps:
+        - name: Set version suffix
+          id: set_version_suffix
+          run: echo "VERSION_SUFFIX=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+    build-test-packages:
+      uses: ./.github/workflows/dotnet-build-test-packages.yml
+      needs: init
+      secrets: inherit

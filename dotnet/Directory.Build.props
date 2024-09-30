@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="./eng/Version.props" />
@@ -48,4 +49,36 @@
       <Link>resource/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
   </ItemGroup>
+=======
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Capture PackageIconFullPath into DefaultDotnetIconFullPath before we overwrite PackageIconFullPath. -->
+    <!-- DefaultDotnetIconFullPath is only needed for the ServiceDisovery packages. The property can be removed when these libraries move. See https://github.com/dotnet/aspire/issues/170 -->
+    <DefaultDotnetIconFullPath>$(PackageIconFullPath)</DefaultDotnetIconFullPath>
+    <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
+    <PackageProjectUrl>https://github.com/dotnet/aspire</PackageProjectUrl>
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <StrongNameKeyId>Open</StrongNameKeyId>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Set RunSettingsFilePath property which is read by VSTest. -->
+    <RunSettingsFilePath Condition="'$(RunSettingsFilePath)' == ''">$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
+    <!-- Redirect test logs into a subfolder -->
+    <TestResultsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsLogDir)', 'TestLogs'))</TestResultsLogDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;SKEXP0001;SKEXP0010;SKEXP0020</NoWarn>
+  </PropertyGroup>
+
+>>>>>>> agnext_main
 </Project>

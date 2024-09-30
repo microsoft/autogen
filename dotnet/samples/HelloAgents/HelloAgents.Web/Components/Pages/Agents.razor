@@ -1,0 +1,47 @@
+﻿@page "/agents"
+@attribute [StreamRendering(true)]
+@attribute [OutputCache(Duration = 5)]
+
+@inject AgentAPIClient AgentApi
+
+<PageTitle>Agents</PageTitle>
+
+<h1>Agents</h1>
+
+<p>This component demonstrates showing data loaded from a backend API service.</p>
+
+@if (results == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in results)
+            {
+                <tr>
+                    <td>@result.Date.ToShortDateString()</td>
+                    <td>@result.Summary</td>
+                    <td>@result.Content</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private AgentOutputRecord[]? results;
+
+    protected override async Task OnInitializedAsync()
+    {
+        results = await AgentApi.GetAgentResultAsync();
+    }
+}

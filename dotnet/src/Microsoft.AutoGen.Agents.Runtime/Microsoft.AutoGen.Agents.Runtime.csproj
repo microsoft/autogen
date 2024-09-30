@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageId>AutoGen.Worker.Server</PackageId>
+		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
+		<Authors>Microsoft</Authors>
+		<Description>AutoGen Worker Server Library</Description>
+		<Tags>ai-agents;event-driven-agents</Tags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Microsoft.AutoGen.Agents/Microsoft.AutoGen.Agents.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Orleans.Serialization.Protobuf" />
+		<PackageReference Include="Microsoft.Orleans.Server" />
+		<PackageReference Include="Microsoft.Orleans.Streaming" />
+	</ItemGroup>
+
+</Project>
