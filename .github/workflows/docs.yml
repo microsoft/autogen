@@ -38,11 +38,13 @@ jobs:
           uv sync --locked
           source .venv/bin/activate
           poe --directory ./packages/autogen-core docs-build
+          mkdir -p docs-staging/dev
+          mv ./packages/autogen-core/docs/build/* docs-staging/dev/
         working-directory: ./python
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "python/packages/autogen-core/docs/build"
+          path: "./python/docs-staging"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
