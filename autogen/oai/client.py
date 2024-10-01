@@ -558,7 +558,7 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("ollama"):
                 if ollama_import_exception:
-                    raise ImportError("Please install `ollama` to use the Ollama API.")
+                    raise ImportError("Please install with `[ollama]` option to use the Ollama API.")
                 client = OllamaClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
