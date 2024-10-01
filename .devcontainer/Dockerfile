@@ -1,5 +1,5 @@
 # Note: You can use any Debian/Ubuntu based image you want.
-FROM mcr.microsoft.com/devcontainers/base:bullseye
+FROM mcr.microsoft.com/devcontainers/universal:2
 
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
