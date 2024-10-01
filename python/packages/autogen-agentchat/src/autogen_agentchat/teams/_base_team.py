@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import List, Protocol
+
+from autogen_agentchat.agents._base_chat_agent import ChatMessage
 
 
 @dataclass
 class TeamRunResult:
-    result: str
+    messages: List[ChatMessage]
 
 
 class BaseTeam(Protocol):

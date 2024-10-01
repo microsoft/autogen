@@ -1,7 +1,7 @@
-import asyncio
 import uuid
 from typing import Callable, List
 
+from autogen_agentchat.agents._base_chat_agent import ChatMessage
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
 from autogen_core.components import ClosureAgent, TypeSubscription
@@ -132,19 +132,20 @@ class RoundRobinGroupChat(BaseTeam):
             TypeSubscription(topic_type=team_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
 
-        # Create a closure agent to recieve the final result.
-        team_messages = asyncio.Queue[ContentPublishEvent]()
+        group_chat_messages: List[ChatMessage] = []
 
-        async def output_result(
+        async def collect_group_chat_messages(
             _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
         ) -> None:
-            await team_messages.put(message)
+            group_chat_messages.append(message.agent_message)
 
         await ClosureAgent.register(
             runtime,
-            type="output_result",
-            closure=output_result,
-            subscriptions=lambda: [TypeSubscription(topic_type=team_topic_type, agent_type="output_result")],
+            type="collect_group_chat_messages",
+            closure=collect_group_chat_messages,
+            subscriptions=lambda: [
+                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages")
+            ],
         )
 
         # Start the runtime.
@@ -162,14 +163,4 @@ class RoundRobinGroupChat(BaseTeam):
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()
 
-        # Get the last message from the team.
-        last_message = None
-        while not team_messages.empty():
-            last_message = await team_messages.get()
-
-        assert (
-            last_message is not None
-            and isinstance(last_message.agent_message, TextMessage)
-            and isinstance(last_message.agent_message.content, str)
-        )
-        return TeamRunResult(last_message.agent_message.content)
+        return TeamRunResult(messages=group_chat_messages)

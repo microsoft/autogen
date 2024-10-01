@@ -95,7 +95,20 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         team = RoundRobinGroupChat(participants=[coding_assistant_agent, code_executor_agent])
         result = await team.run("Write a program that prints 'Hello, world!'")
-        assert result.result == "TERMINATE"
+        expected_messages = [
+            "Write a program that prints 'Hello, world!'",
+            'Here is the program\n ```python\nprint("Hello, world!")\n```',
+            "Hello, world!",
+            "TERMINATE",
+        ]
+        # Normalize the messages to remove \r\n and any leading/trailing whitespace.
+        normalized_messages = [
+            msg.content.replace("\r\n", "\n").rstrip("\n") if isinstance(msg.content, str) else msg.content
+            for msg in result.messages
+        ]
+
+        # Assert that all expected messages are in the collected messages
+        assert normalized_messages == expected_messages
 
 
 @pytest.mark.asyncio
