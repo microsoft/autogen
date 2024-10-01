@@ -1,15 +1,13 @@
 import copy
-import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from typing_extensions import Annotated
 
 from ... import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper, UserProxyAgent
-from ...browser_utils import SimpleTextBrowser
+from ...browser_utils import AbstractMarkdownBrowser, BingMarkdownSearch, RequestsMarkdownBrowser
 from ...code_utils import content_str
 from ...oai.openai_utils import filter_config
 from ...token_count_utils import count_token, get_max_token_limit
@@ -20,12 +18,9 @@ logger = logging.getLogger(__name__)
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
-    DEFAULT_PROMPT = (
-        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
-        + datetime.now().date().isoformat()
-    )
+    DEFAULT_PROMPT = "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find."
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, answer questions from pages, and or generate summaries."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, download files, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
 
     def __init__(
         self,
@@ -40,7 +35,8 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser_config: Optional[Union[Dict, None]] = None,
+        browser_config: Optional[Union[Dict, None]] = None,  # Deprecated
+        browser: Optional[Union[AbstractMarkdownBrowser, None]] = None,
         **kwargs,
     ):
         super().__init__(
@@ -60,11 +56,39 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        if browser_config is not None:
+            if browser is not None:
+                raise ValueError(
+                    "WebSurferAgent cannot accept both a 'browser_config' (deprecated) parameter and 'browser' parameter at the same time. Use only one or the other."
+                )
 
-        inner_llm_config = copy.deepcopy(llm_config)
+            # Print a warning
+            logger.warning(
+                "Warning: the parameter 'browser_config' in WebSurferAgent.__init__() is deprecated. Use 'browser' instead."
+            )
+
+            # Update the settings to the new format
+            _bconfig = {}
+            _bconfig.update(browser_config)
+
+            if "bing_api_key" in _bconfig:
+                _bconfig["search_engine"] = BingMarkdownSearch(
+                    bing_api_key=_bconfig["bing_api_key"], interleave_results=False
+                )
+                del _bconfig["bing_api_key"]
+            else:
+                _bconfig["search_engine"] = BingMarkdownSearch()
+
+            if "request_kwargs" in _bconfig:
+                _bconfig["requests_get_kwargs"] = _bconfig["request_kwargs"]
+                del _bconfig["request_kwargs"]
+
+            self.browser = RequestsMarkdownBrowser(**_bconfig)
+        else:
+            self.browser = browser
 
         # Set up the inner monologue
+        inner_llm_config = copy.deepcopy(llm_config)
         self._assistant = AssistantAgent(
             self.name + "_inner_assistant",
             system_message=system_message,  # type: ignore[arg-type]
@@ -130,6 +154,7 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
@@ -138,7 +163,7 @@ class WebSurferAgent(ConversableAgent):
             description="Perform an INFORMATIONAL web search query then return the search results.",
         )
         def _informational_search(query: Annotated[str, "The informational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
@@ -148,9 +173,9 @@ class WebSurferAgent(ConversableAgent):
             description="Perform a NAVIGATIONAL web search query then immediately navigate to the top result. Useful, for example, to navigate to a particular Wikipedia article or other known destination. Equivalent to Google's \"I'm Feeling Lucky\" button.",
         )
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
 
-            # Extract the first linl
+            # Extract the first link
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
             if m:
                 self.browser.visit_page(m.group(1))
@@ -164,6 +189,15 @@ class WebSurferAgent(ConversableAgent):
             name="visit_page", description="Visit a webpage at a given URL and return its text."
         )
         def _visit_page(url: Annotated[str, "The relative or absolute url of the webapge to visit."]) -> str:
+            self.browser.visit_page(url)
+            header, content = _browser_state()
+            return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="download_file", description="Download a file at a given URL and, if possible, return its text."
+        )
+        def _download_file(url: Annotated[str, "The relative or absolute url of the file to be downloaded."]) -> str:
             self.browser.visit_page(url)
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
@@ -188,14 +222,51 @@ class WebSurferAgent(ConversableAgent):
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_on_page_ctrl_f",
+            description="Scroll the viewport to the first occurrence of the search string. This is equivalent to Ctrl+F.",
+        )
+        def _find_on_page_ctrl_f(
+            search_string: Annotated[
+                str, "The string to search for on the page. This search string supports wildcards like '*'"
+            ]
+        ) -> str:
+            find_result = self.browser.find_on_page(search_string)
+            header, content = _browser_state()
+
+            if find_result is None:
+                return (
+                    header.strip()
+                    + "\n=======================\nThe search string '"
+                    + search_string
+                    + "' was not found on this page."
+                )
+            else:
+                return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_next",
+            description="Scroll the viewport to next occurrence of the search string.",
+        )
+        def _find_next() -> str:
+            find_result = self.browser.find_next()
+            header, content = _browser_state()
+
+            if find_result is None:
+                return header.strip() + "\n=======================\nThe search string was not found on this page."
+            else:
+                return header.strip() + "\n=======================\n" + content
+
         if self.summarization_client is not None:
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name="answer_from_page",
+                name="read_page_and_answer",
                 description="Uses AI to read the page and directly answer a given question based on the content.",
             )
-            def _answer_from_page(
+            def _read_page_and_answer(
                 question: Annotated[Optional[str], "The question to directly answer."],
                 url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
             ) -> str:
@@ -256,7 +327,7 @@ class WebSurferAgent(ConversableAgent):
                     Optional[str], "[Optional] The url of the page to summarize. (Defaults to current page)"
                 ] = None,
             ) -> str:
-                return _answer_from_page(url=url, question=None)
+                return _read_page_and_answer(url=url, question=None)
 
     def generate_surfer_reply(
         self,

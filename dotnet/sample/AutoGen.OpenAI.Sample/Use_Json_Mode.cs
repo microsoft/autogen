@@ -4,13 +4,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
-using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.OpenAI.Sample;
 
 public class Use_Json_Mode
 {
@@ -50,18 +49,20 @@ public class Use_Json_Mode
         person.Age.Should().Be(25);
         person.Address.Should().BeNullOrEmpty();
     }
+
+
+    #region person_class
+    public class Person
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("age")]
+        public int Age { get; set; }
+
+        [JsonPropertyName("address")]
+        public string Address { get; set; }
+    }
+    #endregion person_class
 }
 
-#region person_class
-public class Person
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; }
-
-    [JsonPropertyName("age")]
-    public int Age { get; set; }
-
-    [JsonPropertyName("address")]
-    public string Address { get; set; }
-}
-#endregion person_class

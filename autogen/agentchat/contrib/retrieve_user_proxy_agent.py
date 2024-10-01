@@ -178,7 +178,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
                     functions, you can pass it here,
-                    follow the examples in `https://docs.trychroma.com/embeddings`.
+                    follow the examples in `https://docs.trychroma.com/guides/embeddings`.
                 - `customized_prompt` (Optional, str) - the customized prompt for the retrieve chat.
                     Default is None.
                 - `customized_answer_prefix` (Optional, str) - the customized answer prefix for the

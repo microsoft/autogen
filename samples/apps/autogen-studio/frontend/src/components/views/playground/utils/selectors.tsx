@@ -9,10 +9,12 @@ import { Link } from "gatsby";
 const WorkflowSelector = ({
   workflow,
   setWorkflow,
+  workflow_id,
   disabled,
 }: {
   workflow: IWorkflow | null;
   setWorkflow: (workflow: IWorkflow) => void;
+  workflow_id: number | undefined;
   disabled?: boolean;
 }) => {
   const [error, setError] = React.useState<IStatus | null>({
@@ -42,7 +44,15 @@ const WorkflowSelector = ({
         // message.success(data.message);
         setWorkflows(data.data);
         if (data.data.length > 0) {
-          setWorkflow(data.data[0]);
+          if (!disabled) {
+            setWorkflow(data.data[0]);
+          } else {
+            const index = data.data.findIndex((item:IWorkflow) => item.id === workflow_id);
+            if (index !== -1) {
+              setSelectedWorkflow(index);
+              setWorkflow(data.data[index]);
+            }
+          }
         }
       } else {
         message.error(data.message);
