@@ -17,7 +17,7 @@
 AutoGen is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AutoGen aims to streamline the development and research of agentic AI, much like PyTorch does for Deep Learning. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
 
 > [!IMPORTANT]
-> In order to better align with a new packaging structure we have coming very soon, AutoGen is now available on PyPi as [`autogen-agentchat`](https://pypi.org/project/autogen-agentchat/) as of version `0.2.36`. This is the official package for the AutoGen project.
+> In order to better align with a new multi-packaging structure we have coming very soon, AutoGen is now available on PyPi as [`autogen-agentchat`](https://pypi.org/project/autogen-agentchat/) as of version `0.2.36`. This is the official package for the AutoGen project.
 
 
 > [!NOTE]
