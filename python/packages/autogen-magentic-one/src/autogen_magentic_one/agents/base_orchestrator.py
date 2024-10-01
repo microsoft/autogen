@@ -8,10 +8,10 @@ from autogen_core.components.models import AssistantMessage, LLMMessage, UserMes
 
 from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage, ResetMessage
 from ..utils import message_content_to_str
-from .base_agent import TeamOneBaseAgent
+from .base_agent import MagenticOneBaseAgent
 
 
-class BaseOrchestrator(TeamOneBaseAgent):
+class BaseOrchestrator(MagenticOneBaseAgent):
     def __init__(
         self,
         agents: List[AgentProxy],

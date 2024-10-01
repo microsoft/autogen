@@ -38,7 +38,7 @@ class OrchestrationEvent:
     message: str
 
 
-TeamOneMessages = RequestReplyMessage | BroadcastMessage | ResetMessage | DeactivateMessage
+MagenticOneMessages = RequestReplyMessage | BroadcastMessage | ResetMessage | DeactivateMessage
 
 
 @dataclass

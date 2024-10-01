@@ -8,7 +8,7 @@ import re
 
 import pytest
 import requests
-from team_one.markdown_browser import BingMarkdownSearch, RequestsMarkdownBrowser
+from autogen_magentic_one.markdown_browser import BingMarkdownSearch, RequestsMarkdownBrowser
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -30,7 +30,7 @@ PDF_STRING = "Figure 1: AutoGen enables diverse LLM-based applications using mul
 DIR_TEST_STRINGS = [
     "# Index of ",
     "[.. (parent directory)]",
-    "/python/packages/team-one/tests/browser_utils",
+    "/python/packages/autogen-magentic-one/tests/browser_utils",
 ]
 
 LOCAL_FILE_TEST_STRINGS = [

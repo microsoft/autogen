@@ -27,8 +27,8 @@ members = [
     "autogen-agentchat",
     "autogen-core",
     "autogen-ext",
+    "autogen-magentic-one",
     "autogenstudio",
-    "team-one",
 ]
 requirements = [
     { name = "cookiecutter" },
@@ -487,6 +487,73 @@ langchain = [
 requires-dist = [
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=0.3.1" },
+]
+
+[[package]]
+name = "autogen-magentic-one"
+version = "0.0.1"
+source = { editable = "packages/autogen-magentic-one" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "autogen-core" },
+    { name = "beautifulsoup4" },
+    { name = "mammoth" },
+    { name = "markdownify" },
+    { name = "numpy" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pathvalidate" },
+    { name = "pdfminer-six" },
+    { name = "playwright" },
+    { name = "puremagic" },
+    { name = "pydantic" },
+    { name = "pydub" },
+    { name = "python-pptx" },
+    { name = "requests" },
+    { name = "speechrecognition" },
+    { name = "youtube-transcript-api" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "aiofiles" },
+    { name = "azure-identity" },
+    { name = "openpyxl" },
+    { name = "types-aiofiles" },
+    { name = "types-pillow" },
+    { name = "types-requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiofiles" },
+    { name = "autogen-core", editable = "packages/autogen-core" },
+    { name = "beautifulsoup4" },
+    { name = "mammoth" },
+    { name = "markdownify" },
+    { name = "numpy" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pathvalidate" },
+    { name = "pdfminer-six" },
+    { name = "playwright" },
+    { name = "puremagic" },
+    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
+    { name = "pydub" },
+    { name = "python-pptx" },
+    { name = "requests" },
+    { name = "speechrecognition" },
+    { name = "youtube-transcript-api" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "aiofiles" },
+    { name = "azure-identity" },
+    { name = "openpyxl" },
+    { name = "types-aiofiles" },
+    { name = "types-pillow" },
+    { name = "types-requests" },
 ]
 
 [[package]]
@@ -4541,73 +4608,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/67/bd/be3bdd5daa430b273a20dd5538a2a69e69e2da4b4ebdaea0ef3aee2b9c6d/tavily_python-0.4.0.tar.gz", hash = "sha256:e4517041dd135f171858d7e65a7cae085597871bbdc1a13d27990acb536e55c3", size = 15963 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/04/13e657e010a1257c56a2e52a0032ce1abd993b75553ddf838b26d7abe75c/tavily_python-0.4.0-py3-none-any.whl", hash = "sha256:b3fd0d7102bb34f0dfb0fd24378e2029504a9836ffe7f07c013824105d9f6a5a", size = 13850 },
-]
-
-[[package]]
-name = "team-one"
-version = "0.1.0.dev0"
-source = { editable = "packages/team-one" }
-dependencies = [
-    { name = "aiofiles" },
-    { name = "autogen-core" },
-    { name = "beautifulsoup4" },
-    { name = "mammoth" },
-    { name = "markdownify" },
-    { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pathvalidate" },
-    { name = "pdfminer-six" },
-    { name = "playwright" },
-    { name = "puremagic" },
-    { name = "pydantic" },
-    { name = "pydub" },
-    { name = "python-pptx" },
-    { name = "requests" },
-    { name = "speechrecognition" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "aiofiles" },
-    { name = "azure-identity" },
-    { name = "openpyxl" },
-    { name = "types-aiofiles" },
-    { name = "types-pillow" },
-    { name = "types-requests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiofiles" },
-    { name = "autogen-core", editable = "packages/autogen-core" },
-    { name = "beautifulsoup4" },
-    { name = "mammoth" },
-    { name = "markdownify" },
-    { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pathvalidate" },
-    { name = "pdfminer-six" },
-    { name = "playwright" },
-    { name = "puremagic" },
-    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
-    { name = "pydub" },
-    { name = "python-pptx" },
-    { name = "requests" },
-    { name = "speechrecognition" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aiofiles" },
-    { name = "azure-identity" },
-    { name = "openpyxl" },
-    { name = "types-aiofiles" },
-    { name = "types-pillow" },
-    { name = "types-requests" },
 ]
 
 [[package]]

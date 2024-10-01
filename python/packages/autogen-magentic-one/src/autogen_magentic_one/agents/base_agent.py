@@ -6,17 +6,17 @@ from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import MessageContext
 from autogen_core.components import RoutedAgent, message_handler
 
-from team_one.messages import (
+from autogen_magentic_one.messages import (
     AgentEvent,
     BroadcastMessage,
     DeactivateMessage,
     RequestReplyMessage,
     ResetMessage,
-    TeamOneMessages,
+    MagenticOneMessages,
 )
 
 
-class TeamOneBaseAgent(RoutedAgent):
+class MagenticOneBaseAgent(RoutedAgent):
     """An agent that optionally ensures messages are handled non-concurrently in the order they arrive."""
 
     def __init__(
@@ -31,7 +31,7 @@ class TeamOneBaseAgent(RoutedAgent):
 
         if not self._handle_messages_concurrently:
             # TODO: make it possible to stop
-            self._message_queue = asyncio.Queue[tuple[TeamOneMessages, MessageContext, asyncio.Future[Any]]]()
+            self._message_queue = asyncio.Queue[tuple[MagenticOneMessages, MessageContext, asyncio.Future[Any]]]()
             self._processing_task = asyncio.create_task(self._process())
 
     async def _process(self) -> None:

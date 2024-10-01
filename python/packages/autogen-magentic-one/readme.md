@@ -1,19 +1,19 @@
-# Team-One
-Team-One is a generalist multi-agent softbot that utilizes a combination of five agents, including LLM and tool-based agents, to tackle intricate tasks. For example, it can be used to solve general tasks that involve multi-step planning and action in the real-world.
+# Magentic-One
+Magentic-One is a generalist multi-agent softbot that utilizes a combination of five agents, including LLM and tool-based agents, to tackle intricate tasks. For example, it can be used to solve general tasks that involve multi-step planning and action in the real-world.
 
-> *Example*: Suppose a user requests to conduct a survey of AI safety papers published in the last month and create a concise presentation on the findings. Team-One will use the following process to handle this task. The orchestrator agent will break down the task into subtasks and assign them to the appropriate agents. Such as the web surfer agent to search for AI safety papers, the file surfer agent to extract information from the papers, the coder agent to create the presentation, and the computer terminal agent to execute the code. The orchestrator agent will coordinate the agents, monitor progress, and ensure the task is completed successfully.
+> *Example*: Suppose a user requests to conduct a survey of AI safety papers published in the last month and create a concise presentation on the findings. Magentic-One will use the following process to handle this task. The orchestrator agent will break down the task into subtasks and assign them to the appropriate agents. Such as the web surfer agent to search for AI safety papers, the file surfer agent to extract information from the papers, the coder agent to create the presentation, and the computer terminal agent to execute the code. The orchestrator agent will coordinate the agents, monitor progress, and ensure the task is completed successfully.
 
 
 
 ## Architecture
 
 <center>
-<img src="./imgs/team-one-landing.png" alt="drawing" style="width:350px;"/>
+<img src="./imgs/autogen-magentic-one-landing.png" alt="drawing" style="width:350px;"/>
 </center>
 
 
 
-Team-One uses agents with the following personas and capabilities:
+Magentic-One uses agents with the following personas and capabilities:
 
 - Orchestrator: The orchestrator agent is responsible for planning, managing subgoals, and coordinating the other agents. It can break down complex tasks into smaller subtasks and assign them to the appropriate agents. It also keeps track of the overall progress and takes corrective actions if needed (such as reassigning tasks or replanning when stuck).
 
@@ -25,19 +25,19 @@ Team-One uses agents with the following personas and capabilities:
 
 - File Surfer: The file surfer agent specializes in navigating files such as pdfs, powerpoints, WAV files, and other file types. It can search, read, and extract information from files.
 
-We created Team-One with one agent of each type because their combined abilities help tackle tough benchmarks. By splitting tasks among different agents, we keep the code simple and modular, like in object-oriented programming. This also makes each agent's job easier since they only need to focus on specific tasks. For example, the websurfer agent only needs to navigate webpages and doesn't worry about writing code, making the team more efficient and effective.
+We created Magentic-One with one agent of each type because their combined abilities help tackle tough benchmarks. By splitting tasks among different agents, we keep the code simple and modular, like in object-oriented programming. This also makes each agent's job easier since they only need to focus on specific tasks. For example, the websurfer agent only needs to navigate webpages and doesn't worry about writing code, making the team more efficient and effective.
 
 
 ### Planning and Tracking Task Progress
 <center>
-<img src="./imgs/team-one-arch.png" alt="drawing" style="width:600px;"/>
+<img src="./imgs/autogen-magentic-one-arch.png" alt="drawing" style="width:600px;"/>
 </center>
 
 The figure illustrates the workflow of an orchestrator managing a multi-agent setup, starting with an initial prompt or task. The orchestrator creates or updates a ledger with gathered information, including verified facts, facts to look up, derived facts, and educated guesses. Using this ledger, a plan is derived, which consists of a sequence of steps and task assignments for the agents. Before execution, the orchestrator clears the agents' contexts to ensure they start fresh. The orchestrator then evaluates if the request is fully satisfied. If so, it reports the final answer or an educated guess.
 
 If the request is not fully satisfied, the orchestrator assesses whether the work is progressing or if there are significant barriers. If progress is being made, the orchestrator orchestrates the next step by selecting an agent and providing instructions. If the process stalls for more than two iterations, the ledger is updated with new information, and the plan is adjusted. This cycle continues, iterating through steps and evaluations, until the task is completed. The orchestrator ensures organized, effective tracking and iterative problem-solving to achieve the prompt's goal.
 
-Note that many parameters such as terminal logic and maximum number of stalled iterations are configurable. Also note that the orchestrator cannot instantiate new agents. This is possible but not implemented in Team-One.
+Note that many parameters such as terminal logic and maximum number of stalled iterations are configurable. Also note that the orchestrator cannot instantiate new agents. This is possible but not implemented in Magentic-One.
 
 
 ## Table of Definitions:
@@ -45,39 +45,39 @@ Note that many parameters such as terminal logic and maximum number of stalled i
 | Term          | Definition                                      |
 |---------------|-------------------------------------------------|
 | Agent         | A component that can (autonomously) act based on observations. Different agents may have different functions and actions. |
-| Planning      | The process of determining actions to achieve goals, performed by the Orchestrator agent in Team-One. |
-| Ledger        | A record-keeping component used by the Orchestrator agent to track the progress and manage subgoals in Team-One. |
-| Stateful Tools | Tools that maintain state or data, such as the web browser and markdown-based file browser used by Team-One. |
-| Tools         | Resources used by Team-One for various purposes, including stateful and stateless tools. |
-| Stateless Tools | Tools that do not maintain state or data, like the commandline executor used by Team-One. |
+| Planning      | The process of determining actions to achieve goals, performed by the Orchestrator agent in Magentic-One. |
+| Ledger        | A record-keeping component used by the Orchestrator agent to track the progress and manage subgoals in Magentic-One. |
+| Stateful Tools | Tools that maintain state or data, such as the web browser and markdown-based file browser used by Magentic-One. |
+| Tools         | Resources used by Magentic-One for various purposes, including stateful and stateless tools. |
+| Stateless Tools | Tools that do not maintain state or data, like the commandline executor used by Magentic-One. |
 
 
 
 ## Capabilities and Performance
 ### Capabilities
 
-- Planning: The Orchestrator agent in Team-One excels at performing planning tasks. Planning involves determining actions to achieve goals. The Orchestrator agent breaks down complex tasks into smaller subtasks and assigns them to the appropriate agents.
+- Planning: The Orchestrator agent in Magentic-One excels at performing planning tasks. Planning involves determining actions to achieve goals. The Orchestrator agent breaks down complex tasks into smaller subtasks and assigns them to the appropriate agents.
 
-- Ledger: The Orchestrator agent in Team-One utilizes a ledger, which is a record-keeping component. The ledger tracks the progress of tasks and manages subgoals. It allows the Orchestrator agent to monitor the overall progress of the system and take corrective actions if needed.
+- Ledger: The Orchestrator agent in Magentic-One utilizes a ledger, which is a record-keeping component. The ledger tracks the progress of tasks and manages subgoals. It allows the Orchestrator agent to monitor the overall progress of the system and take corrective actions if needed.
 
-- Acting in the Real World: Team-One is designed to take action in the real world based on observations. The agents in Team-One can autonomously perform actions based on the information they observe from their environment.
+- Acting in the Real World: Magentic-One is designed to take action in the real world based on observations. The agents in Magentic-One can autonomously perform actions based on the information they observe from their environment.
 
-- Adaptation to Observation: The agents in Team-One can adapt to new observations. They can update their knowledge and behavior based on the information they receive from their environment. This allows Team-One to effectively handle dynamic and changing situations.
+- Adaptation to Observation: The agents in Magentic-One can adapt to new observations. They can update their knowledge and behavior based on the information they receive from their environment. This allows Magentic-One to effectively handle dynamic and changing situations.
 
-- Stateful Tools: Team-One utilizes stateful tools such as a web browser and a markdown-based file browser. These tools maintain state or data, which is essential for performing complex tasks that involve actions that might change the state of the environment.
+- Stateful Tools: Magentic-One utilizes stateful tools such as a web browser and a markdown-based file browser. These tools maintain state or data, which is essential for performing complex tasks that involve actions that might change the state of the environment.
 
-- Stateless Tools: Team-One also utilizes stateless tools such as a command-line executor. These tools do not maintain state or data.
+- Stateless Tools: Magentic-One also utilizes stateless tools such as a command-line executor. These tools do not maintain state or data.
 
-- Coding: The Coder agent in Team-One is highly skilled in programming languages and is responsible for writing code. This capability enables Team-One to create and execute code to accomplish various tasks.
+- Coding: The Coder agent in Magentic-One is highly skilled in programming languages and is responsible for writing code. This capability enables Magentic-One to create and execute code to accomplish various tasks.
 
-- Execution of Code: The Computer Terminal agent in Team-One acts as an interface that can execute code written by the Coder agent. This capability allows Team-One to execute the code and perform actions in the system.
+- Execution of Code: The Computer Terminal agent in Magentic-One acts as an interface that can execute code written by the Coder agent. This capability allows Magentic-One to execute the code and perform actions in the system.
 
-- File Navigation and Extraction: The File Surfer agent in Team-One specializes in navigating and extracting information from various file types such as PDFs, PowerPoints, and WAV files. This capability enables Team-One to search, read, and extract relevant information from files.
+- File Navigation and Extraction: The File Surfer agent in Magentic-One specializes in navigating and extracting information from various file types such as PDFs, PowerPoints, and WAV files. This capability enables Magentic-One to search, read, and extract relevant information from files.
 
-- Web Interaction: The Web Surfer agent in Team-One is proficient in web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. This capability allows Team-One to handle interactive web pages, forms, and other web elements.
+- Web Interaction: The Web Surfer agent in Magentic-One is proficient in web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. This capability allows Magentic-One to handle interactive web pages, forms, and other web elements.
 
 
-### What Team-One Cannot Do
+### What Magentic-One Cannot Do
 
 - **Video Scrubbing:** The agents are unable to navigate and process video content.
 - **User in the Loop Optimization:** The system does not currently incorporate ongoing user interaction beyond the initial task submission.
@@ -109,7 +109,7 @@ Note that many parameters such as terminal logic and maximum number of stalled i
 
 
 ### Performance
-Team-One currently achieves the following performance on complex agent benchmarks.
+Magentic-One currently achieves the following performance on complex agent benchmarks.
 
 
 #### GAIA
@@ -123,7 +123,7 @@ In order to solve this task, the orchestrator begins by outlining the steps need
 
 Next, the orchestrator assigns the assistant agent to use this data to perform the necessary calculations. The assistant converts Kipchoge's marathon time to hours (2.0275 hours) and calculates his speed (approximately 20.81 km/h). It then calculates the total time to run the distance to the Moon (17,130.13 hours), rounding it to the nearest thousand hours, resulting in approximately 17,000 thousand hours. The orchestrator then confirms and reports this final result.
 
-Here is the performance of Team-One on a GAIA development set.
+Here is the performance of Magentic-One on a GAIA development set.
 
 | Level | Task Completion Rate* |
 |-------|---------------------|
@@ -155,24 +155,24 @@ Once on Waoonet's profile, the agents focused on counting the comments that had 
 
 ### Logging in Team One Agents
 
-Team One agents can emit several log events that can be consumed by a log handler (see the example log handler in [utils.py](src/team_one/utils.py)). A list of currently emitted events are:
+Team One agents can emit several log events that can be consumed by a log handler (see the example log handler in [utils.py](src/autogen_magentic_one/utils.py)). A list of currently emitted events are:
 
-- OrchestrationEvent : emitted by a an [Orchestrator](src/team_one/agents/base_orchestrator.py) agent.
-- WebSurferEvent : emitted by a [WebSurfer](src/team_one/agents/multimodal_web_surfer/multimodal_web_surfer.py) agent.
+- OrchestrationEvent : emitted by a an [Orchestrator](src/autogen_magentic_one/agents/base_orchestrator.py) agent.
+- WebSurferEvent : emitted by a [WebSurfer](src/autogen_magentic_one/agents/multimodal_web_surfer/multimodal_web_surfer.py) agent.
 
-In addition, developers can also handle and process logs generated from the AutoGen core library (e.g., LLMCallEvent etc). See  the example log handler in [utils.py](src/team_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
+In addition, developers can also handle and process logs generated from the AutoGen core library (e.g., LLMCallEvent etc). See  the example log handler in [utils.py](src/autogen_magentic_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
 
 
 # Setup
 
 
-You can install the Team-One package using pip and then run the example code to see how the agents work together to accomplish a task.
+You can install the Magentic-One package using pip and then run the example code to see how the agents work together to accomplish a task.
 
 
 1. Clone the code.
 ```bash
 # clone autogen_core
-cd python/teams/team-one
+cd python/teams/autogen-magentic-one
 pip install -e .
 ```
 

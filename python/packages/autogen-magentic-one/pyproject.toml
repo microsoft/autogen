@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "team-one"
-version = "0.1.0dev0"
+name = "autogen-magentic-one"
+version = "0.0.1"
 description = ''
 readme = "readme.md"
 requires-python = ">=3.10"
@@ -68,7 +68,7 @@ include = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/team_one/utils.py" = ["T20"]
+"src/autogen_magentic_one/utils.py" = ["T20"]
 
 
 [tool.pyright]

@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 import requests
-from team_one.markdown_browser import MarkdownConverter
+from autogen_magentic_one.markdown_browser import MarkdownConverter
 
 skip_all = False
 

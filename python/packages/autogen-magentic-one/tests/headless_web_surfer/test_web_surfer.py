@@ -17,8 +17,8 @@ from autogen_core.components.models import (
 from autogen_core.components.tools._base import ToolSchema
 from conftest import MOCK_CHAT_COMPLETION_KWARGS, reason
 from openai import AuthenticationError
-from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
-from team_one.agents.multimodal_web_surfer.tool_definitions import (
+from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
+from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
     TOOL_PAGE_DOWN,
     TOOL_PAGE_UP,
     TOOL_READ_PAGE_AND_ANSWER,
@@ -26,10 +26,10 @@ from team_one.agents.multimodal_web_surfer.tool_definitions import (
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
 )
-from team_one.agents.orchestrator import RoundRobinOrchestrator
-from team_one.agents.user_proxy import UserProxy
-from team_one.messages import BroadcastMessage
-from team_one.utils import (
+from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
+from autogen_magentic_one.agents.user_proxy import UserProxy
+from autogen_magentic_one.messages import BroadcastMessage
+from autogen_magentic_one.utils import (
     ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON,
     ENVIRON_KEY_CHAT_COMPLETION_PROVIDER,
     create_completion_client_from_env,

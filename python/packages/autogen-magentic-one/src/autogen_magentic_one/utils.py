@@ -101,7 +101,7 @@ def message_content_to_str(
         raise AssertionError("Unexpected response type.")
 
 
-# TeamOne log event handler
+# MagenticOne log event handler
 class LogHandler(logging.FileHandler):
     def __init__(self, filename: str = "log.jsonl") -> None:
         super().__init__(filename)

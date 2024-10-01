@@ -10,11 +10,11 @@ import os
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from team_one.agents.multimodal_web_surfer import MultimodalWebSurfer
-from team_one.agents.orchestrator import RoundRobinOrchestrator
-from team_one.agents.user_proxy import UserProxy
-from team_one.messages import RequestReplyMessage
-from team_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
+from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
+from autogen_magentic_one.agents.user_proxy import UserProxy
+from autogen_magentic_one.messages import RequestReplyMessage
+from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
 
 # NOTE: Don't forget to 'playwright install --with-deps chromium'
 

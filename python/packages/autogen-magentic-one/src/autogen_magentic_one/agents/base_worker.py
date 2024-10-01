@@ -7,7 +7,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
-from team_one.messages import (
+from autogen_magentic_one.messages import (
     BroadcastMessage,
     RequestReplyMessage,
     ResetMessage,
@@ -15,11 +15,11 @@ from team_one.messages import (
 )
 
 from ..utils import message_content_to_str
-from .base_agent import TeamOneBaseAgent
+from .base_agent import MagenticOneBaseAgent
 
 
-class BaseWorker(TeamOneBaseAgent):
-    """Base agent that handles the TeamOne worker behavior protocol."""
+class BaseWorker(MagenticOneBaseAgent):
+    """Base agent that handles the MagenticOne worker behavior protocol."""
 
     def __init__(
         self,

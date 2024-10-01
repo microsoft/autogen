@@ -2,7 +2,7 @@
 import os
 
 import pytest
-from team_one.markdown_browser import BingMarkdownSearch
+from autogen_magentic_one.markdown_browser import BingMarkdownSearch
 
 skip_all = False
 

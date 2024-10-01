@@ -8,11 +8,11 @@ import logging
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from team_one.agents.file_surfer import FileSurfer
-from team_one.agents.orchestrator import RoundRobinOrchestrator
-from team_one.agents.user_proxy import UserProxy
-from team_one.messages import RequestReplyMessage
-from team_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.agents.file_surfer import FileSurfer
+from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
+from autogen_magentic_one.agents.user_proxy import UserProxy
+from autogen_magentic_one.messages import RequestReplyMessage
+from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
 
 
 async def main() -> None:
