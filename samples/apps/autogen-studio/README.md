@@ -87,6 +87,21 @@ AutoGen Studio also takes several parameters to customize the application:
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
+#### If running from source
+When running from source, you need to separately bring up the frontend server.
+1. Open a separate terminal and change directory to the frontend
+```bash
+cd frontend
+```
+3. Create a `.env.development` file.
+```bash
+cp .env.default .env.development
+```
+3. Launch frontend server
+```bash
+npm run start
+```
+
 ## Contribution Guide
 
 We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
