@@ -4,14 +4,15 @@ import urllib.parse
 from typing import Callable, List, Optional, Union
 
 import numpy as np
+
+# try:
+import pgvector
+from pgvector.psycopg import register_vector
 from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import get_logger
 
-# try:
-import pgvector
-from pgvector.psycopg import register_vector
 # except ImportError:
 #     raise ImportError("Please install pgvector: `pip install pgvector`")
 
