@@ -37,6 +37,22 @@ class CloudEvent(google.protobuf.message.Message):
         def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
 
     @typing.final
+    class MetadataEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        value: builtins.str
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: builtins.str = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    @typing.final
     class CloudEventAttributeValue(google.protobuf.message.Message):
         """*
         The CloudEvent specification defines
@@ -80,6 +96,7 @@ class CloudEvent(google.protobuf.message.Message):
     SPEC_VERSION_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     ATTRIBUTES_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     BINARY_DATA_FIELD_NUMBER: builtins.int
     TEXT_DATA_FIELD_NUMBER: builtins.int
     PROTO_DATA_FIELD_NUMBER: builtins.int
@@ -99,6 +116,8 @@ class CloudEvent(google.protobuf.message.Message):
         """Optional & Extension Attributes"""
 
     @property
+    def metadata(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
+    @property
     def proto_data(self) -> google.protobuf.any_pb2.Any: ...
     def __init__(
         self,
@@ -108,12 +127,13 @@ class CloudEvent(google.protobuf.message.Message):
         spec_version: builtins.str = ...,
         type: builtins.str = ...,
         attributes: collections.abc.Mapping[builtins.str, global___CloudEvent.CloudEventAttributeValue] | None = ...,
+        metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         binary_data: builtins.bytes = ...,
         text_data: builtins.str = ...,
         proto_data: google.protobuf.any_pb2.Any | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "binary_data", b"binary_data", "data", b"data", "id", b"id", "proto_data", b"proto_data", "source", b"source", "spec_version", b"spec_version", "text_data", b"text_data", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "binary_data", b"binary_data", "data", b"data", "id", b"id", "metadata", b"metadata", "proto_data", b"proto_data", "source", b"source", "spec_version", b"spec_version", "text_data", b"text_data", "type", b"type"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
 
 global___CloudEvent = CloudEvent

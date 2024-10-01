@@ -87,8 +87,7 @@ public abstract class AgentBase
         {
             case Message.MessageOneofCase.CloudEvent:
                 {
-                    // TODO: fix activity extraction
-                    var activity = default(Activity); // ExtractActivity(msg.Event.Type, msg.Event.Attributes);
+                    var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
                         static ((AgentBase Agent, CloudEvent Item) state) => state.Agent.CallHandler(state.Item),
                         (this, msg.CloudEvent),
@@ -190,11 +189,11 @@ public abstract class AgentBase
     {
         //TODO: Reimplement
         var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
-                                     //activity?.SetTag("peer.service", $"{item.DataType}/{item.Namespace}");
+        activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
-       //Context.DistributedContextPropagator.Inject(activity, item., static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
             {

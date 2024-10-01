@@ -78,7 +78,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
-                        case Message.MessageOneofCase.Event:
+                        case Message.MessageOneofCase.CloudEvent:
                             // TODO: Reimplement
 
                             // HACK: Send the message to an instance of each agent type

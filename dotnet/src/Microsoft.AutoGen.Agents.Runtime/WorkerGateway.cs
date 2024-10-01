@@ -48,7 +48,6 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
     {
-            //TODO: Reimplement
         (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
         {
