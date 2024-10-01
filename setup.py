@@ -109,7 +109,7 @@ extra_require = {
 }
 
 setuptools.setup(
-    name="pyautogen",
+    name="autogen-agentchat",
     version=__version__,
     author="AutoGen",
     author_email="autogen-contact@service.microsoft.com",
