@@ -89,7 +89,7 @@ def test_step():
         max_consecutive_auto_reply=3,
     )
 
-    optimizer = AgentOptimizer(max_actions_per_step=3, llm_config=llm_config)
+    optimizer = AgentOptimizer(max_actions_per_step=3, llm_config=llm_config, optimizer_model="gpt-4o-mini")
     user_proxy.initiate_chat(assistant, message=problem)
     optimizer.record_one_conversation(assistant.chat_messages_for_summary(user_proxy), is_satisfied=True)
 
