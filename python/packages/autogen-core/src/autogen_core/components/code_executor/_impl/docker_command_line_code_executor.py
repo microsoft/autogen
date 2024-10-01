@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import atexit
 import logging
 import shlex
 import sys
@@ -15,6 +14,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
 
+import asyncio_atexit
 import docker
 import docker.models
 import docker.models.containers
@@ -326,13 +326,12 @@ $functions"""
 
         await _wait_for_ready(self._container)
 
-        def cleanup() -> None:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.stop())
-            atexit.unregister(cleanup)
+        async def cleanup() -> None:
+            await self.stop()
+            asyncio_atexit.unregister(cleanup)  # type: ignore
 
         if self._stop_container:
-            atexit.register(cleanup)
+            asyncio_atexit.register(cleanup)  # type: ignore
 
         # Check if the container is running
         if self._container.status != "running":

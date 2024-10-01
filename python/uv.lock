@@ -325,6 +325,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asyncio-atexit"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/d3/dd2974be3f67c7ec96e0d6ab454429d0372cb7c7bffa3d0ac67a483cb801/asyncio-atexit-1.0.1.tar.gz", hash = "sha256:1d0c71544b8ee2c484d322844ee72c0875dde6f250c0ed5b6993592ab9f7d436", size = 4373 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/65/10/d6abaefa57a52646651fd0383c056280b0853c0106229ece6bb38cd14463/asyncio_atexit-1.0.1-py3-none-any.whl", hash = "sha256:d93d5f7d5633a534abd521ce2896ed0fbe8de170bb1e65ec871d1c20eac9d376", size = 3752 },
+]
+
+[[package]]
 name = "attrs"
 version = "24.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -350,6 +359,7 @@ version = "0.4.0.dev0"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "aiohttp" },
+    { name = "asyncio-atexit" },
     { name = "azure-core" },
     { name = "docker" },
     { name = "grpcio" },
@@ -406,6 +416,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp" },
+    { name = "asyncio-atexit" },
     { name = "azure-core" },
     { name = "docker", specifier = "~=7.0" },
     { name = "grpcio", specifier = "~=1.62.0" },
