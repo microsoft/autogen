@@ -78,7 +78,7 @@ def test_retrievechat():
             },
             "embedding_function": sentence_transformer_ef,
             "get_or_create": True,  # set to False if you don't want to reuse an existing collection
-            "overwrite": False,  # set to True if you want to overwrite an existing collection
+            "overwrite": True,  # set to True if you want to overwrite an existing collection
         },
         code_execution_config=False,  # set to False if you don't want to execute the code
     )
