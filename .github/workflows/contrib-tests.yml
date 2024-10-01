@@ -711,7 +711,7 @@ jobs:
           flags: unittests
 
   OllamaTest:
-      runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
