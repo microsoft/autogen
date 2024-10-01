@@ -230,16 +230,16 @@ It is a breaking change.
 
 ### Why these changes?
 
-We listened to our AutoGen users, learned from what was working,
-and adapted to fix what wasn't.
+We listened to our AutoGen users, learned from what was working, and adapted to fix what wasn't.
 We brought together wide-ranging teams working on many different types of AI Agents
 and collaborated to design an improved framework with a more flexible
 programming model and better scalability.
 
 ### Who should use it 0.4?
 
-This code is still experimental. We encourage adventurous early adopters to
-please try it out, give us feedback, and contribute.
+This code is still experimental, so expect changes and bugs while we work towards a stable 0.4 release. We encourage early adopters to
+try it out, give us feedback, and contribute.
+For those looking for a stable version we recommend to continue using 0.2
 
 ### I'm using AutoGen 0.2, should I upgrade?
 
@@ -248,11 +248,15 @@ changes to your code, and are willing to try it out, then yes.
 
 ### How do I still use AutoGen 0.2?
 
-Just keep doing what you were doing before.
+AutoGen 0.2 can be installed with:
+
+```sh
+pip install autogen-agentchat~=0.2
+```
 
 ### Will AutoGen Studio be supported in 0.4?
 
-Yes, this is on the roadmap.
+Yes, this is on the [roadmap](#Roadmap).
 Our current plan is to enable an implementation of AutoGen Studio
 on the AgentChat high level API which implements a set of agent functionalities
 (agents, teams, etc).
@@ -264,14 +268,13 @@ We are working on a migration guide.
 
 ### What is happening next? When will this release be ready?
 
-We are still working on improving the documentation, samples, and enhancing the code.
-We will prepare a release announcement when these things are completed in the next few weeks.
+We are still working on improving the documentation, samples, and enhancing the code. We are hoping to release before the end of the year when things are ready.
 
 ### What is the history of this project?
 
-The rearchitecture of AutoGen started with multiple Microsoft teams coming together
-to build the next generation of AI agent framework - merging ideas from several predecessor projects.
-The team decided to bring this work to OSS as an evolution of AutoGen in September 2024.
+The rearchitecture of the framework started with multiple Microsoft teams coming together
+to address the gaps and learnings from AutoGen 0.2 - merging ideas from several predecessor projects.
+The team worked on this internally for some time to ensure alignment before moving work back to the open in October 2024.
 
 ### What is the official channel for support?
 
