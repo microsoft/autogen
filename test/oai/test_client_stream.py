@@ -237,7 +237,7 @@ def test_chat_tools_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"tags": ["multitool"]},
+        filter_dict={"tags": ["tool"]},
     )
     tools = [
         {
