@@ -105,6 +105,7 @@ extra_require = {
     "mistral": ["mistralai>=1.0.1"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
+    "ollama": ["ollama>=0.3.1", "fix_busted_json>=0.0.18"],
     "bedrock": ["boto3>=1.34.149"],
 }
 
