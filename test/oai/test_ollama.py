@@ -65,13 +65,13 @@ def test_parsing_params(ollama_client):
     }
     expected_params = {
         "model": "llama3.1:8b",
-        "temperature": 0.8,
-        "num_predict": 128,
-        "top_k": 40,
-        "top_p": 0.9,
         "options": {
             "repeat_penalty": 1.1,
             "seed": 42,
+            "temperature": 0.8,
+            "num_predict": 128,
+            "top_k": 40,
+            "top_p": 0.9,
         },
         "stream": False,
     }
