@@ -31,12 +31,11 @@ from typing import Any, Dict, List
 
 from cohere import Client as Cohere
 from cohere.types import ToolParameterDefinitionsValue, ToolResult
-from flaml.automl.logger import logger_formatter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 
-from autogen.oai.client_utils import validate_parameter
+from .client_utils import logger_formatter, validate_parameter
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:

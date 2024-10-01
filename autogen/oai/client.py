@@ -6,7 +6,6 @@ import sys
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
-from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache import Cache
@@ -16,6 +15,7 @@ from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
+from .client_utils import logger_formatter
 from .rate_limiters import RateLimiter, TimeRateLimiter
 
 TOOL_ENABLED = False
