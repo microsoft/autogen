@@ -94,6 +94,13 @@ except ImportError as e:
     cohere_import_exception = e
 
 try:
+    from autogen.oai.ollama import OllamaClient
+
+    ollama_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    ollama_import_exception = e
+
+try:
     from autogen.oai.bedrock import BedrockClient
 
     bedrock_import_exception: Optional[ImportError] = None
@@ -544,6 +551,11 @@ class OpenAIWrapper:
                 if cohere_import_exception:
                     raise ImportError("Please install `cohere` to use the Cohere API.")
                 client = CohereClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("ollama"):
+                if ollama_import_exception:
+                    raise ImportError("Please install with `[ollama]` option to use the Ollama API.")
+                client = OllamaClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
                 self._configure_openai_config_for_bedrock(config, openai_config)
