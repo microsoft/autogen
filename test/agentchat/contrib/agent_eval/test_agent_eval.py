@@ -46,7 +46,6 @@ if not skip_openai:
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"]},
     )
 
     success_str = open("test/test_files/agenteval-in-out/samples/sample_math_response_successful.txt", "r").read()
