@@ -49,6 +49,13 @@ else:
     ERROR = None
 
 try:
+    from autogen.oai.cerebras import CerebrasClient
+
+    cerebras_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cerebras_import_exception = e
+
+try:
     from google.api_core.exceptions import (  # noqa
         InternalServerError as gemini_InternalServerError,
         ResourceExhausted as gemini_ResourceExhausted,
@@ -557,6 +564,11 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("cerebras"):
+                if cerebras_import_exception:
+                    raise ImportError("Please install `cerebras_cloud_sdk` to use Cerebras OpenAI API.")
+                client = CerebrasClient(**openai_config)
+                self._clients.append(client)
             elif api_type is not None and api_type.startswith("google"):
                 if gemini_import_exception:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
