@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.bedrock import BedrockClient
+    from autogen.oai.cerebras import CerebrasClient
     from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.groq import GroqClient
@@ -91,7 +92,7 @@ class FileLogger(BaseLogger):
         thread_id = threading.get_ident()
         source_name = None
         if isinstance(source, str):
-            source_name = source
+            source_name = getattr(source, "name", "unknown")
         else:
             source_name = source.name
         try:
@@ -211,6 +212,7 @@ class FileLogger(BaseLogger):
         client: (
             AzureOpenAI
             | OpenAI
+            | CerebrasClient
             | GeminiClient
             | AnthropicClient
             | MistralAIClient

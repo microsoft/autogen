@@ -415,7 +415,8 @@ class Collection:
         cursor = self.client.cursor()
         results = []
         for query_text in query_texts:
-            vector = self.embedding_function(query_text, convert_to_tensor=False).tolist()
+            vector = self.embedding_function(query_text)
+
             if distance_type.lower() == "cosine":
                 index_function = "<=>"
             elif distance_type.lower() == "euclidean":
@@ -619,7 +620,7 @@ class PGVectorDB(VectorDB):
         if embedding_function:
             self.embedding_function = embedding_function
         else:
-            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
+            self.embedding_function = lambda s: SentenceTransformer("all-MiniLM-L6-v2").encode(s).tolist()
         self.metadata = metadata
         register_vector(self.client)
         self.active_collection = None

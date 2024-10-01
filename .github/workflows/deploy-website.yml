@@ -17,7 +17,8 @@ on:
   merge_group:
     types: [checks_requested]
 permissions:
-  contents: write
+  id-token: write
+  pages: write
 jobs:
   checks:
     if: github.event_name != 'push'
@@ -113,9 +114,10 @@ jobs:
           npm i --legacy-peer-deps
           npm run build
           fi
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Build output to publish to the `gh-pages` branch:
-          publish_dir: ./website/build
+          path: "website/build"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

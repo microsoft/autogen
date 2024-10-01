@@ -1398,13 +1398,12 @@ class GroupChatManager(ConversableAgent):
             if not message_speaker_agent and message["name"] == self.name:
                 message_speaker_agent = self
 
-            # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
+            # Add previous messages to each agent (except the last message, as we'll kick off the conversation with it)
             if i != len(messages) - 1:
                 for agent in self._groupchat.agents:
-                    if agent.name != message["name"]:
-                        await self.a_send(
-                            message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True
-                        )
+                    await self.a_send(
+                        message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True
+                    )
 
                 # Add previous message to the new groupchat, if it's an admin message the name may not match so add the message directly
                 if message_speaker_agent:

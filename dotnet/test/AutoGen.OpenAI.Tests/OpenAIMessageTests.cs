@@ -276,7 +276,10 @@ public class OpenAIMessageTests
                 var innerMessage = msgs.Last();
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
                 var chatRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
-                chatRequestMessage.ParticipantName.Should().Be("assistant");
+                // when the message is a tool call message
+                // the name field should not be set
+                // please visit OpenAIChatRequestMessageConnector class for more information
+                chatRequestMessage.ParticipantName.Should().BeNullOrEmpty();
                 chatRequestMessage.ToolCalls.Count().Should().Be(1);
                 chatRequestMessage.Content.First().Text.Should().Be("textContent");
                 chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatToolCall>();
@@ -307,7 +310,10 @@ public class OpenAIMessageTests
                 innerMessage!.Should().BeOfType<MessageEnvelope<ChatMessage>>();
                 var chatRequestMessage = (AssistantChatMessage)((MessageEnvelope<ChatMessage>)innerMessage!).Content;
                 chatRequestMessage.Content.Should().BeNullOrEmpty();
-                chatRequestMessage.ParticipantName.Should().Be("assistant");
+                // when the message is a tool call message
+                // the name field should not be set
+                // please visit OpenAIChatRequestMessageConnector class for more information
+                chatRequestMessage.ParticipantName.Should().BeNullOrEmpty();
                 chatRequestMessage.ToolCalls.Count().Should().Be(2);
                 for (int i = 0; i < chatRequestMessage.ToolCalls.Count(); i++)
                 {

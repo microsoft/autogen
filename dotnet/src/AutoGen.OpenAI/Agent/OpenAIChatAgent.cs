@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
 using global::OpenAI;
 using global::OpenAI.Chat;
+using Json.Schema;
 
 namespace AutoGen.OpenAI;
 
@@ -33,7 +34,7 @@ public class OpenAIChatAgent : IStreamingAgent
 {
     private readonly ChatClient chatClient;
     private readonly ChatCompletionOptions options;
-    private readonly string systemMessage;
+    private readonly string? systemMessage;
 
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatAgent"/>.
@@ -49,9 +50,9 @@ public class OpenAIChatAgent : IStreamingAgent
     public OpenAIChatAgent(
         ChatClient chatClient,
         string name,
-        string systemMessage = "You are a helpful AI assistant",
-        float temperature = 0.7f,
-        int maxTokens = 1024,
+        string? systemMessage = "You are a helpful AI assistant",
+        float? temperature = null,
+        int? maxTokens = null,
         int? seed = null,
         ChatResponseFormat? responseFormat = null,
         IEnumerable<ChatTool>? functions = null)
@@ -74,7 +75,7 @@ public class OpenAIChatAgent : IStreamingAgent
         ChatClient chatClient,
         string name,
         ChatCompletionOptions options,
-        string systemMessage = "You are a helpful AI assistant")
+        string? systemMessage = "You are a helpful AI assistant")
     {
         this.chatClient = chatClient;
         this.Name = name;
@@ -123,7 +124,7 @@ public class OpenAIChatAgent : IStreamingAgent
         });
 
         // add system message if there's no system message in messages
-        if (!oaiMessages.Any(m => m is SystemChatMessage))
+        if (!oaiMessages.Any(m => m is SystemChatMessage) && systemMessage is not null)
         {
             oaiMessages = new[] { new SystemChatMessage(systemMessage) }.Concat(oaiMessages);
         }
@@ -179,12 +180,20 @@ public class OpenAIChatAgent : IStreamingAgent
             }
         }
 
+        if (options?.OutputSchema is not null)
+        {
+            option.ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                name: options.OutputSchema.GetTitle() ?? throw new ArgumentException("Output schema must have a title"),
+                jsonSchema: BinaryData.FromObjectAsJson(options.OutputSchema),
+                description: options.OutputSchema.GetDescription());
+        }
+
         return option;
     }
 
     private static ChatCompletionOptions CreateChatCompletionOptions(
-        float temperature = 0.7f,
-        int maxTokens = 1024,
+        float? temperature = 0.7f,
+        int? maxTokens = 1024,
         int? seed = null,
         ChatResponseFormat? responseFormat = null,
         IEnumerable<ChatTool>? functions = null)
