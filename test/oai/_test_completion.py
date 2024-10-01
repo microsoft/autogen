@@ -143,13 +143,8 @@ def test_nocontext():
             file_location=KEY_LOC,
             filter_dict={
                 "model": {
+                    "gpt-4o-mini",
                     "gpt-3.5-turbo",
-                    "gpt-3.5-turbo-16k",
-                    "gpt-3.5-turbo-16k-0613",
-                    "gpt-3.5-turbo-0301",
-                    "chatgpt-35-turbo-0301",
-                    "gpt-35-turbo-v0301",
-                    "gpt",
                 },
             },
         ),
@@ -179,13 +174,8 @@ def test_humaneval(num_samples=1):
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={
             "model": {
+                "gpt-4o-mini",
                 "gpt-3.5-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
             },
         },
         file_location=KEY_LOC,

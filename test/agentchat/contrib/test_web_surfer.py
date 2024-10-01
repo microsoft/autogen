@@ -97,7 +97,7 @@ def test_web_surfer_oai() -> None:
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}
 
     # adding Azure name variations to the model list
-    model = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    model = ["gpt-4o-mini"]
     model += [m.replace(".", "") for m in model]
 
     summarizer_llm_config = {

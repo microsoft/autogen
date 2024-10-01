@@ -26,8 +26,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
-filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
-
 RESOLUTIONS = ["256x256", "512x512", "1024x1024"]
 QUALITIES = ["standard", "hd"]
 PROMPTS = [
