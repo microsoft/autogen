@@ -89,7 +89,7 @@ def test_aoai_chat_completion():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+# @pytest.mark.skipif(skip or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 @pytest.mark.skip(reason="This test is not working until Azure settings are updated")
 def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
