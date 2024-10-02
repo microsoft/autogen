@@ -1,6 +1,6 @@
+using System.Threading.Channels;
 using Grpc.Core;
 using Microsoft.AutoGen.Agents.Abstractions;
-using System.Threading.Channels;
 
 namespace Microsoft.AutoGen.Agents.Runtime;
 

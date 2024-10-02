@@ -1,6 +1,6 @@
+using DevTeam.Agents;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
-using DevTeam.Agents;
 
 var builder = WebApplication.CreateBuilder(args);
 

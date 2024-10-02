@@ -1,4 +1,4 @@
-﻿using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Abstractions;
 
 namespace Microsoft.AutoGen.Agents.Runtime;
 

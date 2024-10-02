@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Agents.Client;
 

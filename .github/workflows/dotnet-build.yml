@@ -23,6 +23,10 @@ permissions:
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
     outputs:
       hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
     steps:
@@ -75,6 +79,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config

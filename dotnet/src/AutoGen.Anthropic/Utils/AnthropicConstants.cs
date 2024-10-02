@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicConstants.cs
 
 namespace AutoGen.Anthropic.Utils;

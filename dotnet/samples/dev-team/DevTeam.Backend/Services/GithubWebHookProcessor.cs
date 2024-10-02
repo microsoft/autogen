@@ -1,12 +1,12 @@
 using System.Globalization;
-using Microsoft.AutoGen.Agents.Abstractions;
 using DevTeam.Shared;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Agents.Client;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
-using Microsoft.AutoGen.Agents.Client;
 
 namespace DevTeam.Backend;
 
@@ -107,14 +107,14 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
 
     }
 
-    private async Task HandleClosingIssue(long issueNumber,  string skillName, string functionName, string suffix)
+    private async Task HandleClosingIssue(long issueNumber, string skillName, string functionName, string suffix)
     {
         var subject = suffix + issueNumber.ToString();
 
         var evt = (skillName, functionName) switch
         {
-            ("PM", "Readme") => new ReadmeChainClosed {  }.ToCloudEvent(subject),
-            ("DevLead", "Plan") => new DevPlanChainClosed {  }.ToCloudEvent(subject),
+            ("PM", "Readme") => new ReadmeChainClosed { }.ToCloudEvent(subject),
+            ("DevLead", "Plan") => new DevPlanChainClosed { }.ToCloudEvent(subject),
             ("Developer", "Implement") => new CodeChainClosed { }.ToCloudEvent(subject),
             _ => new CloudEvent() // TODO: default event
         };
@@ -122,7 +122,7 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
         await _client.PublishEventAsync(evt);
     }
 
-    private async Task HandleNewAsk(long issueNumber,string skillName, string functionName, string suffix, string input, string org, string repo)
+    private async Task HandleNewAsk(long issueNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
     {
         try
         {
