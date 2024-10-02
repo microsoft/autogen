@@ -49,6 +49,12 @@ else:
     ERROR = None
 
 try:
+    from cerebras.cloud.sdk import (  # noqa
+        AuthenticationError as cerebras_AuthenticationError,
+        InternalServerError as cerebras_InternalServerError,
+        RateLimitError as cerebras_RateLimitError,
+    )
+
     from autogen.oai.cerebras import CerebrasClient
 
     cerebras_import_exception: Optional[ImportError] = None
@@ -868,6 +874,9 @@ class OpenAIWrapper:
                 ollama_ResponseError,
                 bedrock_BotoCoreError,
                 bedrock_ClientError,
+                cerebras_AuthenticationError,
+                cerebras_InternalServerError,
+                cerebras_RateLimitError,
             ):
                 logger.debug(f"config {i} failed", exc_info=True)
                 if i == last:
