@@ -23,6 +23,10 @@ permissions:
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
     outputs:
       hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
     steps:
