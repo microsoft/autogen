@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 using HelloAgents.Web;
-using HelloAgents.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,7 +36,7 @@ app.UseAntiforgery();
 
 app.UseOutputCache();
 
-app.MapRazorComponents<App>()
+app.MapRazorComponents<HelloAgents.Web.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.MapDefaultEndpoints();
