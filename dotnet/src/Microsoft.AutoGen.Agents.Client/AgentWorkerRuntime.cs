@@ -1,12 +1,12 @@
-using Microsoft.AutoGen.Agents.Abstractions;
-using Grpc.Core;
-using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading.Channels;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading.Channels;
+using Grpc.Core;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
@@ -86,7 +86,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             // i.e, assume each agent type implicitly subscribes to each event.
 
                             var item = message.CloudEvent;
-                            
+
                             foreach (var (typeName, _) in _agentTypes)
                             {
                                 var agent = GetOrActivateAgent(new AgentId(typeName, item.Source));
@@ -167,12 +167,12 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
     {
         if (_agentTypes.TryAdd(type, agentType))
         {
-             var events = agentType.GetInterfaces()
-             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-             .Select(i => i.GetGenericArguments().First().Name);
+            var events = agentType.GetInterfaces()
+            .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
+            .Select(i => i.GetGenericArguments().First().Name);
             var state = agentType.BaseType?.GetGenericArguments().First();
-            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t=> t.Topic);
-            
+            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+
             await WriteChannelAsync(new Message
             {
                 RegisterAgentTypeRequest = new RegisterAgentTypeRequest

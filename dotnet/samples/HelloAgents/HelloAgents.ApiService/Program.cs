@@ -27,7 +27,7 @@ app.MapGet("/agents", () =>
             Content: $"AgentResult {DateTime.Now.AddDays(index):d}",
             Summary: summaries[DateTime.Now.AddDays(index).DayOfYear % summaries.Length]
         ))
-        .ToArray(); 
+        .ToArray();
     return result;
 });
 

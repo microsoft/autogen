@@ -4,7 +4,7 @@ namespace DevTeam;
 
 public static class ParseExtensions
 {
-     public static long TryParseLong(this Dictionary<string, string> data, string key)
+    public static long TryParseLong(this Dictionary<string, string> data, string key)
     {
         ArgumentNullException.ThrowIfNull(data);
 

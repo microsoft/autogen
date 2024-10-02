@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
 using AutoGen.BasicSample;

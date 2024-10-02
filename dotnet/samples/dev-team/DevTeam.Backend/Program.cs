@@ -1,13 +1,13 @@
+using Azure.Identity;
+using DevTeam.Backend;
+using DevTeam.Options;
+using Microsoft.AI.DevTeam;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
-using Microsoft.AI.DevTeam;
-using DevTeam.Backend;
-using Octokit.Webhooks;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Azure;
-using Azure.Identity;
+using Microsoft.Extensions.Options;
+using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
-using DevTeam.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +61,7 @@ app.UseRouting()
 {
     var ghOptions = app.Services.GetRequiredService<IOptions<GithubOptions>>().Value;
     endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret);
-});;
+}); ;
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>

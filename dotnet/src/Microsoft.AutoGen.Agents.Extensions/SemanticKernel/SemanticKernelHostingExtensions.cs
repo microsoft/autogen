@@ -45,12 +45,13 @@ public static class SemanticKernelHostingExtensions
         return builder;
     }
 
-    static ISemanticTextMemory CreateMemory(IServiceProvider provider)
+    private static ISemanticTextMemory CreateMemory(IServiceProvider provider)
     {
         var qdrantConfig = provider.GetRequiredService<IOptions<QdrantOptions>>().Value;
         var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
         var qdrantHttpClient = new HttpClient();
-        if (!string.IsNullOrEmpty(qdrantConfig.ApiKey)) { 
+        if (!string.IsNullOrEmpty(qdrantConfig.ApiKey))
+        {
             qdrantHttpClient.DefaultRequestHeaders.Add("api-key", qdrantConfig.ApiKey);
         }
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
@@ -61,7 +62,7 @@ public static class SemanticKernelHostingExtensions
                      .Build();
     }
 
-    static Kernel CreateKernel(IServiceProvider provider)
+    private static Kernel CreateKernel(IServiceProvider provider)
     {
         OpenAIOptions openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
         var builder = Kernel.CreateBuilder();

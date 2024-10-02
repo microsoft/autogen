@@ -7,5 +7,5 @@ public class QdrantOptions
     public required string Endpoint { get; set; }
     [Required]
     public required int VectorSize { get; set; }
-    public string ApiKey { get; set; }  = "";
+    public string ApiKey { get; set; } = "";
 }

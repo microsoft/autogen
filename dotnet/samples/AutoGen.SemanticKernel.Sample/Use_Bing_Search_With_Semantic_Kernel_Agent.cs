@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Use_Bing_Search_With_Semantic_Kernel_Agent.cs
 
 using AutoGen.Core;

@@ -1,8 +1,8 @@
+using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace Microsoft.AutoGen.Agents.Runtime;
 
@@ -76,7 +76,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         return response;
     }
 
-    void DispatchResponse(WorkerProcessConnection connection, RpcResponse response)
+    private void DispatchResponse(WorkerProcessConnection connection, RpcResponse response)
     {
         if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
         {
@@ -136,7 +136,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         };
     }
 
-    async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentTypeRequest msg)
+    private async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
@@ -144,7 +144,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
 
-    async ValueTask DispatchEventAsync(CloudEvent evt)
+    private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
         await BroadcastEvent(evt);
         /*
@@ -153,7 +153,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         */
     }
 
-    async ValueTask DispatchRequestAsync(WorkerProcessConnection connection, RpcRequest request)
+    private async ValueTask DispatchRequestAsync(WorkerProcessConnection connection, RpcRequest request)
     {
         var requestId = request.RequestId;
         if (request.Target is null)
@@ -178,23 +178,23 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         else
         {
         */
-            await InvokeRequestDelegate(connection, request, async request =>
+        await InvokeRequestDelegate(connection, request, async request =>
+        {
+            var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
+            if (gateway is null)
             {
-                var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
-                if (gateway is null)
-                {
-                    return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
-                }
+                return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
+            }
 
-                if (isPlacement)
-                {
-                    // Activate the worker: load state
-                    // TODO
-                }
+            if (isPlacement)
+            {
+                // Activate the worker: load state
+                // TODO
+            }
 
-                // Forward the message to the gateway and return the result.
-                return await gateway.InvokeRequest(request);
-            });
+            // Forward the message to the gateway and return the result.
+            return await gateway.InvokeRequest(request);
+        });
         //}
     }
 

@@ -1,14 +1,14 @@
-using Microsoft.AutoGen.Agents.Abstractions;
-using Grpc.Core;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Grpc.Net.Client.Configuration;
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Reflection;
-using Google.Protobuf.Reflection;
-using Google.Protobuf;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
+using Grpc.Core;
+using Grpc.Net.Client.Configuration;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
@@ -50,24 +50,25 @@ public static class HostBuilderExtensions
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.Services.AddSingleton<AgentWorkerRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AgentWorkerRuntime>());
-        builder.Services.AddKeyedSingleton("EventTypes", (sp, key) => {
+        builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
+        {
             var interfaceType = typeof(IMessage);
             var pairs = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
                                     .Where(type => interfaceType.IsAssignableFrom(type) && type.IsClass && !type.IsAbstract)
                                     .Select(t => (t, GetMessageDescriptor(t)));
 
-            var descriptors = pairs.Select( t => t.Item2);
+            var descriptors = pairs.Select(t => t.Item2);
             var typeRegistry = TypeRegistry.FromMessages(descriptors);
-            var types = pairs.ToDictionary(item => item.Item2?.FullName??"", item => item.t);
+            var types = pairs.ToDictionary(item => item.Item2?.FullName ?? "", item => item.t);
 
             var eventsMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
                                     .Where(type => IsSubclassOfGeneric(type, typeof(AiAgent<>)) && !type.IsAbstract)
-                                    .Select(t => (t,t.GetInterfaces()
+                                    .Select(t => (t, t.GetInterfaces()
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-                                                  .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName??"")).ToHashSet()))
-                                    .ToDictionary(item => item.t, item=>item.Item2);
+                                                  .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
+                                    .ToDictionary(item => item.t, item => item.Item2);
 
             return new EventTypes(typeRegistry, types, eventsMap);
         });

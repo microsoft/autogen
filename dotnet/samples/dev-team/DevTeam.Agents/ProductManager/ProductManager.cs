@@ -16,7 +16,8 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
     {
         // TODO: Get readme from state
         var lastReadme = ""; // _state.State.History.Last().Message
-        var evt= new ReadmeCreated {
+        var evt = new ReadmeCreated
+        {
             Readme = lastReadme
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt);
@@ -49,7 +50,8 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
             logger.LogError(ex, "Error creating readme");
             return "";
         }
-    }}
+    }
+}
 
 public interface IManageProducts
 {

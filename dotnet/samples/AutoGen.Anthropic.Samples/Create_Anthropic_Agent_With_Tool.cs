@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Create_Anthropic_Agent_With_Tool.cs
 
 using AutoGen.Anthropic.DTO;

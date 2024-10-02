@@ -31,8 +31,8 @@ builder.AddProject<Projects.DevTeam_Backend>("backend")
     .WithEnvironment("Github__InstallationId", builder.Configuration["Github:InstallationId"])
     .WithEnvironment("Github__WebhookSecret", builder.Configuration["Github:WebhookSecret"])
     .WithEnvironment("Github__AppKey", builder.Configuration["Github:AppKey"]);
-    //TODO: add this to the config in backend
-    //.WithEnvironment("", acaSessionsEndpoint);
+//TODO: add this to the config in backend
+//.WithEnvironment("", acaSessionsEndpoint);
 
 builder.AddProject<Projects.DevTeam_Agents>("dev-agents")
     .WithEnvironment("AGENT_HOST", $"{agentHostHttps.Property(EndpointProperty.Url)}")

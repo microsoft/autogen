@@ -1,14 +1,14 @@
 using System.Diagnostics;
 using Microsoft.AutoGen.Agents.Abstractions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
 // TODO: Extract this to be part of the Client
 public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes)
-    : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), eventTypes )
+    : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), eventTypes)
 {
     public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
     public async ValueTask<RpcResponse> SendRequestAsync(AgentId target, string method, Dictionary<string, string> parameters) => await RequestAsync(target, method, parameters);

@@ -1,5 +1,4 @@
 using HelloAgents.Web;
-using HelloAgents.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

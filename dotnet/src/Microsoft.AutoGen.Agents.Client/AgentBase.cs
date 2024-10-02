@@ -1,10 +1,10 @@
-using Microsoft.AutoGen.Agents.Abstractions;
-using System.Threading.Channels;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Threading.Channels;
 using Google.Protobuf;
+using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
@@ -13,7 +13,7 @@ public abstract class AgentBase
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     private readonly object _lock = new();
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
-    
+
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentContext _context;
 
@@ -78,8 +78,6 @@ public abstract class AgentBase
             }
         }
     }
-
-   
 
     private async Task HandleRpcMessage(Message msg)
     {
@@ -150,7 +148,8 @@ public abstract class AgentBase
             Target = target,
             RequestId = requestId,
             Method = method,
-            Payload = new Payload{
+            Payload = new Payload
+            {
                 DataType = "application/json",
                 Data = ByteString.CopyFrom(JsonSerializer.Serialize(parameters), Encoding.UTF8),
                 DataContentType = "application/json"
@@ -212,12 +211,7 @@ public abstract class AgentBase
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
             var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
-            var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle));
-            if (methodInfo == null)
-            {
-                throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-            }
-
+            var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
             return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
         }
         return Task.CompletedTask;

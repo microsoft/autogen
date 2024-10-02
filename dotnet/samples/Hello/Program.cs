@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddAgentService();

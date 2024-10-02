@@ -6,8 +6,8 @@ public abstract class IOAgent<T> : AgentBase where T : class, new()
 {
     protected AgentState<T> _state;
     public string _route = "base";
-    
-    public  IOAgent(IAgentContext context, EventTypes typeRegistry) : base(context, typeRegistry)
+
+    public IOAgent(IAgentContext context, EventTypes typeRegistry) : base(context, typeRegistry)
     {
         _state = new();
     }

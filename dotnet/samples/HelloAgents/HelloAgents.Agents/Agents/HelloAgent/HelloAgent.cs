@@ -7,15 +7,15 @@ namespace HelloAgents.Agents;
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
-    IAgentContext context, 
-    Kernel kernel, 
-    ISemanticTextMemory memory, 
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry, 
+    IAgentContext context,
+    Kernel kernel,
+    ISemanticTextMemory memory,
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     ILogger<HelloAgent> logger) : AiAgent<HelloAgentState>(
-        context, 
-        memory, 
-        kernel, 
-        typeRegistry), 
+        context,
+        memory,
+        kernel,
+        typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>

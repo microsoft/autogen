@@ -4,7 +4,6 @@ namespace Microsoft.AutoGen.Agents.Client;
 
 public static class AgentBaseExtensions
 {
-   
 
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
     {
