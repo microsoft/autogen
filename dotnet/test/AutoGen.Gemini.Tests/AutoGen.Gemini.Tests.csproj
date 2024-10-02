@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\sample\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj" />
+    <ProjectReference Include="..\..\samples\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.Gemini\AutoGen.Gemini.csproj" />
     <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

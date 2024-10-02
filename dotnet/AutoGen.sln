@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34322.80
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -14,9 +14,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SourceGenerator", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SourceGenerator.Tests", "test\AutoGen.SourceGenerator.Tests\AutoGen.SourceGenerator.Tests.csproj", "{05A2FAD8-03B0-4B2F-82AF-2F6BF0F050E5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.BasicSample", "sample\AutoGen.BasicSamples\AutoGen.BasicSample.csproj", "{7EBF916A-A7B1-4B74-AF10-D705B7A18F58}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.BasicSample", "samples\AutoGen.BasicSamples\AutoGen.BasicSample.csproj", "{7EBF916A-A7B1-4B74-AF10-D705B7A18F58}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.DotnetInteractive", "src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj", "{B61D8008-7FB7-4C0E-8044-3A74AA63A596}"
 EndProject
@@ -46,27 +46,27 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama", "src\AutoG
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Tests", "test\AutoGen.Ollama.Tests\AutoGen.Ollama.Tests.csproj", "{03E31CAA-3728-48D3-B936-9F11CF6C18FE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Sample", "sample\AutoGen.Ollama.Sample\AutoGen.Ollama.Sample.csproj", "{93AA4D0D-6EE4-44D5-AD77-7F73A3934544}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Sample", "samples\AutoGen.Ollama.Sample\AutoGen.Ollama.Sample.csproj", "{93AA4D0D-6EE4-44D5-AD77-7F73A3934544}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Sample", "sample\AutoGen.SemanticKernel.Sample\AutoGen.SemanticKernel.Sample.csproj", "{52958A60-3FF7-4243-9058-34A6E4F55C31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Sample", "samples\AutoGen.SemanticKernel.Sample\AutoGen.SemanticKernel.Sample.csproj", "{52958A60-3FF7-4243-9058-34A6E4F55C31}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic", "src\AutoGen.Anthropic\AutoGen.Anthropic.csproj", "{6A95E113-B824-4524-8F13-CD0C3E1C8804}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Tests", "test\AutoGen.Anthropic.Tests\AutoGen.Anthropic.Tests.csproj", "{815E937E-86D6-4476-9EC6-B7FBCBBB5DB6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Samples", "sample\AutoGen.Anthropic.Samples\AutoGen.Anthropic.Samples.csproj", "{834B4E85-64E5-4382-8465-548F332E5298}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Samples", "samples\AutoGen.Anthropic.Samples\AutoGen.Anthropic.Samples.csproj", "{834B4E85-64E5-4382-8465-548F332E5298}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini", "src\AutoGen.Gemini\AutoGen.Gemini.csproj", "{EFE0DC86-80FC-4D52-95B7-07654BA1A769}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Tests", "test\AutoGen.Gemini.Tests\AutoGen.Gemini.Tests.csproj", "{8EA16BAB-465A-4C07-ABC4-1070D40067E9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "sample\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{19679B75-CE3A-4DF0-A3F0-CA369D2760A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "samples\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{19679B75-CE3A-4DF0-A3F0-CA369D2760A4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AotCompatibility.Tests", "test\AutoGen.AotCompatibility.Tests\AutoGen.AotCompatibility.Tests.csproj", "{6B82F26D-5040-4453-B21B-C8D1F913CE4C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "sample\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{0E635268-351C-4A6B-A28D-593D868C2CA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "samples\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{0E635268-351C-4A6B-A28D-593D868C2CA4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "sample\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{12079C18-A519-403F-BBFD-200A36A0C083}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "samples\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{12079C18-A519-403F-BBFD-200A36A0C083}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.AzureAIInference", "src\AutoGen.AzureAIInference\AutoGen.AzureAIInference.csproj", "{5C45981D-1319-4C25-935C-83D411CB28DF}"
 EndProject
@@ -94,18 +94,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dev-team", "dev-team", "{616F30DF-1F41-4047-BAA4-64BA03BF5AEA}"
 	ProjectSection(SolutionItems) = preProject
-		sample\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj = sample\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj
+		samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj = samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AgentHost", "sample\dev-team\DevTeam.AgentHost\DevTeam.AgentHost.csproj", "{7228A701-C79D-4E15-BF45-48D11F721A84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AgentHost", "samples\dev-team\DevTeam.AgentHost\DevTeam.AgentHost.csproj", "{7228A701-C79D-4E15-BF45-48D11F721A84}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Agents", "sample\dev-team\DevTeam.Agents\DevTeam.Agents.csproj", "{EDECD35D-6EB1-4CA8-A175-A66588C3481E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Agents", "samples\dev-team\DevTeam.Agents\DevTeam.Agents.csproj", "{EDECD35D-6EB1-4CA8-A175-A66588C3481E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AppHost", "sample\dev-team\DevTeam.AppHost\DevTeam.AppHost.csproj", "{F2F13EAF-05C6-4E90-B2E4-3FA0290D7F6E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AppHost", "samples\dev-team\DevTeam.AppHost\DevTeam.AppHost.csproj", "{F2F13EAF-05C6-4E90-B2E4-3FA0290D7F6E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Backend", "sample\dev-team\DevTeam.Backend\DevTeam.Backend.csproj", "{D826D5E4-31F4-4AB5-AC86-F7B4AD79314B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Backend", "samples\dev-team\DevTeam.Backend\DevTeam.Backend.csproj", "{D826D5E4-31F4-4AB5-AC86-F7B4AD79314B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Shared", "sample\dev-team\DevTeam.Shared\DevTeam.Shared.csproj", "{D9F65DFD-368B-47DB-8BB5-0C74DED7F439}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.Shared", "samples\dev-team\DevTeam.Shared\DevTeam.Shared.csproj", "{D9F65DFD-368B-47DB-8BB5-0C74DED7F439}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HelloAgents", "HelloAgents", "{F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}"
 EndProject
@@ -115,15 +115,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		spelling.dic = spelling.dic
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Agents", "sample\HelloAgents\HelloAgents.Agents\HelloAgents.Agents.csproj", "{ECCE44EE-3934-448E-A9A5-3403117EF0B5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Agents", "samples\HelloAgents\HelloAgents.Agents\HelloAgents.Agents.csproj", "{ECCE44EE-3934-448E-A9A5-3403117EF0B5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.ApiService", "sample\HelloAgents\HelloAgents.ApiService\HelloAgents.ApiService.csproj", "{74ADFF5D-80AF-4A6E-9794-746BDE1A41D1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.ApiService", "samples\HelloAgents\HelloAgents.ApiService\HelloAgents.ApiService.csproj", "{74ADFF5D-80AF-4A6E-9794-746BDE1A41D1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.AppHost", "sample\HelloAgents\HelloAgents.AppHost\HelloAgents.AppHost.csproj", "{031FED7F-97ED-4AA1-B408-88BD3B70A463}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.AppHost", "samples\HelloAgents\HelloAgents.AppHost\HelloAgents.AppHost.csproj", "{031FED7F-97ED-4AA1-B408-88BD3B70A463}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.ServiceDefaults", "sample\HelloAgents\HelloAgents.ServiceDefaults\HelloAgents.ServiceDefaults.csproj", "{6B88F4B3-26AB-4034-B0AC-5BA6EEDEB8E5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.ServiceDefaults", "samples\HelloAgents\HelloAgents.ServiceDefaults\HelloAgents.ServiceDefaults.csproj", "{6B88F4B3-26AB-4034-B0AC-5BA6EEDEB8E5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Web", "sample\HelloAgents\HelloAgents.Web\HelloAgents.Web.csproj", "{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Web", "samples\HelloAgents\HelloAgents.Web\HelloAgents.Web.csproj", "{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hello", "samples\Hello\Hello.csproj", "{6C9135E6-9D15-4D86-B3F4-9666DB87060A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -331,6 +333,10 @@ Global
 		{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -390,6 +396,7 @@ Global
 		{031FED7F-97ED-4AA1-B408-88BD3B70A463} = {F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}
 		{6B88F4B3-26AB-4034-B0AC-5BA6EEDEB8E5} = {F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}
 		{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B} = {F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}
+		{6C9135E6-9D15-4D86-B3F4-9666DB87060A} = {FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

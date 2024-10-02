@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\sample\AutoGen.BasicSamples\AutoGen.BasicSample.csproj" />
+    <ProjectReference Include="..\..\samples\AutoGen.BasicSamples\AutoGen.BasicSample.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />

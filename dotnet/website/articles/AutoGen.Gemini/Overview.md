@@ -9,4 +9,4 @@ AutoGen.Gemini also provides the following middleware:
 
 ## Examples
 
-You can find more examples under the [gemini sample project](https://github.com/microsoft/autogen/tree/main/dotnet/sample/AutoGen.Gemini.Sample)
+You can find more examples under the [gemini sample project](https://github.com/microsoft/autogen/tree/main/dotnet/samples/AutoGen.Gemini.Sample)

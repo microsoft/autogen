@@ -7,7 +7,6 @@ option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
 message Input {
       string message = 1;
 }
-
 message InputProcessed {
       string route = 1;
 }
@@ -19,4 +18,20 @@ message OutputWritten {
 }
 message IOError {
       string message = 1;
+}
+message NewMessageReceived {
+      string message = 1;
+}
+message ResponseGenerated {
+      string response = 1;
+}
+message GoodBye {
+      string message = 1;
+}
+message MessageStored {
+      string message = 1;
+}
+message ConversationClosed {
+  string user_id = 1;
+  string user_message = 2;
 }
