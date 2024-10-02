@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using HelloAgents.Web;
 using HelloAgents.Web.Components;
 
