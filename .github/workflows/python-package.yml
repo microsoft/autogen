@@ -7,6 +7,7 @@ name: python-package
 on:
   release:
     types: [published]
+  workflow_dispatch:
 permissions: {}
   # actions: read
   # checks: read
@@ -19,7 +20,11 @@ jobs:
         os: ['ubuntu-latest']
         python-version: [3.10]
     runs-on: ${{ matrix.os }}
-    environment: package
+    environment:
+      name: package
+      url: https://pypi.org/p/autogen-agentchat
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,6 +53,5 @@ jobs:
         run: |
           pip install twine
           python setup.py sdist bdist_wheel
-      - name: Publish to PyPI
-        shell: pwsh
-        run: twine upload dist/*
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
