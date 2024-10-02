@@ -8,9 +8,9 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 from flaml import BlendSearch, tune
-from flaml.automl.logger import logger_formatter
 from flaml.tune.space import is_constant
 
+from .client_utils import logger_formatter
 from .openai_utils import get_key
 
 try:

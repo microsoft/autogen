@@ -12,7 +12,7 @@ import pytest
 from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
-from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config, is_valid_api_key
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config
 
 # Example environment variables
 ENV_VARS = {
@@ -412,25 +412,6 @@ def test_tags():
 
     list_5 = filter_config(config_list, {"tags": ["does_not_exist"]})
     assert len(list_5) == 0
-
-
-def test_is_valid_api_key():
-    assert not is_valid_api_key("")
-    assert not is_valid_api_key("sk-")
-    assert not is_valid_api_key("SK-")
-    assert not is_valid_api_key("sk-asajsdjsd2")
-    assert not is_valid_api_key("FooBar")
-    assert not is_valid_api_key("sk-asajsdjsd22372%23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
-    assert is_valid_api_key("sk-proj-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert is_valid_api_key("sk-0-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert is_valid_api_key("sk-aut0gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert is_valid_api_key("sk-aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert is_valid_api_key("sk-aut0--gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert not is_valid_api_key("sk-aut0-gen--asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert not is_valid_api_key("sk--aut0-gen-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
-    assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 
 if __name__ == "__main__":

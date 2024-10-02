@@ -36,9 +36,9 @@ You don't need to explain in depth how to install AutoGen. Unless there are spec
 ``````
 ````{=mdx}
 :::info Requirements
-Install `pyautogen`:
+Install `autogen-agentchat`:
 ```bash
-pip install pyautogen
+pip install autogen-agentchat~=0.2
 ```
 
 For more information, please refer to the [installation guide](/docs/installation/).
@@ -54,7 +54,7 @@ Or if extras are needed:
 Some extra dependencies are needed for this notebook, which can be installed via pip:
 
 ```bash
-pip install pyautogen[retrievechat] flaml[automl]
+pip install autogen-agentchat[retrievechat]~=0.2 flaml[automl]
 ```
 
 For more information, please refer to the [installation guide](/docs/installation/).

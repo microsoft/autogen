@@ -13,7 +13,7 @@ Portkey adds 4 core production capabilities to any AutoGen agent:
 
 1. **Install Required Packages:**
 2. ```bash
-   pip install -qU pyautogen portkey-ai
+   pip install -qU autogen-agentchat~=0.2 portkey-ai
    ```
    **Configure AutoGen with Portkey:**
 

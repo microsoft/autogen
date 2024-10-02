@@ -49,7 +49,7 @@ Feel free to modify these Dockerfiles for your specific project needs. Here are 
 - **Setting Environment Variables**: Add environment variables using the `ENV` command for any application-specific configurations. We have prestaged the line needed to inject your OpenAI_key into the docker environment as a environmental variable. Others can be staged in the same way. Just uncomment the line.
     `# ENV OPENAI_API_KEY="{OpenAI-API-Key}"` to `ENV OPENAI_API_KEY="{OpenAI-API-Key}"`
 - **Need a less "Advanced" Autogen build**: If the `./full/Dockerfile` is to much but you need more than advanced then update this line in the Dockerfile file.
-`RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra` to install just what you need. `RUN pip install pyautogen[retrievechat,blendsearch] autogenra`
+`RUN pip install autogen-agentchat[teachable,lmm,retrievechat,mathchat,blendsearch]~=0.2 autogenra` to install just what you need. `RUN pip install autogen-agentchat[retrievechat,blendsearch]~=0.2 autogenra`
 - **Can't Dev without your favorite CLI tool**: if you need particular OS tools to be installed in your Docker container you can add those packages here right after the sudo for the `./base/Dockerfile` and `./full/Dockerfile` files. In the example below we are installing net-tools and vim to the environment.
 
     ```code
