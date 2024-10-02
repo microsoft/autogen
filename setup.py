@@ -110,10 +110,10 @@ extra_require = {
 }
 
 setuptools.setup(
-    name="pyautogen",
+    name="autogen-agentchat",
     version=__version__,
     author="AutoGen",
-    author_email="autogen-contact@service.microsoft.com",
+    author_email="autogen@microsoft.com",
     description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
