@@ -6,7 +6,6 @@ import sys
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
-from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache import Cache
@@ -16,6 +15,7 @@ from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
+from .client_utils import logger_formatter
 from .rate_limiters import RateLimiter, TimeRateLimiter
 
 TOOL_ENABLED = False
@@ -92,6 +92,13 @@ try:
     cohere_import_exception: Optional[ImportError] = None
 except ImportError as e:
     cohere_import_exception = e
+
+try:
+    from autogen.oai.ollama import OllamaClient
+
+    ollama_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    ollama_import_exception = e
 
 try:
     from autogen.oai.bedrock import BedrockClient
@@ -172,10 +179,6 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
-        if not isinstance(client, openai.AzureOpenAI) and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX):
-            logger.warning(
-                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
-            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -548,6 +551,11 @@ class OpenAIWrapper:
                 if cohere_import_exception:
                     raise ImportError("Please install `cohere` to use the Cohere API.")
                 client = CohereClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("ollama"):
+                if ollama_import_exception:
+                    raise ImportError("Please install with `[ollama]` option to use the Ollama API.")
+                client = OllamaClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
                 self._configure_openai_config_for_bedrock(config, openai_config)

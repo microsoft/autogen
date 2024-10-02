@@ -32,13 +32,8 @@ if not skip_openai:
         filter_dict={
             "api_type": ["openai"],
             "model": [
-                "gpt-4-turbo",
-                "gpt-4-turbo-preview",
-                "gpt-4-0125-preview",
-                "gpt-4-1106-preview",
+                "gpt-4o-mini",
                 "gpt-3.5-turbo",
-                "gpt-3.5-turbo-0125",
-                "gpt-3.5-turbo-1106",
             ],
         },
     )
@@ -46,7 +41,6 @@ if not skip_openai:
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"]},
     )
 
     success_str = open("test/test_files/agenteval-in-out/samples/sample_math_response_successful.txt", "r").read()
