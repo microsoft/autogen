@@ -5,12 +5,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Json.Schema;
 
 namespace AutoGen.Core;
-public interface IAgent
+
+public interface IAgentMetaInformation
 {
     public string Name { get; }
+}
 
+public interface IAgent : IAgentMetaInformation
+{
     /// <summary>
     /// Generate reply
     /// </summary>
@@ -38,6 +43,7 @@ public class GenerateReplyOptions
         this.MaxToken = other.MaxToken;
         this.StopSequence = other.StopSequence?.Select(s => s)?.ToArray();
         this.Functions = other.Functions?.Select(f => f)?.ToArray();
+        this.OutputSchema = other.OutputSchema;
     }
 
     public float? Temperature { get; set; }
@@ -47,4 +53,9 @@ public class GenerateReplyOptions
     public string[]? StopSequence { get; set; }
 
     public FunctionContract[]? Functions { get; set; }
+
+    /// <summary>
+    /// Structural schema for the output. This property only applies to certain LLMs.
+    /// </summary>
+    public JsonSchema? OutputSchema { get; set; }
 }

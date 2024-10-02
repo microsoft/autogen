@@ -5,9 +5,10 @@ to retrieve information.
 """
 
 from autogencap.Actor import Actor
+from autogencap.actor_runtime import IRuntime
 from autogencap.ActorConnector import ActorConnector
 from autogencap.DebugLog import Debug, Info, shorten
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.runtime_factory import RuntimeFactory
 
 
 class GreeterAgent(Actor):
@@ -17,10 +18,11 @@ class GreeterAgent(Actor):
 
     def __init__(
         self,
+        start_thread=True,
         agent_name="Greeter",
         description="This is the greeter agent, who knows how to greet people.",
     ):
-        super().__init__(agent_name, description)
+        super().__init__(agent_name, description, start_thread=start_thread)
 
 
 class FidelityAgent(Actor):
@@ -135,7 +137,7 @@ class PersonalAssistant(Actor):
         self.quant: ActorConnector = None
         self.risk_manager: ActorConnector = None
 
-    def connect_network(self, network: LocalActorNetwork):
+    def on_connect(self, network: IRuntime):
         """
         Connects the personal assistant to the specified local actor network.
 
@@ -143,13 +145,13 @@ class PersonalAssistant(Actor):
             network (LocalActorNetwork): The local actor network to connect to.
         """
         Debug(self.actor_name, f"is connecting to {network}")
-        self.fidelity = network.lookup_actor("Fidelity")
-        self.financial_planner = network.lookup_actor("Financial Planner")
-        self.quant = network.lookup_actor("Quant")
-        self.risk_manager = network.lookup_actor("Risk Manager")
+        self.fidelity = network.find_by_name("Fidelity")
+        self.financial_planner = network.find_by_name("Financial Planner")
+        self.quant = network.find_by_name("Quant")
+        self.risk_manager = network.find_by_name("Risk Manager")
         Debug(self.actor_name, "connected")
 
-    def disconnect_network(self, network: LocalActorNetwork):
+    def disconnect_network(self, network: IRuntime):
         """
         Disconnects the personal assistant from the specified local actor network.
 
@@ -163,7 +165,7 @@ class PersonalAssistant(Actor):
         self.risk_manager.close()
         Debug(self.actor_name, "disconnected")
 
-    def _process_txt_msg(self, msg, msg_type, topic, sender):
+    def on_txt_msg(self, msg, msg_type, topic, sender):
         """
         Processes a text message received by the personal assistant.
 

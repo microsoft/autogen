@@ -1,11 +1,13 @@
 # Composable Actor Platform (CAP) for AutoGen
 
-## I just want to run the demo!
+## I just want to run the remote AutoGen agents!
 *Python Instructions (Windows, Linux, MacOS):*
 
 0) cd py
 1) pip install -r autogencap/requirements.txt
 2) python ./demo/App.py
+3) Choose (5) and follow instructions to run standalone Agents
+4) Choose other options for other demos
 
 *Demo Notes:*
 1) Options involving AutoGen require OAI_CONFIG_LIST.
@@ -15,14 +17,15 @@
 
 *Demo Reference:*
 ```
-    Select the Composable Actor Platform (CAP) demo app to run:
-    (enter anything else to quit)
-    1. Hello World Actor
-    2. Complex Actor Graph
-    3. AutoGen Pair
-    4. AutoGen GroupChat
-    5. AutoGen Agents in different processes
-    Enter your choice (1-5):
+Select the Composable Actor Platform (CAP) demo app to run:
+(enter anything else to quit)
+1. Hello World
+2. Complex Agent (e.g. Name or Quit)
+3. AutoGen Pair
+4. AutoGen GroupChat
+5. AutoGen Agents in different processes
+6. List Actors in CAP (Registry)
+Enter your choice (1-6):
 ```
 
 ## What is Composable Actor Platform (CAP)?

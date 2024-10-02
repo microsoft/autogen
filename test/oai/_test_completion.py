@@ -4,7 +4,6 @@ import json
 import os
 import sys
 from functools import partial
-from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
 import datasets
 import numpy as np
@@ -18,6 +17,7 @@ from autogen.code_utils import (
     implement,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -143,13 +143,8 @@ def test_nocontext():
             file_location=KEY_LOC,
             filter_dict={
                 "model": {
+                    "gpt-4o-mini",
                     "gpt-3.5-turbo",
-                    "gpt-3.5-turbo-16k",
-                    "gpt-3.5-turbo-16k-0613",
-                    "gpt-3.5-turbo-0301",
-                    "chatgpt-35-turbo-0301",
-                    "gpt-35-turbo-v0301",
-                    "gpt",
                 },
             },
         ),
@@ -179,13 +174,8 @@ def test_humaneval(num_samples=1):
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={
             "model": {
+                "gpt-4o-mini",
                 "gpt-3.5-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
             },
         },
         file_location=KEY_LOC,

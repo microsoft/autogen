@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Optional
+import warnings
+from typing import Callable, Dict, List, Literal, Optional
 
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.agentchat.contrib.vectordb.utils import (
@@ -23,7 +24,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "ALWAYS",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
@@ -93,6 +94,11 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
              **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         """
+        warnings.warn(
+            "The QdrantRetrieveUserProxyAgent is deprecated. Please use the RetrieveUserProxyAgent instead, set `vector_db` to `qdrant`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(name, human_input_mode, is_termination_msg, retrieve_config, **kwargs)
         self._client = self._retrieve_config.get("client", QdrantClient(":memory:"))
         self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-small-en-v1.5")

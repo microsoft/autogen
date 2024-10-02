@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MessageExtension.cs
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,14 +16,16 @@ public static class MessageExtension
     {
         return message switch
         {
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.FormatMessage(),
+#pragma warning restore CS0618 // deprecated
             TextMessage textMessage => textMessage.FormatMessage(),
             ImageMessage imageMessage => imageMessage.FormatMessage(),
             ToolCallMessage toolCallMessage => toolCallMessage.FormatMessage(),
             ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.FormatMessage(),
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.FormatMessage(),
             _ => message.ToString(),
-        };
+        } ?? string.Empty;
     }
 
     public static string FormatMessage(this TextMessage message)
@@ -110,6 +113,8 @@ public static class MessageExtension
 
         return sb.ToString();
     }
+
+    [Obsolete("This method is deprecated, please use the extension method FormatMessage(this IMessage message) instead.")]
     public static string FormatMessage(this Message message)
     {
         var sb = new StringBuilder();
@@ -149,15 +154,16 @@ public static class MessageExtension
         return message switch
         {
             TextMessage textMessage => textMessage.Role == Role.System,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Role == Role.System,
+#pragma warning restore CS0618 // deprecated
             _ => false,
         };
     }
 
     /// <summary>
     /// Get the content from the message
-    /// <para>if the message is a <see cref="Message"/> or <see cref="TextMessage"/>, return the content</para>
-    /// <para>if the message is a <see cref="ToolCallResultMessage"/> and only contains one function call, return the result of that function call</para>
+    /// <para>if the message implements <see cref="ICanGetTextContent"/>, return the content from the message by calling <see cref="ICanGetTextContent.GetContent()"/></para>
     /// <para>if the message is a <see cref="AggregateMessage{ToolCallMessage, ToolCallResultMessage}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/> and the second message only contains one function call, return the result of that function call</para>
     /// <para>for all other situation, return null.</para>
     /// </summary>
@@ -166,10 +172,11 @@ public static class MessageExtension
     {
         return message switch
         {
-            TextMessage textMessage => textMessage.Content,
+            ICanGetTextContent canGetTextContent => canGetTextContent.GetContent(),
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => string.Join("\n", aggregateMessage.Message2.ToolCalls.Where(x => x.Result is not null).Select(x => x.Result)),
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Content,
-            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.ToolCalls.Count == 1 ? toolCallResultMessage.ToolCalls.First().Result : null,
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message2.ToolCalls.Count == 1 ? aggregateMessage.Message2.ToolCalls.First().Result : null,
+#pragma warning restore CS0618 // deprecated
             _ => null,
         };
     }
@@ -182,7 +189,9 @@ public static class MessageExtension
         return message switch
         {
             TextMessage textMessage => textMessage.Role,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Role,
+#pragma warning restore CS0618 // deprecated
             ImageMessage img => img.Role,
             MultiModalMessage multiModal => multiModal.Role,
             _ => null,
@@ -191,8 +200,7 @@ public static class MessageExtension
 
     /// <summary>
     /// Return the tool calls from the message if it's available.
-    /// <para>if the message is a <see cref="ToolCallMessage"/>, return its tool calls</para>
-    /// <para>if the message is a <see cref="Message"/> and the function name and function arguments are available, return a list of tool call with one item</para>
+    /// <para>if the message implements <see cref="ICanGetToolCalls"/>, return the tool calls from the message by calling <see cref="ICanGetToolCalls.GetToolCalls()"/></para>
     /// <para>if the message is a <see cref="AggregateMessage{ToolCallMessage, ToolCallResultMessage}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/>, return the tool calls from the first message</para>
     /// </summary>
     /// <param name="message"></param>
@@ -201,11 +209,13 @@ public static class MessageExtension
     {
         return message switch
         {
-            ToolCallMessage toolCallMessage => toolCallMessage.ToolCalls,
+            ICanGetToolCalls canGetToolCalls => canGetToolCalls.GetToolCalls().ToList(),
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.FunctionName is not null && msg.FunctionArguments is not null
-                ? msg.Content is not null ? new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments, result: msg.Content) }
-                : new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments) }
+                ? msg.Content is not null ? [new ToolCall(msg.FunctionName, msg.FunctionArguments, result: msg.Content)]
+                : new List<ToolCall> { new(msg.FunctionName, msg.FunctionArguments) }
                 : null,
+#pragma warning restore CS0618 // deprecated
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message1.ToolCalls,
             _ => null,
         };

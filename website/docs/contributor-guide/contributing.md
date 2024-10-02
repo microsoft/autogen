@@ -1,12 +1,12 @@
 # Contributing to AutoGen
 
-This project welcomes and encourages all forms of contributions, including but not limited to:
+The project welcomes contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. Together, we can build something truly remarkable. Possible contributions include but not limited to:
 
 - Pushing patches.
 - Code review of pull requests.
 - Documentation, examples and test cases.
 - Readability improvement, e.g., improvement on docstr and comments.
-- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://aka.ms/autogen-dc), and [twitter](https://twitter.com/pyautogen).
+- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and [twitter](https://twitter.com/pyautogen).
 - Tutorials, blog posts, talks that promote the project.
 - Sharing application scenarios and/or related research.
 
@@ -31,4 +31,4 @@ To see what we are working on and what we plan to work on, please check our
 
 ## Becoming a Reviewer
 
-There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors. If you are willing to become a reviewer, you are welcome to let us know on discord.
+There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors.
