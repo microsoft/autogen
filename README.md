@@ -21,7 +21,7 @@ AutoGen is an open-source programming framework for building AI agents and facil
 
 
 > [!NOTE]
-> *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the official repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
+> *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the original repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
 >
 > -_Maintainers (Sept 6th, 2024)_
 
@@ -241,8 +241,6 @@ You can find detailed documentation about AutoGen [here](https://microsoft.githu
 In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
-
-- [Discord](https://aka.ms/autogen-dc)
 
 - [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
 
