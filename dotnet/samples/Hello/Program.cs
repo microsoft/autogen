@@ -1,11 +1,13 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddAgentService();
+builder.Services.AddHostedService<AgentWorkerRuntime>();
+builder.Services.AddSingleton<AgentClient>();
 builder.UseOrleans(siloBuilder =>
 {
     siloBuilder.UseLocalhostClustering(); ;
@@ -13,11 +15,15 @@ builder.UseOrleans(siloBuilder =>
 builder.AddAgentWorker("https://localhost:5000");
 var app = builder.Build();
 await app.StartAsync();
+AgentClient client = app.Services.GetRequiredService<AgentClient>();
 app.Services.GetRequiredService<AgentWorkerRuntime>();
+//send our hello message event via cloud events
 var evt = new NewMessageReceived
 {
     Message = "World"
 }.ToCloudEvent("HelloAgents");
+
+await client.PublishEventAsync(evt);
 await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
