@@ -164,7 +164,7 @@ This folder holds the results for the ``two_agent_stocks`` task of the ``default
 
 Within each folder, you will find the following files:
 
-- *timestamp.txt*: records the date and time of the run, along with the version of the pyautogen library installed
+- *timestamp.txt*: records the date and time of the run, along with the version of the autogen-agentchat library installed
 - *console_log.txt*: all console output produced by Docker when running AutoGen. Read this like you would a regular console.
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by AutoGen, and all artifacts produced by that code.
