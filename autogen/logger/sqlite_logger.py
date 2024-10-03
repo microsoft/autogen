@@ -20,10 +20,12 @@ if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
     from autogen.oai.bedrock import BedrockClient
+    from autogen.oai.cerebras import CerebrasClient
     from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.groq import GroqClient
     from autogen.oai.mistral import MistralAIClient
+    from autogen.oai.ollama import OllamaClient
     from autogen.oai.together import TogetherClient
 
 logger = logging.getLogger(__name__)
@@ -397,12 +399,14 @@ class SqliteLogger(BaseLogger):
         client: Union[
             AzureOpenAI,
             OpenAI,
+            CerebrasClient,
             GeminiClient,
             AnthropicClient,
             MistralAIClient,
             TogetherClient,
             GroqClient,
             CohereClient,
+            OllamaClient,
             BedrockClient,
         ],
         wrapper: OpenAIWrapper,
