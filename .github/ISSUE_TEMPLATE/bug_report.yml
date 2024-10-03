@@ -43,7 +43,7 @@ body:
   - type: input
     attributes:
       label: Model used
-      description: If a model was used, please describe it here
+      description: If a model was used, please describe it here, indicating whether it is a local model or a cloud-hosted model
       placeholder: gpt-4, mistral-7B etc
   - type: input
     attributes:
