@@ -5,8 +5,8 @@ import sys
 from typing import Union, List, Dict, Any, Sequence
 from dataclasses import asdict, is_dataclass
 
-from .group_chat._events import ContentPublishEvent
-from ..agents import ChatMessage, TextMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, StopMessage
+from .teams.group_chat._events import ContentPublishEvent
+from .agents import ChatMessage, TextMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, StopMessage
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult
 
