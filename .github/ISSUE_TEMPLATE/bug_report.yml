@@ -37,7 +37,6 @@ body:
         - Magentic One
         - AutoGen Bench
         - Other
-        - I don't know
     validations:
       required: true
   - type: input
