@@ -7,11 +7,20 @@ Quick Start Guide for AgentChat: Migrating from AutoGen 0.2x to 0.4x.
 
 # Quick Start
 
-:::{note}
-For installation instructions, please refer to the [package information](pkg-info-autogen-agentchat).
-:::
-
 AgentChat API, introduced in AutoGen 0.4x, offers a similar level of abstraction as the default Agent classes in AutoGen 0.2x. This guide demonstrates how to migrate basic examples from AutoGen 0.2x to AgentChat in AutoGen 0.4x.
+
+## Installation
+
+Install the `autogen-agentchat` package using pip:
+
+```bash
+
+pip install autogen-agentchat==0.4.0dev0
+```
+
+:::{note}
+For further installation instructions, please refer to the [package information](pkg-info-autogen-agentchat).
+:::
 
 ## Migrating from AutoGen 0.2x to 0.4x
 
