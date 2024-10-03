@@ -7,11 +7,11 @@ from autogen_core.base import AgentId, AgentType, MessageContext
 from autogen_core.components import DefaultTopicId, event
 from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tool_agent import ToolException
-from autogen_core.application.logging import EVENT_LOGGER_NAME
 
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from ._events import ContentPublishEvent, ContentRequestEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
+from ..logging import EVENT_LOGGER_NAME
 
 
 class BaseChatAgentContainer(SequentialRoutedAgent):
@@ -31,7 +31,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
         self._agent = agent
         self._message_buffer: List[TextMessage | MultiModalMessage | StopMessage] = []
         self._tool_agent_id = AgentId(type=tool_agent_type, key=self.id.key)
-        self._logger = self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".agentchatchat")
+        self._logger = self.logger = logging.getLogger(EVENT_LOGGER_NAME)
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:

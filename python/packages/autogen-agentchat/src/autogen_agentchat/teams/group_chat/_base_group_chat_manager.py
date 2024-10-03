@@ -7,7 +7,7 @@ from autogen_core.components import event
 from ...agents import StopMessage, TextMessage, ChatMessage
 from ._events import ContentPublishEvent, ContentRequestEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
-from autogen_core.application.logging import EVENT_LOGGER_NAME
+from ..logging import EVENT_LOGGER_NAME
 
 
 class BaseGroupChatManager(SequentialRoutedAgent):
