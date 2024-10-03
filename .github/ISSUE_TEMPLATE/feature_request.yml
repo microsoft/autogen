@@ -4,14 +4,15 @@ labels: ["enhancement"]
 
 body:
   - type: textarea
-    id: problem_description
     attributes:
       label: What feature would you like to be added?
       description: Please describe the desired feature. Be descriptive, provide examples and if possible, provide a proposed solution.
+      required: true
 
   - type: textarea
-    id: solution_description
     attributes:
       label: Why is this needed?
       description: Why is it important that this feature is implemented? What problem or need does it solve?
+      required: true
+
 
