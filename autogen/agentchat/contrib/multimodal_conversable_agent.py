@@ -117,7 +117,9 @@ class MultimodalConversableAgent(ConversableAgent):
         messages_with_b64_img = message_formatter_pil_to_b64(self._oai_system_message + messages)
 
         # TODO: #1143 handle token limit exceeded error
-        response = client.create(context=messages[-1].pop("context", None), messages=messages_with_b64_img)
+        response = client.create(
+            context=messages[-1].pop("context", None), messages=messages_with_b64_img, agent=self.name
+        )
 
         # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]

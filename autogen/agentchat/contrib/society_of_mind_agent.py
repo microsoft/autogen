@@ -131,7 +131,7 @@ class SocietyOfMindAgent(ConversableAgent):
             }
         )
 
-        response = self.client.create(context=None, messages=_messages, cache=self.client_cache)
+        response = self.client.create(context=None, messages=_messages, cache=self.client_cache, agent=self.name)
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             return str(extracted_response.model_dump(mode="dict"))
