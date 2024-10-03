@@ -8,6 +8,7 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
+
 from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from ._base_chat_agent_container import BaseChatAgentContainer
@@ -54,7 +55,12 @@ class RoundRobinGroupChat(BaseTeam):
 
     """
 
-    def __init__(self, participants: List[BaseChatAgent], *, tools: List[Tool] | None = None):
+    def __init__(
+        self,
+        participants: List[BaseChatAgent],
+        *,
+        tools: List[Tool] | None = None
+    ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
@@ -69,7 +75,8 @@ class RoundRobinGroupChat(BaseTeam):
         def _factory() -> BaseChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
+            container = BaseChatAgentContainer(
+                parent_topic_type, agent, tool_agent_type)
             assert container.id == id
             return container
 
@@ -88,7 +95,8 @@ class RoundRobinGroupChat(BaseTeam):
 
         # Register the tool agent.
         tool_agent_type = await ToolAgent.register(
-            runtime, "tool_agent", lambda: ToolAgent("Tool agent for round-robin group chat", self._tools)
+            runtime, "tool_agent", lambda: ToolAgent(
+                "Tool agent for round-robin group chat", self._tools)
         )
         # No subscriptions are needed for the tool agent, which will be called via direct messages.
 
@@ -101,7 +109,8 @@ class RoundRobinGroupChat(BaseTeam):
             topic_type = participant.name
             # Register the participant factory.
             await BaseChatAgentContainer.register(
-                runtime, type=agent_type, factory=self._create_factory(group_topic_type, participant, tool_agent_type)
+                runtime, type=agent_type, factory=self._create_factory(
+                    group_topic_type, participant, tool_agent_type)
             )
             # Add subscriptions for the participant.
             await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
@@ -123,13 +132,16 @@ class RoundRobinGroupChat(BaseTeam):
         )
         # Add subscriptions for the group chat manager.
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=group_chat_manager_topic_type,
+                             agent_type=group_chat_manager_agent_type.type)
         )
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=group_topic_type,
+                             agent_type=group_chat_manager_agent_type.type)
         )
         await runtime.add_subscription(
-            TypeSubscription(topic_type=team_topic_type, agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=team_topic_type,
+                             agent_type=group_chat_manager_agent_type.type)
         )
 
         group_chat_messages: List[ChatMessage] = []
@@ -144,7 +156,8 @@ class RoundRobinGroupChat(BaseTeam):
             type="collect_group_chat_messages",
             closure=collect_group_chat_messages,
             subscriptions=lambda: [
-                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages")
+                TypeSubscription(topic_type=group_topic_type,
+                                 agent_type="collect_group_chat_messages")
             ],
         )
 
@@ -153,9 +166,11 @@ class RoundRobinGroupChat(BaseTeam):
 
         # Run the team by publishing the task to the team topic and then requesting the result.
         team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
-        group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
+        group_chat_manager_topic_id = TopicId(
+            type=group_chat_manager_topic_type, source=self._team_id)
         await runtime.publish_message(
-            ContentPublishEvent(agent_message=TextMessage(content=task, source="user")),
+            ContentPublishEvent(agent_message=TextMessage(
+                content=task, source="user")),
             topic_id=team_topic_id,
         )
         await runtime.publish_message(ContentRequestEvent(), topic_id=group_chat_manager_topic_id)
