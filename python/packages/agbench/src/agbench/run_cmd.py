@@ -305,7 +305,7 @@ def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = 
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
-export AGNEXT_TESTBED_SETTING="Native"
+export AUTOGEN_TESTBED_SETTING="Native"
 echo "agbench version: {__version__}" > timestamp.txt
 
 # Create and activate the virtual environment
@@ -425,7 +425,7 @@ def run_scenario_in_docker(
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
-export AGNEXT_TESTBED_SETTING="Docker"
+export AUTOGEN_TESTBED_SETTING="Docker"
 
 umask 000
 echo "agbench version: {__version__}" > timestamp.txt
@@ -477,20 +477,20 @@ echo RUN.SH COMPLETE !#!#
     # Figure out what folders to mount
     volumes = {str(pathlib.Path(work_dir).absolute()): {"bind": "/workspace", "mode": "rw"}}
 
-    # Add the autogen_core repo if we can find it
-    agnext_repo_base = os.environ.get("AGNEXT_REPO_BASE")
-    if agnext_repo_base is None:
-        agnext_repo_base = find_agnext_repo(os.getcwd())
-    elif not os.path.isdir(agnext_repo_base):
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), agnext_repo_base)
+    # Add the autogen repo if we can find it
+    autogen_repo_base = os.environ.get("AUTOGEN_REPO_BASE")
+    if autogen_repo_base is None:
+        autogen_repo_base = find_autogen_repo(os.getcwd())
+    elif not os.path.isdir(autogen_repo_base):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), autogen_repo_base)
 
-    if agnext_repo_base is None:
+    if autogen_repo_base is None:
         raise ValueError(
-            "Could not find AutoGen repo base. Please set the environment variable AGNEXT_REPO_BASE to the correct value."
+            "Could not find AutoGen repo base. Please set the environment variable AUTOGEN_REPO_BASE to the correct value."
         )
 
-    agnext_repo_base = os.path.join(agnext_repo_base, "python")
-    volumes[str(pathlib.Path(agnext_repo_base).absolute())] = {"bind": "/autogen_core", "mode": "rw"}
+    autogen_repo_base = os.path.join(autogen_repo_base, "python")
+    volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen_python", "mode": "rw"}
 
     print("Mounting:")
     for k in volumes:
@@ -583,7 +583,7 @@ def build_default_docker_image(docker_client: docker.DockerClient, image_tag: st
             sys.stdout.write(segment["stream"])
 
 
-def find_agnext_repo(path: str) -> Optional[str]:
+def find_autogen_repo(path: str) -> Optional[str]:
     """
     Utility for identifying if the path is a subdirectory of the autogen_core repo.
 
