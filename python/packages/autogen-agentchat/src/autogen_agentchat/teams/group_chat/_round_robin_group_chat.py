@@ -11,8 +11,8 @@ from autogen_agentchat.agents._base_chat_agent import ChatMessage
 
 from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
+from .._events import ContentPublishEvent, ContentRequestEvent
 from ._base_chat_agent_container import BaseChatAgentContainer
-from ._events import ContentPublishEvent, ContentRequestEvent
 from ._round_robin_group_chat_manager import RoundRobinGroupChatManager
 
 

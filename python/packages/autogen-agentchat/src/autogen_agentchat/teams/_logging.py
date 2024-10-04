@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Sequence, Union
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult
 
-from .agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
-from .teams.group_chat._events import ContentPublishEvent
+from ..agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from ._events import ContentPublishEvent
 
 EVENT_LOGGER_NAME = "autogen_agentchat.events"
 ContentType = Union[str, List[Union[str, Image]], List[FunctionCall], List[FunctionExecutionResult]]

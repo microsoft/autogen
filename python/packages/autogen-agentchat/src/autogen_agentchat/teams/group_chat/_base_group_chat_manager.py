@@ -5,8 +5,8 @@ from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
 from ...agents import ChatMessage, StopMessage, TextMessage
-from ...logging import EVENT_LOGGER_NAME
-from ._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent
+from .._logging import EVENT_LOGGER_NAME
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
