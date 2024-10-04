@@ -1,6 +1,7 @@
+from typing import Optional
 from pydantic import BaseModel
 
-from ...agents import MultiModalMessage, StopMessage, TextMessage
+from ...agents import ChatMessage
 
 
 class ContentPublishEvent(BaseModel):
@@ -9,8 +10,9 @@ class ContentPublishEvent(BaseModel):
     content of the event.
     """
 
-    agent_message: TextMessage | MultiModalMessage | StopMessage
+    agent_message: ChatMessage
     """The message published by the agent."""
+    source: Optional[str] = None
 
 
 class ContentRequestEvent(BaseModel):

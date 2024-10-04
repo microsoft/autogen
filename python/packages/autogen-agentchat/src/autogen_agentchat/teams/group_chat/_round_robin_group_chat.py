@@ -8,6 +8,7 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
+
 from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from ._base_chat_agent_container import BaseChatAgentContainer

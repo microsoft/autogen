@@ -1,12 +1,13 @@
-import sys
+import logging
 from typing import List
 
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
-from ...agents import MultiModalMessage, StopMessage, TextMessage
+from ...agents import StopMessage, TextMessage, ChatMessage
 from ._events import ContentPublishEvent, ContentRequestEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
+from ...logging import EVENT_LOGGER_NAME
 
 
 class BaseGroupChatManager(SequentialRoutedAgent):
@@ -48,7 +49,8 @@ class BaseGroupChatManager(SequentialRoutedAgent):
             raise ValueError("The group topic type must not be the same as the parent topic type.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[TextMessage | MultiModalMessage | StopMessage] = []
+        self._message_thread: List[ChatMessage] = []
+        self._logger = self.logger = logging.getLogger(EVENT_LOGGER_NAME + ".agentchatchat")
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
@@ -62,7 +64,8 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         group_chat_topic_id = TopicId(type=self._group_topic_type, source=ctx.topic_id.source)
 
         # TODO: use something else other than print.
-        sys.stdout.write(f"{'-'*80}\n{message.agent_message.source}:\n{message.agent_message.content}\n")
+
+        self._logger.info(ContentPublishEvent(agent_message=message.agent_message))
 
         # Process event from parent.
         if ctx.topic_id.type == self._parent_topic_type:
@@ -105,7 +108,7 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         participant_topic_id = TopicId(type=speaker_topic_type, source=ctx.topic_id.source)
         await self.publish_message(ContentRequestEvent(), topic_id=participant_topic_id)
 
-    async def select_speaker(self, thread: List[TextMessage | MultiModalMessage | StopMessage]) -> str:
+    async def select_speaker(self, thread: List[ChatMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         raise NotImplementedError("Method not implemented")
