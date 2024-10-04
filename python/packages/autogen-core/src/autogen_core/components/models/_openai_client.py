@@ -401,6 +401,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     **create_args,
                 )
             )
+        elif "response_format" in create_args:
+            future = asyncio.ensure_future(
+                self._client.beta.chat.completions.parse(messages=oai_messages, **create_args)
+            )
         else:
             future = asyncio.ensure_future(
                 self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
