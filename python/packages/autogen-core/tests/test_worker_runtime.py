@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import List
 
 import pytest
@@ -16,7 +17,7 @@ from autogen_core.components import (
     default_subscription,
     type_subscription,
 )
-from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
+from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, MyAgent, MyMessage, NoopAgent
 
 
 @pytest.mark.asyncio
@@ -300,3 +301,94 @@ async def test_type_subscription() -> None:
     await worker.stop()
     await publisher.stop()
     await host.stop()
+
+
+@pytest.mark.asyncio
+async def test_duplicate_subscription() -> None:
+    host_address = "localhost:50059"
+    host = WorkerAgentRuntimeHost(address=host_address)
+    worker1 = WorkerAgentRuntime(host_address=host_address)
+    worker1_2 = WorkerAgentRuntime(host_address=host_address)
+    host.start()
+    try:
+        worker1.start()
+        await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
+
+        worker1_2.start()
+
+        # Note: This passes because worker1 is still running
+        with pytest.raises(RuntimeError, match="Agent type worker1 already registered"):
+            await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1_2"))
+
+        # This is somehow covered in test_disconnected_agent as well as a stop will also disconnect the agent.
+        #  Will keep them both for now as we might replace the way we simulate a disconnect
+        await worker1.stop()
+
+        # Note: This is failing (doesn't raise the exeption). We get duplicate subscriptions
+        with pytest.raises(ValueError):
+            await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1_2"))
+
+    except Exception as ex:
+        raise ex
+    finally:
+        await worker1_2.stop()
+        await host.stop()
+
+
+@pytest.mark.asyncio
+async def test_disconnected_agent() -> None:
+    host_address = "localhost:50059"
+    host = WorkerAgentRuntimeHost(address=host_address)
+    host.start()
+    worker1 = WorkerAgentRuntime(host_address=host_address)
+    worker1_2 = WorkerAgentRuntime(host_address=host_address)
+
+    try:
+        worker1.start()
+        await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
+
+        subscriptions1 = host.servicer.subscription_manager.subscriptions
+        assert len(subscriptions1) == 1
+        recipients1 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())  # noqa: F841
+        assert AgentId(type="worker1", key="default") in recipients1
+
+        first_subscription_id = subscriptions1[0].id
+
+        await worker1.publish_message(MyMessage(content="Hello!"), DefaultTopicId())
+        # This is a simple simulation of worker disconnct
+        if worker1._host_connection is not None:  # type: ignore[reportPrivateUsage]
+            try:
+                await worker1._host_connection.close()  # type: ignore[reportPrivateUsage]
+            except asyncio.CancelledError:
+                pass
+
+        await asyncio.sleep(1)
+
+        subscriptions2 = host.servicer.subscription_manager.subscriptions
+        assert len(subscriptions2) == 0
+        recipients2 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())
+        assert len(recipients2) == 0
+        await asyncio.sleep(1)
+
+        worker1_2.start()
+        await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1"))
+
+        subscriptions3 = host.servicer.subscription_manager.subscriptions
+        assert len(subscriptions3) == 1
+        assert first_subscription_id not in [x.id for x in subscriptions3]
+
+        recipients3 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())
+        assert len(set(recipients2)) == len(recipients2)  # Make sure there are no duplicates
+        assert AgentId(type="worker1", key="default") in recipients3
+    except Exception as ex:
+        raise ex
+    finally:
+        await worker1.stop()
+        await worker1_2.stop()
+        await host.stop()
+
+
+if __name__ == "__main__":
+    os.environ["GRPC_VERBOSITY"] = "DEBUG"
+    os.environ["GRPC_TRACE"] = "all"
+    asyncio.run(test_disconnected_agent())
