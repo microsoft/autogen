@@ -242,7 +242,3 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                 )
             case None:
                 logger.warning("Received empty subscription message")
-
-    @property
-    def subscription_manager(self) -> SubscriptionManager:
-        return self._subscription_manager

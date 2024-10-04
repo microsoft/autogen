@@ -72,7 +72,3 @@ class SubscriptionManager:
         for subscription in self._subscriptions:
             if subscription.is_match(topic):
                 self._subscribed_recipients[topic].append(subscription.map_to_agent(topic))
-
-    @property
-    def subscriptions(self) -> List[Subscription]:
-        return self._subscriptions

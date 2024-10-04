@@ -66,7 +66,3 @@ class WorkerAgentRuntimeHost:
 
         # Shutdown the server.
         await self.stop(grace=grace)
-
-    @property
-    def servicer(self) -> WorkerAgentRuntimeHostServicer:
-        return self._servicer
