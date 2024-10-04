@@ -6,15 +6,17 @@ import sys
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
-from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache import Cache
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
-from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
+
+from .client_utils import logger_formatter
+from .rate_limiters import RateLimiter, TimeRateLimiter
 
 TOOL_ENABLED = False
 try:
@@ -41,6 +43,13 @@ else:
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
     ERROR = None
+
+try:
+    from autogen.oai.cerebras import CerebrasClient
+
+    cerebras_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cerebras_import_exception = e
 
 try:
     from autogen.oai.gemini import GeminiClient
@@ -83,6 +92,13 @@ try:
     cohere_import_exception: Optional[ImportError] = None
 except ImportError as e:
     cohere_import_exception = e
+
+try:
+    from autogen.oai.ollama import OllamaClient
+
+    ollama_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    ollama_import_exception = e
 
 try:
     from autogen.oai.bedrock import BedrockClient
@@ -163,14 +179,6 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
-        if (
-            not isinstance(client, openai.AzureOpenAI)
-            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
-            and not is_valid_api_key(self._oai_client.api_key)
-        ):
-            logger.warning(
-                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
-            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -207,7 +215,9 @@ class OpenAIClient:
         """
         iostream = IOStream.get_default()
 
-        completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
+        completions: Completions = (
+            self._oai_client.chat.completions if "messages" in params else self._oai_client.completions
+        )  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
         if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
@@ -279,7 +289,12 @@ class OpenAIClient:
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
-            prompt_tokens = count_token(params["messages"], model)
+            try:
+                prompt_tokens = count_token(params["messages"], model)
+            except NotImplementedError as e:
+                # Catch token calculation error if streaming with customized models.
+                logger.warning(str(e))
+                prompt_tokens = 0
             response = ChatCompletion(
                 id=chunk.id,
                 model=chunk.model,
@@ -438,8 +453,11 @@ class OpenAIWrapper:
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
+        self._rate_limiters: List[Optional[RateLimiter]] = []
 
         if config_list:
+            self._initialize_rate_limiters(config_list)
+
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
                 self._register_default_client(config, openai_config)  # could modify the config
@@ -513,6 +531,11 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("cerebras"):
+                if cerebras_import_exception:
+                    raise ImportError("Please install `cerebras_cloud_sdk` to use Cerebras OpenAI API.")
+                client = CerebrasClient(**openai_config)
+                self._clients.append(client)
             elif api_type is not None and api_type.startswith("google"):
                 if gemini_import_exception:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
@@ -547,6 +570,11 @@ class OpenAIWrapper:
                 if cohere_import_exception:
                     raise ImportError("Please install `cohere` to use the Cohere API.")
                 client = CohereClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("ollama"):
+                if ollama_import_exception:
+                    raise ImportError("Please install with `[ollama]` option to use the Ollama API.")
+                client = OllamaClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("bedrock"):
                 self._configure_openai_config_for_bedrock(config, openai_config)
@@ -763,6 +791,7 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                self._throttle_api_calls(i)
                 request_ts = get_current_ts()
                 response = client.create(params)
             except APITimeoutError as err:
@@ -1056,3 +1085,20 @@ class OpenAIWrapper:
             A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         return response.message_retrieval_function(response)
+
+    def _throttle_api_calls(self, idx: int) -> None:
+        """Rate limit api calls."""
+        if self._rate_limiters[idx]:
+            limiter = self._rate_limiters[idx]
+
+            assert limiter is not None
+            limiter.sleep()
+
+    def _initialize_rate_limiters(self, config_list: List[Dict[str, Any]]) -> None:
+        for config in config_list:
+            # Instantiate the rate limiter
+            if "api_rate_limit" in config:
+                self._rate_limiters.append(TimeRateLimiter(config["api_rate_limit"]))
+                del config["api_rate_limit"]
+            else:
+                self._rate_limiters.append(None)

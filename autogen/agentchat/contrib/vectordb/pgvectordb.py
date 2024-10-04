@@ -4,16 +4,17 @@ import urllib.parse
 from typing import Callable, List, Optional, Union
 
 import numpy as np
+
+# try:
+import pgvector
+from pgvector.psycopg import register_vector
 from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import get_logger
 
-try:
-    import pgvector
-    from pgvector.psycopg import register_vector
-except ImportError:
-    raise ImportError("Please install pgvector: `pip install pgvector`")
+# except ImportError:
+#     raise ImportError("Please install pgvector: `pip install pgvector`")
 
 try:
     import psycopg
@@ -415,7 +416,9 @@ class Collection:
         cursor = self.client.cursor()
         results = []
         for query_text in query_texts:
-            vector = self.embedding_function(query_text, convert_to_tensor=False).tolist()
+            vector = self.embedding_function(query_text)
+            vector_string = "[" + ",".join([f"{x:.8f}" for x in vector]) + "]"
+
             if distance_type.lower() == "cosine":
                 index_function = "<=>"
             elif distance_type.lower() == "euclidean":
@@ -427,7 +430,7 @@ class Collection:
             query = (
                 f"SELECT id, documents, embedding, metadatas "
                 f"FROM {self.name} "
-                f"{clause} embedding {index_function} '{str(vector)}' {distance_threshold} "
+                f"{clause} embedding {index_function} '{vector_string}' {distance_threshold} "
                 f"LIMIT {n_results}"
             )
             cursor.execute(query)
@@ -619,7 +622,7 @@ class PGVectorDB(VectorDB):
         if embedding_function:
             self.embedding_function = embedding_function
         else:
-            self.embedding_function = SentenceTransformer("all-MiniLM-L6-v2").encode
+            self.embedding_function = lambda s: SentenceTransformer("all-MiniLM-L6-v2").encode(s).tolist()
         self.metadata = metadata
         register_vector(self.client)
         self.active_collection = None

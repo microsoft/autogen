@@ -54,17 +54,19 @@ def test_retrievechat():
     )
 
     sentence_transformer_ef = ef.SentenceTransformerEmbeddingFunction()
+    docs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../website/docs"))
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
         max_consecutive_auto_reply=2,
         retrieve_config={
-            "docs_path": "./website/docs",
+            "docs_path": docs_path,
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
             "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_function": sentence_transformer_ef,
             "get_or_create": True,
+            "overwrite": True,
         },
     )
 

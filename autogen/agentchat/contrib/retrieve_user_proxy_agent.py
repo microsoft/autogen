@@ -9,7 +9,9 @@ from IPython import get_ipython
 try:
     import chromadb
 except ImportError as e:
-    raise ImportError(f"{e}. You can try `pip install pyautogen[retrievechat]`, or install `chromadb` manually.")
+    raise ImportError(
+        f"{e}. You can try `pip install autogen-agentchat[retrievechat]~=0.2`, or install `chromadb` manually."
+    )
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
@@ -178,7 +180,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
                     functions, you can pass it here,
-                    follow the examples in `https://docs.trychroma.com/embeddings`.
+                    follow the examples in `https://docs.trychroma.com/guides/embeddings`.
                 - `customized_prompt` (Optional, str) - the customized prompt for the retrieve chat.
                     Default is None.
                 - `customized_answer_prefix` (Optional, str) - the customized answer prefix for the

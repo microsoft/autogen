@@ -1,7 +1,5 @@
 promptflow==1.8.0
-pyautogen==0.2.23
-pyautogen[graph]
-pyautogen[redis]
+autogen-agentchat[graph,redis]~=0.2
 redis
 semantic-kernel
 beautifulsoup4

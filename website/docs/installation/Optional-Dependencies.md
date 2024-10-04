@@ -6,10 +6,10 @@ To use LLM caching with Redis, you need to install the Python package with
 the option `redis`:
 
 ```bash
-pip install "pyautogen[redis]"
+pip install "autogen-agentchat[redis]~=0.2"
 ```
 
-See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
+See [LLM Caching](/docs/topics/llm-caching) for details.
 
 ## IPython Code Executor
 
@@ -17,7 +17,7 @@ To use the IPython code executor, you need to install the `jupyter-client`
 and `ipykernel` packages:
 
 ```bash
-pip install "pyautogen[ipython]"
+pip install "autogen-agentchat[ipython]~=0.2"
 ```
 
 To use the IPython code executor:
@@ -44,20 +44,21 @@ Example notebooks:
 
 ## retrievechat
 
-`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it with ChromaDB.
+AutoGen 0.2 supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it with ChromaDB.
 
 ```bash
-pip install "pyautogen[retrievechat]"
+pip install "autogen-agentchat[retrievechat]"
+```
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
+
+Alternatively AutoGen 0.2 also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
+
+```bash
+pip install "autogen-agentchat[retrievechat-pgvector]~=0.2"
 ```
 
-Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
-
 ```bash
-pip install "pyautogen[retrievechat-pgvector]"
-```
-
-```bash
-pip install "pyautogen[retrievechat-qdrant]"
+pip install "autogen-agentchat[retrievechat-qdrant]~=0.2"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process
@@ -82,7 +83,7 @@ Example notebooks:
 To use Teachability, please install AutoGen with the [teachable] option.
 
 ```bash
-pip install "pyautogen[teachable]"
+pip install "autogen-agentchat[teachable]~=0.2"
 ```
 
 Example notebook: [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
@@ -92,7 +93,7 @@ Example notebook: [Chatting with a teachable agent](https://github.com/microsoft
 We offered Multimodal Conversable Agent and LLaVA Agent. Please install with the [lmm] option to use it.
 
 ```bash
-pip install "pyautogen[lmm]"
+pip install "autogen-agentchat[lmm]~=0.2"
 ```
 
 Example notebooks:
@@ -116,7 +117,7 @@ Example notebooks:
 To use a graph in `GroupChat`, particularly for graph visualization, please install AutoGen with the [graph] option.
 
 ```bash
-pip install "pyautogen[graph]"
+pip install "autogen-agentchat[graph]~=0.2"
 ```
 
 Example notebook: [Finite State Machine graphs to set speaker transition constraints](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_finite_state_machine)
@@ -126,5 +127,5 @@ Example notebook: [Finite State Machine graphs to set speaker transition constra
 AutoGen includes support for handling long textual contexts by leveraging the LLMLingua library for text compression. To enable this functionality, please install AutoGen with the `[long-context]` option:
 
 ```bash
-pip install "pyautogen[long-context]"
+pip install "autogen-agentchat[long-context]~=0.2"
 ```

@@ -6,7 +6,7 @@ The project welcomes contributions from developers and organizations worldwide. 
 - Code review of pull requests.
 - Documentation, examples and test cases.
 - Readability improvement, e.g., improvement on docstr and comments.
-- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://aka.ms/autogen-dc), and [twitter](https://twitter.com/pyautogen).
+- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and [twitter](https://twitter.com/pyautogen).
 - Tutorials, blog posts, talks that promote the project.
 - Sharing application scenarios and/or related research.
 
@@ -31,4 +31,4 @@ To see what we are working on and what we plan to work on, please check our
 
 ## Becoming a Reviewer
 
-There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors. If you are willing to become a reviewer, you are welcome to let us know on discord.
+There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors.
