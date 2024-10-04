@@ -287,6 +287,24 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
   </a>
 </p>
 
+### How to make use of structured output announced by OpenAI
+
+OpenAI GPT-4o models( officially named GPT-4o-2024-08-06) support structured output. You can pass `response_format` key with Pydantic model as part of `extra_create_args` to take advantage of this feature. Example usage is below
+
+```python
+    # Sample pydantic model to define the expected output
+    class StructuredOutputPlan(BaseModel):
+        initial_goal: str
+        steps: List[str]
+    
+    # Example usage of the GPT-4o structured output
+    result = await self.model_client.create(
+        message,
+        extra_create_args={"response_format": StructuredOutputPlan},
+    )
+
+```
+
 ## Legal Notices
 
 Microsoft and any contributors grant you a license to the Microsoft documentation and other content
