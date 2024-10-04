@@ -1,7 +1,8 @@
 from typing import Optional
+
 from pydantic import BaseModel
 
-from ...agents import ChatMessage
+from ..agents import ChatMessage
 
 
 class ContentPublishEvent(BaseModel):

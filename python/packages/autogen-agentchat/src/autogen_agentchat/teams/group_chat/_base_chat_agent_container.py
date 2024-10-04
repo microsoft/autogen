@@ -1,7 +1,6 @@
-import logging
 import asyncio
+import logging
 from typing import List
-
 
 from autogen_core.base import AgentId, AgentType, MessageContext
 from autogen_core.components import DefaultTopicId, event
@@ -9,9 +8,9 @@ from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tool_agent import ToolException
 
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
-from ._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent
+from .._logging import EVENT_LOGGER_NAME
 from ._sequential_routed_agent import SequentialRoutedAgent
-from ...logging import EVENT_LOGGER_NAME
 
 
 class BaseChatAgentContainer(SequentialRoutedAgent):
