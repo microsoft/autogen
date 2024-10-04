@@ -325,7 +325,6 @@ async def test_duplicate_subscription() -> None:
         #  Will keep them both for now as we might replace the way we simulate a disconnect
         await worker1.stop()
 
-        # Note: This is failing (doesn't raise the exeption). We get duplicate subscriptions
         with pytest.raises(ValueError):
             await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1_2"))
 
