@@ -1,5 +1,5 @@
 import asyncio
-import sys
+import logging
 from typing import List
 
 from autogen_core.base import AgentId, AgentType, MessageContext
@@ -8,7 +8,8 @@ from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tool_agent import ToolException
 
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
-from ._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent
+from .._logging import EVENT_LOGGER_NAME
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
@@ -29,6 +30,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
         self._agent = agent
         self._message_buffer: List[TextMessage | MultiModalMessage | StopMessage] = []
         self._tool_agent_id = AgentId(type=tool_agent_type, key=self.id.key)
+        self._logger = self.logger = logging.getLogger(EVENT_LOGGER_NAME)
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
@@ -48,9 +50,8 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
 
         # Handle tool calls.
         while isinstance(response, ToolCallMessage):
-            # TODO: use logging instead of print
-            sys.stdout.write(f"{'-'*80}\n{self._agent.name}:\n{response.content}\n")
-            # Execute functions called by the model by sending messages to tool agent.
+            self._logger.info(ContentPublishEvent(agent_message=response))
+
             results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
                 *[
                     self.send_message(
@@ -73,8 +74,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
             # Create a new tool call result message.
             feedback = ToolCallResultMessage(content=function_results, source=self._tool_agent_id.type)
             # TODO: use logging instead of print
-            sys.stdout.write(f"{'-'*80}\n{self._tool_agent_id.type}:\n{feedback.content}\n")
-            # Forward the feedback to the agent.
+            self._logger.info(ContentPublishEvent(agent_message=feedback, source=self._tool_agent_id.type))
             response = await self._agent.on_messages([feedback], ctx.cancellation_token)
 
         # Publish the response.
