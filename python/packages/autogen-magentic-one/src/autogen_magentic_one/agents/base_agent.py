@@ -10,9 +10,9 @@ from autogen_magentic_one.messages import (
     AgentEvent,
     BroadcastMessage,
     DeactivateMessage,
+    MagenticOneMessages,
     RequestReplyMessage,
     ResetMessage,
-    MagenticOneMessages,
 )
 
 
