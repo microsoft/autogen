@@ -11,6 +11,7 @@ from autogen_core.base import (
     TopicId,
     try_get_known_serializers_for_type,
 )
+from autogen_core.base._subscription import Subscription
 from autogen_core.components import (
     DefaultTopicId,
     TypeSubscription,
@@ -343,13 +344,22 @@ async def test_disconnected_agent() -> None:
     worker1 = WorkerAgentRuntime(host_address=host_address)
     worker1_2 = WorkerAgentRuntime(host_address=host_address)
 
+    # TODO: Implementing `get_current_subscriptions` and `get_subscribed_recipients` requires access
+    # to some private properties. This needs to be updated once they are available publicly
+
+    def get_current_subscriptions() -> List[Subscription]:
+        return host._servicer._subscription_manager._subscriptions  # type: ignore[reportPrivateUsage]
+
+    def get_subscribed_recipients():
+        return host._servicer._subscription_manager.get_subscribed_recipients(DefaultTopicId())  # type: ignore[reportPrivateUsage]
+
     try:
         worker1.start()
         await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
 
-        subscriptions1 = host.servicer.subscription_manager.subscriptions
+        subscriptions1 = get_current_subscriptions()
         assert len(subscriptions1) == 1
-        recipients1 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())  # noqa: F841
+        recipients1 = await get_subscribed_recipients()
         assert AgentId(type="worker1", key="default") in recipients1
 
         first_subscription_id = subscriptions1[0].id
@@ -364,20 +374,20 @@ async def test_disconnected_agent() -> None:
 
         await asyncio.sleep(1)
 
-        subscriptions2 = host.servicer.subscription_manager.subscriptions
+        subscriptions2 = get_current_subscriptions()
         assert len(subscriptions2) == 0
-        recipients2 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())
+        recipients2 = await get_subscribed_recipients()
         assert len(recipients2) == 0
         await asyncio.sleep(1)
 
         worker1_2.start()
         await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1"))
 
-        subscriptions3 = host.servicer.subscription_manager.subscriptions
+        subscriptions3 = get_current_subscriptions()
         assert len(subscriptions3) == 1
         assert first_subscription_id not in [x.id for x in subscriptions3]
 
-        recipients3 = await host.servicer.subscription_manager.get_subscribed_recipients(DefaultTopicId())
+        recipients3 = await get_subscribed_recipients()
         assert len(set(recipients2)) == len(recipients2)  # Make sure there are no duplicates
         assert AgentId(type="worker1", key="default") in recipients3
     except Exception as ex:
