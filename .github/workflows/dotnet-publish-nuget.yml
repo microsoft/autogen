@@ -16,7 +16,7 @@ on:
       NUGET_API_KEY:
         required: true
 
-  # 
+  #
 jobs:
   build:
 
@@ -31,5 +31,5 @@ jobs:
     - name: Publish package
       run: |
         cd dotnet/src/${{ inputs.path }}
-        dotnet pack -o packages /p:PackageVersion=${{ inputs.version-prefix }}-alpha.${{ inputs.version-suffix }} 
+        dotnet pack -o packages /p:PackageVersion=${{ inputs.version-prefix }}-alpha.${{ inputs.version-suffix }}
         dotnet nuget push $GITHUB_WORKSPACE/dotnet/src/${{ inputs.path }}/packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }}  --source https://api.nuget.org/v3/index.json

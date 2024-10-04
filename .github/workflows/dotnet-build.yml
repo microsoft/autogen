@@ -6,11 +6,13 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - staging
   push:
-    branches: [ "main" ]
-  merge_group:
-    types: [checks_requested]
+    branches:
+      - main
+      - staging
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -234,4 +236,4 @@ jobs:
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
       continue-on-error: true
-      
+

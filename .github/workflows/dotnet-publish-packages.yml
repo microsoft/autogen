@@ -6,7 +6,7 @@ on:
      - 'dotnet/src/**'
      - 'protos/**'
    workflow_dispatch:
- 
+
 permissions:
     id-token: write
     contents: read
