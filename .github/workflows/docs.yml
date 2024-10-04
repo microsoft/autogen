@@ -51,9 +51,6 @@ jobs:
           name: "04-docs"
 
   build-02:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,8 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          repository: "microsoft/autogen"
-          # ref: "0.2"
+          ref: "0.2"
       - uses: actions/setup-node@v4
         with:
           node-version: 18.x
