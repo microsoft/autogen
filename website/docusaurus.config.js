@@ -16,7 +16,7 @@ module.exports = {
   title: "AutoGen",
   tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
-  baseUrl: "/autogen/",
+  baseUrl: "/autogen/0.2/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
