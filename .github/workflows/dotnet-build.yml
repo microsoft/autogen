@@ -6,9 +6,9 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "staging" ]
   push:
-    branches: [ "main" ]
+    branches: [ "main", "staging" ]
   merge_group:
     types: [checks_requested]
 

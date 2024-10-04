@@ -1,18 +1,18 @@
 import uuid
 from typing import Callable, List
 
-from autogen_agentchat.agents._base_chat_agent import ChatMessage
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
 from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
+from autogen_agentchat.agents._base_chat_agent import ChatMessage
 
 from ...agents import BaseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
+from .._events import ContentPublishEvent, ContentRequestEvent
 from ._base_chat_agent_container import BaseChatAgentContainer
-from ._events import ContentPublishEvent, ContentRequestEvent
 from ._round_robin_group_chat_manager import RoundRobinGroupChatManager
 
 
