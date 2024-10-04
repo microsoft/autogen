@@ -22,7 +22,6 @@ dependencies = [
     "grpcio~=1.62.0",
     "protobuf~=4.25.1",
     "tiktoken",
-    "azure-core",
     "docker~=7.0",
     "opentelemetry-api~=1.27.0",
     "asyncio_atexit"
