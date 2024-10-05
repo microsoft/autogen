@@ -69,17 +69,18 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
             for future in self._pending_responses.pop(client_id, {}).values():
                 future.cancel()
             # Remove the client id from the agent type to client id mapping.
-            await self.on_client_disconnect(client_id)
+            await self._on_client_disconnect(client_id)
 
-    async def on_client_disconnect(self, client_id: int) -> None:
+    async def _on_client_disconnect(self, client_id: int) -> None:
         async with self._agent_type_to_client_id_lock:
             agent_types = [agent_type for agent_type, id_ in self._agent_type_to_client_id.items() if id_ == client_id]
             for agent_type in agent_types:
+                logger.info(f"Removing agent type {agent_type} from agent type to client id mapping")
                 del self._agent_type_to_client_id[agent_type]
             for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, []):
-                logger.info(f"Removing subscription {id}!")
+                logger.info(f"Client id {client_id} disconnected. Removing corresponding subscription with id {id}")
                 await self._subscription_manager.remove_subscription(sub_id)
-        logger.info(f"Client {client_id} disconnected.")
+        logger.info(f"Client {client_id} disconnected successfully")
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
         exception = task.exception()
