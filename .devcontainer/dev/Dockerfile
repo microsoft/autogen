@@ -24,7 +24,9 @@ RUN git clone https://github.com/autogen-ai/autogen.git /home/autogen-ai/autogen
 WORKDIR /home/autogen-ai/autogen
 
 # Install AutoGen in editable mode with extra components
-RUN sudo pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch]
+RUN sudo pip install --upgrade pip && \
+    sudo pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch] && \
+    pip install pytest-xdist pytest-cov
 
 # Install pre-commit hooks
 RUN pre-commit install
@@ -47,7 +49,6 @@ ENV PATH="${PATH}:/home/autogen-ai/quarto/quarto-1.5.23/bin/"
 EXPOSE 3000
 
 # Pre-load popular Python packages
-RUN pip install --upgrade pip
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
 
 # Set the default command to bash

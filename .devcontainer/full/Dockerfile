@@ -23,7 +23,7 @@ WORKDIR /home/autogen-ai
 # Install Python packages
 RUN pip install --upgrade pip
 RUN pip install autogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra
-RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
+RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4  pytest-xdist pytest-cov
 
 # Expose port
 EXPOSE 8081
