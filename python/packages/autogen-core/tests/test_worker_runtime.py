@@ -349,8 +349,8 @@ async def test_disconnected_agent() -> None:
     def get_current_subscriptions() -> List[Subscription]:
         return host._servicer._subscription_manager._subscriptions  # type: ignore[reportPrivateUsage]
 
-    def get_subscribed_recipients():
-        return host._servicer._subscription_manager.get_subscribed_recipients(DefaultTopicId())  # type: ignore[reportPrivateUsage]
+    async def get_subscribed_recipients() -> List[AgentId]:
+        return await host._servicer._subscription_manager.get_subscribed_recipients(DefaultTopicId())  # type: ignore[reportPrivateUsage]
 
     try:
         worker1.start()
