@@ -21,4 +21,4 @@ Then you can start with the following code snippet to create a conversable agent
 You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
 
 ### Report a bug or request a feature
-You can report a bug or request a feature by creating a new issue in the [github issue](https://github.com/microsoft/autogen/issues) and specifying label the label "donet" 
+You can report a bug or request a feature by creating a new issue in the [github issue](https://github.com/microsoft/autogen/issues) and specifying label the label `dotnet`. 
