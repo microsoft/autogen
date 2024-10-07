@@ -55,7 +55,7 @@ class AsyncioAtExitWrapper(AtExitImpl):
 
 
 # From Issue #584: No EventLoop error when agents exit.
-# see: https://github.com/microsoft/autogen/issues/584
+# see: https://github.com/microsoft/agnext/issues/584
 
 
 # This is a minimal implementation of a component that requires cleanup on exit.

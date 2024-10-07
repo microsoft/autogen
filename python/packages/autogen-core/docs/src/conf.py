@@ -90,7 +90,7 @@ html_theme_options = {
         },
         {
             "name": "GitHub",
-            "url": "https://github.com/microsoft/autogen",
+            "url": "https://github.com/microsoft/agnext",
             "icon": "fa-brands fa-github",
         },
         {
@@ -111,7 +111,7 @@ html_sidebars = {
 html_context = {
     'display_github': True,
     "github_user": "microsoft",
-    "github_repo": "autogen",
+    "github_repo": "agnext",
     "github_version": "main",
     "doc_path": "python/packages/autogen-core/docs/src/",
 }

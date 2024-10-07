@@ -35,7 +35,7 @@ pip install autogen-agentchat==0.4.0dev0
 This package is a work in progress, it will be available on PyPI when it is ready.
 ```
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
 :::
 
 (pkg-info-autogen-core)=
@@ -52,7 +52,7 @@ pip install autogen-core==0.4.0dev0
 ```{note}
 This package is a work in progress, it will be available on PyPI when it is ready.
 ```
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
 :::
 
 (pkg-info-autogen-ext)=
@@ -70,7 +70,7 @@ pip install autogen-ext==0.4.0dev0
 This package is a work in progress, it will be available on PyPI when it is ready.
 ```
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-ext)
 :::
 
 (pkg-info-autogen-team-one)=
@@ -88,7 +88,7 @@ pip install autogen-team-one==0.1.0dev0
 This package is a work in progress, it will be available on PyPI when it is ready.
 ```
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/team-one)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/team-one)
 :::
 
 (pkg-info-autogenbench)=
@@ -102,5 +102,5 @@ AutoGenBench is a tool for repeatedly running pre-defined AutoGen tasks in tight
 pip install autogenbench
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/agbench)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/agbench)
 :::
