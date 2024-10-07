@@ -59,6 +59,10 @@ retrieve_chat = [
 
 retrieve_chat_pgvector = [*retrieve_chat, "pgvector>=0.2.5"]
 
+graph_rag_falkor_db = [
+    "graphrag_sdk",
+]
+
 if current_os in ["Windows", "Darwin"]:
     retrieve_chat_pgvector.extend(["psycopg[binary]>=3.1.18"])
 elif current_os == "Linux":
@@ -81,6 +85,7 @@ extra_require = {
     "retrievechat-pgvector": retrieve_chat_pgvector,
     "retrievechat-mongodb": [*retrieve_chat, "pymongo>=4.0.0"],
     "retrievechat-qdrant": [*retrieve_chat, "qdrant_client", "fastembed>=0.3.1"],
+    "graph_rag_falkor_db": graph_rag_falkor_db,
     "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub", "pysqlite3"],
     "teachable": ["chromadb"],
     "lmm": ["replicate", "pillow"],

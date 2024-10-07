@@ -34,7 +34,6 @@ class GraphQueryEngine(Protocol):
         Args:
         input_doc: a list of input documents that are used to build the graph in database.
 
-        Returns: GraphStore
         """
         pass
 
