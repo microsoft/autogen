@@ -4,10 +4,10 @@ from typing import List
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
-from ...agents import StopMessage, TextMessage, ChatMessage
-from ._events import ContentPublishEvent, ContentRequestEvent
+from ...agents import ChatMessage, StopMessage, TextMessage
+from .._events import ContentPublishEvent, ContentRequestEvent
+from .._logging import EVENT_LOGGER_NAME
 from ._sequential_routed_agent import SequentialRoutedAgent
-from ...logging import EVENT_LOGGER_NAME
 
 
 class BaseGroupChatManager(SequentialRoutedAgent):
