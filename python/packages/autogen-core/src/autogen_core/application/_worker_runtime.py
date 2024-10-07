@@ -109,10 +109,12 @@ class HostConnection:
         self._connection_task: Task[None] | None = None
 
     @classmethod
-    def from_host_address(cls, host_address: str, grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
+    def from_host_address(cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
         logger.info("Connecting to %s", host_address)
         #  Always use DEFAULT_GRPC_CONFIG and override it with provided grpc_config
-        merged_options = [(k, v) for k, v in {**dict(HostConnection.DEFAULT_GRPC_CONFIG), **dict(grpc_config)}.items()]
+        merged_options = [
+            (k, v) for k, v in {**dict(HostConnection.DEFAULT_GRPC_CONFIG), **dict(extra_grpc_config)}.items()
+        ]
 
         channel = grpc.aio.insecure_channel(
             host_address,
@@ -169,7 +171,7 @@ class WorkerAgentRuntime(AgentRuntime):
         self,
         host_address: str,
         tracer_provider: TracerProvider | None = None,
-        grpc_config: ChannelArgumentType | None = None,
+        extra_grpc_config: ChannelArgumentType | None = None,
     ) -> None:
         self._host_address = host_address
         self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
@@ -188,14 +190,16 @@ class WorkerAgentRuntime(AgentRuntime):
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._serialization_registry = SerializationRegistry()
-        self._grpc_config = grpc_config or []
+        self._extra_grpc_config = extra_grpc_config or []
 
     def start(self) -> None:
         """Start the runtime in a background task."""
         if self._running:
             raise ValueError("Runtime is already running.")
         logger.info(f"Connecting to host: {self._host_address}")
-        self._host_connection = HostConnection.from_host_address(self._host_address, grpc_config=self._grpc_config)
+        self._host_connection = HostConnection.from_host_address(
+            self._host_address, extra_grpc_config=self._extra_grpc_config
+        )
         logger.info("Connection established")
         if self._read_task is None:
             self._read_task = asyncio.create_task(self._run_read_loop())

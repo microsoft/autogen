@@ -14,8 +14,8 @@ logger = logging.getLogger("autogen_core")
 
 
 class WorkerAgentRuntimeHost:
-    def __init__(self, address: str, grpc_options: Optional[ChannelArgumentType] = None) -> None:
-        self._server = grpc.aio.server(options=grpc_options)
+    def __init__(self, address: str, extra_grpc_config: Optional[ChannelArgumentType] = None) -> None:
+        self._server = grpc.aio.server(options=extra_grpc_config)
         self._servicer = WorkerAgentRuntimeHostServicer()
         agent_worker_pb2_grpc.add_AgentRpcServicer_to_server(self._servicer, self._server)
         self._server.add_insecure_port(address)

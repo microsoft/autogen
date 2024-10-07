@@ -408,15 +408,15 @@ async def test_grpc_max_message_size() -> None:
     small_message = ContentMessage(content="small message")
     big_message = ContentMessage(content="." * (default_max_size + 1))
 
-    grpc_options = [
+    extra_grpc_config = [
         ("grpc.max_send_message_length", new_max_size),
         ("grpc.max_receive_message_length", new_max_size),
     ]
     host_address = "localhost:50059"
-    host = WorkerAgentRuntimeHost(address=host_address, grpc_options=grpc_options)
-    worker1 = WorkerAgentRuntime(host_address=host_address, grpc_config=grpc_options)
+    host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
+    worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
     worker2 = WorkerAgentRuntime(host_address=host_address)
-    worker3 = WorkerAgentRuntime(host_address=host_address, grpc_config=grpc_options)
+    worker3 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
 
     try:
         host.start()
