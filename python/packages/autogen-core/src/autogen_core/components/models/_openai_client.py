@@ -98,9 +98,13 @@ def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     create_args = {k: v for k, v in config.items() if k in create_kwargs}
     create_args_keys = set(create_args.keys())
     if not required_create_args.issubset(create_args_keys):
-        raise ValueError(f"Required create args are missing: {required_create_args - create_args_keys}")
+        raise ValueError(
+            f"Required create args are missing: {required_create_args - create_args_keys}"
+        )
     if disallowed_create_args.intersection(create_args_keys):
-        raise ValueError(f"Disallowed create args are present: {disallowed_create_args.intersection(create_args_keys)}")
+        raise ValueError(
+            f"Disallowed create args are present: {disallowed_create_args.intersection(create_args_keys)}"
+        )
     return create_args
 
 
@@ -319,11 +323,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
         create_args: Dict[str, Any],
+        use_beta_client: bool,
         model_capabilities: Optional[ModelCapabilities] = None,
     ):
         self._client = client
+        self._use_beta_client = use_beta_client
         if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
-            raise ValueError("AzureOpenAIChatCompletionClient requires explicit model capabilities")
+            raise ValueError(
+                "AzureOpenAIChatCompletionClient requires explicit model capabilities"
+            )
         elif model_capabilities is None:
             self._model_capabilities = _model_info.get_capabilties(create_args["model"])
         else:
@@ -393,22 +401,36 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
-            future = asyncio.ensure_future(
-                self._client.chat.completions.create(
-                    messages=oai_messages,
-                    stream=False,
-                    tools=converted_tools,
-                    **create_args,
+            if self._use_beta_client:
+                future = asyncio.ensure_future(
+                    self._client.beta.chat.completions.parse(
+                        messages=oai_messages,
+                        tools=converted_tools,
+                        **create_args,
+                    )
                 )
-            )
-        elif "response_format" in create_args:
-            future = asyncio.ensure_future(
-                self._client.beta.chat.completions.parse(messages=oai_messages, **create_args)
-            )
+            else:
+                future = asyncio.ensure_future(
+                    self._client.chat.completions.create(
+                        messages=oai_messages,
+                        stream=False,
+                        tools=converted_tools,
+                        **create_args,
+                    )
+                )
         else:
-            future = asyncio.ensure_future(
-                self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
-            )
+            if self._use_beta_client:
+                future = asyncio.ensure_future(
+                    self._client.beta.chat.completions.parse(
+                        messages=oai_messages, **create_args
+                    )
+                )
+            else:
+                future = asyncio.ensure_future(
+                    self._client.chat.completions.create(
+                        messages=oai_messages, stream=False, **create_args
+                    )
+                )
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result = await future
@@ -530,7 +552,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             )
         else:
             stream_future = asyncio.ensure_future(
-                self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
+                self._client.chat.completions.create(
+                    messages=oai_messages, stream=True, **create_args
+                )
             )
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
@@ -741,7 +765,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
-
+        if "use_beta_client" not in kwargs:
+            use_beta_client = False
+        else:
+            use_beta_client = kwargs["use_beta_client"]
+            del kwargs["use_beta_client"]
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
@@ -751,7 +779,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        super().__init__(client, create_args, use_beta_client, model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -767,7 +795,11 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
-
+        if "use_beta_client" not in kwargs:
+            use_beta_client = False
+        else:
+            use_beta_client = kwargs["use_beta_client"]
+            del kwargs["use_beta_client"]
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
@@ -777,7 +809,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        super().__init__(client, create_args, use_beta_client, model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
