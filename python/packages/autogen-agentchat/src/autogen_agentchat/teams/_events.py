@@ -1,8 +1,7 @@
-from typing import Optional
+from autogen_core.base import AgentId
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel
-
-from ..agents import ChatMessage
+from ..agents import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 
 
 class ContentPublishEvent(BaseModel):
@@ -11,9 +10,13 @@ class ContentPublishEvent(BaseModel):
     content of the event.
     """
 
-    agent_message: ChatMessage
+    agent_message: TextMessage | MultiModalMessage | StopMessage
     """The message published by the agent."""
-    source: Optional[str] = None
+
+    source: AgentId | None = None
+    """The agent ID that published the message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ContentRequestEvent(BaseModel):
@@ -22,3 +25,27 @@ class ContentRequestEvent(BaseModel):
     """
 
     ...
+
+
+class ToolCallEvent(BaseModel):
+    """An event produced when requesting a tool call."""
+
+    agent_message: ToolCallMessage
+    """The tool call message."""
+
+    source: AgentId
+    """The sender of the tool call message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class ToolCallResultEvent(BaseModel):
+    """An event produced when a tool call is completed."""
+
+    agent_message: ToolCallResultMessage
+    """The tool call result message."""
+
+    source: AgentId
+    """The sender of the tool call result message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
