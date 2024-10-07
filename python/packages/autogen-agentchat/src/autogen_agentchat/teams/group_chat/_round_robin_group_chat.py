@@ -9,7 +9,7 @@ from autogen_core.components.tools import Tool
 
 from autogen_agentchat.agents._base_chat_agent import ChatMessage
 
-from ...agents import BaseChatAgent, TextMessage
+from ...agents import BaseChatAgent, BaseToolUseChatAgent, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from .._events import ContentPublishEvent, ContentRequestEvent
 from ._base_chat_agent_container import BaseChatAgentContainer
@@ -37,8 +37,8 @@ class RoundRobinGroupChat(BaseTeam):
             from autogen_agentchat.agents import ToolUseAssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
 
-            assistant = ToolUseAssistantAgent("Assistant", model_client=..., tool_schema=[...])
-            team = RoundRobinGroupChat([assistant], tools=[...])
+            assistant = ToolUseAssistantAgent("Assistant", model_client=..., registered_tools=...)
+            team = RoundRobinGroupChat([assistant])
             await team.run("What's the weather in New York?")
 
     A team with multiple participants:
@@ -55,17 +55,21 @@ class RoundRobinGroupChat(BaseTeam):
 
     """
 
-    def __init__(self, participants: List[BaseChatAgent], *, tools: List[Tool] | None = None):
+    def __init__(self, participants: List[BaseChatAgent]):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
+        for participant in participants:
+            if isinstance(participant, BaseToolUseChatAgent) and not participant.registered_tools:
+                raise ValueError(
+                    f"Participant '{participant.name}' is a tool use agent so it must have registered tools."
+                )
         self._participants = participants
         self._team_id = str(uuid.uuid4())
-        self._tools = tools or []
 
     def _create_factory(
-        self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType
+        self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType | None
     ) -> Callable[[], BaseChatAgentContainer]:
         def _factory() -> BaseChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
@@ -73,6 +77,16 @@ class RoundRobinGroupChat(BaseTeam):
             container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
             assert container.id == id
             return container
+
+        return _factory
+
+    def _create_tool_agent_factory(
+        self,
+        caller_name: str,
+        tools: List[Tool],
+    ) -> Callable[[], ToolAgent]:
+        def _factory() -> ToolAgent:
+            return ToolAgent(f"Tool agent for {caller_name}", tools)
 
         return _factory
 
@@ -87,16 +101,23 @@ class RoundRobinGroupChat(BaseTeam):
         group_topic_type = "round_robin_group_topic"
         team_topic_type = "team_topic"
 
-        # Register the tool agent.
-        tool_agent_type = await ToolAgent.register(
-            runtime, "tool_agent", lambda: ToolAgent("Tool agent for round-robin group chat", self._tools)
-        )
-        # No subscriptions are needed for the tool agent, which will be called via direct messages.
-
         # Register participants.
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
         for participant in self._participants:
+            if isinstance(participant, BaseToolUseChatAgent):
+                assert participant.registered_tools is not None and len(participant.registered_tools) > 0
+                # Register the tool agent.
+                tool_agent_type = await ToolAgent.register(
+                    runtime,
+                    f"tool_agent_for_{participant.name}",
+                    self._create_tool_agent_factory(participant.name, participant.registered_tools),
+                )
+                # No subscriptions are needed for the tool agent, which will be called via direct messages.
+            else:
+                # No tool agent is needed.
+                tool_agent_type = None
+
             # Use the participant name as the agent type and topic type.
             agent_type = participant.name
             topic_type = participant.name
