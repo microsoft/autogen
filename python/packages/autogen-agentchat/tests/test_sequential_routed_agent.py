@@ -16,7 +16,7 @@ class Message:
 
 
 @default_subscription
-class TestAgent(SequentialRoutedAgent):
+class _TestAgent(SequentialRoutedAgent):
     def __init__(self, description: str) -> None:
         super().__init__(description=description)
         self.messages: List[Message] = []
@@ -32,11 +32,11 @@ class TestAgent(SequentialRoutedAgent):
 async def test_sequential_routed_agent() -> None:
     runtime = SingleThreadedAgentRuntime()
     runtime.start()
-    await TestAgent.register(runtime, type="test_agent", factory=lambda: TestAgent(description="Test Agent"))
+    await _TestAgent.register(runtime, type="test_agent", factory=lambda: _TestAgent(description="Test Agent"))
     test_agent_id = AgentId(type="test_agent", key="default")
     for i in range(100):
         await runtime.publish_message(Message(content=f"{i}"), topic_id=DefaultTopicId())
     await runtime.stop_when_idle()
-    test_agent = await runtime.try_get_underlying_agent_instance(test_agent_id, TestAgent)
+    test_agent = await runtime.try_get_underlying_agent_instance(test_agent_id, _TestAgent)
     for i in range(100):
         assert test_agent.messages[i].content == f"{i}"

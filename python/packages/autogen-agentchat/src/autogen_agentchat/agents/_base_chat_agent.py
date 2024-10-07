@@ -4,6 +4,7 @@ from typing import List, Sequence
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult
+from autogen_core.components.tools import Tool
 from pydantic import BaseModel
 
 
@@ -49,7 +50,7 @@ class StopMessage(BaseMessage):
     """The content for the stop message."""
 
 
-ChatMessage = TextMessage | MultiModalMessage | ToolCallMessage | ToolCallResultMessage | StopMessage
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | ToolCallMessage | ToolCallResultMessage
 """A message used by agents in a team."""
 
 
@@ -79,3 +80,21 @@ class BaseChatAgent(ABC):
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         """Handle incoming messages and return a response message."""
         ...
+
+
+class BaseToolUseChatAgent(BaseChatAgent):
+    """Base class for a chat agent that can use tools.
+
+    Subclass this base class to create an agent class that uses tools by returning
+    ToolCallMessage message from the :meth:`on_messages` method and receiving
+    ToolCallResultMessage message from the input to the :meth:`on_messages` method.
+    """
+
+    def __init__(self, name: str, description: str, registered_tools: List[Tool]) -> None:
+        super().__init__(name, description)
+        self._registered_tools = registered_tools
+
+    @property
+    def registered_tools(self) -> List[Tool]:
+        """The list of tools that the agent can use."""
+        return self._registered_tools
