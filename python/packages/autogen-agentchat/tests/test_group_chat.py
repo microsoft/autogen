@@ -171,10 +171,10 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     tool_use_agent = ToolUseAssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        tool_schema=[tool.schema],
+        registered_tools=[tool],
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
-    team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent], tools=[tool])
+    team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent])
     await team.run("Write a program that prints 'Hello, world!'")
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"

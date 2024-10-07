@@ -10,10 +10,10 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.components.tools import ToolSchema
+from autogen_core.components.tools import Tool
 
 from ._base_chat_agent import (
-    BaseChatAgent,
+    BaseToolUseChatAgent,
     ChatMessage,
     MultiModalMessage,
     StopMessage,
@@ -23,7 +23,7 @@ from ._base_chat_agent import (
 )
 
 
-class ToolUseAssistantAgent(BaseChatAgent):
+class ToolUseAssistantAgent(BaseToolUseChatAgent):
     """An agent that provides assistance with tool use.
 
     It responds with a StopMessage when 'terminate' is detected in the response.
@@ -33,15 +33,15 @@ class ToolUseAssistantAgent(BaseChatAgent):
         self,
         name: str,
         model_client: ChatCompletionClient,
-        tool_schema: List[ToolSchema],
+        registered_tools: List[Tool],
         *,
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply 'TERMINATE' in the end when the task is completed.",
     ):
-        super().__init__(name=name, description=description)
+        super().__init__(name=name, description=description, registered_tools=registered_tools)
         self._model_client = model_client
         self._system_messages = [SystemMessage(content=system_message)]
-        self._tool_schema = tool_schema
+        self._tool_schema = [tool.schema for tool in registered_tools]
         self._model_context: List[LLMMessage] = []
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
