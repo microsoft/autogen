@@ -6,10 +6,10 @@ AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
 ## Technical Specifications
 
-If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor's guide](CONTRIBUTING.md).
-
+If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor&#39;s guide](CONTRIBUTING.md).
 
 ## Docker Requirement
+
 AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
 
 ## Installation and Setup
@@ -23,7 +23,7 @@ pip install autogenbench
 If you would prefer working from source code (e.g., for development, or to utilize an alternate branch), simply clone the [AutoGen](https://github.com/microsoft/autogen) repository, then install `autogenbench` via:
 
 ```
-pip install -e autogen/samples/tools/autogenbench
+pip install -e autogen/python/packages/agbench
 ```
 
 After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter described later.
@@ -36,7 +36,6 @@ export OAI_CONFIG_LIST=$(cat ./OAI_CONFIG_LIST)
 
 If an OAI_CONFIG_LIST is *not* provided (by means of file or environment variable), AutoGenBench will use the OPENAI_API_KEY environment variable instead.
 
-
 For some benchmark scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
 
 ```
@@ -46,6 +45,7 @@ For some benchmark scenarios, additional keys may be required (e.g., keys for th
 ```
 
 ## A Typical Session
+
 Once AutoGenBench and necessary keys are installed, a typical session will look as follows:
 
 ```
@@ -56,6 +56,7 @@ autogenbench tabulate results/r_human_eval_two_agents
 ```
 
 Where:
+
 - `autogenbench clone HumanEval` downloads and expands the HumanEval benchmark scenario.
 - `autogenbench run Tasks/r_human_eval_two_agents.jsonl` runs the tasks defined in `Tasks/r_human_eval_two_agents.jsonl`
 - `autogenbench tablue results/r_human_eval_two_agents` tabulates the results of the run
@@ -72,7 +73,9 @@ Each of these commands has extensive in-line help via:
 More details of each command are provided in the sections that follow.
 
 ## Cloning Benchmarks
+
 To clone an existing benchmark, simply run:
+
 ```
 autogenbench clone [BENCHMARK]
 ```
@@ -94,12 +97,14 @@ autogenbench clone --list
 ## Running AutoGenBench
 
 To run a benchmark (which executes the tasks, but does not compute metrics), simply execute:
+
 ```
 cd [BENCHMARK]
 autogenbench run Tasks
 ```
 
 For example,
+
 ```
 cd HumanEval
 autogenbench run Tasks
@@ -171,4 +176,4 @@ Within each folder, you will find the following files:
 
 ## Contributing or Defining New Tasks or Benchmarks
 
-If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor's guide](CONTRIBUTING.md) for complete technical details.
+If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor&#39;s guide](CONTRIBUTING.md) for complete technical details.

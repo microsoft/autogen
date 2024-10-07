@@ -23,7 +23,8 @@ dependencies = [
     "huggingface_hub",
     "tabulate",
     "azure-identity",
-    "pandas"
+    "pandas",
+    "scipy"
 ]
 
 [tool.uv]

@@ -1,4 +1,4 @@
-# This Script is slightly modified from the creators of the AssistantBench dataset, Ori Yoran.
+# This Script is slightly modified from the creators of the AssistantBench dataset https://huggingface.co/spaces/AssistantBench/leaderboard/blob/main/evaluation/evaluator.py
 import json
 from evaluate_utils.evaluate_factory import get_evaluator
 import numpy as np
@@ -16,12 +16,7 @@ def find_isnan(samp):
 
 def fix_ans(answer):
     try:
-        answer = (
-            answer.replace("{'", '{"')
-            .replace("', '", '", "')
-            .replace("': '", '": "')
-            .replace("'}", '"}')
-        )
+        answer = answer.replace("{'", '{"').replace("', '", '", "').replace("': '", '": "').replace("'}", '"}')
         answer = answer.replace("': ", '": ')
         return answer
     except:
@@ -53,9 +48,7 @@ def parse_answer(answer):
 def fix_number(number):
     if type(number) == str:
         copy_ans = number
-        copy_ans = " ".join(
-            " ".join(" ".join(copy_ans.split("$")).split("%")).split("sqft")
-        ).strip()
+        copy_ans = " ".join(" ".join(" ".join(copy_ans.split("$")).split("%")).split("sqft")).strip()
         copy_ans = copy_ans.strip()
         copy_ans = copy_ans.replace(",", ".").replace(" square kilometers", "")
         try:
@@ -72,10 +65,7 @@ def fix_prediction(prediction, gold_answer, evaluator):
     if (
         type(prediction) == list
         and len(prediction) == 1
-        and (
-            type(prediction[0]) == int
-            or ((type(prediction[0]) == str) and prediction[0].isnumeric())
-        )
+        and (type(prediction[0]) == int or ((type(prediction[0]) == str) and prediction[0].isnumeric()))
     ):
         prediction = fix_number(prediction[0])
 
@@ -90,9 +80,7 @@ def fix_prediction(prediction, gold_answer, evaluator):
     if (hasattr(type(prediction), "__len__")) and (len(prediction) == 0):
         return prediction, False
 
-    if (type(prediction) == list and len(prediction) > 1) and type(
-        gold_answer
-    ) == float:
+    if (type(prediction) == list and len(prediction) > 1) and type(gold_answer) == float:
         return prediction, False
 
     return prediction, True
@@ -112,17 +100,13 @@ def question_scorer(prediction, gold_answer):
             prediction = prediction
 
         answer_list = (
-            [x for x in gold_answer.split("\n") if len(x.strip()) > 0]
-            if type(gold_answer) != list
-            else gold_answer
+            [x for x in gold_answer.split("\n") if len(x.strip()) > 0] if type(gold_answer) != list else gold_answer
         )
         gold_answer, evaluator = parse_answer(answer_list)
         prediction, run_eval = fix_prediction(prediction, gold_answer, evaluator)
 
         has_ans = 1.0
-        if (type(prediction) != float and len(prediction) == 0) or find_isnan(
-            prediction
-        ):
+        if (type(prediction) != float and len(prediction) == 0) or find_isnan(prediction):
             has_ans = 0.0
 
         if not run_eval:
@@ -135,9 +119,7 @@ def question_scorer(prediction, gold_answer):
             return accuracy
         else:
             # throw exception
-            raise ValueError(
-                f"Accuracy should be a float between 0 and 1, but got {accuracy}"
-            )
+            raise ValueError(f"Accuracy should be a float between 0 and 1, but got {accuracy}")
     except Exception as e:
         print(
             f"Something went wrong while evaluating prediction {prediction} vs gold answer {gold_answer} with error {e}"
