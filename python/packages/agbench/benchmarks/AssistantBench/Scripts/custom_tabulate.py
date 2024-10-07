@@ -53,7 +53,7 @@ def scorer(instance_dir):
         if final_answer is None:
             return None
         # get accuracy from assistantbench util, no normalization done for accuracy
-        accuracy = 0.5 #question_scorer(final_answer, expected_answer)
+        accuracy = question_scorer(final_answer, expected_answer)
         n_ex = normalize_answer(expected_answer)
         n_final = normalize_answer(final_answer)
         return (accuracy, n_ex, n_final)

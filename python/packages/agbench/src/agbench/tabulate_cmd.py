@@ -195,7 +195,7 @@ def default_tabulate(
         for i in range(0, max_instances):
             footer_row.append(footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1])
         footer.append(footer_row)
-        
+
         footer_row = ["Average Score"]
         for i in range(0, max_instances):
             avg_score_trial = 0
