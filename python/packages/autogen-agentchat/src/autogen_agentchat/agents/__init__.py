@@ -1,5 +1,6 @@
 from ._base_chat_agent import (
     BaseChatAgent,
+    BaseToolUseChatAgent,
     ChatMessage,
     MultiModalMessage,
     StopMessage,
@@ -13,6 +14,7 @@ from ._tool_use_assistant_agent import ToolUseAssistantAgent
 
 __all__ = [
     "BaseChatAgent",
+    "BaseToolUseChatAgent",
     "ChatMessage",
     "TextMessage",
     "MultiModalMessage",

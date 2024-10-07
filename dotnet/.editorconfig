@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-﻿# EditorConfig is awesome:http://EditorConfig.org
+# EditorConfig is awesome:http://EditorConfig.org
 
 # top-most EditorConfig file
 root = true
@@ -93,7 +92,6 @@ csharp_style_inlined_variable_declaration = true:error
 csharp_style_throw_expression = true:suggestion
 csharp_style_conditional_delegate_call = true:suggestion
 csharp_style_deconstructed_variable_declaration = true:suggestion
-=======
 ; EditorConfig to support per-solution formatting.
 ; Use the EditorConfig VS add-in to make this work.
 ; http://editorconfig.org/
@@ -137,7 +135,6 @@ csharp_style_var_elsewhere = true:suggestion
 
 # Disallow throw expressions.
 csharp_style_throw_expression = false:suggestion
->>>>>>> agnext_main
 
 # Newline settings
 csharp_new_line_before_open_brace = all
@@ -146,7 +143,6 @@ csharp_new_line_before_catch = true
 csharp_new_line_before_finally = true
 csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_members_in_anonymous_types = true
-<<<<<<< HEAD
 csharp_new_line_between_query_expression_clauses = true
 
 # Identation options
@@ -236,7 +232,6 @@ dotnet_diagnostic.CA2016.severity = suggestion
 # disable check for generated code
 [*.generated.cs]
 generated_code = true
-=======
 
 # Namespace settings
 csharp_style_namespace_declarations = file_scoped:silent
@@ -708,4 +703,3 @@ generated_code = true
 
 # IDE1591 Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = none
->>>>>>> agnext_main
