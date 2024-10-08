@@ -14,15 +14,26 @@ class CascadingMessageType:
     round: int
 
 
+@dataclass
+class ContentMessage:
+    content: str
+
+
 class LoopbackAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("A loop back agent.")
         self.num_calls = 0
 
     @message_handler
-    async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
+    async def on_new_message(
+        self, message: MessageType | ContentMessage, ctx: MessageContext
+    ) -> MessageType | ContentMessage:
         self.num_calls += 1
         return message
+
+
+@default_subscription
+class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
 
 
 @default_subscription
@@ -46,24 +57,3 @@ class NoopAgent(BaseAgent):
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError
-
-
-@dataclass
-class MyMessage:
-    content: str
-
-
-@default_subscription
-class MyAgent(RoutedAgent):
-    def __init__(self, name: str) -> None:
-        super().__init__("My agent")
-        self._name = name
-        self._counter = 0
-
-    @message_handler
-    async def my_message_handler(self, message: MyMessage, ctx: MessageContext) -> None:
-        self._counter += 1
-        if self._counter > 5:
-            return
-        content = f"{self._name}: Hello x {self._counter}"
-        await self.publish_message(MyMessage(content=content), DefaultTopicId())

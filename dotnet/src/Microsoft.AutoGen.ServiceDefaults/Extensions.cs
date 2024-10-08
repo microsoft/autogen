@@ -36,10 +36,8 @@ public static class Extensions
         // {
         //     options.AllowedSchemes = ["https"];
         // });
-
         return builder;
     }
-
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         builder.Logging.AddOpenTelemetry(logging =>
@@ -69,7 +67,6 @@ public static class Extensions
 
         return builder;
     }
-
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
@@ -85,19 +82,15 @@ public static class Extensions
         //    builder.Services.AddOpenTelemetry()
         //       .UseAzureMonitor();
         //}
-
         return builder;
     }
-
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
-
         return builder;
     }
-
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         // Adding health checks endpoints to applications in non-development environments has security implications.
@@ -113,7 +106,6 @@ public static class Extensions
                 Predicate = r => r.Tags.Contains("live")
             });
         }
-
         return app;
     }
 }

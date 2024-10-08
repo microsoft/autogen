@@ -170,7 +170,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
             .Select(i => i.GetGenericArguments().First().Name);
-            var state = agentType.BaseType?.GetGenericArguments().First();
+            //var state = agentType.BaseType?.GetGenericArguments().First();
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
             await WriteChannelAsync(new Message

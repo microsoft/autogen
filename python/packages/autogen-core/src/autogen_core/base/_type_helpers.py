@@ -1,6 +1,9 @@
 from collections.abc import Sequence
 from types import NoneType, UnionType
-from typing import Any, Optional, Type, Union, get_args, get_origin
+from typing import Any, Optional, Tuple, Type, Union, get_args, get_origin
+
+# Had to redefine this from grpc.aio._typing as using that one was causing mypy errors
+ChannelArgumentType = Sequence[Tuple[str, Any]]
 
 
 def is_union(t: object) -> bool:
