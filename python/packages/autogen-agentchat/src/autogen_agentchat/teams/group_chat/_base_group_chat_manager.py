@@ -9,6 +9,8 @@ from .._events import ContentPublishEvent, ContentRequestEvent
 from .._logging import EVENT_LOGGER_NAME
 from ._sequential_routed_agent import SequentialRoutedAgent
 
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
+
 
 class BaseGroupChatManager(SequentialRoutedAgent):
     """Base class for a group chat manager that manages a group chat with multiple participants.
@@ -50,7 +52,6 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
         self._message_thread: List[ChatMessage] = []
-        self._logger = self.logger = logging.getLogger(EVENT_LOGGER_NAME + ".agentchatchat")
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
@@ -63,9 +64,7 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         assert ctx.topic_id is not None
         group_chat_topic_id = TopicId(type=self._group_topic_type, source=ctx.topic_id.source)
 
-        # TODO: use something else other than print.
-
-        self._logger.info(ContentPublishEvent(agent_message=message.agent_message))
+        event_logger.info(message)
 
         # Process event from parent.
         if ctx.topic_id.type == self._parent_topic_type:

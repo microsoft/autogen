@@ -93,9 +93,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{C7A2D42D-9277-47AC-862B-D86DF9D6AD48}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dev-team", "dev-team", "{616F30DF-1F41-4047-BAA4-64BA03BF5AEA}"
-	ProjectSection(SolutionItems) = preProject
-		samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj = samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AgentHost", "samples\dev-team\DevTeam.AgentHost\DevTeam.AgentHost.csproj", "{7228A701-C79D-4E15-BF45-48D11F721A84}"
 EndProject
@@ -126,6 +123,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Web", "samples\HelloAgents\HelloAgents.Web\HelloAgents.Web.csproj", "{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hello", "samples\Hello\Hello.csproj", "{6C9135E6-9D15-4D86-B3F4-9666DB87060A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen.ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -337,6 +336,10 @@ Global
 		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C9135E6-9D15-4D86-B3F4-9666DB87060A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -397,6 +400,7 @@ Global
 		{6B88F4B3-26AB-4034-B0AC-5BA6EEDEB8E5} = {F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}
 		{8B56BE22-5CF4-44BB-AFA5-732FEA2AFF0B} = {F7AC0FF1-8500-49C6-8CB3-97C6D52C8BEF}
 		{6C9135E6-9D15-4D86-B3F4-9666DB87060A} = {FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}
+		{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

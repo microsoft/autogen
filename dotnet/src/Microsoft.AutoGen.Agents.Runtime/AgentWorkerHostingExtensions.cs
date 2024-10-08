@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -20,6 +22,24 @@ public static class AgentWorkerHostingExtensions
         builder.Services.AddSingleton<WorkerGateway>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WorkerGateway>());
 
+        return builder;
+    }
+
+    public static WebApplicationBuilder AddLocalAgentService(this WebApplicationBuilder builder)
+    {
+        builder.WebHost.ConfigureKestrel(serverOptions =>
+                        {
+                            serverOptions.ListenLocalhost(5001, listenOptions =>
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http2;
+                                listenOptions.UseHttps();
+                            });
+                        });
+        builder.AddAgentService();
+        builder.UseOrleans(siloBuilder =>
+        {
+            siloBuilder.UseLocalhostClustering(); ;
+        });
         return builder;
     }
 
