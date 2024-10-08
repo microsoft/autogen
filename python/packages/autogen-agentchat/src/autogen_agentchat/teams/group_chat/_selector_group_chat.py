@@ -104,7 +104,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
-        event_logger.info(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
+        event_logger.debug(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
         return agent_name
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
