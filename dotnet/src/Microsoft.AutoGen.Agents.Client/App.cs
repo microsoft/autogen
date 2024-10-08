@@ -1,4 +1,6 @@
+using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
@@ -6,13 +8,11 @@ public static class App
 {
     // need a variable to store the runtime instance
     public static WebApplication? RuntimeApp { get; set; }
-    public static async Task<WebApplication> StartAsync(AgentTypes? agentTypes = null, bool local = false)
+    public static WebApplication? ClientApp { get; set; }
+    public static async ValueTask<WebApplication> StartAsync(AgentTypes? agentTypes = null, bool local = false)
     {
-        if (RuntimeApp == null)
-        {
-            // start the server runtime
-            RuntimeApp = await Runtime.Host.StartAsync(local);
-        }
+        // start the server runtime
+        RuntimeApp ??= await Runtime.Host.StartAsync(local);
         var clientBuilder = WebApplication.CreateBuilder();
         var appBuilder = clientBuilder.AddAgentWorker();
         agentTypes ??= AgentTypes.GetAgentTypesFromAssembly()
@@ -21,8 +21,23 @@ public static class App
         {
             appBuilder.AddAgent(type.Key, type.Value);
         }
-        var clientApp = clientBuilder.Build();
-        await clientApp.StartAsync().ConfigureAwait(false);
-        return clientApp;
+        ClientApp = clientBuilder.Build();
+        await ClientApp.StartAsync().ConfigureAwait(false);
+        return ClientApp;
+    }
+
+    public static async ValueTask<WebApplication> PublishMessageAsync(
+        string topic, 
+        IMessage message,
+        AgentTypes? agentTypes = null,
+        bool local = false)
+    {
+        if (ClientApp == null)
+        {
+            ClientApp = await App.StartAsync(agentTypes, local);
+        }
+        var client = ClientApp.Services.GetRequiredService<AgentClient>() ?? throw new InvalidOperationException("Client not started");
+        await client.PublishEventAsync(topic, message).ConfigureAwait(false);
+        return ClientApp;
     }
 }

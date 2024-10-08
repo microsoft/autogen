@@ -1,25 +1,15 @@
-using Microsoft.Extensions.Hosting;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
-// start the client worker
-var clientApp = await App.StartAsync(local: true);
-// get the client
-var client = clientApp.Services.GetRequiredService<AgentClient>();
-
-// why doesn't this work?
-//await client.PublishEventAsync("HelloAgents", new NewMessageReceived{ Message = "World" })
-// instead we have to do this
-//send our hello message event via cloud events
-var evt = new NewMessageReceived
+// send a message to the agent
+var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}.ToCloudEvent("HelloAgents");
-await client.PublishEventAsync(evt);
+}, local: true);
 
-await clientApp.WaitForShutdownAsync();
+await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
