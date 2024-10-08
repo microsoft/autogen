@@ -3,13 +3,19 @@ myst:
   html_meta:
     "description lang=en": |
       User Guide for AgentChat, a high-level api for AutoGen
+      User Guide for AgentChat, a high-level api for AutoGen
 ---
 
 # AgentChat
 
-AgentChat is a high-level package for building multi-agent applications built on top of the `autogen-core` package. For beginner users, AgentChat is the recommended starting point. For advanced users, `autogen-core` provides more flexibility and control over the underlying components.
+AgentChat is a high-level package for building multi-agent applications built on top of the [ `autogen-core`](../core-user-guide/index.md) package. For beginner users, AgentChat is the recommended starting point. For advanced users, [ `autogen-core`](../core-user-guide/index.md) provides more flexibility and control over the underlying components.
 
 AgentChat aims to provide intuitive defaults, such as **Agents** with preset behaviors and **Teams** with predefined communication protocols, to simplify building multi-agent applications.
+
+```{tip}
+If you are interested in implementing complex agent interaction behaviours, defining custom messaging protocols, or orchestration mechanisms, consider using the [ `autogen-core`](../core-user-guide/index.md) package.
+
+```
 
 ## Agents
 
@@ -27,18 +33,18 @@ Teams define how groups of agents communicate to address tasks. The following Te
 
 ```{toctree}
 :caption: Getting Started
-:maxdepth: 1
+:maxdepth: 2
 :hidden:
 
 quickstart
 guides/tool_use
-guides/examples
+
 ```
 
 ```{toctree}
 :caption: Examples
-:maxdepth: 1
+:maxdepth: 3
 :hidden:
 
-examples/travel-planning
+examples/index
 ```
