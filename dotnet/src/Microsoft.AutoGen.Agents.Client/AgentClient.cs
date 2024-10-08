@@ -1,11 +1,11 @@
 using System.Diagnostics;
+using Google.Protobuf;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
-// TODO: Extract this to be part of the Client
 public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes)
     : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), eventTypes)
@@ -23,6 +23,11 @@ public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime 
         public async ValueTask PublishEventAsync(CloudEvent @event)
         {
             await runtime.PublishEvent(@event).ConfigureAwait(false);
+        }
+
+        public async ValueTask PublishEventAsync(string topic, IMessage evt)
+        {
+            await PublishEventAsync(evt.ToCloudEvent(topic)).ConfigureAwait(false);
         }
 
         public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request)
