@@ -14,11 +14,17 @@ from autogen_core.base import (
 from autogen_core.components import (
     DefaultTopicId,
     TypeSubscription,
-    default_subscription,
     type_subscription,
 )
 from opentelemetry.sdk.trace import TracerProvider
-from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, NoopAgent
+from test_utils import (
+    CascadingAgent,
+    CascadingMessageType,
+    LoopbackAgent,
+    LoopbackAgentWithDefaultSubscription,
+    MessageType,
+    NoopAgent,
+)
 from test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
 
 test_exporter = TestExporter()
@@ -218,9 +224,6 @@ async def test_default_subscription() -> None:
     runtime = SingleThreadedAgentRuntime()
     runtime.start()
 
-    @default_subscription
-    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
-
     await LoopbackAgentWithDefaultSubscription.register(runtime, "name", LoopbackAgentWithDefaultSubscription)
 
     agent_id = AgentId("name", key="default")
@@ -266,9 +269,6 @@ async def test_type_subscription() -> None:
 async def test_default_subscription_publish_to_other_source() -> None:
     runtime = SingleThreadedAgentRuntime()
     runtime.start()
-
-    @default_subscription
-    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
 
     await LoopbackAgentWithDefaultSubscription.register(runtime, "name", LoopbackAgentWithDefaultSubscription)
 
