@@ -18,4 +18,5 @@ myst:
 
 guides/quickstart
 guides/tool_use
+guides/selector-group-chat
 ```
