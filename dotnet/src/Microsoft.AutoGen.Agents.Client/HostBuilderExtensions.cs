@@ -14,14 +14,8 @@ namespace Microsoft.AutoGen.Agents.Client;
 
 public static class HostBuilderExtensions
 {
-    public static AgentApplicationBuilder AddLocalAgentWorker(this IHostApplicationBuilder clientBuilder)
-    {
-        clientBuilder.Services.AddHostedService<AgentWorkerRuntime>();
-        clientBuilder.Services.AddSingleton<AgentClient>();
-        clientBuilder.AddAgentWorker("https://localhost:5001");
-        return new AgentApplicationBuilder(clientBuilder);
-    }
-    public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress)
+    private const string _defaultAgentServiceAddress = "https://localhost:5001";
+    public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress =_defaultAgentServiceAddress, bool local = false)
     {
         builder.Services.AddGrpcClient<AgentRpc.AgentRpcClient>(options =>
         {
@@ -55,6 +49,7 @@ public static class HostBuilderExtensions
             });
         });
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.Services.AddSingleton<AgentClient>();
         builder.Services.AddSingleton<AgentWorkerRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AgentWorkerRuntime>());
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
