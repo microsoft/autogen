@@ -10,8 +10,9 @@ from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult
 
 from ..agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
-from ._events import ContentPublishEvent, ToolCallEvent, ToolCallResultEvent
+from ._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
 
+TRACE_LOGGER_NAME = "autogen_agentchat"
 EVENT_LOGGER_NAME = "autogen_agentchat.events"
 ContentType = Union[str, List[Union[str, Image]], List[FunctionCall], List[FunctionExecutionResult]]
 
@@ -43,14 +44,14 @@ class BaseLogHandler(logging.Handler):
 
 
 class ConsoleLogHandler(BaseLogHandler):
-    def _format_message(
+    def _format_chat_message(
         self,
         *,
         source_agent_id: AgentId | None,
         message: ChatMessage,
         timestamp: str,
     ) -> str:
-        body = f"{self.serialize_content(message.content)}\nFrom: {message.source}"
+        body = f"{self.serialize_content(message.content)}"
         if source_agent_id is None:
             console_message = f"\n{'-'*75} \n" f"\033[91m[{timestamp}]:\033[0m\n" f"\n{body}"
         else:
@@ -63,11 +64,18 @@ class ConsoleLogHandler(BaseLogHandler):
         ts = datetime.fromtimestamp(record.created).isoformat()
         if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent):
             sys.stdout.write(
-                self._format_message(
+                self._format_chat_message(
                     source_agent_id=record.msg.source,
                     message=record.msg.agent_message,
                     timestamp=ts,
                 )
+            )
+            sys.stdout.flush()
+        elif isinstance(record.msg, SelectSpeakerEvent):
+            sys.stdout.write(
+                f"\n{'-'*75} \n"
+                f"\033[91m[{ts}], {record.msg.source.type}:\033[0m\n"
+                f"\nSelected next speaker: {record.msg.selected_speaker}"
             )
             sys.stdout.flush()
         else:
@@ -80,23 +88,26 @@ class FileLogHandler(BaseLogHandler):
         self.filename = filename
         self.file_handler = logging.FileHandler(filename)
 
-    def _format_entry(self, *, source: AgentId | None, message: ChatMessage, timestamp: str) -> Dict[str, Any]:
-        return {
-            "timestamp": timestamp,
-            "source": source,
-            "message": self.serialize_content(message),
-            "type": "OrchestrationEvent",
-        }
-
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
         if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent):
             log_entry = json.dumps(
-                self._format_entry(
-                    source=record.msg.source,
-                    message=record.msg.agent_message,
-                    timestamp=ts,
-                ),
+                {
+                    "timestamp": ts,
+                    "source": record.msg.source,
+                    "agent_message": self.serialize_content(record.msg.agent_message),
+                    "type": record.msg.__class__.__name__,
+                },
+                default=self.json_serializer,
+            )
+        elif isinstance(record.msg, SelectSpeakerEvent):
+            log_entry = json.dumps(
+                {
+                    "timestamp": ts,
+                    "source": record.msg.source,
+                    "selected_speaker": record.msg.selected_speaker,
+                    "type": "SelectSpeakerEvent",
+                },
                 default=self.json_serializer,
             )
         else:
