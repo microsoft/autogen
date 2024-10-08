@@ -183,7 +183,12 @@ def default_tabulate(
 
         footer_row = ["Failures"]
         for i in range(0, max_instances):
-            footer_row.append(_count_equals(False, i))
+            # count how many are not True, and not None, could be False or any other value
+            failures = 0
+            for row in all_results:
+                if isinstance(row[i + 1], tuple):
+                    failures += row[i + 1][0] != 1
+            footer_row.append(failures)
         footer.append(footer_row)
 
         footer_row = ["Missing"]
