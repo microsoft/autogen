@@ -11,6 +11,7 @@ import sys
 import time
 import traceback
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from multiprocessing import Pool
 
 import docker
 from azure.core.exceptions import ClientAuthenticationError
@@ -48,6 +49,7 @@ class ScenarioInstance(TypedDict):
     template: Union[str, List[Union[str, List[str]]]]
     substitutions: Dict[str, Dict[str, str]]
     values: Dict[str, Dict[str, str]]
+
 
 
 def run_scenarios(
@@ -244,7 +246,8 @@ def expand_scenario(scenario_dir: str, scenario: ScenarioInstance, output_dir: s
                 fh.write(line)
 
 
-def get_scenario_env(token_provider: Optional[Callable[[], str]], env_file: str = DEFAULT_ENV_FILE) -> Dict[str, str]:
+def get_scenario_env(token_provider: Optional[Callable[[], str]]=None
+                     , env_file: str = DEFAULT_ENV_FILE) -> Dict[str, str]:
     """
     Return a dictionary of environment variables needed to run a scenario.
 
@@ -269,6 +272,8 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]], env_file: str 
     azure_openai_ad_token = os.environ.get("AZURE_OPENAI_AD_TOKEN")
     if not azure_openai_ad_token and token_provider:
         azure_openai_ad_token = token_provider()
+    if not azure_openai_ad_token:
+        azure_openai_ad_token = get_azure_token_provider()()
 
     if azure_openai_ad_token is not None and len(azure_openai_ad_token.strip()) > 0:
         env["AZURE_OPENAI_AD_TOKEN"] = azure_openai_ad_token
@@ -611,6 +616,131 @@ def find_autogen_repo(path: str) -> Optional[str]:
     return None
 
 
+def split_jsonl(file_path: str, num_parts: int) -> List[List[dict]]:
+    """
+    Split a JSONL file into num_parts approximately equal parts.
+    """
+    with open(file_path, "r") as f:
+        data = [json.loads(line) for line in f]
+
+    random.shuffle(data)  # Shuffle the data for better distribution
+    chunk_size = len(data) // num_parts
+    return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
+
+
+def mkdir_p(path):
+    """
+    Create a directory if it doesn't exist, handling race conditions.
+    """
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError as exc:
+        if exc.errno != errno.EEXIST:
+            raise
+
+def run_scenarios_subset(
+    scenarios: List[dict],
+    n_repeats: int,
+    is_native: bool,
+    docker_image: Optional[str] = None,
+    results_dir: str = "Results",
+    subsample: Union[None, int, float] = None,
+) -> None:
+    """
+    Run a subset of agbench scenarios a given number of times.
+    """
+    for instance in scenarios:
+        # Create a folder to store the results
+        # Results base
+
+        mkdir_p(results_dir)
+
+        # Results for the scenario
+        scenario_name = "parallel_subset"
+        results_scenario = os.path.join(results_dir, scenario_name)
+        mkdir_p(results_scenario)
+
+        # Results for the instance
+        results_instance = os.path.join(results_scenario, instance["id"])
+        mkdir_p(results_instance)
+
+
+
+        # Results for the repeats
+        for i in range(0, n_repeats):
+            results_repetition = os.path.join(results_instance, str(i))
+
+            # Skip it if it already exists
+            if os.path.isdir(results_repetition):
+                print(f"Found folder {results_repetition} ... Skipping.")
+                continue
+            print(f"Running scenario {results_repetition}")
+
+            # Expand the scenario
+            expand_scenario(".", instance, results_repetition)
+
+            # Prepare the environment (keys/values that need to be added)
+            env = get_scenario_env()
+
+            # Run the scenario
+            if is_native:
+                run_scenario_natively(results_repetition, env)
+            else:
+                run_scenario_in_docker(
+                    results_repetition,
+                    env,
+                    docker_image=docker_image,
+                )
+
+def run_parallel(args: argparse.Namespace) -> None:
+    """
+    Run scenarios in parallel.
+    """
+    # Read and split the JSONL file
+    scenarios = split_jsonl(args.scenario, args.parallel)
+
+    # Create a pool of worker processes
+    with Pool(processes=args.parallel) as pool:
+        # Prepare arguments for each worker
+        worker_args = [
+            (
+                scenario_subset,
+                args.repeat,
+                args.native,
+                args.docker_image,
+                "Results",
+                args.subsample,
+            )
+            for scenario_subset in scenarios
+        ]
+
+        # Run scenarios in parallel
+        pool.starmap(run_scenarios_subset, worker_args)
+
+
+def get_azure_token_provider() -> Optional[Callable[[], str]]:
+    """
+    Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure.
+    """
+    if not os.environ.get("AZURE_OPENAI_AD_TOKEN") and os.path.isdir(pathlib.Path("~/.azure").expanduser()):
+        logging.disable(logging.CRITICAL)
+        try:
+            azure_token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            azure_token_provider()  # Call it once to warm it up, and make sure it doesn't throw an error
+            print("Found Azure token provider.")
+            return azure_token_provider
+        except ClientAuthenticationError:
+            error_message = traceback.format_exc()
+            print(
+                f"Azure token provider failed loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider..."
+            )
+        logging.disable(logging.NOTSET)
+    return None
+
+
+
 def run_cli(args: Sequence[str]) -> None:
     invocation_cmd = args[0]
     args = args[1:]
@@ -639,6 +769,15 @@ def run_cli(args: Sequence[str]) -> None:
         help='Run on a subsample of the tasks in the JSONL file(s). If a decimal value is specified, then run on the given proportion of tasks in each file. For example "0.7" would run on 70%% of tasks, and "1.0" would run on 100%% of tasks. If an integer value is specified, then randomly select *that* number of tasks from each specified JSONL file. For example "7" would run tasks, while "1" would run only 1 task from each specified JSONL file. (default: 1.0; which is 100%%)',
         default=None,
     )
+
+    parser.add_argument(
+        "-p",
+        "--parallel",
+        type=int,
+        help="The number of parallel processes to run (default: 1).",
+        default=1,
+    )
+
     parser.add_argument(
         "-d",
         "--docker-image",
@@ -701,29 +840,17 @@ def run_cli(args: Sequence[str]) -> None:
                 )
 
     # Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure
-    azure_token_provider = None
-    if not os.environ.get("AZURE_OPENAI_AD_TOKEN") and os.path.isdir(pathlib.Path("~/.azure").expanduser()):
-        logging.disable(logging.CRITICAL)
-        try:
-            azure_token_provider = get_bearer_token_provider(
-                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-            )
-            azure_token_provider()  # Call it once to warm it up, and make sure it doesn't throw an error
-            print("Found Azure token provider.")
-        except ClientAuthenticationError:
-            error_message = traceback.format_exc()
-            azure_token_provider = None
-            print(
-                f"Azure token provider failed loading. Try using 'az login --use-device-code':\n{error_message}\n\nContinuing without Azure token provider..."
-            )
-        logging.disable(logging.NOTSET)
+    azure_token_provider = get_azure_token_provider()
 
     # Run the scenario
-    run_scenarios(
-        scenario=parsed_args.scenario,
-        n_repeats=parsed_args.repeat,
-        is_native=True if parsed_args.native else False,
-        token_provider=azure_token_provider,
-        docker_image=parsed_args.docker_image,
-        subsample=subsample,
-    )
+    if parsed_args.parallel > 1:
+        run_parallel(parsed_args)
+    else:
+        run_scenarios(
+            scenario=parsed_args.scenario,
+            n_repeats=parsed_args.repeat,
+            is_native=True if parsed_args.native else False,
+            token_provider=azure_token_provider,
+            docker_image=parsed_args.docker_image,
+            subsample=subsample,
+        )
