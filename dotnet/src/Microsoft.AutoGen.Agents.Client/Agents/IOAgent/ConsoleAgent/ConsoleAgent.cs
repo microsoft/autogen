@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
-public class ConsoleAgent : IOAgent<AgentState>,
+public abstract class ConsoleAgent : IOAgent<AgentState>,
         IUseConsole,
         IHandle<Input>,
         IHandle<Output>

@@ -1,14 +1,11 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
-using Runtime = Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
 
-// start the server runtime
-var app = await Runtime.Host.StartAsync(true);
 // start the client worker
-var clientApp = await App.StartAsync<HelloAgent>("HelloAgent");
+var clientApp = await App.StartAsync(local: true);
 // get the client
 var client = clientApp.Services.GetRequiredService<AgentClient>();
 
@@ -23,7 +20,6 @@ var evt = new NewMessageReceived
 await client.PublishEventAsync(evt);
 
 await clientApp.WaitForShutdownAsync();
-await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
