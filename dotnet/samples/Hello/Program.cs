@@ -44,7 +44,7 @@ public class HelloAgent(
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt).ConfigureAwait(false);
-        throw new NotImplementedException("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Conversation Closed");
+        await App.ShutdownAsync();
     }
     public async Task<string> SayHello(string ask)
     {

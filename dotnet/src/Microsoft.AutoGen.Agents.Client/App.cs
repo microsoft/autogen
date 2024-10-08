@@ -40,4 +40,13 @@ public static class App
         await client.PublishEventAsync(topic, message).ConfigureAwait(false);
         return ClientApp;
     }
+
+    public static async ValueTask ShutdownAsync()
+    {
+        if (ClientApp == null)
+        {
+            throw new InvalidOperationException("Client not started");
+        }
+        await ClientApp.StopAsync();
+    }
 }
