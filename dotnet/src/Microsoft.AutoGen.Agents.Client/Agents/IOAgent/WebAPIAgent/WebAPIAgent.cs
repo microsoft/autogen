@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
-public class WebAPIAgent : IOAgent<AgentState>,
+public abstract class WebAPIAgent : IOAgent<AgentState>,
         IUseWebAPI,
         IHandle<Input>,
         IHandle<Output>
@@ -16,8 +16,8 @@ public class WebAPIAgent : IOAgent<AgentState>,
     public WebAPIAgent(
     IAgentContext context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
-    string url,
-    ILogger<WebAPIAgent> logger) : base(
+    ILogger<WebAPIAgent> logger,
+    string url = "/agents/webio") : base(
         context,
         typeRegistry)
     {
