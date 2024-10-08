@@ -15,10 +15,17 @@ from autogen_core.base._subscription import Subscription
 from autogen_core.components import (
     DefaultTopicId,
     TypeSubscription,
-    default_subscription,
     type_subscription,
 )
-from test_utils import CascadingAgent, CascadingMessageType, LoopbackAgent, MessageType, MyAgent, MyMessage, NoopAgent
+from test_utils import (
+    CascadingAgent,
+    CascadingMessageType,
+    ContentMessage,
+    LoopbackAgent,
+    LoopbackAgentWithDefaultSubscription,
+    MessageType,
+    NoopAgent,
+)
 
 
 @pytest.mark.asyncio
@@ -204,9 +211,6 @@ async def test_default_subscription() -> None:
     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     publisher.start()
 
-    @default_subscription
-    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
-
     await LoopbackAgentWithDefaultSubscription.register(worker, "name", lambda: LoopbackAgentWithDefaultSubscription())
 
     await publisher.publish_message(MessageType(), topic_id=DefaultTopicId())
@@ -240,9 +244,6 @@ async def test_default_subscription_other_source() -> None:
     publisher = WorkerAgentRuntime(host_address=host_address)
     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     publisher.start()
-
-    @default_subscription
-    class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
 
     await LoopbackAgentWithDefaultSubscription.register(runtime, "name", lambda: LoopbackAgentWithDefaultSubscription())
 
@@ -313,20 +314,20 @@ async def test_duplicate_subscription() -> None:
     host.start()
     try:
         worker1.start()
-        await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
+        await NoopAgent.register(worker1, "worker1", lambda: NoopAgent())
 
         worker1_2.start()
 
         # Note: This passes because worker1 is still running
         with pytest.raises(RuntimeError, match="Agent type worker1 already registered"):
-            await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1_2"))
+            await NoopAgent.register(worker1_2, "worker1", lambda: NoopAgent())
 
         # This is somehow covered in test_disconnected_agent as well as a stop will also disconnect the agent.
         #  Will keep them both for now as we might replace the way we simulate a disconnect
         await worker1.stop()
 
         with pytest.raises(ValueError):
-            await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1_2"))
+            await NoopAgent.register(worker1_2, "worker1", lambda: NoopAgent())
 
     except Exception as ex:
         raise ex
@@ -354,7 +355,9 @@ async def test_disconnected_agent() -> None:
 
     try:
         worker1.start()
-        await MyAgent.register(worker1, "worker1", lambda: MyAgent("worker1"))
+        await LoopbackAgentWithDefaultSubscription.register(
+            worker1, "worker1", lambda: LoopbackAgentWithDefaultSubscription()
+        )
 
         subscriptions1 = get_current_subscriptions()
         assert len(subscriptions1) == 1
@@ -363,7 +366,7 @@ async def test_disconnected_agent() -> None:
 
         first_subscription_id = subscriptions1[0].id
 
-        await worker1.publish_message(MyMessage(content="Hello!"), DefaultTopicId())
+        await worker1.publish_message(ContentMessage(content="Hello!"), DefaultTopicId())
         # This is a simple simulation of worker disconnct
         if worker1._host_connection is not None:  # type: ignore[reportPrivateUsage]
             try:
@@ -380,7 +383,9 @@ async def test_disconnected_agent() -> None:
         await asyncio.sleep(1)
 
         worker1_2.start()
-        await MyAgent.register(worker1_2, "worker1", lambda: MyAgent("worker1"))
+        await LoopbackAgentWithDefaultSubscription.register(
+            worker1_2, "worker1", lambda: LoopbackAgentWithDefaultSubscription()
+        )
 
         subscriptions3 = get_current_subscriptions()
         assert len(subscriptions3) == 1
@@ -394,10 +399,70 @@ async def test_disconnected_agent() -> None:
     finally:
         await worker1.stop()
         await worker1_2.stop()
+
+
+@pytest.mark.asyncio
+async def test_grpc_max_message_size() -> None:
+    default_max_size = 2**22
+    new_max_size = default_max_size * 2
+    small_message = ContentMessage(content="small message")
+    big_message = ContentMessage(content="." * (default_max_size + 1))
+
+    extra_grpc_config = [
+        ("grpc.max_send_message_length", new_max_size),
+        ("grpc.max_receive_message_length", new_max_size),
+    ]
+    host_address = "localhost:50059"
+    host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
+    worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+    worker2 = WorkerAgentRuntime(host_address=host_address)
+    worker3 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+
+    try:
+        host.start()
+        worker1.start()
+        worker2.start()
+        worker3.start()
+        await LoopbackAgentWithDefaultSubscription.register(
+            worker1, "worker1", lambda: LoopbackAgentWithDefaultSubscription()
+        )
+        await LoopbackAgentWithDefaultSubscription.register(
+            worker2, "worker2", lambda: LoopbackAgentWithDefaultSubscription()
+        )
+        await LoopbackAgentWithDefaultSubscription.register(
+            worker3, "worker3", lambda: LoopbackAgentWithDefaultSubscription()
+        )
+
+        # with pytest.raises(Exception):
+        await worker1.publish_message(small_message, DefaultTopicId())
+        # This is a simple simulation of worker disconnct
+        await asyncio.sleep(1)
+        agent_instance_2 = await worker2.try_get_underlying_agent_instance(
+            AgentId("worker2", key="default"), type=LoopbackAgent
+        )
+        agent_instance_3 = await worker3.try_get_underlying_agent_instance(
+            AgentId("worker3", key="default"), type=LoopbackAgent
+        )
+        assert agent_instance_2.num_calls == 1
+        assert agent_instance_3.num_calls == 1
+
+        await worker1.publish_message(big_message, DefaultTopicId())
+        await asyncio.sleep(2)
+        assert agent_instance_2.num_calls == 1  # Worker 2 won't receive the big message
+        assert agent_instance_3.num_calls == 2  # Worker 3 will receive the big message as has increased message length
+    except Exception as e:
+        raise e
+    finally:
+        await worker1.stop()
+        # await worker2.stop() # Worker 2 somehow breaks can can not be stopped.
+        await worker3.stop()
+
         await host.stop()
 
 
 if __name__ == "__main__":
     os.environ["GRPC_VERBOSITY"] = "DEBUG"
     os.environ["GRPC_TRACE"] = "all"
+
     asyncio.run(test_disconnected_agent())
+    asyncio.run(test_grpc_max_message_size())
