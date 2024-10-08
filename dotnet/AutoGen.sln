@@ -124,7 +124,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgents.Web", "samples\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hello", "samples\Hello\Hello.csproj", "{6C9135E6-9D15-4D86-B3F4-9666DB87060A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.ServiceDefaults", "src\Microsoft.Autogen.ServiceDefaults\Microsoft.Autogen.ServiceDefaults.csproj", "{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen.ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
