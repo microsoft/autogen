@@ -5,47 +5,32 @@ using Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 // start the server runtime
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.ConfigureKestrel(serverOptions =>
-                {
-                    serverOptions.ListenLocalhost(5001, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                        listenOptions.UseHttps();
-                    });
-                });
-builder.AddAgentService();
-builder.UseOrleans(siloBuilder =>
-{
-    siloBuilder.UseLocalhostClustering(); ;
-});
+builder.AddLocalAgentService();
 var app = builder.Build();
 app.MapAgentService();
-await app.StartAsync();
+await app.StartAsync().ConfigureAwait(false);
 
 // start the client worker
 var clientBuilder = WebApplication.CreateBuilder(args);
-clientBuilder.Services.AddHostedService<AgentWorkerRuntime>();
-clientBuilder.Services.AddSingleton<AgentClient>();
-var agentBuilder = clientBuilder.AddAgentWorker("https://localhost:5001").AddAgent<HelloAgent>("HelloAgent");
+clientBuilder.AddLocalAgentWorker().AddAgent<HelloAgent>("HelloAgent");
 var clientApp = clientBuilder.Build();
-await clientApp.StartAsync();
+await clientApp.StartAsync().ConfigureAwait(false);
 
-// get the client and send a message
-AgentClient client = clientApp.Services.GetRequiredService<AgentClient>();
+// get the client
+var client = clientApp.Services.GetRequiredService<AgentClient>();
 
 //send our hello message event via cloud events
 var evt = new NewMessageReceived
 {
     Message = "World"
 }.ToCloudEvent("HelloAgents");
-await client.PublishEventAsync(evt);
+await client.PublishEventAsync(evt).ConfigureAwait(false);
 
-await clientApp.WaitForShutdownAsync();
-await app.WaitForShutdownAsync();
+await clientApp.WaitForShutdownAsync().ConfigureAwait(false);
+await app.WaitForShutdownAsync().ConfigureAwait(false);
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
@@ -59,21 +44,19 @@ public class HelloAgent(
 {
     public async Task Handle(NewMessageReceived item)
     {
-        var response = await SayHello(item.Message);
+        var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye);
-        
+        await PublishEvent(goodbye).ConfigureAwait(false);
     }
-
     public async Task Handle(ConversationClosed item)
     {
         var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
@@ -81,10 +64,9 @@ public class HelloAgent(
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
-        throw new Exception("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Conversation Closed");
+        await PublishEvent(evt).ConfigureAwait(false);
+        throw new NotImplementedException("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Conversation Closed");
     }
-
     public async Task<string> SayHello(string ask)
     {
         var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";

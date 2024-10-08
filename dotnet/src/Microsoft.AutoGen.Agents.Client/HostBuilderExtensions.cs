@@ -14,6 +14,13 @@ namespace Microsoft.AutoGen.Agents.Client;
 
 public static class HostBuilderExtensions
 {
+    public static AgentApplicationBuilder AddLocalAgentWorker(this IHostApplicationBuilder clientBuilder)
+    {
+        clientBuilder.Services.AddHostedService<AgentWorkerRuntime>();
+        clientBuilder.Services.AddSingleton<AgentClient>();
+        clientBuilder.AddAgentWorker("https://localhost:5001");
+        return new AgentApplicationBuilder(clientBuilder);
+    }
     public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress)
     {
         builder.Services.AddGrpcClient<AgentRpc.AgentRpcClient>(options =>
