@@ -46,3 +46,24 @@ class NoopAgent(BaseAgent):
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError
+
+
+@dataclass
+class MyMessage:
+    content: str
+
+
+@default_subscription
+class MyAgent(RoutedAgent):
+    def __init__(self, name: str) -> None:
+        super().__init__("My agent")
+        self._name = name
+        self._counter = 0
+
+    @message_handler
+    async def my_message_handler(self, message: MyMessage, ctx: MessageContext) -> None:
+        self._counter += 1
+        if self._counter > 5:
+            return
+        content = f"{self._name}: Hello x {self._counter}"
+        await self.publish_message(MyMessage(content=content), DefaultTopicId())

@@ -15,8 +15,6 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools._base import ToolSchema
-from conftest import MOCK_CHAT_COMPLETION_KWARGS, reason
-from openai import AuthenticationError
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
     TOOL_PAGE_DOWN,
@@ -34,6 +32,8 @@ from autogen_magentic_one.utils import (
     ENVIRON_KEY_CHAT_COMPLETION_PROVIDER,
     create_completion_client_from_env,
 )
+from conftest import MOCK_CHAT_COMPLETION_KWARGS, reason
+from openai import AuthenticationError
 
 pytest_plugins = ("pytest_asyncio",)
 

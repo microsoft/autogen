@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from autogen_core.base import AgentProxy, MessageContext, TopicId, CancellationToken
+from autogen_core.base import AgentProxy, CancellationToken, MessageContext, TopicId
 from autogen_core.components import default_subscription
 from autogen_core.components.models import (
     AssistantMessage,

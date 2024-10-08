@@ -125,14 +125,14 @@ Next, the orchestrator assigns the assistant agent to use this data to perform t
 
 Here is the performance of Magentic-One on a GAIA development set.
 
-| Level | Task Completion Rate* |
-|-------|---------------------|
-| Level 1 | 49% (26/53) |
-| Level 2 | 26% (22/86) |
-| Level 3 | 8% (2/26) |
-| Total | 30% (50/165) |
+| Level   | Task Completion Rate* |
+|---------|-----------------------|
+| Level 1 | 55% (29/53)           |
+| Level 2 | 34% (29/86)           |
+| Level 3 | 12% (3/26)            |
+| Total   | 37% (61/165)          |
 
-*Indicates the percentage of tasks completed successfully on the development set.
+*Indicates the percentage of tasks completed successfully on the *validation* set.
 
 #### WebArena
 
@@ -140,17 +140,17 @@ Here is the performance of Magentic-One on a GAIA development set.
 
 To solve this task, the agents began by logging into the Postmill platform using provided credentials and navigating to the Showerthoughts forum. They identified the latest post in this forum, which was made by a user named Waoonet. To proceed with the task, they then accessed Waoonet's profile to examine the comments section, where they could find all comments made by this user.
 
-Once on Waoonet's profile, the agents focused on counting the comments that had received more downvotes than upvotes. The web_surfer agent analyzed the available comments and found that Waoonet had made two comments, both of which had more upvotes than downvotes. Consequently, they concluded that none of Waoonet's comments had received more downvotes than upvotes. This information was summarized and reported back, completing the task successfully.
+Once on Waoonet's profile, the agents focused on counting the comments that had received more downvotes than upvotes. The web\_surfer agent analyzed the available comments and found that Waoonet had made two comments, both of which had more upvotes than downvotes. Consequently, they concluded that none of Waoonet's comments had received more downvotes than upvotes. This information was summarized and reported back, completing the task successfully.
 
-| Site           | Task Completion Rate           |
-|----------------|----------------|
-| Reddit         | 49%  (27/55)   |
-| Shopping       | 23%  (22/96)   |
-| CMS            | 16%  (16/101)  |
-| Gitlab         | 41%  (32/79)   |
-| Maps           | 35%  (23/65)   |
-| Multiple Sites | %  (--/26)     |
-| Total          | 28%  (120/422) |
+| Site           | Task Completion Rate |
+|----------------|----------------------|
+| Reddit         | 54%  (57/106)        |
+| Shopping       | 33%  (62/187)        |
+| CMS            | 29%  (53/182)        |
+| Gitlab         | 28%  (50/180)        |
+| Maps           | 35%  (38/109)        |
+| Multiple Sites | 15%  (7/48)          |
+| Total          | 33%  (267/812)       |
 
 
 ### Logging in Team One Agents
