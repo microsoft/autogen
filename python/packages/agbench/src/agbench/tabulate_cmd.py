@@ -208,12 +208,7 @@ def default_tabulate(
 
         footer_row = ["Average Exact Match"]
         for i in range(0, max_instances):
-            avg_score_trial = 0
-            for row in all_results:
-                if isinstance(row[i + 1], tuple):
-                    avg_score_trial += row[i + 1][1] == 1
-            avg_score_trial = avg_score_trial / len(all_results)
-            footer_row.append(avg_score_trial)
+            footer_row.append(_count_equals(True, i) / (footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1]))
         footer.append(footer_row)
 
         table = deepcopy(all_results)
