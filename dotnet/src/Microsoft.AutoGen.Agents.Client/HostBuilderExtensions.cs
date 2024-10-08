@@ -64,7 +64,7 @@ public static class HostBuilderExtensions
 
             var eventsMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
-                                    .Where(type => IsSubclassOfGeneric(type, typeof(AiAgent<>)) && !type.IsAbstract)
+                                    .Where(type => IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
                                     .Select(t => (t, t.GetInterfaces()
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                                   .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
