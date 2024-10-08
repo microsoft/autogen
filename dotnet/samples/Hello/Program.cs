@@ -42,7 +42,6 @@ var evt = new NewMessageReceived
 {
     Message = "World"
 }.ToCloudEvent("HelloAgents");
-//evt.Type = "HelloAgents";
 await client.PublishEventAsync(evt);
 
 await clientApp.WaitForShutdownAsync();
@@ -66,16 +65,24 @@ public class HelloAgent(
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt);
+        var goodbye = new ConversationClosed
+        {
+            UserId = this.AgentId.Key,
+            UserMessage = "Goodbye"
+        }.ToCloudEvent(this.AgentId.Key);
+        await PublishEvent(goodbye);
+        
     }
 
     public async Task Handle(ConversationClosed item)
     {
-        var goodbye = "Goodbye!";
+        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
         var evt = new Output
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt);
+        throw new Exception("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^Conversation Closed");
     }
 
     public async Task<string> SayHello(string ask)
