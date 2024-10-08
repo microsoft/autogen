@@ -3,20 +3,34 @@ using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
 using Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(serverOptions =>
+                {
+                    serverOptions.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http2);
+                    serverOptions.ListenLocalhost(5001, listenOptions =>
+                    {
+                        listenOptions.Protocols = HttpProtocols.Http2;
+                        listenOptions.UseHttps();
+                    });
+                });
 builder.AddAgentService();
-builder.Services.AddHostedService<AgentWorkerRuntime>();
-builder.Services.AddSingleton<AgentClient>();
 builder.UseOrleans(siloBuilder =>
 {
     siloBuilder.UseLocalhostClustering(); ;
 });
-builder.AddAgentWorker("https://localhost:5000");
+builder.Services.AddHostedService<AgentWorkerRuntime>();
+builder.Services.AddSingleton<AgentClient>();
+var agentBuilder = builder.AddAgentWorker("https://localhost:5001").AddAgent<HelloAgent>("HelloAgent");
 var app = builder.Build();
+app.MapAgentService();
 await app.StartAsync();
 AgentClient client = app.Services.GetRequiredService<AgentClient>();
 app.Services.GetRequiredService<AgentWorkerRuntime>();
+
 //send our hello message event via cloud events
 var evt = new NewMessageReceived
 {
