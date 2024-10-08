@@ -44,6 +44,8 @@ public class HelloAgent(
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(evt).ConfigureAwait(false);
+        //sleep 60s before shutting down
+        await Task.Delay(60000);
         await App.ShutdownAsync();
     }
     public async Task<string> SayHello(string ask)
