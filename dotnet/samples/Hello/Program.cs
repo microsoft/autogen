@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
+// start the server runtime
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(serverOptions =>
                 {
@@ -21,22 +22,29 @@ builder.UseOrleans(siloBuilder =>
 {
     siloBuilder.UseLocalhostClustering(); ;
 });
-builder.Services.AddHostedService<AgentWorkerRuntime>();
-builder.Services.AddSingleton<AgentClient>();
-var agentBuilder = builder.AddAgentWorker("https://localhost:5001").AddAgent<HelloAgent>("HelloAgent");
 var app = builder.Build();
 app.MapAgentService();
 await app.StartAsync();
-AgentClient client = app.Services.GetRequiredService<AgentClient>();
-app.Services.GetRequiredService<AgentWorkerRuntime>();
+
+// start the client worker
+var clientBuilder = WebApplication.CreateBuilder(args);
+clientBuilder.Services.AddHostedService<AgentWorkerRuntime>();
+clientBuilder.Services.AddSingleton<AgentClient>();
+var agentBuilder = clientBuilder.AddAgentWorker("https://localhost:5001");
+var clientApp = clientBuilder.Build();
+await clientApp.StartAsync();
+
+// get the client and send a message
+AgentClient client = clientApp.Services.GetRequiredService<AgentClient>();
 
 //send our hello message event via cloud events
 var evt = new NewMessageReceived
 {
     Message = "World"
 }.ToCloudEvent("HelloAgents");
-
 await client.PublishEventAsync(evt);
+
+await clientApp.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
