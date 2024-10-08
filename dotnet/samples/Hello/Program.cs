@@ -30,7 +30,7 @@ await app.StartAsync();
 var clientBuilder = WebApplication.CreateBuilder(args);
 clientBuilder.Services.AddHostedService<AgentWorkerRuntime>();
 clientBuilder.Services.AddSingleton<AgentClient>();
-var agentBuilder = clientBuilder.AddAgentWorker("https://localhost:5001").AddAgent<HelloAgent>("HelloAgents");
+var agentBuilder = clientBuilder.AddAgentWorker("https://localhost:5001").AddAgent<HelloAgent>("HelloAgent");
 var clientApp = clientBuilder.Build();
 await clientApp.StartAsync();
 
@@ -42,7 +42,7 @@ var evt = new NewMessageReceived
 {
     Message = "World"
 }.ToCloudEvent("HelloAgents");
-evt.Type = "HelloAgents";
+//evt.Type = "HelloAgents";
 await client.PublishEventAsync(evt);
 
 await clientApp.WaitForShutdownAsync();
