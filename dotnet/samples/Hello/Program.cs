@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(serverOptions =>
                 {
-                    serverOptions.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http2);
                     serverOptions.ListenLocalhost(5001, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;
