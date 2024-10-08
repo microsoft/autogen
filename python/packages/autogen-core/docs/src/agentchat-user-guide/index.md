@@ -3,7 +3,6 @@ myst:
   html_meta:
     "description lang=en": |
       User Guide for AgentChat, a high-level api for AutoGen
-      User Guide for AgentChat, a high-level api for AutoGen
 ---
 
 # AgentChat
@@ -38,6 +37,15 @@ Teams define how groups of agents communicate to address tasks. The following Te
 :hidden:
 
 quickstart
+
+```
+
+```{toctree}
+:caption: Guides
+:maxdepth: 2
+:hidden:
+
+guides/code-execution
 guides/tool_use
 guides/selector-group-chat
 
