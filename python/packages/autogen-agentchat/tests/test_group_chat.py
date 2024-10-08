@@ -43,12 +43,21 @@ class _MockChatCompletion:
 
 class _EchoAgent(BaseChatAgent):
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        assert all(isinstance(msg, ChatMessage) for msg in messages)
+        assert isinstance(messages[0], TextMessage)
         return TextMessage(content=messages[0].content, source=self.name)
 
 
 class _StopAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str, *, stop_at: int = 1) -> None:
+        super().__init__(name, description)
+        self._count = 0
+        self._stop_at = stop_at
+
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+        assert isinstance(messages[0], TextMessage)
+        self._count += 1
+        if self._count < self._stop_at:
+            return TextMessage(content=messages[0].content, source=self.name)
         return StopMessage(content="TERMINATE", source=self.name)
 
 
@@ -231,11 +240,31 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             object="chat.completion",
             usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent2", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent1", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
     ]
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
 
-    agent1 = _StopAgent("agent1", description="echo agent 1")
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=2)
     agent2 = _EchoAgent("agent2", description="echo agent 2")
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     team = SelectorGroupChat(
@@ -243,8 +272,45 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
     )
     result = await team.run("Write a program that prints 'Hello, world!'")
-    assert len(result.messages) == 4
+    assert len(result.messages) == 6
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent3"
     assert result.messages[2].source == "agent2"
     assert result.messages[3].source == "agent1"
+    assert result.messages[4].source == "agent2"
+    assert result.messages[5].source == "agent1"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent2", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=2)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2],
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+    result = await team.run("Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 5
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent2"
+    assert result.messages[2].source == "agent1"
+    assert result.messages[3].source == "agent2"
+    assert result.messages[4].source == "agent1"
+    # only one chat completion was called
+    assert mock._curr_index == 1  # pyright: ignore

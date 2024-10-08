@@ -26,6 +26,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         model_client: ChatCompletionClient,
         selector_prompt: str,
+        allow_repeated_speaker: bool,
     ) -> None:
         super().__init__(
             parent_topic_type,
@@ -36,6 +37,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._model_client = model_client
         self._selector_prompt = selector_prompt
         self._previous_speaker: str | None = None
+        self._allow_repeated_speaker = allow_repeated_speaker
 
     async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client.
@@ -74,23 +76,33 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             ]
         )
 
-        # Construct agent list to be selected, skip the previous speaker.
-        if self._previous_speaker is not None:
-            participants = str([p for p in self._participant_topic_types if p != self._previous_speaker])
+        # Construct agent list to be selected, skip the previous speaker if not allowed.
+        if self._previous_speaker is not None and not self._allow_repeated_speaker:
+            participants = [p for p in self._participant_topic_types if p != self._previous_speaker]
         else:
-            participants = str(self._participant_topic_types)
+            participants = self._participant_topic_types
+        assert len(participants) > 0
 
         # Select the next speaker.
-        select_speaker_prompt = self._selector_prompt.format(roles=roles, participants=participants, history=history)
-        select_speaker_messages = [SystemMessage(select_speaker_prompt)]
-        response = await self._model_client.create(messages=select_speaker_messages)
-        assert isinstance(response.content, str)
-        mentions = self._mentioned_agents(response.content, self._participant_topic_types)
-        if len(mentions) != 1:
-            raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
-        agent_name = list(mentions.keys())[0]
-        if self._previous_speaker is not None and agent_name == self._previous_speaker:
-            trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+        if len(participants) > 1:
+            select_speaker_prompt = self._selector_prompt.format(
+                roles=roles, participants=str(participants), history=history
+            )
+            select_speaker_messages = [SystemMessage(select_speaker_prompt)]
+            response = await self._model_client.create(messages=select_speaker_messages)
+            assert isinstance(response.content, str)
+            mentions = self._mentioned_agents(response.content, self._participant_topic_types)
+            if len(mentions) != 1:
+                raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
+            agent_name = list(mentions.keys())[0]
+            if (
+                not self._allow_repeated_speaker
+                and self._previous_speaker is not None
+                and agent_name == self._previous_speaker
+            ):
+                trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+        else:
+            agent_name = participants[0]
         self._previous_speaker = agent_name
         event_logger.info(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
         return agent_name
@@ -137,8 +149,10 @@ class SelectorGroupChat(BaseGroupChat):
             must have unique names and at least two participants.
         model_client (ChatCompletionClient): The ChatCompletion model client used
             to select the next speaker.
-        selector_prompt (str, optional): The prompt to use for selecting the next speaker.
-            Must contain '{roles}', '{participants}', and '{history}'
+        selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
+            Must contain '{roles}', '{participants}', and '{history}' to be filled in.
+        allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
+            consecutively. Defaults to False.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -172,6 +186,7 @@ Read the following conversation. Then select the next role from {participants} t
 
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """,
+        allow_repeated_speaker: bool = False,
     ):
         super().__init__(participants, group_chat_manager_class=SelectorGroupChatManager)
         # Validate the participants.
@@ -186,6 +201,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             raise ValueError("The selector prompt must contain '{history}'")
         self._selector_prompt = selector_prompt
         self._model_client = model_client
+        self._allow_repeated_speaker = allow_repeated_speaker
 
     def _create_group_chat_manager_factory(
         self,
@@ -201,4 +217,5 @@ Read the above conversation. Then select the next role from {participants} to pl
             participant_descriptions,
             self._model_client,
             self._selector_prompt,
+            self._allow_repeated_speaker,
         )
