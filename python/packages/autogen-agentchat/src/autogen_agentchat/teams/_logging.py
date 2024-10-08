@@ -62,13 +62,27 @@ class ConsoleLogHandler(BaseLogHandler):
 
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
-        if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent):
+        if isinstance(record.msg, ContentPublishEvent):
             sys.stdout.write(
                 self._format_chat_message(
                     source_agent_id=record.msg.source,
                     message=record.msg.agent_message,
                     timestamp=ts,
                 )
+            )
+            sys.stdout.flush()
+        elif isinstance(record.msg, ToolCallEvent):
+            sys.stdout.write(
+                f"\n{'-'*75} \n"
+                f"\033[91m[{ts}], Tool Call:\033[0m\n"
+                f"\n{self.serialize_content(record.msg.agent_message)}"
+            )
+            sys.stdout.flush()
+        elif isinstance(record.msg, ToolCallResultEvent):
+            sys.stdout.write(
+                f"\n{'-'*75} \n"
+                f"\033[91m[{ts}], Tool Call Result:\033[0m\n"
+                f"\n{self.serialize_content(record.msg.agent_message)}"
             )
             sys.stdout.flush()
         elif isinstance(record.msg, SelectSpeakerEvent):

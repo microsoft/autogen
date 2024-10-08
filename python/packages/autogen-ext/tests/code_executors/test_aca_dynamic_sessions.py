@@ -9,7 +9,8 @@ import tempfile
 import pytest
 from anyio import open_file
 from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import AzureContainerCodeExecutor, CodeBlock
+from autogen_core.components.code_executor import CodeBlock
+from autogen_ext.code_executor.aca_dynamic_sessions import AzureContainerCodeExecutor
 from azure.identity import DefaultAzureCredential
 
 UNIX_SHELLS = ["bash", "sh", "shell"]

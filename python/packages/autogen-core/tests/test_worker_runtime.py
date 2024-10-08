@@ -52,7 +52,7 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
 
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_multiple_workers() -> None:
-    host_address = "localhost:50059"
+    host_address = "localhost:50052"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
 
@@ -77,7 +77,7 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
 
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
-    host_address = "localhost:50060"
+    host_address = "localhost:50053"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
 
@@ -122,7 +122,7 @@ async def test_register_receives_publish() -> None:
 
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_single_worker() -> None:
-    host_address = "localhost:50053"
+    host_address = "localhost:50054"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     runtime = WorkerAgentRuntime(host_address=host_address)
@@ -159,7 +159,7 @@ async def test_register_receives_publish_cascade_single_worker() -> None:
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_multiple_workers() -> None:
     logging.basicConfig(level=logging.DEBUG)
-    host_address = "localhost:50057"
+    host_address = "localhost:50055"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
 
@@ -202,7 +202,7 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
 
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
-    host_address = "localhost:50054"
+    host_address = "localhost:50056"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     worker = WorkerAgentRuntime(host_address=host_address)
@@ -236,7 +236,7 @@ async def test_default_subscription() -> None:
 
 @pytest.mark.asyncio
 async def test_default_subscription_other_source() -> None:
-    host_address = "localhost:50056"
+    host_address = "localhost:50057"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     runtime = WorkerAgentRuntime(host_address=host_address)
@@ -270,7 +270,7 @@ async def test_default_subscription_other_source() -> None:
 
 @pytest.mark.asyncio
 async def test_type_subscription() -> None:
-    host_address = "localhost:50055"
+    host_address = "localhost:50058"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     worker = WorkerAgentRuntime(host_address=host_address)
@@ -338,7 +338,7 @@ async def test_duplicate_subscription() -> None:
 
 @pytest.mark.asyncio
 async def test_disconnected_agent() -> None:
-    host_address = "localhost:50059"
+    host_address = "localhost:50060"
     host = WorkerAgentRuntimeHost(address=host_address)
     host.start()
     worker1 = WorkerAgentRuntime(host_address=host_address)
@@ -412,7 +412,7 @@ async def test_grpc_max_message_size() -> None:
         ("grpc.max_send_message_length", new_max_size),
         ("grpc.max_receive_message_length", new_max_size),
     ]
-    host_address = "localhost:50059"
+    host_address = "localhost:50061"
     host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
     worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
     worker2 = WorkerAgentRuntime(host_address=host_address)
