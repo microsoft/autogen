@@ -93,9 +93,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{C7A2D42D-9277-47AC-862B-D86DF9D6AD48}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dev-team", "dev-team", "{616F30DF-1F41-4047-BAA4-64BA03BF5AEA}"
-	ProjectSection(SolutionItems) = preProject
-		samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj = samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevTeam.AgentHost", "samples\dev-team\DevTeam.AgentHost\DevTeam.AgentHost.csproj", "{7228A701-C79D-4E15-BF45-48D11F721A84}"
 EndProject
