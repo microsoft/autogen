@@ -9,9 +9,11 @@ from autogen_agentchat.agents import (
     ChatMessage,
     CodeExecutorAgent,
     CodingAssistantAgent,
+    StopMessage,
+    TextMessage,
     ToolUseAssistantAgent,
 )
-from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+from autogen_agentchat.teams.group_chat import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
@@ -41,7 +43,13 @@ class _MockChatCompletion:
 
 class _EchoAgent(BaseChatAgent):
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        return messages[-1]
+        assert all(isinstance(msg, ChatMessage) for msg in messages)
+        return TextMessage(content=messages[0].content, source=self.name)
+
+
+class _StopAgent(BaseChatAgent):
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+        return StopMessage(content="TERMINATE", source=self.name)
 
 
 def _pass_function(input: str) -> str:
@@ -187,3 +195,56 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert context[2].content[0].content == "pass"
     assert context[2].content[0].call_id == "1"
     assert context[3].content == "Hello"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent3", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent2", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent1", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent1 = _StopAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+    result = await team.run("Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 4
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent3"
+    assert result.messages[2].source == "agent2"
+    assert result.messages[3].source == "agent1"
