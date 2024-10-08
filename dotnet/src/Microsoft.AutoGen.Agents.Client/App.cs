@@ -47,6 +47,7 @@ public static class App
         {
             throw new InvalidOperationException("Client not started");
         }
+        await RuntimeApp!.StopAsync();
         await ClientApp.StopAsync();
     }
 }

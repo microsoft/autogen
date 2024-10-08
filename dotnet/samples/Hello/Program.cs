@@ -9,6 +9,7 @@ var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
     Message = "World"
 }, local: true);
 
+await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
