@@ -17,7 +17,8 @@ dev-dependencies = [
     "packaging",
     "grpcio-tools~=1.62.0",
     "mypy-protobuf",
-    "cookiecutter"
+    "cookiecutter",
+    "poethepoet",
 ]
 
 [tool.uv.sources]

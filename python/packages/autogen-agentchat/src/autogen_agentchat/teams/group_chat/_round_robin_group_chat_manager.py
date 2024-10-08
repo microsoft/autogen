@@ -1,6 +1,6 @@
 from typing import List
 
-from ...agents import MultiModalMessage, StopMessage, TextMessage
+from ...agents import ChatMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 
 
@@ -22,7 +22,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         )
         self._next_speaker_index = 0
 
-    async def select_speaker(self, thread: List[TextMessage | MultiModalMessage | StopMessage]) -> str:
+    async def select_speaker(self, thread: List[ChatMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
         self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)

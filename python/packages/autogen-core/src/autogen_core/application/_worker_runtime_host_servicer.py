@@ -27,6 +27,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
         self._pending_responses: Dict[int, Dict[str, Future[Any]]] = {}
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
+        self._client_id_to_subscription_id_mapping: Dict[int, set[str]] = {}
 
     async def OpenChannel(  # type: ignore
         self,
@@ -68,13 +69,18 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
             for future in self._pending_responses.pop(client_id, {}).values():
                 future.cancel()
             # Remove the client id from the agent type to client id mapping.
-            async with self._agent_type_to_client_id_lock:
-                agent_types = [
-                    agent_type for agent_type, id_ in self._agent_type_to_client_id.items() if id_ == client_id
-                ]
-                for agent_type in agent_types:
-                    del self._agent_type_to_client_id[agent_type]
-            logger.info(f"Client {client_id} disconnected.")
+            await self._on_client_disconnect(client_id)
+
+    async def _on_client_disconnect(self, client_id: int) -> None:
+        async with self._agent_type_to_client_id_lock:
+            agent_types = [agent_type for agent_type, id_ in self._agent_type_to_client_id.items() if id_ == client_id]
+            for agent_type in agent_types:
+                logger.info(f"Removing agent type {agent_type} from agent type to client id mapping")
+                del self._agent_type_to_client_id[agent_type]
+            for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, []):
+                logger.info(f"Client id {client_id} disconnected. Removing corresponding subscription with id {id}")
+                await self._subscription_manager.remove_subscription(sub_id)
+        logger.info(f"Client {client_id} disconnected successfully")
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
         exception = task.exception()
@@ -220,6 +226,8 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                 )
                 try:
                     await self._subscription_manager.add_subscription(type_subscription)
+                    subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
+                    subscription_ids.add(type_subscription.id)
                     success = True
                     error = None
                 except ValueError as e:
