@@ -31,7 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/Microsoft.AutoGen.ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents.Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents\Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj" />
   </ItemGroup>
 
 </Project>
