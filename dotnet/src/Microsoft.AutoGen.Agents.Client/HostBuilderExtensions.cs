@@ -109,7 +109,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
     {
         var agents = AppDomain.CurrentDomain.GetAssemblies()
                                 .SelectMany(assembly => assembly.GetTypes())
-                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) 
+                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
                                     && !type.Name.Equals("AgentClient"))
                                 .ToDictionary(type => type.Name, type => type);

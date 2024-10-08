@@ -6,8 +6,8 @@ namespace Microsoft.AutoGen.Agents.Client;
 
 [TopicSubscription("FileIO")]
 public abstract class FileAgent(
-    IAgentContext context, 
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry, 
+    IAgentContext context,
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
     ) : IOAgent<AgentState>(context, typeRegistry),

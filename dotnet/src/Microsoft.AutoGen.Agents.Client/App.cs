@@ -27,7 +27,7 @@ public static class App
     }
 
     public static async ValueTask<WebApplication> PublishMessageAsync(
-        string topic, 
+        string topic,
         IMessage message,
         AgentTypes? agentTypes = null,
         bool local = false)
