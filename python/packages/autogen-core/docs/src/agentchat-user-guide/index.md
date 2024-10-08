@@ -29,7 +29,8 @@ Agents provide presets for how an agent might respond to received messages. The 
 
 Teams define how groups of agents communicate to address tasks. The following Teams are currently supported:
 
-- `RoundRobinGroupChat` - Agents take turns sending messages (in a round robin fashion) until a termination condition is met
+- `RoundRobinGroupChat` - A team where agents take turns sending messages (in a round robin fashion) until a termination condition is met
+- `SelectorGroupChat` - A team where a model is used to select the next agent to send a message based on the current conversation history.
 
 ```{toctree}
 :caption: Getting Started
