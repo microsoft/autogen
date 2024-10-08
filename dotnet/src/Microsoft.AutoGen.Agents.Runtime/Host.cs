@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Agents.Runtime;
 
@@ -15,6 +16,7 @@ public static class Host
         {
             builder.AddAgentService();
         }
+        builder.AddServiceDefaults();
         var app = builder.Build();
         app.MapAgentService();
         await app.StartAsync().ConfigureAwait(false);
