@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
-public class ConsoleAgent : IOAgent<AgentState>,
+public abstract class ConsoleAgent : IOAgent<AgentState>,
         IUseConsole,
         IHandle<Input>,
         IHandle<Output>
@@ -32,6 +32,7 @@ public class ConsoleAgent : IOAgent<AgentState>,
     {
         // Assuming item has a property `Content` that we want to write to the console
         Console.WriteLine(item.Message);
+        await ProcessOutput(item.Message);
 
         var evt = new OutputWritten
         {

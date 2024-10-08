@@ -38,6 +38,7 @@ Teams define how groups of agents communicate to address tasks. The following Te
 
 quickstart
 guides/tool_use
+guides/selector-group-chat
 
 ```
 
