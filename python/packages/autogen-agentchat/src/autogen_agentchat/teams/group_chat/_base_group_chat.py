@@ -143,8 +143,7 @@ class BaseGroupChat(BaseTeam, ABC):
         async def collect_group_chat_messages(
             _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
         ) -> None:
-            if message.source:
-                group_chat_messages.append(message.agent_message)
+            group_chat_messages.append(message.agent_message)
 
         await ClosureAgent.register(
             runtime,
@@ -152,7 +151,6 @@ class BaseGroupChat(BaseTeam, ABC):
             closure=collect_group_chat_messages,
             subscriptions=lambda: [
                 TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages"),
-                TypeSubscription(topic_type=team_topic_type, agent_type="collect_group_chat_messages"),
             ],
         )
 

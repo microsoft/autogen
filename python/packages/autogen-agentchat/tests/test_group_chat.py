@@ -1,6 +1,7 @@
 import asyncio
 import json
 import tempfile
+import logging
 from typing import Any, AsyncGenerator, List, Sequence
 
 import pytest
@@ -13,8 +14,7 @@ from autogen_agentchat.agents import (
     TextMessage,
     ToolUseAssistantAgent,
 )
-from autogen_agentchat.teams import StopMessageTermination
-from autogen_agentchat.teams.group_chat import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.teams import StopMessageTermination, EVENT_LOGGER_NAME, RoundRobinGroupChat, SelectorGroupChat, FileLogHandler
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
@@ -27,6 +27,9 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
 
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(FileLogHandler("test_group_chat.log"))
 
 class _MockChatCompletion:
     def __init__(self, chat_completions: List[ChatCompletion]) -> None:
@@ -136,8 +139,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         ]
 
         # Assert that all expected messages are in the collected messages
-        # Skip the last message as it is a stop message and not part of the conversation.
-        assert normalized_messages[:-1] == expected_messages
+        assert normalized_messages == expected_messages
 
 
 @pytest.mark.asyncio
@@ -286,7 +288,7 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await team.run(
         "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
     )
-    assert len(result.messages) == 7
+    assert len(result.messages) == 6
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent3"
     assert result.messages[2].source == "agent2"
@@ -322,7 +324,7 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
     result = await team.run(
         "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
     )
-    assert len(result.messages) == 6
+    assert len(result.messages) == 5
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent1"
@@ -380,7 +382,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
     result = await team.run(
         "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
     )
-    assert len(result.messages) == 5
+    assert len(result.messages) == 4
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"

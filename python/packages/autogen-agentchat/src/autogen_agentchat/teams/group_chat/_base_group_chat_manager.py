@@ -5,7 +5,7 @@ from typing import List
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
-from .._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent
 from .._logging import EVENT_LOGGER_NAME
 from .._termination import TerminationCondition
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -90,15 +90,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         if self._termination_condition is not None:
             stop_message = await self._termination_condition([message.agent_message])
             if stop_message is not None:
-                # Publish the stop message to the parent topic.
-                # TODO: this should be different if the group chat is nested.
-                parent_topic_id = TopicId(type=self._parent_topic_type, source=ctx.topic_id.source)
-                await self.publish_message(
-                    ContentPublishEvent(agent_message=stop_message, source=self.id), topic_id=parent_topic_id
-                )
+                event_logger.info(TerminationEvent(agent_message=stop_message, source=self.id))
                 # Reset the termination condition.
                 await self._termination_condition.reset()
                 # Stop the group chat.
+                # TODO: this should be different if the group chat is nested.
                 return
 
         # Select a speaker to continue the conversation.
