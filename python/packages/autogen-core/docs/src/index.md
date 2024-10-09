@@ -18,105 +18,72 @@ sd_hide_title: true
 # AutoGen
 
 <div class="container">
-
 <div class="row text-center">
 <div class="col-sm-12">
 <h1 class="hero-title">
 AutoGen
 </h1>
 <h3>
-A framework for developing applications using AI agents
+A framework for building AI agents and multi-agent applications
 </h3>
 </div>
 </div>
+</div>
+
+<div style="margin-top: 2rem;">
 
 
-<div class="row">
+::::{grid} 1 1 2 2
 
-<div class="col-sm">
-<h2 class="text-center">
+:::{grid-item-card} {fas}`people-group;pst-color-primary` AgentChat
+:shadow: none
+:margin: 2 0 0 0
 
-{fas}`people-group;pst-color-primary` AgentChat
-
-</h2>
-
-<p>
-Task driven, high level APIs for building multi-agent systems. Including group chat, pre-built agents, and more.
-
-Built with <i>core</i>.
-<p>
+High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
 pip install autogen-agentchat==0.4.0dev0
 ```
 
-<button onclick="location.href='agentchat-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
-<button onclick="location.href='reference/python/autogen_agentchat/autogen_agentchat.html'" type="button" class="btn btn-outline-secondary">API Reference</button>
+💡 *Start here if you are looking for an API similar to AutoGen 0.2*
 
-<div class="versionadded">
-<p>Start here if you are looking for an API similar to AutoGen 0.2</p>
-</div>
++++
 
-</div>
-<div class="col-sm">
-<h2 class="text-center">
+```{button-ref} user-guide/agentchat-user-guide/quickstart
+:color: secondary
 
-{fas}`cube;pst-color-primary` Core
+Get Started
+```
 
-</h2>
+:::
+:::{grid-item-card} {fas}`cube;pst-color-primary` Core
+:shadow: none
+:margin: 2 0 0 0
 
-<p>
-Primitive building blocks for creating asynchronous, event driven multi-agent systems.
-<p>
+Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
 pip install autogen-core==0.4.0dev0
 ```
 
-<button onclick="location.href='core-user-guide/guides/quickstart.html'" type="button" class="btn btn-primary">Get Started</button>
-<button onclick="location.href='reference/python/autogen_core/autogen_core.html'" type="button" class="btn btn-outline-secondary">API Reference</button>
++++
 
-</div>
+```{button-ref} user-guide/core-user-guide/quickstart
+:color: secondary
 
-</div>
-</div>
-
-<!--
-Key features of AutoGen include:
-
-- Asynchronous messaging: Agents communicate with each other through asynchronous messages, enabling event-driven and request/response communication models.
-- Scalable & Distributed: Enable complex scenarios with networks of agents across org boundaries
-- Modular, extensible & highly customizable: E.g. custom agents, memory as a service, tools registry, model library
-- x-lang support: Python & Dotnet interoperating agents today, others coming soon
-- Observable, traceable & debuggable -->
-
-```{toctree}
-:maxdepth: 1
-:hidden:
-
-agentchat-user-guide/index
-core-user-guide/index
+Get Started
 ```
 
-<!-- ## Community
+:::
+::::
 
-Information about the community that leads, supports, and develops AutoGen.
-
-```{toctree}
-:maxdepth: 2
-
-community/index
-``` -->
+</div>
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 3
 :hidden:
+
+user-guide/index
 packages/index
-```
-
-```{toctree}
-:maxdepth: 1
-:hidden:
 reference/index
 ```
-

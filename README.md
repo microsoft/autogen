@@ -107,7 +107,7 @@ and running on your machine.
 
 ```python
 from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
-from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import OpenAIChatCompletionClient
 
@@ -118,9 +118,9 @@ async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
     )
     group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
     result = await group_chat.run(
-        task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
+        task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'.",
+        termination_condition=StopMessageTermination(),
     )
-    print(result)
 ```
 
 ### C#
