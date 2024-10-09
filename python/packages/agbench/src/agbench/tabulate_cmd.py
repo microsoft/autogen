@@ -201,6 +201,11 @@ def default_tabulate(
             footer_row.append(footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1])
         footer.append(footer_row)
 
+        footer_row = ["Average Success Rate"]
+        for i in range(0, max_instances):
+            footer_row.append(_count_equals(True, i) / (footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1]))
+        footer.append(footer_row)
+
         footer_row = ["Average Score"]
         for i in range(0, max_instances):
             avg_score_trial = 0
@@ -209,11 +214,6 @@ def default_tabulate(
                     avg_score_trial += row[i + 1][0]
             avg_score_trial = avg_score_trial / len(all_results)
             footer_row.append(avg_score_trial)
-        footer.append(footer_row)
-
-        footer_row = ["Average Exact Match"]
-        for i in range(0, max_instances):
-            footer_row.append(_count_equals(True, i) / (footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1]))
         footer.append(footer_row)
 
         table = deepcopy(all_results)

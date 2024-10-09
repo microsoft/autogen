@@ -74,12 +74,7 @@ usage: {invocation_cmd} COMMAND ARGS
 
 {invocation_cmd} is a tool for running and managing AutoGen benchmark scenarios. A typically session might resemble:
 
-    {invocation_cmd} clone HumanEval
-    cd HumanEval
-    {invocation_cmd} run Tasks/human_eval_two_agents_gpt4.jsonl
-
-which will download the HumanEval benchmark, expand it, and then run the benchmark once with the `human_eval_two_agents_gpt4` configuration.
-
+\
 Available COMMANDs include:
 
 {commands_details}
@@ -87,7 +82,6 @@ Available COMMANDs include:
 Additionally, you can use the --help option with any command for further command-specific instructions. E.g.,
 
     {invocation_cmd} run --help
-    {invocation_cmd} clone --help
 
 """.strip()
 

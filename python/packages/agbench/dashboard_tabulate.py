@@ -18,28 +18,26 @@ def run_agbench_command(path):
 def parse_data_csv(input_string):
     # Split the input string into lines
     lines = input_string.strip().split("\n")
-
     parsed_data = []
     for line in lines:
         # Use regex to split the line
         parts = re.split(r",\s*\(", line)
         if len(parts) != 2:
+            print("len(parts) != 2")
+            print(f"Skipping line: {line}")
             continue
 
         task_id = parts[0]
         # Remove the trailing parenthesis and split the rest
-        values = parts[1].rstrip(")").split(",")
+        # interpret as python tuple
+        values = eval(parts[1].strip(")"))
 
         if len(values) != 3:
+            print("len(values) != 3")
+            print(f"Skipping line: {line}")
             continue
 
         score, groundtruth, prediction = values
-
-        # Remove quotes if present
-        groundtruth = groundtruth.strip("'")
-        prediction = prediction.strip("'")
-        groundtruth = groundtruth[1:]
-        prediction = prediction[1:]
 
         parsed_data.append(
             {"task_id": task_id, "score": float(score), "groundtruth": groundtruth, "prediction": prediction}

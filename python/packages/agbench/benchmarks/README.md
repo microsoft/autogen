@@ -13,6 +13,6 @@ This directory provides ability to benchmarks agents (e.g., built using Autogen)
 3. Install `agbench`. AgBench is currently a tool in the Autogen repo.
 
     ```bash
-    cd autogen/python/tools/agbench
+    cd autogen/python/packages/agbench
     pip install -e .
     ```
