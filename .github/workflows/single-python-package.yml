@@ -31,9 +31,9 @@ jobs:
       # Require ref to be a tag
       - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - run: uv build
-        working-directory: python/packages/${{ github.event.inputs.package }}
+      - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
+        working-directory: python
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: python/packages/${{ github.event.inputs.package }}/dist/
+          packages-dir: python/dist/
