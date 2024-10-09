@@ -139,24 +139,28 @@ cd dotnet && dotnet build AutoGen.sln
 dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen.Agents.Client/Microsoft.AutoGen.Agents.Client.csproj
 ```
 
-Then, define your first agent:
+Then, define and run your first agent:
 
 ```csharp
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace HelloAgents.Agents;
+// send a message to the agent
+var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
+{
+    Message = "World"
+}, local: true);
+
+await App.RuntimeApp!.WaitForShutdownAsync();
+await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
     IAgentContext context,
-    Kernel kernel,
-    ISemanticTextMemory memory,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
-    ILogger<HelloAgent> logger) : AiAgent<HelloAgentState>(
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
         context,
-        memory,
-        kernel,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
@@ -164,27 +168,33 @@ public class HelloAgent(
 {
     public async Task Handle(NewMessageReceived item)
     {
-        var response = await SayHello(item.Message);
-        var evt = new ResponseGenerated
+        var response = await SayHello(item.Message).ConfigureAwait(false);
+        var evt = new Output
         {
-            Response = response
+            Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        var goodbye = new ConversationClosed
+        {
+            UserId = this.AgentId.Key,
+            UserMessage = "Goodbye"
+        }.ToCloudEvent(this.AgentId.Key);
+        await PublishEvent(goodbye).ConfigureAwait(false);
     }
-
     public async Task Handle(ConversationClosed item)
     {
-        var goodbye = "";
-        var evt = new GoodBye
+        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+        var evt = new Output
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        await Task.Delay(60000);
+        await App.ShutdownAsync();
     }
-
     public async Task<string> SayHello(string ask)
     {
-        var response = $"Hello {ask}";
+        var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
         return response;
     }
 }
@@ -192,6 +202,10 @@ public interface ISayHello
 {
     public Task<string> SayHello(string ask);
 }
+```
+
+```bash
+dotnet run
 ```
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
