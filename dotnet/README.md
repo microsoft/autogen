@@ -1,8 +1,10 @@
 # AutoGen for .NET
 
-Thre are two sets of packages here
+Thre are two sets of packages here:
 Autogen.\* the older packages derived from Autogen 0.2 for .NET - these will gradually be deprecated and ported into the new packages
-Microsoft.AutoGen.* the new packages for .NET that use the event-driven model - These APIs are not yet stable and are subject to change
+Microsoft.AutoGen.* the new packages for .NET that use the event-driven model - These APIs are not yet stable and are subject to change.
+
+To get started with the new packages, please see the [samples](./samples/) and in particular the [Hello](./samples/Hello) sample.
 
 The remaining content is for the older Autogen.* packages.
 
