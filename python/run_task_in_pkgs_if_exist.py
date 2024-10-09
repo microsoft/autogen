@@ -3,14 +3,14 @@ import sys
 from pathlib import Path
 from typing import List
 
-import tomllib
+import tomli
 from poethepoet.app import PoeThePoet
 from rich import print
 
 
 def discover_projects(workspace_pyproject_file: Path) -> List[Path]:
     with workspace_pyproject_file.open("rb") as f:
-        data = tomllib.load(f)
+        data = tomli.load(f)
 
     projects = data["tool"]["uv"]["workspace"]["members"]
 
@@ -28,7 +28,7 @@ def discover_projects(workspace_pyproject_file: Path) -> List[Path]:
 
 def extract_poe_tasks(file: Path) -> set[str]:
     with file.open("rb") as f:
-        data = tomllib.load(f)
+        data = tomli.load(f)
 
     tasks = set(data.get("tool", {}).get("poe", {}).get("tasks", {}).keys())
 

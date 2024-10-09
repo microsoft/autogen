@@ -35,6 +35,7 @@ extensions = [
     "sphinx_copybutton",
     "_extension.gallery_directive",
     "myst_nb",
+    "sphinxcontrib.autodoc_pydantic"
 ]
 suppress_warnings = ["myst.header"]
 
@@ -42,7 +43,7 @@ napoleon_custom_sections = [("Returns", "params_style")]
 
 templates_path = ["_templates"]
 
-autoclass_content = "init"
+autoclass_content = "class"
 
 # TODO: incldue all notebooks excluding those requiring remote API access.
 nb_execution_mode = "off"
@@ -71,6 +72,9 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {'packages/index': []}
 
+html_logo = "_static/images/logo/logo.svg"
+html_favicon = "_static/images/logo/favicon-512x512.png"
+
 html_theme_options = {
 
     "header_links_before_dropdown": 4,
@@ -81,7 +85,6 @@ html_theme_options = {
     #     "json_url": "/_static/switcher.json",
     # },
     "show_prev_next": False,
-    ""
     "icon_links": [
         {
             "name": "Twitter",
@@ -90,28 +93,33 @@ html_theme_options = {
         },
         {
             "name": "GitHub",
-            "url": "https://github.com/microsoft/agnext",
+            "url": "https://github.com/microsoft/autogen",
             "icon": "fa-brands fa-github",
         },
         {
             "name": "PyPI",
-            "url": "/packages",
+            "url": "/autogen/dev/packages",
             "icon": "fa-custom fa-pypi",
         },
     ],
-    "announcement": '🚧 AutoGen 0.4 is a work in progress, learn more about what\'s new and different <a href="#">here</a>. To continue using the latest stable version, please visit the <a href="/autogen/0.2/">0.2 documentation</a>. 🚧',
+
+    "announcement": 'AutoGen 0.4 is a work in progress. Go <a href="/autogen/0.2/">here</a> to find the 0.2 documentation.',
+    "footer_start": ["copyright"],
+    "footer_center": ["footer-middle-links"],
+    "footer_end": ["theme-version"],
+    "pygments_light_style": "xcode",
+    "pygments_dark_style": "monokai"
 }
 
 html_js_files = ["custom-icon.js"]
 html_sidebars = {
-    "reference/index": [],
     "packages/index": [],
 }
 
 html_context = {
     'display_github': True,
     "github_user": "microsoft",
-    "github_repo": "agnext",
+    "github_repo": "autogen",
     "github_version": "main",
     "doc_path": "python/packages/autogen-core/docs/src/",
 }
@@ -121,7 +129,7 @@ autodoc_default_options = {
     "undoc-members": True,
 }
 
-
+autodoc_pydantic_model_show_config_summary = False
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
@@ -156,6 +164,14 @@ def setup(app: Sphinx) -> Dict[str, Any]:
         the 2 parallel parameters set to ``True``.
     """
     app.connect("html-page-context", setup_to_main)
+
+    # Adding here so it is inline and not in a separate file.
+    clarity_analytics = """(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "lnxpe6skj1");"""
+    app.add_js_file(None, body=clarity_analytics)
 
     return {
         "parallel_read_safe": True,

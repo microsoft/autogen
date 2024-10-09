@@ -1,5 +1,6 @@
 from ._base_chat_agent import (
     BaseChatAgent,
+    BaseMessage,
     BaseToolUseChatAgent,
     ChatMessage,
     MultiModalMessage,
@@ -14,14 +15,15 @@ from ._tool_use_assistant_agent import ToolUseAssistantAgent
 
 __all__ = [
     "BaseChatAgent",
+    "BaseMessage",
     "BaseToolUseChatAgent",
     "ChatMessage",
-    "TextMessage",
-    "MultiModalMessage",
-    "ToolCallMessage",
-    "ToolCallResultMessage",
-    "StopMessage",
     "CodeExecutorAgent",
     "CodingAssistantAgent",
+    "MultiModalMessage",
+    "StopMessage",
+    "TextMessage",
+    "ToolCallMessage",
+    "ToolCallResultMessage",
     "ToolUseAssistantAgent",
 ]
