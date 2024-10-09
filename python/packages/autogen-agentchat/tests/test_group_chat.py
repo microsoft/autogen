@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import tempfile
 from typing import Any, AsyncGenerator, List, Sequence
 
@@ -13,7 +14,13 @@ from autogen_agentchat.agents import (
     TextMessage,
     ToolUseAssistantAgent,
 )
-from autogen_agentchat.teams.group_chat import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.teams import (
+    EVENT_LOGGER_NAME,
+    FileLogHandler,
+    RoundRobinGroupChat,
+    SelectorGroupChat,
+    StopMessageTermination,
+)
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
@@ -25,6 +32,10 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(FileLogHandler("test_group_chat.log"))
 
 
 class _MockChatCompletion:
@@ -119,7 +130,9 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             "coding_assistant", model_client=OpenAIChatCompletionClient(model=model, api_key="")
         )
         team = RoundRobinGroupChat(participants=[coding_assistant_agent, code_executor_agent])
-        result = await team.run("Write a program that prints 'Hello, world!'")
+        result = await team.run(
+            "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+        )
         expected_messages = [
             "Write a program that prints 'Hello, world!'",
             'Here is the program\n ```python\nprint("Hello, world!")\n```',
@@ -200,7 +213,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
     team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent])
-    await team.run("Write a program that prints 'Hello, world!'")
+    await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
     assert isinstance(context[1].content, list)
@@ -279,7 +292,9 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         participants=[agent1, agent2, agent3],
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
     )
-    result = await team.run("Write a program that prints 'Hello, world!'")
+    result = await team.run(
+        "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+    )
     assert len(result.messages) == 6
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent3"
@@ -313,7 +328,9 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
         participants=[agent1, agent2],
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
     )
-    result = await team.run("Write a program that prints 'Hello, world!'")
+    result = await team.run(
+        "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+    )
     assert len(result.messages) == 5
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
@@ -369,7 +386,9 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         allow_repeated_speaker=True,
     )
-    result = await team.run("Write a program that prints 'Hello, world!'")
+    result = await team.run(
+        "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+    )
     assert len(result.messages) == 4
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"

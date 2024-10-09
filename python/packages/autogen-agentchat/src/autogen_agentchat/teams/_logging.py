@@ -3,100 +3,72 @@ import logging
 import sys
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Union
+from typing import Any
 
-from autogen_core.base import AgentId
-from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult
-
-from ..agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
-from ._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
+from ..agents import ChatMessage, StopMessage, TextMessage
+from ._events import ContentPublishEvent, SelectSpeakerEvent, TerminationEvent, ToolCallEvent, ToolCallResultEvent
 
 TRACE_LOGGER_NAME = "autogen_agentchat"
 EVENT_LOGGER_NAME = "autogen_agentchat.events"
-ContentType = Union[str, List[Union[str, Image]], List[FunctionCall], List[FunctionExecutionResult]]
 
 
-class BaseLogHandler(logging.Handler):
-    def serialize_content(
-        self,
-        content: Union[ContentType, ChatMessage],
-    ) -> Union[List[Any], Dict[str, Any], str]:
-        if isinstance(content, (str, list)):
-            return content
-        elif isinstance(content, (TextMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, StopMessage)):
-            return asdict(content)
-        elif isinstance(content, Image):
-            return {"type": "image", "data": content.data_uri}
-        elif isinstance(content, FunctionCall):
-            return {"type": "function_call", "name": content.name, "arguments": content.arguments}
-        elif isinstance(content, FunctionExecutionResult):
-            return {"type": "function_execution_result", "content": content.content}
-        return str(content)
-
+class ConsoleLogHandler(logging.Handler):
     @staticmethod
-    def json_serializer(obj: Any) -> Any:
-        if is_dataclass(obj) and not isinstance(obj, type):
-            return asdict(obj)
-        elif isinstance(obj, type):
-            return str(obj)
-        return str(obj)
-
-
-class ConsoleLogHandler(BaseLogHandler):
-    def _format_chat_message(
-        self,
-        *,
-        source_agent_id: AgentId | None,
-        message: ChatMessage,
-        timestamp: str,
-    ) -> str:
-        body = f"{self.serialize_content(message.content)}"
-        if source_agent_id is None:
-            console_message = f"\n{'-'*75} \n" f"\033[91m[{timestamp}]:\033[0m\n" f"\n{body}"
+    def serialize_chat_message(message: ChatMessage) -> str:
+        if isinstance(message, TextMessage | StopMessage):
+            return message.content
         else:
-            # Display the source agent type rather than agent ID for better readability.
-            # Also in AgentChat the agent type is unique for each agent.
-            console_message = f"\n{'-'*75} \n" f"\033[91m[{timestamp}], {source_agent_id.type}:\033[0m\n" f"\n{body}"
-        return console_message
+            d = message.model_dump()
+            assert "content" in d
+            return json.dumps(d["content"], indent=2)
 
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
         if isinstance(record.msg, ContentPublishEvent):
-            sys.stdout.write(
-                self._format_chat_message(
-                    source_agent_id=record.msg.source,
-                    message=record.msg.agent_message,
-                    timestamp=ts,
+            if record.msg.source is None:
+                sys.stdout.write(
+                    f"\n{'-'*75} \n"
+                    f"\033[91m[{ts}]:\033[0m\n"
+                    f"\n{self.serialize_chat_message(record.msg.agent_message)}"
                 )
-            )
+            else:
+                sys.stdout.write(
+                    f"\n{'-'*75} \n"
+                    f"\033[91m[{ts}], {record.msg.source.type}:\033[0m\n"
+                    f"\n{self.serialize_chat_message(record.msg.agent_message)}"
+                )
             sys.stdout.flush()
         elif isinstance(record.msg, ToolCallEvent):
             sys.stdout.write(
                 f"\n{'-'*75} \n"
                 f"\033[91m[{ts}], Tool Call:\033[0m\n"
-                f"\n{self.serialize_content(record.msg.agent_message)}"
+                f"\n{self.serialize_chat_message(record.msg.agent_message)}"
             )
             sys.stdout.flush()
         elif isinstance(record.msg, ToolCallResultEvent):
             sys.stdout.write(
                 f"\n{'-'*75} \n"
                 f"\033[91m[{ts}], Tool Call Result:\033[0m\n"
-                f"\n{self.serialize_content(record.msg.agent_message)}"
+                f"\n{self.serialize_chat_message(record.msg.agent_message)}"
             )
             sys.stdout.flush()
         elif isinstance(record.msg, SelectSpeakerEvent):
             sys.stdout.write(
+                f"\n{'-'*75} \n" f"\033[91m[{ts}], Selected Next Speaker:\033[0m\n" f"\n{record.msg.selected_speaker}"
+            )
+            sys.stdout.flush()
+        elif isinstance(record.msg, TerminationEvent):
+            sys.stdout.write(
                 f"\n{'-'*75} \n"
-                f"\033[91m[{ts}], {record.msg.source.type}:\033[0m\n"
-                f"\nSelected next speaker: {record.msg.selected_speaker}"
+                f"\033[91m[{ts}], Termination:\033[0m\n"
+                f"\n{self.serialize_chat_message(record.msg.agent_message)}"
             )
             sys.stdout.flush()
         else:
             raise ValueError(f"Unexpected log record: {record.msg}")
 
 
-class FileLogHandler(BaseLogHandler):
+class FileLogHandler(logging.Handler):
     def __init__(self, filename: str) -> None:
         super().__init__()
         self.filename = filename
@@ -104,12 +76,12 @@ class FileLogHandler(BaseLogHandler):
 
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
-        if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent):
+        if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | TerminationEvent):
             log_entry = json.dumps(
                 {
                     "timestamp": ts,
                     "source": record.msg.source,
-                    "agent_message": self.serialize_content(record.msg.agent_message),
+                    "agent_message": record.msg.agent_message.model_dump(),
                     "type": record.msg.__class__.__name__,
                 },
                 default=self.json_serializer,
@@ -140,3 +112,11 @@ class FileLogHandler(BaseLogHandler):
     def close(self) -> None:
         self.file_handler.close()
         super().close()
+
+    @staticmethod
+    def json_serializer(obj: Any) -> Any:
+        if is_dataclass(obj) and not isinstance(obj, type):
+            return asdict(obj)
+        elif isinstance(obj, type):
+            return str(obj)
+        return str(obj)
