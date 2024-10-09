@@ -62,7 +62,9 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         {
             try
             {
-                await foreach (var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
+                await foreach (
+                    var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token)
+                    )
                 {
                     switch (message.MessageCase)
                     {
@@ -99,10 +101,20 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                     }
                 }
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
+            {
+                // Time to shut down.
+                break;
+            }
+            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
             {
                 _logger.LogError(ex, "Error reading from channel.");
                 channel = RecreateChannel(channel);
+            }
+            catch
+            {
+                // Shutdown requested.
+                break;
             }
         }
     }
@@ -113,33 +125,38 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         var outboundMessages = _outboundMessagesChannel.Reader;
         while (!_shutdownCts.IsCancellationRequested)
         {
-            await outboundMessages.WaitToReadAsync().ConfigureAwait(false);
-
-            // Read the next message if we don't already have an unsent message
-            // waiting to be sent.
-            if (!outboundMessages.TryRead(out var message))
+            try
             {
-                break;
-            }
+                await outboundMessages.WaitToReadAsync().ConfigureAwait(false);
 
-            while (!_shutdownCts.IsCancellationRequested)
-            {
-                try
+                // Read the next message if we don't already have an unsent message
+                // waiting to be sent.
+                if (!outboundMessages.TryRead(out var message))
+                {
+                    break;
+                }
+
+                while (!_shutdownCts.IsCancellationRequested)
                 {
                     await channel.RequestStream.WriteAsync(message, _shutdownCts.Token).ConfigureAwait(false);
                     break;
                 }
-                catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
-                {
-                    _logger.LogError(ex, "Error writing to channel.");
-                    channel = RecreateChannel(channel);
-                    continue;
-                }
-                catch
-                {
-                    // Shutdown requested.
-                    break;
-                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Time to shut down.
+                break;
+            }
+            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
+            {
+                _logger.LogError(ex, "Error writing to channel.");
+                channel = RecreateChannel(channel);
+                continue;
+            }
+            catch
+            {
+                // Shutdown requested.
+                break;
             }
         }
     }
@@ -286,10 +303,6 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
-        lock (_channelLock)
-        {
-            _channel?.Dispose();
-        }
 
         _outboundMessagesChannel.Writer.TryComplete();
 
@@ -301,6 +314,10 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         if (_writeTask is { } writeTask)
         {
             await writeTask.ConfigureAwait(false);
+        }
+        lock (_channelLock)
+        {
+            _channel?.Dispose();
         }
     }
 

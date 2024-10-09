@@ -87,6 +87,11 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
             }
         }
+        catch(IOException ioe)
+        {
+            var data = ioe.Data;
+            Console.WriteLine(data);
+        }
         finally
         {
             _shutdownCancellationToken.Cancel();
