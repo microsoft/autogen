@@ -505,7 +505,7 @@ class GeminiClient:
                     (len(rst) > 0)
                     and hasattr(rst[-1].parts[0], "_raw_part")
                     and hasattr(rst[-1].parts[0]._raw_part, "text")
-                    and (rst[-1].parts[0].text == "")
+                    and (rst[-1].parts[0]._raw_part.text == "")
                 ):
                     append_text_to_last("empty")
                 append_parts(parts, role)
