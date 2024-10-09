@@ -35,6 +35,7 @@ extensions = [
     "sphinx_copybutton",
     "_extension.gallery_directive",
     "myst_nb",
+    "sphinxcontrib.autodoc_pydantic"
 ]
 suppress_warnings = ["myst.header"]
 
