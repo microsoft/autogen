@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PackageId>AutoGen.Worker.Client</PackageId>
-		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/microsoft/autogen</PackageProjectUrl>
 		<Authors>Microsoft</Authors>
 		<Description>AutoGen Worker Client Library</Description>
 		<Tags>ai-agents;event-driven-agents</Tags>
