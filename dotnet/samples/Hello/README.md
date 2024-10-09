@@ -24,7 +24,7 @@ Flow Diagram:
 
 ```mermaid
 %%{init: {'theme':'forest'}}%%
-graph RL;
+graph LR;
     A[Main] --> |"PublishEvent(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
     B --> |"PublishEvent(Output('***Hello, World***'))"| C[ConsoleAgent]
     C --> D{"WriteConsole()"}
