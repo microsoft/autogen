@@ -24,10 +24,13 @@ Flow Diagram:
 
 ```mermaid
 graph TD;
-    "Main (PublishEvent(NewMessage(\"World\"))"-->"Handle(NewMessageReceived item)"
-    "Handle(NewMessageReceived item)"-->"PublishEvent(Output(\"***Hello, World***\"))";
-```
+    A[Main] --> |"PublishEvent(NewMessage(\"World\"))"| B("Handle(NewMessageReceived item)")
+    B --> |"PublishEvent(Output(\"***Hello, World***\"))"| C[ConsoleAgent]
+    C --> D(WriteConsole)
+    B --> |"PublishEvent(ConversationClosed(\"Goodbye\"))"| E("Handle(ConversationClosed item)")
+    E --> F[Shutdown]
 
+```
 
 ### Writing Event Handlers
 
