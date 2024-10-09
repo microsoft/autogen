@@ -19,6 +19,7 @@ dev-dependencies = [
     "mypy-protobuf",
     "cookiecutter",
     "poethepoet",
+    "tomli",
 ]
 
 [tool.uv.sources]
