@@ -2101,7 +2101,9 @@ def test_custom_model_client():
         select_speaker_auto_model_client_cls=CustomModelClient
     )
 
-    result = group_chat._create_internal_agents(
+checking_agent, speaker_selection_agent = group_chat._create_internal_agents(agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test"))
+
+assert isinstance(speaker_selection_agent.client._clients[0], CustomModelClient)
         agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test")
     )
 
