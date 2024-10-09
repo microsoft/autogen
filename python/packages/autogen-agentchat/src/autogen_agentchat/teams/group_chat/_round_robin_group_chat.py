@@ -54,10 +54,10 @@ class RoundRobinGroupChat(BaseGroupChat):
         .. code-block:: python
 
             from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 
             assistant = ToolUseAssistantAgent("Assistant", model_client=..., registered_tools=...)
-            team = RoundRobinGroupChat([assistant])
+            team = RoundRobinGroupChat([assistant], termination_condition=StopMessageTermination())
             await team.run("What's the weather in New York?")
 
     A team with multiple participants:
@@ -65,11 +65,11 @@ class RoundRobinGroupChat(BaseGroupChat):
         .. code-block:: python
 
             from autogen_agentchat.agents import CodingAssistantAgent, CodeExecutorAgent
-            from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 
             coding_assistant = CodingAssistantAgent("Coding_Assistant", model_client=...)
             executor_agent = CodeExecutorAgent("Code_Executor", code_executor=...)
-            team = RoundRobinGroupChat([coding_assistant, executor_agent])
+            team = RoundRobinGroupChat([coding_assistant, executor_agent], termination_condition=StopMessageTermination())
             await team.run("Write a program that prints 'Hello, world!'")
 
     """

@@ -1,7 +1,6 @@
-import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Callable, List
+from typing import Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
@@ -9,7 +8,7 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
-from ...agents import BaseChatAgent, BaseToolUseChatAgent, ChatMessage, StopMessage, TextMessage
+from ...agents import BaseChatAgent, BaseToolUseChatAgent, ChatMessage, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from .._events import ContentPublishEvent, ContentRequestEvent
 from .._termination import TerminationCondition
@@ -45,7 +44,7 @@ class BaseGroupChat(BaseTeam, ABC):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        termination_condition: TerminationCondition | None = None,
+        termination_condition: TerminationCondition | None,
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(

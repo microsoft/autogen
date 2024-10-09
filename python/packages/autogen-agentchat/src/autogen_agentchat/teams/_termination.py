@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
+from typing import List, Sequence
 
 from ..agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage
 
@@ -76,7 +76,7 @@ class TerminationCondition(ABC):
 class _AndTerminationCondition(TerminationCondition):
     def __init__(self, *conditions: TerminationCondition) -> None:
         self._conditions = conditions
-        self._stop_messages = []
+        self._stop_messages: List[StopMessage] = []
 
     @property
     def terminated(self) -> bool:

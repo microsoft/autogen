@@ -167,13 +167,13 @@ class SelectorGroupChat(BaseGroupChat):
         .. code-block:: python
 
             from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams.group_chat import SelectorGroupChat
+            from autogen_agentchat.teams import SelectorGroupChat, StopMessageTermination
 
             travel_advisor = ToolUseAssistantAgent("Travel_Advisor", model_client=..., registered_tools=...)
             hotel_agent = ToolUseAssistantAgent("Hotel_Agent", model_client=..., registered_tools=...)
             flight_agent = ToolUseAssistantAgent("Flight_Agent", model_client=..., registered_tools=...)
             team = SelectorGroupChat([travel_advisor, hotel_agent, flight_agent], model_client=...)
-            await team.run("Book a 3-day trip to new york.")
+            await team.run("Book a 3-day trip to new york.", termination_condition=StopMessageTermination())
     """
 
     def __init__(
