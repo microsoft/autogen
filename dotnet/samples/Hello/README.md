@@ -1,4 +1,4 @@
-# AutoGen .NET Hello World Sample
+# AutoGen 0.4 .NET Hello World Sample
 
 This [sample](Program.cs) demonstrates how to create a simple .NET console application that listens for an event and then orchestrates a series of actions in response.
 
