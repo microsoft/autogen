@@ -105,13 +105,13 @@ class GroupChat:
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
     - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
+    - select_speaker_auto_model_client_cls: Custom model client class for the internal speaker select agent used during 'auto' speaker selection (optional)
+    - select_speaker_auto_llm_config: LLM config for the internal speaker select agent used during 'auto' speaker selection (optional)
     - role_for_select_speaker_messages: sets the role name for speaker selection when in 'auto' mode, typically 'user' or 'system'. (default: 'system')
     """
 
     agents: List[Agent]
     messages: List[Dict]
-    select_speaker_auto_llm_config: Optional[Union[Dict, Literal[False]]] = None
-    select_speaker_auto_model_client_cls: Optional[Union[ModelClient, List[ModelClient]]] = None
     max_round: int = 10
     admin_name: str = "Admin"
     func_call_filter: bool = True
@@ -144,6 +144,8 @@ class GroupChat:
     Respond with ONLY the name of the speaker and DO NOT provide a reason."""
     select_speaker_transform_messages: Optional[Any] = None
     select_speaker_auto_verbose: Optional[bool] = False
+    select_speaker_auto_model_client_cls: Optional[Union[ModelClient, List[ModelClient]]] = None
+    select_speaker_auto_llm_config: Optional[Union[Dict, Literal[False]]] = None
     role_for_select_speaker_messages: Optional[str] = "system"
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
