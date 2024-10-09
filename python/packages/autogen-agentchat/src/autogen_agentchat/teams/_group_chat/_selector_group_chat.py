@@ -4,9 +4,9 @@ from typing import Callable, Dict, List
 
 from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
+from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage
 from .._events import ContentPublishEvent, SelectSpeakerEvent
-from .._logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from .._termination import TerminationCondition
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager

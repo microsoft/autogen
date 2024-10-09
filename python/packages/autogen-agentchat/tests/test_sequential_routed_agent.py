@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 import pytest
-from autogen_agentchat.teams.group_chat._sequential_routed_agent import SequentialRoutedAgent
+from autogen_agentchat.teams._group_chat._sequential_routed_agent import SequentialRoutedAgent
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, MessageContext
 from autogen_core.components import DefaultTopicId, default_subscription, message_handler

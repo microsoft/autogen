@@ -29,6 +29,34 @@ A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
+    """A code executor class that executes code through a local command line
+    environment.
+
+    .. danger::
+
+        This will execute code on the local machine. If being used with LLM generated code, caution should be used.
+
+    Each code block is saved as a file and executed in a separate process in
+    the working directory, and a unique file is generated and saved in the
+    working directory for each code block.
+    The code blocks are executed in the order they are received.
+    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
+    commands from being executed which may potentially affect the users environment.
+    Currently the only supported languages is Python and shell scripts.
+    For Python code, use the language "python" for the code block.
+    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    block.
+
+    Args:
+        timeout (int): The timeout for the execution of any single code block. Default is 60.
+        work_dir (str): The working directory for the code execution. If None,
+            a default working directory will be used. The default working
+            directory is the current directory ".".
+        functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+        functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+
+    """
+
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "bash",
         "shell",
@@ -59,34 +87,6 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
     ):
-        """A code executor class that executes code through a local command line
-        environment.
-
-        .. danger::
-
-            This will execute code on the local machine. If being used with LLM generated code, caution should be used.
-
-        Each code block is saved as a file and executed in a separate process in
-        the working directory, and a unique file is generated and saved in the
-        working directory for each code block.
-        The code blocks are executed in the order they are received.
-        Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
-        commands from being executed which may potentially affect the users environment.
-        Currently the only supported languages is Python and shell scripts.
-        For Python code, use the language "python" for the code block.
-        For shell scripts, use the language "bash", "shell", or "sh" for the code
-        block.
-
-        Args:
-            timeout (int): The timeout for the execution of any single code block. Default is 60.
-            work_dir (str): The working directory for the code execution. If None,
-                a default working directory will be used. The default working
-                directory is the current directory ".".
-            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
-            functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
-
-        """
-
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 

@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agbench"
 dynamic = ["version"]
+license = {file = "LICENSE-CODE"}
 authors = [
   { name="Adam Fourney", email="adamfo@microsoft.com" },
 ]
