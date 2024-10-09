@@ -74,8 +74,8 @@ pip install autogen-ext==0.4.0dev0
 
 A generalist multi-agent softbot utilizing five agents to tackle intricate tasks involving multi-step planning and real-world actions.
 
-```sh
-pip install autogen-magentic-one==0.1.0dev0
+```{note}
+Not yet available on PyPI.
 ```
 
 [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-magentic-one)
