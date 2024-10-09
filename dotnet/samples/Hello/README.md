@@ -27,7 +27,7 @@ graph TD;
     A[Main] --> |"PublishEvent(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
     B --> |"PublishEvent(Output('***Hello, World***'))"| C[ConsoleAgent]
     C --> D{"WriteConsole()"}
-    B --> |"PublishEvent(ConversationClosed('Goodbye'))"| E{}"Handle(ConversationClosed item)"}
+    B --> |"PublishEvent(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item)"}
     B --> |"PublishEvent(Output('***Goodbye***'))"| C
     E --> F{"Shutdown()"}
 
