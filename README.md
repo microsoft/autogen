@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
 <div align="center">
-<img src="https://microsoft.github.io/autogen/img/ag.svg" alt="AutoGen Logo" width="100">
+<img src="https://microsoft.github.io/autogen/0.2/img/ag.svg" alt="AutoGen Logo" width="100">
 
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen)
 
@@ -47,14 +47,14 @@ AutoGen offers the following key features:
 AutoGen has several packages and is built upon a layered architecture.
 Currently, there are three main APIs your application can target:
 
-- [Core](https://microsoft.github.io/autogen/dev/core-user-guide/index.html)
-- [AgentChat](https://microsoft.github.io/autogen/dev/agentchat-user-guide/index.html)
+- [Core](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
+- [AgentChat](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html)
 - [Extensions](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext/autogen_ext.html)
 
 ## Core
 
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-core)
-- [Quickstart](https://microsoft.github.io/autogen/dev/core-user-guide/guides/quickstart.html)
+- [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/quickstart.html)
 
 The core API of AutoGen, `autogen-core`, is built following the
 [actor model](https://en.wikipedia.org/wiki/Actor_model).
@@ -68,7 +68,7 @@ while still communicating with one another.
 ## AgentChat
 
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-agentchat)
-- [Quickstart](https://microsoft.github.io/autogen/dev/agentchat-user-guide/guides/quickstart.html)
+- [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html)
 
 The AgentChat API, `autogen-agentchat`, is task driven and at a high level like AutoGen 0.2.
 It allows you to define conversational agents, compose them into teams and then
