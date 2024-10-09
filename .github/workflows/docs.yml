@@ -39,8 +39,8 @@ jobs:
           uv sync --locked --all-extras
           source .venv/bin/activate
           poe --directory ./packages/autogen-core docs-build
-          mkdir -p docs-staging/autogen/dev/
-          mv ./packages/autogen-core/docs/build/* docs-staging/autogen/dev/
+          mkdir -p docs-staging/dev/
+          mv ./packages/autogen-core/docs/build/* docs-staging/dev/
         working-directory: ./python
       - name: generate redirects
         run: |
@@ -99,8 +99,8 @@ jobs:
           fi
 
       - run: |
-          mkdir -p artifact/autogen/0.2/
-          cp -r build/* artifact/autogen/0.2/
+          mkdir -p artifact/0.2/
+          cp -r build/* artifact/0.2/
 
       - uses: actions/upload-artifact@v4
         with:
