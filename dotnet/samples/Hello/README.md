@@ -23,6 +23,7 @@ This sample illustrates how to create your own agent that inherits from a base a
 Flow Diagram:
 
 ```mermaid
+%%{init: {'theme':'forest'}}%%
 graph TD;
     A[Main] --> |"PublishEvent(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
     B --> |"PublishEvent(Output('***Hello, World***'))"| C[ConsoleAgent]
