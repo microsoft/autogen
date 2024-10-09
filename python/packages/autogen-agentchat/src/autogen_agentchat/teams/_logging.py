@@ -5,9 +5,8 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
 
-
 from ..agents import ChatMessage, StopMessage, TextMessage
-from ._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent, TerminationEvent
+from ._events import ContentPublishEvent, SelectSpeakerEvent, TerminationEvent, ToolCallEvent, ToolCallResultEvent
 
 TRACE_LOGGER_NAME = "autogen_agentchat"
 EVENT_LOGGER_NAME = "autogen_agentchat.events"
@@ -55,9 +54,7 @@ class ConsoleLogHandler(logging.Handler):
             sys.stdout.flush()
         elif isinstance(record.msg, SelectSpeakerEvent):
             sys.stdout.write(
-                f"\n{'-'*75} \n"
-                f"\033[91m[{ts}], Selected Next Speaker:\033[0m\n"
-                f"\n{record.msg.selected_speaker}"
+                f"\n{'-'*75} \n" f"\033[91m[{ts}], Selected Next Speaker:\033[0m\n" f"\n{record.msg.selected_speaker}"
             )
             sys.stdout.flush()
         elif isinstance(record.msg, TerminationEvent):

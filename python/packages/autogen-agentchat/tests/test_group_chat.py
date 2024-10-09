@@ -1,7 +1,7 @@
 import asyncio
 import json
-import tempfile
 import logging
+import tempfile
 from typing import Any, AsyncGenerator, List, Sequence
 
 import pytest
@@ -14,7 +14,13 @@ from autogen_agentchat.agents import (
     TextMessage,
     ToolUseAssistantAgent,
 )
-from autogen_agentchat.teams import StopMessageTermination, EVENT_LOGGER_NAME, RoundRobinGroupChat, SelectorGroupChat, FileLogHandler
+from autogen_agentchat.teams import (
+    EVENT_LOGGER_NAME,
+    FileLogHandler,
+    RoundRobinGroupChat,
+    SelectorGroupChat,
+    StopMessageTermination,
+)
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
@@ -30,6 +36,7 @@ from openai.types.completion_usage import CompletionUsage
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(FileLogHandler("test_group_chat.log"))
+
 
 class _MockChatCompletion:
     def __init__(self, chat_completions: List[ChatCompletion]) -> None:
