@@ -305,7 +305,7 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
 
 ### Do you use Discord for communications?
 
-We are also unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward. 
+We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward. 
 
 ### What about forks?
 
