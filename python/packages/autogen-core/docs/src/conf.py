@@ -98,7 +98,7 @@ html_theme_options = {
         },
         {
             "name": "PyPI",
-            "url": "/packages",
+            "url": "/autogen/dev/packages",
             "icon": "fa-custom fa-pypi",
         },
     ],
