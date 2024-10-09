@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// GroupChat.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +13,7 @@ public class GroupChat : IGroupChat
     private IAgent? admin;
     private List<IAgent> agents = new List<IAgent>();
     private IEnumerable<IMessage> initializeMessages = new List<IMessage>();
-    private Graph? workflow = null;
+    private Graph? workflow;
     private readonly IOrchestrator orchestrator;
 
     public IEnumerable<IMessage>? Messages { get; private set; }
@@ -76,14 +75,14 @@ public class GroupChat : IGroupChat
         // check if all agents has a name
         if (this.agents.Any(x => string.IsNullOrEmpty(x.Name)))
         {
-            throw new Exception("All agents must have a name.");
+            throw new ArgumentException("All agents must have a name.");
         }
 
         // check if any agents has the same name
         var names = this.agents.Select(x => x.Name).ToList();
         if (names.Distinct().Count() != names.Count)
         {
-            throw new Exception("All agents must have a unique name.");
+            throw new ArgumentException("All agents must have a unique name.");
         }
 
         // if there's a workflow
@@ -93,7 +92,7 @@ public class GroupChat : IGroupChat
             var agentNamesInWorkflow = this.workflow.Transitions.Select(x => x.From.Name!).Concat(this.workflow.Transitions.Select(x => x.To.Name!)).Distinct();
             if (agentNamesInWorkflow.Any(x => !this.agents.Select(a => a.Name).Contains(x)))
             {
-                throw new Exception("All agents in the workflow must be in the group chat.");
+                throw new ArgumentException("All agents in the workflow must be in the group chat.");
             }
         }
     }
@@ -115,12 +114,12 @@ public class GroupChat : IGroupChat
         {
             var nextAvailableAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, conversationHistory);
             agentNames = nextAvailableAgents.Select(x => x.Name).ToList();
-            if (agentNames.Count() == 0)
+            if (agentNames.Count == 0)
             {
-                throw new Exception("No next available agents found in the current workflow");
+                throw new ArgumentException("No next available agents found in the current workflow");
             }
 
-            if (agentNames.Count() == 1)
+            if (agentNames.Count == 1)
             {
                 return this.agents.First(x => x.Name == agentNames.First());
             }
@@ -128,7 +127,7 @@ public class GroupChat : IGroupChat
 
         if (this.admin == null)
         {
-            throw new Exception("No admin is provided.");
+            throw new ArgumentException("No admin is provided.");
         }
 
         var systemMessage = new TextMessage(Role.System,
@@ -153,7 +152,7 @@ From {agentNames.First()}:
                 Functions = [],
             });
 
-        var name = response?.GetContent() ?? throw new Exception("No name is returned.");
+        var name = response?.GetContent() ?? throw new ArgumentException("No name is returned.");
 
         // remove From
         name = name!.Substring(5);

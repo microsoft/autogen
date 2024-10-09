@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <RootNamespace>AutoGen</RootNamespace>
@@ -27,7 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
-    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIV2Version)" />
+    <PackageReference Include="Azure.AI.OpenAI"/>
   </ItemGroup>
   
   <ItemGroup>

@@ -10,23 +10,23 @@ flowchart LR
 ```
 
 > [!NOTE]
-> Complete code can be found in [Example11_Sequential_GroupChat_Example](https://github.com/microsoft/autogen/blob/dotnet/dotnet/sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs);
+> Complete code can be found in [Example11_Sequential_GroupChat_Example](https://github.com/microsoft/autogen/blob/dotnet/dotnet/samples/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs);
 
 Step 1: Add required using statements
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=using_statement)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=using_statement)]
 
 Step 2: Create a `bingSearch` agent using @AutoGen.SemanticKernel.SemanticKernelAgent
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=CreateBingSearchAgent)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=CreateBingSearchAgent)]
 
 Step 3: Create a `summarization` agent using @AutoGen.SemanticKernel.SemanticKernelAgent
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=CreateSummarizerAgent)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=CreateSummarizerAgent)]
 
 Step 4: Create a @AutoGen.Core.RoundRobinGroupChat and add `bingSearch` and `summarization` agents to it
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=Sequential_GroupChat_Example)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example11_Sequential_GroupChat_Example.cs?name=Sequential_GroupChat_Example)]
 
 Output:
 

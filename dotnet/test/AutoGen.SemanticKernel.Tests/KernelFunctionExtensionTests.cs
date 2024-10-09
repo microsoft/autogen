@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // KernelFunctionExtensionTests.cs
 
 using System.ComponentModel;
@@ -15,7 +15,7 @@ namespace AutoGen.SemanticKernel.Tests;
 
 public class TestPlugin
 {
-    public bool IsOn { get; set; } = false;
+    public bool IsOn { get; set; }
 
     [KernelFunction]
     [Description("Gets the state of the light.")]

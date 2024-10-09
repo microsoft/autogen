@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // GoogleGeminiClient.cs
 
 using System;
@@ -40,10 +40,12 @@ public class GoogleGeminiClient : IGeminiClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Failed to generate content. Status code: {response.StatusCode}");
+            throw new ArgumentException($"Failed to generate content. Status code: {response.StatusCode}");
         }
 
-        var json = await response.Content.ReadAsStringAsync();
+#pragma warning disable CA2016 // Forward the CancellationToken parameter to the asynchronous method
+        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#pragma warning restore CA2016 // Forward the CancellationToken parameter to the asynchronous method
         return GenerateContentResponse.Parser.ParseJson(json);
     }
 
@@ -62,7 +64,7 @@ public class GoogleGeminiClient : IGeminiClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Failed to generate content. Status code: {response.StatusCode}");
+            throw new ArgumentException($"Failed to generate content. Status code: {response.StatusCode}");
         }
 
         var stream = await response.Content.ReadAsStreamAsync();

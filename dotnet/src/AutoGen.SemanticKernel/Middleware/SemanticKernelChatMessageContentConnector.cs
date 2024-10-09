@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // SemanticKernelChatMessageContentConnector.cs
 
 using System;
@@ -165,7 +165,6 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
             return [new ChatMessageContent(AuthorRole.Assistant, message.Content)];
         }
     }
-
 
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(TextMessage message)
     {

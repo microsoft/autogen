@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // InteractiveService.cs
 
 using System.Diagnostics;
@@ -15,11 +15,8 @@ namespace AutoGen.DotnetInteractive;
 
 public class InteractiveService : IDisposable
 {
-    private Kernel? kernel = null;
-    private Process? process = null;
+    private Kernel? kernel;
     private bool disposedValue;
-    private const string DotnetInteractiveToolNotInstallMessage = "Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'.";
-    //private readonly ProcessJobTracker jobTracker = new ProcessJobTracker();
     private string? installingDirectory;
 
     /// <summary>
@@ -62,7 +59,7 @@ public class InteractiveService : IDisposable
     {
         if (this.kernel == null)
         {
-            throw new Exception("Kernel is not running");
+            throw new ArgumentException("Kernel is not running");
         }
 
         return await this.kernel.RunSubmitCodeCommandAsync(cmd.Code, cmd.TargetKernelName, ct);
@@ -84,7 +81,7 @@ public class InteractiveService : IDisposable
     {
         if (this.installingDirectory is null)
         {
-            throw new Exception("Installing directory is not set");
+            throw new ArgumentException("Installing directory is not set");
         }
 
         // write RestoreInteractive.config from embedded resource to this.workingDirectory
@@ -130,6 +127,11 @@ public class InteractiveService : IDisposable
 
     private async Task<Kernel> CreateKernelAsync(string workingDirectory, bool restoreWhenFail = true, CancellationToken ct = default)
     {
+#if NETSTANDARD2_0
+        var processID = Process.GetCurrentProcess().Id;
+#else
+        var processID = Environment.ProcessId;
+#endif
         try
         {
             var url = KernelHost.CreateHostUriForCurrentProcessId();
@@ -140,7 +142,7 @@ public class InteractiveService : IDisposable
                     "tool",
                     "run",
                     "dotnet-interactive",
-                    $"[cb-{Process.GetCurrentProcess().Id}]",
+                    $"[cb-{processID}]",
                     "stdio",
                     //"--default-kernel",
                     //"csharp",
@@ -214,12 +216,6 @@ public class InteractiveService : IDisposable
             if (disposing)
             {
                 this.kernel?.Dispose();
-
-                if (this.process != null)
-                {
-                    this.process.Kill();
-                    this.process.Dispose();
-                }
             }
 
             disposedValue = true;

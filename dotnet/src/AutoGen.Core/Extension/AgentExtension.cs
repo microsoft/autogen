@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentExtension.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -35,7 +34,6 @@ public static class AgentExtension
         {
             messages.Add(message);
         }
-
 
         var result = await agent.GenerateReplyAsync(messages, cancellationToken: ct);
 

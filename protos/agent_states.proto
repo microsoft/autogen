@@ -1,0 +1,8 @@
+syntax = "proto3";
+package agents;
+
+option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
+
+message AgentState {
+  string message = 1;
+}

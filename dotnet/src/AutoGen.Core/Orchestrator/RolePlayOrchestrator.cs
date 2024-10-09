@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // RolePlayOrchestrator.cs
 
 using System;
@@ -12,7 +12,7 @@ namespace AutoGen.Core;
 public class RolePlayOrchestrator : IOrchestrator
 {
     private readonly IAgent admin;
-    private readonly Graph? workflow = null;
+    private readonly Graph? workflow;
     public RolePlayOrchestrator(IAgent admin, Graph? workflow = null)
     {
         this.admin = admin;
@@ -46,7 +46,7 @@ public class RolePlayOrchestrator : IOrchestrator
                 return null;
             }
             var currentSpeaker = candidates.First(candidates => candidates.Name == lastMessage.From);
-            var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory);
+            var nextAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, context.ChatHistory, cancellationToken);
             nextAgents = nextAgents.Where(nextAgent => candidates.Any(candidate => candidate.Name == nextAgent.Name));
             candidates = nextAgents.ToList();
             if (!candidates.Any())
@@ -86,7 +86,7 @@ From {agentNames.First()}:
             },
             cancellationToken: cancellationToken);
 
-        var name = response.GetContent() ?? throw new Exception("No name is returned.");
+        var name = response.GetContent() ?? throw new ArgumentException("No name is returned.");
 
         // remove From
         name = name!.Substring(5);
@@ -98,7 +98,7 @@ From {agentNames.First()}:
         }
 
         var errorMessage = $"The response from admin is {name}, which is either not in the candidates list or not in the correct format.";
-        throw new Exception(errorMessage);
+        throw new ArgumentException(errorMessage);
     }
 
     private IEnumerable<IMessage> ProcessConversationsForRolePlay(IEnumerable<IMessage> messages)
