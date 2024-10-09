@@ -5,6 +5,7 @@ import tempfile
 from typing import Any, AsyncGenerator, List, Sequence
 
 import pytest
+from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     BaseChatAgent,
     ChatMessage,
@@ -14,9 +15,8 @@ from autogen_agentchat.agents import (
     TextMessage,
     ToolUseAssistantAgent,
 )
+from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.teams import (
-    EVENT_LOGGER_NAME,
-    FileLogHandler,
     RoundRobinGroupChat,
     SelectorGroupChat,
     StopMessageTermination,
