@@ -1,6 +1,6 @@
 # AutoGen .NET Hello World Sample
 
-This sample demonstrates how to create a simple .NET console application that listens for an event and then orchestrates a series of actions in response.
+This [sample](Program.cs) demonstrates how to create a simple .NET console application that listens for an event and then orchestrates a series of actions in response.
 
 ## Prerequisites
 
@@ -70,9 +70,7 @@ public class HelloAgent(
 
 ### Inheritance and Composition
 
-This sample also illustrate inheritance in AutoGen. The `HelloAgent` class inherits from `ConsoleAgent`, which is a base class that provides a `WriteConsole` method. 
-
-```csharp
+This sample also illustrates inheritance in AutoGen. The `HelloAgent` class inherits from `ConsoleAgent`, which is a base class that provides a `WriteConsole` method.
 
 ### Starting the Application Runtime
 
