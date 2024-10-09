@@ -50,6 +50,36 @@ A = ParamSpec("A")
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
+    """Executes code through a command line environment in a Docker container.
+
+    The executor first saves each code block in a file in the working
+    directory, and then executes the code file in the container.
+    The executor executes the code blocks in the order they are received.
+    Currently, the executor only supports Python and shell scripts.
+    For Python code, use the language "python" for the code block.
+    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    block.
+
+    Args:
+        image (_type_, optional): Docker image to use for code execution.
+            Defaults to "python:3-slim".
+        container_name (Optional[str], optional): Name of the Docker container
+            which is created. If None, will autogenerate a name. Defaults to None.
+        timeout (int, optional): The timeout for code execution. Defaults to 60.
+        work_dir (Union[Path, str], optional): The working directory for the code
+            execution. Defaults to Path(".").
+        bind_dir (Union[Path, str], optional): The directory that will be bound
+        to the code executor container. Useful for cases where you want to spawn
+        the container from within a container. Defaults to work_dir.
+        auto_remove (bool, optional): If true, will automatically remove the Docker
+            container when it is stopped. Defaults to True.
+        stop_container (bool, optional): If true, will automatically stop the
+            container when stop is called, when the context manager exits or when
+            the Python process exits with atext. Defaults to True.
+        functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+        functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+    """
+
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "bash",
         "shell",
@@ -87,35 +117,6 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
     ):
-        """Executes code through a command line environment in a Docker container.
-
-        The executor first saves each code block in a file in the working
-        directory, and then executes the code file in the container.
-        The executor executes the code blocks in the order they are received.
-        Currently, the executor only supports Python and shell scripts.
-        For Python code, use the language "python" for the code block.
-        For shell scripts, use the language "bash", "shell", or "sh" for the code
-        block.
-
-        Args:
-            image (_type_, optional): Docker image to use for code execution.
-                Defaults to "python:3-slim".
-            container_name (Optional[str], optional): Name of the Docker container
-                which is created. If None, will autogenerate a name. Defaults to None.
-            timeout (int, optional): The timeout for code execution. Defaults to 60.
-            work_dir (Union[Path, str], optional): The working directory for the code
-                execution. Defaults to Path(".").
-            bind_dir (Union[Path, str], optional): The directory that will be bound
-            to the code executor container. Useful for cases where you want to spawn
-            the container from within a container. Defaults to work_dir.
-            auto_remove (bool, optional): If true, will automatically remove the Docker
-                container when it is stopped. Defaults to True.
-            stop_container (bool, optional): If true, will automatically stop the
-                container when stop is called, when the context manager exits or when
-                the Python process exits with atext. Defaults to True.
-            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
-            functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
-        """
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 

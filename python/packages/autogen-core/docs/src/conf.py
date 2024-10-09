@@ -43,7 +43,7 @@ napoleon_custom_sections = [("Returns", "params_style")]
 
 templates_path = ["_templates"]
 
-autoclass_content = "init"
+autoclass_content = "class"
 
 # TODO: incldue all notebooks excluding those requiring remote API access.
 nb_execution_mode = "off"
@@ -128,6 +128,8 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
 }
+
+autodoc_pydantic_model_show_config_summary = False
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
