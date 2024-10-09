@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\..\protos\agent_worker.proto" GrpcServices="Client;Server" Link="Protos\agent_worker.proto" />
-    <Protobuf Include="..\..\..\protos\cloudevent.proto" GrpcServices="Client;Server" Link="Protos\cloudevent.proto" />
-    <Protobuf Include="..\..\..\protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
-    <Protobuf Include="..\..\..\protos\agent_states.proto" GrpcServices="Client;Server" Link="Protos\agent_states.proto" />
+    <Protobuf Include="..\..\..\..\protos\agent_worker.proto" GrpcServices="Client;Server" Link="Protos\agent_worker.proto" />
+    <Protobuf Include="..\..\..\..\protos\cloudevent.proto" GrpcServices="Client;Server" Link="Protos\cloudevent.proto" />
+    <Protobuf Include="..\..\..\..\protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
+    <Protobuf Include="..\..\..\..\protos\agent_states.proto" GrpcServices="Client;Server" Link="Protos\agent_states.proto" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Agents.Runtime;
 
@@ -7,6 +8,7 @@ public static class Host
     public static async Task<WebApplication> StartAsync(bool local = false)
     {
         var builder = WebApplication.CreateBuilder();
+        builder.AddServiceDefaults();
         if (local)
         {
             builder.AddLocalAgentService();
