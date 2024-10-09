@@ -9,7 +9,7 @@ authors = [
 ]
 description = "AutoGen Studio"
 readme = "README.md"
-license = { file="LICENSE" }
+license = {file = "LICENSE-CODE"}
 requires-python = ">=3.9, <3.13"
 classifiers = [
     "Programming Language :: Python :: 3",

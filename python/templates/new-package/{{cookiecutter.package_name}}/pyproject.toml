@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "{{ cookiecutter.package_name }}"
 version = "{{ cookiecutter.version }}"
+license = {file = "LICENSE-CODE"}
 description = "{{ cookiecutter.description }}"
 readme = "README.md"
 requires-python = ">=3.10"
