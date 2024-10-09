@@ -162,6 +162,14 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     """
     app.connect("html-page-context", setup_to_main)
 
+    # Adding here so it is inline and not in a separate file.
+    clarity_analytics = """(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "lnxpe6skj1");"""
+    app.add_js_file(None, body=clarity_analytics)
+
     return {
         "parallel_read_safe": True,
         "parallel_write_safe": True,
