@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // DelegateMiddleware.cs
 
 using System;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-internal class DelegateMiddleware : IMiddleware
+internal sealed class DelegateMiddleware : IMiddleware
 {
     /// <summary>
     /// middleware delegate. Call into the next function to continue the execution of the next middleware. Otherwise, short cut the middleware execution.

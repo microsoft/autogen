@@ -1,7 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// FunctionCallTemplateEncodingTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
-using System.Text.Json; // Needed for JsonSerializer
 using AutoGen.SourceGenerator.Template; // Needed for FunctionCallTemplate
 using Xunit; // Needed for Fact and Assert
 
@@ -9,11 +7,6 @@ namespace AutoGen.SourceGenerator.Tests
 {
     public class FunctionCallTemplateEncodingTests
     {
-        private readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-        };
-
         [Fact]
         public void FunctionDescription_Should_Encode_DoubleQuotes()
         {

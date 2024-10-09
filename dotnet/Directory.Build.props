@@ -11,28 +11,36 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>
     <PublicKey>0024000004800000940000000602000000240000525341310004000001000100f1d038d0b85ae392ad72011df91e9343b0b5df1bb8080aa21b9424362d696919e0e9ac3a8bca24e283e10f7a569c6f443e1d4e3ebc84377c87ca5caa562e80f9932bf5ea91b7862b538e13b8ba91c7565cf0e8dfeccfea9c805ae3bda044170ecc7fc6f147aeeac422dd96aeb9eb1f5a5882aa650efe2958f2f8107d2038f2ab</PublicKey>
-    <CSNoWarn>CS1998;CS1591</CSNoWarn>
-    <NoWarn>$(NoWarn);$(CSNoWarn);NU5104</NoWarn>
+    <CSNoWarn>CS1998;CS1591;CS8002;</CSNoWarn>
+    <SKEXPNoWarn>SKEXP0001;SKEXP0010;SKEXP0020</SKEXPNoWarn>
+    <NoWarn>$(NoWarn);$(CSNoWarn);$(SKEXPNoWarn);NU5104</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsTestProject>false</IsTestProject>
+
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <NoWarn>$(NoWarn);CA1829</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
-    <PackageReference Include="ApprovalTests" Version="$(ApprovalTestVersion)" />
-    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
-    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
-    <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
-    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="ApprovalTests" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.console" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
   </ItemGroup>
 
   <ItemGroup  Condition="'$(IsTestProject)' == 'true'">

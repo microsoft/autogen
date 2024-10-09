@@ -14,7 +14,7 @@ Tools are pre-defined functions in user's project that agent can invoke. Agent c
 > This tutorial uses the latest `GPT-3.5-turbo` as example.
 
 > [!NOTE]
-> The complete code example can be found in [Use_Tools_With_Agent.cs](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs)
+> The complete code example can be found in [Use_Tools_With_Agent.cs](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs)
 
 ## Key Concepts
 - @AutoGen.Core.FunctionContract: The contract of a function that agent can invoke. It contains the function name, description, parameters schema, and return type.
@@ -45,21 +45,21 @@ Also, you might need to enable structural xml document support by setting `Gener
 
 ## Add Using Statements
 
-[!code-csharp[Using Statements](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Using)]
+[!code-csharp[Using Statements](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Using)]
 
 ## Create agent
 
 Create an @AutoGen.OpenAI.OpenAIChatAgent with `GPT-3.5-turbo` as the backend LLM model.
 
-[!code-csharp[Create an agent with tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_Agent)]
+[!code-csharp[Create an agent with tools](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_Agent)]
 
 ## Define `Tool` class and create tools
 Create a `public partial` class to host the tools you want to use in AutoGen agents. The method has to be a `public` instance method and its return type must be `Task<string>`. After the methods is defined, mark them with @AutoGen.Core.FunctionAttribute attribute.
 
 In the following example, we define a `GetWeather` tool that returns the weather information of a city.
 
-[!code-csharp[Define Tool class](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Tools)]
-[!code-csharp[Create tools](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_tools)]
+[!code-csharp[Define Tool class](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Tools)]
+[!code-csharp[Create tools](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_tools)]
 
 ## Tool call without auto-invoke
 In this case, when receiving a @AutoGen.Core.ToolCallMessage, the agent will not automatically invoke the tool. Instead, the agent will return the original message back to the user. The user can then decide whether to invoke the tool or not.
@@ -68,11 +68,11 @@ In this case, when receiving a @AutoGen.Core.ToolCallMessage, the agent will not
 
 To implement this, you can create the @AutoGen.Core.FunctionCallMiddleware without passing the `functionMap` parameter to the constructor so that the middleware will not automatically invoke the tool once it receives a @AutoGen.Core.ToolCallMessage from its inner agent.
 
-[!code-csharp[Single-turn tool call without auto-invoke](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_no_invoke_middleware)]
+[!code-csharp[Single-turn tool call without auto-invoke](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_no_invoke_middleware)]
 
 After creating the function call middleware, you can register it to the agent using `RegisterMiddleware` method, which will return a new agent which can use the methods defined in the `Tool` class.
 
-[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_No_Invoke)]
+[!code-csharp[Generate Response](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_No_Invoke)]
 
 ## Tool call with auto-invoke
 In this case, the agent will automatically invoke the tool when receiving a @AutoGen.Core.ToolCallMessage and return the @AutoGen.Core.ToolCallAggregateMessage which contains both the tool call request and the tool call result.
@@ -81,21 +81,21 @@ In this case, the agent will automatically invoke the tool when receiving a @Aut
 
 To implement this, you can create the @AutoGen.Core.FunctionCallMiddleware with the `functionMap` parameter so that the middleware will automatically invoke the tool once it receives a @AutoGen.Core.ToolCallMessage from its inner agent.
 
-[!code-csharp[Single-turn tool call with auto-invoke](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_auto_invoke_middleware)]
+[!code-csharp[Single-turn tool call with auto-invoke](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Create_auto_invoke_middleware)]
 
 After creating the function call middleware, you can register it to the agent using `RegisterMiddleware` method, which will return a new agent which can use the methods defined in the `Tool` class.
 
-[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_Auto_Invoke)]
+[!code-csharp[Generate Response](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Single_Turn_Auto_Invoke)]
 
 ## Send the tool call result back to LLM to generate further response
 In some cases, you may want to send the tool call result back to the LLM to generate further response. To do this, you can send the tool call response from agent back to the LLM by calling the `SendAsync` method of the agent.
 
-[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Multi_Turn_Tool_Call)]
+[!code-csharp[Generate Response](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=Multi_Turn_Tool_Call)]
 
 ## Parallel tool call
 Some LLM models support parallel tool call, which returns multiple tool calls in one single message. Note that @AutoGen.Core.FunctionCallMiddleware has already handled the parallel tool call for you. When it receives a @AutoGen.Core.ToolCallMessage that contains multiple tool calls, it will automatically invoke all the tools in the sequantial order and return the @AutoGen.Core.ToolCallAggregateMessage which contains all the tool call requests and results.
 
-[!code-csharp[Generate Response](../../sample/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=parallel_tool_call)]
+[!code-csharp[Generate Response](../../samples/AutoGen.BasicSamples/GettingStart/Use_Tools_With_Agent.cs?name=parallel_tool_call)]
 
 ## Further Reading
 - [Function call with openai](../articles/OpenAIChatAgent-use-function-call.md)

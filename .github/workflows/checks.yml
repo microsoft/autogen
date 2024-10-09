@@ -1,0 +1,166 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe fmt --check
+        working-directory: ./python
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe lint
+        working-directory: ./python
+
+  mypy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-magentic-one",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} mypy
+        working-directory: ./python
+
+  pyright:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-magentic-one",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} pyright
+        working-directory: ./python
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-magentic-one",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} test
+        working-directory: ./python
+
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ["./packages/autogen-core"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} docs-check
+        working-directory: ./python
+
+  check-proto-changes-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe gen-proto
+        working-directory: ./python
+      - name: Evaluate if there are changes
+        run: |
+          if [[ `git status --porcelain` ]]; then
+            echo "There are changes that need to be generated and commit for the proto files"
+            git --no-pager diff
+            exit 1
+          fi
+        shell: bash

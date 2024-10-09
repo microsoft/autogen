@@ -1,14 +1,20 @@
-### AutoGen for .NET
+# AutoGen for .NET
+
+Thre are two sets of packages here
+Autogen.\* the older packages derived from Autogen 0.2 for .NET - these will gradually be deprecated and ported into the new packages
+Microsoft.AutoGen.* the new packages for .NET that use the event-driven model - These APIs are not yet stable and are subject to change
+
+The remaining content is for the older Autogen.* packages.
 
 [![dotnet-ci](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
 
 > [!NOTE]
 > Nightly build is available at:
-> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
-> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
-> - ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
-
+>
+> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): <https://nuget.pkg.github.com/microsoft/index.json>
+> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): <https://www.myget.org/F/agentchat/api/v3/index.json>
+> - ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : <https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json>
 
 Firstly, following the [installation guide](./website/articles/Installation.md) to install AutoGen packages.
 
@@ -44,60 +50,21 @@ await userProxyAgent.InitiateChatAsync(
     maxRound: 10);
 ```
 
-#### Samples
-You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
+## Samples
 
-#### Functionality
+You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/samples/AutoGen.BasicSamples).
+
+## Functionality
+
 - ConversableAgent
-    - [x] function call
-    - [x] code execution (dotnet only, powered by [`dotnet-interactive`](https://github.com/dotnet/interactive))
+  - [x] function call
+  - [x] code execution (dotnet only, powered by [`dotnet-interactive`](https://github.com/dotnet/interactive))
 
 - Agent communication
-    - [x] Two-agent chat
-    - [x] Group chat
+  - [x] Two-agent chat
+  - [x] Group chat
 
 - [ ] Enhanced LLM Inferences
 
 - Exclusive for dotnet
-    - [x] Source generator for type-safe function definition generation
-
-#### Update log
-##### Update on 0.0.11 (2024-03-26)
-- Add link to Discord channel in nuget's readme.md
-- Document improvements
-##### Update on 0.0.10 (2024-03-12)
-- Rename `Workflow` to `Graph`
-- Rename `AddInitializeMessage` to `SendIntroduction`
-- Rename `SequentialGroupChat` to `RoundRobinGroupChat`
-##### Update on 0.0.9 (2024-03-02)
-- Refactor over @AutoGen.Message and introducing `TextMessage`, `ImageMessage`, `MultiModalMessage` and so on. PR [#1676](https://github.com/microsoft/autogen/pull/1676)
-- Add `AutoGen.SemanticKernel` to support seamless integration with Semantic Kernel
-- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.OpenAI` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
-- Move `GPTAgent`, `OpenAIChatAgent` and all openai-dependencies to `AutoGen.OpenAI`
-##### Update on 0.0.8 (2024-02-28)
-- Fix [#1804](https://github.com/microsoft/autogen/pull/1804)
-- Streaming support for IAgent [#1656](https://github.com/microsoft/autogen/pull/1656)
-- Streaming support for middleware via `MiddlewareStreamingAgent` [#1656](https://github.com/microsoft/autogen/pull/1656)
-- Graph chat support with conditional transition workflow [#1761](https://github.com/microsoft/autogen/pull/1761)
-- AutoGen.SourceGenerator: Generate `FunctionContract` from `FunctionAttribute` [#1736](https://github.com/microsoft/autogen/pull/1736)
-##### Update on 0.0.7 (2024-02-11)
-- Add `AutoGen.LMStudio` to support comsume openai-like API from LMStudio local server
-##### Update on 0.0.6 (2024-01-23)
-- Add `MiddlewareAgent`
-- Use `MiddlewareAgent` to implement existing agent hooks (RegisterPreProcess, RegisterPostProcess, RegisterReply)
-- Remove `AutoReplyAgent`, `PreProcessAgent`, `PostProcessAgent` because they are replaced by `MiddlewareAgent`
-##### Update on 0.0.5
-- Simplify `IAgent` interface by removing `ChatLLM` Property
-- Add `GenerateReplyOptions` to `IAgent.GenerateReplyAsync` which allows user to specify or override the options when generating reply
-
-##### Update on 0.0.4
-- Move out dependency of Semantic Kernel
-- Add type `IChatLLM` as connector to LLM
-
-##### Update on 0.0.3
-- In AutoGen.SourceGenerator, rename FunctionAttribution to FunctionAttribute
-- In AutoGen, refactor over ConversationAgent, UserProxyAgent, and AssistantAgent
-
-##### Update on 0.0.2
-- update Azure.OpenAI.AI to 1.0.0-beta.12
-- update Semantic kernel to 1.0.1
+  - [x] Source generator for type-safe function definition generation

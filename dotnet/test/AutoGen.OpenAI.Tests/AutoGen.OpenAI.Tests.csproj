@@ -1,18 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <IsTestProject>True</IsTestProject>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CA1829;CA1826</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIV2Version)" />
+    <PackageReference Include="Azure.AI.OpenAI" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\sample\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj" />
+    <ProjectReference Include="..\..\samples\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\AutoGen.Test.Share\AutoGen.Tests.Share.csproj" />

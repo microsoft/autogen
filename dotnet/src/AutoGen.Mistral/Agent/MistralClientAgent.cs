@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // MistralClientAgent.cs
 
 using System;
@@ -34,7 +34,7 @@ public class MistralClientAgent : IStreamingAgent
     private readonly string _systemMessage;
     private readonly string _model;
     private readonly int? _randomSeed;
-    private readonly bool _jsonOutput = false;
+    private readonly bool _jsonOutput;
     private ToolChoiceEnum? _toolChoice;
 
     /// <summary>

@@ -1,0 +1,134 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Docs
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches:
+      - main
+      - staging
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-04:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: 'true'
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          uv sync --locked --all-extras
+          source .venv/bin/activate
+          poe --directory ./packages/autogen-core docs-build
+          mkdir -p docs-staging/autogen/dev/
+          mv ./packages/autogen-core/docs/build/* docs-staging/autogen/dev/
+        working-directory: ./python
+      - name: generate redirects
+        run: |
+          python python/packages/autogen-core/docs/redirects/redirects.py python/docs-staging
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "./python/docs-staging"
+          name: "04-docs"
+
+  build-02:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          ref: "0.2"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - name: pydoc-markdown install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydoc-markdown pyyaml termcolor
+          # Pin databind packages as version 4.5.0 is not compatible with pydoc-markdown.
+          pip install databind.core==4.4.2 databind.json==4.4.2
+      - name: pydoc-markdown run
+        run: |
+          pydoc-markdown
+      - name: quarto install
+        working-directory: ${{ runner.temp }}
+        run: |
+          wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.5.23/quarto-1.5.23-linux-amd64.tar.gz
+          tar -xzf quarto-1.5.23-linux-amd64.tar.gz
+          echo "$(pwd)/quarto-1.5.23/bin/" >> $GITHUB_PATH
+      - name: Process notebooks
+        run: |
+          python process_notebooks.py render
+      - name: Build website
+        run: |
+          if [ -e yarn.lock ]; then
+          yarn install --frozen-lockfile --ignore-engines
+          yarn build
+          elif [ -e package-lock.json ]; then
+          npm ci
+          npm run build
+          else
+          npm i --legacy-peer-deps
+          npm run build
+          fi
+
+      - run: |
+          mkdir -p artifact/autogen/0.2/
+          cp -r build/* artifact/autogen/0.2/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "website/artifact"
+          name: "02-docs"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: [build-02, build-04]
+    if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Copy 02-docs
+        run: |
+          mkdir -p deploy/
+          cp -r artifacts/02-docs/* deploy/
+          cp -r artifacts/04-docs/* deploy/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./deploy"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

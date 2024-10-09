@@ -1,3 +1,0 @@
-{ "id": "nvda_tsla_stocks", "template": "../Templates/TwoAgents", "substitutions": { "scenario.py": { "__PROMPT__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD." } } }
-{ "id": "arxiv_search", "template": "../Templates/TwoAgents", "substitutions": { "scenario.py": { "__PROMPT__": "Find 10 papers on explainable or interpretable AI that were submitted to arXiv within the last year. When printing results, include paper titles, authors, dates, and URLs, but not their abstracts." } } }
-{ "id": "old_mslogo_search", "template": "../Templates/TwoAgents", "substitutions": { "scenario.py": { "__PROMPT__": "Find Microsoft's logo from 1983, and save it to disk. If searching the web, use Bing with API key stored in os.environ['BING_API_KEY']" } } }

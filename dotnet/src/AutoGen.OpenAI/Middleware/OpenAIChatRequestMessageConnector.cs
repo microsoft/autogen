@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIChatRequestMessageConnector.cs
 
 using System;
@@ -24,7 +24,7 @@ namespace AutoGen.OpenAI;
 /// </summary>
 public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
 {
-    private bool strictMode = false;
+    private bool strictMode;
 
     /// <summary>
     /// Create a new instance of <see cref="OpenAIChatRequestMessageConnector"/>.
@@ -180,7 +180,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             throw new InvalidOperationException("The content has more than one choice. Please try another input.");
         }
-        var textContent = chatCompletion.Content.FirstOrDefault();
+        var textContent = chatCompletion.Content is { Count: > 0 } ? chatCompletion.Content[0] : null;
 
         // if tool calls is not empty, return ToolCallMessage
         if (chatCompletion.ToolCalls is { Count: > 0 })
@@ -336,7 +336,6 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             .Where(tc => tc.Result is not null)
             .Select((tc, i) => new ToolChatMessage(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.Result));
     }
-
 
     private IEnumerable<ChatMessage> ProcessFunctionCallMiddlewareMessage(IAgent agent, AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
     {

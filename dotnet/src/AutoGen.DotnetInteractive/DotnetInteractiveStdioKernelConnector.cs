@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // DotnetInteractiveStdioKernelConnector.cs
 
 using AutoGen.DotnetInteractive.Extension;
@@ -30,7 +30,7 @@ public class DotnetInteractiveStdioKernelConnector
         }
         else
         {
-            throw new Exception("Failed to restore dotnet interactive tool.");
+            throw new ArgumentException("Failed to restore dotnet interactive tool.");
         }
     }
 

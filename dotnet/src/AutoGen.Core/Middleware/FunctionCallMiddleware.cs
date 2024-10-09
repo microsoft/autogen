@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // FunctionCallMiddleware.cs
 
 using System;
@@ -163,7 +163,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
             }
         }
 
-        if (toolCallResult.Count() > 0)
+        if (toolCallResult.Count > 0)
         {
             var toolCallResultMessage = new ToolCallResultMessage(toolCallResult, from: agent.Name);
             return new ToolCallAggregateMessage(toolCallMsg, toolCallResultMessage, from: agent.Name);
