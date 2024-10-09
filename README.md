@@ -317,7 +317,7 @@ We are aware that there are thousands of forks of AutoGen, including many for pe
 Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project. 
 
 ### Can you clarify the current state of the packages?
-Currently, we are unable to make releases to the 'pyautogen' package due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details here. 
+Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details here. 
 
 ### Can I still be involved?
 
