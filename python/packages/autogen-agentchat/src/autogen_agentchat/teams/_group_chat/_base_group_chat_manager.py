@@ -5,8 +5,8 @@ from typing import List
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
+from ... import EVENT_LOGGER_NAME
 from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent
-from .._logging import EVENT_LOGGER_NAME
 from .._termination import TerminationCondition
 from ._sequential_routed_agent import SequentialRoutedAgent
 
