@@ -15,3 +15,22 @@ This allows your agent to work in a distributed environment a well as a local on
 An {py:class}`autogen_core.base.AgentId` is composed of a `type` and a `key`. The type corresponds to the factory that created the agent, and the key is a runtime, data dependent key for this instance.
 
 The key can correspond to a user id, a session id, or could just be "default" if you don't need to differentiate between instances. Each unique key will create a new instance of the agent, based on the factory provided. This allows the system to automatically scale to different instances of the same agent, and to manage the lifecycle of each instance independently based on how you choose to handle keys in your application.
+
+## How do I increase the GRPC message size?
+
+If you need to provide custom gRPC options, such as overriding the `max_send_message_length` and `max_receive_message_length`, you can define an `extra_grpc_config` variable and pass it to both the `WorkerAgentRuntimeHost` and `WorkerAgentRuntime` instances.
+
+```python
+# Define custom gRPC options
+extra_grpc_config = [
+    ("grpc.max_send_message_length", new_max_size),
+    ("grpc.max_receive_message_length", new_max_size),
+]
+
+# Create instances of WorkerAgentRuntimeHost and WorkerAgentRuntime with the custom gRPC options
+
+host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
+worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+```
+
+**Note**: When `WorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.

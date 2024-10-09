@@ -8,7 +8,7 @@ See [`autogen-core`](./packages/autogen-core/) package for main functionality.
 **TL;DR**, run all checks with:
 
 ```sh
-uv sync
+uv sync  --all-extras
 source .venv/bin/activate
 poe check
 ```
@@ -24,7 +24,7 @@ in the current directory,
 run:
 
 ```sh
-uv sync
+uv sync  --all-extras
 source .venv/bin/activate
 ```
 

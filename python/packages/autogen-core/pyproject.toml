@@ -22,7 +22,6 @@ dependencies = [
     "grpcio~=1.62.0",
     "protobuf~=4.25.1",
     "tiktoken",
-    "azure-core",
     "docker~=7.0",
     "opentelemetry-api~=1.27.0",
     "asyncio_atexit"
@@ -139,7 +138,7 @@ cmd = "sphinx-build docs/src docs/build"
 ref = "docs-apidoc-all"
 
 [[tool.poe.tasks.docs-serve.sequence]]
-cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
+cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto -v"
 
 [[tool.poe.tasks.docs-check.sequence]]
 ref = "docs-apidoc-all"

@@ -16,4 +16,7 @@ myst:
 :hidden:
 
 tool_use
+code-execution
+selector-group-chat
 ```
+

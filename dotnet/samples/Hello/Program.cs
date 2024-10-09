@@ -1,23 +1,15 @@
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
-using Microsoft.AutoGen.Agents.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var builder = Host.CreateApplicationBuilder(args);
-builder.AddAgentService();
-builder.UseOrleans(siloBuilder =>
-{
-    siloBuilder.UseLocalhostClustering(); ;
-});
-builder.AddAgentWorker("https://localhost:5000");
-var app = builder.Build();
-await app.StartAsync();
-app.Services.GetRequiredService<AgentWorkerRuntime>();
-var evt = new NewMessageReceived
+// send a message to the agent
+var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}.ToCloudEvent("HelloAgents");
+}, local: true);
+
+await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
@@ -32,27 +24,33 @@ public class HelloAgent(
 {
     public async Task Handle(NewMessageReceived item)
     {
-        var response = await SayHello(item.Message);
+        var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        var goodbye = new ConversationClosed
+        {
+            UserId = this.AgentId.Key,
+            UserMessage = "Goodbye"
+        }.ToCloudEvent(this.AgentId.Key);
+        await PublishEvent(goodbye).ConfigureAwait(false);
     }
-
     public async Task Handle(ConversationClosed item)
     {
-        var goodbye = "Goodbye!";
+        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
         var evt = new Output
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        await Task.Delay(60000);
+        await App.ShutdownAsync();
     }
-
     public async Task<string> SayHello(string ask)
     {
-        var response = $"Hello {ask}";
+        var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
         return response;
     }
 }
