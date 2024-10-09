@@ -57,8 +57,8 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 
             assistant = ToolUseAssistantAgent("Assistant", model_client=..., registered_tools=...)
-            team = RoundRobinGroupChat([assistant], termination_condition=StopMessageTermination())
-            await team.run("What's the weather in New York?")
+            team = RoundRobinGroupChat([assistant])
+            await team.run("What's the weather in New York?", termination_condition=StopMessageTermination())
 
     A team with multiple participants:
 
@@ -69,8 +69,8 @@ class RoundRobinGroupChat(BaseGroupChat):
 
             coding_assistant = CodingAssistantAgent("Coding_Assistant", model_client=...)
             executor_agent = CodeExecutorAgent("Code_Executor", code_executor=...)
-            team = RoundRobinGroupChat([coding_assistant, executor_agent], termination_condition=StopMessageTermination())
-            await team.run("Write a program that prints 'Hello, world!'")
+            team = RoundRobinGroupChat([coding_assistant, executor_agent])
+            await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
 
     """
 
