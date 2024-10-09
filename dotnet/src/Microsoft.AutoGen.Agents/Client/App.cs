@@ -1,6 +1,7 @@
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Agents.Client;
 
@@ -14,6 +15,7 @@ public static class App
         // start the server runtime
         RuntimeApp ??= await Runtime.Host.StartAsync(local);
         var clientBuilder = WebApplication.CreateBuilder();
+        clientBuilder.AddServiceDefaults();
         var appBuilder = clientBuilder.AddAgentWorker();
         agentTypes ??= AgentTypes.GetAgentTypesFromAssembly()
                    ?? throw new InvalidOperationException("No agent types found in the assembly");
