@@ -12,6 +12,8 @@ var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
+namespace Hello
+{
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
     IAgentContext context,
@@ -57,4 +59,5 @@ public class HelloAgent(
 public interface ISayHello
 {
     public Task<string> SayHello(string ask);
+}
 }
