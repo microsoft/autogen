@@ -16,7 +16,6 @@ class CodeExecutorAgent(BaseChatAgent):
         *,
         description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
     ) -> None:
-        """Initialize the agent with a code executor."""
         super().__init__(name=name, description=description)
         self._code_executor = code_executor
 
