@@ -5,10 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "autogen-magentic-one"
 version = "0.0.1"
+license = {file = "LICENSE-CODE"}
 description = ''
 readme = "readme.md"
 requires-python = ">=3.10"
-license = "MIT"
 keywords = []
 classifiers = [
     "Programming Language :: Python :: 3",
