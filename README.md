@@ -107,7 +107,7 @@ and running on your machine.
 
 ```python
 from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
-from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import OpenAIChatCompletionClient
 
@@ -118,9 +118,9 @@ async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
     )
     group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
     result = await group_chat.run(
-        task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
+        task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'.",
+        termination_condition=StopMessageTermination(),
     )
-    print(result)
 ```
 
 ### C#
@@ -136,27 +136,31 @@ git switch staging-dev
 # Build the project
 cd dotnet && dotnet build AutoGen.sln
 # In your source code, add AutoGen to your project
-dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen.Agents.Client/Microsoft.AutoGen.Agents.Client.csproj
+dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen.Agents/Client/Microsoft.AutoGen.Agents.Client.csproj
 ```
 
-Then, define your first agent:
+Then, define and run your first agent:
 
 ```csharp
 using Microsoft.AutoGen.Agents.Abstractions;
 using Microsoft.AutoGen.Agents.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace HelloAgents.Agents;
+// send a message to the agent
+var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
+{
+    Message = "World"
+}, local: true);
+
+await App.RuntimeApp!.WaitForShutdownAsync();
+await app.WaitForShutdownAsync();
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
     IAgentContext context,
-    Kernel kernel,
-    ISemanticTextMemory memory,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
-    ILogger<HelloAgent> logger) : AiAgent<HelloAgentState>(
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
         context,
-        memory,
-        kernel,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
@@ -164,27 +168,33 @@ public class HelloAgent(
 {
     public async Task Handle(NewMessageReceived item)
     {
-        var response = await SayHello(item.Message);
-        var evt = new ResponseGenerated
+        var response = await SayHello(item.Message).ConfigureAwait(false);
+        var evt = new Output
         {
-            Response = response
+            Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        var goodbye = new ConversationClosed
+        {
+            UserId = this.AgentId.Key,
+            UserMessage = "Goodbye"
+        }.ToCloudEvent(this.AgentId.Key);
+        await PublishEvent(goodbye).ConfigureAwait(false);
     }
-
     public async Task Handle(ConversationClosed item)
     {
-        var goodbye = "";
-        var evt = new GoodBye
+        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+        var evt = new Output
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEvent(evt).ConfigureAwait(false);
+        await Task.Delay(60000);
+        await App.ShutdownAsync();
     }
-
     public async Task<string> SayHello(string ask)
     {
-        var response = $"Hello {ask}";
+        var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
         return response;
     }
 }
@@ -192,6 +202,10 @@ public interface ISayHello
 {
     public Task<string> SayHello(string ask);
 }
+```
+
+```bash
+dotnet run
 ```
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">

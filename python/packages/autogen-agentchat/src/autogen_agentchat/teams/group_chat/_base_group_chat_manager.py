@@ -1,29 +1,35 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import List
 
 from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
-from ...agents import ChatMessage, StopMessage, TextMessage
-from .._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent
 from .._logging import EVENT_LOGGER_NAME
+from .._termination import TerminationCondition
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class BaseGroupChatManager(SequentialRoutedAgent):
+class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     """Base class for a group chat manager that manages a group chat with multiple participants.
 
     It is the responsibility of the caller to ensure:
     - All participants must subscribe to the group chat topic and each of their own topics.
     - The group chat manager must subscribe to the parent topic and the group chat topic.
+    - The agent types of the participants must be unique.
+    - For each participant, the agent type must be the same as the topic type.
+
+    Without the above conditions, the group chat will not function correctly.
 
     Args:
         parent_topic_type (str): The topic type of the parent orchestrator.
         group_topic_type (str): The topic type of the group chat.
         participant_topic_types (List[str]): The topic types of the participants.
         participant_descriptions (List[str]): The descriptions of the participants
+        termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
 
     Raises:
         ValueError: If the number of participant topic types, agent types, and descriptions are not the same.
@@ -35,6 +41,7 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None = None,
     ):
         super().__init__(description="Group chat manager")
         self._parent_topic_type = parent_topic_type
@@ -51,7 +58,8 @@ class BaseGroupChatManager(SequentialRoutedAgent):
             raise ValueError("The group topic type must not be the same as the parent topic type.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[ChatMessage] = []
+        self._message_thread: List[ContentPublishEvent] = []
+        self._termination_condition = termination_condition
 
     @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
@@ -68,25 +76,26 @@ class BaseGroupChatManager(SequentialRoutedAgent):
 
         # Process event from parent.
         if ctx.topic_id.type == self._parent_topic_type:
-            self._message_thread.append(message.agent_message)
-            await self.publish_message(message, topic_id=group_chat_topic_id)
+            self._message_thread.append(message)
+            await self.publish_message(
+                ContentPublishEvent(agent_message=message.agent_message, source=self.id), topic_id=group_chat_topic_id
+            )
             return
 
         # Process event from the group chat this agent manages.
         assert ctx.topic_id.type == self._group_topic_type
-        self._message_thread.append(message.agent_message)
+        self._message_thread.append(message)
 
-        # If the message is a stop message, publish the last message as a TextMessage to the parent topic.
-        # TODO: custom handling the final message.
-        if isinstance(message.agent_message, StopMessage):
-            parent_topic_id = TopicId(type=self._parent_topic_type, source=ctx.topic_id.source)
-            await self.publish_message(
-                ContentPublishEvent(
-                    agent_message=TextMessage(content=message.agent_message.content, source=self.metadata["type"])
-                ),
-                topic_id=parent_topic_id,
-            )
-            return
+        # Check if the conversation should be terminated.
+        if self._termination_condition is not None:
+            stop_message = await self._termination_condition([message.agent_message])
+            if stop_message is not None:
+                event_logger.info(TerminationEvent(agent_message=stop_message, source=self.id))
+                # Reset the termination condition.
+                await self._termination_condition.reset()
+                # Stop the group chat.
+                # TODO: this should be different if the group chat is nested.
+                return
 
         # Select a speaker to continue the conversation.
         speaker_topic_type = await self.select_speaker(self._message_thread)
@@ -107,7 +116,8 @@ class BaseGroupChatManager(SequentialRoutedAgent):
         participant_topic_id = TopicId(type=speaker_topic_type, source=ctx.topic_id.source)
         await self.publish_message(ContentRequestEvent(), topic_id=participant_topic_id)
 
-    async def select_speaker(self, thread: List[ChatMessage]) -> str:
+    @abstractmethod
+    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
-        raise NotImplementedError("Method not implemented")
+        ...

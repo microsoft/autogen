@@ -71,6 +71,9 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {'packages/index': []}
 
+html_logo = "_static/images/logo/logo.svg"
+html_favicon = "_static/images/logo/favicon-512x512.png"
+
 html_theme_options = {
 
     "header_links_before_dropdown": 4,
@@ -81,7 +84,6 @@ html_theme_options = {
     #     "json_url": "/_static/switcher.json",
     # },
     "show_prev_next": False,
-    ""
     "icon_links": [
         {
             "name": "Twitter",
@@ -90,7 +92,7 @@ html_theme_options = {
         },
         {
             "name": "GitHub",
-            "url": "https://github.com/microsoft/agnext",
+            "url": "https://github.com/microsoft/autogen",
             "icon": "fa-brands fa-github",
         },
         {
@@ -99,19 +101,24 @@ html_theme_options = {
             "icon": "fa-custom fa-pypi",
         },
     ],
-    "announcement": '🚧 AutoGen 0.4 is a work in progress, learn more about what\'s new and different <a href="#">here</a>. To continue using the latest stable version, please visit the <a href="/autogen/0.2/">0.2 documentation</a>. 🚧',
+
+    "announcement": 'AutoGen 0.4 is a work in progress. Go <a href="/autogen/0.2/">here</a> to find the 0.2 documentation.',
+    "footer_start": ["copyright"],
+    "footer_center": ["footer-middle-links"],
+    "footer_end": ["theme-version"],
+    "pygments_light_style": "xcode",
+    "pygments_dark_style": "monokai"
 }
 
 html_js_files = ["custom-icon.js"]
 html_sidebars = {
-    "reference/index": [],
     "packages/index": [],
 }
 
 html_context = {
     'display_github': True,
     "github_user": "microsoft",
-    "github_repo": "agnext",
+    "github_repo": "autogen",
     "github_version": "main",
     "doc_path": "python/packages/autogen-core/docs/src/",
 }
@@ -120,8 +127,6 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
 }
-
-
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 

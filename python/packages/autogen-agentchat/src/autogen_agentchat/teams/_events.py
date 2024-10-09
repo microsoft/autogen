@@ -49,3 +49,27 @@ class ToolCallResultEvent(BaseModel):
     """The sender of the tool call result message."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class SelectSpeakerEvent(BaseModel):
+    """An event for selecting the next speaker in a group chat."""
+
+    selected_speaker: str
+    """The name of the selected speaker."""
+
+    source: AgentId
+    """The agent ID that selected the speaker."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class TerminationEvent(BaseModel):
+    """An event for terminating a conversation."""
+
+    agent_message: StopMessage
+    """The stop message that terminates the conversation."""
+
+    source: AgentId
+    """The agent ID that triggered the termination."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
