@@ -2,6 +2,7 @@ from typing import Callable, List
 
 from ...agents import BaseChatAgent
 from .._events import ContentPublishEvent
+from .._termination import TerminationCondition
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -15,12 +16,14 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
     ) -> None:
         super().__init__(
             parent_topic_type,
             group_topic_type,
             participant_topic_types,
             participant_descriptions,
+            termination_condition,
         )
         self._next_speaker_index = 0
 
@@ -51,23 +54,23 @@ class RoundRobinGroupChat(BaseGroupChat):
         .. code-block:: python
 
             from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 
             assistant = ToolUseAssistantAgent("Assistant", model_client=..., registered_tools=...)
             team = RoundRobinGroupChat([assistant])
-            await team.run("What's the weather in New York?")
+            await team.run("What's the weather in New York?", termination_condition=StopMessageTermination())
 
     A team with multiple participants:
 
         .. code-block:: python
 
             from autogen_agentchat.agents import CodingAssistantAgent, CodeExecutorAgent
-            from autogen_agentchat.teams.group_chat import RoundRobinGroupChat
+            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 
             coding_assistant = CodingAssistantAgent("Coding_Assistant", model_client=...)
             executor_agent = CodeExecutorAgent("Code_Executor", code_executor=...)
             team = RoundRobinGroupChat([coding_assistant, executor_agent])
-            await team.run("Write a program that prints 'Hello, world!'")
+            await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
 
     """
 
@@ -80,10 +83,15 @@ class RoundRobinGroupChat(BaseGroupChat):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
-                parent_topic_type, group_topic_type, participant_topic_types, participant_descriptions
+                parent_topic_type,
+                group_topic_type,
+                participant_topic_types,
+                participant_descriptions,
+                termination_condition,
             )
 
         return _factory

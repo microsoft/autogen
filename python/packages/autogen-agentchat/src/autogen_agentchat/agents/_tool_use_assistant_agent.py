@@ -36,7 +36,7 @@ class ToolUseAssistantAgent(BaseToolUseChatAgent):
         registered_tools: List[Tool],
         *,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools.",
+        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with 'TERMINATE' when the task has been completed.",
     ):
         super().__init__(name=name, description=description, registered_tools=registered_tools)
         self._model_client = model_client
