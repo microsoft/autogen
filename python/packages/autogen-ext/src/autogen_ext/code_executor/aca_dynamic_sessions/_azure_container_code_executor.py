@@ -39,6 +39,26 @@ class TokenProvider(Protocol):
 
 
 class AzureContainerCodeExecutor(CodeExecutor):
+    """(Experimental) A code executor class that executes code through a an Azure
+    Container Apps instance.
+
+    **This will execute LLM generated code on an Azure dynamic code container.**
+
+    The execution environment is similar to that of a jupyter notebook which allows for incremental code execution. The parameter functions are executed in order once at the beginning of each session. Each code block is then executed serially and in the order they are received. Each environment has a statically defined set of available packages which cannot be changed.
+    Currently, attempting to use packages beyond what is available on the environment will result in an error. To get the list of supported packages, call the `get_available_packages` function.
+    Currently the only supported language is Python.
+    For Python code, use the language "python" for the code block.
+
+    Args:
+        pool_management_endpoint (str): The azure container apps dynamic sessions endpoint.
+        credential (TokenProvider): An object that implements the get_token function.
+        timeout (int): The timeout for the execution of any single code block. Default is 60.
+        work_dir (str): The working directory for the code execution. If None,
+            a default working directory will be used. The default working
+            directory is the current directory ".".
+        functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+    """
+
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "python",
     ]
@@ -63,26 +83,6 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
     ):
-        """(Experimental) A code executor class that executes code through a an Azure
-        Container Apps instance.
-
-        **This will execute LLM generated code on an Azure dynamic code container.**
-
-        The execution environment is similar to that of a jupyter notebook which allows for incremental code execution. The parameter functions are executed in order once at the beginning of each session. Each code block is then executed serially and in the order they are received. Each environment has a statically defined set of available packages which cannot be changed.
-        Currently, attempting to use packages beyond what is available on the environment will result in an error. To get the list of supported packages, call the `get_available_packages` function.
-        Currently the only supported language is Python.
-        For Python code, use the language "python" for the code block.
-
-        Args:
-            pool_management_endpoint (str): The azure container apps dynamic sessions endpoint.
-            credential (TokenProvider): An object that implements the get_token function.
-            timeout (int): The timeout for the execution of any single code block. Default is 60.
-            work_dir (str): The working directory for the code execution. If None,
-                a default working directory will be used. The default working
-                directory is the current directory ".".
-            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
-        """
-
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
