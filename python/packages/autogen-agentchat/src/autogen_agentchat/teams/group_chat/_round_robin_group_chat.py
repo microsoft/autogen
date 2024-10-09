@@ -2,6 +2,7 @@ from typing import Callable, List
 
 from ...agents import BaseChatAgent
 from .._events import ContentPublishEvent
+from .._termination import TerminationCondition
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -15,12 +16,14 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
     ) -> None:
         super().__init__(
             parent_topic_type,
             group_topic_type,
             participant_topic_types,
             participant_descriptions,
+            termination_condition,
         )
         self._next_speaker_index = 0
 
@@ -80,10 +83,15 @@ class RoundRobinGroupChat(BaseGroupChat):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
-                parent_topic_type, group_topic_type, participant_topic_types, participant_descriptions
+                parent_topic_type,
+                group_topic_type,
+                participant_topic_types,
+                participant_descriptions,
+                termination_condition,
             )
 
         return _factory

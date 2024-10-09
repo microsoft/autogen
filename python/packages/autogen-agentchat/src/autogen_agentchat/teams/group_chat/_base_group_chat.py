@@ -172,9 +172,5 @@ class BaseGroupChat(BaseTeam, ABC):
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()
 
-        # Reset the termination condition.
-        if termination_condition is not None:
-            await termination_condition.reset()
-
         # Return the result.
         return TeamRunResult(messages=group_chat_messages)

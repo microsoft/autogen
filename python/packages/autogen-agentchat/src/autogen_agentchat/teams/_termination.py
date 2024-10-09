@@ -5,13 +5,16 @@ from typing import Any, Sequence
 from ..agents import ChatMessage, MultiModalMessage, StopMessage, TextMessage
 
 
+class TerminatedException(BaseException): ...
+
+
 class TerminationCondition(ABC):
-    """A condition that determines when a conversation should be terminated.
+    """A stateful condition that determines when a conversation should be terminated.
 
     A termination condition is a callable that takes a sequence of ChatMessage objects
-    since the last time the condition was checked, and returns a StopMessage if the
+    since the last time the condition was called, and returns a StopMessage if the
     conversation should be terminated, or None otherwise.
-    Once a termination condition has been reached, it should be reset before it can be used again.
+    Once a termination condition has been reached, it must be reset before it can be used again.
 
     Termination conditions can be combined using the AND and OR operators.
 
@@ -53,7 +56,7 @@ class TerminationCondition(ABC):
             StopMessage | None: A StopMessage if the conversation should be terminated, or None otherwise.
 
         Raises:
-            RuntimeError: If the termination condition has already been reached."""
+            TerminatedException: If the termination condition has already been reached."""
         ...
 
     @abstractmethod
@@ -73,6 +76,7 @@ class TerminationCondition(ABC):
 class _AndTerminationCondition(TerminationCondition):
     def __init__(self, *conditions: TerminationCondition) -> None:
         self._conditions = conditions
+        self._stop_messages = []
 
     @property
     def terminated(self) -> bool:
@@ -80,18 +84,26 @@ class _AndTerminationCondition(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise RuntimeError("Termination condition has already been reached")
-        stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
+            raise TerminatedException("Termination condition has already been reached.")
+        # Check all remaining conditions.
+        stop_messages = await asyncio.gather(
+            *[condition(messages) for condition in self._conditions if not condition.terminated]
+        )
+        # Collect stop messages.
         for stop_message in stop_messages:
-            if stop_message is None:
-                return None
-        content = ", ".join(stop_message.content for stop_message in stop_messages)
-        source = " & ".join(stop_message.source for stop_message in stop_messages)
+            if stop_message is not None:
+                self._stop_messages.append(stop_message)
+        if any(stop_message is None for stop_message in stop_messages):
+            # If any remaining condition has not reached termination, it is not terminated.
+            return None
+        content = ", ".join(stop_message.content for stop_message in self._stop_messages)
+        source = ", ".join(stop_message.source for stop_message in self._stop_messages)
         return StopMessage(content=content, source=source)
 
     async def reset(self) -> None:
         for condition in self._conditions:
             await condition.reset()
+        self._stop_messages.clear()
 
 
 class _OrTerminationCondition(TerminationCondition):
@@ -108,7 +120,7 @@ class _OrTerminationCondition(TerminationCondition):
         stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
         if any(stop_message is not None for stop_message in stop_messages):
             content = ", ".join(stop_message.content for stop_message in stop_messages if stop_message is not None)
-            source = " | ".join(stop_message.source for stop_message in stop_messages if stop_message is not None)
+            source = ", ".join(stop_message.source for stop_message in stop_messages if stop_message is not None)
             return StopMessage(content=content, source=source)
         return None
 
@@ -129,7 +141,7 @@ class StopMessageTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self._terminated:
-            raise RuntimeError("Termination condition has already been reached")
+            raise TerminatedException("Termination condition has already been reached")
         for message in messages:
             if isinstance(message, StopMessage):
                 self._terminated = True
@@ -157,7 +169,7 @@ class MaxMessageTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise RuntimeError("Termination condition has already been reached")
+            raise TerminatedException("Termination condition has already been reached")
         self._message_count += len(messages)
         if self._message_count >= self._max_messages:
             return StopMessage(
@@ -187,7 +199,7 @@ class TextMentionTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self._terminated:
-            raise RuntimeError("Termination condition has already been reached")
+            raise TerminatedException("Termination condition has already been reached")
         for message in messages:
             if isinstance(message, TextMessage | StopMessage) and self._text in message.content:
                 self._terminated = True

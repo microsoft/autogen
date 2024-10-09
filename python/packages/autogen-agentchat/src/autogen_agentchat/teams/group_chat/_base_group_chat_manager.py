@@ -97,6 +97,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 await self.publish_message(
                     ContentPublishEvent(agent_message=stop_message, source=self.id), topic_id=parent_topic_id
                 )
+                # Reset the termination condition.
+                await self._termination_condition.reset()
                 # Stop the group chat.
                 return
 
