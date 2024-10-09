@@ -7,6 +7,7 @@ from autogen_core.components.models import ChatCompletionClient, SystemMessage
 from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage
 from .._events import ContentPublishEvent, SelectSpeakerEvent
 from .._logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
+from .._termination import TerminationCondition
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -24,6 +25,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
@@ -33,6 +35,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             group_topic_type,
             participant_topic_types,
             participant_descriptions,
+            termination_condition,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -164,13 +167,13 @@ class SelectorGroupChat(BaseGroupChat):
         .. code-block:: python
 
             from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams.group_chat import SelectorGroupChat
+            from autogen_agentchat.teams import SelectorGroupChat, StopMessageTermination
 
             travel_advisor = ToolUseAssistantAgent("Travel_Advisor", model_client=..., registered_tools=...)
             hotel_agent = ToolUseAssistantAgent("Hotel_Agent", model_client=..., registered_tools=...)
             flight_agent = ToolUseAssistantAgent("Flight_Agent", model_client=..., registered_tools=...)
             team = SelectorGroupChat([travel_advisor, hotel_agent, flight_agent], model_client=...)
-            await team.run("Book a 3-day trip to new york.")
+            await team.run("Book a 3-day trip to new york.", termination_condition=StopMessageTermination())
     """
 
     def __init__(
@@ -209,12 +212,14 @@ Read the above conversation. Then select the next role from {participants} to pl
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             parent_topic_type,
             group_topic_type,
             participant_topic_types,
             participant_descriptions,
+            termination_condition,
             self._model_client,
             self._selector_prompt,
             self._allow_repeated_speaker,

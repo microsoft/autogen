@@ -377,7 +377,6 @@ dev = [
     { name = "azure-identity" },
     { name = "chess" },
     { name = "colorama" },
-    { name = "furo" },
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "llama-index" },
@@ -433,7 +432,6 @@ dev = [
     { name = "azure-identity" },
     { name = "chess" },
     { name = "colorama" },
-    { name = "furo" },
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "llama-index" },
@@ -443,12 +441,12 @@ dev = [
     { name = "llama-index-readers-wikipedia" },
     { name = "llama-index-tools-wikipedia" },
     { name = "markdownify" },
-    { name = "myst-nb" },
+    { name = "myst-nb", specifier = "==1.1.2" },
     { name = "nbqa" },
     { name = "opentelemetry-sdk", specifier = ">=1.27.0" },
     { name = "pip" },
     { name = "polars" },
-    { name = "pydata-sphinx-theme" },
+    { name = "pydata-sphinx-theme", specifier = "==0.15.4" },
     { name = "python-dotenv" },
     { name = "requests" },
     { name = "sphinx" },
@@ -1223,21 +1221,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/90/b6/eba5024a9889fcfff396db543a34bef0ab9d002278f163129f9f01005960/fsspec-2024.6.1.tar.gz", hash = "sha256:fad7d7e209dd4c1208e3bbfda706620e0da5142bebbd9c384afb95b07e798e49", size = 284584 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/44/73bea497ac69bafde2ee4269292fa3b41f1198f4bb7bbaaabde30ad29d4a/fsspec-2024.6.1-py3-none-any.whl", hash = "sha256:3cb443f8bcd2efb31295a5b9fdb02aee81d8452c80d28f97a6d0959e6cee101e", size = 177561 },
-]
-
-[[package]]
-name = "furo"
-version = "2024.8.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "beautifulsoup4" },
-    { name = "pygments" },
-    { name = "sphinx" },
-    { name = "sphinx-basic-ng" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/e2/d351d69a9a9e4badb4a5be062c2d0e87bd9e6c23b5e57337fef14bef34c8/furo-2024.8.6.tar.gz", hash = "sha256:b63e4cee8abfc3136d3bc03a3d45a76a850bada4d6374d24c1716b0e01394a01", size = 1661506 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/48/e791a7ed487dbb9729ef32bb5d1af16693d8925f4366befef54119b2e576/furo-2024.8.6-py3-none-any.whl", hash = "sha256:6cd97c58b47813d3619e63e9081169880fbe331f0ca883c871ff1f3f11814f5c", size = 341333 },
 ]
 
 [[package]]
@@ -2841,7 +2824,7 @@ wheels = [
 
 [[package]]
 name = "myst-nb"
-version = "1.1.1"
+version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "importlib-metadata" },
@@ -2855,9 +2838,9 @@ dependencies = [
     { name = "sphinx" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6c/20/0a085f78d1b5445847574df9937a6560fbd37fa19d472adc0899d3fd6f97/myst_nb-1.1.1.tar.gz", hash = "sha256:74227c11f76d03494f43b7788659b161b94f4dedef230a2912412bc8c3c9e553", size = 77351 }
+sdist = { url = "https://files.pythonhosted.org/packages/04/e3/01c093f6a46be2edc0fd370cbf6d227495ea19452939b2810b36657c63d4/myst_nb-1.1.2.tar.gz", hash = "sha256:961b4005657029ca89892a4c75edbf0856c54ceaf6172368b46bf7676c1f7700", size = 78036 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/42/814f84c78fa45cbd03fea27b10f4edf303ccf3890e377d3cda6d7ec729c3/myst_nb-1.1.1-py3-none-any.whl", hash = "sha256:8b8f9085287d948eef46cb3764aafc21915e0e981882b8c742719f5b1a84c36f", size = 80282 },
+    { url = "https://files.pythonhosted.org/packages/04/45/cf78b2f09c46b36f486b75c34a8b48580e53b543bd9a467b3c7eb9054b70/myst_nb-1.1.2-py3-none-any.whl", hash = "sha256:9b7034e5d62640cb6daf03f9ca16ef45d0462fced27944c77aa3f98c7cdcd566", size = 80281 },
 ]
 
 [[package]]
@@ -4385,18 +4368,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d2/bc/8016eee9ffb86069ae7e658c136bad31a9854b476a212492b5aab4d4d5f6/sphinx_autobuild-2024.4.16.tar.gz", hash = "sha256:1c0ed37a1970eed197f9c5a66d65759e7c4e4cba7b5a5d77940752bf1a59f2c7", size = 12892 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/de/1d005ba60b4b754d6e05079a479f16a8f6e08c1ec4f8d80288238502b4b6/sphinx_autobuild-2024.4.16-py3-none-any.whl", hash = "sha256:f2522779d30fcbf0253e09714f274ce8c608cb6ebcd67922b1c54de59faba702", size = 11222 },
-]
-
-[[package]]
-name = "sphinx-basic-ng"
-version = "1.0.0b2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sphinx" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/98/0b/a866924ded68efec7a1759587a4e478aec7559d8165fac8b2ad1c0e774d6/sphinx_basic_ng-1.0.0b2.tar.gz", hash = "sha256:9ec55a47c90c8c002b5960c57492ec3021f5193cb26cebc2dc4ea226848651c9", size = 20736 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/dd/018ce05c532a22007ac58d4f45232514cd9d6dd0ee1dc374e309db830983/sphinx_basic_ng-1.0.0b2-py3-none-any.whl", hash = "sha256:eb09aedbabfb650607e9b4b68c9d240b90b1e1be221d6ad71d61c52e29f7932b", size = 22496 },
 ]
 
 [[package]]
