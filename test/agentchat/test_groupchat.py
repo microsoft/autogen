@@ -2101,13 +2101,13 @@ def test_custom_model_client():
         select_speaker_auto_model_client_cls=CustomModelClient
     )
 
-checking_agent, speaker_selection_agent = group_chat._create_internal_agents(agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test"))
+    checking_agent, speaker_selection_agent = group_chat._create_internal_agents(agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test"))
 
-assert isinstance(speaker_selection_agent.client._clients[0], CustomModelClient)
-        agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test")
-    )
+    # Check that the custom model client is assigned to the speaker selection agent
+    assert isinstance(speaker_selection_agent.client._clients[0], CustomModelClient)
 
-    assert isinstance(result[1].client._clients[0], CustomModelClient)
+    # Check that the LLM Config is assigned
+    assert speaker_selection_agent.client._config_list == llm_config["config_list"]
 
 def test_select_speaker_transform_messages():
     """Tests adding transform messages to a GroupChat for speaker selection when in 'auto' mode"""
