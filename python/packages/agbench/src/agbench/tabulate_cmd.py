@@ -208,7 +208,7 @@ def default_tabulate(
 
         footer_row = ["Average Score"]
         for i in range(0, max_instances):
-            avg_score_trial = 0.
+            avg_score_trial = 0.0
             for row in all_results:
                 if isinstance(row[i + 1], tuple):
                     avg_score_trial += row[i + 1][0]

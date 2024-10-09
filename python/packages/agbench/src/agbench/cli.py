@@ -3,9 +3,9 @@ from typing import Callable, List, Optional, Sequence
 
 from typing_extensions import TypedDict
 
+from .remove_missing_cmd import remove_missing_cli
 from .run_cmd import run_cli
 from .tabulate_cmd import tabulate_cli
-from .remove_missing_cmd import remove_missing_cli
 from .version import __version__
 
 

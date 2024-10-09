@@ -1,8 +1,8 @@
+import argparse
 import os
 import shutil
 import sys
 from typing import Sequence
-import argparse
 
 
 def default_scorer(instance_dir: str) -> bool:

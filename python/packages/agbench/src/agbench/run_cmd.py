@@ -10,8 +10,8 @@ import subprocess
 import sys
 import time
 import traceback
-from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast, Any
 from multiprocessing import Pool
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import docker
 from azure.core.exceptions import ClientAuthenticationError
@@ -680,7 +680,7 @@ def run_scenarios_subset(
             print(f"Running scenario {results_repetition}")
 
             # Expand the scenario
-            expand_scenario(".", instance, results_repetition) # type: ignore
+            expand_scenario(".", instance, results_repetition)  # type: ignore
 
             # Prepare the environment (keys/values that need to be added)
             env = get_scenario_env()
