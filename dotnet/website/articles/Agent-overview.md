@@ -16,16 +16,16 @@ To chat with an agent, typically you can invoke @AutoGen.Core.IAgent.GenerateRep
 > AutoGen provides a list of built-in message types like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, @AutoGen.Core.MultiModalMessage, @AutoGen.Core.ToolCallMessage, @AutoGen.Core.ToolCallResultMessage, etc. You can use these message types to chat with an agent. For further details, see [built-in messages](./Built-in-messages.md).
 
 - Send a @AutoGen.Core.TextMessage to an agent via @AutoGen.Core.IAgent.GenerateReplyAsync*:
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_GenerateReplyAsync)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_GenerateReplyAsync)]
 
 - Send a message to an agent via @AutoGen.Core.AgentExtension.SendAsync*:
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_SendAsync)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_SendAsync)]
 
 ## Streaming chat
 If an agent implements @AutoGen.Core.IStreamingAgent, you can use @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync* to chat with the agent in a streaming way. You would need to process the streaming updates on your side though.
 
 - Send a @AutoGen.Core.TextMessage to an agent via @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync*, and print the streaming updates to console:
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_GenerateStreamingReplyAsync)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/AgentCodeSnippet.cs?name=ChatWithAnAgent_GenerateStreamingReplyAsync)]
 
 ## Register middleware to an agent
 @AutoGen.Core.IMiddleware and @AutoGen.Core.IStreamingMiddleware are used to extend the behavior of @AutoGen.Core.IAgent.GenerateReplyAsync* and @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync*. You can register middleware to an agent to customize the behavior of the agent on things like function call support, converting message of different types, print message, gather user input, etc.

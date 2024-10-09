@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
@@ -14,7 +14,7 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Google.Cloud.AIPlatform.V1" Version="$(GoogleCloudAPIPlatformVersion)" />
+    <PackageReference Include="Google.Cloud.AIPlatform.V1" />
   </ItemGroup>
   
   <ItemGroup>

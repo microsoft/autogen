@@ -3,7 +3,7 @@ This example shows how to use @AutoGen.Gemini.GeminiChatAgent to connect to Vert
 To run this example, you need to have a project on Google Cloud with access to Vertex AI API. For more information please refer to [Google Vertex AI](https://cloud.google.com/vertex-ai/docs).
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs)
+> You can find the complete sample code [here](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs)
 
 > [!NOTE]
 > What's the difference between Google AI Gemini and Vertex AI Gemini?
@@ -20,13 +20,13 @@ dotnet add package AutoGen.Gemini
 
 ### Step 2: Add using statement
 
-[!code-csharp[](../../../sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Using)]
+[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Using)]
 
 ### Step 3: Create a Gemini agent
 
-[!code-csharp[](../../../sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Create_Gemini_Agent)]
+[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Create_Gemini_Agent)]
 
 
 ### Step 4: Chat with Gemini
 
-[!code-csharp[](../../../sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Chat_With_Vertex_Gemini)]
+[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Chat_With_Vertex_Gemini)]

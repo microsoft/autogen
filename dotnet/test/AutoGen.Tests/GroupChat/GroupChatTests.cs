@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // GroupChatTests.cs
 
 using System;
@@ -30,7 +30,7 @@ public class GroupChatTests
             chatHistory.Add(message);
         }
 
-        chatHistory.Count().Should().Be(10);
+        chatHistory.Count.Should().Be(10);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class GroupChatTests
             chatHistory.Add(message);
         }
 
-        chatHistory.Count().Should().Be(3);
+        chatHistory.Count.Should().Be(3);
         chatHistory.Last().From.Should().Be("Cathy");
     }
 
@@ -83,7 +83,7 @@ public class GroupChatTests
             chatHistory.Add(message);
         }
 
-        chatHistory.Count().Should().Be(2);
+        chatHistory.Count.Should().Be(2);
     }
 
     [Fact]
@@ -108,6 +108,6 @@ public class GroupChatTests
             chatHistory.Add(message);
         }
 
-        chatHistory.Count().Should().Be(0);
+        chatHistory.Count.Should().Be(0);
     }
 }

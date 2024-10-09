@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // FunctionContractExtension.cs
 
 using System;
@@ -46,11 +46,6 @@ public static class FunctionContractExtension
         }
         propertySchemaBuilder = propertySchemaBuilder.Properties(propertiesSchemas);
         propertySchemaBuilder = propertySchemaBuilder.Required(requiredParameterNames);
-
-        var option = new System.Text.Json.JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        };
 
         functionDefinition.Parameters = propertySchemaBuilder.Build();
 

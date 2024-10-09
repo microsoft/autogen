@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentExtension.cs
 
 using System.Text;
@@ -18,7 +18,7 @@ public static class AgentExtension
     /// <param name="maximumOutputToKeep">maximum output to keep</param>
     /// <example>
     /// <![CDATA[
-    /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]
+    /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../samples/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]
     /// ]]>
     /// </example>
     [Obsolete]

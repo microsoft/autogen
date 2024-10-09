@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // RolePlayOrchestratorTests.cs
 
 using System;
@@ -259,7 +259,6 @@ public class RolePlayOrchestratorTests
         await CoderReviewerRunnerTestAsync(openAIChatAgent);
     }
 
-
     [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]
     public async Task GoogleGemini_1_5_flash_001_CoderReviewerRunnerTestAsync()
     {
@@ -272,7 +271,6 @@ public class RolePlayOrchestratorTests
 
         await CoderReviewerRunnerTestAsync(geminiAgent);
     }
-
 
     [ApiKeyFact("ANTHROPIC_API_KEY")]
     public async Task Claude3_Haiku_CoderReviewerRunnerTestAsync()

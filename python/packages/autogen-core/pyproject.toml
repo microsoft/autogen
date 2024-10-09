@@ -1,0 +1,152 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autogen-core"
+version = "0.4.0dev0"
+license = {file = "LICENSE-CODE"}
+description = "Foundational interfaces and agent runtime implementation for AutoGen"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "openai>=1.3",
+    "pillow",
+    "aiohttp",
+    "typing-extensions",
+    "pydantic<3.0.0,>=2.0.0",
+    "grpcio~=1.62.0",
+    "protobuf~=4.25.1",
+    "tiktoken",
+    "docker~=7.0",
+    "opentelemetry-api~=1.27.0",
+    "asyncio_atexit"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "aiofiles",
+    "azure-identity",
+    "chess",
+    "colorama",
+    "langchain-openai",
+    "langgraph",
+    "llama-index-embeddings-azure-openai",
+    "llama-index-llms-azure-openai",
+    "llama-index-readers-web",
+    "llama-index-readers-wikipedia",
+    "llama-index-tools-wikipedia",
+    "llama-index",
+    "markdownify",
+    "nbqa",
+    "pip",
+    "polars",
+    "python-dotenv",
+    "requests",
+    "tavily-python",
+    "textual-dev",
+    "textual-imageview",
+    "textual",
+    "types-aiofiles",
+    "types-pillow",
+    "types-protobuf",
+    "types-requests",
+    "types-docker",
+    "wikipedia",
+    "opentelemetry-sdk>=1.27.0",
+
+    # Documentation
+    "myst-nb==1.1.2",
+    "pydata-sphinx-theme==0.15.4",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx",
+    "sphinxcontrib-apidoc",
+    "autodoc_pydantic~=2.2",
+
+    # Documentation tooling
+    "sphinx-autobuild",
+]
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist", "src/autogen_core/application/protos"]
+include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
+
+[tool.ruff.lint.per-file-ignores]
+"samples/**.py" = ["T20"]
+"docs/**.ipynb" = ["T20"]
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src", "tests", "samples"]
+exclude = ["src/autogen_core/application/protos"]
+reportDeprecated = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.nbqa.addopts]
+mypy = [
+    "--disable-error-code=top-level-await"
+]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+test = "pytest -n auto"
+mypy.default_item_type = "cmd"
+mypy.sequence = [
+    "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos src tests",
+    "nbqa mypy docs/src --config-file ../../pyproject.toml",
+]
+
+# Docs
+docs-clean = "rm -rf docs/build && rm -rf docs/src/reference/python/"
+
+docs-apidoc-core = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_core src/autogen_core src/autogen_core/application/protos/"
+docs-apidoc-agentchat = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_agentchat ../autogen-agentchat/src/autogen_agentchat"
+# Includes --implicit-namespaces as it is a namespace package
+docs-apidoc-ext = "sphinx-apidoc --implicit-namespaces --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_ext ../autogen-ext/src/autogen_ext"
+docs-apidoc-all = [
+    "docs-apidoc-core",
+    "docs-apidoc-agentchat",
+    "docs-apidoc-ext",
+]
+
+# Inline tables are WAY easier to read but for some reason they break pyright. So we have to write it out this way.
+# Example of inline table:
+# docs-build = [
+#     "docs-apidoc-all",
+#     { cmd = "sphinx-build docs/src docs/build" }
+# ]
+
+[[tool.poe.tasks.docs-build.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-build.sequence]]
+cmd = "sphinx-build docs/src docs/build"
+
+[[tool.poe.tasks.docs-serve.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-serve.sequence]]
+cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
+
+[[tool.poe.tasks.docs-check.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-check.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-check.sequence]]
+cmd = "sphinx-build --fail-on-warning docs/src docs/build"

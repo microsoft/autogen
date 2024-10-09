@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!--orleans doesn't have strong name package-->
+    <NoWarn>$(NoWarn);CS8002</NoWarn> 
+  </PropertyGroup>
+
+   <ItemGroup>
+    <ProjectReference Include="../../../src/Microsoft.AutoGen.Agents/Runtime/Microsoft.AutoGen.Agents.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen.ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
