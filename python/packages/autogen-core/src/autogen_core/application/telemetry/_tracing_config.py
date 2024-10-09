@@ -174,8 +174,7 @@ class MessageRuntimeTracingConfig(
         else:
             return SpanKind.CLIENT
 
-    # TODO: Once we figure out how the destinations are stringified, we can use that convention
-    # https://github.com/microsoft/agnext/issues/399
+    # TODO: Use stringified convention
     def _get_destination_str(self, destination: MessagingDestination) -> str:
         if isinstance(destination, AgentId):
             return f"{destination.type}.({destination.key})-A"

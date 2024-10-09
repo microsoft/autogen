@@ -62,9 +62,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         {
             try
             {
-                await foreach (
-                    var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token)
-                    )
+                await foreach (var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
                 {
                     switch (message.MessageCase)
                     {
