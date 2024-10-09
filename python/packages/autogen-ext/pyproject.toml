@@ -19,7 +19,8 @@ dependencies = [
 
 
 [project.optional-dependencies]
-langchain = ["langchain >= 0.3.1"]
+langchain-tools = ["langchain >= 0.3.1"]
+azure-code-executor = ["azure-core"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
