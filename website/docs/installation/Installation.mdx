@@ -13,8 +13,8 @@ When installing AutoGen locally, we recommend using a virtual environment for th
     Create and activate:
 
     ```bash
-    python3 -m venv pyautogen
-    source pyautogen/bin/activate
+    python3 -m venv .venv
+    source .venv/bin/activate
     ```
 
     To deactivate later, run:
@@ -32,8 +32,8 @@ When installing AutoGen locally, we recommend using a virtual environment for th
     Create and activate:
 
     ```bash
-    conda create -n pyautogen python=3.10
-    conda activate pyautogen
+    conda create -n autogen python=3.10
+    conda activate autogen
     ```
 
     To deactivate later, run:
@@ -52,7 +52,7 @@ When installing AutoGen locally, we recommend using a virtual environment for th
     poetry init
     poetry shell
 
-    poetry add pyautogen
+    poetry add autogen-agentchat~=0.2
     ```
 
     To deactivate later, run:
@@ -69,14 +69,8 @@ When installing AutoGen locally, we recommend using a virtual environment for th
 AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
 ```bash
-pip install pyautogen
+pip install autogen-agentchat~=0.2
 ```
-
-:::info
-
-`pyautogen<0.2` required `openai<1`. Starting from pyautogen v0.2, `openai>=1` is required.
-
-:::
 
 ## Install Docker for Code Execution
 

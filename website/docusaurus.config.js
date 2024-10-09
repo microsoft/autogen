@@ -16,7 +16,7 @@ module.exports = {
   title: "AutoGen",
   tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
-  baseUrl: "/autogen/",
+  baseUrl: "/autogen/0.2/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
@@ -146,11 +146,6 @@ module.exports = {
           position: "right",
         },
         {
-          href: "https://aka.ms/autogen-dc",
-          label: "Discord",
-          position: "right",
-        },
-        {
           href: "https://twitter.com/pyautogen",
           label: "Twitter",
           position: "right",
@@ -177,8 +172,8 @@ module.exports = {
             //     //   href: 'https://stackoverflow.com/questions/tagged/pymarlin',
             //     // },
             {
-              label: "Discord",
-              href: "https://aka.ms/autogen-dc",
+              label: "GitHub Discussion",
+              href: "https://github.com/microsoft/autogen/discussions",
             },
             {
               label: "Twitter",
