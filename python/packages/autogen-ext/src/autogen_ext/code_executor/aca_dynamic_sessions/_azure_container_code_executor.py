@@ -11,20 +11,21 @@ import aiohttp
 
 # async functions shouldn't use open()
 from anyio import open_file
-from azure.core.credentials import AccessToken
-
-# from azure.mgmt.appcontainers import ContainerAppsAPIClient
-from typing_extensions import ParamSpec
-
-from ....base import CancellationToken
-from .._base import CodeBlock, CodeExecutor, CodeResult
-from .._func_with_reqs import (
+from autogen_core.base import CancellationToken
+from autogen_core.components.code_executor import (
+    CodeBlock,
+    CodeExecutor,
+    CodeResult,
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
     build_python_functions_file,
+    get_required_packages,
     to_stub,
 )
-from .utils import PYTHON_VARIANTS, get_required_packages, lang_to_cmd  # type: ignore
+from azure.core.credentials import AccessToken
+from typing_extensions import ParamSpec
+
+PYTHON_VARIANTS = ["python", "Python", "py"]
 
 __all__ = ("AzureContainerCodeExecutor", "TokenProvider")
 
@@ -35,25 +36,6 @@ class TokenProvider(Protocol):
     def get_token(
         self, *scopes: str, claims: Optional[str] = None, tenant_id: Optional[str] = None, **kwargs: Any
     ) -> AccessToken: ...
-
-
-# class FileInfo:
-#    def __init__(self, filename: str, filesize: int, last_modified: str):
-#        self._filename = filename
-#        self._filesize = filesize
-#        self._last_modified = datetime.fromisoformat(last_modified)
-#    @property
-#    def filename(self) -> str:
-#        return self._filename
-#    @property
-#    def filesize(self) -> int:
-#        return self._filesize
-#    @property
-#    def last_modified(self) -> datetime:
-#        return self._last_modified
-#
-#    def __str__(self):
-#        return f"{self._filename}; {self._filesize} bytes; {self._last_modified}"
 
 
 class AzureContainerCodeExecutor(CodeExecutor):

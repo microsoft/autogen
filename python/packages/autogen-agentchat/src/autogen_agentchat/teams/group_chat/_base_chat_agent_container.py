@@ -53,7 +53,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
             # Handle tool calls.
             while isinstance(response, ToolCallMessage):
                 # Log the tool call.
-                event_logger.info(ToolCallEvent(agent_message=response, source=self.id))
+                event_logger.debug(ToolCallEvent(agent_message=response, source=self.id))
 
                 results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
                     *[
@@ -79,7 +79,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
                 # Create a new tool call result message.
                 feedback = ToolCallResultMessage(content=function_results, source=self._tool_agent_id.type)
                 # Log the feedback.
-                event_logger.info(ToolCallResultEvent(agent_message=feedback, source=self._tool_agent_id))
+                event_logger.debug(ToolCallResultEvent(agent_message=feedback, source=self._tool_agent_id))
                 response = await self._agent.on_messages([feedback], ctx.cancellation_token)
 
         # Publish the response.
