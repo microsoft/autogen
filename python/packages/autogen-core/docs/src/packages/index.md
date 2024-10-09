@@ -33,7 +33,7 @@ pip install autogen-agentchat==0.4.0dev0
 ```
 
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
 :::
 
 (pkg-info-autogen-core)=
@@ -48,7 +48,7 @@ Implements the core functionality of the AutoGen framework, providing basic buil
 pip install autogen-core==0.4.0dev0
 ```
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
 :::
 
 (pkg-info-autogen-ext)=
@@ -63,7 +63,7 @@ Implementations of core components that interface with external services, or use
 pip install autogen-ext==0.4.0dev0
 ```
 
-[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-ext)
+[{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
 :::
 
 (pkg-info-autogen-magentic-one)=
@@ -78,7 +78,7 @@ A generalist multi-agent softbot utilizing five agents to tackle intricate tasks
 pip install autogen-magentic-one==0.1.0dev0
 ```
 
-[{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-magentic-one)
+[{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-magentic-one)
 :::
 
 (pkg-info-autogenbench)=
@@ -93,5 +93,5 @@ AutoGenBench is a tool for repeatedly running pre-defined AutoGen tasks in tight
 pip install autogenbench
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/agbench)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/agbench)
 :::
