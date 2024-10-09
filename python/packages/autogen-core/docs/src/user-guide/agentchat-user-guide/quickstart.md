@@ -26,7 +26,8 @@ For further installation instructions, please refer to the [package information]
 
 The following example illustrates creating a simple agent team with two agents that interact to solve a task.
 
-1. `CodingAssistantAgent` that generates responses using an LLM model. 2.`CodeExecutorAgent` that executes code snippets and returns the output.
+1. `CodingAssistantAgent` that generates responses using an LLM model.
+2. `CodeExecutorAgent` that executes code snippets and returns the output.
 
 The task is to "Create a plot of NVIDIA and TESLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
 

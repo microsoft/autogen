@@ -7,6 +7,18 @@ myst:
 
 # Core
 
+```{toctree}
+:maxdepth: 1
+:hidden:
+
+quickstart
+core-concepts/index
+framework/index
+design-patterns/index
+cookbook/index
+faqs
+```
+
 ```{warning}
 This project and documentation is a work in progress. If you have any questions or need help, please reach out to us on GitHub.
 ```
@@ -30,73 +42,4 @@ Key features of AutoGen core include:
   content: "Easily trace and debug your agent systems."
 - header: "{fas}`project-diagram;pst-color-primary` Event-Driven Architecture"
   content: "Build event-driven, distributed, scalable, and resilient AI agent systems."
-```
-
-```{toctree}
-:caption: Getting Started
-:maxdepth: 1
-:hidden:
-
-guides/quickstart
-```
-
-```{toctree}
-:caption: Core Concepts
-:maxdepth: 1
-:hidden:
-
-
-core-concepts/agent-and-multi-agent-application
-core-concepts/architecture
-core-concepts/api-layers
-core-concepts/application-stack
-core-concepts/agent-identity-and-lifecycle
-core-concepts/topic-and-subscription
-core-concepts/faqs
-
-```
-
-```{toctree}
-:caption: Framework
-:maxdepth: 1
-:hidden:
-
-guides/agent-and-agent-runtime
-guides/message-and-communication
-guides/model-clients
-guides/tools
-guides/logging
-guides/distributed-agent-runtime
-guides/telemetry
-guides/command-line-code-executors
-```
-
-```{toctree}
-:caption: Multi-Agent Design Patterns
-:maxdepth: 1
-:hidden:
-
-guides/multi-agent-design-patterns
-guides/group-chat
-guides/reflection
-guides/mixture-of-agents
-guides/multi-agent-debate
-```
-
-```{toctree}
-:caption: Cookbook
-:maxdepth: 1
-:hidden:
-
-cookbook/azure-openai-with-aad-auth
-cookbook/termination-with-intervention
-cookbook/tool-use-with-intervention
-cookbook/extracting-results-with-an-agent
-cookbook/openai-assistant-agent
-cookbook/langgraph-agent
-cookbook/llamaindex-agent
-cookbook/local-llms-ollama-litellm
-cookbook/instrumenting
-cookbook/topic-subscription-scenarios
-cookbook/azure-container-code-executor
 ```

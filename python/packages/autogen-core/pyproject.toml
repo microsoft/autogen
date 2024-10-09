@@ -33,7 +33,6 @@ dev-dependencies = [
     "azure-identity",
     "chess",
     "colorama",
-    "furo",
     "langchain-openai",
     "langgraph",
     "llama-index-embeddings-azure-openai",
@@ -43,15 +42,11 @@ dev-dependencies = [
     "llama-index-tools-wikipedia",
     "llama-index",
     "markdownify",
-    "myst-nb",
     "nbqa",
     "pip",
     "polars",
     "python-dotenv",
     "requests",
-    "sphinx-autobuild",
-    "sphinx",
-    "sphinxcontrib-apidoc",
     "tavily-python",
     "textual-dev",
     "textual-imageview",
@@ -63,9 +58,17 @@ dev-dependencies = [
     "types-docker",
     "wikipedia",
     "opentelemetry-sdk>=1.27.0",
-    "sphinx-design",
-    "pydata-sphinx-theme",
+
+    # Documentation
+    "myst-nb==1.1.2",
+    "pydata-sphinx-theme==0.15.4",
     "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx",
+    "sphinxcontrib-apidoc",
+
+    # Documentation tooling
+    "sphinx-autobuild",
 ]
 
 
@@ -135,7 +138,7 @@ cmd = "sphinx-build docs/src docs/build"
 ref = "docs-apidoc-all"
 
 [[tool.poe.tasks.docs-serve.sequence]]
-cmd = "sphinx-autobuild --watch src docs/src docs/build"
+cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
 
 [[tool.poe.tasks.docs-check.sequence]]
 ref = "docs-apidoc-all"

@@ -11,7 +11,7 @@ The following diagram shows the application stack.
 At the bottom of the stack is the base messaging and routing facilities that
 enable agents to communicate with each other. These are managed by the
 agent runtime, and for most applications, developers only need to interact
-with the high-level APIs provided by the runtime (see [Agent and Agent Runtime](../guides/agent-and-agent-runtime.ipynb)).
+with the high-level APIs provided by the runtime (see [Agent and Agent Runtime](../framework/agent-and-agent-runtime.ipynb)).
 
 At the top of the stack, developers need to define the
 types of the messages that agents exchange. This set of message types
@@ -20,7 +20,7 @@ implementation of the contracts determines how agents handle messages.
 The behavior contract is also sometimes referred to as the message protocol.
 It is the developer's responsibility to implement the behavior contract.
 Multi-agent patterns emerge from these behavior contracts
-(see [Multi-Agent Design Patterns](../guides/multi-agent-design-patterns.md)).
+(see [Multi-Agent Design Patterns](../design-patterns/multi-agent-design-patterns.md)).
 
 ## An Example Application
 

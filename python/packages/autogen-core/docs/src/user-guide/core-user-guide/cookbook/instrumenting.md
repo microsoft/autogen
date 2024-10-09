@@ -10,7 +10,7 @@ Follow the instructions [here](https://learn.microsoft.com/en-us/dotnet/aspire/f
 
 ## Instrumenting your code
 
-Once you have a dashboard set up, now it's a matter of sending traces and logs to it. You can follow the steps in the [Telemetry Guide](../guides/telemetry.md) to set up the opentelemetry sdk and exporter.
+Once you have a dashboard set up, now it's a matter of sending traces and logs to it. You can follow the steps in the [Telemetry Guide](../framework/telemetry.md) to set up the opentelemetry sdk and exporter.
 
 After instrumenting your code with the Aspire Dashboard running, you should see traces and logs appear in the dashboard as your code runs.
 
@@ -32,4 +32,4 @@ OpenAIInstrumentor().instrument()
 
 Now running your code will send traces including the LLM calls to your telemetry backend (Aspire in our case).
 
-![Open AI Telemetry logs](../../images/open-ai-telemetry-example.png)
+![Open AI Telemetry logs](../../../images/open-ai-telemetry-example.png)

@@ -2,10 +2,10 @@
   {
     "name": "v0.2 (stable)",
     "version": "0.2",
-    "url": "https://microsoft.github.io/autogen/en/0.2/"
+    "url": "https://microsoft.github.io/autogen/0.2/"
   },
   {
     "version": "dev",
-    "url": "https://microsoft.github.io/autogen/en/dev/"
+    "url": "https://microsoft.github.io/autogen/dev/"
   }
 ]

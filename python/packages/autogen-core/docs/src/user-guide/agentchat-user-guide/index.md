@@ -32,29 +32,10 @@ Teams define how groups of agents communicate to address tasks. The following Te
 - `SelectorGroupChat` - A team where a model is used to select the next agent to send a message based on the current conversation history.
 
 ```{toctree}
-:caption: Getting Started
-:maxdepth: 2
+:maxdepth: 1
 :hidden:
 
 quickstart
-
-```
-
-```{toctree}
-:caption: Guides
-:maxdepth: 2
-:hidden:
-
-guides/code-execution
-guides/tool_use
-guides/selector-group-chat
-
-```
-
-```{toctree}
-:caption: Examples
-:maxdepth: 3
-:hidden:
-
+guides/index
 examples/index
 ```
