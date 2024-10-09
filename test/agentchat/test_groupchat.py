@@ -2061,6 +2061,7 @@ def test_manager_resume_messages():
     with pytest.raises(Exception):
         return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
 
+
 def test_custom_model_client():
     class CustomModelClient:
         def __init__(self, config, **kwargs):
@@ -2097,17 +2098,23 @@ def test_custom_model_client():
     llm_config = {"config_list": [{"model": "test_model_name", "model_client_cls": "CustomModelClient"}]}
 
     group_chat = autogen.GroupChat(
-        agents=[], messages=[], max_round=3, select_speaker_auto_llm_config=llm_config,
-        select_speaker_auto_model_client_cls=CustomModelClient
+        agents=[],
+        messages=[],
+        max_round=3,
+        select_speaker_auto_llm_config=llm_config,
+        select_speaker_auto_model_client_cls=CustomModelClient,
     )
 
-    checking_agent, speaker_selection_agent = group_chat._create_internal_agents(agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test"))
+    checking_agent, speaker_selection_agent = group_chat._create_internal_agents(
+        agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test")
+    )
 
     # Check that the custom model client is assigned to the speaker selection agent
     assert isinstance(speaker_selection_agent.client._clients[0], CustomModelClient)
 
     # Check that the LLM Config is assigned
     assert speaker_selection_agent.client._config_list == llm_config["config_list"]
+
 
 def test_select_speaker_transform_messages():
     """Tests adding transform messages to a GroupChat for speaker selection when in 'auto' mode"""
@@ -2147,6 +2154,7 @@ def test_select_speaker_transform_messages():
     )
 
     assert groupchat_none._speaker_selection_transforms is None
+
 
 if __name__ == "__main__":
     # test_func_call_groupchat()
