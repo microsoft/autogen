@@ -12,49 +12,52 @@ var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
-[TopicSubscription("HelloAgents")]
-public class HelloAgent(
-    IAgentContext context,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
-        context,
-        typeRegistry),
-        ISayHello,
-        IHandle<NewMessageReceived>,
-        IHandle<ConversationClosed>
+namespace Hello
 {
-    public async Task Handle(NewMessageReceived item)
+    [TopicSubscription("HelloAgents")]
+    public class HelloAgent(
+        IAgentContext context,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+            context,
+            typeRegistry),
+            ISayHello,
+            IHandle<NewMessageReceived>,
+            IHandle<ConversationClosed>
     {
-        var response = await SayHello(item.Message).ConfigureAwait(false);
-        var evt = new Output
+        public async Task Handle(NewMessageReceived item)
         {
-            Message = response
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
-        var goodbye = new ConversationClosed
+            var response = await SayHello(item.Message).ConfigureAwait(false);
+            var evt = new Output
+            {
+                Message = response
+            }.ToCloudEvent(this.AgentId.Key);
+            await PublishEvent(evt).ConfigureAwait(false);
+            var goodbye = new ConversationClosed
+            {
+                UserId = this.AgentId.Key,
+                UserMessage = "Goodbye"
+            }.ToCloudEvent(this.AgentId.Key);
+            await PublishEvent(goodbye).ConfigureAwait(false);
+        }
+        public async Task Handle(ConversationClosed item)
         {
-            UserId = this.AgentId.Key,
-            UserMessage = "Goodbye"
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+            var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+            var evt = new Output
+            {
+                Message = goodbye
+            }.ToCloudEvent(this.AgentId.Key);
+            await PublishEvent(evt).ConfigureAwait(false);
+            await Task.Delay(60000);
+            await App.ShutdownAsync();
+        }
+        public async Task<string> SayHello(string ask)
+        {
+            var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
+            return response;
+        }
     }
-    public async Task Handle(ConversationClosed item)
+    public interface ISayHello
     {
-        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
-        var evt = new Output
-        {
-            Message = goodbye
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
-        await Task.Delay(60000);
-        await App.ShutdownAsync();
+        public Task<string> SayHello(string ask);
     }
-    public async Task<string> SayHello(string ask)
-    {
-        var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
-        return response;
-    }
-}
-public interface ISayHello
-{
-    public Task<string> SayHello(string ask);
 }
