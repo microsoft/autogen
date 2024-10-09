@@ -138,7 +138,7 @@ cmd = "sphinx-build docs/src docs/build"
 ref = "docs-apidoc-all"
 
 [[tool.poe.tasks.docs-serve.sequence]]
-cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto -v"
+cmd = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
 
 [[tool.poe.tasks.docs-check.sequence]]
 ref = "docs-apidoc-all"

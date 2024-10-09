@@ -57,3 +57,20 @@ html[data-theme="light"] .bd-header {
 .search-button-field {
   border-radius: var(--bs-btn-border-radius);
 }
+
+.bd-content .sd-tab-set .sd-tab-content {
+  border: none;
+  border-top: 3px solid var(--pst-color-border);
+
+}
+.bd-content .sd-tab-set>input:checked+label {
+  border: none;
+  transform: translateY(0);
+  font-weight: 600;
+  border-bottom: 2px solid var(--pst-color-secondary);
+
+}
+.bd-content .sd-tab-set>label {
+  background-color: transparent;
+  border: none;
+}
