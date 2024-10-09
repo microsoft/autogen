@@ -5,19 +5,6 @@ myst:
       AutoGen is a community-driven project. Learn how to get involved, contribute, and connect with the community.
 ---
 
-<style>
-.api-card {
-  text-align: center;
-  font-size: 1.2rem;
-}
-
-.api-card svg {
-  font-size: 2rem;
-}
-
-
-</style>
-
 # API Reference
 
 ```{toctree}

@@ -24,6 +24,7 @@ myst:
 
 :::{card} {fas}`people-group;pst-color-primary` AutoGen AgentChat
 :class-title: card-title
+:shadow: none
 
 Library that is at a similar level of abstraction as AutoGen 0.2, including default agents and group chat.
 
@@ -31,9 +32,6 @@ Library that is at a similar level of abstraction as AutoGen 0.2, including defa
 pip install autogen-agentchat==0.4.0dev0
 ```
 
-```{note}
-This package is a work in progress, it will be available on PyPI when it is ready.
-```
 
 [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-agentchat)
 :::
@@ -42,6 +40,7 @@ This package is a work in progress, it will be available on PyPI when it is read
 
 :::{card} {fas}`cube;pst-color-primary` AutoGen Core
 :class-title: card-title
+:shadow: none
 
 Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
 
@@ -49,9 +48,6 @@ Implements the core functionality of the AutoGen framework, providing basic buil
 pip install autogen-core==0.4.0dev0
 ```
 
-```{note}
-This package is a work in progress, it will be available on PyPI when it is ready.
-```
 [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-core)
 :::
 
@@ -59,6 +55,7 @@ This package is a work in progress, it will be available on PyPI when it is read
 
 :::{card} {fas}`puzzle-piece;pst-color-primary` AutoGen Extensions
 :class-title: card-title
+:shadow: none
 
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
@@ -66,35 +63,29 @@ Implementations of core components that interface with external services, or use
 pip install autogen-ext==0.4.0dev0
 ```
 
-```{note}
-This package is a work in progress, it will be available on PyPI when it is ready.
-```
-
 [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-ext)
 :::
 
-(pkg-info-autogen-team-one)=
+(pkg-info-autogen-magentic-one)=
 
-:::{card} {fas}`users;pst-color-primary` Team One
+:::{card} {fas}`users;pst-color-primary` Magentic One
 :class-title: card-title
+:shadow: none
 
 A generalist multi-agent softbot utilizing five agents to tackle intricate tasks involving multi-step planning and real-world actions.
 
 ```sh
-pip install autogen-team-one==0.1.0dev0
+pip install autogen-magentic-one==0.1.0dev0
 ```
 
-```{note}
-This package is a work in progress, it will be available on PyPI when it is ready.
-```
-
-[{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/team-one)
+[{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/autogen-magentic-one)
 :::
 
 (pkg-info-autogenbench)=
 
 :::{card} {fas}`chart-bar;pst-color-primary` AutoGen Bench
 :class-title: card-title
+:shadow: none
 
 AutoGenBench is a tool for repeatedly running pre-defined AutoGen tasks in tightly-controlled initial conditions.
 
@@ -102,5 +93,5 @@ AutoGenBench is a tool for repeatedly running pre-defined AutoGen tasks in tight
 pip install autogenbench
 ```
 
-[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fas}`file-code;pst-color-primary` API Reference](/reference/index.md) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/agbench)
+[{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogenbench/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/agnext/tree/main/python/packages/agbench)
 :::

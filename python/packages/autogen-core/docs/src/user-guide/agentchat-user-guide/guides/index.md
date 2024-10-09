@@ -5,17 +5,15 @@ myst:
       User Guide for AutoGen AgentChat, a framework for building multi-agent applications with AI agents.
 ---
 
-# AgentChat
+# Guides
 
 ```{warning}
 🚧 Under construction 🚧
 ```
 
 ```{toctree}
-:caption: Getting Started
 :maxdepth: 1
 :hidden:
 
-guides/quickstart
-guides/tool_use
+tool_use
 ```
