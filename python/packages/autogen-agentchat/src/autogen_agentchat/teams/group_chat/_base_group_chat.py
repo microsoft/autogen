@@ -1,6 +1,7 @@
+import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import Any, Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
@@ -8,11 +9,10 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
-from autogen_agentchat.agents._base_chat_agent import ChatMessage
-
-from ...agents import BaseChatAgent, BaseToolUseChatAgent, TextMessage
+from ...agents import BaseChatAgent, BaseToolUseChatAgent, ChatMessage, StopMessage, TextMessage
 from .._base_team import BaseTeam, TeamRunResult
 from .._events import ContentPublishEvent, ContentRequestEvent
+from .._termination import TerminationCondition
 from ._base_chat_agent_container import BaseChatAgentContainer
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -45,6 +45,7 @@ class BaseGroupChat(BaseTeam, ABC):
         group_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        termination_condition: TerminationCondition | None = None,
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(
@@ -69,8 +70,10 @@ class BaseGroupChat(BaseTeam, ABC):
 
         return _factory
 
-    async def run(self, task: str) -> TeamRunResult:
+    async def run(self, task: str, *, termination_condition: TerminationCondition | None = None) -> TeamRunResult:
         """Run the team and return the result."""
+        # Create intervention handler for termination.
+
         # Create the runtime.
         runtime = SingleThreadedAgentRuntime()
 
@@ -122,6 +125,7 @@ class BaseGroupChat(BaseTeam, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
+                termination_condition=termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -140,14 +144,16 @@ class BaseGroupChat(BaseTeam, ABC):
         async def collect_group_chat_messages(
             _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
         ) -> None:
-            group_chat_messages.append(message.agent_message)
+            if message.source:
+                group_chat_messages.append(message.agent_message)
 
         await ClosureAgent.register(
             runtime,
             type="collect_group_chat_messages",
             closure=collect_group_chat_messages,
             subscriptions=lambda: [
-                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages")
+                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages"),
+                TypeSubscription(topic_type=team_topic_type, agent_type="collect_group_chat_messages"),
             ],
         )
 
@@ -166,4 +172,9 @@ class BaseGroupChat(BaseTeam, ABC):
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()
 
+        # Reset the termination condition.
+        if termination_condition is not None:
+            await termination_condition.reset()
+
+        # Return the result.
         return TeamRunResult(messages=group_chat_messages)
