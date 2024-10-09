@@ -33,7 +33,7 @@ flowchart LR
 
 The code below shows how to create a dynamic group chat with @AutoGen.Core.GroupChat. In this example, we will create a dynamic group chat with 4 agents: `admin`, `coder`, `reviewer` and `runner`. In this case we don't pass a workflow to the group chat, so the group chat will use driven by the admin agent.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat)]
 
 > [!TIP]
 > You can set up initial context for the group chat using @AutoGen.Core.GroupChatExtension.SendIntroduction*. The initial context can help group admin orchestrates the conversation flow.
@@ -48,26 +48,26 @@ Output:
 
 The code below shows how to create `admin` agent. `admin` agent will create a task for group to work on and terminate the conversation when task is completed.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_admin)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_admin)]
 
 - Create coder agent
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_coder)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_coder)]
 
 - Create reviewer agent
 
 The code below shows how to create `reviewer` agent. `reviewer` agent is a dotnet code reviewer who can review code written by `coder`. In this example, a `function` is used to examine if the code written by `coder` follows the condition.
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=reviewer_function)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=reviewer_function)]
 
 > [!TIP]
 > You can use @AutoGen.Core.FunctionAttribute to generate type-safe function definition and function call wrapper for the function. For more information, please check out [Create type safe function call](./Create-type-safe-function-call.md).
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_reviewer)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_reviewer)]
 
 - Create runner agent
 
 > [!TIP]
 > `AutoGen` provides a built-in support for running code snippet. For more information, please check out [Execute code snippet](./Run-dotnet-code.md).
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_runner)]
+[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_runner)]

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIChatAgentTest.cs
 
 using System;
@@ -252,7 +252,6 @@ public partial class OpenAIChatAgentTest
         respond.GetContent()?.Should().NotBeNullOrEmpty();
     }
 
-
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task ItProduceValidContentAfterFunctionCall()
     {
@@ -304,7 +303,7 @@ public partial class OpenAIChatAgentTest
             options: options)
             .RegisterMessageConnector();
 
-        var res = await agent.GenerateReplyAsync(chatHistory, new GenerateReplyOptions
+        await agent.GenerateReplyAsync(chatHistory, new GenerateReplyOptions
         {
             MaxToken = 1024,
             Functions = [this.GetWeatherAsyncFunctionContract, this.CalculateTaxAsyncFunctionContract],

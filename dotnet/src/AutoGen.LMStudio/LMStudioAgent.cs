@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // LMStudioAgent.cs
 
 using System;
@@ -16,7 +16,7 @@ namespace AutoGen.LMStudio;
 /// agent that consumes local server from LM Studio
 /// </summary>
 /// <example>
-/// [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+/// [!code-csharp[LMStudioAgent](../../samples/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
 /// </example>
 [Obsolete("Use OpenAIChatAgent to connect to LM Studio")]
 public class LMStudioAgent : IAgent

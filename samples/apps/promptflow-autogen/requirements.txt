@@ -1,5 +1,0 @@
-promptflow==1.8.0
-autogen-agentchat[graph,redis]~=0.2
-redis
-semantic-kernel
-beautifulsoup4

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // GeminiChatAgent.cs
 
 using System;
@@ -68,7 +68,7 @@ public class GeminiChatAgent : IStreamingAgent
     /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
     /// /// <example>
     /// <![CDATA[
-    /// [!code-csharp[Chat_With_Google_Gemini](~/../sample/AutoGen.Gemini.Sample/Chat_With_Google_Gemini.cs?name=Create_Gemini_Agent)]
+    /// [!code-csharp[Chat_With_Google_Gemini](~/../samples/AutoGen.Gemini.Sample/Chat_With_Google_Gemini.cs?name=Create_Gemini_Agent)]
     /// ]]>
     /// </example>
     public GeminiChatAgent(
@@ -107,7 +107,7 @@ public class GeminiChatAgent : IStreamingAgent
     /// <param name="responseMimeType">response mime type, available values are ['application/json', 'text/plain'], default is 'text/plain'</param>
     /// <example>
     /// <![CDATA[
-    /// [!code-csharp[Chat_With_Vertex_Gemini](~/../sample/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Create_Gemini_Agent)]
+    /// [!code-csharp[Chat_With_Vertex_Gemini](~/../samples/AutoGen.Gemini.Sample/Chat_With_Vertex_Gemini.cs?name=Create_Gemini_Agent)]
     /// ]]>
     /// </example>
     public GeminiChatAgent(
