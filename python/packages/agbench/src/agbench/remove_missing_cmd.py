@@ -1,7 +1,6 @@
 import os
 import shutil
 import sys
-import re
 from typing import Sequence
 import argparse
 
@@ -20,8 +19,8 @@ def default_scorer(instance_dir: str) -> bool:
             has_run_complete = "RUN.SH COMPLETE !#!#" in content
             # if so, return False
             last_10_lines = content.splitlines()[-10:]
-            last_10_lines = "\n".join(last_10_lines)
-            has_error_in_last_10_lines = "Error code" in last_10_lines
+            last_10_lines_joined = "\n".join(last_10_lines)
+            has_error_in_last_10_lines = "Error code" in last_10_lines_joined
             has_all = has_final_answer and has_scenario_complete and has_run_complete and not has_error_in_last_10_lines
             if not has_all:
                 print(content)

@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 import traceback
-from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast, Any
 from multiprocessing import Pool
 
 import docker
@@ -273,8 +273,11 @@ def get_scenario_env(
     if not azure_openai_ad_token and token_provider:
         azure_openai_ad_token = token_provider()
     if not azure_openai_ad_token:
-        azure_openai_ad_token = get_azure_token_provider()()
-
+        azure_token_provider = get_azure_token_provider()
+        if azure_token_provider:
+            azure_openai_ad_token = azure_token_provider()
+        else:
+            logging.warning("No Azure AD token provider found. Azure AD token not set.")
     if azure_openai_ad_token is not None and len(azure_openai_ad_token.strip()) > 0:
         env["AZURE_OPENAI_AD_TOKEN"] = azure_openai_ad_token
 
@@ -616,7 +619,7 @@ def find_autogen_repo(path: str) -> Optional[str]:
     return None
 
 
-def split_jsonl(file_path: str, num_parts: int) -> List[List[dict]]:
+def split_jsonl(file_path: str, num_parts: int) -> List[List[Dict[str, Any]]]:
     """
     Split a JSONL file into num_parts approximately equal parts.
     """
@@ -628,7 +631,7 @@ def split_jsonl(file_path: str, num_parts: int) -> List[List[dict]]:
     return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
 
 
-def mkdir_p(path):
+def mkdir_p(path: str) -> None:
     """
     Create a directory if it doesn't exist, handling race conditions.
     """
@@ -641,7 +644,7 @@ def mkdir_p(path):
 
 def run_scenarios_subset(
     scenario_name: str,
-    scenarios: List[dict],
+    scenarios: List[Dict[str, Any]],
     n_repeats: int,
     is_native: bool,
     docker_image: Optional[str] = None,
@@ -677,7 +680,7 @@ def run_scenarios_subset(
             print(f"Running scenario {results_repetition}")
 
             # Expand the scenario
-            expand_scenario(".", instance, results_repetition)
+            expand_scenario(".", instance, results_repetition) # type: ignore
 
             # Prepare the environment (keys/values that need to be added)
             env = get_scenario_env()
