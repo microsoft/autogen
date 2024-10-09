@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package agents;
+
+option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
+
+import "cloudevent.proto";
+import "google/protobuf/any.proto";
+
+message TopicId {
+  string type = 1;
+  string source = 2;
+}
+
+message AgentId {
+    string type = 1;
+    string key = 2;
+}
+
+message Payload {
+    string data_type = 1;
+    string data_content_type = 2;
+    bytes data = 3;
+}
+
+message RpcRequest {
+    string request_id = 1;
+    optional AgentId source = 2;
+    AgentId target = 3;
+    string method = 4;
+    Payload payload = 5;
+    map<string, string> metadata = 6;
+}
+
+message RpcResponse {
+    string request_id = 1;
+    Payload payload = 2;
+    string error = 3;
+    map<string, string> metadata = 4;
+}
+
+message Event {
+    string topic_type = 1;
+    string topic_source = 2;
+    optional AgentId source = 3;
+    Payload payload = 4;
+    map<string, string> metadata = 5;
+}
+
+message RegisterAgentTypeRequest {
+    string request_id = 1;
+    string type = 2;
+}
+
+message RegisterAgentTypeResponse {
+    string request_id = 1;
+    bool success = 2;
+    optional string error = 3;
+}
+
+message TypeSubscription {
+    string topic_type = 1;
+    string agent_type = 2;
+}
+
+message Subscription {
+    oneof subscription {
+        TypeSubscription typeSubscription = 1;
+    }
+}
+
+message AddSubscriptionRequest {
+    string request_id = 1;
+    Subscription subscription = 2;
+}
+
+message AddSubscriptionResponse {
+    string request_id = 1;
+    bool success = 2;
+    optional string error = 3;
+}
+
+service AgentRpc {
+    rpc OpenChannel (stream Message) returns (stream Message);
+}
+
+message Message {
+    oneof message {
+        RpcRequest request = 1;
+        RpcResponse response = 2;
+        Event event = 3;
+        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
+        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
+        AddSubscriptionRequest addSubscriptionRequest = 6;
+        AddSubscriptionResponse addSubscriptionResponse = 7;
+        cloudevent.CloudEvent cloudEvent = 8;
+    }
+}
+

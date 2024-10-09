@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
@@ -19,7 +19,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotnetInteractive)" />
+    <PackageReference Include="Microsoft.DotNet.Interactive" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -28,8 +28,8 @@
 	</ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotnetInteractive)" />
-    <PackageReference Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotnetInteractive)" />
+    <PackageReference Include="Microsoft.DotNet.Interactive.Jupyter" />
+    <PackageReference Include="Microsoft.DotNet.Interactive.PackageManagement" />
   </ItemGroup>
 
 	<ItemGroup>

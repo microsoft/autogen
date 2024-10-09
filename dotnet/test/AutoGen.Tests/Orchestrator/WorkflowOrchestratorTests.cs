@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // WorkflowOrchestratorTests.cs
 
 using System;
@@ -107,6 +107,6 @@ public class WorkflowOrchestratorTests
 
         var action = async () => await orchestrator.GetNextSpeakerAsync(context);
 
-        await action.Should().ThrowExactlyAsync<Exception>().WithMessage("There are more than one available agents from the workflow for the next speaker.");
+        await action.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("There are more than one available agents from the workflow for the next speaker.");
     }
 }

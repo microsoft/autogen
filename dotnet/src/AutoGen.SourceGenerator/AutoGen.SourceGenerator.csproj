@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -22,9 +22,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.CodeDom" Version="$(SystemCodeDomVersion)" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisVersion)" PrivateAssets="all" GeneratePathProperty="True" />
-		<PackageReference Include="Newtonsoft.Json" PrivateAssets="all" Version="13.0.1" GeneratePathProperty="true" />
+		<PackageReference Include="System.CodeDom" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" GeneratePathProperty="True" />
+		<PackageReference Include="Newtonsoft.Json" PrivateAssets="all" GeneratePathProperty="true" />
 	</ItemGroup>
 
 

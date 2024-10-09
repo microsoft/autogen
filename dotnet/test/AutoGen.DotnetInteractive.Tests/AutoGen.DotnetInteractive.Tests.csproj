@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <IsTestProject>True</IsTestProject>
+    <NoWarn>$(NoWarn);CA1829;CA1826</NoWarn>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -14,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="$(PowershellSDKVersion)" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" />
   </ItemGroup>
 
 

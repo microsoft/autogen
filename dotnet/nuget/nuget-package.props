@@ -39,7 +39,7 @@
   <ItemGroup>
     <!-- SourceLink allows step-through debugging for source hosted on GitHub. -->
     <!-- https://github.com/dotnet/sourcelink -->
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="$(MicrosoftSourceLinkGitHubVersion)" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

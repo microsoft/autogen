@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // MistralClientAgentTests.cs
 
 using System.Text.Json;
@@ -220,7 +220,6 @@ public partial class MistralClientAgentTests
             .RegisterMessageConnector()
             .RegisterStreamingMiddleware(functionCallMiddleware);
         await singleAgentTest.EchoFunctionCallTestAsync(agent);
-
 
         // streaming test
         var question = new TextMessage(Role.User, "what's the weather in Seattle?");

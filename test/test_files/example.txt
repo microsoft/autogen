@@ -1,4 +1,0 @@
-AutoGen is an advanced tool designed to assist developers in harnessing the capabilities
-of Large Language Models (LLMs) for various applications. The primary purpose of AutoGen is to automate and
-simplify the process of building applications that leverage the power of LLMs, allowing for seamless
-integration, testing, and deployment.

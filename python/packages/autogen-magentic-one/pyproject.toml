@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autogen-magentic-one"
+version = "0.0.1"
+license = {file = "LICENSE-CODE"}
+description = ''
+readme = "readme.md"
+requires-python = ">=3.10"
+keywords = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "autogen-core",
+    "beautifulsoup4",
+    "aiofiles",
+    "requests",
+    "mammoth",
+    "markdownify",
+    "numpy",
+    "python-pptx",
+    "pandas",
+    "openpyxl",
+    "pdfminer.six",
+    "puremagic",
+    "pydub",
+    "youtube-transcript-api",
+    "SpeechRecognition",
+    "pathvalidate",
+    "playwright",
+    "pydantic<3.0.0,>=2.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "aiofiles",
+    "types-aiofiles",
+    "types-requests",
+    "types-pillow",
+    "azure-identity",
+    "openpyxl",
+]
+
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+test.sequence = [
+    "playwright install",
+    "pytest -n auto",
+]
+test.default_item_type = "cmd"
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist", "page_script.js"]
+include = [
+    "src/**",
+    "examples/*.py",
+    "tests/**/*.py",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/autogen_magentic_one/utils.py" = ["T20"]
+
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src", "tests", "examples"]

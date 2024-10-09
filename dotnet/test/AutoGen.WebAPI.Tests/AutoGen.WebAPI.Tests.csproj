@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
@@ -7,10 +7,11 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CA1829;CA1826</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftASPNETCoreVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
   </ItemGroup>
 
   <ItemGroup>

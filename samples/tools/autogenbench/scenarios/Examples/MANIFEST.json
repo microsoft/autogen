@@ -1,9 +1,0 @@
-{
-    "files": {
-        "Templates/TwoAgents/scenario_finalize.sh": "Templates/TwoAgents/scenario_finalize.sh",
-        "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
-        "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh",
-        "Tasks/default_two_agents.jsonl": "Tasks/default_two_agents.jsonl",
-        "README.md": "README.md"
-    }
-}
