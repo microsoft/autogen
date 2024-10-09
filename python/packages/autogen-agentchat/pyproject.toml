@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "autogen-agentchat"
 version = "0.4.0dev0"
+license = {file = "LICENSE-CODE"}
 description = "AutoGen agent and group chat library"
 readme = "README.md"
 requires-python = ">=3.10"
