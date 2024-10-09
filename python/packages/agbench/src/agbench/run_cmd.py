@@ -51,7 +51,6 @@ class ScenarioInstance(TypedDict):
     values: Dict[str, Dict[str, str]]
 
 
-
 def run_scenarios(
     scenario: str,
     n_repeats: int,
@@ -246,8 +245,9 @@ def expand_scenario(scenario_dir: str, scenario: ScenarioInstance, output_dir: s
                 fh.write(line)
 
 
-def get_scenario_env(token_provider: Optional[Callable[[], str]]=None
-                     , env_file: str = DEFAULT_ENV_FILE) -> Dict[str, str]:
+def get_scenario_env(
+    token_provider: Optional[Callable[[], str]] = None, env_file: str = DEFAULT_ENV_FILE
+) -> Dict[str, str]:
     """
     Return a dictionary of environment variables needed to run a scenario.
 
@@ -638,7 +638,9 @@ def mkdir_p(path):
         if exc.errno != errno.EEXIST:
             raise
 
+
 def run_scenarios_subset(
+    scenario_name: str,
     scenarios: List[dict],
     n_repeats: int,
     is_native: bool,
@@ -656,15 +658,13 @@ def run_scenarios_subset(
         mkdir_p(results_dir)
 
         # Results for the scenario
-        scenario_name = "parallel_subset"
+
         results_scenario = os.path.join(results_dir, scenario_name)
         mkdir_p(results_scenario)
 
         # Results for the instance
         results_instance = os.path.join(results_scenario, instance["id"])
         mkdir_p(results_instance)
-
-
 
         # Results for the repeats
         for i in range(0, n_repeats):
@@ -692,18 +692,23 @@ def run_scenarios_subset(
                     docker_image=docker_image,
                 )
 
+
 def run_parallel(args: argparse.Namespace) -> None:
     """
     Run scenarios in parallel.
     """
     # Read and split the JSONL file
     scenarios = split_jsonl(args.scenario, args.parallel)
+    scenario_name_parts = os.path.basename(args.scenario).split(".")
+    scenario_name_parts.pop()
+    scenario_name = ".".join(scenario_name_parts)
 
     # Create a pool of worker processes
     with Pool(processes=args.parallel) as pool:
         # Prepare arguments for each worker
         worker_args = [
             (
+                scenario_name,
                 scenario_subset,
                 args.repeat,
                 args.native,
@@ -738,7 +743,6 @@ def get_azure_token_provider() -> Optional[Callable[[], str]]:
             )
         logging.disable(logging.NOTSET)
     return None
-
 
 
 def run_cli(args: Sequence[str]) -> None:
@@ -794,6 +798,10 @@ def run_cli(args: Sequence[str]) -> None:
     )
 
     parsed_args = parser.parse_args(args)
+
+    # don't support parallel and subsample together
+    if parsed_args.parallel > 1 and parsed_args.subsample is not None:
+        sys.exit("The options --parallel and --subsample can not be used together currently. Exiting.")
 
     # Don't allow both --docker-image and --native on the same command
     if parsed_args.docker_image is not None and parsed_args.native:

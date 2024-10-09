@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import re
+from typing import Sequence
 
 
 def default_scorer(instance_dir: str) -> bool:
@@ -16,7 +17,11 @@ def default_scorer(instance_dir: str) -> bool:
             has_final_answer = "FINAL ANSWER:" in content
             has_scenario_complete = "SCENARIO.PY COMPLETE !#!#" in content
             has_run_complete = "RUN.SH COMPLETE !#!#" in content
-            has_all = has_final_answer and has_scenario_complete and has_run_complete
+            # if so, return False
+            last_10_lines = content.splitlines()[-10:]
+            last_10_lines = "\n".join(last_10_lines)
+            has_error_in_last_10_lines = "openai.RateLimitError: Error code: 429" in last_10_lines
+            has_all = has_final_answer and has_scenario_complete and has_run_complete and not has_error_in_last_10_lines
             if not has_all:
                 print(content)
             return has_all
@@ -43,14 +48,13 @@ def delete_folders_with_missing_results(runlogs_path: str):
                     has_missing_results = True
                 break
             if not default_scorer(instance_dir):
-                print(f"Missing results in folder: {instance_dir}")
                 has_missing_results = True
                 break
 
             instance += 1
         if has_missing_results:
-            print(f"Do you want to delete: {task_path}")
-            user_confirmation = input("Press 1 to delete...")
+            print(f"Missing Results in : {task_path}")
+            user_confirmation = input("Press 1 to delete, anything else to skip...")
             if user_confirmation == "1":
                 shutil.rmtree(task_path)
                 print(f"Deleted folder: {task_path}")
@@ -59,6 +63,22 @@ def delete_folders_with_missing_results(runlogs_path: str):
                 print(f"Skipping folder: {task_path}")
 
     print(f"Total folders deleted: {deleted_folders}")
+
+
+
+def remove_missing_cli(args: Sequence[str]) -> None:
+    invocation_cmd = args[0]
+    args = args[1:]
+    runlogs_path = args[0]
+    if len(args) != 1:
+        print("Usage: agbench remove_missing <path_to_runlogs>")
+        sys.exit(1)
+    if not os.path.isdir(runlogs_path):
+        print(f"Error: '{runlogs_path}' is not a valid directory.")
+        sys.exit(1)
+    input("Did you modify the default_scorer function to match the expected ending pattern? Press Enter to continue...")
+
+    delete_folders_with_missing_results(runlogs_path)
 
 
 if __name__ == "__main__":
@@ -73,3 +93,4 @@ if __name__ == "__main__":
     input("Did you modify the default_scorer function to match the expected ending pattern? Press Enter to continue...")
 
     delete_folders_with_missing_results(runlogs_path)
+

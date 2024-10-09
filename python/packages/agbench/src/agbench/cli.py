@@ -5,6 +5,7 @@ from typing_extensions import TypedDict
 
 from .run_cmd import run_cli
 from .tabulate_cmd import tabulate_cli
+from .remove_missing_cmd import remove_missing_cli
 from .version import __version__
 
 
@@ -31,6 +32,11 @@ def main(args: Optional[List[str]] = None) -> None:
             "command": "tabulate",
             "description": "tabulate the results of a previous run",
             "function": tabulate_cli,
+        },
+        {
+            "command": "remove_missing",
+            "description": "remove folders with missing results",
+            "function": remove_missing_cli,
         },
         {
             "command": "--version",

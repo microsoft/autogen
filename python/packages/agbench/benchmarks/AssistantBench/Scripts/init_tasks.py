@@ -44,6 +44,8 @@ def create_jsonl(data_file_path, file_name, template):
 
     with open(os.path.join(TASKS_DIR, file_name), "wt") as fh:
         for task in tasks:
+            if "answer" not in task or task["answer"] is None:
+                task["answer"] = ""
             print(f"Converting: [{file_name}] {task['id']}")
             template_cp_list = [template]
             record = {
@@ -74,9 +76,7 @@ def main():
         download_assistantbench()
 
     if not os.path.isfile(ab_validation_files) or not os.path.isfile(ab_test_files):
-        sys.exit(
-            f"Error: '{REPO_DIR}' does not appear to be a copy of the AssistantBench repository."
-        )
+        sys.exit(f"Error: '{REPO_DIR}' does not appear to be a copy of the AssistantBench repository.")
 
     templates = {}
     for entry in os.scandir(TEMPLATES_DIR):
@@ -85,7 +85,7 @@ def main():
     print(templates)
     # make a copy of the data in the Tasks directory
     for t in templates.items():
-        create_jsonl(ab_validation_files, f"assistant_bench_v1.0_dev__{t[0]}.jsonl",  t[1])
+        create_jsonl(ab_validation_files, f"assistant_bench_v1.0_dev__{t[0]}.jsonl", t[1])
         create_jsonl(ab_test_files, f"assistant_bench_v1.0_test__{t[0]}.jsonl", t[1])
 
 
