@@ -414,6 +414,7 @@ def test_create_function_call_response(mock_configure, mock_generative_model, mo
     ), "Response content should match expected output"
 
 
+@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 @patch("autogen.oai.gemini.GenerativeModel")
 @patch("autogen.oai.gemini.vertexai.init")
 def test_vertexai_create_response(mock_init, mock_generative_model, gemini_client_with_credentials):
