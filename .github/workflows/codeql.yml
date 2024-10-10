@@ -82,9 +82,11 @@ jobs:
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
       shell: bash
+      working-directory: dotnet
       run: |
-        cd dotnet && dotnet build
-        exit 1
+        dotnet workload install aspire
+        dotnet restore -bl
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
