@@ -368,10 +368,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Check to use beta client
         use_beta_client = False
-        
+
         # Check if create_args contains response_format and if it is a Pydantic model
-        if 'response_format' in create_args:
-            response_format = create_args['response_format']
+        if "response_format" in create_args:
+            response_format = create_args["response_format"]
             if isinstance(response_format, type) and issubclass(response_format, BaseModel):
                 use_beta_client = True
 
@@ -410,7 +410,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         tools=converted_tools,
                         **create_args,
                     )
-            )
+                )
             else:
                 future = asyncio.ensure_future(
                     self._client.chat.completions.create(
