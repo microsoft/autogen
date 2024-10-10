@@ -83,7 +83,7 @@ jobs:
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
-        dotnet build
+        cd dotnet && dotnet build
         exit 1
 
     - name: Perform CodeQL Analysis
