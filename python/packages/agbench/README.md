@@ -1,29 +1,35 @@
 # AutoGenBench
 
-AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `autogenbench tabulate`). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+AutoGenBench (agbench) is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `agbench tabulate`). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
 AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
 ## Technical Specifications
 
-If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor's guide](CONTRIBUTING.md).
-
+If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor&#39;s guide](CONTRIBUTING.md).
 
 ## Docker Requirement
+
 AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
+
+If you are working in WSL, you can follow the instructions below to set up your environment:
+
+1. Install Docker Desktop. After installation, restart is needed, then open Docker Desktop, in Settings, Ressources, WSL Integration, Enable integration with additional distros – Ubuntu
+2. Clone autogen and export `AUTOGEN_REPO_BASE`. This environment variable enables the Docker containers to use the correct version agents.
+    ```bash
+    git clone git@github.com:microsoft/autogen.git
+    export AUTOGEN_REPO_BASE=<path_to_autogen>
+    ```
 
 ## Installation and Setup
 
-**To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the easiest way to do this is to install it via `pip`:
+[Deprecated currently] **To get the most out of AutoGenBench, the `agbench` package should be installed**. At present, the easiest way to do this is to install it via `pip`.
+
+
+If you would prefer working from source code (e.g., for development, or to utilize an alternate branch), simply clone the [AutoGen](https://github.com/microsoft/autogen) repository, then install `agbench` via:
 
 ```
-pip install autogenbench
-```
-
-If you would prefer working from source code (e.g., for development, or to utilize an alternate branch), simply clone the [AutoGen](https://github.com/microsoft/autogen) repository, then install `autogenbench` via:
-
-```
-pip install -e autogen/samples/tools/autogenbench
+pip install -e autogen/python/packages/agbench
 ```
 
 After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter described later.
@@ -36,7 +42,6 @@ export OAI_CONFIG_LIST=$(cat ./OAI_CONFIG_LIST)
 
 If an OAI_CONFIG_LIST is *not* provided (by means of file or environment variable), AutoGenBench will use the OPENAI_API_KEY environment variable instead.
 
-
 For some benchmark scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
 
 ```
@@ -46,75 +51,106 @@ For some benchmark scenarios, additional keys may be required (e.g., keys for th
 ```
 
 ## A Typical Session
+
 Once AutoGenBench and necessary keys are installed, a typical session will look as follows:
 
+
+
+Navigate to HumanEval
+
+```bash
+cd autogen/python/packages/agbench/benchmarks/HumanEval
 ```
-autogenbench clone HumanEval
-cd HumanEval
-autogenbench run Tasks/r_human_eval_two_agents.jsonl
-autogenbench tabulate results/r_human_eval_two_agents
+**Note:** The following instructions are specific to the HumanEval benchmark. For other benchmarks, please refer to the README in the respective benchmark folder, e.g.,: [AssistantBench](benchmarks/AssistantBench/README.md).
+
+
+Create a file called ENV.json with the following (required) contents (If you're using MagenticOne), if using Azure:
+
+```json
+{
+    "CHAT_COMPLETION_KWARGS_JSON": "{}",
+    "CHAT_COMPLETION_PROVIDER": "azure"
+}
+```
+
+You can also use the openai client by replacing the last two entries in the ENV file by:
+
+- `CHAT_COMPLETION_PROVIDER='openai'`
+- `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
+
+```json
+{
+  "api_key": "REPLACE_WITH_YOUR_API",
+  "model": "REPLACE_WITH_YOUR_MODEL"
+}
+```
+
+Now initialize the tasks.
+
+```bash
+python Scripts/init_tasks.py
+```
+
+Note: This will attempt to download HumanEval
+
+
+Once the script completes, you should now see a folder in your current directory called `Tasks` that contains one JSONL file per template in `Templates`.
+
+Now to run a specific subset of HumanEval use:
+
+```bash
+agbench run Tasks/human_eval_MagenticOne.jsonl
+```
+
+You should see the command line print the raw logs that shows the agents in action To see a summary of the results (e.g., task completion rates), in a new terminal run the following:
+
+```bash
+agbench tabulate Results/human_eval_MagenticOne
 ```
 
 Where:
-- `autogenbench clone HumanEval` downloads and expands the HumanEval benchmark scenario.
-- `autogenbench run Tasks/r_human_eval_two_agents.jsonl` runs the tasks defined in `Tasks/r_human_eval_two_agents.jsonl`
-- `autogenbench tablue results/r_human_eval_two_agents` tabulates the results of the run
+
+- `agbench run Tasks/human_eval_MagenticOne.jsonl` runs the tasks defined in `Tasks/human_eval_MagenticOne.jsonl`
+- `agbench tablue results/human_eval_MagenticOne` tabulates the results of the run
 
 Each of these commands has extensive in-line help via:
 
-- `autogenbench --help`
-- `autogenbench clone --help`
-- `autogenbench run --help`
-- `autogenbench tabulate --help`
+- `agbench --help`
+- `agbench run --help`
+- `agbench tabulate --help`
+- `agbench remove_missing --help`
 
-**NOTE:** If you are running `autogenbench` from within the repository, you don’t need to run `autogenbench clone`. Instead, navigate to the appropriate scenario folder (e.g., `scenarios/HumanEval`) and run the `Scripts/init_tasks.py` file.
+**NOTE:** If you are running `agbench` from within the repository, you need to navigate to the appropriate scenario folder (e.g., `scenarios/HumanEval`) and run the `Scripts/init_tasks.py` file.
 
 More details of each command are provided in the sections that follow.
 
-## Cloning Benchmarks
-To clone an existing benchmark, simply run:
-```
-autogenbench clone [BENCHMARK]
-```
-
-For example,
-
-```
-autogenbench clone HumanEval
-```
-
-To see which existing benchmarks are available to clone, run:
-
-```
-autogenbench clone --list
-```
-
-> Note: You might need to log in to HuggingFace to access certain datasets like GAIA. To do this, run `huggingface-cli login` in your terminal and follow the prompts.
 
 ## Running AutoGenBench
 
 To run a benchmark (which executes the tasks, but does not compute metrics), simply execute:
+
 ```
 cd [BENCHMARK]
-autogenbench run Tasks
+agbench run Tasks/*.jsonl
 ```
 
 For example,
+
 ```
 cd HumanEval
-autogenbench run Tasks
+agbench run Tasks/human_eval_MagenticOne.jsonl
 ```
 
 The default is to run each task once. To run each scenario 10 times, use:
 
 ```
-autogenbench run --repeat 10 Tasks
+agbench run --repeat 10 Tasks/human_eval_MagenticOne.jsonl
 ```
 
-The `autogenbench` command-line tool allows a number of command-line arguments to control various parameters of execution. Type ``autogenbench -h`` to explore these options:
+The `agbench` command-line tool allows a number of command-line arguments to control various parameters of execution. Type ``agbench -h`` to explore these options:
 
 ```
-'autogenbench run' will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
+'agbench run' will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
 
 positional arguments:
   scenario      The JSONL scenario file to run. If a directory is specified,
@@ -140,7 +176,7 @@ options:
                         The requirements file to pip install before running the scenario.
   -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
                         The Docker image to use when running scenarios. Can not be used together with --native. (default:
-                        'autogenbench:default', which will be created if not present)
+                        'agbench:default', which will be created if not present)
   --native              Run the scenarios natively rather than in docker. NOTE: This is not advisable, and should be done
                         with great caution.
 ```
@@ -171,4 +207,4 @@ Within each folder, you will find the following files:
 
 ## Contributing or Defining New Tasks or Benchmarks
 
-If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor's guide](CONTRIBUTING.md) for complete technical details.
+If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor&#39;s guide](CONTRIBUTING.md) for complete technical details.

@@ -3,6 +3,7 @@ from typing import Callable, List, Optional, Sequence
 
 from typing_extensions import TypedDict
 
+from .remove_missing_cmd import remove_missing_cli
 from .run_cmd import run_cli
 from .tabulate_cmd import tabulate_cli
 from .version import __version__
@@ -31,6 +32,11 @@ def main(args: Optional[List[str]] = None) -> None:
             "command": "tabulate",
             "description": "tabulate the results of a previous run",
             "function": tabulate_cli,
+        },
+        {
+            "command": "remove_missing",
+            "description": "remove folders with missing results",
+            "function": remove_missing_cli,
         },
         {
             "command": "--version",
@@ -68,12 +74,7 @@ usage: {invocation_cmd} COMMAND ARGS
 
 {invocation_cmd} is a tool for running and managing AutoGen benchmark scenarios. A typically session might resemble:
 
-    {invocation_cmd} clone HumanEval
-    cd HumanEval
-    {invocation_cmd} run Tasks/human_eval_two_agents_gpt4.jsonl
-
-which will download the HumanEval benchmark, expand it, and then run the benchmark once with the `human_eval_two_agents_gpt4` configuration.
-
+\
 Available COMMANDs include:
 
 {commands_details}
@@ -81,7 +82,6 @@ Available COMMANDs include:
 Additionally, you can use the --help option with any command for further command-specific instructions. E.g.,
 
     {invocation_cmd} run --help
-    {invocation_cmd} clone --help
 
 """.strip()
 

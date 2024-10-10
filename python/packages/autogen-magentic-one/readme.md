@@ -168,21 +168,19 @@ In addition, developers can also handle and process logs generated from the Auto
 
 You can install the Magentic-One package using pip and then run the example code to see how the agents work together to accomplish a task.
 
-
 1. Clone the code.
+
 ```bash
-# clone autogen_core
-cd python/teams/autogen-magentic-one
+git clone -b staging https://github.com/microsoft/autogen.git
+cd autogen/python/packages/autogen-magentic-one
 pip install -e .
 ```
 
 2. Configure the environment variables for the chat completion client. See instructions below.
-
-
-2. Now you can run the example code to see how the agents work together to accomplish a task.
+3. Now you can run the example code to see how the agents work together to accomplish a task.
 
 ```bash
-python examples/example.py
+python examples/example_websurfer.py
 ```
 
 
