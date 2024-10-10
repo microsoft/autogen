@@ -1,15 +1,15 @@
 import time
 
-import autogencap.DebugLog as DebugLog
-from autogencap.ag_adapter.CAPPair import CAPPair
-from autogencap.DebugLog import ConsoleLogger, Info
+import autogencap.debug_log as debug_log
+from autogencap.ag_adapter.cap_pair import CAPPair
+from autogencap.debug_log import ConsoleLogger, Info
 from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 
 def cap_ag_pair_demo():
-    DebugLog.LOGGER = ConsoleLogger(use_color=False)
+    debug_log.LOGGER = ConsoleLogger(use_color=False)
 
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})

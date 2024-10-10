@@ -3,8 +3,8 @@ import traceback
 
 import zmq
 
-from .Config import xpub_url
-from .DebugLog import Debug, Error, Info
+from .config import xpub_url
+from .debug_log import Debug, Error, Info
 
 
 class Actor:

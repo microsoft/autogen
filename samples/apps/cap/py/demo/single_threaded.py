@@ -1,6 +1,6 @@
 import _paths
 from AppAgents import GreeterAgent
-from autogencap.DebugLog import Error
+from autogencap.debug_log import Error
 from autogencap.proto.CAP_pb2 import Ping
 from autogencap.runtime_factory import RuntimeFactory
 
