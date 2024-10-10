@@ -123,7 +123,7 @@ async def main() -> None:
     async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
         code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
         coding_assistant_agent = CodingAssistantAgent(
-            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o")
+            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o", api_key="YOUR_API_KEY")
         )
         group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
         result = await group_chat.run(
