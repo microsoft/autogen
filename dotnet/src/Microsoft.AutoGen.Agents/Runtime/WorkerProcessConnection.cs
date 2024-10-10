@@ -87,7 +87,7 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
             }
         }
-        catch(OperationCanceledException)
+        catch (OperationCanceledException)
         {
         }
         finally
@@ -107,7 +107,7 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
                 await ResponseStream.WriteAsync(message);
             }
         }
-        catch(OperationCanceledException)
+        catch (OperationCanceledException)
         {
         }
         finally
