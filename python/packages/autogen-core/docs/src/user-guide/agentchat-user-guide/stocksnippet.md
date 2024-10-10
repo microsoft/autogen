@@ -4,7 +4,7 @@
 ```python
 from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
-from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executor.docker_command_line_code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import OpenAIChatCompletionClient
 
 async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
