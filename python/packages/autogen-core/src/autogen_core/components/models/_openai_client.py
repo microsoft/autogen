@@ -17,6 +17,7 @@ from typing import (
     Union,
     cast,
 )
+from pydantic import BaseModel
 
 import tiktoken
 from openai import AsyncAzureOpenAI, AsyncOpenAI
@@ -365,6 +366,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
+        # Check to use beta client
+        use_beta_client = False
+        
+        # Check if create_args contains response_format and if it is a Pydantic model
+        if 'response_format' in create_args:
+            response_format = create_args['response_format']
+            if isinstance(response_format, type) and issubclass(response_format, BaseModel):
+                use_beta_client = True
+
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
         if self.capabilities["vision"] is False:
@@ -393,18 +403,32 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
-            future = asyncio.ensure_future(
-                self._client.chat.completions.create(
-                    messages=oai_messages,
-                    stream=False,
-                    tools=converted_tools,
-                    **create_args,
+            if use_beta_client:
+                future = asyncio.ensure_future(
+                    self._client.beta.chat.completions.parse(
+                        messages=oai_messages,
+                        tools=converted_tools,
+                        **create_args,
+                    )
+            )
+            else:
+                future = asyncio.ensure_future(
+                    self._client.chat.completions.create(
+                        messages=oai_messages,
+                        stream=False,
+                        tools=converted_tools,
+                        **create_args,
+                    )
                 )
-            )
         else:
-            future = asyncio.ensure_future(
-                self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
-            )
+            if use_beta_client:
+                future = asyncio.ensure_future(
+                    self._client.beta.chat.completions.parse(messages=oai_messages, **create_args)
+                )
+            else:
+                future = asyncio.ensure_future(
+                    self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
+                )
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result = await future
