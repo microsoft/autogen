@@ -19,7 +19,7 @@ async def main() -> None:
     async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
         code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
         coding_assistant_agent = CodingAssistantAgent(
-            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o")
+            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o", api_key="YOUR_API_KEY")
         )
         group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
         result = await group_chat.run(
@@ -33,18 +33,21 @@ asyncio.run(main())
 
 `````{tab-item} v0.2x
 ```python
+from autogen.coding import DockerCommandLineCodeExecutor
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
-config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
-assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
+llm_config = {"model": "gpt-4o", "api_type": "openai", "api_key": "YOUR_API_KEY"}
+code_executor = DockerCommandLineCodeExecutor(work_dir="coding")
+assistant = AssistantAgent("assistant", llm_config=llm_config)
 code_executor_agent = UserProxyAgent(
     "code_executor_agent",
-    code_execution_config={"work_dir": "coding", "use_docker": True}
+    code_execution_config={"executor": code_executor},
 )
-code_executor_agent.initiate_chat(
+result = code_executor_agent.initiate_chat(
     assistant,
-    message="Create a plot of NVIDIA and TESLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
+    message="Create a plot of NVIDIA and TESLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'.",
 )
+code_executor.stop()
 ```
 `````
 
