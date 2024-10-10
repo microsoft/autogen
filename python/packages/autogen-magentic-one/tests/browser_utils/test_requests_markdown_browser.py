@@ -10,7 +10,7 @@ import pytest
 import requests
 from autogen_magentic_one.markdown_browser import BingMarkdownSearch, RequestsMarkdownBrowser
 
-BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
+BLOG_POST_URL = "https://microsoft.github.io/autogen/0.2/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
 BLOG_POST_STRING = "Large language models (LLMs) are powerful tools that can generate natural language texts for various applications, such as chatbots, summarization, translation, and more. GPT-4 is currently the state of the art LLM in the world. Is model selection irrelevant? What about inference parameters?"
 BLOG_POST_FIND_ON_PAGE_QUERY = "an example where high * complex"
