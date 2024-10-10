@@ -4,7 +4,7 @@
 name: OpenAI
 
 on:
-  pull_request:
+  push:
     branches: ["0.2"]
     paths:
       - "autogen/**"
