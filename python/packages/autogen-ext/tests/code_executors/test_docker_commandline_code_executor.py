@@ -96,11 +96,13 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
 async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
-    executor, temp_dir = executor_and_temp_dir
+    _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
-    executor = DockerCommandLineCodeExecutor(timeout=1, work_dir=temp_dir)
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
-    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+    
+    async with DockerCommandLineCodeExecutor(timeout=1, work_dir=temp_dir) as executor:
+        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+    
     assert code_result.exit_code and "Timeout" in code_result.output
 
 
