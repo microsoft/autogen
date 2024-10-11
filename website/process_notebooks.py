@@ -348,7 +348,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
     if "{" in title:
         title = title[: title.find("{")].strip()
 
-    github_link = f"https://github.com/microsoft/autogen/blob/main/{repo_relative_notebook}"
+    github_link = f"https://github.com/microsoft/autogen/blob/0.2/{repo_relative_notebook}"
     content = (
         content[:title_end]
         + "\n[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)]("
