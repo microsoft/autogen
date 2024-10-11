@@ -439,12 +439,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             cancellation_token.link_future(future)
         result = await future
 
-        # Type annotations to help the type checker
-        if use_beta_client:
-            result = cast("ParsedChatCompletion", result)
-        else:
-            result = cast("ChatCompletion", result)
-
         if result.usage is not None:
             logger.info(
                 LLMCallEvent(
