@@ -14,11 +14,10 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Type,
     Union,
     cast,
-    Type,
 )
-from pydantic import BaseModel
 
 import tiktoken
 from openai import AsyncAzureOpenAI, AsyncOpenAI
@@ -33,9 +32,11 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
     ChatCompletionToolParam,
     ChatCompletionUserMessageParam,
+    ParsedChatCompletion,
     completion_create_params,
 )
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
+from pydantic import BaseModel
 from typing_extensions import Unpack
 
 from ...application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
@@ -281,10 +282,10 @@ def convert_tools(
                 type="function",
                 function=FunctionDefinition(
                     name=tool_schema["name"],
-                    description=tool_schema["description"] if "description" in tool_schema else "",
-                    parameters=cast(FunctionParameters, tool_schema["parameters"])
-                    if "parameters" in tool_schema
-                    else {},
+                    description=(tool_schema["description"] if "description" in tool_schema else ""),
+                    parameters=(
+                        cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
+                    ),
                 ),
             )
         )
@@ -367,21 +368,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        # Declare response_format and use_beta_client
-        response_format: Optional[Type[BaseModel]] = None
+        # Declare use_beta_client
         use_beta_client: bool = False
+        response_format_value: Optional[Type[BaseModel]] = None
 
         if "response_format" in create_args:
-            response_format_value = create_args["response_format"]
-            # If response_format_value is a Pydantic model, use the beta client
-            if isinstance(response_format_value, type) and issubclass(response_format_value, BaseModel):
-                response_format = response_format_value
-                del create_args["response_format"]
+            value = create_args["response_format"]
+            # If value is a Pydantic model class, use the beta client
+            if isinstance(value, type) and issubclass(value, BaseModel):
+                response_format_value = value
                 use_beta_client = True
             else:
-                # response_format_value is not a Pydantic model; leave it in create_args
-                response_format = None
+                # response_format_value is not a Pydantic model class
                 use_beta_client = False
+                response_format_value = None
+
+        # Remove 'response_format' from create_args to prevent passing it twice
+        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -408,18 +411,27 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if self.capabilities["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
-
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
             if use_beta_client:
-                future = asyncio.ensure_future(
-                    self._client.beta.chat.completions.parse(
-                        messages=oai_messages,
-                        tools=converted_tools,
-                        response_format=response_format,
-                        **create_args,
+                # Pass response_format_value if it's not None
+                if response_format_value is not None:
+                    future = asyncio.ensure_future(
+                        self._client.beta.chat.completions.parse(
+                            messages=oai_messages,
+                            tools=converted_tools,
+                            response_format=response_format_value,
+                            **create_args_no_response_format,
+                        )
                     )
-                )
+                else:
+                    future = asyncio.ensure_future(
+                        self._client.beta.chat.completions.parse(
+                            messages=oai_messages,
+                            tools=converted_tools,
+                            **create_args_no_response_format,
+                        )
+                    )
             else:
                 future = asyncio.ensure_future(
                     self._client.chat.completions.create(
@@ -431,18 +443,35 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
         else:
             if use_beta_client:
-                future = asyncio.ensure_future(
-                    self._client.beta.chat.completions.parse(
-                        messages=oai_messages, response_format=response_format, **create_args
+                if response_format_value is not None:
+                    future = asyncio.ensure_future(
+                        self._client.beta.chat.completions.parse(
+                            messages=oai_messages,
+                            response_format=response_format_value,
+                            **create_args_no_response_format,
+                        )
                     )
-                )
+                else:
+                    future = asyncio.ensure_future(
+                        self._client.beta.chat.completions.parse(
+                            messages=oai_messages,
+                            **create_args_no_response_format,
+                        )
+                    )
             else:
                 future = asyncio.ensure_future(
-                    self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
+                    self._client.chat.completions.create(
+                        messages=oai_messages,
+                        stream=False,
+                        **create_args,
+                    )
                 )
+
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result = await future
+        if use_beta_client:
+            result = cast(ParsedChatCompletion[Any], result)
 
         if result.usage is not None:
             logger.info(
