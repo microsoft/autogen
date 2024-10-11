@@ -16,6 +16,7 @@ from typing import (
     Set,
     Union,
     cast,
+    Type,
 )
 from pydantic import BaseModel
 
@@ -370,10 +371,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         use_beta_client = False
 
         # Check if create_args contains response_format and if it is a Pydantic model
+        response_format: Optional[Type[BaseModel]] = None
         if "response_format" in create_args:
-            response_format = create_args["response_format"]
             if isinstance(response_format, type) and issubclass(response_format, BaseModel):
+                response_format = create_args["response_format"]
                 use_beta_client = True
+                del create_args["response_format"]
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -408,6 +411,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     self._client.beta.chat.completions.parse(
                         messages=oai_messages,
                         tools=converted_tools,
+                        response_format=response_format,
                         **create_args,
                     )
                 )
@@ -423,7 +427,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             if use_beta_client:
                 future = asyncio.ensure_future(
-                    self._client.beta.chat.completions.parse(messages=oai_messages, **create_args)
+                    self._client.beta.chat.completions.parse(
+                        messages=oai_messages, response_format=response_format, **create_args
+                    )
                 )
             else:
                 future = asyncio.ensure_future(
@@ -432,6 +438,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result = await future
+
+        # Type annotations to help the type checker
+        if use_beta_client:
+            result = cast("ParsedChatCompletion", result)
+        else:
+            result = cast("ChatCompletion", result)
+
         if result.usage is not None:
             logger.info(
                 LLMCallEvent(
