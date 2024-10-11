@@ -16,6 +16,7 @@ BING_QUERY = "Microsoft wikipedia"
 BING_STRING = f"A Bing search for '{BING_QUERY}' found"
 BING_EXPECTED_RESULT = "https://en.wikipedia.org/wiki/Microsoft"
 
+
 @pytest.mark.skipif(
     skip_api,
     reason="skipping tests that require a Bing API key",
