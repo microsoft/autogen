@@ -18,16 +18,19 @@ import asyncio_atexit
 import docker
 import docker.models
 import docker.models.containers
-from docker.errors import ImageNotFound, NotFound
-
-from ....base._cancellation_token import CancellationToken
-from ....components.code_executor._base import CodeBlock, CodeExecutor
-from ....components.code_executor._func_with_reqs import FunctionWithRequirements, FunctionWithRequirementsStr
-from ....components.code_executor._impl.command_line_code_result import CommandLineCodeResult
-from .._func_with_reqs import (
+from autogen_core.base import CancellationToken
+from autogen_core.components.code_executor import (
+    CodeBlock,
+    CodeExecutor,
+    CommandLineCodeResult,
+    FunctionWithRequirements,
+    FunctionWithRequirementsStr,
     build_python_functions_file,
+    get_file_name_from_content,
+    lang_to_cmd,
+    silence_pip,
 )
-from .utils import get_file_name_from_content, lang_to_cmd, silence_pip
+from docker.errors import ImageNotFound, NotFound
 
 if sys.version_info >= (3, 11):
     from typing import Self

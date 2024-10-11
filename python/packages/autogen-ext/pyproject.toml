@@ -22,6 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 langchain-tools = ["langchain >= 0.3.1"]
 azure-code-executor = ["azure-core"]
+docker-code-executor = ["docker~=7.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
@@ -47,3 +48,8 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "docker.*"
+ignore_missing_imports = true
