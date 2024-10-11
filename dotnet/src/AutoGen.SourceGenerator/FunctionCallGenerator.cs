@@ -2,6 +2,7 @@
 // FunctionCallGenerator.cs
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -100,7 +101,10 @@ public partial class FunctionCallGenerator : IIncrementalGenerator
                     };
 
                     var functionSource = functionTT.TransformText();
-                    var fileName = $"{className}.generated.cs";
+                    // Avoid conflict with filename for parallel builds targeting several .NET versions
+                    // at once. Without unique filenames, the build will fail with the 'IOException'
+                    // with message 'The process cannot access the file '%TEMP%\{className}.generated.cs'
+                    var fileName = $"{className}_{System.Guid.NewGuid()}.generated.cs";
 
                     ctx.AddSource(fileName, SourceText.From(functionSource, System.Text.Encoding.UTF8));
                     File.WriteAllText(Path.Combine(Path.GetTempPath(), fileName), functionSource);
@@ -110,25 +114,29 @@ public partial class FunctionCallGenerator : IIncrementalGenerator
                 {
                     var overallFunctionDefinition = source.Right.SelectMany(x => x!.FunctionContracts.Select(y => new { fullClassName = x.FullClassName, y = y }));
                     var overallFunctionDefinitionObject = overallFunctionDefinition.Select(
-                        x => new
+                        x =>
                         {
-                            fullClassName = x.fullClassName,
-                            functionDefinition = new
+                            Debug.Assert(x.y.Parameters != null, "x.y.Parameters != null");
+                            return new
                             {
-                                x.y.Name,
-                                x.y.Description,
-                                x.y.ReturnType,
-                                Parameters = x.y.Parameters.Select(y => new
+                                fullClassName = x.fullClassName,
+                                functionDefinition = new
                                 {
-                                    y.Name,
-                                    y.Description,
-                                    y.JsonType,
-                                    y.JsonItemType,
-                                    y.Type,
-                                    y.IsOptional,
-                                    y.DefaultValue,
-                                }),
-                            },
+                                    x.y.Name,
+                                    x.y.Description,
+                                    x.y.ReturnType,
+                                    Parameters = x.y.Parameters.Select(y => new
+                                    {
+                                        y.Name,
+                                        y.Description,
+                                        y.JsonType,
+                                        y.JsonItemType,
+                                        y.Type,
+                                        y.IsOptional,
+                                        y.DefaultValue,
+                                    }),
+                                },
+                            };
                         });
 
                     var json = JsonConvert.SerializeObject(overallFunctionDefinitionObject, formatting: Formatting.Indented);
