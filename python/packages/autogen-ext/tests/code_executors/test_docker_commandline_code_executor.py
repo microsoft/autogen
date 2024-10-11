@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-any-unimported"
 import os
 import sys
 import tempfile
@@ -9,7 +10,7 @@ import pytest_asyncio
 from aiofiles import open
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock
-from autogen_ext.code_executor.docker_command_line_code_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 
 
 def docker_tests_enabled() -> bool:
@@ -99,10 +100,10 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
     _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
-    
+
     async with DockerCommandLineCodeExecutor(timeout=1, work_dir=temp_dir) as executor:
         code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-    
+
     assert code_result.exit_code and "Timeout" in code_result.output
 
 

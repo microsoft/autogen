@@ -48,3 +48,8 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "docker.*"
+ignore_missing_imports = true
