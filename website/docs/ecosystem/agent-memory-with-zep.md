@@ -34,7 +34,7 @@ Sign up for [Zep Cloud](https://www.getzep.com/?utm_source=autogen) or visit the
 </details>
 
 <details>
-  <summary><b><u>Implementating Fact Ratings</u></b></summary>
+  <summary><b><u>Implementing Fact Ratings</u></b></summary>
   <a href="https://vimeo.com/989192145">
   <img src="img/ecosystem-zep-fact-ratings.png" alt="Zep Fact Ratings" />
   </a>
