@@ -1,6 +1,5 @@
-import time
 from AppAgents import GreeterAgent
-from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.runtime_factory import RuntimeFactory
 
 
 def simple_actor_demo():
@@ -9,18 +8,10 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
-
-    network = LocalActorNetwork()
-    # Register an actor
-    network.register(GreeterAgent())
-    # Tell actor to connect to other actors
-    network.connect()
-    # Get a channel to the actor
-    greeter_link = network.lookup_actor("Greeter")
-    time.sleep(1)
-    # Send a message to the actor
+    runtime = RuntimeFactory.get_runtime("ZMQ")
+    agent = GreeterAgent()
+    runtime.register(agent)
+    runtime.connect()
+    greeter_link = runtime.find_by_name("Greeter")
     greeter_link.send_txt_msg("Hello World!")
-    time.sleep(1)
-    # Cleanup
-    greeter_link.close()
-    network.disconnect()
+    runtime.disconnect()

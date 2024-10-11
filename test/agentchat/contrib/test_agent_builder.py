@@ -1,15 +1,25 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import os
 import json
+import os
 import sys
+
+import pytest
+
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai as skip  # noqa: E402
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
+
+try:
+    import chromadb
+    import huggingface_hub
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -28,12 +38,15 @@ def _config_check(config):
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_build():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -57,12 +70,15 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai or skip,
+    reason=reason + "OR dependency not installed",
 )
 def test_build_from_library():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -107,12 +123,15 @@ def test_build_from_library():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_save():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -141,12 +160,15 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_load():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
@@ -167,12 +189,15 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_clear_agent():
     builder = AgentBuilder(
-        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+        config_file_or_env=OAI_CONFIG_LIST,
+        config_file_location=KEY_LOC,
+        builder_model=["gpt-4", "gpt-4-1106-preview"],
+        agent_model=["gpt-4", "gpt-4-1106-preview"],
     )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"

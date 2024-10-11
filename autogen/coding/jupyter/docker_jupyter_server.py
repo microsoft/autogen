@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-import sys
-from types import TracebackType
-import uuid
-from typing import Dict, Optional, Type, Union
-import docker
-import secrets
-import io
 import atexit
+import io
 import logging
+import secrets
+import sys
+import uuid
+from pathlib import Path
+from types import TracebackType
+from typing import Any, Dict, Optional, Type, Union
+
+import docker
 
 from ..docker_commandline_code_executor import _wait_for_ready
 
@@ -19,8 +20,8 @@ else:
     from typing_extensions import Self
 
 
-from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
+from .jupyter_client import JupyterClient
 
 
 class DockerJupyterServer(JupyterConnectable):
@@ -58,6 +59,7 @@ WORKDIR "${HOME}"
         stop_container: bool = True,
         docker_env: Dict[str, str] = {},
         token: Union[str, GenerateToken] = GenerateToken(),
+        **docker_kwargs: Any,
     ):
         """Start a Jupyter kernel gateway server in a Docker container.
 
@@ -76,6 +78,7 @@ WORKDIR "${HOME}"
             token (Union[str, GenerateToken], optional): Token to use for authentication.
                 If GenerateToken is used, a random token will be generated. Empty string
                 will be unauthenticated.
+            docker_kwargs (Any): Additional keyword arguments to pass to the docker container.
         """
         if container_name is None:
             container_name = f"autogen-jupyterkernelgateway-{uuid.uuid4()}"
@@ -117,13 +120,14 @@ WORKDIR "${HOME}"
             environment=env,
             publish_all_ports=True,
             name=container_name,
+            **docker_kwargs,
         )
         _wait_for_ready(container)
         container_ports = container.ports
         self._port = int(container_ports["8888/tcp"][0]["HostPort"])
         self._container_id = container.id
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 inner_container = client.containers.get(container.id)
                 inner_container.stop()
@@ -142,7 +146,7 @@ WORKDIR "${HOME}"
     def connection_info(self) -> JupyterConnectionInfo:
         return JupyterConnectionInfo(host="127.0.0.1", use_https=False, port=self._port, token=self._token)
 
-    def stop(self):
+    def stop(self) -> None:
         self._cleanup_func()
 
     def get_client(self) -> JupyterClient:

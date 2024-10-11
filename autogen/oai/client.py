@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
-import logging
 import inspect
+import logging
+import sys
 import uuid
-from flaml.automl.logger import logger_formatter
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
 from pydantic import BaseModel
-from typing import Protocol
 
-from autogen.cache.cache import Cache
-from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
+from autogen.cache import Cache
+from autogen.io.base import IOStream
+from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
-from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
-from autogen.logger.logger_utils import get_current_ts
+from .client_utils import logger_formatter
+from .rate_limiters import RateLimiter, TimeRateLimiter
 
 TOOL_ENABLED = False
 try:
@@ -26,14 +27,15 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
+    from openai import APIError, APITimeoutError, AzureOpenAI, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
+        ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
-        ChoiceDeltaFunctionCall,
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
@@ -41,6 +43,69 @@ else:
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
     ERROR = None
+
+try:
+    from autogen.oai.cerebras import CerebrasClient
+
+    cerebras_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cerebras_import_exception = e
+
+try:
+    from autogen.oai.gemini import GeminiClient
+
+    gemini_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    gemini_import_exception = e
+
+try:
+    from autogen.oai.anthropic import AnthropicClient
+
+    anthropic_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    anthropic_import_exception = e
+
+try:
+    from autogen.oai.mistral import MistralAIClient
+
+    mistral_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    mistral_import_exception = e
+
+try:
+    from autogen.oai.together import TogetherClient
+
+    together_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    together_import_exception = e
+
+try:
+    from autogen.oai.groq import GroqClient
+
+    groq_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    groq_import_exception = e
+
+try:
+    from autogen.oai.cohere import CohereClient
+
+    cohere_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    cohere_import_exception = e
+
+try:
+    from autogen.oai.ollama import OllamaClient
+
+    ollama_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    ollama_import_exception = e
+
+try:
+    from autogen.oai.bedrock import BedrockClient
+
+    bedrock_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    bedrock_import_exception = e
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -83,8 +148,7 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol:
-        ...  # pragma: no cover
+    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol: ...  # pragma: no cover
 
     def message_retrieval(
         self, response: ModelClientResponseProtocol
@@ -97,8 +161,7 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
-        ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
@@ -116,14 +179,6 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
-        if (
-            not isinstance(client, openai.AzureOpenAI)
-            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
-            and not is_valid_api_key(self._oai_client.api_key)
-        ):
-            logger.warning(
-                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
-            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -158,7 +213,11 @@ class OpenAIClient:
         Returns:
             The completion.
         """
-        completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
+        iostream = IOStream.get_default()
+
+        completions: Completions = (
+            self._oai_client.chat.completions if "messages" in params else self._oai_client.completions
+        )  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
         if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
@@ -166,7 +225,7 @@ class OpenAIClient:
             completion_tokens = 0
 
             # Set the terminal text color to green
-            print("\033[32m", end="")
+            iostream.print("\033[32m", end="")
 
             # Prepare for potential function call
             full_function_call: Optional[Dict[str, Any]] = None
@@ -218,19 +277,24 @@ class OpenAIClient:
 
                         # If content is present, print it to the terminal and update response variables
                         if content is not None:
-                            print(content, end="", flush=True)
+                            iostream.print(content, end="", flush=True)
                             response_contents[choice.index] += content
                             completion_tokens += 1
                         else:
-                            # print()
+                            # iostream.print()
                             pass
 
             # Reset the terminal text color
-            print("\033[0m\n")
+            iostream.print("\033[0m\n")
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
-            prompt_tokens = count_token(params["messages"], model)
+            try:
+                prompt_tokens = count_token(params["messages"], model)
+            except NotImplementedError as e:
+                # Catch token calculation error if streaming with customized models.
+                logger.warning(str(e))
+                prompt_tokens = 0
             response = ChatCompletion(
                 id=chunk.id,
                 model=chunk.model,
@@ -283,12 +347,16 @@ class OpenAIClient:
         """Calculate the cost of the response."""
         model = response.model
         if model not in OAI_PRICE1K:
-            # TODO: add logging to warn that the model is not found
-            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
+            # log warning that the model is not found
+            logger.warning(
+                f'Model {model} is not found. The cost will be 0. In your config_list, add field {{"price" : [prompt_price_per_1k, completion_token_price_per_1k]}} for customized pricing.'
+            )
             return 0
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -310,6 +378,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     extra_kwargs = {
+        "agent",
         "cache",
         "cache_seed",
         "filter_func",
@@ -318,6 +387,7 @@ class OpenAIWrapper:
         "api_version",
         "api_type",
         "tags",
+        "price",
     }
 
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
@@ -339,7 +409,7 @@ class OpenAIWrapper:
                 "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
                 "api_type": "azure",
                 "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-                "api_version": "2024-02-15-preview",
+                "api_version": "2024-02-01",
             },
             {
                 "model": "gpt-3.5-turbo",
@@ -367,8 +437,11 @@ class OpenAIWrapper:
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
+        self._rate_limiters: List[Optional[RateLimiter]] = []
 
         if config_list:
+            self._initialize_rate_limiters(config_list)
+
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
                 self._register_default_client(config, openai_config)  # could modify the config
@@ -398,12 +471,31 @@ class OpenAIWrapper:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
 
+        # Create a default Azure token provider if requested
+        if openai_config.get("azure_ad_token_provider") == "DEFAULT":
+            import azure.identity
+
+            openai_config["azure_ad_token_provider"] = azure.identity.get_bearer_token_provider(
+                azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+
+    def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
+        """Update openai_config with AWS credentials from config."""
+        required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
+        optional_keys = ["aws_session_token", "aws_profile_name"]
+        for key in required_keys:
+            if key in config:
+                openai_config[key] = config[key]
+        for key in optional_keys:
+            if key in config:
+                openai_config[key] = config[key]
+
     def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
         For Azure models/deployment names there's a convenience modification of model removing dots in
-        the it's value (Azure deploment names can't have dots). I.e. if you have Azure deployment name
+        the it's value (Azure deployment names can't have dots). I.e. if you have Azure deployment name
         "gpt-35-turbo" and define model "gpt-3.5-turbo" in the config the function will remove the dot
         from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
@@ -423,6 +515,54 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("cerebras"):
+                if cerebras_import_exception:
+                    raise ImportError("Please install `cerebras_cloud_sdk` to use Cerebras OpenAI API.")
+                client = CerebrasClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("google"):
+                if gemini_import_exception:
+                    raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
+                client = GeminiClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("anthropic"):
+                if "api_key" not in config:
+                    self._configure_openai_config_for_bedrock(config, openai_config)
+                if anthropic_import_exception:
+                    raise ImportError("Please install `anthropic` to use Anthropic API.")
+                client = AnthropicClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("mistral"):
+                if mistral_import_exception:
+                    raise ImportError("Please install `mistralai` to use the Mistral.AI API.")
+                client = MistralAIClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("together"):
+                if together_import_exception:
+                    raise ImportError("Please install `together` to use the Together.AI API.")
+                client = TogetherClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("groq"):
+                if groq_import_exception:
+                    raise ImportError("Please install `groq` to use the Groq API.")
+                client = GroqClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("cohere"):
+                if cohere_import_exception:
+                    raise ImportError("Please install `cohere` to use the Cohere API.")
+                client = CohereClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("ollama"):
+                if ollama_import_exception:
+                    raise ImportError("Please install with `[ollama]` option to use the Ollama API.")
+                client = OllamaClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("bedrock"):
+                self._configure_openai_config_for_bedrock(config, openai_config)
+                if bedrock_import_exception:
+                    raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
+                client = BedrockClient(**openai_config)
+                self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
@@ -516,10 +656,11 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+            - cache (AbstractCache | None): A Cache object to use for response cache. Default to None.
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
+            - agent (AbstractAgent | None): The object responsible for creating a completion if an agent.
             - (Legacy) cache_seed (int | None) for using the DiskCache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
@@ -535,7 +676,7 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
-            - api_version (str | None): The api version. Default to None. E.g., "2024-02-15-preview".
+            - api_version (str | None): The api version. Default to None. E.g., "2024-02-01".
         Raises:
             - RuntimeError: If all declared custom model clients are not registered
             - APIError: If any model client create call raises an APIError
@@ -567,6 +708,15 @@ class OpenAIWrapper:
             cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
+            agent = extra_kwargs.get("agent")
+            price = extra_kwargs.get("price", None)
+            if isinstance(price, list):
+                price = tuple(price)
+            elif isinstance(price, float) or isinstance(price, int):
+                logger.warning(
+                    "Input price is a float/int. Using the same price for prompt and completion tokens. Use a list/tuple if prompt and completion token prices are different."
+                )
+                price = (price, price)
 
             total_usage = None
             actual_usage = None
@@ -604,6 +754,7 @@ class OpenAIWrapper:
                                 invocation_id=invocation_id,
                                 client_id=id(client),
                                 wrapper_id=id(self),
+                                agent=agent,
                                 request=params,
                                 response=response,
                                 is_cached=1,
@@ -621,6 +772,7 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                self._throttle_api_calls(i)
                 request_ts = get_current_ts()
                 response = client.create(params)
             except APITimeoutError as err:
@@ -636,6 +788,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        agent=agent,
                         request=params,
                         response=f"error_code:{error_code}, config {i} failed",
                         is_cached=0,
@@ -651,7 +804,10 @@ class OpenAIWrapper:
                     raise
             else:
                 # add cost calculation before caching no matter filter is passed or not
-                response.cost = client.cost(response)
+                if price is not None:
+                    response.cost = self._cost_with_customized_price(response, price)
+                else:
+                    response.cost = client.cost(response)
                 actual_usage = client.get_usage(response)
                 total_usage = actual_usage.copy() if actual_usage is not None else total_usage
                 self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
@@ -666,6 +822,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        agent=agent,
                         request=params,
                         response=response,
                         is_cached=0,
@@ -683,6 +840,17 @@ class OpenAIWrapper:
                     return response
                 continue  # filter is not passed; try the next config
         raise RuntimeError("Should not reach here.")
+
+    @staticmethod
+    def _cost_with_customized_price(
+        response: ModelClient.ModelClientResponseProtocol, price_1k: Tuple[float, float]
+    ) -> None:
+        """If a customized cost is passed, overwrite the cost in the response."""
+        n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
+        return (n_input_tokens * price_1k[0] + n_output_tokens * price_1k[1]) / 1000
 
     @staticmethod
     def _update_dict_from_chunk(chunk: BaseModel, d: Dict[str, Any], field: str) -> int:
@@ -805,6 +973,8 @@ class OpenAIWrapper:
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
+            if completion_tokens is None:
+                completion_tokens = 0
             total_tokens = response_usage["total_tokens"]
 
             if usage_summary is None:
@@ -827,25 +997,26 @@ class OpenAIWrapper:
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
+        iostream = IOStream.get_default()
 
         def print_usage(usage_summary: Optional[Dict[str, Any]], usage_type: str = "total") -> None:
             word_from_type = "including" if usage_type == "total" else "excluding"
             if usage_summary is None:
-                print("No actual cost incurred (all completions are using cache).", flush=True)
+                iostream.print("No actual cost incurred (all completions are using cache).", flush=True)
                 return
 
-            print(f"Usage summary {word_from_type} cached usage: ", flush=True)
-            print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
+            iostream.print(f"Usage summary {word_from_type} cached usage: ", flush=True)
+            iostream.print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
             for model, counts in usage_summary.items():
                 if model == "total_cost":
                     continue  #
-                print(
+                iostream.print(
                     f"* Model '{model}': cost: {round(counts['cost'], 5)}, prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
                     flush=True,
                 )
 
         if self.total_usage_summary is None:
-            print('No usage summary. Please call "create" first.', flush=True)
+            iostream.print('No usage summary. Please call "create" first.', flush=True)
             return
 
         if isinstance(mode, list):
@@ -858,14 +1029,14 @@ class OpenAIWrapper:
             elif "total" in mode:
                 mode = "total"
 
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
-            print()
+            iostream.print()
             if self.total_usage_summary != self.actual_usage_summary:
                 print_usage(self.total_usage_summary, "total")
             else:
-                print(
+                iostream.print(
                     "All completions are non-cached: the total cost with cached completions is the same as actual cost.",
                     flush=True,
                 )
@@ -875,7 +1046,7 @@ class OpenAIWrapper:
             print_usage(self.actual_usage_summary, "actual")
         else:
             raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
 
     def clear_usage_summary(self) -> None:
         """Clear the usage summary."""
@@ -895,3 +1066,20 @@ class OpenAIWrapper:
             A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         return response.message_retrieval_function(response)
+
+    def _throttle_api_calls(self, idx: int) -> None:
+        """Rate limit api calls."""
+        if self._rate_limiters[idx]:
+            limiter = self._rate_limiters[idx]
+
+            assert limiter is not None
+            limiter.sleep()
+
+    def _initialize_rate_limiters(self, config_list: List[Dict[str, Any]]) -> None:
+        for config in config_list:
+            # Instantiate the rate limiter
+            if "api_rate_limit" in config:
+                self._rate_limiters.append(TimeRateLimiter(config["api_rate_limit"]))
+                del config["api_rate_limit"]
+            else:
+                self._rate_limiters.append(None)

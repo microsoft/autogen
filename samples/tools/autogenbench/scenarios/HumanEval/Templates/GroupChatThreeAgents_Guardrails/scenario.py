@@ -1,8 +1,10 @@
-import os
-import json
 import base64
-import autogen
+import json
+import os
+
 import testbed_utils
+
+import autogen
 
 # NOTE:
 # This scenario runs Human Eval in a slightly unconventional way:

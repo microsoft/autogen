@@ -6,13 +6,17 @@ import string
 import subprocess
 import sys
 import time
+import venv
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+import docker
 
 from autogen import oai
 
-import docker
+from .types import UserMessageImageContentPart, UserMessageTextContentPart
 
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
@@ -33,12 +37,13 @@ TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
 WIN32 = sys.platform == "win32"
 PATH_SEPARATOR = WIN32 and "\\" or "/"
+PYTHON_VARIANTS = ["python", "Python", "py"]
 
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List[Dict[str, Any]], None]) -> str:
-    """Converts `content` into a string format.
+def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
+    """Converts the `content` field of an OpenAI message into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
     and converts it into a string. Text is directly appended to the result string, while image URLs are
@@ -218,7 +223,6 @@ def get_powershell_command():
         result = subprocess.run(["powershell", "$PSVersionTable.PSVersion.Major"], capture_output=True, text=True)
         if result.returncode == 0:
             return "powershell"
-
     except (FileNotFoundError, NotADirectoryError):
         # This means that 'powershell' command is not found so now we try looking for 'pwsh'
         try:
@@ -227,22 +231,32 @@ def get_powershell_command():
             )
             if result.returncode == 0:
                 return "pwsh"
+        except FileExistsError as e:
+            raise FileNotFoundError(
+                "Neither powershell.exe nor pwsh.exe is present in the system. "
+                "Please install PowerShell and try again. "
+            ) from e
+        except NotADirectoryError as e:
+            raise NotADirectoryError(
+                "PowerShell is either not installed or its path is not given "
+                "properly in the environment variable PATH. Please check the "
+                "path and try again. "
+            ) from e
+    except PermissionError as e:
+        raise PermissionError("No permission to run powershell.") from e
 
-        except (FileNotFoundError, NotADirectoryError):
-            if WIN32:
-                logging.warning("Neither powershell nor pwsh is installed but it is a Windows OS")
-            return None
 
-
-powershell_command = get_powershell_command()
-
-
-def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
+def _cmd(lang: str) -> str:
+    if lang in PYTHON_VARIANTS:
+        return "python"
+    if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
     if lang in ["shell"]:
         return "sh"
+    if lang == "javascript":
+        return "node"
     if lang in ["ps1", "pwsh", "powershell"]:
+        powershell_command = get_powershell_command()
         return powershell_command
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
@@ -271,7 +285,7 @@ def in_docker_container() -> bool:
     return os.path.exists("/.dockerenv")
 
 
-def decide_use_docker(use_docker) -> bool:
+def decide_use_docker(use_docker: Optional[bool]) -> Optional[bool]:
     if use_docker is None:
         env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
 
@@ -453,9 +467,7 @@ def execute_code(
     image_list = (
         ["python:3-slim", "python:3", "python:3-windowsservercore"]
         if use_docker is True
-        else [use_docker]
-        if isinstance(use_docker, str)
-        else use_docker
+        else [use_docker] if isinstance(use_docker, str) else use_docker
     )
     for image in image_list:
         # check if the image exists
@@ -709,3 +721,19 @@ def implement(
     #     cost += metrics["gen_cost"]
     #     if metrics["succeed_assertions"] or i == len(configs) - 1:
     #         return responses[metrics["index_selected"]], cost, i
+
+
+def create_virtual_env(dir_path: str, **env_args) -> SimpleNamespace:
+    """Creates a python virtual environment and returns the context.
+
+    Args:
+        dir_path (str): Directory path where the env will be created.
+        **env_args: Any extra args to pass to the `EnvBuilder`
+
+    Returns:
+        SimpleNamespace: the virtual env context object."""
+    if not env_args:
+        env_args = {"with_pip": True}
+    env_builder = venv.EnvBuilder(**env_args)
+    env_builder.create(dir_path)
+    return env_builder.ensure_directories(dir_path)

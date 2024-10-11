@@ -11,7 +11,6 @@ from autogen.code_utils import content_str
 
 from ..._pydantic import model_dump
 
-
 DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
 DEFAULT_MODEL = "gpt-4-vision-preview"
 
@@ -53,16 +52,8 @@ class MultimodalConversableAgent(ConversableAgent):
         )
 
         # Override the `generate_oai_reply`
-        def _replace_reply_func(arr, x, y):
-            for item in arr:
-                if item["reply_func"] is x:
-                    item["reply_func"] = y
-
-        _replace_reply_func(
-            self._reply_func_list, ConversableAgent.generate_oai_reply, MultimodalConversableAgent.generate_oai_reply
-        )
-        _replace_reply_func(
-            self._reply_func_list,
+        self.replace_reply_func(ConversableAgent.generate_oai_reply, MultimodalConversableAgent.generate_oai_reply)
+        self.replace_reply_func(
             ConversableAgent.a_generate_oai_reply,
             MultimodalConversableAgent.a_generate_oai_reply,
         )

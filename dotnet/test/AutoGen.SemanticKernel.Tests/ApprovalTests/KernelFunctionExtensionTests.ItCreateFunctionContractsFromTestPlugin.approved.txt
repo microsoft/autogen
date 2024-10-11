@@ -1,0 +1,25 @@
+﻿[
+  {
+    "ClassName": "test_plugin",
+    "Name": "GetState",
+    "Description": "Gets the state of the light.",
+    "Parameters": [],
+    "ReturnType": "System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+    "ReturnDescription": ""
+  },
+  {
+    "ClassName": "test_plugin",
+    "Name": "ChangeState",
+    "Description": "Changes the state of the light.'",
+    "Parameters": [
+      {
+        "Name": "newState",
+        "Description": "new state",
+        "ParameterType": "System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+        "IsRequired": true
+      }
+    ],
+    "ReturnType": "System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+    "ReturnDescription": ""
+  }
+]

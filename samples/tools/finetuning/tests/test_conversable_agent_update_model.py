@@ -1,11 +1,14 @@
-import pytest
-from autogen import AssistantAgent, UserProxyAgent
 import sys
+
+import pytest
+
+from autogen import AssistantAgent, UserProxyAgent
 
 sys.path.append("samples/tools/finetuning")
 
-from finetuning import update_model  # noqa: E402
 from typing import Dict  # noqa: E402
+
+from finetuning import update_model  # noqa: E402
 
 sys.path.append("test")
 

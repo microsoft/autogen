@@ -5,7 +5,7 @@ preferred-citation:
     given-names: "Qingyun"
     affiliation: "Penn State University, University Park PA USA"
   - family-names: "Bansal"
-    given-names: "Gargan"
+    given-names: "Gagan"
     affiliation: "Microsoft Research, Redmond WA USA"
   - family-names: "Zhang"
     given-names: "Jieyu"
@@ -43,6 +43,7 @@ preferred-citation:
   - family-names: "Wang"
     given-names: "Chi"
     affiliation: "Microsoft Research, Redmond WA USA"
-  booktitle: "ArXiv preprint arXiv:2308.08155"
+  booktitle: "COLM"
   title: "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework"
-  year: 2023
+  year: 2024
+  url: "https://aka.ms/autogen-pdf"

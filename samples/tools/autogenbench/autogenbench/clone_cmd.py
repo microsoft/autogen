@@ -1,7 +1,9 @@
-import os
-import json
 import argparse
+import json
+import os
+
 import requests
+
 from .load_module import load_module
 
 # Figure out where everything is

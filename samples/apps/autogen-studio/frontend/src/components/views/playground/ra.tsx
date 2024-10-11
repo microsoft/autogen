@@ -7,20 +7,11 @@ import { message } from "antd";
 import SideBarView from "./sidebar";
 import { useConfigStore } from "../../../hooks/store";
 import SessionsView from "./sessions";
-import AgentsWorkflowView from "./workflows";
-import { Square3Stack3DIcon } from "@heroicons/react/24/outline";
-import Icon from "../../icons";
 
 const RAView = () => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const [loading, setLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<IMessage[] | null>(null);
-  const [skillUpdated, setSkillUpdated] = React.useState("default");
-
-  const skillup = {
-    get: skillUpdated,
-    set: setSkillUpdated,
-  };
 
   const [config, setConfig] = React.useState(null);
 
@@ -35,26 +26,21 @@ const RAView = () => {
 
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
-  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${session?.id}`;
-  const workflowConfig = useConfigStore((state) => state.workflowConfig);
+  const fetchMessagesUrl = `${serverUrl}/sessions/${session?.id}/messages?user_id=${user?.email}`;
 
   const fetchMessages = () => {
     setError(null);
     setLoading(true);
     setMessages(null);
-    // const fetch;
     const payLoad = {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
     };
-    // console.log("payload", payLoad);
     const onSuccess = (data: any) => {
-      // console.log(data);
       if (data && data.status) {
         setMessages(data.data);
-        // message.success(data.message);
       } else {
         message.error(data.message);
       }
@@ -70,7 +56,6 @@ const RAView = () => {
 
   React.useEffect(() => {
     if (user && session) {
-      // console.log("fetching messages", messages);
       fetchMessages();
     }
   }, [session]);
@@ -84,7 +69,6 @@ const RAView = () => {
         <div className=" flex-1  ">
           {!session && (
             <div className=" w-full  h-full flex items-center justify-center">
-              {/* {JSON.stringify(workflowConfig)} */}
               <div className="w-2/3" id="middle">
                 <div className="w-full   text-center">
                   {" "}
@@ -99,8 +83,8 @@ const RAView = () => {
             </div>
           )}
 
-          {workflowConfig !== null && session !== null && (
-            <ChatBox initMessages={messages} />
+          {session !== null && (
+            <ChatBox initMessages={messages} session={session} />
           )}
         </div>
       </div>

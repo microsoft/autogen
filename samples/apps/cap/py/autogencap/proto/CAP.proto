@@ -3,6 +3,19 @@ syntax = "proto3";
 // Get protoc here https://github.com/protocolbuffers/protobuf/releases
 // .\protoc --python_out=. --pyi_out=. CAP.proto
 
+enum ErrorCode {
+    option allow_alias = true;
+    EC_OK = 0;
+    EC_NOT_FOUND = 1;
+    EC_ALREADY_EXISTS = 2;
+    EC_MAX = 2; // IMPORTANT: Update this if you add more error codes
+}
+
+message Error {
+    ErrorCode code = 1;
+    optional string message = 2;
+}
+
 message ActorInfo {
     string name = 1;
     optional string namespace = 2;

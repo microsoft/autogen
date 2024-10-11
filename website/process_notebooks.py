@@ -1,22 +1,24 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
-import signal
-import sys
-from pathlib import Path
-import subprocess
+
 import argparse
-import shutil
+import concurrent.futures
 import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
 import tempfile
 import threading
 import time
 import typing
-import concurrent.futures
-import os
-from typing import Dict, Optional, Tuple, Union
 from dataclasses import dataclass
 from multiprocessing import current_process
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
+
 from termcolor import colored
 
 try:
@@ -346,7 +348,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
     if "{" in title:
         title = title[: title.find("{")].strip()
 
-    github_link = f"https://github.com/microsoft/autogen/blob/main/{repo_relative_notebook}"
+    github_link = f"https://github.com/microsoft/autogen/blob/0.2/{repo_relative_notebook}"
     content = (
         content[:title_end]
         + "\n[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)]("

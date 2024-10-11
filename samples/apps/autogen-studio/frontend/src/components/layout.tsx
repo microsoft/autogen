@@ -24,7 +24,10 @@ const Layout = ({
   restricted = false,
 }: Props) => {
   const layoutContent = (
-    <div className={`  h-full flex flex-col`}>
+    <div
+      // style={{ height: "calc(100vh - 64px)" }}
+      className={`  h-full flex flex-col`}
+    >
       {showHeader && <Header meta={meta} link={link} />}
       <div className="flex-1  text-primary ">
         <title>{meta?.title + " | " + title}</title>

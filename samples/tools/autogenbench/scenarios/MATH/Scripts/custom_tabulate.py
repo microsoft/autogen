@@ -1,6 +1,7 @@
+import json
 import os
 import sys
-import json
+
 from autogenbench.tabulate_cmd import default_tabulate
 
 

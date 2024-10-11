@@ -3,13 +3,14 @@
 # (default: ../scenarios/human_eval_two_agents_gpt4.jsonl and ./scenarios/human_eval_two_agents_gpt35.jsonl)
 #
 
-import requests
-import tarfile
 import io
 import json
 import os
 import re
 import sys
+import tarfile
+
+import requests
 
 URL = "https://people.eecs.berkeley.edu/~hendrycks/MATH.tar"
 

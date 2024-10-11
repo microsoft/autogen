@@ -5,7 +5,7 @@ name: SamplesToolsTests
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["0.2"]
     paths:
       - "autogen/**"
       - "samples/tools/**"
@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/0.2' }}
 permissions: {}
 jobs:
   SamplesToolsFineTuningTests:
@@ -24,17 +24,20 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e .
-          pip install pytest
+          pip install pytest-cov>=5
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |

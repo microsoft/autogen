@@ -2,11 +2,11 @@
 # ruff: noqa: F821
 
 import glob
+import json
 import os
+import shutil
 import subprocess
 import sys
-import shutil
-import json
 
 
 def scoring(content: str, should_contain: list, should_not_contain: list):
@@ -41,11 +41,11 @@ def check():
 
     with open("../should_contain.json.txt", "r") as f:
         should_contain = json.loads(f.read())
-        assert type(should_contain) == list, "TERMINATE\n"
+        assert isinstance(should_contain, list), "TERMINATE\n"
 
     with open("../should_not_contain.json.txt", "r") as f:
         should_not_contain = json.loads(f.read())
-        assert type(should_not_contain) == list, "TERMINATE\n"
+        assert isinstance(should_not_contain, list), "TERMINATE\n"
 
     # Check if file pattern is a file extension
     if file_pattern.startswith("."):

@@ -2,6 +2,7 @@
 
 Triangular inequality is not required in this problem.
 """
+
 import math
 import pdb
 import random

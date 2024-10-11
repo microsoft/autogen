@@ -1,14 +1,14 @@
 from __future__ import annotations
-from types import TracebackType
 
-from typing import Optional, Type, Union, cast
-import subprocess
-import signal
-import sys
+import atexit
 import json
 import secrets
+import signal
 import socket
-import atexit
+import subprocess
+import sys
+from types import TracebackType
+from typing import Optional, Type, Union, cast
 
 if sys.version_info >= (3, 11):
     from typing import Self

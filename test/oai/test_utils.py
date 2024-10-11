@@ -4,15 +4,15 @@ import json
 import logging
 import os
 import tempfile
+from typing import Dict, List
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
-from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config, is_valid_api_key
-
-from conftest import MOCK_OPEN_AI_API_KEY
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config
 
 # Example environment variables
 ENV_VARS = {
@@ -44,19 +44,21 @@ JSON_SAMPLE = """
 [
     {
         "model": "gpt-3.5-turbo",
-        "api_type": "openai"
+        "api_type": "openai",
+        "tags": ["gpt35"]
     },
     {
         "model": "gpt-4",
-        "api_type": "openai"
+        "api_type": "openai",
+        "tags": ["gpt4"]
     },
     {
         "model": "gpt-35-turbo-v0301",
         "tags": ["gpt-3.5-turbo", "gpt35_turbo"],
-        "api_key": "111113fc7e8a46419bfac511bb301111",
-        "base_url": "https://1111.openai.azure.com",
+        "api_key": "Your Azure OAI API Key",
+        "base_url": "https://deployment_name.openai.azure.com",
         "api_type": "azure",
-        "api_version": "2024-02-15-preview"
+        "api_version": "2024-02-01"
     },
     {
         "model": "gpt",
@@ -66,11 +68,49 @@ JSON_SAMPLE = """
 ]
 """
 
+JSON_SAMPLE_DICT = json.loads(JSON_SAMPLE)
+
+
+FILTER_CONFIG_TEST = [
+    {
+        "filter_dict": {"tags": ["gpt35", "gpt4"]},
+        "exclude": False,
+        "expected": JSON_SAMPLE_DICT[0:2],
+    },
+    {
+        "filter_dict": {"tags": ["gpt35", "gpt4"]},
+        "exclude": True,
+        "expected": JSON_SAMPLE_DICT[2:4],
+    },
+    {
+        "filter_dict": {"api_type": "azure", "api_version": "2024-02-01"},
+        "exclude": False,
+        "expected": [JSON_SAMPLE_DICT[2]],
+    },
+]
+
+
+def _compare_lists_of_dicts(list1: List[Dict], list2: List[Dict]) -> bool:
+    dump1 = sorted(json.dumps(d, sort_keys=True) for d in list1)
+    dump2 = sorted(json.dumps(d, sort_keys=True) for d in list2)
+    return dump1 == dump2
+
 
 @pytest.fixture
 def mock_os_environ():
     with mock.patch.dict(os.environ, ENV_VARS):
         yield
+
+
+@pytest.mark.parametrize("test_case", FILTER_CONFIG_TEST)
+def test_filter_config(test_case):
+    filter_dict = test_case["filter_dict"]
+    exclude = test_case["exclude"]
+    expected = test_case["expected"]
+
+    config_list = filter_config(JSON_SAMPLE_DICT, filter_dict, exclude)
+
+    assert _compare_lists_of_dicts(config_list, expected)
 
 
 def test_config_list_from_json():
@@ -372,18 +412,6 @@ def test_tags():
 
     list_5 = filter_config(config_list, {"tags": ["does_not_exist"]})
     assert len(list_5) == 0
-
-
-def test_is_valid_api_key():
-    assert not is_valid_api_key("")
-    assert not is_valid_api_key("sk-")
-    assert not is_valid_api_key("SK-")
-    assert not is_valid_api_key("sk-asajsdjsd2")
-    assert not is_valid_api_key("FooBar")
-    assert not is_valid_api_key("sk-asajsdjsd22372%23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
-    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
-    assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 
 if __name__ == "__main__":

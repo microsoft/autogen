@@ -22,7 +22,7 @@ WORKDIR /home/autogen
 
 # Install Python packages
 RUN pip install --upgrade pip
-RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra
+RUN pip install autogen-agentchat[teachable,lmm,retrievechat,mathchat,blendsearch]~=0.2 autogenra
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
 
 # Expose port

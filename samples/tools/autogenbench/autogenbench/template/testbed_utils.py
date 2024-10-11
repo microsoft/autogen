@@ -1,8 +1,10 @@
-from pkg_resources import packaging
-from datetime import datetime
-import os
-import autogen
 import json
+import os
+from datetime import datetime
+
+from pkg_resources import packaging
+
+import autogen
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
@@ -60,7 +62,7 @@ def init():
     # Print some information about the run
     with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
-        f.write("pyautogen version: " + str(autogen.__version__) + "\n")
+        f.write("autogen-agentchat version: " + str(autogen.__version__) + "\n")
 
     # Start logging
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
@@ -68,7 +70,7 @@ def init():
 
     # Start logging
     if LOGGING_ENABLED:
-        autogen.runtime_logging.start(config={"dbname": "telemetry.db"})
+        autogen.runtime_logging.start(config={"dbname": "telemetry.sqlite"})
 
 
 def finalize(agents):

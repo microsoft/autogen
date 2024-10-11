@@ -1,8 +1,10 @@
-from typing import Any
-import pytest
 import logging
-from autogen.agentchat import Agent
+from typing import Any
+
+import pytest
+
 import autogen.graph_utils as gru
+from autogen.agentchat import Agent
 
 
 class FakeAgent(Agent):

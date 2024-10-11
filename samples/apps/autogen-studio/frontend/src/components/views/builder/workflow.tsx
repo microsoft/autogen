@@ -1,32 +1,28 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  CodeBracketSquareIcon,
   DocumentDuplicateIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
-import { IFlowConfig, IStatus } from "../../types";
+import { IWorkflow, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
-  sampleWorkflowConfig,
   sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  BounceLoader,
-  Card,
-  FlowConfigViewer,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
+import { WorflowViewer } from "./utils/workflowconfig";
+import { ExportWorkflowModal } from "./utils/export";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -38,15 +34,19 @@ const WorkflowView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listWorkflowsUrl = `${serverUrl}/workflows?user_id=${user?.email}`;
   const saveWorkflowsUrl = `${serverUrl}/workflows`;
-  const deleteWorkflowsUrl = `${serverUrl}/workflows/delete`;
 
-  const [workflows, setWorkflows] = React.useState<IFlowConfig[] | null>([]);
+  const [workflows, setWorkflows] = React.useState<IWorkflow[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
-    React.useState<IFlowConfig | null>(null);
+    React.useState<IWorkflow | null>(null);
+  const [selectedExportWorkflow, setSelectedExportWorkflow] =
+    React.useState<IWorkflow | null>(null);
 
-  const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
-    defaultConfig
+  const sampleWorkflow: IWorkflow = {
+    name: "Sample Agent Workflow",
+    description: "Sample Agent Workflow",
+  };
+  const [newWorkflow, setNewWorkflow] = React.useState<IWorkflow | null>(
+    sampleWorkflow
   );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
@@ -65,8 +65,6 @@ const WorkflowView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         setWorkflows(data.data);
       } else {
         message.error(data.message);
@@ -81,10 +79,11 @@ const WorkflowView = ({}: any) => {
     fetchJSON(listWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const deleteWorkFlow = (workflow: IFlowConfig) => {
+  const deleteWorkFlow = (workflow: IWorkflow) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    const deleteWorkflowsUrl = `${serverUrl}/workflows/delete?user_id=${user?.email}&workflow_id=${workflow.id}`;
     const payLoad = {
       method: "DELETE",
       headers: {
@@ -99,7 +98,7 @@ const WorkflowView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setWorkflows(data.data);
+        fetchWorkFlow();
       } else {
         message.error(data.message);
       }
@@ -111,40 +110,6 @@ const WorkflowView = ({}: any) => {
       setLoading(false);
     };
     fetchJSON(deleteWorkflowsUrl, payLoad, onSuccess, onError);
-  };
-
-  const saveWorkFlow = (workflow: IFlowConfig) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        workflow: workflow,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        // console.log("workflows", data.data);
-        setWorkflows(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
   React.useEffect(() => {
@@ -160,94 +125,92 @@ const WorkflowView = ({}: any) => {
     }
   }, [selectedWorkflow]);
 
+  const [showExportModal, setShowExportModal] = React.useState(false);
+
   const workflowRows = (workflows || []).map(
-    (workflow: IFlowConfig, i: number) => {
+    (workflow: IWorkflow, i: number) => {
+      const cardItems = [
+        {
+          title: "Export",
+          icon: CodeBracketSquareIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            setSelectedExportWorkflow(workflow);
+            setShowExportModal(true);
+          },
+          hoverText: "Export",
+        },
+        {
+          title: "Download",
+          icon: ArrowDownTrayIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            // download workflow as workflow.name.json
+            const element = document.createElement("a");
+            const sanitizedWorkflow = sanitizeConfig(workflow);
+            const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
+              type: "application/json",
+            });
+            element.href = URL.createObjectURL(file);
+            element.download = `workflow_${workflow.name}.json`;
+            document.body.appendChild(element); // Required for this to work in FireFox
+            element.click();
+          },
+          hoverText: "Download",
+        },
+        {
+          title: "Make a Copy",
+          icon: DocumentDuplicateIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            let newWorkflow = { ...sanitizeConfig(workflow) };
+            newWorkflow.name = `${workflow.name}_copy`;
+            setNewWorkflow(newWorkflow);
+            setShowNewWorkflowModal(true);
+          },
+          hoverText: "Make a Copy",
+        },
+        {
+          title: "Delete",
+          icon: TrashIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            deleteWorkFlow(workflow);
+          },
+          hoverText: "Delete",
+        },
+      ];
       return (
-        <div
+        <li
           key={"workflowrow" + i}
           className="block   h-full"
           style={{ width: "200px" }}
         >
-          <div className="  block">
-            {" "}
-            <Card
-              className="  block p-2 cursor-pointer"
-              title={
-                <div className="  ">{truncateText(workflow.name, 25)}</div>
-              }
-              onClick={() => {
-                setSelectedWorkflow(workflow);
-              }}
+          <Card
+            className="  block p-2 cursor-pointer"
+            title={<div className="  ">{truncateText(workflow.name, 25)}</div>}
+            onClick={() => {
+              setSelectedWorkflow(workflow);
+            }}
+          >
+            <div
+              style={{ minHeight: "65px" }}
+              className="break-words  my-2"
+              aria-hidden="true"
             >
-              <div style={{ minHeight: "65px" }} className="break-words  my-2">
-                {" "}
-                {truncateText(workflow.description, 70)}
-              </div>
-              <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
+              <div className="text-xs mb-2">{workflow.type}</div>{" "}
+              {truncateText(workflow.description, 70)}
+            </div>
+            <div
+              aria-label={`Updated ${timeAgo(workflow.updated_at || "")} ago`}
+              className="text-xs"
+            >
+              {timeAgo(workflow.updated_at || "")}
+            </div>
 
-              <div
-                onMouseEnter={(e) => {
-                  e.stopPropagation();
-                }}
-                className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-              >
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // download workflow as workflow.name.json
-                    const element = document.createElement("a");
-                    const sanitizedWorkflow = sanitizeConfig(workflow);
-                    const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
-                      type: "application/json",
-                    });
-                    element.href = URL.createObjectURL(file);
-                    element.download = `${workflow.name}.json`;
-                    document.body.appendChild(element); // Required for this to work in FireFox
-                    element.click();
-
-                    // window.op
-                  }}
-                >
-                  <Tooltip title="Download">
-                    <ArrowDownTrayIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    let newWorkflow = { ...workflow };
-                    newWorkflow.name = `${workflow.name} Copy`;
-                    newWorkflow.user_id = user?.email;
-                    newWorkflow.timestamp = new Date().toISOString();
-                    delete newWorkflow.id;
-                    setNewWorkflow(newWorkflow);
-                    setShowNewWorkflowModal(true);
-                  }}
-                >
-                  <Tooltip title="Make a Copy">
-                    <DocumentDuplicateIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteWorkFlow(workflow);
-                  }}
-                >
-                  <Tooltip title="Delete">
-                    <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
+            <CardHoverBar items={cardItems} />
+          </Card>
+        </li>
       );
     }
   );
@@ -255,18 +218,26 @@ const WorkflowView = ({}: any) => {
   const WorkflowModal = ({
     workflow,
     setWorkflow,
-    showWorkflowModal,
-    setShowWorkflowModal,
+    showModal,
+    setShowModal,
     handler,
   }: {
-    workflow: IFlowConfig | null;
-    setWorkflow?: (workflow: IFlowConfig | null) => void;
-    showWorkflowModal: boolean;
-    setShowWorkflowModal: (show: boolean) => void;
-    handler?: (workflow: IFlowConfig) => void;
+    workflow: IWorkflow | null;
+    setWorkflow?: (workflow: IWorkflow | null) => void;
+    showModal: boolean;
+    setShowModal: (show: boolean) => void;
+    handler?: (workflow: IWorkflow) => void;
   }) => {
-    const [localWorkflow, setLocalWorkflow] =
-      React.useState<IFlowConfig | null>(workflow);
+    const [localWorkflow, setLocalWorkflow] = React.useState<IWorkflow | null>(
+      workflow
+    );
+
+    const closeModal = () => {
+      setShowModal(false);
+      if (handler) {
+        handler(localWorkflow as IWorkflow);
+      }
+    };
 
     return (
       <Modal
@@ -279,55 +250,98 @@ const WorkflowView = ({}: any) => {
           </>
         }
         width={800}
-        open={showWorkflowModal}
+        open={showModal}
         onOk={() => {
-          setShowWorkflowModal(false);
-          if (handler) {
-            handler(localWorkflow as IFlowConfig);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setShowWorkflowModal(false);
-          setWorkflow?.(null);
+          closeModal();
         }}
+        footer={[]}
       >
-        {localWorkflow && (
-          <FlowConfigViewer
-            flowConfig={localWorkflow}
-            setFlowConfig={setLocalWorkflow}
-          />
-        )}
+        <>
+          {localWorkflow && (
+            <WorflowViewer
+              workflow={localWorkflow}
+              setWorkflow={setLocalWorkflow}
+              close={closeModal}
+            />
+          )}
+        </>
       </Modal>
     );
   };
 
+  const uploadWorkflow = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const workflow = JSON.parse(contents);
+            // TBD validate that it is a valid workflow
+            setNewWorkflow(workflow);
+            setShowNewWorkflowModal(true);
+          } catch (err) {
+            message.error("Invalid workflow file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const workflowTypes: MenuProps["items"] = [
+    // {
+    //   key: "twoagents",
+    //   label: (
+    //     <div>
+    //       {" "}
+    //       <UsersIcon className="w-5 h-5 inline-block mr-2" />
+    //       Two Agents
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   key: "groupchat",
+    //   label: (
+    //     <div>
+    //       <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+    //       Group Chat
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   type: "divider",
+    // },
     {
-      key: "twoagents",
+      key: "uploadworkflow",
       label: (
         <div>
-          {" "}
-          <UsersIcon className="w-5 h-5 inline-block mr-2" />
-          Two Agents
-        </div>
-      ),
-    },
-    {
-      key: "groupchat",
-      label: (
-        <div>
-          <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
-          Group Chat
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Workflow
         </div>
       ),
     },
   ];
 
-  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    const newConfig = sampleWorkflowConfig(key);
+  const showWorkflow = (config: IWorkflow) => {
+    setSelectedWorkflow(config);
+    setShowWorkflowModal(true);
+  };
 
-    setNewWorkflow(newConfig);
-    setShowNewWorkflowModal(true);
+  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadworkflow") {
+      uploadWorkflow();
+      return;
+    }
+    showWorkflow(sampleWorkflow);
   };
 
   return (
@@ -335,22 +349,26 @@ const WorkflowView = ({}: any) => {
       <WorkflowModal
         workflow={selectedWorkflow}
         setWorkflow={setSelectedWorkflow}
-        showWorkflowModal={showWorkflowModal}
-        setShowWorkflowModal={setShowWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
-          setShowWorkflowModal(false);
+        showModal={showWorkflowModal}
+        setShowModal={setShowWorkflowModal}
+        handler={(workflow: IWorkflow) => {
+          fetchWorkFlow();
         }}
       />
 
       <WorkflowModal
         workflow={newWorkflow}
-        showWorkflowModal={showNewWorkflowModal}
-        setShowWorkflowModal={setShowNewWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
-          setShowNewWorkflowModal(false);
+        showModal={showNewWorkflowModal}
+        setShowModal={setShowNewWorkflowModal}
+        handler={(workflow: IWorkflow) => {
+          fetchWorkFlow();
         }}
+      />
+
+      <ExportWorkflowModal
+        workflow={selectedExportWorkflow}
+        show={showExportModal}
+        setShow={setShowExportModal}
       />
 
       <div className="mb-2   relative">
@@ -361,25 +379,18 @@ const WorkflowView = ({}: any) => {
               Workflows ({workflowRows.length}){" "}
             </div>
             <div className=" ">
-              <Dropdown
+              <Dropdown.Button
+                type="primary"
                 menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
                 placement="bottomRight"
                 trigger={["click"]}
+                onClick={() => {
+                  showWorkflow(sampleWorkflow);
+                }}
               >
-                <div
-                  className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
-                  role="button"
-                  onClick={(e) => {
-                    // add agent to flowSpec?.groupchat_config.agents
-                  }}
-                >
-                  <LaunchButton className=" text-sm p-2 px-3">
-                    {" "}
-                    <PlusIcon className="w-5 h-5 inline-block mr-1" />
-                    New Workflow
-                  </LaunchButton>
-                </div>
-              </Dropdown>
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Workflow
+              </Dropdown.Button>
             </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">
@@ -392,7 +403,7 @@ const WorkflowView = ({}: any) => {
               className="w-full relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="flex flex-wrap gap-3">{workflowRows}</div>
+              <ul className="flex flex-wrap gap-3">{workflowRows}</ul>
             </div>
           )}
           {workflows && workflows.length === 0 && !loading && (

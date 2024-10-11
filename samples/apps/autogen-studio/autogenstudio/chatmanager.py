@@ -1,63 +1,179 @@
-import json
-import time
-from typing import List
-from .datamodel import AgentWorkFlowConfig, Message
-from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
-from .workflowmanager import AutoGenWorkFlowManager
 import os
+from datetime import datetime
+from queue import Queue
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from loguru import logger
+
+from .datamodel import Message
+from .websocket_connection_manager import WebSocketConnectionManager
+from .workflowmanager import WorkflowManager
 
 
 class AutoGenChatManager:
-    def __init__(self) -> None:
-        pass
+    """
+    This class handles the automated generation and management of chat interactions
+    using an automated workflow configuration and message queue.
+    """
 
-    def chat(self, message: Message, history: List, flow_config: AgentWorkFlowConfig = None, **kwargs) -> None:
-        work_dir = kwargs.get("work_dir", None)
-        scratch_dir = os.path.join(work_dir, "scratch")
+    def __init__(
+        self, message_queue: Queue, websocket_manager: WebSocketConnectionManager = None, human_input_timeout: int = 180
+    ) -> None:
+        """
+        Initializes the AutoGenChatManager with a message queue.
+
+        :param message_queue: A queue to use for sending messages asynchronously.
+        """
+        self.message_queue = message_queue
+        self.websocket_manager = websocket_manager
+        self.a_human_input_timeout = human_input_timeout
+
+    def send(self, message: dict) -> None:
+        """
+        Sends a message by putting it into the message queue.
+
+        :param message: The message string to be sent.
+        """
+        if self.message_queue is not None:
+            self.message_queue.put_nowait(message)
+
+    async def a_send(self, message: dict) -> None:
+        """
+        Asynchronously sends a message via the WebSocketManager class
+
+        :param message: The message string to be sent.
+        """
+        for connection, socket_client_id in self.websocket_manager.active_connections:
+            if message["connection_id"] == socket_client_id:
+                logger.info(
+                    f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+                )
+                await self.websocket_manager.send_message(message, connection)
+            else:
+                logger.info(
+                    f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+                )
+
+    async def a_prompt_for_input(self, prompt: dict, timeout: int = 60) -> str:
+        """
+        Sends the user a prompt and waits for a response asynchronously via the WebSocketManager class
+
+        :param message: The message string to be sent.
+        """
+
+        for connection, socket_client_id in self.websocket_manager.active_connections:
+            if prompt["connection_id"] == socket_client_id:
+                logger.info(
+                    f"Sending message to connection_id: {prompt['connection_id']}. Connection ID: {socket_client_id}"
+                )
+                try:
+                    result = await self.websocket_manager.get_input(prompt, connection, timeout)
+                    return result
+                except Exception as e:
+                    return f"Error: {e}\nTERMINATE"
+            else:
+                logger.info(
+                    f"Skipping message for connection_id: {prompt['connection_id']}. Connection ID: {socket_client_id}"
+                )
+
+    def chat(
+        self,
+        message: Message,
+        history: List[Dict[str, Any]],
+        workflow: Any = None,
+        connection_id: Optional[str] = None,
+        user_dir: Optional[str] = None,
+        **kwargs,
+    ) -> Message:
+        """
+        Processes an incoming message according to the agent's workflow configuration
+        and generates a response.
+
+        :param message: An instance of `Message` representing an incoming message.
+        :param history: A list of dictionaries, each representing a past interaction.
+        :param flow_config: An instance of `AgentWorkFlowConfig`. If None, defaults to a standard configuration.
+        :param connection_id: An optional connection identifier.
+        :param kwargs: Additional keyword arguments.
+        :return: An instance of `Message` representing a response.
+        """
+
+        # create a working director for workflow based on user_dir/session_id/time_hash
+        work_dir = os.path.join(
+            user_dir,
+            str(message.session_id),
+            datetime.now().strftime("%Y%m%d_%H-%M-%S"),
+        )
+        os.makedirs(work_dir, exist_ok=True)
 
         # if no flow config is provided, use the default
-        if flow_config is None:
-            flow_config = get_default_agent_config(scratch_dir)
+        if workflow is None:
+            raise ValueError("Workflow must be specified")
 
-        flow = AutoGenWorkFlowManager(config=flow_config, history=history, work_dir=scratch_dir)
-        message_text = message.content.strip()
-
-        output = ""
-        start_time = time.time()
-
-        metadata = {}
-        flow.run(message=f"{message_text}", clear_history=False)
-
-        metadata["messages"] = flow.agent_history
-
-        output = ""
-
-        if flow_config.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(flow.agent_history)
-            last_message = flow.agent_history[-1]["message"]["content"] if flow.agent_history else ""
-            successful_code_blocks = "\n\n".join(successful_code_blocks)
-            output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
-        elif flow_config.summary_method == "llm":
-            output = ""
-        elif flow_config.summary_method == "none":
-            output = ""
-
-        metadata["code"] = ""
-        metadata["summary_method"] = flow_config.summary_method
-        end_time = time.time()
-        metadata["time"] = end_time - start_time
-        modified_files = get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
-        metadata["files"] = modified_files
-
-        print("Modified files: ", len(modified_files))
-
-        output_message = Message(
-            user_id=message.user_id,
-            root_msg_id=message.root_msg_id,
-            role="assistant",
-            content=output,
-            metadata=json.dumps(metadata),
-            session_id=message.session_id,
+        workflow_manager = WorkflowManager(
+            workflow=workflow,
+            history=history,
+            work_dir=work_dir,
+            send_message_function=self.send,
+            a_send_message_function=self.a_send,
+            connection_id=connection_id,
         )
 
-        return output_message
+        message_text = message.content.strip()
+        result_message: Message = workflow_manager.run(message=f"{message_text}", clear_history=False, history=history)
+
+        result_message.user_id = message.user_id
+        result_message.session_id = message.session_id
+        return result_message
+
+    async def a_chat(
+        self,
+        message: Message,
+        history: List[Dict[str, Any]],
+        workflow: Any = None,
+        connection_id: Optional[str] = None,
+        user_dir: Optional[str] = None,
+        **kwargs,
+    ) -> Message:
+        """
+        Processes an incoming message according to the agent's workflow configuration
+        and generates a response.
+
+        :param message: An instance of `Message` representing an incoming message.
+        :param history: A list of dictionaries, each representing a past interaction.
+        :param flow_config: An instance of `AgentWorkFlowConfig`. If None, defaults to a standard configuration.
+        :param connection_id: An optional connection identifier.
+        :param kwargs: Additional keyword arguments.
+        :return: An instance of `Message` representing a response.
+        """
+
+        # create a working director for workflow based on user_dir/session_id/time_hash
+        work_dir = os.path.join(
+            user_dir,
+            str(message.session_id),
+            datetime.now().strftime("%Y%m%d_%H-%M-%S"),
+        )
+        os.makedirs(work_dir, exist_ok=True)
+
+        # if no flow config is provided, use the default
+        if workflow is None:
+            raise ValueError("Workflow must be specified")
+
+        workflow_manager = WorkflowManager(
+            workflow=workflow,
+            history=history,
+            work_dir=work_dir,
+            send_message_function=self.send,
+            a_send_message_function=self.a_send,
+            a_human_input_function=self.a_prompt_for_input,
+            a_human_input_timeout=self.a_human_input_timeout,
+            connection_id=connection_id,
+        )
+
+        message_text = message.content.strip()
+        result_message: Message = await workflow_manager.a_run(
+            message=f"{message_text}", clear_history=False, history=history
+        )
+
+        result_message.user_id = message.user_id
+        result_message.session_id = message.session_id
+        return result_message

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
-import sys
 import re
+import sys
+
 import pytest
+
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
-from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -26,20 +27,13 @@ else:
     skip_all = False
 
 try:
-    from openai import OpenAI
-except ImportError:
-    skip_oai = True
-else:
-    skip_oai = False or skip_openai
-
-try:
     BING_API_KEY = os.environ["BING_API_KEY"]
 except KeyError:
     skip_bing = True
 else:
     skip_bing = False
 
-if not skip_oai:
+if not skip_openai:
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
 
 
@@ -87,30 +81,23 @@ def test_web_surfer() -> None:
             response = function_map["page_down"]()
         assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
 
-        # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["informational_web_search"](BING_QUERY)
-
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["navigational_web_search"](BING_QUERY)
-
         # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
         with pytest.raises(IndexError):
-            response = function_map["answer_from_page"]("When was it founded?")
+            response = function_map["read_page_and_answer"]("When was it founded?")
 
         with pytest.raises(IndexError):
             response = function_map["summarize_page"]()
 
 
 @pytest.mark.skipif(
-    skip_oai,
-    reason="do not run if oai is not installed",
+    skip_all or skip_openai,
+    reason="dependency is not installed OR" + reason,
 )
 def test_web_surfer_oai() -> None:
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}
 
     # adding Azure name variations to the model list
-    model = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    model = ["gpt-4o-mini"]
     model += [m.replace(".", "") for m in model]
 
     summarizer_llm_config = {
@@ -161,7 +148,7 @@ def test_web_surfer_bing() -> None:
             "config_list": [
                 {
                     "model": "gpt-3.5-turbo-16k",
-                    "api_key": "sk-PLACEHOLDER_KEY",
+                    "api_key": MOCK_OPEN_AI_API_KEY,
                 }
             ]
         },
@@ -173,7 +160,7 @@ def test_web_surfer_bing() -> None:
 
     # Test informational queries
     response = function_map["informational_web_search"](BING_QUERY)
-    assert f"Address: bing: {BING_QUERY}" in response
+    assert f"Address: search: {BING_QUERY}" in response
     assert f"Title: {BING_QUERY} - Search" in response
     assert "Viewport position: Showing page 1 of 1." in response
     assert f"A Bing search for '{BING_QUERY}' found " in response

@@ -7,8 +7,8 @@ tags: [LLM, GPT, research]
 ![An adaptive way of using GPT-3.5 and GPT-4 outperforms GPT-4 in both coding success rate and inference cost](img/humaneval.png)
 
 **TL;DR:**
-* **A case study using the HumanEval benchmark shows that an adaptive way of using multiple GPT models can achieve both much higher accuracy (from 68% to 90%) and lower inference cost (by 18%) than using GPT-4 for coding.**
 
+- **A case study using the HumanEval benchmark shows that an adaptive way of using multiple GPT models can achieve both much higher accuracy (from 68% to 90%) and lower inference cost (by 18%) than using GPT-4 for coding.**
 
 GPT-4 is a big upgrade of foundation model capability, e.g., in code and math, accompanied by a much higher (more than 10x) price per token to use over GPT-3.5-Turbo. On a code completion benchmark, [HumanEval](https://huggingface.co/datasets/openai_humaneval), developed by OpenAI, GPT-4 can successfully solve 68% tasks while GPT-3.5-Turbo does 46%. It is possible to increase the success rate of GPT-4 further by generating multiple responses or making multiple calls. However, that will further increase the cost, which is already nearly 20 times of using GPT-3.5-Turbo and with more restricted API call rate limit. Can we achieve more with less?
 
@@ -16,10 +16,10 @@ In this blog post, we will explore a creative, adaptive way of using GPT models 
 
 ## Observations
 
-* GPT-3.5-Turbo can already solve 40%-50% tasks. For these tasks if we never use GPT-4, we can save nearly 40-50% cost.
-* If we use the saved cost to generate more responses with GPT-4 for the remaining unsolved tasks, it is possible to solve some more of them while keeping the amortized cost down.
+- GPT-3.5-Turbo can already solve 40%-50% tasks. For these tasks if we never use GPT-4, we can save nearly 40-50% cost.
+- If we use the saved cost to generate more responses with GPT-4 for the remaining unsolved tasks, it is possible to solve some more of them while keeping the amortized cost down.
 
-The obstacle of leveraging these observations is that we do not know *a priori* which tasks can be solved by the cheaper model, which tasks can be solved by the expensive model, and which tasks can be solved by paying even more to the expensive model.
+The obstacle of leveraging these observations is that we do not know _a priori_ which tasks can be solved by the cheaper model, which tasks can be solved by the expensive model, and which tasks can be solved by paying even more to the expensive model.
 
 To overcome that obstacle, one may want to predict which task requires what model to solve and how many responses are required for each task. Let's look at one example code completion task:
 
@@ -49,8 +49,8 @@ Some simple example test cases are provided in the docstr. If we already have a 
 
 Combining these observations, we can design a solution with two intuitive ideas:
 
-* Make use of auto-generated feedback, i.e., code execution results, to filter responses.
-* Try inference configurations one by one, until one response can pass the filter.
+- Make use of auto-generated feedback, i.e., code execution results, to filter responses.
+- Try inference configurations one by one, until one response can pass the filter.
 
 ![Design](img/design.png)
 
@@ -72,6 +72,7 @@ The inference cost includes the cost for generating the assertions in our soluti
 Here are a few examples of function definitions which are solved by different configurations in the portfolio.
 
 1. Solved by GPT-3.5-Turbo, n=1, temperature=0
+
 ```python
 def compare(game,guess):
     """I think we all remember that feeling when the result of some long-awaited
@@ -89,8 +90,10 @@ def compare(game,guess):
     compare([0,5,0,0,0,4],[4,1,1,0,0,-2]) -> [4,4,1,0,0,6]
     """
 ```
+
 2. Solved by GPT-3.5-Turbo, n=7, temperature=1, stop=["\nclass", "\ndef", "\nif", "\nprint"]: the `vowels_count` function presented earlier.
 3. Solved by GPT-4, n=1, temperature=0:
+
 ```python
 def string_xor(a: str, b: str) -> str:
     """ Input are two strings a and b consisting only of 1s and 0s.
@@ -99,7 +102,9 @@ def string_xor(a: str, b: str) -> str:
     '100'
     """
 ```
+
 4. Solved by GPT-4, n=2, temperature=1, stop=["\nclass", "\ndef", "\nif", "\nprint"]:
+
 ```python
 def is_palindrome(string: str) -> bool:
     """ Test if given string is a palindrome """
@@ -119,7 +124,9 @@ def make_palindrome(string: str) -> str:
     'catac'
     """
 ```
+
 5. Solved by GPT-4, n=1, temperature=1, stop=["\nclass", "\ndef", "\nif", "\nprint"]:
+
 ```python
 def sort_array(arr):
     """
@@ -135,8 +142,9 @@ def sort_array(arr):
 ```
 
 The last problem is an example with wrong example test cases in the original definition. It misleads the adaptive solution because a correct implementation is regarded as wrong and more trials are made. The last configuration in the sequence returns the right implementation, even though it does not pass the auto-generated assertions. This example demonstrates that:
-* Our adaptive solution has a certain degree of fault tolerance.
-* The success rate and inference cost for the adaptive solution can be further improved if correct example test cases are used.
+
+- Our adaptive solution has a certain degree of fault tolerance.
+- The success rate and inference cost for the adaptive solution can be further improved if correct example test cases are used.
 
 It is worth noting that the reduced inference cost is the amortized cost over all the tasks. For each individual task, the cost can be either larger or smaller than directly using GPT-4. This is the nature of the adaptive solution: The cost is in general larger for difficult tasks than that for easy tasks.
 
@@ -147,8 +155,9 @@ An example notebook to run this experiment can be found at: https://github.com/m
 Our solution is quite simple to implement using a generic interface offered in [`autogen`](/docs/Use-Cases/enhanced_inference#logic-error), yet the result is quite encouraging.
 
 While the specific way of generating assertions is application-specific, the main ideas are general in LLM operations:
-* Generate multiple responses to select - especially useful when selecting a good response is relatively easier than generating a good response at one shot.
-* Consider multiple configurations to generate responses - especially useful when:
+
+- Generate multiple responses to select - especially useful when selecting a good response is relatively easier than generating a good response at one shot.
+- Consider multiple configurations to generate responses - especially useful when:
   - Model and other inference parameter choice affect the utility-cost tradeoff; or
   - Different configurations have complementary effect.
 
@@ -156,13 +165,14 @@ A [previous blog post](/blog/2023/04/21/LLM-tuning-math) provides evidence that 
 `autogen` uses a technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) to support inference parameter tuning and model selection.
 
 There are many directions of extensions in research and development:
-* Generalize the way to provide feedback.
-* Automate the process of optimizing the configurations.
-* Build adaptive agents for different applications.
 
-*Do you find this approach applicable to your use case? Do you have any other challenge to share about LLM applications? Do you like to see more support or research of LLM optimization or automation? Please join our [Discord](https://discord.gg/pAbnFJrkgZ) server for discussion.*
+- Generalize the way to provide feedback.
+- Automate the process of optimizing the configurations.
+- Build adaptive agents for different applications.
+
+_Do you find this approach applicable to your use case? Do you have any other challenge to share about LLM applications? Do you like to see more support or research of LLM optimization or automation? Please join our [Discord](https://aka.ms/autogen-dc) server for discussion._
 
 ## For Further Reading
 
-* [Documentation](/docs/Getting-Started) about `autogen` and [Research paper](https://arxiv.org/abs/2303.04673).
-* [Blog post](/blog/2023/04/21/LLM-tuning-math) about a related study for math.
+- [Documentation](/docs/Getting-Started) about `autogen` and [Research paper](https://arxiv.org/abs/2303.04673).
+- [Blog post](/blog/2023/04/21/LLM-tuning-math) about a related study for math.
