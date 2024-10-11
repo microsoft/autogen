@@ -367,16 +367,21 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        # Check to use beta client
-        use_beta_client = False
-
-        # Check if create_args contains response_format and if it is a Pydantic model
+        # Declare response_format and use_beta_client
         response_format: Optional[Type[BaseModel]] = None
+        use_beta_client: bool = False
+
         if "response_format" in create_args:
-            if isinstance(response_format, type) and issubclass(response_format, BaseModel):
-                response_format = create_args["response_format"]
-                use_beta_client = True
+            response_format_value = create_args["response_format"]
+            # If response_format_value is a Pydantic model, use the beta client
+            if isinstance(response_format_value, type) and issubclass(response_format_value, BaseModel):
+                response_format = response_format_value
                 del create_args["response_format"]
+                use_beta_client = True
+            else:
+                # response_format_value is not a Pydantic model; leave it in create_args
+                response_format = None
+                use_beta_client = False
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
