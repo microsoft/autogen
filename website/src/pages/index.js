@@ -26,11 +26,14 @@ function HomepageHeader() {
             </p>
           </div>
           <div className={styles.buttonWrapper}>
-            <Link className="button button--secondary button--lg" to="../dev">
+            <Link
+              className="button button--secondary button--lg"
+              to="/docs/Preview-v0.4"
+            >
               Preview v0.4
             </Link>
             <p className={styles.buttonTagline}>
-              A new event-driven architecture for AutoGen
+              A new event driven architecture for AutoGen
             </p>
           </div>
         </div>
