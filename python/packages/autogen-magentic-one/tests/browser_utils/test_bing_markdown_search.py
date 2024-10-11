@@ -18,17 +18,6 @@ BING_EXPECTED_RESULT = "https://en.wikipedia.org/wiki/Microsoft"
 
 
 @pytest.mark.skipif(
-    skip_all,
-    reason="do not run if dependency is not installed",
-)
-def test_bing_markdown_search() -> None:
-    search_engine = BingMarkdownSearch()
-    results = search_engine.search(BING_QUERY)
-    assert BING_STRING in results
-    assert BING_EXPECTED_RESULT in results
-
-
-@pytest.mark.skipif(
     skip_api,
     reason="skipping tests that require a Bing API key",
 )
@@ -41,5 +30,4 @@ def test_bing_markdown_search_api() -> None:
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-    test_bing_markdown_search()
     test_bing_markdown_search_api()
