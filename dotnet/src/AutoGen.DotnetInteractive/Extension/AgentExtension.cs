@@ -21,6 +21,7 @@ public static class AgentExtension
     /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]
     /// ]]>
     /// </example>
+    [Obsolete]
     public static IAgent RegisterDotnetCodeBlockExectionHook(
         this IAgent agent,
         InteractiveService interactiveService,
@@ -28,19 +29,19 @@ public static class AgentExtension
         string codeBlockSuffix = "```",
         int maximumOutputToKeep = 500)
     {
-        return agent.RegisterReply(async (msgs, ct) =>
+        return agent.RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
         {
             var lastMessage = msgs.LastOrDefault();
             if (lastMessage == null || lastMessage.GetContent() is null)
             {
-                return null;
+                return await innerAgent.GenerateReplyAsync(msgs, option, ct);
             }
 
             // retrieve all code blocks from last message
             var codeBlocks = lastMessage.GetContent()!.Split(new[] { codeBlockPrefix }, StringSplitOptions.RemoveEmptyEntries);
             if (codeBlocks.Length <= 0)
             {
-                return null;
+                return await innerAgent.GenerateReplyAsync(msgs, option, ct);
             }
 
             // run code blocks

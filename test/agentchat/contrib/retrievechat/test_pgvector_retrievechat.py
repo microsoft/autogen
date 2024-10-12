@@ -6,8 +6,7 @@ import sys
 import pytest
 from sentence_transformers import SentenceTransformer
 
-from autogen import config_list_from_json
-from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+from autogen import AssistantAgent, config_list_from_json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
@@ -18,9 +17,6 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 try:
     import pgvector
 
-    from autogen.agentchat.contrib.retrieve_assistant_agent import (
-        RetrieveAssistantAgent,
-    )
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
@@ -46,7 +42,7 @@ def test_retrievechat():
         file_location=KEY_LOC,
     )
 
-    assistant = RetrieveAssistantAgent(
+    assistant = AssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
@@ -56,7 +52,7 @@ def test_retrievechat():
         },
     )
 
-    sentence_transformer_ef = SentenceTransformer("all-MiniLM-L6-v2")
+    sentence_transformer_ef = SentenceTransformer("all-MiniLM-L6-v2").encode
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
@@ -82,7 +78,7 @@ def test_retrievechat():
             },
             "embedding_function": sentence_transformer_ef,
             "get_or_create": True,  # set to False if you don't want to reuse an existing collection
-            "overwrite": False,  # set to True if you want to overwrite an existing collection
+            "overwrite": True,  # set to True if you want to overwrite an existing collection
         },
         code_execution_config=False,  # set to False if you don't want to execute the code
     )

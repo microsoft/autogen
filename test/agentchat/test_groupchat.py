@@ -1,14 +1,18 @@
 #!/usr/bin/env python3 -m pytest
 
 import builtins
+import io
 import json
+import logging
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import pytest
 
 import autogen
-from autogen import Agent, GroupChat
+from autogen import Agent, AssistantAgent, GroupChat, GroupChatManager
+from autogen.agentchat.contrib.capabilities import transform_messages, transforms
 from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
 
 
@@ -721,7 +725,7 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {"content": "hello", "role": "assistant"},
+        {"content": "hello", "role": "assistant", "name": "alice"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
@@ -742,7 +746,7 @@ def test_clear_agents_history():
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert agent2_history == [
-        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "This is bob speaking.", "role": "assistant", "name": "bob"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert groupchat.messages == [
@@ -756,12 +760,12 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {"content": "hello", "role": "assistant"},
+        {"content": "hello", "role": "assistant", "name": "alice"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert agent2_history == [
-        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "This is bob speaking.", "role": "assistant", "name": "bob"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert groupchat.messages == [
@@ -819,6 +823,7 @@ def test_clear_agents_history():
             "content": "example tool response",
             "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
             "role": "tool",
+            "name": "alice",
         },
     ]
 
@@ -1215,7 +1220,7 @@ def test_role_for_select_speaker_messages():
     # into a message attribute called 'override_role'. This is evaluated in Conversable Agent's _append_oai_message function
     # e.g.: message={'content':self.select_speaker_prompt(agents),'override_role':self.role_for_select_speaker_messages},
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     # Test default is "system"
     assert len(checking_agent.chat_messages) == 1
@@ -1224,7 +1229,7 @@ def test_role_for_select_speaker_messages():
     # Test as "user"
     groupchat.role_for_select_speaker_messages = "user"
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     assert len(checking_agent.chat_messages) == 1
     assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "user"
@@ -1232,7 +1237,7 @@ def test_role_for_select_speaker_messages():
     # Test as something unusual
     groupchat.role_for_select_speaker_messages = "SockS"
     message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
-    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent, is_sending=True)
 
     assert len(checking_agent.chat_messages) == 1
     assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "SockS"
@@ -1318,15 +1323,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template="",
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template="",
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
     # Test with None
     with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
@@ -1339,15 +1346,17 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_prompt_template="Not empty.",
         )
 
-    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
-        groupchat = autogen.GroupChat(
-            agents=[agent1, agent2],
-            messages=[],
-            speaker_selection_method="auto",
-            max_round=10,
-            select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template=None,
-        )
+    # Will not throw an exception, prompt can be empty/None (empty is converted to None)
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template="Not empty.",
+        select_speaker_prompt_template=None,
+    )
+
+    assert groupchat.select_speaker_prompt_template is None
 
 
 def test_speaker_selection_agent_name_match():
@@ -1442,6 +1451,46 @@ def test_speaker_selection_agent_name_match():
         agents=all_agents, message_content="Story Writer will follow the product\\_manager."
     )
     assert result == {}
+
+
+def test_role_for_reflection_summary():
+    llm_config = {"config_list": [{"model": "mock", "api_key": "mock"}]}
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    role_name = "user"
+    with mock.patch.object(
+        autogen.ConversableAgent, "_generate_oai_reply_from_client"
+    ) as mock_generate_oai_reply_from_client:
+        mock_generate_oai_reply_from_client.return_value = "Mocked summary"
+
+        agent1.initiate_chat(
+            group_chat_manager,
+            max_turns=2,
+            message="hello",
+            summary_method="reflection_with_llm",
+            summary_args={"summary_role": role_name},
+        )
+
+        mock_generate_oai_reply_from_client.assert_called_once()
+        args, kwargs = mock_generate_oai_reply_from_client.call_args
+        assert kwargs["messages"][-1]["role"] == role_name
 
 
 def test_speaker_selection_auto_process_result():
@@ -1599,6 +1648,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_multiple_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1645,6 +1695,7 @@ def test_speaker_selection_validate_speaker_name():
         True,
         {
             "content": groupchat.select_speaker_auto_none_template.format(agentlist=agent_list_string),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1714,6 +1765,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_multiple_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1723,6 +1775,7 @@ def test_select_speaker_auto_messages():
         True,
         {
             "content": custom_no_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "name": "checking_agent",
             "override_role": groupchat.role_for_select_speaker_messages,
         },
     )
@@ -1766,6 +1819,343 @@ def test_select_speaker_auto_messages():
         )
 
 
+def test_manager_messages_to_string():
+    """In this test we test the conversion of messages to a JSON string"""
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Chairperson",
+            "role": "assistant",
+        },
+    ]
+
+    groupchat = GroupChat(messages=messages, agents=[])
+    manager = GroupChatManager(groupchat)
+
+    # Convert the messages List[Dict] to a JSON string
+    converted_string = manager.messages_to_string(messages)
+
+    # The conversion should match the original messages
+    assert json.loads(converted_string) == messages
+
+
+def test_manager_messages_from_string():
+    """In this test we test the conversion of a JSON string of messages to a messages List[Dict]"""
+    messages_str = r"""[{"content": "You are an expert at finding the next speaker.", "role": "system"}, {"content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.", "name": "Chairperson", "role": "assistant"}]"""
+
+    groupchat = GroupChat(messages=[], agents=[])
+    manager = GroupChatManager(groupchat)
+
+    # Convert the messages List[Dict] to a JSON string
+    messages = manager.messages_from_string(messages_str)
+
+    # The conversion should match the original messages
+    assert messages_str == json.dumps(messages)
+
+
+def test_manager_resume_functions():
+    """Tests functions within the resume chat functionality"""
+
+    # Setup
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+
+    # Tests that messages are indeed passed in
+    with pytest.raises(Exception):
+        manager._valid_resume_messages(messages=[])
+
+    # Tests that the messages passed in match the agents of the group chat
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Chairperson",
+            "role": "assistant",
+        },
+    ]
+
+    # Chairperson does not exist as an agent
+    with pytest.raises(Exception):
+        manager._valid_resume_messages(messages)
+
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    # Coder does exist as an agent, no error
+    manager._valid_resume_messages(messages)
+
+    # Tests termination message replacement
+    final_msg = (
+        "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
+    )
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string="TERMINATE", messages=messages)
+
+    # TERMINATE should be removed
+    assert messages[-1]["content"] == final_msg.replace("TERMINATE", "")
+
+    # Tests termination message replacement with function
+    def termination_func(x: str) -> str:
+        if "APPROVED" in x:
+            x = x.replace("APPROVED", "")
+        else:
+            x = x.replace("TERMINATE", "")
+        return x
+
+    final_msg1 = "Product_Manager has created 3 new product ideas. APPROVED"
+    messages1 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg1,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages1)
+
+    # APPROVED should be removed
+    assert messages1[-1]["content"] == final_msg1.replace("APPROVED", "")
+
+    final_msg2 = "Idea has been approved. TERMINATE"
+    messages2 = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg2,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string=termination_func, messages=messages2)
+
+    # TERMINATE should be removed, "approved" should still be present as the termination_func only replaces upper-cased "APPROVED".
+    assert messages2[-1]["content"] == final_msg2.replace("TERMINATE", "")
+    assert "approved" in messages2[-1]["content"]
+
+    # Check if the termination string doesn't exist there's no replacing of content
+    final_msg = (
+        "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
+    )
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string="THE-END", messages=messages)
+
+    # It should not be changed
+    assert messages[-1]["content"] == final_msg
+
+    # Test that it warns that the termination condition would match
+    manager._is_termination_msg = lambda x: x.get("content", "").find("TERMINATE") >= 0
+
+    # Attach a handler to the logger so we can check the log output
+    log_stream = io.StringIO()
+    handler = logging.StreamHandler(log_stream)
+    logger = logging.getLogger()  # Get the root logger
+    logger.addHandler(handler)
+
+    # We should get a warning that TERMINATE is still in the messages
+    manager._process_resume_termination(remove_termination_string="THE-END", messages=messages)
+
+    # Get the logged output and check that the warning was provided.
+    log_output = log_stream.getvalue()
+
+    assert "WARNING: Last message meets termination criteria and this may terminate the chat." in log_output
+
+
+def test_manager_resume_returns():
+    """Tests the return resume chat functionality"""
+
+    # Test the return agent and message is correct
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = [
+        {
+            "content": "You are an expert at coding.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get coding, should I use Python?",
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == coder
+    assert return_message == messages[-1]
+
+    # Test when no agent provided, the manager will be returned
+    messages = [{"content": "You are an expert at coding.", "role": "system", "name": "chat_manager"}]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == manager
+    assert return_message == messages[-1]
+
+
+def test_manager_resume_messages():
+    """Tests that the messages passed into resume are the correct format"""
+
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = 1
+
+    # Only acceptable messages types are JSON str and List[Dict]
+
+    # Try a number
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages=messages)
+
+    # Try an empty string
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="")
+
+    # Try a message starter string, which isn't valid
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
+
+
+def test_custom_model_client():
+    class CustomModelClient:
+        def __init__(self, config, **kwargs):
+            print(f"CustomModelClient config: {config}")
+
+        def create(self, params):
+            num_of_responses = params.get("n", 1)
+
+            response = SimpleNamespace()
+            response.choices = []
+            response.model = "test_model_name"
+
+            for _ in range(num_of_responses):
+                text = "this is a dummy text response"
+                choice = SimpleNamespace()
+                choice.message = SimpleNamespace()
+                choice.message.content = text
+                choice.message.function_call = None
+                response.choices.append(choice)
+            return response
+
+        def message_retrieval(self, response):
+            choices = response.choices
+            return [choice.message.content for choice in choices]
+
+        def cost(self, response) -> float:
+            response.cost = 0
+            return 0
+
+        @staticmethod
+        def get_usage(response):
+            return {}
+
+    llm_config = {"config_list": [{"model": "test_model_name", "model_client_cls": "CustomModelClient"}]}
+
+    group_chat = autogen.GroupChat(
+        agents=[],
+        messages=[],
+        max_round=3,
+        select_speaker_auto_llm_config=llm_config,
+        select_speaker_auto_model_client_cls=CustomModelClient,
+    )
+
+    checking_agent, speaker_selection_agent = group_chat._create_internal_agents(
+        agents=[], messages=[], max_attempts=3, validate_speaker_name=(True, "test")
+    )
+
+    # Check that the custom model client is assigned to the speaker selection agent
+    assert isinstance(speaker_selection_agent.client._clients[0], CustomModelClient)
+
+    # Check that the LLM Config is assigned
+    assert speaker_selection_agent.client._config_list == llm_config["config_list"]
+
+
+def test_select_speaker_transform_messages():
+    """Tests adding transform messages to a GroupChat for speaker selection when in 'auto' mode"""
+
+    # Test adding a TransformMessages to a group chat
+    test_add_transforms = transform_messages.TransformMessages(
+        transforms=[
+            transforms.MessageHistoryLimiter(max_messages=10),
+            transforms.MessageTokenLimiter(max_tokens=3000, max_tokens_per_message=500, min_tokens=300),
+        ]
+    )
+
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder], select_speaker_transform_messages=test_add_transforms)
+
+    # Ensure the transform have been added to the GroupChat
+    assert groupchat._speaker_selection_transforms == test_add_transforms
+
+    # Attempt to add a non MessageTransforms object, such as a list of transforms
+    with pytest.raises(ValueError, match="select_speaker_transform_messages must be None or MessageTransforms."):
+        groupchat = GroupChat(
+            messages=[],
+            agents=[coder],
+            select_speaker_transform_messages=[transforms.MessageHistoryLimiter(max_messages=10)],
+        )
+
+    # Ensure if we don't pass any transforms in, none are on the GroupChat
+    groupchat_missing = GroupChat(messages=[], agents=[coder])
+
+    assert groupchat_missing._speaker_selection_transforms is None
+
+    # Ensure we can pass in None
+    groupchat_none = GroupChat(
+        messages=[],
+        agents=[coder],
+        select_speaker_transform_messages=None,
+    )
+
+    assert groupchat_none._speaker_selection_transforms is None
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1784,7 +2174,16 @@ if __name__ == "__main__":
     # test_role_for_select_speaker_messages()
     # test_select_speaker_message_and_prompt_templates()
     # test_speaker_selection_agent_name_match()
-    test_speaker_selection_auto_process_result()
-    test_speaker_selection_validate_speaker_name()
-    test_select_speaker_auto_messages()
-    # pass
+    # test_role_for_reflection_summary()
+    # test_speaker_selection_auto_process_result()
+    # test_speaker_selection_validate_speaker_name()
+    # test_select_speaker_auto_messages()
+    # test_select_speaker_auto_messages()
+    # test_manager_messages_to_string()
+    # test_manager_messages_from_string()
+    # test_manager_resume_functions()
+    # test_manager_resume_returns()
+    # test_manager_resume_messages()
+    # test_custom_model_client()
+    # test_select_speaker_transform_messages()
+    pass

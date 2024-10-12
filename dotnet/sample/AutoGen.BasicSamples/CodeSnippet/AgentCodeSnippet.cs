@@ -19,7 +19,7 @@ internal class AgentCodeSnippet
 
         #region ChatWithAnAgent_GenerateStreamingReplyAsync
         var textMessage = new TextMessage(Role.User, "Hello");
-        await foreach (var streamingReply in await agent.GenerateStreamingReplyAsync([message]))
+        await foreach (var streamingReply in agent.GenerateStreamingReplyAsync([message]))
         {
             if (streamingReply is TextMessageUpdate update)
             {

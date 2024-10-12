@@ -4,12 +4,12 @@ import TOCInline from "@theme/TOCInline";
 
 <TOCInline toc={toc} />
 
-## Install the correct package - `pyautogen`
+## Install the correct package - `autogen-agentchat`
 
-The name of Autogen package at PyPI is `pyautogen`:
+The name of Autogen package at PyPI is `autogen-agentchat`:
 
 ```
-pip install pyautogen
+pip install autogen-agentchat~=0.2
 ```
 
 Typical errors that you might face when using the wrong package are `AttributeError: module 'autogen' has no attribute 'Agent'`, `AttributeError: module 'autogen' has no attribute 'config_list_from_json'` etc.
@@ -37,7 +37,15 @@ Yes. You currently have two options:
 - Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
 - You can supply your own custom model implementation and use it with Autogen. Please check https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
-## Handle Rate Limit Error and Timeout Error
+## Handling API Rate Limits
+
+### Setting the API Rate Limit
+
+You can set the `api_rate_limit` in a `config_list` for an agent, which will be used to control the rate at which API requests are sent.
+
+- `api_rate_limit` (float): the maximum number of API requests allowed per second.
+
+### Handle Rate Limit Error and Timeout Error
 
 You can set `max_retries` to handle rate limit error. And you can set `timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the OpenAI client for LLM inference. They can be set differently for different clients if they are set in the `config_list`.
 
@@ -259,16 +267,6 @@ user_proxy = autogen.UserProxyAgent(
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
 
-## Migrating from `CompressibleAgent` and `TransformChatHistory` to `TransformMessages`
-
-### Why migrate to `TransformMessages`?
-
-Migrating enhances flexibility, modularity, and customization in handling chat message transformations. `TransformMessages` introduces an improved, extensible approach for pre-processing messages for conversational agents.
-
-### How to migrate?
-
-To ensure a smooth migration process, simply follow the detailed guide provided in [Handling Long Context Conversations with Transform Messages](/docs/topics/long_contexts.md).
-
 ### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?
 
 This error typically occurs when using Autogen version earlier than 0.2.27 in combination with OpenAI library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the OpenAI API.
@@ -277,3 +275,22 @@ To resolve this issue, you need to upgrade your Autogen library to version 0.2.2
 ```python
 pip install --upgrade autogen
 ```
+
+## None of the devcontainers are building due to "Hash sum mismatch", what should I do?
+
+This is an intermittent issue that appears to be caused by some combination of mirror and proxy issues.
+If it arises, try to replace the `apt-get update` step with the following:
+
+```bash
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy    true;" >> /etc/apt/apt.conf.d/99custom
+
+RUN apt-get clean && \
+    rm -r /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get -y update && \
+    apt-get install sudo git npm # and whatever packages need to be installed in this specific version of the devcontainer
+```
+
+This is a combination of StackOverflow suggestions [here](https://stackoverflow.com/a/48777773/2114580) and [here](https://stackoverflow.com/a/76092743/2114580).

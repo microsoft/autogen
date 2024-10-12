@@ -20,6 +20,7 @@ public static class MiddlewareExtension
     /// <param name="replyFunc"></param>
     /// <returns></returns>
     /// <exception cref="Exception">throw when agent name is null.</exception>
+    [Obsolete("Use RegisterMiddleware instead.")]
     public static MiddlewareAgent<TAgent> RegisterReply<TAgent>(
         this TAgent agent,
         Func<IEnumerable<IMessage>, CancellationToken, Task<IMessage?>> replyFunc)
@@ -45,6 +46,7 @@ public static class MiddlewareExtension
     /// One example is <see cref="PrintMessageMiddlewareExtension.RegisterPrintMessage{TAgent}(TAgent)" />, which print the formatted message to console before the agent return the reply.
     /// </summary>
     /// <exception cref="Exception">throw when agent name is null.</exception>
+    [Obsolete("Use RegisterMiddleware instead.")]
     public static MiddlewareAgent<TAgent> RegisterPostProcess<TAgent>(
         this TAgent agent,
         Func<IEnumerable<IMessage>, IMessage, CancellationToken, Task<IMessage>> postprocessFunc)
@@ -62,6 +64,7 @@ public static class MiddlewareExtension
     /// Register a pre process hook to an agent. The hook will be called before the agent generate the reply. This is useful when you want to modify the conversation history before the agent generate the reply.
     /// </summary>
     /// <exception cref="Exception">throw when agent name is null.</exception>
+    [Obsolete("Use RegisterMiddleware instead.")]
     public static MiddlewareAgent<TAgent> RegisterPreProcess<TAgent>(
         this TAgent agent,
         Func<IEnumerable<IMessage>, CancellationToken, Task<IEnumerable<IMessage>>> preprocessFunc)
@@ -77,6 +80,7 @@ public static class MiddlewareExtension
 
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// To register a streaming middleware, use <see cref="StreamingMiddlewareExtension.RegisterStreamingMiddleware{TAgent}(MiddlewareStreamingAgent{TAgent}, IStreamingMiddleware)"/>.
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this TAgent agent,
@@ -94,6 +98,7 @@ public static class MiddlewareExtension
 
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// To register a streaming middleware, use <see cref="StreamingMiddlewareExtension.RegisterStreamingMiddleware{TAgent}(MiddlewareStreamingAgent{TAgent}, IStreamingMiddleware)"/>.
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this TAgent agent,
@@ -107,6 +112,7 @@ public static class MiddlewareExtension
 
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// To register a streaming middleware, use <see cref="StreamingMiddlewareExtension.RegisterStreamingMiddleware{TAgent}(MiddlewareStreamingAgent{TAgent}, IStreamingMiddleware)"/>.
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this MiddlewareAgent<TAgent> agent,
@@ -124,6 +130,7 @@ public static class MiddlewareExtension
 
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// To register a streaming middleware, use <see cref="StreamingMiddlewareExtension.RegisterStreamingMiddleware{TAgent}(MiddlewareStreamingAgent{TAgent}, IStreamingMiddleware)"/>.
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this MiddlewareAgent<TAgent> agent,

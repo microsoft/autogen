@@ -140,7 +140,7 @@ The `OpenAIWrapper` from `autogen` tracks token counts and costs of your API cal
 - `mode='actual'`: only print non-cached usage.
 - `mode='total'`: only print all usage (including cache).
 
-Reset your session's usage data with `clear_usage_summary()` when needed. [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
+Reset your session's usage data with `clear_usage_summary()` when needed. [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/oai_client_cost.ipynb)
 
 Example usage:
 ```python
@@ -183,7 +183,7 @@ client = OpenAIWrapper(
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
             "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2024-02-15-preview",
+            "api_version": "2024-02-01",
         },
         {
             "model": "gpt-3.5-turbo",
@@ -307,7 +307,7 @@ When debugging or diagnosing an LLM-based system, it is often convenient to log 
 
 ### For openai >= 1
 
-Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agentchat_logging.ipynb)
 
 #### Start logging:
 ```python

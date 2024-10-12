@@ -3,26 +3,21 @@
 
 using System;
 using System.Collections.Generic;
-using Azure.AI.OpenAI;
 using Json.Schema;
 using Json.Schema.Generation;
+using OpenAI.Chat;
 
 namespace AutoGen.OpenAI.Extension;
 
 public static class FunctionContractExtension
 {
     /// <summary>
-    /// Convert a <see cref="FunctionContract"/> to a <see cref="FunctionDefinition"/> that can be used in gpt funciton call.
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt funciton call.
     /// </summary>
     /// <param name="functionContract">function contract</param>
-    /// <returns><see cref="FunctionDefinition"/></returns>
-    public static FunctionDefinition ToOpenAIFunctionDefinition(this FunctionContract functionContract)
+    /// <returns><see cref="ChatTool"/></returns>
+    public static ChatTool ToChatTool(this FunctionContract functionContract)
     {
-        var functionDefinition = new FunctionDefinition
-        {
-            Name = functionContract.Name,
-            Description = functionContract.Description,
-        };
         var requiredParameterNames = new List<string>();
         var propertiesSchemas = new Dictionary<string, JsonSchema>();
         var propertySchemaBuilder = new JsonSchemaBuilder().Type(SchemaValueType.Object);
@@ -56,8 +51,22 @@ public static class FunctionContractExtension
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
         };
 
-        functionDefinition.Parameters = BinaryData.FromObjectAsJson(propertySchemaBuilder.Build(), option);
+        var functionDefinition = ChatTool.CreateFunctionTool(
+           functionContract.Name ?? throw new ArgumentNullException(nameof(functionContract.Name)),
+           functionContract.Description,
+           BinaryData.FromObjectAsJson(propertySchemaBuilder.Build(), option));
 
         return functionDefinition;
+    }
+
+    /// <summary>
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt funciton call.
+    /// </summary>
+    /// <param name="functionContract">function contract</param>
+    /// <returns><see cref="ChatTool"/></returns>
+    [Obsolete("Use ToChatTool instead")]
+    public static ChatTool ToOpenAIFunctionDefinition(this FunctionContract functionContract)
+    {
+        return functionContract.ToChatTool();
     }
 }

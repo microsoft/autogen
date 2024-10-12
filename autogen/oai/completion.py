@@ -8,9 +8,9 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 from flaml import BlendSearch, tune
-from flaml.automl.logger import logger_formatter
 from flaml.tune.space import is_constant
 
+from .client_utils import logger_formatter
 from .openai_utils import get_key
 
 try:
@@ -741,7 +741,7 @@ class Completion(openai_Completion):
                     "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
                     "api_type": "azure",
                     "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-                    "api_version": "2024-02-15-preview",
+                    "api_version": "2024-02-01",
                 },
                 {
                     "model": "gpt-3.5-turbo",

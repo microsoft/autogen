@@ -2,67 +2,66 @@
 // DotnetInteractiveFunction.cs
 
 using System.Text;
-using System.Text.Json;
-using Azure.AI.OpenAI;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Documents.Jupyter;
 
 namespace AutoGen.DotnetInteractive;
 
-public class DotnetInteractiveFunction : IDisposable
+public partial class DotnetInteractiveFunction : IDisposable
 {
     private readonly InteractiveService? _interactiveService = null;
-    private string? _notebookPath;
+    private string _notebookPath;
     private readonly KernelInfoCollection _kernelInfoCollection = new KernelInfoCollection();
 
+    /// <summary>
+    /// Create an instance of <see cref="DotnetInteractiveFunction"/>"
+    /// </summary>
+    /// <param name="interactiveService">interactive service to use.</param>
+    /// <param name="notebookPath">notebook path if provided.</param>
     public DotnetInteractiveFunction(InteractiveService interactiveService, string? notebookPath = null, bool continueFromExistingNotebook = false)
     {
         this._interactiveService = interactiveService;
-        this._notebookPath = notebookPath;
+        this._notebookPath = notebookPath ?? Path.GetTempPath() + "notebook.ipynb";
         this._kernelInfoCollection.Add(new KernelInfo("csharp"));
         this._kernelInfoCollection.Add(new KernelInfo("markdown"));
-
-        if (this._notebookPath != null)
+        if (continueFromExistingNotebook == false)
         {
-            if (continueFromExistingNotebook == false)
+            // remove existing notebook
+            if (File.Exists(this._notebookPath))
             {
-                // remove existing notebook
-                if (File.Exists(this._notebookPath))
-                {
-                    File.Delete(this._notebookPath);
-                }
-
-                var document = new InteractiveDocument();
-
-                using var stream = File.OpenWrite(_notebookPath);
-                Notebook.Write(document, stream, this._kernelInfoCollection);
-                stream.Flush();
-                stream.Dispose();
+                File.Delete(this._notebookPath);
             }
-            else if (continueFromExistingNotebook == true && File.Exists(this._notebookPath))
+
+            var document = new InteractiveDocument();
+
+            using var stream = File.OpenWrite(_notebookPath);
+            Notebook.Write(document, stream, this._kernelInfoCollection);
+            stream.Flush();
+            stream.Dispose();
+        }
+        else if (continueFromExistingNotebook == true && File.Exists(this._notebookPath))
+        {
+            // load existing notebook
+            using var readStream = File.OpenRead(this._notebookPath);
+            var document = Notebook.Read(readStream, this._kernelInfoCollection);
+            foreach (var cell in document.Elements)
             {
-                // load existing notebook
-                using var readStream = File.OpenRead(this._notebookPath);
-                var document = Notebook.Read(readStream, this._kernelInfoCollection);
-                foreach (var cell in document.Elements)
+                if (cell.KernelName == "csharp")
                 {
-                    if (cell.KernelName == "csharp")
-                    {
-                        var code = cell.Contents;
-                        this._interactiveService.SubmitCSharpCodeAsync(code, default).Wait();
-                    }
+                    var code = cell.Contents;
+                    this._interactiveService.SubmitCSharpCodeAsync(code, default).Wait();
                 }
             }
-            else
-            {
-                // create an empty notebook
-                var document = new InteractiveDocument();
+        }
+        else
+        {
+            // create an empty notebook
+            var document = new InteractiveDocument();
 
-                using var stream = File.OpenWrite(_notebookPath);
-                Notebook.Write(document, stream, this._kernelInfoCollection);
-                stream.Flush();
-                stream.Dispose();
-            }
+            using var stream = File.OpenWrite(_notebookPath);
+            Notebook.Write(document, stream, this._kernelInfoCollection);
+            stream.Flush();
+            stream.Dispose();
         }
     }
 
@@ -70,6 +69,7 @@ public class DotnetInteractiveFunction : IDisposable
     /// Run existing dotnet code from message. Don't modify the code, run it as is.
     /// </summary>
     /// <param name="code">code.</param>
+    [Function]
     public async Task<string> RunCode(string code)
     {
         if (this._interactiveService == null)
@@ -116,6 +116,7 @@ public class DotnetInteractiveFunction : IDisposable
     /// Install nuget packages.
     /// </summary>
     /// <param name="nugetPackages">nuget package to install.</param>
+    [Function]
     public async Task<string> InstallNugetPackages(string[] nugetPackages)
     {
         if (this._interactiveService == null)
@@ -172,105 +173,6 @@ public class DotnetInteractiveFunction : IDisposable
         writeStream.Dispose();
     }
 
-    private class RunCodeSchema
-    {
-        public string code { get; set; } = string.Empty;
-    }
-
-    public Task<string> RunCodeWrapper(string arguments)
-    {
-        var schema = JsonSerializer.Deserialize<RunCodeSchema>(
-            arguments,
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            });
-
-        return RunCode(schema!.code);
-    }
-
-    public FunctionDefinition RunCodeFunction
-    {
-        get => new FunctionDefinition
-        {
-            Name = @"RunCode",
-            Description = """
-Run existing dotnet code from message. Don't modify the code, run it as is.
-""",
-            Parameters = BinaryData.FromObjectAsJson(new
-            {
-                Type = "object",
-                Properties = new
-                {
-                    code = new
-                    {
-                        Type = @"string",
-                        Description = @"code.",
-                    },
-                },
-                Required = new[]
-                {
-                        "code",
-                    },
-            },
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
-    }
-
-    private class InstallNugetPackagesSchema
-    {
-        public string[] nugetPackages { get; set; } = Array.Empty<string>();
-    }
-
-    public Task<string> InstallNugetPackagesWrapper(string arguments)
-    {
-        var schema = JsonSerializer.Deserialize<InstallNugetPackagesSchema>(
-            arguments,
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            });
-
-        return InstallNugetPackages(schema!.nugetPackages);
-    }
-
-    public FunctionDefinition InstallNugetPackagesFunction
-    {
-        get => new FunctionDefinition
-        {
-            Name = @"InstallNugetPackages",
-            Description = """
-Install nuget packages.
-""",
-            Parameters = BinaryData.FromObjectAsJson(new
-            {
-                Type = "object",
-                Properties = new
-                {
-                    nugetPackages = new
-                    {
-                        Type = @"array",
-                        Items = new
-                        {
-                            Type = @"string",
-                        },
-                        Description = @"nuget package to install.",
-                    },
-                },
-                Required = new[]
-                {
-                        "nugetPackages",
-                    },
-            },
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
-    }
     public void Dispose()
     {
         this._interactiveService?.Dispose();

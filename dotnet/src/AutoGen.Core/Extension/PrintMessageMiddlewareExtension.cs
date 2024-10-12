@@ -62,7 +62,7 @@ public static class PrintMessageMiddlewareExtension
     {
         var middleware = new PrintMessageMiddleware();
         var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
-        middlewareAgent.Use(middleware);
+        middlewareAgent.UseStreaming(middleware);
 
         return middlewareAgent;
     }

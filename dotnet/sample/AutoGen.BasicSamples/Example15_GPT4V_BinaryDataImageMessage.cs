@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example15_ImageMessage.cs
+// Example15_GPT4V_BinaryDataImageMessage.cs
 
 using AutoGen.Core;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 
 namespace AutoGen.BasicSample;
 
@@ -14,7 +15,7 @@ namespace AutoGen.BasicSample;
 /// </summary>
 public static class Example15_GPT4V_BinaryDataImageMessage
 {
-    private static readonly string ImageResourcePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImageResources");
+    private static readonly string ImageResourcePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "resource", "images");
 
     private static Dictionary<string, string> _mediaTypeMappings = new()
     {
@@ -27,14 +28,15 @@ public static class Example15_GPT4V_BinaryDataImageMessage
 
     public static async Task RunAsync()
     {
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var openAiConfig = new OpenAIConfig(openAIKey, "gpt-4-vision-preview");
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
-        var visionAgent = new GPTAgent(
+        var visionAgent = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "gpt",
             systemMessage: "You are a helpful AI assistant",
-            config: openAiConfig,
-            temperature: 0);
+            temperature: 0)
+            .RegisterMessageConnector()
+            .RegisterPrintMessage();
 
         List<IMessage> messages =
             [new TextMessage(Role.User, "What is this image?", from: "user")];
@@ -49,7 +51,9 @@ public static class Example15_GPT4V_BinaryDataImageMessage
         foreach (string file in Directory.GetFiles(imageResourcePath))
         {
             if (!_mediaTypeMappings.TryGetValue(Path.GetExtension(file).ToLowerInvariant(), out var mediaType))
+            {
                 continue;
+            }
 
             using var fs = new FileStream(file, FileMode.Open, FileAccess.Read);
             var ms = new MemoryStream();

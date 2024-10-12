@@ -8,18 +8,23 @@ using System;
 /// </summary>
 public class LMStudioConfig : ILLMConfig
 {
-    public LMStudioConfig(string host, int port, int version = 1)
+    public LMStudioConfig(string host, int port)
     {
         this.Host = host;
         this.Port = port;
-        this.Version = version;
+        this.Uri = new Uri($"http://{host}:{port}");
+    }
+
+    public LMStudioConfig(Uri uri)
+    {
+        this.Uri = uri;
+        this.Host = uri.Host;
+        this.Port = uri.Port;
     }
 
     public string Host { get; }
 
     public int Port { get; }
 
-    public int Version { get; }
-
-    public Uri Uri => new Uri($"http://{Host}:{Port}/v{Version}");
+    public Uri Uri { get; }
 }

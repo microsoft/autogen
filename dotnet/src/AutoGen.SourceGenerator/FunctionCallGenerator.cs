@@ -144,7 +144,7 @@ namespace AutoGen.SourceGenerator
 
         private class PartialClassOutput
         {
-            public PartialClassOutput(string fullClassName, ClassDeclarationSyntax classDeclarationSyntax, IEnumerable<FunctionContract> functionContracts)
+            public PartialClassOutput(string fullClassName, ClassDeclarationSyntax classDeclarationSyntax, IEnumerable<SourceGeneratorFunctionContract> functionContracts)
             {
                 FullClassName = fullClassName;
                 ClassDeclarationSyntax = classDeclarationSyntax;
@@ -155,10 +155,10 @@ namespace AutoGen.SourceGenerator
 
             public ClassDeclarationSyntax ClassDeclarationSyntax { get; }
 
-            public IEnumerable<FunctionContract> FunctionContracts { get; }
+            public IEnumerable<SourceGeneratorFunctionContract> FunctionContracts { get; }
         }
 
-        private FunctionContract CreateFunctionContract(MethodDeclarationSyntax method, string? className, string? namespaceName)
+        private SourceGeneratorFunctionContract CreateFunctionContract(MethodDeclarationSyntax method, string? className, string? namespaceName)
         {
             // get function_call attribute
             var functionCallAttribute = method.AttributeLists.SelectMany(attributeList => attributeList.Attributes)
@@ -208,7 +208,7 @@ namespace AutoGen.SourceGenerator
                     description = System.Text.RegularExpressions.Regex.Replace(description, @"[^\S\r\n]+\/[\/]+\s*", string.Empty);
                 }
                 var jsonItemType = parameter.Type!.ToString().EndsWith("[]") ? parameter.Type!.ToString().Substring(0, parameter.Type!.ToString().Length - 2) : null;
-                return new ParameterContract
+                return new SourceGeneratorParameterContract
                 {
                     Name = parameter.Identifier.ToString(),
                     JsonType = parameter.Type!.ToString() switch
@@ -234,7 +234,7 @@ namespace AutoGen.SourceGenerator
                 };
             });
 
-            return new FunctionContract
+            return new SourceGeneratorFunctionContract
             {
                 ClassName = className,
                 Namespace = namespaceName,
