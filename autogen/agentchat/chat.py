@@ -162,7 +162,7 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         For example:
             - `"sender"` - the sender agent.
             - `"recipient"` - the recipient agent.
-            - `"clear_history"  (bool) - whether to clear the chat history with the agent.
+            - `"clear_history"` (bool) - whether to clear the chat history with the agent.
                Default is True.
             - `"silent"` (bool or None) - (Experimental) whether to print the messages in this
                conversation. Default is False.

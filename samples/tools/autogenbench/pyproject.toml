@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "autogenbench"
 authors = [
-  { name="Autogen Team", email="auto-gen@outlook.com" },
+  { name="Autogen Team", email="autogen-contact@service.microsoft.com" },
 ]
 description = "AutoGen Testbed Tools"
 readme = "README.md"
@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "pyautogen",
+    "autogen-agentchat~=0.2",
     "docker",
     "huggingface_hub",
     "tabulate",

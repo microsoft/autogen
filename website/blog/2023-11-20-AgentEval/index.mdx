@@ -14,7 +14,7 @@ tags: [LLM, GPT, evaluation, task utility]
 **TL;DR:**
 * As a developer of an LLM-powered application, how can you assess the utility it brings to end users while helping them with their tasks?
 * To shed light on the question above, we introduce `AgentEval` — the first version of the framework to assess the utility of any LLM-powered application crafted to assist users in specific tasks.  AgentEval aims to simplify the evaluation process by automatically proposing a set of criteria tailored to the unique purpose of your application. This allows for a comprehensive assessment, quantifying the utility of your application against the suggested criteria.
-* We demonstrate how `AgentEval` work using [math problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat) as an example in the [following notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb). Any feedback would be useful for future development. Please contact us on our [Discord](http://aka.ms/autogen-dc).
+* We demonstrate how `AgentEval` work using [math problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat) as an example in the [following notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agenteval_cq_math.ipynb). Any feedback would be useful for future development. Please contact us on our [Discord](http://aka.ms/autogen-dc).
 
 
 ## Introduction
@@ -54,7 +54,7 @@ critic = autogen.AssistantAgent(
 )
 ```
 
-Next, the critic is given successful and failed examples of the task execution; then, it is able to return a list of criteria (Fig. 1). For reference, use the [following notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb).
+Next, the critic is given successful and failed examples of the task execution; then, it is able to return a list of criteria (Fig. 1). For reference, use the [following notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agenteval_cq_math.ipynb).
 
 * The goal of `QuantifierAgent` is to quantify each of the suggested criteria (Fig. 1), providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
 

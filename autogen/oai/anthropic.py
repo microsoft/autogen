@@ -99,17 +99,11 @@ class AnthropicClient:
         if not self._aws_secret_key:
             self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
 
-        if not self._aws_session_token:
-            self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
-
         if not self._aws_region:
             self._aws_region = os.getenv("AWS_REGION")
 
         if self._api_key is None and (
-            self._aws_access_key is None
-            or self._aws_secret_key is None
-            or self._aws_session_token is None
-            or self._aws_region is None
+            self._aws_access_key is None or self._aws_secret_key is None or self._aws_region is None
         ):
             raise ValueError("API key or AWS credentials are required to use the Anthropic API.")
 
@@ -320,7 +314,7 @@ def oai_messages_to_anthropic_messages(params: Dict[str, Any]) -> list[dict[str,
     last_tool_result_index = -1
     for message in params["messages"]:
         if message["role"] == "system":
-            params["system"] = message["content"]
+            params["system"] = params.get("system", "") + (" " if "system" in params else "") + message["content"]
         else:
             # New messages will be added here, manage role alternations
             expected_role = "user" if len(processed_messages) % 2 == 0 else "assistant"

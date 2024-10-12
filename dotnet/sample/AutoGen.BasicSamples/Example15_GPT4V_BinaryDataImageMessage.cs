@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 
 namespace AutoGen.BasicSample;
 
@@ -27,14 +28,14 @@ public static class Example15_GPT4V_BinaryDataImageMessage
 
     public static async Task RunAsync()
     {
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var openAiConfig = new OpenAIConfig(openAIKey, "gpt-4o");
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
 
-        var visionAgent = new GPTAgent(
+        var visionAgent = new OpenAIChatAgent(
+            chatClient: gpt4o,
             name: "gpt",
             systemMessage: "You are a helpful AI assistant",
-            config: openAiConfig,
             temperature: 0)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         List<IMessage> messages =
