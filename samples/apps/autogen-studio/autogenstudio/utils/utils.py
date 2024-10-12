@@ -289,7 +289,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     return folders
 
 
-def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
+def get_skills_prompt(skills: List[Skill], work_dir: str) -> str:
     """
     Create a prompt with the content of all skills and write the skills to a file named skills.py in the work_dir.
 
@@ -306,8 +306,47 @@ install via pip and use --quiet option.
 
          """
     prompt = ""  # filename:  skills.py
+
     for skill in skills:
+        if not isinstance(skill, Skill):
+            skill = Skill(**skill)
+        if skill.secrets:
+            for secret in skill.secrets:
+                if secret.get("value") is not None:
+                    os.environ[secret["secret"]] = secret["value"]
         prompt += f"""
+
+##### Begin of {skill.name} #####
+from skills import {skill.name} # Import the function from skills.py
+
+{skill.content}
+
+#### End of {skill.name} ####
+
+        """
+
+    return instruction + prompt
+
+
+def save_skills_to_file(skills: List[Skill], work_dir: str) -> None:
+    """
+    Write the skills to a file named skills.py in the work_dir.
+
+    :param skills: A dictionary skills
+    """
+
+    # TBD: Double check for duplicate skills?
+
+    # check if work_dir exists
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+
+    skills_content = ""
+    for skill in skills:
+        if not isinstance(skill, Skill):
+            skill = Skill(**skill)
+
+        skills_content += f"""
 
 ##### Begin of {skill.name} #####
 
@@ -317,15 +356,9 @@ install via pip and use --quiet option.
 
         """
 
-    # check if work_dir exists
-    if not os.path.exists(work_dir):
-        os.makedirs(work_dir)
-
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
-
-    return instruction + prompt
+        f.write(skills_content)
 
 
 def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
@@ -405,9 +438,23 @@ def test_model(model: Model):
     Test the model endpoint by sending a simple message to the model and returning the response.
     """
 
+    print("Testing model", model)
+
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
-    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    response = client.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that can add numbers. ONLY RETURN THE RESULT.",
+            },
+            {
+                "role": "user",
+                "content": "2+2=",
+            },
+        ],
+        cache_seed=None,
+    )
     return response.choices[0].message.content
 
 
@@ -426,7 +473,11 @@ def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, wo
     if code_execution_type == CodeExecutionConfigTypes.local:
         executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
     elif code_execution_type == CodeExecutionConfigTypes.docker:
-        executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+        try:
+            executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+        except Exception as e:
+            logger.error(f"Error initializing Docker executor: {e}")
+            return False
     elif code_execution_type == CodeExecutionConfigTypes.none:
         return False
     else:
@@ -462,3 +513,61 @@ def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: Mo
     ]
     response = client.create(messages=summarization_prompt, cache_seed=None)
     return response.choices[0].message.content
+
+
+def get_autogen_log(db_path="logs.db"):
+    """
+    Fetches data the autogen logs database.
+    Args:
+        dbname (str): Name of the database file. Defaults to "logs.db".
+        table (str): Name of the table to query. Defaults to "chat_completions".
+
+    Returns:
+        list: A list of dictionaries, where each dictionary represents a row from the table.
+    """
+    import json
+    import sqlite3
+
+    con = sqlite3.connect(db_path)
+    query = """
+        SELECT
+            chat_completions.*,
+            agents.name AS agent_name
+        FROM
+            chat_completions
+        JOIN
+            agents ON chat_completions.wrapper_id = agents.wrapper_id
+    """
+    cursor = con.execute(query)
+    rows = cursor.fetchall()
+    column_names = [description[0] for description in cursor.description]
+    data = [dict(zip(column_names, row)) for row in rows]
+    for row in data:
+        response = json.loads(row["response"])
+        print(response)
+        total_tokens = response.get("usage", {}).get("total_tokens", 0)
+        row["total_tokens"] = total_tokens
+    con.close()
+    return data
+
+
+def find_key_value(d, target_key):
+    """
+    Recursively search for a key in a nested dictionary and return its value.
+    """
+    if d is None:
+        return None
+
+    if isinstance(d, dict):
+        if target_key in d:
+            return d[target_key]
+        for k in d:
+            item = find_key_value(d[k], target_key)
+            if item is not None:
+                return item
+    elif isinstance(d, list):
+        for i in d:
+            item = find_key_value(i, target_key)
+            if item is not None:
+                return item
+    return None

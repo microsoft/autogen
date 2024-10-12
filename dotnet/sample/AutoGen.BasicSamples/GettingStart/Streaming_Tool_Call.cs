@@ -4,8 +4,8 @@
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
-using Azure.AI.OpenAI;
 using FluentAssertions;
+using OpenAI;
 
 namespace AutoGen.BasicSample.GettingStart;
 
@@ -28,12 +28,11 @@ internal class Streaming_Tool_Call
 
         #region Create_Agent
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var model = "gpt-4o";
+        var model = "gpt-4o-mini";
         var openaiClient = new OpenAIClient(apiKey);
         var agent = new OpenAIChatAgent(
-            openAIClient: openaiClient,
+            chatClient: openaiClient.GetChatClient(model),
             name: "agent",
-            modelName: model,
             systemMessage: "You are a helpful AI assistant")
             .RegisterMessageConnector()
             .RegisterStreamingMiddleware(autoInvokeMiddleware)

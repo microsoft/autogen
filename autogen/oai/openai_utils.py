@@ -21,6 +21,7 @@ NON_CACHE_KEY = [
     "azure_ad_token",
     "azure_ad_token_provider",
     "credentials",
+    "tool_config",
 ]
 DEFAULT_AZURE_API_VERSION = "2024-02-01"
 OAI_PRICE1K = {
@@ -28,6 +29,7 @@ OAI_PRICE1K = {
     # gpt-4o
     "gpt-4o": (0.005, 0.015),
     "gpt-4o-2024-05-13": (0.005, 0.015),
+    "gpt-4o-2024-08-06": (0.0025, 0.01),
     # gpt-4-turbo
     "gpt-4-turbo-2024-04-09": (0.01, 0.03),
     # gpt-4
@@ -96,19 +98,6 @@ def get_key(config: Dict[str, Any]) -> str:
     #     return tuple(get_key(x) for x in config)
     # return config
     return json.dumps(config, sort_keys=True)
-
-
-def is_valid_api_key(api_key: str) -> bool:
-    """Determine if input is valid OpenAI API key.
-
-    Args:
-        api_key (str): An input string to be validated.
-
-    Returns:
-        bool: A boolean that indicates if input is valid OpenAI API key.
-    """
-    api_key_re = re.compile(r"^sk-([A-Za-z0-9]+(-+[A-Za-z0-9]+)*-)?[A-Za-z0-9]{32,}$")
-    return bool(re.fullmatch(api_key_re, api_key))
 
 
 def get_config_list(
