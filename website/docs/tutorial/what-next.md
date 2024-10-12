@@ -32,8 +32,7 @@ topics:
 ## Get Help
 
 If you have any questions, you can ask in our [GitHub
-Discussions](https://github.com/microsoft/autogen/discussions), or join
-our [Discord Server](https://aka.ms/autogen-dc).
+Discussions](https://github.com/microsoft/autogen/discussions).
 
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat.png)](https://aka.ms/autogen-dc)
 

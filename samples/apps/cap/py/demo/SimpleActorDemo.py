@@ -1,5 +1,5 @@
 from AppAgents import GreeterAgent
-from autogencap.ComponentEnsemble import ComponentEnsemble
+from autogencap.runtime_factory import RuntimeFactory
 
 
 def simple_actor_demo():
@@ -8,10 +8,10 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
-    ensemble = ComponentEnsemble()
+    runtime = RuntimeFactory.get_runtime("ZMQ")
     agent = GreeterAgent()
-    ensemble.register(agent)
-    ensemble.connect()
-    greeter_link = ensemble.find_by_name("Greeter")
+    runtime.register(agent)
+    runtime.connect()
+    greeter_link = runtime.find_by_name("Greeter")
     greeter_link.send_txt_msg("Hello World!")
-    ensemble.disconnect()
+    runtime.disconnect()

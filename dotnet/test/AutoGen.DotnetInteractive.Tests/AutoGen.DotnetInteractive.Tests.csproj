@@ -13,4 +13,9 @@
     <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="$(PowershellSDKVersion)" />
+  </ItemGroup>
+
+
 </Project>

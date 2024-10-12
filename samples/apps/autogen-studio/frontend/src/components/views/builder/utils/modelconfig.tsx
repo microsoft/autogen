@@ -23,18 +23,35 @@ const ModelTypeSelector = ({
       value: "open_ai",
       description: "OpenAI or other endpoints that implement the OpenAI API",
       icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+      hint: "In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
     },
     {
       label: "Azure OpenAI",
       value: "azure",
       description: "Azure OpenAI endpoint",
       icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+      hint: "Azure OpenAI endpoint",
     },
     {
       label: "Gemini",
       value: "google",
       description: "Gemini",
       icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+      hint: "Gemini",
+    },
+    {
+      label: "Claude",
+      value: "anthropic",
+      description: "Anthropic Claude",
+      icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+      hint: "Anthropic Claude models",
+    },
+    {
+      label: "Mistral",
+      value: "mistral",
+      description: "Mistral",
+      icon: <CpuChipIcon className="h-6 w-6 text-primary" />,
+      hint: "Mistral models",
     },
   ];
 
@@ -46,7 +63,7 @@ const ModelTypeSelector = ({
     return (
       <li
         onMouseEnter={() => {
-          setSelectedHint(modelType.value);
+          setSelectedHint(modelType.hint);
         }}
         role="listitem"
         key={"modeltype" + i}
@@ -78,13 +95,6 @@ const ModelTypeSelector = ({
     );
   });
 
-  const hints: any = {
-    open_ai:
-      "In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
-    azure: "Azure OpenAI endpoint",
-    google: "Gemini",
-  };
-
   const [selectedHint, setSelectedHint] = React.useState<string>("open_ai");
 
   return (
@@ -94,7 +104,7 @@ const ModelTypeSelector = ({
 
       <div className="text-xs mt-4">
         <InformationCircleIcon className="h-4 w-4 inline mr-1 -mt-1" />
-        {hints[selectedHint]}
+        {selectedHint}
       </div>
     </>
   );

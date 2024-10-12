@@ -15,6 +15,11 @@ except ImportError:
 else:
     skip = False
 
+try:
+    from chromadb.errors import ChromaError
+except ImportError:
+    ChromaError = Exception
+
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
 def test_chromadb():
@@ -26,12 +31,14 @@ def test_chromadb():
 
     # test_delete_collection
     db.delete_collection(collection_name)
-    pytest.raises(ValueError, db.get_collection, collection_name)
+    pytest.raises((ValueError, ChromaError), db.get_collection, collection_name)
 
     # test more create collection
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=False)
     assert collection.name == collection_name
-    pytest.raises(ValueError, db.create_collection, collection_name, overwrite=False, get_or_create=False)
+    pytest.raises(
+        (ValueError, ChromaError), db.create_collection, collection_name, overwrite=False, get_or_create=False
+    )
     collection = db.create_collection(collection_name, overwrite=True, get_or_create=False)
     assert collection.name == collection_name
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=True)

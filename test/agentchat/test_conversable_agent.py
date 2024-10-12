@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import unittest
-from typing import Any, Callable, Dict, Literal
+from typing import Any, Callable, Dict, List, Literal
 from unittest.mock import MagicMock
 
 import pytest
@@ -1230,6 +1230,46 @@ def test_summary():
     print(chat_res_play.summary)
 
 
+def test_register_hook_async_sync():
+    agent = ConversableAgent("test_agent", llm_config=False)
+
+    # Synchronous hook for synchronous method
+    def sync_hook():
+        pass
+
+    agent.register_hook("process_all_messages_before_reply", sync_hook)
+    assert sync_hook in agent.hook_lists["process_all_messages_before_reply"]
+
+    # Asynchronous hook for asynchronous method
+    async def async_hook():
+        pass
+
+    agent.register_hook("a_process_all_messages_before_reply", async_hook)
+    assert async_hook in agent.hook_lists["a_process_all_messages_before_reply"]
+
+    # Synchronous hook for asynchronous method (should raise a warning)
+    with pytest.warns(
+        UserWarning, match="Hook 'sync_hook' is synchronous, but it's being registered in a asynchronous context"
+    ):
+        agent.register_hook("a_process_all_messages_before_reply", sync_hook)
+    assert sync_hook in agent.hook_lists["a_process_all_messages_before_reply"]
+
+    # Asynchronous hook for synchronous method (should raise a warning)
+    with pytest.warns(
+        UserWarning, match="Hook 'async_hook' is asynchronous, but it's being registered in a synchronous context"
+    ):
+        agent.register_hook("process_all_messages_before_reply", async_hook)
+    assert async_hook in agent.hook_lists["process_all_messages_before_reply"]
+
+    # Attempt to register the same hook twice (should raise an AssertionError)
+    with pytest.raises(AssertionError, match=r"<function.*sync_hook.*> is already registered as a hook"):
+        agent.register_hook("process_all_messages_before_reply", sync_hook)
+
+    # Attempt to register a hook for a non-existent method (should raise an AssertionError)
+    with pytest.raises(AssertionError, match="non_existent_method is not a hookable method"):
+        agent.register_hook("non_existent_method", sync_hook)
+
+
 def test_process_before_send():
     print_mock = unittest.mock.MagicMock()
 
@@ -1248,6 +1288,159 @@ def test_process_before_send():
     print_mock.assert_called_once_with(message="hello")
     dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
     print_mock.assert_called_once_with(message="hello")
+
+
+@pytest.mark.asyncio
+async def test_a_process_before_send():
+    print_mock = unittest.mock.MagicMock()
+
+    # Updated to include sender parameter
+    async def a_send_to_frontend(sender, message, recipient, silent):
+        # Simulating an async operation with asyncio.sleep
+        await asyncio.sleep(0.5)
+
+        assert sender.name == "dummy_agent_1", "Sender is not the expected agent"
+        if not silent:
+            print(f"Message sent from {sender.name} to {recipient.name}: {message}")
+            print_mock(message=message)
+        return message
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("a_process_message_before_send", a_send_to_frontend)
+    await dummy_agent_1.a_send("hello", dummy_agent_2)
+    print_mock.assert_called_once_with(message="hello")
+    dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
+    print_mock.assert_called_once_with(message="hello")
+
+
+def test_process_last_received_message():
+
+    # Create a mock function to be used as a hook
+    def expand_message(message):
+        return message + " [Expanded]"
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("process_last_received_message", expand_message)
+
+    # Normal message
+    messages = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there"},
+        {"role": "user", "content": "How are you?"},
+    ]
+
+    processed_messages = messages.copy()
+    dummy_agent_1.generate_reply(messages=processed_messages, sender=None)
+    assert processed_messages[-2]["content"] == "Hi there"
+    assert processed_messages[-1]["content"] == "How are you? [Expanded]"
+
+
+@pytest.mark.asyncio
+async def test_a_process_last_received_message():
+
+    # Create a mock function to be used as a hook
+    async def expand_message(message):
+        await asyncio.sleep(0.5)
+        return message + " [Expanded]"
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("a_process_last_received_message", expand_message)
+
+    # Normal message
+    messages = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there"},
+        {"role": "user", "content": "How are you?"},
+    ]
+
+    processed_messages = messages.copy()
+    await dummy_agent_1.a_generate_reply(messages=processed_messages, sender=None)
+    assert processed_messages[-2]["content"] == "Hi there"
+    assert processed_messages[-1]["content"] == "How are you? [Expanded]"
+
+
+def test_process_all_messages_before_reply():
+
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"function_call": {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}, "role": "assistant"},
+    ]
+
+    def _transform_messages(transformed_messages: List[Dict]) -> List[Dict]:
+        # ensure we are looking at all messages
+        assert len(transformed_messages) == len(messages), "Message length does not match"
+
+        # deep copy to ensure hooks applied comprehensively
+        post_transformed_messages = copy.deepcopy(transformed_messages)
+
+        # directly modify the message content for the function call (additional value)
+        post_transformed_messages[1]["function_call"]["arguments"] = '{ "num_to_be_added": 6 }'
+
+        return post_transformed_messages
+
+    def add_num(num_to_be_added):
+        given_num = 10
+        return num_to_be_added + given_num
+
+    dummy_agent_2 = ConversableAgent(
+        name="user_proxy", llm_config=False, human_input_mode="TERMINATE", function_map={"add_num": add_num}
+    )
+
+    # Baseline check before hook is executed
+    assert (
+        dummy_agent_2.generate_reply(messages=messages, sender=None)["content"] == "15"
+    ), "generate_reply not working when sender is None"
+
+    dummy_agent_2.register_hook("process_all_messages_before_reply", _transform_messages)
+
+    # Hook is applied, updating the message content for the function call
+    assert (
+        dummy_agent_2.generate_reply(messages=messages, sender=None)["content"] == "16"
+    ), "generate_reply not working when sender is None"
+
+
+@pytest.mark.asyncio
+async def test_a_process_all_messages_before_reply():
+
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"function_call": {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}, "role": "assistant"},
+    ]
+
+    async def a_transform_messages(transformed_messages: List[Dict]) -> List[Dict]:
+
+        # ensure we are looking at all messages
+        assert len(transformed_messages) == len(messages), "Message length does not match"
+
+        # Simulating an async operation with asyncio.sleep
+        await asyncio.sleep(0.5)
+
+        # deep copy to ensure hooks applied comprehensively
+        post_transformed_messages = copy.deepcopy(transformed_messages)
+
+        # directly modify the message content for the function call (additional value)
+        post_transformed_messages[1]["function_call"]["arguments"] = '{ "num_to_be_added": 6 }'
+
+        return post_transformed_messages
+
+    def add_num(num_to_be_added):
+        given_num = 10
+        return num_to_be_added + given_num
+
+    dummy_agent_2 = ConversableAgent(
+        name="user_proxy", llm_config=False, human_input_mode="TERMINATE", function_map={"add_num": add_num}
+    )
+
+    # Baseline check before hook is executed
+    response = await dummy_agent_2.a_generate_reply(messages=messages, sender=None)
+    assert response["content"] == "15", "generate_reply not working when sender is None"
+
+    dummy_agent_2.register_hook("a_process_all_messages_before_reply", a_transform_messages)
+
+    # Hook is applied, updating the message content for the function call
+    response = await dummy_agent_2.a_generate_reply(messages=messages, sender=None)
+    assert response["content"] == "16", "generate_reply not working when sender is None"
 
 
 def test_messages_with_carryover():

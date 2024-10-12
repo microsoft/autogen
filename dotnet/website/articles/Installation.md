@@ -13,8 +13,9 @@ AutoGen.Net provides the following packages, you can choose to install one or mo
 - `AutoGen.LMStudio`: This package provides the integration agents from LM Studio.
 - `AutoGen.SemanticKernel`: This package provides the integration agents over semantic kernel.
 - `AutoGen.Gemini`: This package provides the integration agents from [Google Gemini](https://gemini.google.com/).
+- `AutoGen.AzureAIInference`: This package provides the integration agents for [Azure AI Inference](https://www.nuget.org/packages/Azure.AI.Inference).
 - `AutoGen.SourceGenerator`: This package carries a source generator that adds support for type-safe function definition generation.
-- `AutoGen.DotnetInteractive`: This packages carries dotnet interactive support to execute dotnet code snippet.
+- `AutoGen.DotnetInteractive`: This packages carries dotnet interactive support to execute code snippets. The current supported language is C#, F#, powershell and python.
 
 >[!Note]
 > Help me choose

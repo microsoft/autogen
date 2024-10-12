@@ -33,6 +33,7 @@ async def _a_tool_func_error(arg1: str, arg2: str) -> str:
 _tool_use_message_1 = {
     "role": "assistant",
     "content": None,
+    "function_call": None,
     "tool_calls": [
         {
             "id": "1",
@@ -56,6 +57,7 @@ _tool_use_message_1 = {
 _tool_use_message_1_bad_json = {
     "role": "assistant",
     "content": None,
+    "function_call": None,
     "tool_calls": [
         {
             "id": "1",
@@ -94,11 +96,11 @@ _tool_use_message_1_bad_json_expected_reply = {
         {
             "tool_call_id": "1",
             "role": "tool",
-            "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.",
+            "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.",
         },
         {"tool_call_id": "2", "role": "tool", "content": "_tool_func_2: value3 value4"},
     ],
-    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.\n\n_tool_func_2: value3 value4",
+    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.\n\n_tool_func_2: value3 value4",
 }
 
 _tool_use_message_1_error_expected_reply = {
@@ -154,7 +156,7 @@ _function_use_message_1_expected_reply = {
 _function_use_message_1_bad_json_expected_reply = {
     "name": "_tool_func_1",
     "role": "function",
-    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.",
+    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n The argument must be in JSON format.",
 }
 
 _function_use_message_1_error_expected_reply = {

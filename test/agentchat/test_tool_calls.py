@@ -144,7 +144,7 @@ def test_update_tool():
     config_list_gpt4 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "tags": ["gpt-4"],
+            "tags": ["gpt-4o-mini"],
         },
         file_location=KEY_LOC,
     )
@@ -208,6 +208,7 @@ def test_multi_tool_call():
         def __init__(self, name):
             self._name = name
             self.received = []
+            self.silent = False
 
         @property
         def name(self):
@@ -303,6 +304,7 @@ async def test_async_multi_tool_call():
         def __init__(self, name):
             self._name = name
             self.received = []
+            self.silent = False
 
         @property
         def name(self):

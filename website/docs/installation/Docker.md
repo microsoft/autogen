@@ -41,7 +41,7 @@ Here's how you can run an application built with AutoGen, using the Docker image
 
    Here, `$(pwd)/myapp` is your local directory, and `/home/autogen/autogen/myapp` is the path in the Docker container where your code will be located.
 
-2. **Mount your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
+2. **Mount your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/0.2/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
 
    ```python
    # Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
@@ -82,6 +82,6 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 ## Additional Resources
 
-- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
+- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/blob/0.2/.devcontainer/README.md) README.
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 - Details on how to use the Dockerfile dev version can be found on the [Contributor Guide](/docs/contributor-guide/docker).
