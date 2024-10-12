@@ -90,7 +90,7 @@ def test_build():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
 
-@pytest.mark.skipif(skip_openai, reason=reason + "OR dependency not installed")
+@pytest.mark.skipif(skip_openai or skip, reason=reason + "OR dependency not installed")
 def test_build_assistant_with_function_calling():
     list_of_functions = [
         {
