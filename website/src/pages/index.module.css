@@ -22,4 +22,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+}
+
+.buttonWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.buttonTagline {
+  font-size: 0.8rem;
+  margin-top: 5px;
+  text-align: center;
+  max-width: 200px;
 }

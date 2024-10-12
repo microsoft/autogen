@@ -2,16 +2,20 @@
 
 Retrieval Augmented Generation (RAG) is a powerful technique that combines language models with external knowledge retrieval to improve the quality and relevance of generated responses.
 
-One way to realize RAG in AutoGen is to construct agent chats with `RetrieveAssistantAgent` and `RetrieveUserProxyAgent` classes.
+One way to realize RAG in AutoGen is to construct agent chats with `AssistantAgent` and `RetrieveUserProxyAgent` classes.
 
 ## Example Setup: RAG with Retrieval Augmented Agents
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
 
-### Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+### Step 1. Create an instance of `AssistantAgent` and `RetrieveUserProxyAgent`.
 
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
+
+Refer to the [doc](https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/retrieve_user_proxy_agent)
+for more information on the detailed configurations.
+
 ```python
-assistant = RetrieveAssistantAgent(
+assistant = AssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
     llm_config={
@@ -52,18 +56,19 @@ ragproxyagent.initiate_chat(
     assistant, message=ragproxyagent.message_generator, problem=code_problem, search_string="spark"
 )  # search_string is used as an extra filter for the embeddings search, in this case, we only want to search documents that contain "spark".
 ```
+*You'll need to install `chromadb<=0.5.0` if you see issue like [#3551](https://github.com/microsoft/autogen/issues/3551).*
 
 ## Example Setup: RAG with Retrieval Augmented Agents with PGVector
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
 
-### Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+### Step 1. Create an instance of `AssistantAgent` and `RetrieveUserProxyAgent`.
 
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
 
 Specify the connection_string, or the host, port, database, username, and password in the db_config.
 
 ```python
-assistant = RetrieveAssistantAgent(
+assistant = AssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
     llm_config={
@@ -119,9 +124,10 @@ ragproxyagent.initiate_chat(
 ## More Examples and Notebooks
 For more detailed examples and notebooks showcasing the usage of retrieval augmented agents in AutoGen, refer to the following:
 - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
-- Automated Code Generation and Question Answering with [PGVector](https://github.com/pgvector/pgvector) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_pgvector_RetrieveChat.ipynb)
-- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
-- Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
+- Automated Code Generation and Question Answering with [PGVector](https://github.com/pgvector/pgvector) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agentchat_RetrieveChat_pgvector.ipynb)
+- Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agentchat_RetrieveChat_qdrant.ipynb)
+- Automated Code Generation and Question Answering with [MongoDB Atlas](https://www.mongodb.com/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agentchat_RetrieveChat_mongodb.ipynb)
+- Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/0.2/notebook/agentchat_oai_assistant_retrieval.ipynb)
 - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_RAG)
 
 ## Roadmap

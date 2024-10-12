@@ -4,7 +4,7 @@ import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Union
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,13 +12,16 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from openai import OpenAIError
 
-from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from ..chatmanager import AutoGenChatManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
+from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
+from ..websocket_connection_manager import WebSocketConnectionManager
 
+profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
 # Create thread-safe queue for messages between api thread and autogen threads
 message_queue = queue.Queue()
@@ -62,11 +65,17 @@ ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
+HUMAN_INPUT_TIMEOUT_SECONDS = 180
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
-    managers["chat"] = AutoGenChatManager(message_queue=message_queue)
+    managers["chat"] = AutoGenChatManager(
+        message_queue=message_queue,
+        websocket_manager=websocket_manager,
+        human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS,
+    )
     dbmanager.create_db_and_tables()
 
     yield
@@ -92,8 +101,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-api = FastAPI(root_path="/api")
+show_docs = os.environ.get("AUTOGENSTUDIO_API_DOCS", "False").lower() == "true"
+docs_url = "/docs" if show_docs else None
+api = FastAPI(
+    root_path="/api",
+    title="AutoGen Studio API",
+    version=VERSION,
+    docs_url=docs_url,
+    description="AutoGen Studio is a low-code tool for building and testing multi-agent workflows using AutoGen.",
+)
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
@@ -293,6 +309,19 @@ async def get_workflow(workflow_id: int, user_id: str):
     return list_entity(Workflow, filters=filters)
 
 
+@api.get("/workflows/export/{workflow_id}")
+async def export_workflow(workflow_id: int, user_id: str):
+    """Export a user workflow"""
+    response = Response(message="Workflow exported successfully", status=True, data=None)
+    try:
+        workflow_details = workflow_from_id(workflow_id, dbmanager=dbmanager)
+        response.data = workflow_details
+    except Exception as ex_error:
+        response.message = "Error occurred while exporting workflow: " + str(ex_error)
+        response.status = False
+    return response.model_dump(mode="json")
+
+
 @api.post("/workflows")
 async def create_workflow(workflow: Workflow):
     """Create a new workflow"""
@@ -317,6 +346,19 @@ async def link_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
     )
 
 
+@api.post("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}/{sequence_id}")
+async def link_workflow_agent_sequence(workflow_id: int, agent_id: int, agent_type: str, sequence_id: int):
+    """Link an agent to a workflow"""
+    print("Sequence ID: ", sequence_id)
+    return dbmanager.link(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+        sequence_id=sequence_id,
+    )
+
+
 @api.delete("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}")
 async def unlink_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
     """Unlink an agent from a workflow"""
@@ -328,15 +370,45 @@ async def unlink_workflow_agent(workflow_id: int, agent_id: int, agent_type: str
     )
 
 
-@api.get("/workflows/link/agent/{workflow_id}/{agent_type}")
-async def get_linked_workflow_agents(workflow_id: int, agent_type: str):
+@api.delete("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}/{sequence_id}")
+async def unlink_workflow_agent_sequence(workflow_id: int, agent_id: int, agent_type: str, sequence_id: int):
+    """Unlink an agent from a workflow sequence"""
+    return dbmanager.unlink(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+        sequence_id=sequence_id,
+    )
+
+
+@api.get("/workflows/link/agent/{workflow_id}")
+async def get_linked_workflow_agents(workflow_id: int):
     """Get all agents linked to a workflow"""
     return dbmanager.get_linked_entities(
         link_type="workflow_agent",
         primary_id=workflow_id,
-        agent_type=agent_type,
         return_json=True,
     )
+
+
+@api.get("/profiler/{message_id}")
+async def profile_agent_task_run(message_id: int):
+    """Profile an agent task run"""
+    try:
+        agent_message = dbmanager.get(Message, filters={"id": message_id}).data[0]
+
+        profile = profiler.profile(agent_message)
+        return {
+            "status": True,
+            "message": "Agent task run profiled successfully",
+            "data": profile,
+        }
+    except Exception as ex_error:
+        return {
+            "status": False,
+            "message": "Error occurred while profiling agent task run: " + str(ex_error),
+        }
 
 
 @api.get("/sessions")
@@ -384,7 +456,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
-        agent_response: Message = managers["chat"].chat(
+        agent_response: Message = await managers["chat"].a_chat(
             message=message,
             history=user_message_history,
             user_dir=user_dir,
@@ -395,7 +467,6 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         response: Response = dbmanager.upsert(agent_response)
         return response.model_dump(mode="json")
     except Exception as ex_error:
-        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),

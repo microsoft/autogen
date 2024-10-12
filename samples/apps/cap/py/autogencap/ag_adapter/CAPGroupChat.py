@@ -3,7 +3,8 @@ from typing import List
 from autogen import Agent, AssistantAgent, GroupChat
 from autogencap.ag_adapter.AG2CAP import AG2CAP
 from autogencap.ag_adapter.CAP2AG import CAP2AG
-from autogencap.ComponentEnsemble import ComponentEnsemble
+
+from ..actor_runtime import IRuntime
 
 
 class CAPGroupChat(GroupChat):
@@ -13,10 +14,10 @@ class CAPGroupChat(GroupChat):
         messages: List[str],
         max_round: int,
         chat_initiator: str,
-        ensemble: ComponentEnsemble,
+        ensemble: IRuntime,
     ):
         self.chat_initiator: str = chat_initiator
-        self._cap_network: ComponentEnsemble = ensemble
+        self._cap_network: IRuntime = ensemble
         self._cap_proxies: List[CAP2AG] = []
         self._ag_proxies: List[AG2CAP] = []
         self._ag_agents: List[Agent] = agents

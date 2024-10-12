@@ -140,3 +140,19 @@ marklysze:
   title: AI Freelancer
   url: https://github.com/marklysze
   image_url: https://github.com/marklysze.png
+
+areibman:
+  name: Alex Reibman
+  title: Co-founder/CEO at AgentOps
+  url: https://github.com/areibman
+  image_url: https://github.com/areibman.png
+
+bboynton97:
+  name: Braelyn Boynton
+  title: AI Engineer at AgentOps
+  url: https://github.com/bboynton97
+  image_url: https://github.com/bboynton97.png
+
+autogen-team:
+  name: AutoGen Team
+  title: The humans behind the agents

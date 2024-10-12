@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using AutoGen.Core;
-using AutoGen.Service;
+using AutoGen.WebAPI;
 
 var alice = new DummyAgent("alice");
 var bob = new DummyAgent("bob");

@@ -92,8 +92,8 @@ class QdrantVectorDB(VectorDB):
             collection_options: dict | The options for creating the collection.
             kwargs: dict | Additional keyword arguments.
         """
-        self.client: QdrantClient = client if client is not None else QdrantClient(location=":memory:")
-        self.embedding_function = FastEmbedEmbeddingFunction() or embedding_function
+        self.client: QdrantClient = client or QdrantClient(location=":memory:")
+        self.embedding_function = embedding_function or FastEmbedEmbeddingFunction()
         self.collection_options = collection_options
         self.content_payload_key = content_payload_key
         self.metadata_payload_key = metadata_payload_key
@@ -102,6 +102,10 @@ class QdrantVectorDB(VectorDB):
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> None:
         """
         Create a collection in the vector database.
+        Case 1. if the collection does not exist, create the collection.
+        Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
+        Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection,
+            otherwise it raise a ValueError.
 
         Args:
             collection_name: str | The name of the collection.
@@ -122,8 +126,10 @@ class QdrantVectorDB(VectorDB):
                 vectors_config=models.VectorParams(size=embeddings_size, distance=models.Distance.COSINE),
                 **self.collection_options,
             )
+        elif not get_or_create:
+            raise ValueError(f"Collection {collection_name} already exists.")
 
-    def get_collection(self, collection_name: str = None):
+    def get_collection(self, collection_name: Optional[str] = None):
         """
         Get the collection from the vector database.
 
@@ -225,8 +231,8 @@ class QdrantVectorDB(VectorDB):
         """
         embeddings = self.embedding_function(queries)
         requests = [
-            models.SearchRequest(
-                vector=embedding,
+            models.QueryRequest(
+                query=embedding,
                 limit=n_results,
                 score_threshold=distance_threshold,
                 with_payload=True,
@@ -235,8 +241,8 @@ class QdrantVectorDB(VectorDB):
             for embedding in embeddings
         ]
 
-        batch_results = self.client.search_batch(collection_name, requests)
-        return [self._scored_points_to_documents(results) for results in batch_results]
+        batch_results = self.client.query_batch_points(collection_name, requests)
+        return [self._scored_points_to_documents(results.points) for results in batch_results]
 
     def get_docs_by_ids(
         self, ids: List[ItemID] = None, collection_name: str = None, include=True, **kwargs

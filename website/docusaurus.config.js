@@ -16,7 +16,7 @@ module.exports = {
   title: "AutoGen",
   tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
-  baseUrl: "/autogen/",
+  baseUrl: "/autogen/0.2/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
@@ -146,11 +146,6 @@ module.exports = {
           position: "right",
         },
         {
-          href: "https://aka.ms/autogen-dc",
-          label: "Discord",
-          position: "right",
-        },
-        {
           href: "https://twitter.com/pyautogen",
           label: "Twitter",
           position: "right",
@@ -177,8 +172,8 @@ module.exports = {
             //     //   href: 'https://stackoverflow.com/questions/tagged/pymarlin',
             //     // },
             {
-              label: "Discord",
-              href: "https://aka.ms/autogen-dc",
+              label: "GitHub Discussion",
+              href: "https://github.com/microsoft/autogen/discussions",
             },
             {
               label: "Twitter",
@@ -187,12 +182,12 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a> |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?linkid=2259814">Consumer Health Privacy</a>`,
     },
     announcementBar: {
-      id: "whats_new",
+      id: "newdocs",
       content:
-        'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
+        'Go <a href="/autogen/dev">here</a> to view the documentation for the work in progress version of AutoGen 0.4.',
       backgroundColor: "#fafbfc",
       textColor: "#091E42",
       isCloseable: true,
