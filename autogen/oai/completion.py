@@ -14,9 +14,9 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 from flaml import BlendSearch, tune
-from flaml.automl.logger import logger_formatter
 from flaml.tune.space import is_constant
 
+from .client_utils import logging_formatter
 from .openai_utils import get_key
 
 try:
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
     _ch = logging.StreamHandler(stream=sys.stdout)
-    _ch.setFormatter(logger_formatter)
+    _ch.setFormatter(logging_formatter)
     logger.addHandler(_ch)
 
 

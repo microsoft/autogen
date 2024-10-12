@@ -12,12 +12,12 @@ import sys
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
-from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache import Cache
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.client_utils import logging_formatter
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
@@ -168,7 +168,7 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
     _ch = logging.StreamHandler(stream=sys.stdout)
-    _ch.setFormatter(logger_formatter)
+    _ch.setFormatter(logging_formatter)
     logger.addHandler(_ch)
 
 LEGACY_DEFAULT_CACHE_SEED = 41
