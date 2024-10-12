@@ -28,7 +28,7 @@ function HomepageHeader() {
           <div className={styles.buttonWrapper}>
             <Link
               className="button button--secondary button--lg"
-              to="/docs/Preview-v0.4"
+              to="/autogen/dev/"
             >
               Preview v0.4
             </Link>
