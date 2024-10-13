@@ -10,21 +10,21 @@ HTML_PAGE_TEMPLATE_FILE = THIS_FILE_DIR / "redirect_template.html"
 HTML_REDIRECT_TEMPLATE = HTML_PAGE_TEMPLATE_FILE.open("r").read()
 REDIRECT_URLS_FILE = THIS_FILE_DIR / "redirect_urls.txt"
 
-def generate_redirect(old_url: str, new_url: str, base_dir: Path):
+def generate_redirect(file_to_write: str, new_url: str, base_dir: Path):
     # Create a new redirect page
     redirect_page = Template(HTML_REDIRECT_TEMPLATE).substitute(to_url=new_url)
 
     # If the url ends with /, add index.html
-    if old_url.endswith("/"):
-        old_url += "index.html"
+    if file_to_write.endswith("/"):
+        file_to_write += "index.html"
     else:
-        old_url += "/index.html"
+        file_to_write += "/index.html"
 
-    if old_url.startswith("/"):
-        old_url = old_url[1:]
+    if file_to_write.startswith("/"):
+        file_to_write = file_to_write[1:]
 
     # Create the path to the redirect page
-    redirect_page_path = base_dir / old_url
+    redirect_page_path = base_dir / file_to_write
 
     # Create the directory if it doesn't exist
     redirect_page_path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,7 +49,9 @@ def main():
         # Replace /autogen/ with /autogen/0.2/ and generate redirect
         old_url = line.strip()
         new_url = old_url.replace("/autogen/", "/autogen/0.2/")
-        generate_redirect(old_url, new_url, base_dir)
+        # Deal with pages base path of /autogen/
+        file_to_write = old_url.replace("/autogen/", "/")
+        generate_redirect(file_to_write, new_url, base_dir)
 
 if __name__ == '__main__':
     main()

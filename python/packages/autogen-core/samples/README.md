@@ -6,7 +6,7 @@ See [user guide](../docs/src/core-user-guide/guides/) and
 
 See [Running the examples](#running-the-examples) for instructions on how to run the examples.
 
-- [`chest_game.py`](chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
+- [`chess_game.py`](chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 - [`slow_human_in_loop.py`](slow_human_in_loop.py): an example showing human-in-the-loop which waits for human input before making the tool call.
 
 ## Running the examples
