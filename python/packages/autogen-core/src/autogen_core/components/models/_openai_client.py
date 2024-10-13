@@ -5,6 +5,7 @@ import logging
 import math
 import re
 import warnings
+from asyncio import Task
 from typing import (
     Any,
     AsyncGenerator,
@@ -22,6 +23,7 @@ from typing import (
 import tiktoken
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
+    ChatCompletion,
     ChatCompletionAssistantMessageParam,
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
@@ -33,8 +35,10 @@ from openai.types.chat import (
     ChatCompletionToolParam,
     ChatCompletionUserMessageParam,
     ParsedChatCompletion,
+    ParsedChoice,
     completion_create_params,
 )
+from openai.types.chat.chat_completion import Choice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Unpack
@@ -411,6 +415,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if self.capabilities["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
+        future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
             if use_beta_client:
@@ -469,7 +474,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
-        result = await future
+        result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
         if use_beta_client:
             result = cast(ParsedChatCompletion[Any], result)
 
@@ -495,7 +500,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
 
         # Limited to a single choice currently.
-        choice = result.choices[0]
+        choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], Choice] = result.choices[0]
         if choice.finish_reason == "function_call":
             raise ValueError("Function calls are not supported in this context")
 
