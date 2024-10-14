@@ -29,11 +29,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 200px;
+}
+
+.buttonLink {
+  width: 100%;
 }
 
 .buttonTagline {
   font-size: 0.8rem;
   margin-top: 5px;
   text-align: center;
-  max-width: 200px;
+  height: 100px;
+  overflow-y: auto;
+  padding: 5px;
 }
