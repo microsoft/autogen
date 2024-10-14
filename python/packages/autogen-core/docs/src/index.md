@@ -13,6 +13,17 @@ sd_hide_title: true
   font-weight: bold;
   margin: 2rem auto 0;
 }
+
+.wip-card {
+  border: 1px solid var(--pst-color-success);
+  background-color: var(--pst-color-success-bg);
+  border-radius: .25rem;
+  padding: 0.3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
 </style>
 
 # AutoGen
@@ -35,10 +46,20 @@ A framework for building AI agents and multi-agent applications
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} {fas}`people-group;pst-color-primary` AgentChat
+:::{grid-item-card}
 :shadow: none
 :margin: 2 0 0 0
 
+<div class="wip-card">
+
+{fas}`triangle-exclamation` Work in progress
+</div>
+
+
+<div class="sd-card-title sd-font-weight-bold docutils">
+
+{fas}`people-group;pst-color-primary`
+AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
