@@ -20,7 +20,7 @@ implementation of the contracts determines how agents handle messages.
 The behavior contract is also sometimes referred to as the message protocol.
 It is the developer's responsibility to implement the behavior contract.
 Multi-agent patterns emerge from these behavior contracts
-(see [Multi-Agent Design Patterns](../design-patterns/multi-agent-design-patterns.md)).
+(see [Multi-Agent Design Patterns](../design-patterns/index.md)).
 
 ## An Example Application
 
