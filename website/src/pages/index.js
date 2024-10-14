@@ -22,7 +22,7 @@ function HomepageHeader() {
                             Get Started
                         </Link>
                         <p className={styles.buttonTagline}>
-                            Current stable version of AutoGen
+                            Current stable version of AutoGen (autogen-agentchat~=0.2)
                         </p>
                     </div>
                     <div className={styles.buttonWrapper}>
