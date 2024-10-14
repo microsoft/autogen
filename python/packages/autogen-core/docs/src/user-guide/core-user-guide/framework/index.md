@@ -1,8 +1,8 @@
 # Framework Guide
 
 The following sections guides you through the usage of the Core API.
-At minimum, read [Agent and Agent Runtime](agent-and-agent-runtime.md)
-and [Message and Communication](message-and-communication.md) to get the
+At minimum, read [Agent and Agent Runtime](agent-and-agent-runtime.ipynb)
+and [Message and Communication](message-and-communication.ipynb) to get the
 basic understanding.
 
 ```{note}
