@@ -100,7 +100,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install autogen-agentchat==0.4.0dev0 autogen-ext==0.4.0dev0
+pip install autogen-agentchat==0.4.0dev1 autogen-ext==0.4.0dev1
 ```
 
 The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
@@ -263,7 +263,7 @@ programming model and better scalability.
 
 ### Is this project still maintained?
 
-We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4) . AutoGen 0.4 is still work-in-progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained. 
+We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4) . AutoGen 0.4 is still work-in-progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained.
 
 ### Who should use it 0.4?
 
@@ -298,7 +298,7 @@ We are working on a migration guide.
 
 ### Is 0.4 done?
 
-We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. The python SDKs are further ahead at this time but our goal is to achieve parity. We aim to add additional languages in future releases. 
+We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. The python SDKs are further ahead at this time but our goal is to achieve parity. We aim to add additional languages in future releases.
 
 ### What is happening next? When will this release be ready?
 
@@ -317,23 +317,23 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
 
 ### Do you use Discord for communications?
 
-We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward. 
+We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward.
 
 ### What about forks?
 
-https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen. 
-We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them. 
+https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen.
+We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them.
 
 ### What is the status of the license and open source?
 
-Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project. 
+Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project.
 
 ### Can you clarify the current state of the packages?
-Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html). 
+Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
 
 ### Can I still be involved?
 
-We are grateful to all the contributors to AutoGen 0.2 and we look forward to continuing to collaborate with everyone in the AutoGen community. 
+We are grateful to all the contributors to AutoGen 0.2 and we look forward to continuing to collaborate with everyone in the AutoGen community.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
