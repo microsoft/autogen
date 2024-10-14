@@ -3,23 +3,14 @@ name: docs
 on:
   pull_request:
     branches: ["0.2"]
-    paths:
-      - "autogen/*"
-      - "website/*"
-      - ".github/workflows/deploy-website.yml"
   push:
     branches: ["0.2"]
-    paths:
-      - "autogen/*"
-      - "website/*"
-      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 permissions:
   id-token: write
   pages: write
 jobs:
   checks:
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     defaults:
       run:
