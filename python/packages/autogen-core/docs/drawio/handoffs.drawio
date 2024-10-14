@@ -61,7 +61,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Rn_Z-AZpyA3VoKjSUQzu-5" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="Rn_Z-AZpyA3VoKjSUQzu-5" value="User Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="310" y="320" width="100" height="50" as="geometry" />
         </mxCell>
         <mxCell id="Rn_Z-AZpyA3VoKjSUQzu-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.855;exitY=0;exitDx=0;exitDy=4.35;exitPerimeter=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="Rn_Z-AZpyA3VoKjSUQzu-14" target="Rn_Z-AZpyA3VoKjSUQzu-3">
