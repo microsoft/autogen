@@ -11,7 +11,7 @@ may find it challenging. Continue if you are building
 an interactive, scalable and distributed multi-agent system and want full control
 of all workflows.
 If you just want to get something running
-quickly, you may take a look at the [AgentChat API](.../agentchat-user-guide/index.md).
+quickly, you may take a look at the [AgentChat API](../../agentchat-user-guide/index.md).
 ```
 
 ## List of content
