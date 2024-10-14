@@ -10,7 +10,7 @@
 # AutoGen
 
 > [!IMPORTANT]
-> - (10/13/24) Interested in *AutoGen v0.2*? Checkout the actively-maintained [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat` PyPi package.
+> - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 
 AutoGen is an open-source framework for building AI agent systems.
