@@ -100,7 +100,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install autogen-agentchat~=0.4.0dev1 autogen-ext~=0.4.0dev1
+pip install autogen-agentchat==0.4.0dev1 autogen-ext==0.4.0dev1
 ```
 
 The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
