@@ -12,6 +12,7 @@ from autogen_core.components.models import (
     ModelCapabilities,
 )
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+
 from .messages import (
     AgentEvent,
     AssistantContent,

@@ -1,6 +1,7 @@
 from ._model_client import ChatCompletionClient, ModelCapabilities
 from ._types import (
     AssistantMessage,
+    ChatCompletionTokenLogprob,
     CreateResult,
     FinishReasons,
     FunctionExecutionResult,
@@ -8,9 +9,8 @@ from ._types import (
     LLMMessage,
     RequestUsage,
     SystemMessage,
-    UserMessage,
     TopLogprob,
-    ChatCompletionTokenLogprob,
+    UserMessage,
 )
 
 __all__ = [

@@ -15,7 +15,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "openai>=1.3",
     "pillow",
     "aiohttp",
     "typing-extensions",
