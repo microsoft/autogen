@@ -1,8 +1,4 @@
 from ._model_client import ChatCompletionClient, ModelCapabilities
-from ._openai_client import (
-    AzureOpenAIChatCompletionClient,
-    OpenAIChatCompletionClient,
-)
 from ._types import (
     AssistantMessage,
     CreateResult,
@@ -13,11 +9,11 @@ from ._types import (
     RequestUsage,
     SystemMessage,
     UserMessage,
+    TopLogprob,
+    ChatCompletionTokenLogprob,
 )
 
 __all__ = [
-    "AzureOpenAIChatCompletionClient",
-    "OpenAIChatCompletionClient",
     "ModelCapabilities",
     "ChatCompletionClient",
     "SystemMessage",
@@ -29,4 +25,6 @@ __all__ = [
     "RequestUsage",
     "FinishReasons",
     "CreateResult",
+    "TopLogprob",
+    "ChatCompletionTokenLogprob",
 ]

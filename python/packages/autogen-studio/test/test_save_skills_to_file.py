@@ -5,9 +5,7 @@ from autogenstudio.utils import utils
 
 
 class TestUtilSaveSkillsToFile:
-
     def test_save_skills_to_file(self):
-
         # cleanup test work_dir
         try:
             os.system("rm -rf work_dir")

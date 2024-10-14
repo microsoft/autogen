@@ -95,7 +95,9 @@ class Profiler:
                 "code_execution": (
                     "success"
                     if is_code_execution["status"]
-                    else "failure" if is_code_execution["is_code"] else "no code"
+                    else "failure"
+                    if is_code_execution["is_code"]
+                    else "no code"
                 ),
                 "message": 1,
             }

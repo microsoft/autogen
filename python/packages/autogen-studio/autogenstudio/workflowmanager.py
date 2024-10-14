@@ -914,7 +914,6 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
         self.message_processor = message_processor
         self.a_message_processor = a_message_processor

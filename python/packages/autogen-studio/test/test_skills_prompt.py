@@ -5,9 +5,7 @@ from autogenstudio.utils import utils
 
 
 class TestUtilGetSkillsPrompt:
-
     def test_get_skills_prompt(self):
-
         skill_clazz = Skill(
             name="skill_clazz",
             description="skill_clazz",
