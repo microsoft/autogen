@@ -74,7 +74,7 @@ public class OpenAIChatCompletionMiddlewareTests
 
     private OpenAIClient CreateOpenAIClient(HttpClient client)
     {
-        return new OpenAIClient(new  ApiKeyCredential("api-key"), new OpenAIClientOptions
+        return new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
         {
             Transport = new HttpClientPipelineTransport(client),
         });
