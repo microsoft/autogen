@@ -6,7 +6,7 @@ To test PodCommandLineCodeExecutor, the following environment is required.
 
 ## kubernetes cluster config file
 
-kubernetes cluster config file, kubeconfig file's location should be set on environment variable `KUBECONFIG` or 
+kubernetes cluster config file, kubeconfig file's location should be set on environment variable `KUBECONFIG` or
 It must be located in the .kube/config path of your home directory.
 
 For Windows, `C:\Users\<<user>>\.kube\config`,
