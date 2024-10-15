@@ -85,7 +85,7 @@ client = AsyncZep(
 )
 ```
 
-3. Review the Zep and Autogen [notebook example](/docs/notebooks/agent_memory_using_zep) for agent-building best practices.
+3. Review the Zep and Autogen [notebook example](/0.2/docs/notebooks/agent_memory_using_zep) for agent-building best practices.
 
 ### Zep Community Edition
 
@@ -93,7 +93,7 @@ Follow the [Getting Started guide](https://help.getzep.com/ce/quickstart?utm_sou
 
 ## Autogen + Zep examples
 
-- [Autogen Agents with Zep Memory Notebook](/docs/notebooks/agent_memory_using_zep)
+- [Autogen Agents with Zep Memory Notebook](/0.2/docs/notebooks/agent_memory_using_zep)
 
 ## Extra links
 
