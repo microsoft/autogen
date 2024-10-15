@@ -3,7 +3,7 @@
     <IsPackable>true</IsPackable>
 
     <!-- Default description and tags. Packages can override. -->
-    <Authors>AutoGen</Authors>
+    <Authors>Microsoft</Authors>
     <Company>Microsoft</Company>
     <Product>AutoGen</Product>
     <Description>A programming framework for agentic AI</Description>
