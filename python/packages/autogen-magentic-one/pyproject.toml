@@ -18,7 +18,6 @@ classifiers = [
 
 dependencies = [
     "autogen-core",
-    "autogen-ext",
     "beautifulsoup4",
     "aiofiles",
     "requests",
