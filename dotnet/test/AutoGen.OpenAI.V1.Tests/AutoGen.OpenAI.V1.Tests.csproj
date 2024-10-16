@@ -21,5 +21,4 @@
       <DependentUpon>%(ParentFile)%(ParentExtension)</DependentUpon>
     </None>
   </ItemGroup>
-
 </Project>
