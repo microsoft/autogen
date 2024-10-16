@@ -20,7 +20,6 @@ from typing import Dict, List
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
-from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -31,6 +30,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import PythonCodeExecutionTool, Tool
+from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 from common.utils import get_chat_completion_client_from_envs
 
 

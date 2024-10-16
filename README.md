@@ -10,7 +10,8 @@
 # AutoGen
 
 > [!IMPORTANT]
-> AutoGen 0.4 is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
+> - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
+> - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 
 AutoGen is an open-source framework for building AI agent systems.
 It simplifies the creation of event-driven, distributed, scalable, and resilient agentic applications.
@@ -47,14 +48,14 @@ AutoGen offers the following key features:
 AutoGen has several packages and is built upon a layered architecture.
 Currently, there are three main APIs your application can target:
 
-- [Core](https://microsoft.github.io/autogen/dev/core-user-guide/index.html)
-- [AgentChat](https://microsoft.github.io/autogen/dev/agentchat-user-guide/index.html)
+- [Core](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
+- [AgentChat](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html)
 - [Extensions](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext/autogen_ext.html)
 
 ## Core
 
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-core)
-- [Quickstart](https://microsoft.github.io/autogen/dev/core-user-guide/guides/quickstart.html)
+- [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/quickstart.html)
 
 The core API of AutoGen, `autogen-core`, is built following the
 [actor model](https://en.wikipedia.org/wiki/Actor_model).
@@ -68,7 +69,7 @@ while still communicating with one another.
 ## AgentChat
 
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-agentchat)
-- [Quickstart](https://microsoft.github.io/autogen/dev/agentchat-user-guide/guides/quickstart.html)
+- [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html)
 
 The AgentChat API, `autogen-agentchat`, is task driven and at a high level like AutoGen 0.2.
 It allows you to define conversational agents, compose them into teams and then
@@ -99,28 +100,39 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install autogen-agentchat==0.4.0dev0 autogen-ext==0.4.0dev0
+pip install autogen-agentchat==0.4.0dev1 autogen-ext==0.4.0dev1
 ```
 
 The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
 and running on your machine.
 
 ```python
+import asyncio
+import logging
+from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
+from autogen_agentchat.logging import ConsoleLogHandler
 from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
-from autogen_core.components.code_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.models import OpenAIChatCompletionClient
 
-async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
-    code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
-    coding_assistant_agent = CodingAssistantAgent(
-        "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o")
-    )
-    group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
-    result = await group_chat.run(
-        task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'.",
-        termination_condition=StopMessageTermination(),
-    )
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+logger.addHandler(ConsoleLogHandler())
+logger.setLevel(logging.INFO)
+
+async def main() -> None:
+    async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
+        code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
+        coding_assistant_agent = CodingAssistantAgent(
+            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o", api_key="YOUR_API_KEY")
+        )
+        group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent])
+        result = await group_chat.run(
+            task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'.",
+            termination_condition=StopMessageTermination(),
+        )
+
+asyncio.run(main())
 ```
 
 ### C#
@@ -251,7 +263,7 @@ programming model and better scalability.
 
 ### Is this project still maintained?
 
-We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4) . AutoGen 0.4 is still work-in-progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained. 
+We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4) . AutoGen 0.4 is still work-in-progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained.
 
 ### Who should use it 0.4?
 
@@ -286,7 +298,7 @@ We are working on a migration guide.
 
 ### Is 0.4 done?
 
-We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. The python SDKs are further ahead at this time but our goal is to achieve parity. We aim to add additional languages in future releases. 
+We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. The python SDKs are further ahead at this time but our goal is to achieve parity. We aim to add additional languages in future releases.
 
 ### What is happening next? When will this release be ready?
 
@@ -305,23 +317,23 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
 
 ### Do you use Discord for communications?
 
-We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward. 
+We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward.
 
 ### What about forks?
 
-https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen. 
-We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them. 
+https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen.
+We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them.
 
 ### What is the status of the license and open source?
 
-Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project. 
+Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project.
 
 ### Can you clarify the current state of the packages?
-Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html). 
+Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
 
 ### Can I still be involved?
 
-We are grateful to all the contributors to AutoGen 0.2 and we look forward to continuing to collaborate with everyone in the AutoGen community. 
+We are grateful to all the contributors to AutoGen 0.2 and we look forward to continuing to collaborate with everyone in the AutoGen community.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">

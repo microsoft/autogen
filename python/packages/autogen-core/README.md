@@ -1,7 +1,6 @@
 # AutoGen Core
 
-- [Documentation](http://microsoft.github.io/autogen)
-- [Examples](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core/samples)
+- [Documentation](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
 
 ## Package layering
 
