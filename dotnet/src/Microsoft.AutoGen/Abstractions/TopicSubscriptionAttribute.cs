@@ -1,4 +1,4 @@
-namespace Microsoft.AutoGen.Agents.Abstractions;
+namespace Microsoft.AutoGen.Abstractions;
 
 [AttributeUsage(AttributeTargets.All)]
 public class TopicSubscriptionAttribute(string topic) : Attribute

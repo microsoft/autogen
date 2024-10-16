@@ -1,6 +1,6 @@
-using RpcAgentId = Microsoft.AutoGen.Agents.Abstractions.AgentId;
+using RpcAgentId = Microsoft.AutoGen.Abstractions.AgentId;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public sealed record class AgentId(string Type, string Key)
 {

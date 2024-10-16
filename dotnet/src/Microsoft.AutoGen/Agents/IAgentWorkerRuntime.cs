@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 public interface IAgentWorkerRuntime
 {
     ValueTask PublishEvent(CloudEvent evt);

@@ -1,4 +1,4 @@
-namespace Microsoft.AutoGen.Agents.Runtime;
+namespace Microsoft.AutoGen.Runtime;
 
 internal interface IAgentStateGrain : IGrainWithStringKey
 {

@@ -1,7 +1,7 @@
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public abstract class ConsoleAgent : IOAgent<AgentState>,
         IUseConsole,

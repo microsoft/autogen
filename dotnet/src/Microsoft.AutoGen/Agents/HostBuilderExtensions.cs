@@ -5,12 +5,12 @@ using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public static class HostBuilderExtensions
 {

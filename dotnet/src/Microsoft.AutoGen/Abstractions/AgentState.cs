@@ -1,4 +1,4 @@
-namespace Microsoft.AutoGen.Agents.Abstractions;
+namespace Microsoft.AutoGen.Abstractions;
 
 public class AgentState<T> where T : class, new()
 {

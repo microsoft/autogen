@@ -3,10 +3,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Google.Protobuf;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public abstract class AgentBase
 {
