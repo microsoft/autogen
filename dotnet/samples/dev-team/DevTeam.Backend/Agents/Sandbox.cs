@@ -1,7 +1,7 @@
 // TODO: Reimplement using ACA Sessions
 // using DevTeam.Events;
-// using Microsoft.AutoGen.Agents.Abstractions;
-// using Microsoft.AutoGen.Agents.Client;
+// using Microsoft.AutoGen.Abstractions;
+// using Microsoft.AutoGen.Agents;
 
 // namespace DevTeam.Backend;
 

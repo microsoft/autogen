@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen.Agents/Client/Microsoft.AutoGen.Agents.Client.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -29,9 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen.ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen.Agents\Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
   </ItemGroup>
 
 </Project>

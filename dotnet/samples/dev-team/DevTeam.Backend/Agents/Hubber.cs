@@ -2,15 +2,15 @@ using System.Text.Json;
 using DevTeam;
 using DevTeam.Backend;
 using DevTeam.Shared;
-using Microsoft.AutoGen.Agents.Abstractions;
-using Microsoft.AutoGen.Agents.Client;
+using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Agents;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AI.DevTeam;
 
 public class Hubber(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
-    : AiAgent<object>(context, memory, kernel, typeRegistry),
+    : SKAiAgent<object>(context, memory, kernel, typeRegistry),
     IHandle<NewAsk>,
     IHandle<ReadmeGenerated>,
     IHandle<DevPlanGenerated>,

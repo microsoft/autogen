@@ -1,6 +1,6 @@
 using DevTeam.Shared;
-using Microsoft.AutoGen.Agents.Abstractions;
-using Microsoft.AutoGen.Agents.Client;
+using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Agents;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
@@ -8,7 +8,7 @@ namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
 public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
-    : AiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
+    : SKAiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>
 {

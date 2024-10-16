@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package devteam;
+
+option csharp_namespace = "Microsoft.AutoGen.Extensions.CloudEvents";
+
+message CloudEventsState {
+  string cloudevent = 1;
+}

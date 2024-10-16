@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
+option csharp_namespace = "Microsoft.AutoGen.Abstractions";
 
 import "cloudevent.proto";
 import "google/protobuf/any.proto";
