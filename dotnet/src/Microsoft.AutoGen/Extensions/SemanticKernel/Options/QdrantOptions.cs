@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
+namespace Microsoft.AutoGen.Extensions.SemanticKernel;
 public class QdrantOptions
 {
     [Required]

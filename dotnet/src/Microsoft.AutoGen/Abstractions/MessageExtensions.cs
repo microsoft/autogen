@@ -1,7 +1,7 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Microsoft.AutoGen.Agents.Abstractions;
+namespace Microsoft.AutoGen.Abstractions;
 
 public static class MessageExtensions
 {

@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using Grpc.Core;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents.Runtime;
+namespace Microsoft.AutoGen.Runtime;
 
 internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 {

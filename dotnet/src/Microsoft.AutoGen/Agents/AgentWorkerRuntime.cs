@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWorkerRuntime
 {

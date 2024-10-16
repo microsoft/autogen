@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public abstract class WebAPIAgent : IOAgent<AgentState>,
         IUseWebAPI,

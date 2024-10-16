@@ -1,6 +1,6 @@
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Agents.Runtime;
+namespace Microsoft.AutoGen.Runtime;
 
 public sealed class AgentWorkerRegistryGrain : Grain, IAgentWorkerRegistryGrain
 {

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents.Runtime;
+namespace Microsoft.AutoGen.Runtime;
 
 public static class Host
 {

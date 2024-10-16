@@ -1,8 +1,8 @@
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Agents.Runtime;
+namespace Microsoft.AutoGen.Runtime;
 
 internal sealed class WorkerProcessConnection : IAsyncDisposable
 {

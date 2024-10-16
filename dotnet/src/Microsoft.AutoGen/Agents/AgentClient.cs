@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using Google.Protobuf;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents.Client;
+namespace Microsoft.AutoGen.Agents;
 
 public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes)
