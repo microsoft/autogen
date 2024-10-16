@@ -6,12 +6,11 @@ As part of the broader AutoGen project, AutoGenBench welcomes community contribu
 We ask that all contributions to AutoGenBench adhere to the following:
 
 - Follow AutoGen's broader [contribution guidelines](https://microsoft.github.io/autogen/docs/Contribute)
-- All AutoGenBench benchmarks should live in a subfolder of `/samples/tools/autogenbench/scenarios` alongside `HumanEval`, `GAIA`, etc.
+- All AutoGenBench benchmarks should live in a subfolder of `/benchmarks` alongside `HumanEval`, `GAIA`, etc.
 - Benchmark scenarios should include a detailed README.md, in the root of their folder, describing the benchmark and providing citations where warranted.
 - Benchmark data (tasks, ground truth, etc.) should be downloaded from their original sources rather than hosted in the AutoGen repository (unless the benchmark is original, and the repository *is* the original source)
     - You can use the `Scripts/init_tasks.py` file to automate this download.
-- Basic scoring should be compatible with the `autogenbench tabulate` command (e.g., by outputting logs compatible with the default tabulation mechanism, or by providing a `Scripts/custom_tabulate.py` file)
-- If you wish your benchmark to be compatible with the `autogenbench clone` command, include a `MANIFEST.json` file in the root of your folder.
+- Basic scoring should be compatible with the `agbench tabulate` command (e.g., by outputting logs compatible with the default tabulation mechanism, or by providing a `Scripts/custom_tabulate.py` file)
 
 These requirements are further detailed below, but if you simply copy the `HumanEval` folder, you will already be off to a great start.
 
@@ -62,16 +61,16 @@ For example:
 
 In this example, the string `__MODEL__` will be replaced in the file `scenarios.py`, while the string `__PROMPT__` will be replaced in the `prompt.txt` file.
 
-The `template` field can also take on a list value, but this usage is considered advanced and is not described here. See the `autogenbench/run_cmd.py` code, or the `GAIA` benchmark tasks files for additional information about this option.
+The `template` field can also take on a list value, but this usage is considered advanced and is not described here. See the `agbench/run_cmd.py` code, or the `GAIA` benchmark tasks files for additional information about this option.
 
 
 ## Task Instance Expansion Algorithm
 
-Once the tasks have been defined, as per above, they must be "instantiated" before they can be run. This instantiation happens automatically when the user issues the `autogenbench run` command and involves creating a local folder to share with Docker. Each instance and repetition gets its own folder along the path: `./results/[scenario]/[task_id]/[instance_id]`. For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
+Once the tasks have been defined, as per above, they must be "instantiated" before they can be run. This instantiation happens automatically when the user issues the `agbench run` command and involves creating a local folder to share with Docker. Each instance and repetition gets its own folder along the path: `./results/[scenario]/[task_id]/[instance_id]`. For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Pre-populate DEST_FOLDER with all the basic starter files for running a scenario (found in `autogenbench/template`).
+1. Pre-populate DEST_FOLDER with all the basic starter files for running a scenario (found in `agbench/template`).
 2. Recursively copy the template folder specified in the JSONL line to DEST_FOLDER (if the JSON `template` attribute points to a folder) If the JSONs `template` attribute instead points to a file, copy the file, but rename it to `scenario.py`
 3. Apply any string replacements, as outlined in the prior section.
 4. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded. The `run.sh` is described below.
@@ -139,9 +138,8 @@ echo RUN.SH COMPLETE !#!#
 Be warned that this listing is provided here for illustration purposes, and may vary over time. The source of truth are the `run.sh` files found in the ``./results/[taskset]/[task_id]/[instance_id]`` folders.
 
 
-## Integrating with the `tabulate` and `clone` commands.
-
-The above details are sufficient for defining and running tasks, but if you wish to support the `autogenbench tabulate` and `autogenbench clone` commands, a few additional steps are required.
+## Integrating with the `tabulate` 
+The above details are sufficient for defining and running tasks, but if you wish to support the `agbench tabulate`  commands, a few additional steps are required.
 
 ### Tabulations
 
@@ -154,35 +152,10 @@ Should you provide a custom tabulation script, please implement `--help` and `-h
 The `scenarios/GAIA/Scripts/custom_tabulate.py` is a great example of custom tabulation. It also shows how you can reuse some components of the default tabulator to speed up development.
 
 
-### Cloning
 
-If you wish your benchmark to be available via the `autogenbench clone` command, you will need to take three additional steps:
-
-#### Manifest
-First, provide a `MANIFEST.json` file in the root of your benchmark. An example is provided below, from which you can see the schema:
-
-```json
-{
-    "files": {
-        "Templates/TwoAgents/prompt.txt": "Templates/TwoAgents/prompt.txt",
-        "Templates/TwoAgents/coding/my_tests.py": "Templates/TwoAgents/coding/my_tests.py",
-        "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
-        "README.md": "README.md",
-	"Scripts/init_tasks.py": "Scripts/init_tasks.py",
-	"Scripts/custom_tabulate.py": "Scripts/custom_tabulate.py"
-    }
-}
-```
-
-The keys of the `files` dictionary are local paths, relative to your benchmark's root directory. The values are relative paths in the AutoGen GitHub repository (relative to the folder where the MANIFEST.json file is located). In most cases, the keys and values will be identical.
-
-#### SCENARIOS dictionary
-Second, you must add an entry to the `scenarios` dictionary in `autogen/samples/tools/autogenbench/scenarios/MANIFEST.json`.
-
-#### Scripts/init_tasks.py
-Finally, you should provide an `Scripts/init_tasks.py` file, in your benchmark folder, and include a `main()` method therein. This method will be loaded and called automatically by `autogenbench clone` after all manifest files have been downloaded.
+## Scripts/init_tasks.py
+Finally, you should provide an `Scripts/init_tasks.py` file, in your benchmark folder, and include a `main()` method therein. 
 
 This `init_tasks.py` script is a great place to download benchmarks from their original sources and convert them to the JSONL format required by AutoGenBench:
 - See `HumanEval/Scripts/init_tasks.py` for an example of how to expand a benchmark from an original GitHub repository.
 - See `GAIA/Scripts/init_tasks.py` for an example of how to expand a benchmark from `Hugging Face Hub`.
-- See `MATH/SCripts/init_tasks.py` for an example of how to expand a benchmark from an author-hosted website.

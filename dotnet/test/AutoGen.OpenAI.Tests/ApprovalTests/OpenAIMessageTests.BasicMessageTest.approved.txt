@@ -7,13 +7,13 @@
         "Role": "system",
         "Content": [
           {
-            "Kind": {},
+            "Kind": 0,
             "Text": "You are a helpful AI assistant",
-            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           }
         ]
       }
@@ -26,13 +26,13 @@
         "Role": "user",
         "Content": [
           {
-            "Kind": {},
+            "Kind": 0,
             "Text": "Hello",
-            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           }
         ],
         "Name": "user",
@@ -52,19 +52,17 @@
         "Role": "assistant",
         "Content": [
           {
-            "Kind": {},
+            "Kind": 0,
             "Text": "How can I help you?",
-            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           }
         ],
         "Name": "assistant",
-        "TooCall": [],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
+        "TooCall": []
       }
     ]
   },
@@ -75,13 +73,13 @@
         "Role": "user",
         "Content": [
           {
-            "Kind": {},
+            "Kind": 2,
             "Text": null,
-            "Refusal": null,
             "ImageUri": "https://example.com/image.png",
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           }
         ],
         "Name": "user",
@@ -101,22 +99,22 @@
         "Role": "user",
         "Content": [
           {
-            "Kind": {},
+            "Kind": 0,
             "Text": "Hello",
-            "Refusal": null,
             "ImageUri": null,
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           },
           {
-            "Kind": {},
+            "Kind": 2,
             "Text": null,
-            "Refusal": null,
             "ImageUri": "https://example.com/image.png",
             "ImageBytes": null,
             "ImageBytesMediaType": null,
-            "ImageDetail": null
+            "ImageDetailLevel": null,
+            "Refusal": null
           }
         ],
         "Name": "user",
@@ -144,12 +142,10 @@
           {
             "Type": "Function",
             "Name": "test",
-            "Arguments": "test",
+            "Arguments": "dGVzdA==",
             "Id": "test"
           }
-        ],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
+        ]
       }
     ]
   },
@@ -189,18 +185,16 @@
           {
             "Type": "Function",
             "Name": "test",
-            "Arguments": "test",
+            "Arguments": "dGVzdA==",
             "Id": "test_0"
           },
           {
             "Type": "Function",
             "Name": "test",
-            "Arguments": "test",
+            "Arguments": "dGVzdA==",
             "Id": "test_1"
           }
-        ],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
+        ]
       }
     ]
   },
@@ -215,12 +209,10 @@
           {
             "Type": "Function",
             "Name": "test",
-            "Arguments": "test",
+            "Arguments": "dGVzdA==",
             "Id": "test"
           }
-        ],
-        "FunctionCallName": null,
-        "FunctionCallArguments": null
+        ]
       },
       {
         "Role": "tool",

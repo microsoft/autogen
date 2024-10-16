@@ -110,7 +110,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             {
                 currentToolName += toolCall.FunctionName;
                 currentToolArguments += toolCall.FunctionArgumentsUpdate;
-                currentToolId += toolCall.Id;
+                currentToolId += toolCall.ToolCallId;
 
                 yield return new ToolCallMessageUpdate(currentToolName, currentToolArguments, from: agent.Name);
             }
@@ -118,8 +118,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             {
                 toolCalls.Add(new ToolCall(currentToolName, currentToolArguments) { ToolCallId = currentToolId });
                 currentToolName = toolCall.FunctionName;
-                currentToolArguments = toolCall.FunctionArgumentsUpdate;
-                currentToolId = toolCall.Id;
+                currentToolArguments = toolCall.FunctionArgumentsUpdate.ToString();
+                currentToolId = toolCall.ToolCallId;
                 currentIndex = toolCall.Index;
 
                 yield return new ToolCallMessageUpdate(currentToolName, currentToolArguments, from: agent.Name);
@@ -185,22 +185,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         // if tool calls is not empty, return ToolCallMessage
         if (chatCompletion.ToolCalls is { Count: > 0 })
         {
-            var toolCalls = chatCompletion.ToolCalls.Select(tc => new ToolCall(tc.FunctionName, tc.FunctionArguments) { ToolCallId = tc.Id });
+            var toolCalls = chatCompletion.ToolCalls.Select(tc => new ToolCall(tc.FunctionName, tc.FunctionArguments.ToString()) { ToolCallId = tc.Id });
             return new ToolCallMessage(toolCalls, from)
-            {
-                Content = textContent?.Kind switch
-                {
-                    _ when textContent?.Kind == ChatMessageContentPartKind.Text => textContent.Text,
-                    _ => null,
-                },
-            };
-        }
-
-        // else, process function call.
-        // This is deprecated and will be removed in the future.
-        if (chatCompletion.FunctionCall is ChatFunctionCall fc)
-        {
-            return new ToolCallMessage(fc.FunctionName, fc.FunctionArguments, from)
             {
                 Content = textContent?.Kind switch
                 {
@@ -298,7 +284,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
         IEnumerable<ChatMessageContentPart> items = message.Content.Select<IMessage, ChatMessageContentPart>(ci => ci switch
         {
-            TextMessage text => ChatMessageContentPart.CreateTextMessageContentPart(text.Content),
+            TextMessage text => ChatMessageContentPart.CreateTextPart(text.Content),
             ImageMessage image => this.CreateChatMessageImageContentItemFromImageMessage(image),
             _ => throw new NotImplementedException(),
         });
@@ -309,8 +295,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     private ChatMessageContentPart CreateChatMessageImageContentItemFromImageMessage(ImageMessage message)
     {
         return message.Data is null && message.Url is not null
-            ? ChatMessageContentPart.CreateImageMessageContentPart(new Uri(message.Url))
-            : ChatMessageContentPart.CreateImageMessageContentPart(message.Data, message.Data?.MediaType);
+            ? ChatMessageContentPart.CreateImagePart(new Uri(message.Url))
+            : ChatMessageContentPart.CreateImagePart(message.Data, message.Data?.MediaType);
     }
 
     private IEnumerable<ChatMessage> ProcessToolCallMessage(IAgent agent, ToolCallMessage message)
@@ -320,12 +306,26 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
         }
 
-        var toolCallParts = message.ToolCalls.Select((tc, i) => ChatToolCall.CreateFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, tc.FunctionArguments));
+        var toolCallParts = message.ToolCalls.Select((tc, i) => ChatToolCall.CreateFunctionToolCall(tc.ToolCallId ?? $"{tc.FunctionName}_{i}", tc.FunctionName, BinaryData.FromString(tc.FunctionArguments)));
         var textContent = message.GetContent() ?? null;
 
         // Don't set participant name for assistant when it is tool call
         // fix https://github.com/microsoft/autogen/issues/3437
-        var chatRequestMessage = new AssistantChatMessage(toolCallParts, textContent);
+        AssistantChatMessage chatRequestMessage;
+
+        if (string.IsNullOrEmpty(textContent) is true)
+        {
+            chatRequestMessage = new AssistantChatMessage(toolCallParts);
+        }
+        else
+        {
+            chatRequestMessage = new AssistantChatMessage(textContent);
+
+            foreach (var toolCallPart in toolCallParts)
+            {
+                chatRequestMessage.ToolCalls.Add(toolCallPart);
+            }
+        }
 
         return [chatRequestMessage];
     }

@@ -10,7 +10,8 @@ import logging
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components.code_executor import CodeBlock, DockerCommandLineCodeExecutor
+from autogen_core.components.code_executor import CodeBlock
+from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy

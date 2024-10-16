@@ -15,7 +15,7 @@ Install the `autogen-agentchat` package using pip:
 
 ```bash
 
-pip install autogen-agentchat==0.4.0dev0
+pip install autogen-agentchat==0.4.0dev1
 ```
 
 :::{note}
@@ -28,6 +28,9 @@ The following example illustrates creating a simple agent team with two agents t
 
 1. `CodingAssistantAgent` that generates responses using an LLM model.
 2. `CodeExecutorAgent` that executes code snippets and returns the output.
+
+Because the `CodeExecutorAgent` uses a Docker command-line code executor to execute code snippets,
+you need to have [Docker installed](https://docs.docker.com/engine/install/) and running on your machine.
 
 The task is to "Create a plot of NVIDIA and TESLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
 

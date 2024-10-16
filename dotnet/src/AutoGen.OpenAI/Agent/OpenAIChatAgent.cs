@@ -44,7 +44,7 @@ public class OpenAIChatAgent : IStreamingAgent
     /// <param name="systemMessage">system message</param>
     /// <param name="temperature">temperature</param>
     /// <param name="maxTokens">max tokens to generated</param>
-    /// <param name="responseFormat">response format, set it to <see cref="ChatResponseFormat.JsonObject"/> to enable json mode.</param>
+    /// <param name="responseFormat">response format, set it to <see cref="ChatResponseFormat"/> to enable json mode.</param>
     /// <param name="seed">seed to use, set it to enable deterministic output</param>
     /// <param name="functions">functions</param>
     public OpenAIChatAgent(
@@ -138,12 +138,11 @@ public class OpenAIChatAgent : IStreamingAgent
         {
             Seed = this.options.Seed,
             Temperature = options?.Temperature ?? this.options.Temperature,
-            MaxTokens = options?.MaxToken ?? this.options.MaxTokens,
+            MaxOutputTokenCount = options?.MaxToken ?? this.options.MaxOutputTokenCount,
             ResponseFormat = this.options.ResponseFormat,
             FrequencyPenalty = this.options.FrequencyPenalty,
-            FunctionChoice = this.options.FunctionChoice,
             IncludeLogProbabilities = this.options.IncludeLogProbabilities,
-            ParallelToolCallsEnabled = this.options.ParallelToolCallsEnabled,
+            AllowParallelToolCalls = this.options.AllowParallelToolCalls,
             PresencePenalty = this.options.PresencePenalty,
             ToolChoice = this.options.ToolChoice,
             TopLogProbabilityCount = this.options.TopLogProbabilityCount,
@@ -183,9 +182,9 @@ public class OpenAIChatAgent : IStreamingAgent
         if (options?.OutputSchema is not null)
         {
             option.ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                name: options.OutputSchema.GetTitle() ?? throw new ArgumentException("Output schema must have a title"),
+                jsonSchemaFormatName: options.OutputSchema.GetTitle() ?? throw new ArgumentException("Output schema must have a title"),
                 jsonSchema: BinaryData.FromObjectAsJson(options.OutputSchema),
-                description: options.OutputSchema.GetDescription());
+                jsonSchemaFormatDescription: options.OutputSchema.GetDescription());
         }
 
         return option;
@@ -201,7 +200,7 @@ public class OpenAIChatAgent : IStreamingAgent
         var options = new ChatCompletionOptions
         {
             Temperature = temperature,
-            MaxTokens = maxTokens,
+            MaxOutputTokenCount = maxTokens,
             Seed = seed,
             ResponseFormat = responseFormat,
         };

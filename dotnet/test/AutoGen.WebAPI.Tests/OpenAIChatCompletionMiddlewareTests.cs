@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIChatCompletionMiddlewareTests.cs
 
+using System.ClientModel;
 using System.ClientModel.Primitives;
 using AutoGen.Core;
 using AutoGen.OpenAI;
@@ -73,7 +74,7 @@ public class OpenAIChatCompletionMiddlewareTests
 
     private OpenAIClient CreateOpenAIClient(HttpClient client)
     {
-        return new OpenAIClient("api-key", new OpenAIClientOptions
+        return new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
         {
             Transport = new HttpClientPipelineTransport(client),
         });

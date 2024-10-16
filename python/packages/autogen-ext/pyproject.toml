@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.0dev0"
+version = "0.4.0dev1"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,13 +15,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.0dev0",
+    "autogen-core==0.4.0dev1",
 ]
 
 
 [project.optional-dependencies]
 langchain-tools = ["langchain >= 0.3.1"]
 azure-code-executor = ["azure-core"]
+docker-code-executor = ["docker~=7.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
@@ -47,3 +48,8 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "docker.*"
+ignore_missing_imports = true

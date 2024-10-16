@@ -87,6 +87,9 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
             }
         }
+        catch (OperationCanceledException)
+        {
+        }
         finally
         {
             _shutdownCancellationToken.Cancel();
@@ -103,6 +106,9 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
             {
                 await ResponseStream.WriteAsync(message);
             }
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
