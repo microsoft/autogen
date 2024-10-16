@@ -20,4 +20,8 @@
       <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Formats.Asn1" />
+    </ItemGroup>
+
 </Project>

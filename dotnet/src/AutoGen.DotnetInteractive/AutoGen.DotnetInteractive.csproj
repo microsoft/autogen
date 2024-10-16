@@ -20,6 +20,9 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Interactive" />
+    <PackageReference Include="System.Formats.Asn1" />
+    <PackageReference Include="System.IO.Packaging" />
+    <PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup>

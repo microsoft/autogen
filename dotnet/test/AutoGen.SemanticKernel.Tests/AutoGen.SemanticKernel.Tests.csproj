@@ -17,4 +17,8 @@
     <ProjectReference Include="..\AutoGen.Test.Share\AutoGen.Tests.Share.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" />
+  </ItemGroup>
+
 </Project>

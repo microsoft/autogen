@@ -11,11 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="Azure.AI.OpenAI"  />
+	<PackageReference Include="Azure.AI.OpenAI" />
 	<PackageReference Include="Microsoft.SemanticKernel" />
 	  
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 </Project>

@@ -11,6 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IO.Packaging" />
+    <PackageReference Include="System.Text.Json" />
     <ProjectReference Include="..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.Ollama\AutoGen.Ollama.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

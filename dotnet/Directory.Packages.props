@@ -81,7 +81,10 @@
     <PackageVersion Include="PdfPig" Version="0.1.9-alpha-20240324-e7896" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.8.6" />
+    <PackageVersion Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="7.7.1" />
+    <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Memory.Data" Version="8.0.1" />
     <PackageVersion Include="JsonSchema.Net.Generation" Version="4.5.1" />
     <PackageVersion Include="Microsoft.DotNet.Interactive" Version="1.0.0-beta.24229.4" />
@@ -101,6 +104,6 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.5" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.10" />
-
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 </Project>
