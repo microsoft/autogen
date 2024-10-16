@@ -21,7 +21,7 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-	  <PackageReference Include="Microsoft.SemanticKernel" VersionOverride="1.22.0" />
+	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
 
 </Project>
