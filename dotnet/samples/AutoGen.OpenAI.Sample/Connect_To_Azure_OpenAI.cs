@@ -1,10 +1,9 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Connect_To_Azure_OpenAI.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region using_statement
+using System.ClientModel;
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
-using Azure;
 using Azure.AI.OpenAI;
 #endregion using_statement
 
@@ -21,7 +20,7 @@ public class Connect_To_Azure_OpenAI
 
         // Use AzureOpenAIClient to connect to openai model deployed on azure.
         // The AzureOpenAIClient comes from Azure.AI.OpenAI package
-        var openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+        var openAIClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey));
 
         var agent = new OpenAIChatAgent(
             chatClient: openAIClient.GetChatClient(model),

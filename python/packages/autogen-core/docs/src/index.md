@@ -63,7 +63,7 @@ AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
-pip install autogen-agentchat==0.4.0dev0
+pip install autogen-agentchat==0.4.0dev1
 ```
 
 💡 *Start here if you are looking for an API similar to AutoGen 0.2*
@@ -84,7 +84,7 @@ Get Started
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
-pip install autogen-core==0.4.0dev0
+pip install autogen-core==0.4.0dev1
 ```
 
 +++
