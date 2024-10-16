@@ -450,7 +450,7 @@ setInterval(function() {{
         ]
 
         # Can we reach Bing to search?
-        #if self._navigation_allow_list("https://www.bing.com/"):
+        # if self._navigation_allow_list("https://www.bing.com/"):
         tools.append(TOOL_WEB_SEARCH)
 
         # We can scroll up

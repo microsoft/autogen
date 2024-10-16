@@ -7,13 +7,13 @@ import os
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
+from autogen_core.components.code_executor import CodeBlock
+from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
+from autogen_magentic_one.agents.coder import Coder, Executor
+from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.orchestrator import LedgerOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
-from autogen_magentic_one.agents.coder import Coder, Executor
-from autogen_magentic_one.agents.file_surfer import FileSurfer
-from autogen_core.components.code_executor import CodeBlock
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 from autogen_magentic_one.messages import RequestReplyMessage
 from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
 
@@ -72,7 +72,7 @@ async def main() -> None:
                 return_final_answer=True,
             ),
         )
-        orchestrator = AgentProxy(AgentId("Orchestrator", "default"), runtime)
+        # orchestrator = AgentProxy(AgentId("Orchestrator", "default"), runtime)
 
         runtime.start()
 
