@@ -20,6 +20,7 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Interactive" />
+    <PackageReference Include="System.Formats.Asn1" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -34,6 +35,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <PackageReference Include="System.IO.Packaging" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
