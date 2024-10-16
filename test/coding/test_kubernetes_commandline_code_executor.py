@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-client = importlib.import_module("kubernetes.client")
-config = importlib.import_module("kubernetes.config")
-
 from autogen.code_utils import TIMEOUT_MSG
 from autogen.coding.base import CodeBlock, CodeExecutor
 
 try:
     from autogen.coding.kubernetes import PodCommandLineCodeExecutor
+
+    client = importlib.import_module("kubernetes.client")
+    config = importlib.import_module("kubernetes.config")
 
     kubeconfig = Path(".kube/config")
     if os.environ.get("KUBECONFIG", None):
@@ -29,33 +29,34 @@ try:
         skip_kubernetes_tests = False
     else:
         skip_kubernetes_tests = True
+
+    pod_spec = client.V1Pod(
+        metadata=client.V1ObjectMeta(
+            name="abcd", namespace="default", annotations={"sidecar.istio.io/inject": "false"}
+        ),
+        spec=client.V1PodSpec(
+            restart_policy="Never",
+            containers=[
+                client.V1Container(
+                    args=["-c", "while true;do sleep 5; done"],
+                    command=["/bin/sh"],
+                    name="abcd",
+                    image="python:3.11-slim",
+                    env=[
+                        client.V1EnvVar(name="TEST", value="TEST"),
+                        client.V1EnvVar(
+                            name="POD_NAME",
+                            value_from=client.V1EnvVarSource(
+                                field_ref=client.V1ObjectFieldSelector(field_path="metadata.name")
+                            ),
+                        ),
+                    ],
+                )
+            ],
+        ),
+    )
 except Exception:
     skip_kubernetes_tests = True
-
-
-pod_spec = client.V1Pod(
-    metadata=client.V1ObjectMeta(name="abcd", namespace="default", annotations={"sidecar.istio.io/inject": "false"}),
-    spec=client.V1PodSpec(
-        restart_policy="Never",
-        containers=[
-            client.V1Container(
-                args=["-c", "while true;do sleep 5; done"],
-                command=["/bin/sh"],
-                name="abcd",
-                image="python:3.11-slim",
-                env=[
-                    client.V1EnvVar(name="TEST", value="TEST"),
-                    client.V1EnvVar(
-                        name="POD_NAME",
-                        value_from=client.V1EnvVarSource(
-                            field_ref=client.V1ObjectFieldSelector(field_path="metadata.name")
-                        ),
-                    ),
-                ],
-            )
-        ],
-    ),
-)
 
 
 @pytest.mark.skipif(skip_kubernetes_tests, reason="kubernetes not accessible")
