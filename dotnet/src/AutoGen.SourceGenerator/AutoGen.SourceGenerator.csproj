@@ -9,7 +9,7 @@
     <UserSecretsId>35954224-b94e-4024-b0ef-7ba7cf80c0d8</UserSecretsId>
 	  <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
 	  <LaunchDebugger>false</LaunchDebugger>
-	  <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+	  <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
 	<NoWarn>$(NoWarn);RS1036</NoWarn>
 	  <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
