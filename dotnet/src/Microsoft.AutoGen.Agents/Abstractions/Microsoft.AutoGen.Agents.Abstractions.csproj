@@ -22,6 +22,7 @@
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
 	  <PackageReference Include="Microsoft.SemanticKernel" VersionOverride="1.22.0" />
+	  <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 </Project>
