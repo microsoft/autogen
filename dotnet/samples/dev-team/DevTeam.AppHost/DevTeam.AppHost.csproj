@@ -15,7 +15,6 @@
     <PackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
     <PackageReference Include="Aspire.Hosting.Orleans" />
     <PackageReference Include="Aspire.Hosting.Qdrant" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
    <ItemGroup>

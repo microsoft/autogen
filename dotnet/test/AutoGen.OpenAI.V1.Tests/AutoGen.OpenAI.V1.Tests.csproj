@@ -21,9 +21,4 @@
       <DependentUpon>%(ParentFile)%(ParentExtension)</DependentUpon>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" />
-  </ItemGroup>
-
 </Project>

@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <PackageReference Include="OpenAI" Version="$(OpenAISDKVersion)" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>

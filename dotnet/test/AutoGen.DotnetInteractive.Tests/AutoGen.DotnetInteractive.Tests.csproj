@@ -16,8 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.PowerShell.SDK" />
-    <PackageReference Include="System.IO.Packaging" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 

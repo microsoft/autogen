@@ -16,7 +16,6 @@
 	  
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 </Project>

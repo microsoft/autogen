@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34322.80
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -100,19 +101,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		spelling.dic = spelling.dic
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hello", "samples\Hello\Hello.csproj", "{6C9135E6-9D15-4D86-B3F4-9666DB87060A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hello", "samples\Hello\Hello.csproj", "{6C9135E6-9D15-4D86-B3F4-9666DB87060A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen.ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen.ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{F70C6FD7-9615-4EDD-8D55-5460FCC5A46D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.AutoGen.Agents", "Microsoft.AutoGen.Agents", "{143BF45F-1091-458C-A772-DAD5C57B72FA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Runtime", "src\Microsoft.AutoGen.Agents\Runtime\Microsoft.AutoGen.Agents.Runtime.csproj", "{32AF1495-4068-4048-A34A-FCA1E110F02E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Runtime", "src\Microsoft.AutoGen.Agents\Runtime\Microsoft.AutoGen.Agents.Runtime.csproj", "{32AF1495-4068-4048-A34A-FCA1E110F02E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.SemanticKernel", "src\Microsoft.AutoGen.Agents\Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj", "{2B1701A5-BEA2-4844-863B-0275ECCCD11D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Extensions.SemanticKernel", "src\Microsoft.AutoGen.Agents\Extensions\SemanticKernel\Microsoft.AutoGen.Agents.Extensions.SemanticKernel.csproj", "{2B1701A5-BEA2-4844-863B-0275ECCCD11D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Extensions.CloudEvents", "src\Microsoft.AutoGen.Agents\Extensions\CloudEvents\Microsoft.AutoGen.Agents.Extensions.CloudEvents.csproj", "{FDD6787A-EE6A-4A8E-872F-CDA97A824D08}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Extensions.CloudEvents", "src\Microsoft.AutoGen.Agents\Extensions\CloudEvents\Microsoft.AutoGen.Agents.Extensions.CloudEvents.csproj", "{FDD6787A-EE6A-4A8E-872F-CDA97A824D08}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Client", "src\Microsoft.AutoGen.Agents\Client\Microsoft.AutoGen.Agents.Client.csproj", "{CEEC175F-8752-4040-9226-8F5FEC7563B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Client", "src\Microsoft.AutoGen.Agents\Client\Microsoft.AutoGen.Agents.Client.csproj", "{CEEC175F-8752-4040-9226-8F5FEC7563B8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Abstractions", "src\Microsoft.AutoGen.Agents\Abstractions\Microsoft.AutoGen.Agents.Abstractions.csproj", "{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -304,6 +307,10 @@ Global
 		{CEEC175F-8752-4040-9226-8F5FEC7563B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEEC175F-8752-4040-9226-8F5FEC7563B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEEC175F-8752-4040-9226-8F5FEC7563B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -359,6 +366,7 @@ Global
 		{2B1701A5-BEA2-4844-863B-0275ECCCD11D} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{FDD6787A-EE6A-4A8E-872F-CDA97A824D08} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{CEEC175F-8752-4040-9226-8F5FEC7563B8} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{8960A02A-A139-4E54-BF98-B8F9C4A0FFE8} = {143BF45F-1091-458C-A772-DAD5C57B72FA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

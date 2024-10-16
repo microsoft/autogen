@@ -20,8 +20,4 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="System.IO.Packaging" />
-    </ItemGroup>
 </Project>
