@@ -33,6 +33,7 @@ OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skip(reason="This test is not working until Azure settings are updated.")
 def test_aoai_chat_completion_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -236,7 +237,7 @@ def test_chat_tools_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"tags": ["multitool"]},
+        filter_dict={"tags": ["tool"]},
     )
     tools = [
         {

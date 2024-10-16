@@ -144,7 +144,7 @@ def test_update_tool():
     config_list_gpt4 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "tags": ["gpt-4"],
+            "tags": ["gpt-4o-mini"],
         },
         file_location=KEY_LOC,
     )

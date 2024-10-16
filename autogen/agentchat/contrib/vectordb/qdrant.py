@@ -129,7 +129,7 @@ class QdrantVectorDB(VectorDB):
         elif not get_or_create:
             raise ValueError(f"Collection {collection_name} already exists.")
 
-    def get_collection(self, collection_name: str = None):
+    def get_collection(self, collection_name: Optional[str] = None):
         """
         Get the collection from the vector database.
 
@@ -231,8 +231,8 @@ class QdrantVectorDB(VectorDB):
         """
         embeddings = self.embedding_function(queries)
         requests = [
-            models.SearchRequest(
-                vector=embedding,
+            models.QueryRequest(
+                query=embedding,
                 limit=n_results,
                 score_threshold=distance_threshold,
                 with_payload=True,
@@ -241,8 +241,8 @@ class QdrantVectorDB(VectorDB):
             for embedding in embeddings
         ]
 
-        batch_results = self.client.search_batch(collection_name, requests)
-        return [self._scored_points_to_documents(results) for results in batch_results]
+        batch_results = self.client.query_batch_points(collection_name, requests)
+        return [self._scored_points_to_documents(results.points) for results in batch_results]
 
     def get_docs_by_ids(
         self, ids: List[ItemID] = None, collection_name: str = None, include=True, **kwargs
