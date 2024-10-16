@@ -35,6 +35,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <PackageReference Include="System.IO.Packaging" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
