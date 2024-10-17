@@ -1,46 +1,53 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
-from typing import Any, Callable, Dict, Tuple, Type, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, Type, cast
 
 from autogen_core.base import CancellationToken
 from autogen_core.components.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
-from pydantic.fields import FieldInfo
 
-from langchain.tools import Tool as LangChainTool
-
-FieldDefinition = Tuple[Type[Any], FieldInfo]
-FieldsDict = Dict[str, FieldDefinition]
+if TYPE_CHECKING:
+    from langchain_core.tools import Tool as LangChainTool
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
-    langchain_tool: LangChainTool
-    _callable: Callable[..., Any]
+    """Allows you to wrap a LangChain tool and make it available to AutoGen.
+
+    .. note::
+
+        This class requires the :code:`docker-code-executor` extra for the :code:`autogen-ext` package.
+
+
+    Args:
+        langchain_tool (LangChainTool): A LangChain tool to wrap
+    """
 
     def __init__(self, langchain_tool: LangChainTool):
-        self.langchain_tool = langchain_tool
+        self._langchain_tool: LangChainTool = langchain_tool
 
         # Extract name and description
-        name = langchain_tool.name
-        description = langchain_tool.description or ""
+        name = self._langchain_tool.name
+        description = self._langchain_tool.description or ""
 
         # Determine the callable method
-        if hasattr(langchain_tool, "func") and callable(langchain_tool.func):
-            assert langchain_tool.func is not None
-            self._callable = langchain_tool.func
-        elif hasattr(langchain_tool, "_run") and callable(langchain_tool._run):  # pyright: ignore
-            self._callable = langchain_tool._run  # type: ignore
+        if hasattr(self._langchain_tool, "func") and callable(self._langchain_tool.func):
+            assert self._langchain_tool.func is not None
+            self._callable: Callable[..., Any] = self._langchain_tool.func
+        elif hasattr(self._langchain_tool, "_run") and callable(self._langchain_tool._run):  # pyright: ignore
+            self._callable: Callable[..., Any] = self._langchain_tool._run  # type: ignore
         else:
             raise AttributeError(
                 f"The provided LangChain tool '{name}' does not have a callable 'func' or '_run' method."
             )
 
         # Determine args_type
-        if langchain_tool.args_schema:  # pyright: ignore
-            args_type = langchain_tool.args_schema  # pyright: ignore
+        if self._langchain_tool.args_schema:  # pyright: ignore
+            args_type = self._langchain_tool.args_schema  # pyright: ignore
         else:
             # Infer args_type from the callable's signature
-            sig = inspect.signature(cast(Callable[..., Any], self._callable))
+            sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
             fields = {
                 k: (v.annotation, Field(...))
                 for k, v in sig.parameters.items()

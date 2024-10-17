@@ -10,7 +10,7 @@ import pytest
 from anyio import open_file
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock
-from autogen_ext.code_executor.aca_dynamic_sessions import AzureContainerCodeExecutor
+from autogen_ext.code_executors import ACADynamicSessionsCodeExecutor
 from azure.identity import DefaultAzureCredential
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
@@ -30,7 +30,9 @@ POOL_ENDPOINT = os.getenv(ENVIRON_KEY_AZURE_POOL_ENDPOINT)
 async def test_execute_code() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential())
+    executor = ACADynamicSessionsCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
+    )
 
     # Test single code block.
     code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
@@ -67,7 +69,7 @@ async def test_execute_code() -> None:
 async def test_azure_container_code_executor_timeout() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    executor = AzureContainerCodeExecutor(
+    executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), timeout=1
     )
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
@@ -83,7 +85,9 @@ async def test_azure_container_code_executor_timeout() -> None:
 async def test_azure_container_code_executor_cancellation() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    executor = AzureContainerCodeExecutor(pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential())
+    executor = ACADynamicSessionsCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
+    )
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
 
     coro = executor.execute_code_blocks(code_blocks, cancellation_token)
@@ -109,7 +113,7 @@ async def test_upload_files() -> None:
     cancellation_token = CancellationToken()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = AzureContainerCodeExecutor(
+        executor = ACADynamicSessionsCodeExecutor(
             pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
         )
 
@@ -155,7 +159,7 @@ async def test_download_files() -> None:
     cancellation_token = CancellationToken()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = AzureContainerCodeExecutor(
+        executor = ACADynamicSessionsCodeExecutor(
             pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
         )
 
