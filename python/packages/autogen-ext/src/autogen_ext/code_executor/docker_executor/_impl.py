@@ -9,7 +9,7 @@ import shlex
 import sys
 import uuid
 from collections.abc import Sequence
-from hashlib import md5
+from hashlib import sha256
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
@@ -232,7 +232,7 @@ $functions"""
                 break
 
             if not filename:
-                filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
+                filename = f"tmp_code_{sha256(code.encode()).hexdigest()}.{lang}"
 
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:

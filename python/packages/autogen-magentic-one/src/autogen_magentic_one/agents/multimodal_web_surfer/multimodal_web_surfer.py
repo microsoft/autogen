@@ -373,7 +373,7 @@ setInterval(function() {{
 
         # Handle metadata
         page_metadata = json.dumps(await self._get_page_metadata(), indent=4)
-        metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
+        metadata_hash = hashlib.sha256(page_metadata.encode("utf-8")).hexdigest()
         if metadata_hash != self._prior_metadata_hash:
             page_metadata = (
                 "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"

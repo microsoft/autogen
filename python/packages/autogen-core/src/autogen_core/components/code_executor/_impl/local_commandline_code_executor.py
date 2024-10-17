@@ -5,7 +5,7 @@ import asyncio
 import logging
 import sys
 import warnings
-from hashlib import md5
+from hashlib import sha256
 from pathlib import Path
 from string import Template
 from typing import Any, Callable, ClassVar, List, Sequence, Union
@@ -245,7 +245,7 @@ $functions"""
 
             if filename is None:
                 # create a file with an automatically generated name
-                code_hash = md5(code.encode()).hexdigest()
+                code_hash = sha256(code.encode()).hexdigest()
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             written_file = (self._work_dir / filename).resolve()
