@@ -9,7 +9,7 @@ from autogen_core.components.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
-    from langchain.tools import Tool as LangChainTool
+    from langchain_core.tools import Tool as LangChainTool
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
@@ -47,7 +47,7 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
             args_type = self._langchain_tool.args_schema  # pyright: ignore
         else:
             # Infer args_type from the callable's signature
-            sig = inspect.signature(cast(Callable[..., Any], self._callable))
+            sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
             fields = {
                 k: (v.annotation, Field(...))
                 for k, v in sig.parameters.items()
