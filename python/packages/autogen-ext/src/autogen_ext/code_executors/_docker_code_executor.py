@@ -14,10 +14,6 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
 
-import asyncio_atexit
-import docker
-import docker.models
-import docker.models.containers
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import (
     CodeBlock,
@@ -30,7 +26,6 @@ from autogen_core.components.code_executor import (
     lang_to_cmd,
     silence_pip,
 )
-from docker.errors import ImageNotFound, NotFound
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -54,6 +49,11 @@ A = ParamSpec("A")
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
     """Executes code through a command line environment in a Docker container.
+
+    .. note::
+
+        This class requires the :code:`docker-code-executor` extra for the :code:`autogen-ext` package.
+
 
     The executor first saves each code block in a file in the working
     directory, and then executes the code file in the container.
@@ -156,7 +156,14 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
-        self._container: docker.models.containers.Container | None = None
+        try:
+            from docker.models.containers import Container
+        except ImportError as e:
+            raise RuntimeError(
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+            ) from e
+
+        self._container: Container | None = None
         self._running = False
 
     @property
@@ -293,6 +300,14 @@ $functions"""
         if not self._running:
             return
 
+        try:
+            import docker
+            from docker.errors import NotFound
+        except ImportError as e:
+            raise RuntimeError(
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+            ) from e
+
         client = docker.from_env()
         try:
             container = await asyncio.to_thread(client.containers.get, self.container_name)
@@ -303,6 +318,15 @@ $functions"""
             self._running = False
 
     async def start(self) -> None:
+        try:
+            import asyncio_atexit
+            import docker
+            from docker.errors import ImageNotFound
+        except ImportError as e:
+            raise RuntimeError(
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+            ) from e
+
         # Start a container from the image, read to exec commands later
         client = docker.from_env()
 
