@@ -45,6 +45,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
     - name: Restore dependencies
       run: |
         dotnet restore -bl
