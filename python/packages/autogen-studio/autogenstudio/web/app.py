@@ -17,7 +17,7 @@ from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
-from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
+from ..utils import check_and_cast_datetime_fields, init_app_folders, sha256_hash, test_model
 from ..version import VERSION
 from ..websocket_connection_manager import WebSocketConnectionManager
 
@@ -453,7 +453,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         )
         # save incoming message
         dbmanager.upsert(message)
-        user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
+        user_dir = os.path.join(folders["files_static_root"], "user", sha256_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
         agent_response: Message = await managers["chat"].a_chat(

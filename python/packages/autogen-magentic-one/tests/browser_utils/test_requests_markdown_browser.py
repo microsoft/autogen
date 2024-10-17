@@ -128,10 +128,10 @@ def test_requests_markdown_browser() -> None:
     browser.visit_page(PLAIN_TEXT_URL)
     assert re.sub(r"\s+", " ", string=browser.page_content, flags=re.DOTALL).strip() == expected_results
 
-    # Disrectly download a ZIP file and compute its md5
+    # Disrectly download a ZIP file and compute its sha256
     response = requests.get(DOWNLOAD_URL, stream=True)
     response.raise_for_status()
-    expected_md5 = hashlib.md5(response.raw.read()).hexdigest()
+    expected_sha256 = hashlib.sha256(response.raw.read()).hexdigest()
 
     # Download it with the browser and check for a match
     viewport = browser.visit_page(DOWNLOAD_URL)
@@ -139,10 +139,10 @@ def test_requests_markdown_browser() -> None:
     assert m is not None
     download_loc = m.group(1)
     with open(download_loc, "rb") as fh:
-        downloaded_md5 = hashlib.md5(fh.read()).hexdigest()
+        downloaded_sha256 = hashlib.sha256(fh.read()).hexdigest()
 
     # MD%s should match
-    assert expected_md5 == downloaded_md5
+    assert expected_sha256 == downloaded_sha256
 
     # Fetch a PDF
     viewport = browser.visit_page(PDF_URL)
