@@ -506,7 +506,7 @@ requires-dist = [
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-core", marker = "extra == 'azure-code-executor'" },
     { name = "docker", marker = "extra == 'docker-code-executor'", specifier = "~=7.0" },
-    { name = "langchain-core", marker = "extra == 'langchain-tools'", specifier = ">=0.3.3" },
+    { name = "langchain-core", marker = "extra == 'langchain-tools'", specifier = "~=0.3.3" },
 ]
 
 [[package]]
