@@ -28,7 +28,7 @@ public class Agent_Middleware
                 var reply = await innerAgent.GenerateReplyAsync(messages, option, ct);
                 if (reply is MessageEnvelope<ChatCompletion> chatCompletions)
                 {
-                    var tokenCount = chatCompletions.Content.Usage.TotalTokens;
+                    var tokenCount = chatCompletions.Content.Usage.TotalTokenCount;
                     totalTokenCount += tokenCount;
                 }
                 return reply;

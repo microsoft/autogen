@@ -2,6 +2,7 @@
 // MathClassTest.cs
 
 using System;
+using System.ClientModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -102,7 +103,7 @@ teacher, please create the next math question";
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
-            var openaiClient = new AzureOpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(key));
+            var openaiClient = new AzureOpenAIClient(new Uri(endPoint), new ApiKeyCredential(key));
             var teacher = await CreateTeacherAgentAsync(openaiClient, deployName);
             var student = await CreateStudentAssistantAgentAsync(openaiClient, deployName);
 

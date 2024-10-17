@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Tool_Call_With_Ollama_And_LiteLLM.cs
 
+using System.ClientModel;
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
 using OpenAI;
@@ -45,7 +46,7 @@ public class Tool_Call_With_Ollama_And_LiteLLM
 
         // api-key is not required for local server
         // so you can use any string here
-        var openAIClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        var openAIClient = new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
         {
             Endpoint = new Uri("http://localhost:4000"),
         });

@@ -13,7 +13,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="../Abstractions/Microsoft.AutoGen.Agents.Abstractions.csproj" />
+		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Agents.Abstractions.csproj" />
 		<ProjectReference Include="..\..\Microsoft.AutoGen.ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj" />
 	</ItemGroup>
 

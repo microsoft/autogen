@@ -2,6 +2,7 @@
 // Example08_LMStudio.cs
 
 #region lmstudio_using_statements
+using System.ClientModel;
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
@@ -16,7 +17,7 @@ public class Example08_LMStudio
     {
         #region lmstudio_example_1
         var endpoint = "http://localhost:1234";
-        var openaiClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        var openaiClient = new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
         {
             Endpoint = new Uri(endpoint),
         });

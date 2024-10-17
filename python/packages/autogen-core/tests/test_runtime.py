@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
@@ -89,6 +90,26 @@ async def test_register_receives_publish(tracer_provider: TracerProvider) -> Non
         "autogen process name.(default)-A",
         "autogen publish default.(default)-T",
     ]
+
+
+@pytest.mark.asyncio
+async def test_register_receives_publish_with_exception(caplog: pytest.LogCaptureFixture) -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+
+    async def agent_factory() -> LoopbackAgent:
+        raise ValueError("test")
+
+    await runtime.register_factory(type=AgentType("name"), agent_factory=agent_factory, expected_class=LoopbackAgent)
+    await runtime.add_subscription(TypeSubscription("default", "name"))
+
+    with caplog.at_level(logging.ERROR):
+        runtime.start()
+        await runtime.publish_message(MessageType(), topic_id=TopicId("default", "default"))
+        await runtime.stop_when_idle()
+        # Check if logger has the exception.
+        assert any("Error processing publish message" in e.message for e in caplog.records)
 
 
 @pytest.mark.asyncio

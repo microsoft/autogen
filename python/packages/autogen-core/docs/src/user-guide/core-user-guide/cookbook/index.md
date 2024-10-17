@@ -1,6 +1,11 @@
 # Cookbook
 
+This section contains a collection of recipes that demonstrate how to use the Core API features.
+
+## List of recipes
+
 ```{toctree}
+:maxdepth: 1
 
 azure-openai-with-aad-auth
 termination-with-intervention
@@ -13,4 +18,5 @@ local-llms-ollama-litellm
 instrumenting
 topic-subscription-scenarios
 azure-container-code-executor
+structured-output-agent
 ```

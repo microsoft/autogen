@@ -26,9 +26,9 @@ public static class SemanticKernelHostingExtensions
             o.ChatDeploymentOrModelId = "gpt-4o";
         });
 
-        builder.Services.Configure<OpenAIClientOptions>(o =>
+        builder.Services.Configure<AzureOpenAIClientOptions>(o =>
         {
-            o.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
+            o.NetworkTimeout = TimeSpan.FromMinutes(5);
         });
 
         builder.Services.AddOptions<QdrantOptions>().Bind(builder.Configuration.GetSection("Qdrant"))
@@ -58,8 +58,8 @@ public static class SemanticKernelHostingExtensions
         var memoryBuilder = new MemoryBuilder();
         return memoryBuilder.WithLoggerFactory(loggerFactory)
                     .WithQdrantMemoryStore(qdrantHttpClient, qdrantConfig.VectorSize, qdrantConfig.Endpoint)
-                     .WithAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAiConfig.EmbeddingsEndpoint, openAiConfig.EmbeddingsApiKey)
-                     .Build();
+                    .WithOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAiConfig.EmbeddingsApiKey)
+                    .Build();
     }
 
     private static Kernel CreateKernel(IServiceProvider provider)
@@ -70,21 +70,19 @@ public static class SemanticKernelHostingExtensions
         // Chat
         if (openAiConfig.ChatEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
         {
-            var openAIClient = new OpenAIClient(new Uri(openAiConfig.ChatEndpoint), new Azure.AzureKeyCredential(openAiConfig.ChatApiKey));
-            builder.Services.AddAzureOpenAIChatCompletion(openAiConfig.ChatDeploymentOrModelId, openAIClient);
+            //var openAIClient = new OpenAIClient(new Uri(openAiConfig.ChatEndpoint), new Azure.AzureKeyCredential(openAiConfig.ChatApiKey));
+            builder.Services.AddAzureOpenAIChatCompletion(deploymentName: openAiConfig.ChatDeploymentOrModelId, apiKey: openAiConfig.ChatApiKey, endpoint: openAiConfig.ChatEndpoint);
         }
         else
         {
-            var openAIClient = new OpenAIClient(openAiConfig.ChatApiKey);
-            builder.Services.AddOpenAIChatCompletion(openAiConfig.ChatDeploymentOrModelId, openAIClient);
+            builder.Services.AddOpenAIChatCompletion(apiKey: openAiConfig.ChatApiKey, modelId: openAiConfig.ChatDeploymentOrModelId);
         }
 
         // Text to Image
         if (openAiConfig.ImageEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
         {
             ArgumentException.ThrowIfNullOrEmpty(openAiConfig.ImageDeploymentOrModelId);
-            var openAIClient = new OpenAIClient(new Uri(openAiConfig.ImageEndpoint), new Azure.AzureKeyCredential(openAiConfig.ImageApiKey));
-            builder.Services.AddAzureOpenAITextToImage(openAiConfig.ImageDeploymentOrModelId, openAIClient);
+            builder.Services.AddAzureOpenAITextToImage(openAiConfig.ImageApiKey, openAiConfig.ImageDeploymentOrModelId, openAiConfig.ImageEndpoint);
         }
         else
         {
@@ -94,13 +92,11 @@ public static class SemanticKernelHostingExtensions
         // Embeddings
         if (openAiConfig.EmbeddingsEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
         {
-            var openAIClient = new OpenAIClient(new Uri(openAiConfig.EmbeddingsEndpoint), new Azure.AzureKeyCredential(openAiConfig.EmbeddingsApiKey));
-            builder.Services.AddAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAIClient);
+            builder.Services.AddAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAiConfig.EmbeddingsApiKey, openAiConfig.EmbeddingsEndpoint);
         }
         else
         {
-            var openAIClient = new OpenAIClient(openAiConfig.EmbeddingsApiKey);
-            builder.Services.AddOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAIClient);
+            builder.Services.AddOpenAITextEmbeddingGeneration(modelId: openAiConfig.EmbeddingsDeploymentOrModelId);
         }
 
         return builder.Build();
