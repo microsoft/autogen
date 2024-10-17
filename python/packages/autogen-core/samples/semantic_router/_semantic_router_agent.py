@@ -21,6 +21,7 @@ class SemanticRouterAgent(RoutedAgent):
     # The User has sent a message that needs to be routed
     @message_handler
     async def route_to_agent(self, message: UserProxyMessage, ctx: MessageContext) -> None:
+        assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")
         session_id = ctx.topic_id.source
         intent = await self._identify_intent(message)

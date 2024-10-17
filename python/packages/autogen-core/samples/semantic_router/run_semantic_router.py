@@ -32,7 +32,6 @@ from _semantic_router_components import (
     WorkerAgentMessage,
 )
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.application.logging import TRACE_LOGGER_NAME
 from autogen_core.base import AgentId, AgentRuntime, MessageContext
 from autogen_core.components import ClosureAgent, DefaultSubscription, DefaultTopicId
 

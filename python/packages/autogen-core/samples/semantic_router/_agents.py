@@ -17,6 +17,7 @@ class WorkerAgent(RoutedAgent):
 
     @message_handler
     async def my_message_handler(self, message: UserProxyMessage, ctx: MessageContext) -> None:
+        assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")
         if "END" in message.content:
             await self.publish_message(
@@ -46,6 +47,7 @@ class UserProxyAgent(RoutedAgent):
     # When a conversation ends
     @message_handler
     async def on_terminate(self, message: TerminationMessage, ctx: MessageContext) -> None:
+        assert ctx.topic_id is not None
         """Handle a publish now message. This method prompts the user for input, then publishes it."""
         logger.debug(f"Ending conversation with {ctx.sender} because {message.reason}")
         await self.publish_message(
@@ -57,6 +59,7 @@ class UserProxyAgent(RoutedAgent):
     # sends to Closure Agent for API to respond
     @message_handler
     async def on_agent_message(self, message: WorkerAgentMessage, ctx: MessageContext) -> None:
+        assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")
         logger.debug("Publishing message to Closure Agent")
         await self.publish_message(message, topic_id=DefaultTopicId(type="response", source=ctx.topic_id.source))
