@@ -148,14 +148,14 @@ git switch staging-dev
 # Build the project
 cd dotnet && dotnet build AutoGen.sln
 # In your source code, add AutoGen to your project
-dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen.Agents/Client/Microsoft.AutoGen.Agents.Client.csproj
+dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj
 ```
 
 Then, define and run your first agent:
 
 ```csharp
-using Microsoft.AutoGen.Agents.Abstractions;
-using Microsoft.AutoGen.Agents.Client;
+using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

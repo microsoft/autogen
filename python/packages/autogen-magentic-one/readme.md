@@ -179,8 +179,10 @@ pip install -e .
 2. Configure the environment variables for the chat completion client. See instructions below.
 3. Now you can run the example code to see how the agents work together to accomplish a task.
 
+**NOTE:** The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code.
+
 ```bash
-python examples/example_websurfer.py
+python examples/example.py
 ```
 
 
