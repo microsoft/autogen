@@ -11,7 +11,7 @@ from autogen_core.components.code_executor import (
     FunctionWithRequirements,
     with_requirements,
 )
-from autogen_ext.code_executor.aca_dynamic_sessions import AzureContainerCodeExecutor
+from autogen_ext.code_executors import ACADynamicSessionsCodeExecutor
 from azure.identity import DefaultAzureCredential
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
@@ -58,10 +58,10 @@ def function_incorrect_dep() -> "polars.DataFrame":
 async def test_azure_can_load_function_with_reqs() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[load_data]
     )
-    # AzureContainerCodeExecutor doesn't use the functions module import
+    # ACADynamicSessionsCodeExecutor doesn't use the functions module import
     code = """import polars
 
 # Get first row's name
@@ -87,10 +87,10 @@ async def test_azure_can_load_function() -> None:
     assert POOL_ENDPOINT is not None
 
     cancellation_token = CancellationToken()
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[add_two_numbers]
     )
-    # AzureContainerCodeExecutor doesn't use the functions module import
+    # ACADynamicSessionsCodeExecutor doesn't use the functions module import
     code = """print(add_two_numbers(1, 2))"""
 
     azure_result = await azure_executor.execute_code_blocks(
@@ -111,7 +111,7 @@ async def test_azure_can_load_function() -> None:
 async def test_azure_fails_for_function_incorrect_import() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT,
         credential=DefaultAzureCredential(),
         functions=[function_incorrect_import],
@@ -135,7 +135,7 @@ async def test_azure_fails_for_function_incorrect_import() -> None:
 async def test_azure_fails_for_function_incorrect_dep() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[function_incorrect_dep]
     )
     code = """function_incorrect_dep()"""
@@ -153,7 +153,7 @@ def test_azure_formatted_prompt() -> None:
     assert_str = '''def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=DUMMY_POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[add_two_numbers]
     )
 
@@ -174,7 +174,7 @@ def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
 
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=DUMMY_POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
 
@@ -197,7 +197,7 @@ def add_two_numbers(a: int, b: int) -> int:
     return a + b
 '''
     )
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
     code = """print(add_two_numbers(1, 2))"""
@@ -228,7 +228,7 @@ def add_two_numbers(a: int, b: int) -> int:
 '''
     )
 
-    azure_executor = AzureContainerCodeExecutor(
+    azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
     code = """print(add_two_numbers(object(), False))"""

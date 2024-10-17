@@ -17,7 +17,6 @@ llamaindex-agent
 local-llms-ollama-litellm
 instrumenting
 topic-subscription-scenarios
-azure-container-code-executor
 structured-output-agent
 distributed-group-chat
 ```
