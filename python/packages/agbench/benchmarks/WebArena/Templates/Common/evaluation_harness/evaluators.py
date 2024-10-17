@@ -1,4 +1,4 @@
-"""base class for evaluation"""
+"""From WebArena. base class for evaluation"""
 
 # answer string match
 import collections
