@@ -1,6 +1,6 @@
 import asyncio
-import platform
 import logging
+import platform
 
 from autogen_core.application import WorkerAgentRuntimeHost
 from autogen_core.application.logging import TRACE_LOGGER_NAME

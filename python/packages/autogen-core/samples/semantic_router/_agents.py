@@ -1,11 +1,10 @@
 import asyncio
 import logging
-from dotenv import load_dotenv
 
+from _semantic_router_components import FinalResult, TerminationMessage, UserProxyMessage, WorkerAgentMessage
 from autogen_core.application.logging import TRACE_LOGGER_NAME
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
-from _semantic_router_components import UserProxyMessage, TerminationMessage, WorkerAgentMessage, FinalResult
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.workers")

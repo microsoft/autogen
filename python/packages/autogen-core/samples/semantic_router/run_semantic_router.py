@@ -22,21 +22,19 @@ ending with a Termination message.
 import asyncio
 import platform
 
-from autogen_core.application.logging import TRACE_LOGGER_NAME
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext, AgentId, AgentRuntime
-from autogen_core.components import DefaultSubscription, ClosureAgent, DefaultTopicId
-
+from _agents import UserProxyAgent, WorkerAgent
 from _semantic_router_agent import SemanticRouterAgent
 from _semantic_router_components import (
-    IntentClassifierBase,
     AgentRegistryBase,
-    WorkerAgentMessage,
-    UserProxyMessage,
     FinalResult,
+    IntentClassifierBase,
     UserProxyMessage,
+    WorkerAgentMessage,
 )
-from _agents import WorkerAgent, UserProxyAgent
+from autogen_core.application import WorkerAgentRuntime
+from autogen_core.application.logging import TRACE_LOGGER_NAME
+from autogen_core.base import AgentId, AgentRuntime, MessageContext
+from autogen_core.components import ClosureAgent, DefaultSubscription, DefaultTopicId
 
 
 class MockIntentClassifier(IntentClassifierBase):
