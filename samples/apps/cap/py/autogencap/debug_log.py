@@ -3,7 +3,7 @@ import threading
 
 from termcolor import colored
 
-import autogencap.Config as Config
+import autogencap.config as config
 
 # Define log levels as constants
 DEBUG = 0
@@ -22,9 +22,9 @@ class BaseLogger:
 
     def Log(self, level, context, msg):
         # Check if the current level meets the threshold
-        if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
+        if level >= config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
             # Check if the context is in the list of ignored contexts
-            if context in Config.IGNORED_LOG_CONTEXTS:
+            if context in config.IGNORED_LOG_CONTEXTS:
                 return
             with self._lock:
                 self.WriteLog(level, context, msg)

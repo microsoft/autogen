@@ -2,8 +2,8 @@ import time
 
 from autogen import ConversableAgent
 
-from ..DebugLog import Info, Warn
-from .CAP2AG import CAP2AG
+from ..debug_log import Info, Warn
+from .cap_to_ag import CAP2AG
 
 
 class Agent:

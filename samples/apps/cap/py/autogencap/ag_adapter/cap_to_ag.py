@@ -5,10 +5,10 @@ from typing import Optional
 from autogen import ConversableAgent
 
 from ..actor_runtime import IRuntime
-from ..DebugLog import Debug, Error, Info, Warn, shorten
+from ..debug_log import Debug, Error, Info, Warn, shorten
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from .AG2CAP import AG2CAP
-from .AGActor import AGActor
+from .ag_to_cap import AG2CAP
+from .ag_actor import AGActor
 
 
 class CAP2AG(AGActor):
