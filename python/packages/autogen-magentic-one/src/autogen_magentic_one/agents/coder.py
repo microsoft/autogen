@@ -17,7 +17,7 @@ from .base_worker import BaseWorker
 
 @default_subscription
 class Coder(BaseWorker):
-    """An agent that uses tools to write, execute, and debug Python code."""
+    """An agent that can write code or text to solve tasks without additional tools."""
 
     DEFAULT_DESCRIPTION = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills."
 

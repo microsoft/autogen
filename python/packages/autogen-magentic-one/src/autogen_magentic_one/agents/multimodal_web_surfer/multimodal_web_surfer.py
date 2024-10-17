@@ -413,7 +413,7 @@ setInterval(function() {{
 
     async def __generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         assert self._page is not None
-        """Generates the actual reply."""
+        """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
 
         # Clone the messages to give context, removing old screenshots
         history: List[LLMMessage] = []
@@ -449,8 +449,8 @@ setInterval(function() {{
             TOOL_SLEEP,
         ]
 
-        #        # Can we reach Bing to search?
-        #        if self._navigation_allow_list("https://www.bing.com/"):
+        # Can we reach Bing to search?
+        # if self._navigation_allow_list("https://www.bing.com/"):
         tools.append(TOOL_WEB_SEARCH)
 
         # We can scroll up
