@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.semantic_router")
 logger.setLevel(logging.DEBUG)
 
+
 @default_subscription
 class SemanticRouterAgent(RoutedAgent):
     def __init__(self, name: str, agent_registry: AgentRegistryBase, intent_classifier: IntentClassifierBase) -> None:
@@ -31,7 +32,7 @@ class SemanticRouterAgent(RoutedAgent):
     ## Identify the intent of the user message
     async def _identify_intent(self, message: UserProxyMessage) -> str:
         return await self._classifier.classify_intent(message.content)
-    
+
     ## Use a lookup, search, or LLM to identify the most relevant agent for the intent
     async def _find_agent(self, intent: str) -> str:
         logger.debug(f"Identified intent: {intent}")
@@ -41,16 +42,18 @@ class SemanticRouterAgent(RoutedAgent):
         except KeyError:
             logger.debug("No relevant agent found for intent: " + intent)
             return "termination"
-    
+
     ## Forward user message to the appropriate agent, or end the thread.
     async def contact_agent(self, agent: str, message: UserProxyMessage, session_id: str) -> None:
         if agent == "termination":
             logger.debug("No relevant agent found")
             await self.publish_message(
                 TerminationMessage(reason="No relevant agent found", content=message.content, source=self.type),
-                DefaultTopicId(type="user_proxy", source=session_id))
+                DefaultTopicId(type="user_proxy", source=session_id),
+            )
         else:
             logger.debug("Routing to agent: " + agent)
             await self.publish_message(
                 UserProxyMessage(content=message.content, source=message.source),
-                DefaultTopicId(type=agent, source=session_id))
+                DefaultTopicId(type=agent, source=session_id),
+            )

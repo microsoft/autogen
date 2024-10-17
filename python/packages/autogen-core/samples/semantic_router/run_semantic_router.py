@@ -5,7 +5,7 @@ for a conversation.
 
 The Semantic Router Agent is responsible for receiving messages from the user,
 identifying the intent of the message, and then routing the message to the
-agent, by referencing an "Agent Registry". Using the 
+agent, by referencing an "Agent Registry". Using the
 pub-sub model, messages are broadcast to the most appropriate agent.
 
 In this example, the Agent Registry is a simple dictionary which maps
@@ -18,6 +18,7 @@ Any requests that can not be classified as "hr" or "finance" will result in the 
 ending with a Termination message.
 
 """
+
 import asyncio
 import platform
 
@@ -33,8 +34,8 @@ from _semantic_router_components import (
     WorkerAgentMessage,
     UserProxyMessage,
     FinalResult,
-    UserProxyMessage
-    )
+    UserProxyMessage,
+)
 from _agents import WorkerAgent, UserProxyAgent
 
 
@@ -42,9 +43,9 @@ class MockIntentClassifier(IntentClassifierBase):
     def __init__(self):
         self.intents = {
             "finance_intent": ["finance", "money", "budget"],
-            "hr_intent": ["hr", "human resources", "employee"]
+            "hr_intent": ["hr", "human resources", "employee"],
         }
-    
+
     async def classify_intent(self, message: str) -> str:
         for intent, keywords in self.intents.items():
             for keyword in keywords:
@@ -52,36 +53,35 @@ class MockIntentClassifier(IntentClassifierBase):
                     return intent
         return "general"
 
+
 class MockAgentRegistry(AgentRegistryBase):
     def __init__(self):
-        self.agents = {
-            "finance_intent": "finance",
-            "hr_intent": "hr"
-        }
-    
+        self.agents = {"finance_intent": "finance", "hr_intent": "hr"}
+
     async def get_agent(self, intent: str) -> str:
         return self.agents[intent]
 
 
-
-async def output_result(_runtime: AgentRuntime, id: AgentId, message: WorkerAgentMessage|FinalResult, ctx: MessageContext) -> None:
+async def output_result(
+    _runtime: AgentRuntime, id: AgentId, message: WorkerAgentMessage | FinalResult, ctx: MessageContext
+) -> None:
     if isinstance(message, WorkerAgentMessage):
         print(f"{message.source} Agent: {message.content}")
         new_message = input("User response: ")
         await _runtime.publish_message(
-                    UserProxyMessage(content=new_message, source="user"),
-                topic_id=DefaultTopicId(type=message.source, source="user"))
+            UserProxyMessage(content=new_message, source="user"),
+            topic_id=DefaultTopicId(type=message.source, source="user"),
+        )
     else:
         print(f"{message.source} Agent: {message.content}")
         print("Conversation ended")
         new_message = input("Enter a new conversation start: ")
         await _runtime.publish_message(
-                    UserProxyMessage(content=new_message, source="user"),
-                topic_id=DefaultTopicId(type="default", source="user"))
+            UserProxyMessage(content=new_message, source="user"), topic_id=DefaultTopicId(type="default", source="user")
+        )
 
-            
+
 async def run_workers():
-
     agent_runtime = WorkerAgentRuntime(host_address="localhost:50051")
 
     agent_runtime.start()
@@ -98,31 +98,38 @@ async def run_workers():
     await agent_runtime.add_subscription(DefaultSubscription(topic_type="user_proxy", agent_type="user_proxy"))
 
     # A closure agent surfaces the final result to external systems (e.g. an API) so that the system can interact with the user
-    await ClosureAgent.register(agent_runtime, "closure_agent", output_result, subscriptions=lambda: [DefaultSubscription(topic_type="response", agent_type="closure_agent")])
-
+    await ClosureAgent.register(
+        agent_runtime,
+        "closure_agent",
+        output_result,
+        subscriptions=lambda: [DefaultSubscription(topic_type="response", agent_type="closure_agent")],
+    )
 
     # Create the Semantic Router
     agent_registry = MockAgentRegistry()
     intent_classifier = MockIntentClassifier()
-    await SemanticRouterAgent.register(agent_runtime, "router", lambda: SemanticRouterAgent(name="router", agent_registry=agent_registry, intent_classifier=intent_classifier))
+    await SemanticRouterAgent.register(
+        agent_runtime,
+        "router",
+        lambda: SemanticRouterAgent(name="router", agent_registry=agent_registry, intent_classifier=intent_classifier),
+    )
 
-    
     print("Agents registered, starting conversation")
     # Start the conversation
     message = input("Enter a message: ")
     await agent_runtime.publish_message(
-        UserProxyMessage(content=message, source="user"),
-        topic_id=DefaultTopicId(type="default", source="user")
+        UserProxyMessage(content=message, source="user"), topic_id=DefaultTopicId(type="default", source="user")
     )
 
-    if(platform.system() == "Windows"):
+    if platform.system() == "Windows":
         try:
             while True:
                 await asyncio.sleep(1)
         except KeyboardInterrupt:
-                await agent_runtime.stop()
+            await agent_runtime.stop()
     else:
         await agent_runtime.stop_when_signal()
+
 
 if __name__ == "__main__":
     asyncio.run(run_workers())
