@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Microsoft.AutoGen.Agents\Client\Microsoft.AutoGen.Agents.Client.csproj" />
-    <ProjectReference Include="..\..\src\Microsoft.AutoGen.Agents\Runtime\Microsoft.AutoGen.Agents.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Runtime\Microsoft.AutoGen.Runtime.csproj" />
   </ItemGroup>
 
   <ItemGroup>
