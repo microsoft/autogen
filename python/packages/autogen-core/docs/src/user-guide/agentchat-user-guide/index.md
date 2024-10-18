@@ -35,7 +35,8 @@ Teams define how groups of agents communicate to address tasks. The following Te
 :maxdepth: 1
 :hidden:
 
+installation
 quickstart
-guides/index
+tutorial/index
 examples/index
 ```

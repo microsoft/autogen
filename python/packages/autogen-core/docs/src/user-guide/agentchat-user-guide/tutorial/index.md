@@ -2,10 +2,10 @@
 myst:
   html_meta:
     "description lang=en": |
-      User Guide for AutoGen AgentChat, a framework for building multi-agent applications with AI agents.
+      Tutorial for AutoGen AgentChat, a framework for building multi-agent applications with AI agents.
 ---
 
-# Guides
+# Tutorial
 
 ```{warning}
 🚧 Under construction 🚧
@@ -15,8 +15,8 @@ myst:
 :maxdepth: 1
 :hidden:
 
+introduction
 tool_use
 code-execution
 selector-group-chat
 ```
-

@@ -7,7 +7,7 @@ myst:
 
 # Quick Start
 
-AgentChat API, introduced in AutoGen 0.4x, offers a similar level of abstraction as the default Agent classes in AutoGen 0.2x.
+In this quick start guide, we will explore creating a
 
 ## Installation
 
