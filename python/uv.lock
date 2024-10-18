@@ -498,7 +498,7 @@ docker-code-executor = [
     { name = "docker" },
 ]
 langchain-tools = [
-    { name = "langchain" },
+    { name = "langchain-core" },
 ]
 
 [package.metadata]
@@ -506,7 +506,7 @@ requires-dist = [
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-core", marker = "extra == 'azure-code-executor'" },
     { name = "docker", marker = "extra == 'docker-code-executor'", specifier = "~=7.0" },
-    { name = "langchain", marker = "extra == 'langchain-tools'", specifier = ">=0.3.1" },
+    { name = "langchain-core", marker = "extra == 'langchain-tools'", specifier = "~=0.3.3" },
 ]
 
 [[package]]
@@ -1966,28 +1966,6 @@ wheels = [
 ]
 
 [[package]]
-name = "langchain"
-version = "0.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "async-timeout", marker = "python_full_version < '3.11'" },
-    { name = "langchain-core" },
-    { name = "langchain-text-splitters" },
-    { name = "langsmith" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "sqlalchemy" },
-    { name = "tenacity" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/9e/4cb6a6ba04151a440e8ee527934df53b577181a7db6fce517faab110a1e0/langchain-0.3.1.tar.gz", hash = "sha256:54d6e3abda2ec056875a231a418a4130ba7576e629e899067e499bfc847b7586", size = 416751 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/3f/462c134228fbb4f65be0a9db6a651e2f1d7226d003a712f1bac455a141b7/langchain-0.3.1-py3-none-any.whl", hash = "sha256:94e5ee7464d4366e4b158aa5704953c39701ea237b9ed4b200096d49e83bb3ae", size = 1005223 },
-]
-
-[[package]]
 name = "langchain-core"
 version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2017,18 +1995,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/52/c4/212c859112aaa7f11d6f1c5b643ac65f8d5f6e218600546180421dfa6557/langchain_openai-0.2.0.tar.gz", hash = "sha256:441ec8fd254992e5fa81d375e60849993a81db5e9e42a79344ebff7a40a0b45f", size = 45142 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8c/de/865dedcb252db4725e6e458fb28845038217fdade1df40a9e41b0579c534/langchain_openai-0.2.0-py3-none-any.whl", hash = "sha256:9a1a69ba0706f23ec2941096ead0bc39202cac0e9782a5d6c8d92cb2280c2759", size = 51465 },
-]
-
-[[package]]
-name = "langchain-text-splitters"
-version = "0.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "langchain-core" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/57/35/08ac1ca01c58da825f070bd1fdc9192a9ff52c0a048f74c93b05df70c127/langchain_text_splitters-0.3.0.tar.gz", hash = "sha256:f9fe0b4d244db1d6de211e7343d4abc4aa90295aa22e1f0c89e51f33c55cd7ce", size = 20234 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/6a/d1303b722a3fa7a0a8c2f8f5307e42f0bdbded46d99cca436f3db0df5294/langchain_text_splitters-0.3.0-py3-none-any.whl", hash = "sha256:e84243e45eaff16e5b776cd9c81b6d07c55c010ebcb1965deb3d1792b7358e83", size = 25543 },
 ]
 
 [[package]]

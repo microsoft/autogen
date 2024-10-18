@@ -112,3 +112,15 @@ ORCHESTRATOR_UPDATE_PLAN_PROMPT = """Please briefly explain what went wrong on t
 
 {team}
 """
+
+ORCHESTRATOR_GET_FINAL_ANSWER = """
+We are working on the following task:
+{task}
+
+We have completed the task.
+
+The above messages contain the conversation that took place to complete the task.
+
+Based on the information gathered, provide the final answer to the original request.
+The answer should be phrased as if you were speaking to the user.
+"""

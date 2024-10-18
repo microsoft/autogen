@@ -2,6 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Runtime;
+using Google.Protobuf;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -39,7 +41,6 @@ public static class AgentsApp
         await app.StartAsync().ConfigureAwait(false);
         return Host;
     }
-
     public static async ValueTask<WebApplication> PublishMessageAsync(
         string topic,
         IMessage message,

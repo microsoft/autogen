@@ -30,7 +30,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import PythonCodeExecutionTool, Tool
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors import DockerCommandLineCodeExecutor
 from common.utils import get_chat_completion_client_from_envs
 
 
