@@ -7,6 +7,14 @@ myst:
 
 # Extensions
 
+```{toctree}
+:maxdepth: 3
+:hidden:
+
+azure-container-code-executor
+```
+
+
 Discover community projects:
 
 ::::{grid} 1 2 2 2
