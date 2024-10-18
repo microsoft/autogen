@@ -4,12 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
-var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
 }, local: true);
 
-await App.RuntimeApp!.WaitForShutdownAsync();
+await AgentsApp.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello
@@ -47,7 +47,7 @@ namespace Hello
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
-            await App.ShutdownAsync();
+            await AgentsApp.ShutdownAsync();
         }
         public async Task<string> SayHello(string ask)
         {

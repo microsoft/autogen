@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hello;
 [TopicSubscription("HelloAgents")]
-public class HellAIAgent(
+public class HelloAIAgent(
     IAgentContext context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IChatClient client) : HelloAgent(
