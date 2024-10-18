@@ -1,8 +1,7 @@
-# Examples
+# Samples
 
-This directory contains examples of how to use AutoGen core.
-See [user guide](../docs/src/core-user-guide/guides/) and
-[cookbooks](../docs/src/core-user-guide/cookbook/) for more examples.
+This directory contains sample apps that use AutoGen Core API.
+See [core user guide](../docs/src/user-guide/core-user-guide/) for notebook examples.
 
 See [Running the examples](#running-the-examples) for instructions on how to run the examples.
 
@@ -47,19 +46,4 @@ For OpenAI API, you need to set the following environment variables.
 ```bash
 export OPENAI_API_TYPE=openai
 export OPENAI_API_KEY=your_openai_api_key
-```
-
-### Running
-
-To run an example, just run the corresponding Python script. For example:
-
-```bash
-hatch shell
-python core/one_agent_direct.py
-```
-
-Or simply:
-
-```bash
-hatch run python core/one_agent_direct.py
 ```

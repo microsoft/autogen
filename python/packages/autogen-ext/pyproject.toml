@@ -20,7 +20,7 @@ dependencies = [
 
 
 [project.optional-dependencies]
-langchain-tools = ["langchain >= 0.3.1"]
+langchain-tools = ["langchain_core~= 0.3.3"]
 azure-code-executor = ["azure-core"]
 docker-code-executor = ["docker~=7.0"]
 

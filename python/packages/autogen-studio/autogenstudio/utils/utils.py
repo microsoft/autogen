@@ -17,14 +17,14 @@ from ..datamodel import CodeExecutionConfigTypes, Model, Skill
 from ..version import APP_NAME
 
 
-def md5_hash(text: str) -> str:
+def sha256_hash(text: str) -> str:
     """
     Compute the MD5 hash of a given text.
 
     :param text: The string to hash
     :return: The MD5 hash of the text
     """
-    return hashlib.md5(text.encode()).hexdigest()
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def check_and_cast_datetime_fields(obj: Any) -> Any:
