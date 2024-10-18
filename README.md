@@ -3,7 +3,7 @@
 
 <div align="center">
 
-<img src="https://microsoft.github.io/autogen/img/ag.svg" alt="AutoGen Logo" width="100">
+<img src="https://microsoft.github.io/autogen/0.2/img/ag.svg" alt="AutoGen Logo" width="100">
 
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue) [![PyPI - Version](https://img.shields.io/pypi/v/autogen-agentchat)](https://pypi.org/project/autogen-agentchat/)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
