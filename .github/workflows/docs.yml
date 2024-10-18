@@ -34,8 +34,8 @@ jobs:
         version:
           [
             { ref: main, dest-dir: dev },
-            { ref: "0.4.0dev0", dest-dir: "0.4.0dev0" },
-            { ref: "0.4.0dev1", dest-dir: "0.4.0dev1" },
+            { ref: "v0.4.0dev0", dest-dir: "0.4.0dev0" },
+            { ref: "v0.4.0dev1", dest-dir: "0.4.0dev1" },
           ]
     steps:
       - name: Checkout
