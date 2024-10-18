@@ -59,6 +59,7 @@ try:
 
     cerebras_import_exception: Optional[ImportError] = None
 except ImportError as e:
+    cerebras_AuthenticationError = cerebras_InternalServerError = cerebras_RateLimitError = Exception
     cerebras_import_exception = e
 
 try:
@@ -577,7 +578,7 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("google"):
                 if gemini_import_exception:
-                    raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
+                    raise ImportError("Please install `google-generativeai` and 'vertexai' to use Google's API.")
                 client = GeminiClient(**openai_config)
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("anthropic"):
