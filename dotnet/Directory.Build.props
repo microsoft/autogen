@@ -3,7 +3,7 @@
   <Import Project="./eng/MetaInfo.props" />
   <Import Project="./eng/Sign.props" />
   <PropertyGroup>
-    <PackageTargetFrameworks>netstandard2.0;net6.0;net8.0</PackageTargetFrameworks>
+    <PackageTargetFrameworks>netstandard2.0;net8.0</PackageTargetFrameworks>
     <TestTargetFrameworks>net8.0</TestTargetFrameworks>
     <LangVersion>preview</LangVersion>
 	  <Nullable>enable</Nullable>
