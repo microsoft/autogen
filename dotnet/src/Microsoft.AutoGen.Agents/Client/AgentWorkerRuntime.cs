@@ -62,7 +62,9 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         {
             try
             {
-                await foreach (var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
+                var responseStream = channel.ResponseStream;
+                var enumerable = responseStream.ReadAllAsync();
+                await foreach (var message in enumerable.WithCancellation(_shutdownCts.Token))
                 {
                     switch (message.MessageCase)
                     {
@@ -313,6 +315,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         {
             await writeTask.ConfigureAwait(false);
         }
+
         lock (_channelLock)
         {
             _channel?.Dispose();
