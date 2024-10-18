@@ -1,5 +1,4 @@
 
-```markdown
 <a name="readme-top"></a>
 
 <div align="center">
@@ -113,7 +112,7 @@ async def main() -> None:
         )
 
 asyncio.run(main())
-```
+
 
 ### C#
 
