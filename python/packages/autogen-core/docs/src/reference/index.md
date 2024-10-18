@@ -26,8 +26,6 @@ python/autogen_core/autogen_core
 :caption: AutoGen Extensions
 
 python/autogen_ext/autogen_ext
-python/autogen_ext/autogen_ext.tools
-python/autogen_ext/autogen_ext.code_executor
 ```
 
 ::::{grid} 1 2 2 3
