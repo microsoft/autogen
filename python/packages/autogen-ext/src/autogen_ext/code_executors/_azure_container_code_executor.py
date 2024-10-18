@@ -1,10 +1,12 @@
 # Credit to original authors
 
+from __future__ import annotations
+
 import asyncio
 import os
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, Optional, Protocol, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Protocol, Sequence, Union
 from uuid import uuid4
 
 import aiohttp
@@ -22,12 +24,14 @@ from autogen_core.components.code_executor import (
     get_required_packages,
     to_stub,
 )
-from azure.core.credentials import AccessToken
 from typing_extensions import ParamSpec
+
+if TYPE_CHECKING:
+    from azure.core.credentials import AccessToken
 
 PYTHON_VARIANTS = ["python", "Python", "py"]
 
-__all__ = ("AzureContainerCodeExecutor", "TokenProvider")
+__all__ = ("ACADynamicSessionsCodeExecutor", "TokenProvider")
 
 A = ParamSpec("A")
 
@@ -38,9 +42,14 @@ class TokenProvider(Protocol):
     ) -> AccessToken: ...
 
 
-class AzureContainerCodeExecutor(CodeExecutor):
+class ACADynamicSessionsCodeExecutor(CodeExecutor):
     """(Experimental) A code executor class that executes code through a an Azure
-    Container Apps instance.
+    Container Apps Dynamic Sessions instance.
+
+    .. note::
+
+        This class requires the :code:`azure-code-executor` extra for the :code:`autogen-ext` package.
+
 
     **This will execute LLM generated code on an Azure dynamic code container.**
 

@@ -114,8 +114,7 @@ docs-clean = "rm -rf docs/build && rm -rf docs/src/reference/python/"
 
 docs-apidoc-core = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_core src/autogen_core src/autogen_core/application/protos/"
 docs-apidoc-agentchat = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_agentchat ../autogen-agentchat/src/autogen_agentchat"
-# Includes --implicit-namespaces as it is a namespace package
-docs-apidoc-ext = "sphinx-apidoc --implicit-namespaces --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_ext ../autogen-ext/src/autogen_ext"
+docs-apidoc-ext = "sphinx-apidoc --templatedir docs/src/_apidoc_templates --no-toc --separate --force -o docs/src/reference/python/autogen_ext ../autogen-ext/src/autogen_ext ../autogen-ext/src/autogen_ext/code_executor ../autogen-ext/src/autogen_ext/tools/langchain"
 docs-apidoc-all = [
     "docs-apidoc-core",
     "docs-apidoc-agentchat",
