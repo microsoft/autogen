@@ -56,16 +56,7 @@ class CouchbaseVectorDB(VectorDB):
             wait_until_index_ready (float | None): Blocking call to wait until the database indexes are ready. None means no wait. Default is None.
             wait_until_document_ready (float | None): Blocking call to wait until the database documents are ready. None means no wait. Default is None.
         """
-        print(
-            "CouchbaseVectorDB",
-            connection_string,
-            username,
-            password,
-            bucket_name,
-            scope_name,
-            collection_name,
-            index_name,
-        )
+
         self.embedding_function = embedding_function
         self.index_name = index_name
 
@@ -119,6 +110,7 @@ class CouchbaseVectorDB(VectorDB):
         try:
             collection_mgr = self.bucket.collections()
             collection_mgr.create_collection(self.scope.name, collection_name)
+            self.cluster.query(f"CREATE PRIMARY INDEX ON {self.bucket.name}.{self.scope.name}.{collection_name}")
 
         except Exception:
             if not get_or_create:
@@ -287,7 +279,12 @@ class CouchbaseVectorDB(VectorDB):
                     [doc["content"]]
                 ).tolist()  # Gets new embedding even in case of document update
 
-                doc_content = {TEXT_KEY: doc["content"], "metadata": doc.get("metadata", {}), EMBEDDING_KEY: embedding}
+                doc_content = {
+                    TEXT_KEY: doc["content"],
+                    "metadata": doc.get("metadata", {}),
+                    EMBEDDING_KEY: embedding,
+                    "id": doc_id,
+                }
                 docs_to_upsert[doc_id] = doc_content
             collection.upsert_multi(docs_to_upsert)
 
