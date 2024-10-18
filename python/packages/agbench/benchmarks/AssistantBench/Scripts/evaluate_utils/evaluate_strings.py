@@ -1,4 +1,5 @@
 """
+From AssistantBench modified slightly.
 Evaluation for two strings or list of strings.
 
 Code taken from the DROP benchmark - https://github.com/allenai/allennlp-reading-comprehension/blob/master/allennlp_rc/eval/drop_eval.py
