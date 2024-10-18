@@ -8,6 +8,7 @@ from sphinx.application import Sphinx
 from typing import Any, Dict
 from pathlib import Path
 import sys
+import os
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -60,7 +61,10 @@ myst_enable_extensions = [
     "strikethrough",
 ]
 
-html_baseurl = "/autogen/dev/"
+if (path := os.getenv("PY_DOCS_DIR")) is None:
+    path = "dev"
+
+html_baseurl = f"/autogen/{path}/"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

@@ -52,6 +52,8 @@ jobs:
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
           mv ./packages/autogen-core/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
         working-directory: ./python
+        env:
+          PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
       - uses: actions/upload-artifact@v4
         with:
           path: "./python/docs-staging"
