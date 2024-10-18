@@ -9,7 +9,6 @@ var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageRecei
     Message = "World"
 }, local: true);
 
-await AgentsApp.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello
@@ -47,7 +46,6 @@ namespace Hello
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
-            await AgentsApp.ShutdownAsync();
         }
         public async Task<string> SayHello(string ask)
         {
