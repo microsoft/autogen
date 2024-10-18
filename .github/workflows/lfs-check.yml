@@ -1,6 +1,7 @@
 name: "Git LFS Check"
-
-on: pull_request
+on:
+  pull_request:
+    branches: ["0.2"]
 permissions: {}
 jobs:
   lfs-check:

@@ -3,13 +3,10 @@
 
 <div align="center">
 
-<img src="https://microsoft.github.io/autogen/img/ag.svg" alt="AutoGen Logo" width="100">
+<img src="https://microsoft.github.io/autogen/0.2/img/ag.svg" alt="AutoGen Logo" width="100">
 
-![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue) [![PyPI version](https://img.shields.io/badge/PyPI-v0.2.34-blue.svg)](https://pypi.org/project/pyautogen/)
+![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue) [![PyPI - Version](https://img.shields.io/pypi/v/autogen-agentchat)](https://pypi.org/project/autogen-agentchat/)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
-
-[![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
-[![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://aka.ms/autogen-dc)
 
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen)
 
@@ -20,12 +17,16 @@
 AutoGen is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AutoGen aims to streamline the development and research of agentic AI, much like PyTorch does for Deep Learning. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
 
 > [!IMPORTANT]
-> *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the official repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
+> In order to better align with a new multi-packaging structure we have coming very soon, AutoGen is now available on PyPi as [`autogen-agentchat`](https://pypi.org/project/autogen-agentchat/) as of version `0.2.36`. This is the official package for the AutoGen project.
+
+
+> [!NOTE]
+> *Note for contributors and users*</b>: [microsoft/autogen](https://aka.ms/autogen-gh) is the original repository of AutoGen project and it is under active development and maintenance under MIT license. We welcome contributions from developers and organizations worldwide. Our goal is to foster a collaborative and inclusive community where diverse perspectives and expertise can drive innovation and enhance the project's capabilities. We acknowledge the invaluable contributions from our existing contributors, as listed in [contributors.md](./CONTRIBUTORS.md). Whether you are an individual contributor or represent an organization, we invite you to join us in shaping the future of this project. For further information please also see [Microsoft open-source contributing guidelines](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing).
 >
 > -_Maintainers (Sept 6th, 2024)_
 
 
-![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
+![AutoGen Overview](https://github.com/microsoft/autogen/blob/0.2/website/static/img/autogen_agentchat.png)
 
 - AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
 - It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
@@ -135,14 +136,14 @@ Find detailed instructions for users [here](https://microsoft.github.io/autogen/
 AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
 ```bash
-pip install pyautogen
+pip install autogen-agentchat~=0.2
 ```
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
 
 <!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
-pip install "pyautogen[blendsearch]"
+pip install "autogen-agentchat[blendsearch]~=0.2"
 ``` -->
 
 Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
@@ -170,7 +171,7 @@ Features of this use case include:
 - **Customization**: AutoGen agents can be customized to meet the specific needs of an application. This includes the ability to choose the LLMs to use, the types of human input to allow, and the tools to employ.
 - **Human participation**: AutoGen seamlessly allows human participation. This means that humans can provide input and feedback to the agents as needed.
 
-For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
+For [example](https://github.com/microsoft/autogen/blob/0.2/test/twoagent.py),
 
 ```python
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
@@ -193,9 +194,9 @@ python test/twoagent.py
 
 After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
-![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
+![Agent Chat Example](https://github.com/microsoft/autogen/blob/0.2/website/static/img/chat_example.png)
 
-Alternatively, the [sample code](https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
+Alternatively, the [sample code](https://github.com/microsoft/autogen/blob/0.2/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
@@ -239,9 +240,7 @@ You can find detailed documentation about AutoGen [here](https://microsoft.githu
 
 In addition, you can find:
 
-- [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
-
-- [Discord](https://aka.ms/autogen-dc)
+- [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/0.2/TRANSPARENCY_FAQS.md)
 
 - [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
 

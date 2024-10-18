@@ -6,15 +6,13 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "0.2" ]
   push:
-    branches: [ "main" ]
-  merge_group:
-    types: [checks_requested]
+    branches: [ "0.2" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' || github.ref != 'refs/heads/dotnet' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/0.2' || github.ref != 'refs/heads/dotnet' }}
 
 permissions:
   contents: read
@@ -122,7 +120,7 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main')
+    if: success() && (github.ref == 'refs/heads/0.2')
     needs: aot-test
     steps:
     - uses: actions/checkout@v4
@@ -228,4 +226,4 @@ jobs:
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
       continue-on-error: true
-      
+

@@ -5,7 +5,7 @@ name: SamplesToolsTests
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["0.2"]
     paths:
       - "autogen/**"
       - "samples/tools/**"
@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/0.2' }}
 permissions: {}
 jobs:
   SamplesToolsFineTuningTests:

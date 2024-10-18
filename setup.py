@@ -101,17 +101,20 @@ extra_require = {
     "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     "long-context": ["llmlingua<0.3"],
     "anthropic": ["anthropic>=0.23.1"],
+    "cerebras": ["cerebras_cloud_sdk>=1.0.0"],
     "mistral": ["mistralai>=1.0.1"],
     "groq": ["groq>=0.9.0"],
     "cohere": ["cohere>=5.5.8"],
+    "ollama": ["ollama>=0.3.3", "fix_busted_json>=0.0.18"],
     "bedrock": ["boto3>=1.34.149"],
+    "kubernetes": ["kubernetes>=27.2.0"],
 }
 
 setuptools.setup(
-    name="pyautogen",
+    name="autogen-agentchat",
     version=__version__,
     author="AutoGen",
-    author_email="autogen-contact@service.microsoft.com",
+    author_email="autogen@microsoft.com",
     description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
