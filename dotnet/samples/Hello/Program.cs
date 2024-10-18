@@ -46,6 +46,10 @@ namespace Hello
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
+            //sleep30 seconds
+            await Task.Delay(30000).ConfigureAwait(false);
+            await AgentsApp.ShutdownAsync().ConfigureAwait(false);
+            
         }
         public async Task<string> SayHello(string ask)
         {
