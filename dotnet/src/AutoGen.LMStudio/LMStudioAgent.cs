@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // LMStudioAgent.cs
 
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.V1;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 
@@ -16,8 +16,9 @@ namespace AutoGen.LMStudio;
 /// agent that consumes local server from LM Studio
 /// </summary>
 /// <example>
-/// [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+/// [!code-csharp[LMStudioAgent](../../samples/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
 /// </example>
+[Obsolete("Use OpenAIChatAgent to connect to LM Studio")]
 public class LMStudioAgent : IAgent
 {
     private readonly GPTAgent innerAgent;
@@ -80,7 +81,7 @@ public class LMStudioAgent : IAgent
         {
             // request.RequestUri = new Uri($"{_modelServiceUrl}{request.RequestUri.PathAndQuery}");
             var uriBuilder = new UriBuilder(_modelServiceUrl);
-            uriBuilder.Path = request.RequestUri.PathAndQuery;
+            uriBuilder.Path = request.RequestUri?.PathAndQuery ?? throw new InvalidOperationException("RequestUri is null");
             request.RequestUri = uriBuilder.Uri;
             return base.SendAsync(request, cancellationToken);
         }

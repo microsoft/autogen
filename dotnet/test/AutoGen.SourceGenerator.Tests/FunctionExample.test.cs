@@ -1,12 +1,13 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // FunctionExample.test.cs
 
 using System.Text.Json;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using Azure.AI.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
+using OpenAI.Chat;
 using Xunit;
 
 namespace AutoGen.SourceGenerator.Tests
@@ -29,7 +30,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.AddWrapper, args, 3);
-            this.VerifyFunctionDefinition(functionExamples.AddFunction);
+            this.VerifyFunctionDefinition(functionExamples.AddFunctionContract.ToChatTool());
         }
 
         [Fact]
@@ -41,7 +42,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.SumWrapper, args, 6.0);
-            this.VerifyFunctionDefinition(functionExamples.SumFunction);
+            this.VerifyFunctionDefinition(functionExamples.SumFunctionContract.ToChatTool());
         }
 
         [Fact]
@@ -57,7 +58,7 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             await this.VerifyAsyncFunction(functionExamples.DictionaryToStringAsyncWrapper, args, JsonSerializer.Serialize(args.xargs, jsonSerializerOptions));
-            this.VerifyFunctionDefinition(functionExamples.DictionaryToStringAsyncFunction);
+            this.VerifyFunctionDefinition(functionExamples.DictionaryToStringAsyncFunctionContract.ToChatTool());
         }
 
         [Fact]
@@ -96,18 +97,18 @@ namespace AutoGen.SourceGenerator.Tests
             };
 
             this.VerifyFunction(functionExamples.QueryWrapper, args, new[] { "hello", "hello", "hello" });
-            this.VerifyFunctionDefinition(functionExamples.QueryFunction);
+            this.VerifyFunctionDefinition(functionExamples.QueryFunctionContract.ToChatTool());
         }
 
         [UseReporter(typeof(DiffReporter))]
         [UseApprovalSubdirectory("ApprovalTests")]
-        private void VerifyFunctionDefinition(FunctionDefinition function)
+        private void VerifyFunctionDefinition(ChatTool function)
         {
             var func = new
             {
-                name = function.Name,
-                description = function.Description.Replace(Environment.NewLine, ","),
-                parameters = function.Parameters.ToObjectFromJson<object>(options: jsonSerializerOptions),
+                name = function.FunctionName,
+                description = function.FunctionDescription.Replace(Environment.NewLine, ","),
+                parameters = function.FunctionParameters.ToObjectFromJson<object>(options: jsonSerializerOptions),
             };
 
             Approvals.Verify(JsonSerializer.Serialize(func, jsonSerializerOptions));

@@ -1,17 +1,15 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // DotnetInteractiveFunction.cs
 
 using System.Text;
-using System.Text.Json;
-using Azure.AI.OpenAI;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Documents.Jupyter;
 
 namespace AutoGen.DotnetInteractive;
 
-public class DotnetInteractiveFunction : IDisposable
+public partial class DotnetInteractiveFunction : IDisposable
 {
-    private readonly InteractiveService? _interactiveService = null;
+    private readonly InteractiveService? _interactiveService;
     private string _notebookPath;
     private readonly KernelInfoCollection _kernelInfoCollection = new KernelInfoCollection();
 
@@ -71,11 +69,12 @@ public class DotnetInteractiveFunction : IDisposable
     /// Run existing dotnet code from message. Don't modify the code, run it as is.
     /// </summary>
     /// <param name="code">code.</param>
+    [Function]
     public async Task<string> RunCode(string code)
     {
         if (this._interactiveService == null)
         {
-            throw new Exception("InteractiveService is not initialized.");
+            throw new ArgumentException("InteractiveService is not initialized.");
         }
 
         var result = await this._interactiveService.SubmitCSharpCodeAsync(code, default);
@@ -96,7 +95,7 @@ public class DotnetInteractiveFunction : IDisposable
             // if result is over 100 characters, only return the first 100 characters.
             if (result.Length > 100)
             {
-                result = result.Substring(0, 100) + " (...too long to present)";
+                result = $"{result.Substring(0, 100)} (...too long to present)";
 
                 return result;
             }
@@ -117,11 +116,12 @@ public class DotnetInteractiveFunction : IDisposable
     /// Install nuget packages.
     /// </summary>
     /// <param name="nugetPackages">nuget package to install.</param>
+    [Function]
     public async Task<string> InstallNugetPackages(string[] nugetPackages)
     {
         if (this._interactiveService == null)
         {
-            throw new Exception("InteractiveService is not initialized.");
+            throw new ArgumentException("InteractiveService is not initialized.");
         }
 
         var codeSB = new StringBuilder();
@@ -173,105 +173,6 @@ public class DotnetInteractiveFunction : IDisposable
         writeStream.Dispose();
     }
 
-    private class RunCodeSchema
-    {
-        public string code { get; set; } = string.Empty;
-    }
-
-    public Task<string> RunCodeWrapper(string arguments)
-    {
-        var schema = JsonSerializer.Deserialize<RunCodeSchema>(
-            arguments,
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            });
-
-        return RunCode(schema!.code);
-    }
-
-    public FunctionDefinition RunCodeFunction
-    {
-        get => new FunctionDefinition
-        {
-            Name = @"RunCode",
-            Description = """
-Run existing dotnet code from message. Don't modify the code, run it as is.
-""",
-            Parameters = BinaryData.FromObjectAsJson(new
-            {
-                Type = "object",
-                Properties = new
-                {
-                    code = new
-                    {
-                        Type = @"string",
-                        Description = @"code.",
-                    },
-                },
-                Required = new[]
-                {
-                        "code",
-                    },
-            },
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
-    }
-
-    private class InstallNugetPackagesSchema
-    {
-        public string[] nugetPackages { get; set; } = Array.Empty<string>();
-    }
-
-    public Task<string> InstallNugetPackagesWrapper(string arguments)
-    {
-        var schema = JsonSerializer.Deserialize<InstallNugetPackagesSchema>(
-            arguments,
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            });
-
-        return InstallNugetPackages(schema!.nugetPackages);
-    }
-
-    public FunctionDefinition InstallNugetPackagesFunction
-    {
-        get => new FunctionDefinition
-        {
-            Name = @"InstallNugetPackages",
-            Description = """
-Install nuget packages.
-""",
-            Parameters = BinaryData.FromObjectAsJson(new
-            {
-                Type = "object",
-                Properties = new
-                {
-                    nugetPackages = new
-                    {
-                        Type = @"array",
-                        Items = new
-                        {
-                            Type = @"string",
-                        },
-                        Description = @"nuget package to install.",
-                    },
-                },
-                Required = new[]
-                {
-                        "nugetPackages",
-                    },
-            },
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            })
-        };
-    }
     public void Dispose()
     {
         this._interactiveService?.Dispose();

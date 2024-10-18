@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // SemanticKernelAgentTest.cs
 
 using AutoGen.Core;
@@ -35,6 +35,8 @@ public partial class SemanticKernelAgentTest
             .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
+
+        kernel.GetRequiredService<IChatCompletionService>();
 
         var skAgent = new SemanticKernelAgent(kernel, "assistant");
 
@@ -131,7 +133,6 @@ public partial class SemanticKernelAgentTest
         reply.GetContent()!.ToLower().Should().Contain("sunny");
     }
 
-
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task BasicSkChatCompletionAgentConversationTestAsync()
     {
@@ -223,11 +224,10 @@ public partial class SemanticKernelAgentTest
             Kernel = kernel,
             Name = "assistant",
             Instructions = "You are a helpful AI assistant",
-            ExecutionSettings =
-                new OpenAIPromptExecutionSettings()
-                {
-                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-                }
+            Arguments = new KernelArguments(new OpenAIPromptExecutionSettings()
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            })
         };
         var skAgent =
             new SemanticKernelChatCompletionAgent(agent).RegisterMiddleware(

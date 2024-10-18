@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatCompletionRequest.cs
 
 using System;
@@ -104,6 +104,9 @@ public class ChatCompletionRequest
     /// <value>The seed to use for random sampling. If set, different calls will generate deterministic results. </value>
     [JsonPropertyName("random_seed")]
     public int? RandomSeed { get; set; }
+
+    [JsonPropertyName("stop")]
+    public string[]? Stop { get; set; }
 
     [JsonPropertyName("tools")]
     public List<FunctionTool>? Tools { get; set; }

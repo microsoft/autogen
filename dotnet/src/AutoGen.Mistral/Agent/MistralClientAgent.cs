@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // MistralClientAgent.cs
 
 using System;
@@ -34,7 +34,7 @@ public class MistralClientAgent : IStreamingAgent
     private readonly string _systemMessage;
     private readonly string _model;
     private readonly int? _randomSeed;
-    private readonly bool _jsonOutput = false;
+    private readonly bool _jsonOutput;
     private ToolChoiceEnum? _toolChoice;
 
     /// <summary>
@@ -97,6 +97,7 @@ public class MistralClientAgent : IStreamingAgent
         var chatHistory = BuildChatHistory(messages);
         var chatRequest = new ChatCompletionRequest(model: _model, messages: chatHistory.ToList(), temperature: options?.Temperature, randomSeed: _randomSeed)
         {
+            Stop = options?.StopSequence,
             MaxTokens = options?.MaxToken,
             ResponseFormat = _jsonOutput ? new ResponseFormat() { ResponseFormatType = "json_object" } : null,
         };

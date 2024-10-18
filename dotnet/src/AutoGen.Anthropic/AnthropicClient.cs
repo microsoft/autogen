@@ -24,12 +24,13 @@ public sealed class AnthropicClient : IDisposable
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
-    };
-
-    private static readonly JsonSerializerOptions JsonDeserializerOptions = new()
-    {
-        Converters = { new ContentBaseConverter(), new JsonPropertyNameEnumConverter<ToolChoiceType>() }
+        Converters =
+        {
+            new ContentBaseConverter(),
+            new JsonPropertyNameEnumConverter<ToolChoiceType>(),
+            new JsonPropertyNameEnumConverter<CacheControlType>(),
+            new SystemMessageConverter(),
+        }
     };
 
     public AnthropicClient(HttpClient httpClient, string baseUrl, string apiKey)
@@ -48,7 +49,9 @@ public sealed class AnthropicClient : IDisposable
         var responseStream = await httpResponseMessage.Content.ReadAsStreamAsync();
 
         if (httpResponseMessage.IsSuccessStatusCode)
+        {
             return await DeserializeResponseAsync<ChatCompletionResponse>(responseStream, cancellationToken);
+        }
 
         ErrorResponse res = await DeserializeResponseAsync<ErrorResponse>(responseStream, cancellationToken);
         throw new Exception(res.Error?.Message);
@@ -90,13 +93,7 @@ public sealed class AnthropicClient : IDisposable
                 {
                     var res = await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
                         new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)),
-                        cancellationToken: cancellationToken);
-
-                    if (res == null)
-                    {
-                        throw new Exception("Failed to deserialize response");
-                    }
-
+                        cancellationToken: cancellationToken) ?? throw new Exception("Failed to deserialize response");
                     if (res.Delta?.Type == "input_json_delta" && !string.IsNullOrEmpty(res.Delta.PartialJson) &&
                         currentEvent.ContentBlock != null)
                     {
@@ -139,12 +136,13 @@ public sealed class AnthropicClient : IDisposable
         var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, _baseUrl);
         var jsonRequest = JsonSerializer.Serialize(requestObject, JsonSerializerOptions);
         httpRequestMessage.Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+        httpRequestMessage.Headers.Add("anthropic-beta", "prompt-caching-2024-07-31");
         return _httpClient.SendAsync(httpRequestMessage, cancellationToken);
     }
 
     private async Task<T> DeserializeResponseAsync<T>(Stream responseStream, CancellationToken cancellationToken)
     {
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, JsonDeserializerOptions, cancellationToken)
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerOptions, cancellationToken)
                ?? throw new Exception("Failed to deserialize response");
     }
 
@@ -167,7 +165,7 @@ public sealed class AnthropicClient : IDisposable
         }
     }
 
-    private class ContentBlock
+    private sealed class ContentBlock
     {
         [JsonPropertyName("type")]
         public string? Type { get; set; }
@@ -181,22 +179,23 @@ public sealed class AnthropicClient : IDisposable
         [JsonPropertyName("input")]
         public object? Input { get; set; }
 
-        public string? parameters { get; set; }
+        [JsonPropertyName("parameters")]
+        public string? Parameters { get; set; }
 
         public void AppendDeltaParameters(string deltaParams)
         {
-            StringBuilder sb = new StringBuilder(parameters);
+            StringBuilder sb = new StringBuilder(Parameters);
             sb.Append(deltaParams);
-            parameters = sb.ToString();
+            Parameters = sb.ToString();
         }
 
         public ToolUseContent CreateToolUseContent()
         {
-            return new ToolUseContent { Id = Id, Name = Name, Input = parameters };
+            return new ToolUseContent { Id = Id, Name = Name, Input = Parameters };
         }
     }
 
-    private class DataBlock
+    private sealed class DataBlock
     {
         [JsonPropertyName("content_block")]
         public ContentBlock? ContentBlock { get; set; }

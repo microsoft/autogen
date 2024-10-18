@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// GroupChat.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -14,7 +13,8 @@ public class GroupChat : IGroupChat
     private IAgent? admin;
     private List<IAgent> agents = new List<IAgent>();
     private IEnumerable<IMessage> initializeMessages = new List<IMessage>();
-    private Graph? workflow = null;
+    private Graph? workflow;
+    private readonly IOrchestrator orchestrator;
 
     public IEnumerable<IMessage>? Messages { get; private set; }
 
@@ -36,6 +36,37 @@ public class GroupChat : IGroupChat
         this.initializeMessages = initializeMessages ?? new List<IMessage>();
         this.workflow = workflow;
 
+        if (admin is not null)
+        {
+            this.orchestrator = new RolePlayOrchestrator(admin, workflow);
+        }
+        else if (workflow is not null)
+        {
+            this.orchestrator = new WorkflowOrchestrator(workflow);
+        }
+        else
+        {
+            this.orchestrator = new RoundRobinOrchestrator();
+        }
+
+        this.Validation();
+    }
+
+    /// <summary>
+    /// Create a group chat which uses the <paramref name="orchestrator"/> to decide the next speaker(s).
+    /// </summary>
+    /// <param name="members"></param>
+    /// <param name="orchestrator"></param>
+    /// <param name="initializeMessages"></param>
+    public GroupChat(
+        IEnumerable<IAgent> members,
+        IOrchestrator orchestrator,
+        IEnumerable<IMessage>? initializeMessages = null)
+    {
+        this.agents = members.ToList();
+        this.initializeMessages = initializeMessages ?? new List<IMessage>();
+        this.orchestrator = orchestrator;
+
         this.Validation();
     }
 
@@ -44,14 +75,14 @@ public class GroupChat : IGroupChat
         // check if all agents has a name
         if (this.agents.Any(x => string.IsNullOrEmpty(x.Name)))
         {
-            throw new Exception("All agents must have a name.");
+            throw new ArgumentException("All agents must have a name.");
         }
 
         // check if any agents has the same name
         var names = this.agents.Select(x => x.Name).ToList();
         if (names.Distinct().Count() != names.Count)
         {
-            throw new Exception("All agents must have a unique name.");
+            throw new ArgumentException("All agents must have a unique name.");
         }
 
         // if there's a workflow
@@ -61,14 +92,8 @@ public class GroupChat : IGroupChat
             var agentNamesInWorkflow = this.workflow.Transitions.Select(x => x.From.Name!).Concat(this.workflow.Transitions.Select(x => x.To.Name!)).Distinct();
             if (agentNamesInWorkflow.Any(x => !this.agents.Select(a => a.Name).Contains(x)))
             {
-                throw new Exception("All agents in the workflow must be in the group chat.");
+                throw new ArgumentException("All agents in the workflow must be in the group chat.");
             }
-        }
-
-        // must provide one of admin or workflow
-        if (this.admin == null && this.workflow == null)
-        {
-            throw new Exception("Must provide one of admin or workflow.");
         }
     }
 
@@ -81,6 +106,7 @@ public class GroupChat : IGroupChat
     /// <param name="currentSpeaker">current speaker</param>
     /// <param name="conversationHistory">conversation history</param>
     /// <returns>next speaker.</returns>
+    [Obsolete("Please use RolePlayOrchestrator or WorkflowOrchestrator")]
     public async Task<IAgent> SelectNextSpeakerAsync(IAgent currentSpeaker, IEnumerable<IMessage> conversationHistory)
     {
         var agentNames = this.agents.Select(x => x.Name).ToList();
@@ -88,12 +114,12 @@ public class GroupChat : IGroupChat
         {
             var nextAvailableAgents = await this.workflow.TransitToNextAvailableAgentsAsync(currentSpeaker, conversationHistory);
             agentNames = nextAvailableAgents.Select(x => x.Name).ToList();
-            if (agentNames.Count() == 0)
+            if (agentNames.Count == 0)
             {
-                throw new Exception("No next available agents found in the current workflow");
+                throw new ArgumentException("No next available agents found in the current workflow");
             }
 
-            if (agentNames.Count() == 1)
+            if (agentNames.Count == 1)
             {
                 return this.agents.First(x => x.Name == agentNames.First());
             }
@@ -101,7 +127,7 @@ public class GroupChat : IGroupChat
 
         if (this.admin == null)
         {
-            throw new Exception("No admin is provided.");
+            throw new ArgumentException("No admin is provided.");
         }
 
         var systemMessage = new TextMessage(Role.System,
@@ -126,7 +152,7 @@ From {agentNames.First()}:
                 Functions = [],
             });
 
-        var name = response?.GetContent() ?? throw new Exception("No name is returned.");
+        var name = response?.GetContent() ?? throw new ArgumentException("No name is returned.");
 
         // remove From
         name = name!.Substring(5);
@@ -140,37 +166,40 @@ From {agentNames.First()}:
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
-        IEnumerable<IMessage>? conversationWithName = null,
+        IEnumerable<IMessage>? chatHistory = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
         var conversationHistory = new List<IMessage>();
-        if (conversationWithName != null)
+        conversationHistory.AddRange(this.initializeMessages);
+        if (chatHistory != null)
         {
-            conversationHistory.AddRange(conversationWithName);
+            conversationHistory.AddRange(chatHistory);
         }
+        var roundLeft = maxRound;
 
-        var lastSpeaker = conversationHistory.LastOrDefault()?.From switch
+        while (roundLeft > 0)
         {
-            null => this.agents.First(),
-            _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),
-        };
-        var round = 0;
-        while (round < maxRound)
-        {
-            var currentSpeaker = await this.SelectNextSpeakerAsync(lastSpeaker, conversationHistory);
-            var processedConversation = this.ProcessConversationForAgent(this.initializeMessages, conversationHistory);
-            var result = await currentSpeaker.GenerateReplyAsync(processedConversation) ?? throw new Exception("No result is returned.");
-            conversationHistory.Add(result);
-
-            // if message is terminate message, then terminate the conversation
-            if (result?.IsGroupChatTerminateMessage() ?? false)
+            var orchestratorContext = new OrchestrationContext
+            {
+                Candidates = this.agents,
+                ChatHistory = conversationHistory,
+            };
+            var nextSpeaker = await this.orchestrator.GetNextSpeakerAsync(orchestratorContext, ct);
+            if (nextSpeaker == null)
             {
                 break;
             }
 
-            lastSpeaker = currentSpeaker;
-            round++;
+            var result = await nextSpeaker.GenerateReplyAsync(conversationHistory, cancellationToken: ct);
+            conversationHistory.Add(result);
+
+            if (result.IsGroupChatTerminateMessage())
+            {
+                return conversationHistory;
+            }
+
+            roundLeft--;
         }
 
         return conversationHistory;

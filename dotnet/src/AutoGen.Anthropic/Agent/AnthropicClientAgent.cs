@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AnthropicClientAgent.cs
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -61,13 +64,14 @@ public class AnthropicClientAgent : IStreamingAgent
     {
         var chatCompletionRequest = new ChatCompletionRequest()
         {
-            SystemMessage = _systemMessage,
+            SystemMessage = [new SystemMessage { Text = _systemMessage }],
             MaxTokens = options?.MaxToken ?? _maxTokens,
             Model = _modelName,
             Stream = shouldStream,
             Temperature = (decimal?)options?.Temperature ?? _temperature,
             Tools = _tools?.ToList(),
-            ToolChoice = _toolChoice ?? ToolChoice.Auto
+            ToolChoice = _toolChoice ?? (_tools is { Length: > 0 } ? ToolChoice.Auto : null),
+            StopSequences = options?.StopSequence?.ToArray(),
         };
 
         chatCompletionRequest.Messages = BuildMessages(messages);
@@ -95,6 +99,22 @@ public class AnthropicClientAgent : IStreamingAgent
             }
         }
 
-        return chatMessages;
+        // merge messages with the same role
+        // fixing #2884
+        var mergedMessages = chatMessages.Aggregate(new List<ChatMessage>(), (acc, message) =>
+        {
+            if (acc.Count > 0 && acc.Last().Role == message.Role)
+            {
+                acc.Last().Content.AddRange(message.Content);
+            }
+            else
+            {
+                acc.Add(message);
+            }
+
+            return acc;
+        });
+
+        return mergedMessages;
     }
 }

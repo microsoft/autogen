@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // DotnetInteractiveServiceTest.cs
 
 using FluentAssertions;
@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace AutoGen.DotnetInteractive.Tests;
 
+[Collection("Sequential")]
 public class DotnetInteractiveServiceTest : IDisposable
 {
     private ITestOutputHelper _output;

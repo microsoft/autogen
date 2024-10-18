@@ -1,4 +1,6 @@
-﻿
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GraphTests.cs
+
 using Xunit;
 
 namespace AutoGen.Tests

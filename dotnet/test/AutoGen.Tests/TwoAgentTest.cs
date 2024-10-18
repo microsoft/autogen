@@ -1,11 +1,10 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // TwoAgentTest.cs
 #pragma warning disable xUnit1013
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
 using FluentAssertions;
 using Xunit.Abstractions;
 
@@ -56,7 +55,7 @@ public partial class TwoAgentTest
             name: "user",
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.GetWeatherFunction.Name, this.GetWeatherWrapper },
+                { this.GetWeatherFunctionContract.Name, this.GetWeatherWrapper },
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {

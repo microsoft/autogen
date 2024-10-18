@@ -26,7 +26,9 @@ public class OllamaTextEmbeddingService : ITextEmbeddingService
         {
             response.EnsureSuccessStatusCode();
 
-            Stream? streamResponse = await response.Content.ReadAsStreamAsync();
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+            Stream? streamResponse = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
             TextEmbeddingsResponse output = await JsonSerializer
                                                 .DeserializeAsync<TextEmbeddingsResponse>(streamResponse, cancellationToken: cancellationToken)
                                             ?? throw new Exception("Failed to deserialize response");

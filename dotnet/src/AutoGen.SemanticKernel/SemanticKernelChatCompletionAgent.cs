@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // SemanticKernelChatCompletionAgent.cs
 
 using System;
@@ -27,7 +27,7 @@ public class SemanticKernelChatCompletionAgent : IAgent
         CancellationToken cancellationToken = default)
     {
         ChatMessageContent[] reply = await _chatCompletionAgent
-            .InvokeAsync(BuildChatHistory(messages), cancellationToken)
+            .InvokeAsync(BuildChatHistory(messages), cancellationToken: cancellationToken)
             .ToArrayAsync(cancellationToken: cancellationToken);
 
         return reply.Length > 1

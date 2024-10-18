@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-      <TargetFramework>$(TestTargetFramework)</TargetFramework>
+      <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
       <ImplicitUsings>enable</ImplicitUsings>
       <IsPackable>false</IsPackable>
       <IsTestProject>True</IsTestProject>
+      <NoWarn>$(NoWarn);CA1829;CA1826</NoWarn>
       <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
 

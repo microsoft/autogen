@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-
-namespace AutoGen.Anthropic.DTO;
+// ChatCompletionResponse.cs
 
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
+namespace AutoGen.Anthropic.DTO;
 public class ChatCompletionResponse
 {
     [JsonPropertyName("content")]
@@ -35,7 +35,7 @@ public class ChatCompletionResponse
     public Delta? Delta { get; set; }
 
     [JsonPropertyName("message")]
-    public StreamingMessage? streamingMessage { get; set; }
+    public StreamingMessage? StreamingMessage { get; set; }
 }
 
 public class StreamingMessage
@@ -69,6 +69,12 @@ public class Usage
 
     [JsonPropertyName("output_tokens")]
     public int OutputTokens { get; set; }
+
+    [JsonPropertyName("cache_creation_input_tokens")]
+    public int CacheCreationInputTokens { get; set; }
+
+    [JsonPropertyName("cache_read_input_tokens")]
+    public int CacheReadInputTokens { get; set; }
 }
 
 public class Delta

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // OllamaMessageConnector.cs
 
 using System;
@@ -101,7 +101,7 @@ public class OllamaMessageConnector : IStreamingMiddleware
 
         // collect all the images
         var images = imageMessages.SelectMany(m => ProcessImageMessage((ImageMessage)m, agent)
-                    .SelectMany(m => (m as IMessage<Message>)?.Content.Images));
+                    .SelectMany(m => (m as IMessage<Message>)?.Content.Images ?? []));
 
         var message = new Message()
         {

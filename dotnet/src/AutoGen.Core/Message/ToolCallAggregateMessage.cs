@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// FunctionCallAggregateMessage.cs
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ToolCallAggregateMessage.cs
 
 using System.Collections.Generic;
 
