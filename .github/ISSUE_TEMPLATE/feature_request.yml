@@ -1,26 +1,18 @@
 name: Feature Request
-description: File a feature request
+description: Request a new feature or enhancement
 labels: ["enhancement"]
-title: "[Feature Request]: "
 
 body:
   - type: textarea
-    id: problem_description
     attributes:
-      label: Is your feature request related to a problem? Please describe.
-      description: A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-      placeholder: What problem are you trying to solve?
+      label: What feature would you like to be added?
+      description: Please describe the desired feature. Be descriptive, provide examples and if possible, provide a proposed solution.
+    validations:
+      required: true
 
   - type: textarea
-    id: solution_description
     attributes:
-      label: Describe the solution you'd like
-      description: A clear and concise description of what you want to happen.
-      placeholder: How do you envision the solution?
-
-  - type: textarea
-    id: additional_context
-    attributes:
-      label: Additional context
-      description: Add any other context or screenshots about the feature request here.
-      placeholder: Any additional information
+      label: Why is this needed?
+      description: Why is it important that this feature is implemented? What problem or need does it solve?
+    validations:
+      required: true

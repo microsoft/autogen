@@ -21,6 +21,7 @@ NON_CACHE_KEY = [
     "azure_ad_token",
     "azure_ad_token_provider",
     "credentials",
+    "tool_config",
 ]
 DEFAULT_AZURE_API_VERSION = "2024-02-01"
 OAI_PRICE1K = {

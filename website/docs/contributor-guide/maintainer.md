@@ -10,7 +10,7 @@
 
 ## Pull Requests
 
-- For new PR, decide whether to close without review. If not, find the right reviewers. One source to refer to is the roles on Discord. Another consideration is to ask users who can benefit from the PR to review it.
+- For new PR, decide whether to close without review. If not, find the right reviewers. Another consideration is to ask users who can benefit from the PR to review it.
 
 - For old PR, check the blocker: reviewer or PR creator. Try to unblock. Get additional help when needed.
 - When requesting changes, make sure you can check back in time because it blocks merging.
@@ -28,9 +28,9 @@
 
 ## Issues and Discussions
 
-- For new issues, write a reply, apply a label if relevant. Ask on discord when necessary. For roadmap issues, apply the roadmap label and encourage community discussion. Mention relevant experts when necessary.
+- For new issues, write a reply, apply a label if relevant. For roadmap issues, apply the roadmap label and encourage community discussion. Mention relevant experts when necessary.
 
-- For old issues, provide an update or close. Ask on discord when necessary. Encourage PR creation when relevant.
+- For old issues, provide an update or close. Encourage PR creation when relevant.
 - Use “good first issue” for easy fix suitable for first-time contributors.
 - Use “task list” for issues that require multiple PRs.
-- For discussions, create an issue when relevant. Discuss on discord when appropriate.
+- For discussions, create an issue when relevant.

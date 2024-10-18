@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "pyautogen",
+    "autogen-agentchat~=0.2",
     "docker",
     "huggingface_hub",
     "tabulate",
