@@ -167,9 +167,7 @@ public class HelloAgent(
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
-        }.ToCloudEvent(this.AgentId
-
-.Key);
+        }.ToCloudEvent(this.AgentId.Key);
         await PublishEvent(goodbye).ConfigureAwait(false);
     }
 
