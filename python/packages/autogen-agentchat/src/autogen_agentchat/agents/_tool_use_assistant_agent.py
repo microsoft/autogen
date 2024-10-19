@@ -60,6 +60,8 @@ class ToolUseAssistantAgent(BaseToolUseChatAgent):
             llm_messages, tools=self._tool_schema, cancellation_token=cancellation_token
         )
 
+        breakpoint()
+
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
