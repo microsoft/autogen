@@ -29,7 +29,7 @@ AutoGen streamlines AI development and research, enabling the use of multiple la
 AutoGen offers the following key features:
 
 - **Asynchronous Messaging**: Agents communicate via asynchronous messages, supporting both event-driven and request/response interaction patterns.
-- **Full Type Support**: Use types in all interfaces with enforced type checks on build, focusing on quality and cohesiveness.
+- **Full Type Support**: Use types in all interfaces, enforced type checks on build, and a focus on quality and cohesiveness.
 - **Scalable & Distributed**: Design complex, distributed agent networks that can operate across organizational boundaries.
 - **Modular & Extensible**: Customize your system with pluggable components: custom agents, tools, memory, and models.
 - **Cross-Language Support**: Interoperate agents across different programming languages. Currently supports Python and .NET, with more languages coming soon.
