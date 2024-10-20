@@ -1,6 +1,6 @@
 ### AutoGen for .NET
 
-[![dotnet-ci](https://github.com/autogen-ai/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/autogen-ai/autogen/actions/workflows/dotnet-build.yml)
+[![dotnet-ci](https://github.com/autogenhub/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/autogenhub/autogen/actions/workflows/dotnet-build.yml)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
 
 > [!NOTE]
@@ -45,7 +45,7 @@ await userProxyAgent.InitiateChatAsync(
 ```
 
 #### Samples
-You can find more examples under the [sample project](https://github.com/autogen-ai/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
+You can find more examples under the [sample project](https://github.com/autogenhub/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
 
 #### Functionality
 - ConversableAgent

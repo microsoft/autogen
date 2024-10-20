@@ -1,6 +1,6 @@
 The following example shows how to connect to third-party OpenAI API using @AutoGen.OpenAI.OpenAIChatAgent.
 
-[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Connect_To_Ollama.cs)
+[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.OpenAI.Sample/Connect_To_Ollama.cs)
 
 ## Overview
 A lot of LLM applications/platforms support spinning up a chat server that is compatible with OpenAI API, such as LM Studio, Ollama, Mistral etc. This means that you can connect to these servers using the @AutoGen.OpenAI.OpenAIChatAgent.

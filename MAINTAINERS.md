@@ -26,7 +26,7 @@
 | Rajan Chari *    | [rajan-chari](https://github.com/rajan-chari)                | Microsoft Research                | CAP                        |
 
 ## I would like to join this list. How can I help the project?
-> We're always looking for new contributors to join our team and help improve the project. For more information, please refer to our [CONTRIBUTING](https://autogen-ai.github.io/autogen/docs/contributor-guide/contributing) guide.
+> We're always looking for new contributors to join our team and help improve the project. For more information, please refer to our [CONTRIBUTING](https://autogenhub.github.io/autogen/docs/contributor-guide/contributing) guide.
 
 
 ## Are you missing from this list?

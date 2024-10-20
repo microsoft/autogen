@@ -40,7 +40,7 @@ Links to notebook examples:
 
 - Automated Continual Learning from New Data - [View Notebook](/docs/notebooks/agentchat_stream)
 <!-- - [OptiGuide](https://github.com/microsoft/optiguide) - Coding, Tool Using, Safeguarding & Question Answering for Supply Chain Optimization -->
-- [AutoAnny](https://github.com/autogen-ai/build-with-autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
+- [AutoAnny](https://github.com/autogenhub/build-with-autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
 
 ### Tool Use
 
@@ -59,7 +59,7 @@ Links to notebook examples:
 
 ### Human Involvement
 
-- Simple example in ChatGPT style [View example](https://github.com/autogen-ai/build-with-autogen/blob/main/samples/simple_chat.py)
+- Simple example in ChatGPT style [View example](https://github.com/autogenhub/build-with-autogen/blob/main/samples/simple_chat.py)
 - Auto Code Generation, Execution, Debugging and **Human Feedback** - [View Notebook](/docs/notebooks/agentchat_human_feedback)
 - Automated Task Solving with GPT-4 + **Multiple Human Users** - [View Notebook](/docs/notebooks/agentchat_two_users)
 - Agent Chat with **Async Human Inputs** - [View Notebook](/docs/notebooks/async_human_input)
@@ -91,7 +91,7 @@ Links to notebook examples:
 
 ### Long Context Handling
 
-<!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/autogen-ai/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
+<!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/autogenhub/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
 - Long Context Handling as A Capability - [View Notebook](/docs/notebooks/agentchat_transform_messages)
 
 ### Evaluation and Assessment
@@ -111,7 +111,7 @@ Links to notebook examples:
 
 ### Utilities
 
-- API Unification - [View Documentation with Code Example](https://autogen-ai.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
+- API Unification - [View Documentation with Code Example](https://autogenhub.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
 - Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/topics/llm_configuration)
 
 ### Inference Hyperparameters Tuning
@@ -120,5 +120,5 @@ AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGe
 Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inference).
 
 Links to notebook examples:
-* [Optimize for Code Generation](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/autogen-ai/autogen/blob/main/notebook/oai_completion.ipynb)
-* [Optimize for Math](https://github.com/autogen-ai/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/autogen-ai/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/autogenhub/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/autogenhub/autogen/blob/main/notebook/oai_completion.ipynb)
+* [Optimize for Math](https://github.com/autogenhub/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/autogenhub/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)

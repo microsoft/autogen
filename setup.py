@@ -1,4 +1,4 @@
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -125,7 +125,7 @@ setuptools.setup(
     description="A programming framework for agentic AI",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/autogen-ai/autogen",
+    url="https://github.com/autogenhub/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
     install_requires=install_requires,
     extras_require=extra_require,

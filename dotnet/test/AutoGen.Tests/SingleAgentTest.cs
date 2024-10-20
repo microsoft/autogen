@@ -1,6 +1,6 @@
-﻿// Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+﻿// Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 // SPDX-License-Identifier: Apache-2.0
-// Contributions to this project, i.e., https://github.com/autogen-ai/autogen, 
+// Contributions to this project, i.e., https://github.com/autogenhub/autogen, 
 // are licensed under the Apache License, Version 2.0 (Apache-2.0).
 // Portions derived from  https://github.com/microsoft/autogen under the MIT License.
 // SPDX-License-Identifier: MIT
@@ -77,7 +77,7 @@ namespace AutoGen.Tests
                     { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
                 });
 
-            var imageUri = new Uri(@"https://autogen-ai.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
+            var imageUri = new Uri(@"https://autogenhub.github.io/autogen/assets/images/level2algebra-659ba95286432d9945fc89e84d606797.png");
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
                 new ChatMessageImageContentItem(imageUri));

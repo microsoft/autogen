@@ -2,12 +2,12 @@
 
 Tests are automatically run via GitHub actions. There are two workflows:
 
-1. [build.yml](https://github.com/autogen-ai/autogen/blob/main/.github/workflows/build.yml)
-1. [openai.yml](https://github.com/autogen-ai/autogen/blob/main/.github/workflows/openai.yml)
+1. [build.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/build.yml)
+1. [openai.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/openai.yml)
 
-The first workflow is required to pass for all PRs (and it doesn't do any OpenAI calls). The second workflow is required for changes that affect the OpenAI tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require OpenAI calls, please use [`pytest.mark.skipif`](https://github.com/autogen-ai/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/autogen-ai/autogen/blob/main/.github/workflows/openai.yml).
+The first workflow is required to pass for all PRs (and it doesn't do any OpenAI calls). The second workflow is required for changes that affect the OpenAI tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require OpenAI calls, please use [`pytest.mark.skipif`](https://github.com/autogenhub/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/openai.yml).
 
-Make sure all tests pass, this is required for [build.yml](https://github.com/autogen-ai/autogen/blob/main/.github/workflows/build.yml) checks to pass
+Make sure all tests pass, this is required for [build.yml](https://github.com/autogenhub/autogen/blob/main/.github/workflows/build.yml) checks to pass
 
 ## Running tests locally
 
@@ -27,7 +27,7 @@ Tests for the `autogen.agentchat.contrib` module may be skipped automatically if
 required dependencies are not installed. Please consult the documentation for
 each contrib module to see what dependencies are required.
 
-See [here](https://github.com/autogen-ai/autogen/blob/main/notebook/contributing.md#testing) for how to run notebook tests.
+See [here](https://github.com/autogenhub/autogen/blob/main/notebook/contributing.md#testing) for how to run notebook tests.
 
 ## Skip flags for tests
 

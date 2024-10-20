@@ -3,7 +3,7 @@ This example shows how to use @AutoGen.Gemini.GeminiChatAgent to connect to Goog
 To run this example, you need to have a Google AI Gemini API key. For how to get a Google Gemini API key, please refer to [Google Gemini](https://gemini.google.com/).
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Chat_With_Google_Gemini.cs)
+> You can find the complete sample code [here](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Chat_With_Google_Gemini.cs)
 
 > [!NOTE]
 > What's the difference between Google AI Gemini and Vertex AI Gemini?

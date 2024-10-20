@@ -13,7 +13,7 @@
     <!-- Required license, copyright, and repo information. Packages can override. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <PackageProjectUrl>https://autogen-ai.github.io/autogen-for-net</PackageProjectUrl>
+    <PackageProjectUrl>https://autogenhub.github.io/autogen-for-net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/microsoft/autogen</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 

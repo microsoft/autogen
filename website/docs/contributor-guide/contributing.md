@@ -6,7 +6,7 @@ The project welcomes contributions from developers and organizations worldwide. 
 - Code review of pull requests.
 - Documentation, examples and test cases.
 - Readability improvement, e.g., improvement on docstr and comments.
-- Community participation in [issues](https://github.com/autogen-ai/autogen/issues), [discord](https://discord.gg/pAbnFJrkgZ), and [twitter](https://twitter.com/Chi_Wang_).
+- Community participation in [issues](https://github.com/autogenhub/autogen/issues), [discord](https://discord.gg/pAbnFJrkgZ), and [twitter](https://twitter.com/Chi_Wang_).
 - Tutorials, blog posts, talks that promote the project.
 - Sharing application scenarios and/or related research.
 
@@ -15,7 +15,7 @@ If you are new to GitHub [here](https://help.github.com/categories/collaborating
 ## Roadmaps
 
 To see what we are working on and what we plan to work on, please check our
-[Roadmap Issues](https://autogen-ai.com/roadmap).
+[Roadmap Issues](https://autogenhub.com/roadmap).
 
 ## Becoming a Reviewer
 
@@ -23,7 +23,7 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ## Contact Maintainers
 
-The project is currently maintained by a [dynamic group of volunteers](https://github.com/autogen-ai/autogen/blob/main/MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Qingyun Wu via auto-gen@outlook.com if you are interested in becoming a maintainer.
+The project is currently maintained by a [dynamic group of volunteers](https://github.com/autogenhub/autogen/blob/main/MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Qingyun Wu via auto-gen@outlook.com if you are interested in becoming a maintainer.
 
 
 ## License Headers
@@ -31,7 +31,7 @@ The project is currently maintained by a [dynamic group of volunteers](https://g
 To maintain proper licensing and copyright notices, please include the following header at the top of each new source code file you create, regardless of the programming language:
 
 ```python
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 ```
@@ -39,7 +39,7 @@ To maintain proper licensing and copyright notices, please include the following
 For files that contain or are derived from the original MIT-licensed code from https://github.com/microsoft/autogen, please use this extended header:
 
 ```python
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 #

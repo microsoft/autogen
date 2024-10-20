@@ -11,7 +11,7 @@ Running this stack requires the installation of:
 1. AutoGen ([installation instructions](/docs/installation))
 2. vLLM
 
-Note: We recommend using a virtual environment for your stack, see [this article](https://autogen-ai.github.io/autogen/docs/installation/#create-a-virtual-environment-optional)
+Note: We recommend using a virtual environment for your stack, see [this article](https://autogenhub.github.io/autogen/docs/installation/#create-a-virtual-environment-optional)
 for guidance.
 
 ## Installing vLLM

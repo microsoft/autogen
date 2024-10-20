@@ -1,4 +1,4 @@
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -16,7 +16,7 @@ import pytest
 import requests
 from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 
-BLOG_POST_URL = "https://autogen-ai.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
+BLOG_POST_URL = "https://autogenhub.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
 BLOG_POST_STRING = "Large language models (LLMs) are powerful tools that can generate natural language texts for various applications, such as chatbots, summarization, translation, and more. GPT-4 is currently the state of the art LLM in the world. Is model selection irrelevant? What about inference parameters?"
 

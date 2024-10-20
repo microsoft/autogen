@@ -57,5 +57,5 @@ Then you can add the python kernel to the dotnet-interactive composite kernel by
 
 ## Further reading
 You can refer to the following examples for running code snippet in agentic workflow:
-- Dynamic_GroupChat_Coding_Task:  [![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.BasicSample/Example04_Dynamic_GroupChat_Coding_Task.cs)
-- Dynamic_GroupChat_Calculate_Fibonacci: [![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.BasicSample/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs)
+- Dynamic_GroupChat_Coding_Task:  [![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.BasicSample/Example04_Dynamic_GroupChat_Coding_Task.cs)
+- Dynamic_GroupChat_Calculate_Fibonacci: [![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.BasicSample/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs)

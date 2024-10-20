@@ -48,7 +48,7 @@ AutoGen's ability to associate specific configurations to each agent means you c
 
 The common requirements of text generation and function/tool calling are supported by these client classes.
 
-Multi-modal support, such as for image/audio/video, is an area of active development. The [Google Gemini](https://autogen-ai.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) client class can be
+Multi-modal support, such as for image/audio/video, is an area of active development. The [Google Gemini](https://autogenhub.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) client class can be
 used to create a multimodal agent.
 
 ## Tips
@@ -58,9 +58,9 @@ Here are some tips when working with these client classes:
 - **Most to least capable** - start with larger models and get your workflow working, then iteratively try smaller models.
 - **Right model** - choose one that's suited to your task, whether it's coding, function calling, knowledge, or creative writing.
 - **Agent names** - these cloud providers do not use the `name` field on a message, so be sure to use your agent's name in their `system_message` and `description` fields, as well as instructing the LLM to 'act as' them. This is particularly important for "auto" speaker selection in group chats as we need to guide the LLM to choose the next agent based on a name, so tweak `select_speaker_message_template`, `select_speaker_prompt_template`, and `select_speaker_auto_multiple_template` with more guidance.
-- **Context length** - as your conversation gets longer, models need to support larger context lengths, be mindful of what the model supports and consider using [Transform Messages](https://autogen-ai.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages) to manage context size.
-- **Provider parameters** - providers have parameters you can set such as temperature, maximum tokens, top-k, top-p, and safety. See each client class in AutoGen's [API Reference](https://autogen-ai.github.io/autogen/docs/reference/oai/gemini) or [documentation](https://autogen-ai.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) for details.
-- **Prompts** - prompt engineering is critical in guiding smaller LLMs to do what you need. [ConversableAgent](https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent), [GroupChat](https://autogen-ai.github.io/autogen/docs/reference/agentchat/groupchat), [UserProxyAgent](https://autogen-ai.github.io/autogen/docs/reference/agentchat/user_proxy_agent), and [AssistantAgent](https://autogen-ai.github.io/autogen/docs/reference/agentchat/assistant_agent) all have customizable prompt attributes that you can tailor. Here are some prompting tips from [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)([+Library](https://docs.anthropic.com/en/prompt-library/library)), [Mistral AI](https://docs.mistral.ai/guides/prompting_capabilities/), [Together.AI](https://docs.together.ai/docs/examples), and [Meta](https://llama.meta.com/docs/how-to-guides/prompting/).
+- **Context length** - as your conversation gets longer, models need to support larger context lengths, be mindful of what the model supports and consider using [Transform Messages](https://autogenhub.github.io/autogen/docs/topics/handling_long_contexts/intro_to_transform_messages) to manage context size.
+- **Provider parameters** - providers have parameters you can set such as temperature, maximum tokens, top-k, top-p, and safety. See each client class in AutoGen's [API Reference](https://autogenhub.github.io/autogen/docs/reference/oai/gemini) or [documentation](https://autogenhub.github.io/autogen/docs/topics/non-openai-models/cloud-gemini) for details.
+- **Prompts** - prompt engineering is critical in guiding smaller LLMs to do what you need. [ConversableAgent](https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent), [GroupChat](https://autogenhub.github.io/autogen/docs/reference/agentchat/groupchat), [UserProxyAgent](https://autogenhub.github.io/autogen/docs/reference/agentchat/user_proxy_agent), and [AssistantAgent](https://autogenhub.github.io/autogen/docs/reference/agentchat/assistant_agent) all have customizable prompt attributes that you can tailor. Here are some prompting tips from [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)([+Library](https://docs.anthropic.com/en/prompt-library/library)), [Mistral AI](https://docs.mistral.ai/guides/prompting_capabilities/), [Together.AI](https://docs.together.ai/docs/examples), and [Meta](https://llama.meta.com/docs/how-to-guides/prompting/).
 - **Help!** - reach out on the AutoGen [Discord](https://discord.gg/pAbnFJrkgZ) or [log an issue](https://github.com/microsoft/autogen/issues) if you need help with or can help improve these client classes.
 
 Now it's time to try them out.
@@ -109,7 +109,7 @@ Add your model configurations to the `OAI_CONFIG_LIST`. Ensure you specify the `
 
 ### Usage
 
-The `[config_list_from_json](https://autogen-ai.github.io/autogen/docs/reference/oai/openai_utils/#config_list_from_json)` function loads a list of configurations from an environment variable or a json file.
+The `[config_list_from_json](https://autogenhub.github.io/autogen/docs/reference/oai/openai_utils/#config_list_from_json)` function loads a list of configurations from an environment variable or a json file.
 
 ```py
 import autogen
@@ -150,7 +150,7 @@ user_proxy.intiate_chat(assistant, message="Write python code to print Hello Wor
 
 ```
 
-**NOTE: To integrate this setup into GroupChat, follow the [tutorial](https://autogen-ai.github.io/autogen/docs/notebooks/agentchat_groupchat) with the same config as above.**
+**NOTE: To integrate this setup into GroupChat, follow the [tutorial](https://autogenhub.github.io/autogen/docs/notebooks/agentchat_groupchat) with the same config as above.**
 
 
 ## Function Calls
@@ -390,4 +390,4 @@ So we can see how Anthropic's Sonnet is able to suggest multiple tools in a sing
 
 ## More tips and tricks
 
-For an interesting chess game between Anthropic's Sonnet and Mistral's Mixtral, we've put together a sample notebook that highlights some of the tips and tricks for working with non-OpenAI LLMs. [See the notebook here](https://autogen-ai.github.io/autogen/docs/notebooks/agentchat_nested_chats_chess_altmodels).
+For an interesting chess game between Anthropic's Sonnet and Mistral's Mixtral, we've put together a sample notebook that highlights some of the tips and tricks for working with non-OpenAI LLMs. [See the notebook here](https://autogenhub.github.io/autogen/docs/notebooks/agentchat_nested_chats_chess_altmodels).

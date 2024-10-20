@@ -1,4 +1,4 @@
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -331,7 +331,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
     repo_root = Path(__file__).parent.resolve().parent.resolve()
     repo_relative_notebook = source_notebooks.resolve().relative_to(repo_root)
     front_matter["source_notebook"] = f"/{repo_relative_notebook}"
-    front_matter["custom_edit_url"] = f"https://github.com/autogen-ai/autogen/edit/main/{repo_relative_notebook}"
+    front_matter["custom_edit_url"] = f"https://github.com/autogenhub/autogen/edit/main/{repo_relative_notebook}"
 
     # Is there a title on the content? Only search up until the first code cell
     first_code_cell = content.find("```")
@@ -354,7 +354,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
     if "{" in title:
         title = title[: title.find("{")].strip()
 
-    github_link = f"https://github.com/autogen-ai/autogen/blob/main/{repo_relative_notebook}"
+    github_link = f"https://github.com/autogenhub/autogen/blob/main/{repo_relative_notebook}"
     content = (
         content[:title_end]
         + "\n[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)]("
@@ -365,7 +365,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
 
     # If no colab link is present, insert one
     if "colab-badge.svg" not in content:
-        colab_link = f"https://colab.research.google.com/github/autogen-ai/autogen/blob/main/{repo_relative_notebook}"
+        colab_link = f"https://colab.research.google.com/github/autogenhub/autogen/blob/main/{repo_relative_notebook}"
         content = (
             content[:title_end]
             + "\n[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]("

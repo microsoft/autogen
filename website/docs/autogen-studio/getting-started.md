@@ -5,9 +5,9 @@
 
 ![ARA](./img/ara_stockprices.png)
 
-AutoGen Studio is an low-code interface built to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://autogen-ai.github.io/autogen) framework, which is a toolkit for building AI agents.
+AutoGen Studio is an low-code interface built to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://autogenhub.github.io/autogen) framework, which is a toolkit for building AI agents.
 
-Code for AutoGen Studio is on GitHub at [build-with-autogen](https://github.com/autogen-ai/build-with-autogen/tree/main/samples/apps/autogen-studio)
+Code for AutoGen Studio is on GitHub at [build-with-autogen](https://github.com/autogenhub/build-with-autogen/tree/main/samples/apps/autogen-studio)
 
 > **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app. Developers are encouraged to use the AutoGen framework to build their own applications, implementing authentication, security and other features required for deployed applications.
 
@@ -35,7 +35,7 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
 
     If you prefer to install from source, ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed. Here's how you get started:
 
-    - Clone the AutoGen Studio repository from the [build-with-autogen](https://github.com/autogen-ai/build-with-autogen) repository and install its Python dependencies:
+    - Clone the AutoGen Studio repository from the [build-with-autogen](https://github.com/autogenhub/build-with-autogen) repository and install its Python dependencies:
 
       ```bash
       pip install -e .
@@ -98,9 +98,9 @@ Project Structure:
 
 We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
 
-- AutoGen Studio is in the [build-with-autogen](https://github.com/autogen-ai/build-with-autogen) repository.
+- AutoGen Studio is in the [build-with-autogen](https://github.com/autogenhub/build-with-autogen) repository.
 - Please initiate a discussion on the roadmap issue or a new issue in that repository to discuss your proposed contribution.
-- Submit a pull request in the [build-with-autogen](https://github.com/autogen-ai/build-with-autogen) repository with your contribution!
+- Submit a pull request in the [build-with-autogen](https://github.com/autogenhub/build-with-autogen) repository with your contribution!
 - Please use the tag `studio` for any issues, questions, and PRs related to Studio
 
 ## A Note on Security
@@ -113,4 +113,4 @@ If you are building a production application, please use the AutoGen framework a
 
 ## Acknowledgements
 
-AutoGen Studio is Based on the [AutoGen](https://autogen-ai.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).
+AutoGen Studio is Based on the [AutoGen](https://autogenhub.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).

@@ -39,7 +39,7 @@ Most changes are reflected live without having to restart the server.
 To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image:
 
 ```bash
-docker build -f .devcontainer/dev/Dockerfile -t autogen_ai_dev_img https://github.com/autogen-ai/autogen.git#main
+docker build -f .devcontainer/dev/Dockerfile -t autogen_ai_dev_img https://github.com/autogenhub/autogen.git#main
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine

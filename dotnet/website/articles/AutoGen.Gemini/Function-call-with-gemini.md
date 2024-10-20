@@ -4,7 +4,7 @@ To run this example, you need to have a project on Google Cloud with access to V
 
 
 > [!NOTE]
-> You can find the complete sample code [here](https://github.com/autogen-ai/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs)
+> You can find the complete sample code [here](https://github.com/autogenhub/autogen/blob/main/dotnet/sample/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs)
 
 ### Step 1: Install AutoGen.Gemini and AutoGen.SourceGenerator
 

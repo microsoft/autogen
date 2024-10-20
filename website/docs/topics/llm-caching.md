@@ -2,7 +2,7 @@
 
 AutoGen supports caching API requests so that they can be reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving.
 
-Since version [`0.2.8`](https://github.com/autogen-ai/autogen/releases/tag/v0.2.8), a configurable context manager allows you to easily
+Since version [`0.2.8`](https://github.com/autogenhub/autogen/releases/tag/v0.2.8), a configurable context manager allows you to easily
 configure LLM cache, using either [`DiskCache`](/docs/reference/cache/disk_cache#diskcache), [`RedisCache`](/docs/reference/cache/redis_cache#rediscache), or Cosmos DB Cache. All agents inside the context manager will use the same cache.
 
 ```python

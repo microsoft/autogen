@@ -34,8 +34,8 @@ In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for 
 
 Yes. You currently have two options:
 
-- Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://autogen-ai.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
-- You can supply your own custom model implementation and use it with Autogen. Please check https://autogen-ai.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
+- Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://autogenhub.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+- You can supply your own custom model implementation and use it with Autogen. Please check https://autogenhub.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
 ## Handle Rate Limit Error and Timeout Error
 
@@ -52,9 +52,9 @@ When you call `initiate_chat` the conversation restarts by default. You can use 
 
 ## `max_consecutive_auto_reply` vs `max_turn` vs `max_round`
 
-- [`max_consecutive_auto_reply`](https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
-- [`max_turns` in `ConversableAgent.initiate_chat`](https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
-- [`max_round` in GroupChat](https://autogen-ai.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
+- [`max_consecutive_auto_reply`](https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
+- [`max_turns` in `ConversableAgent.initiate_chat`](https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
+- [`max_round` in GroupChat](https://autogenhub.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
 
 ## How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?
 
@@ -106,7 +106,7 @@ for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an
 environment variable.
 
 You can also develop your AutoGen application in a docker container.
-For example, when developing in [GitHub codespace](https://codespaces.new/autogen-ai/autogen?quickstart=1),
+For example, when developing in [GitHub codespace](https://codespaces.new/autogenhub/autogen?quickstart=1),
 AutoGen runs in a docker container.
 If you are not developing in GitHub Codespaces,
 follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker)
@@ -159,7 +159,7 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 (from [issue #478](https://github.com/microsoft/autogen/issues/478))
 
-See here https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
+See here https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
 
 For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
 
@@ -188,11 +188,11 @@ In the above, we register a `print_messages` function that is called each time t
 
 ## How to get last message ?
 
-Refer to https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
+Refer to https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
 
 ## How to get each agent message ?
 
-Please refer to https://autogen-ai.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages
+Please refer to https://autogenhub.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages
 
 ## When using autogen docker, is it always necessary to reinstall modules?
 

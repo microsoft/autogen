@@ -1,7 +1,7 @@
 # Non-OpenAI Models
 
 AutoGen allows you to use non-OpenAI models through proxy servers that provide
-an OpenAI-compatible API or a [custom model client](https://autogen-ai.github.io/autogen/blog/2024/01/26/Custom-Models)
+an OpenAI-compatible API or a [custom model client](https://autogenhub.github.io/autogen/blog/2024/01/26/Custom-Models)
 class.
 
 Benefits of this flexibility include access to hundreds of models, assigning specialized

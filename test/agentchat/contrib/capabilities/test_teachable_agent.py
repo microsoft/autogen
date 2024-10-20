@@ -1,4 +1,4 @@
-# Copyright (c) 2023 - 2024, Owners of https://github.com/autogen-ai
+# Copyright (c) 2023 - 2024, Owners of https://github.com/autogenhub
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -40,7 +40,7 @@ filter_dict = {"tags": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 def create_teachable_agent(reset_db=False, verbosity=0):
     """Instantiates a teachable agent using the settings from the top of this file."""
     # Load LLM inference endpoints from an env variable or a file
-    # See https://autogen-ai.github.io/autogen/docs/FAQ#set-your-api-endpoints
+    # See https://autogenhub.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
 
