@@ -16,6 +16,7 @@
 | Linxin Song     | [LinxinS97](https://github.com/LinxinS97)                  | University of Southern California | autobuild, group chat       |
 | Jieyu Zhang     | [JieyuZ2](https://jieyuz2.github.io/)                  | University of Washington | autobuild, group chat       |
 | Justin Trugman     | [jtrugman](https://github.com/jtrugman)                  | BetterFutureLabs | GPTAssistantAgent, Tool overwrite, Instruction Overwrite     |
+| Gregory Fanous  | [gregory-fanous](https://github.com/gregory-fanous)         | -                     | teachability, rag, tool calling     |
 
 **Pending Maintainers list (Marked with \*, Waiting for explicit approval from the maintainers)**
 | Name            | GitHub Handle                                              | Organization           | Features                                |
