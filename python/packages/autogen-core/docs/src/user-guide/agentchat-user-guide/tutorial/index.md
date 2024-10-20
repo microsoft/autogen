@@ -9,7 +9,6 @@ myst:
 
 ::::{grid} 2 2 2 3
 :gutter: 3
-:padding-bottom: 2
 
 :::{grid-item-card} {fas}`book-open;pst-color-primary` Introduction
 :link: ./introduction.html
