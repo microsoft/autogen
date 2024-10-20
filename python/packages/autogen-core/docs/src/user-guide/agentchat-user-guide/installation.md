@@ -52,26 +52,6 @@ conda deactivate
 `````
 
 
-`````{tab-item} poetry
-
-[Install Poetry](https://python-poetry.org/docs/#installation) if you have not already.
-
-Create and activate:
-```bash
-poetry init
-poetry shell
-
-poetry add autogen-agentchat~=0.2
-```
-
-To deactivate later, run:
-
-```bash
-exit
-```
-
-
-`````
 
 ``````
 

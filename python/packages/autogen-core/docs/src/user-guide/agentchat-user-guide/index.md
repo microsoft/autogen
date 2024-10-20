@@ -11,6 +11,10 @@ AgentChat is a high-level package for building multi-agent applications built on
 
 AgentChat aims to provide intuitive defaults, such as **Agents** with preset behaviors and **Teams** with predefined communication protocols, to simplify building multi-agent applications.
 
+```{include} warning.md
+
+```
+
 ```{tip}
 If you are interested in implementing complex agent interaction behaviours, defining custom messaging protocols, or orchestration mechanisms, consider using the [ `autogen-core`](../core-user-guide/index.md) package.
 
