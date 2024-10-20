@@ -13,8 +13,18 @@ from time import sleep
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
+
+# Adding a NullHandler to silence FLAML log warning during
+# import
+flaml_logger = logging.getLogger("flaml")
+null_handler = logging.NullHandler()
+flaml_logger.addHandler(null_handler)
+
 from flaml import BlendSearch, tune
 from flaml.tune.space import is_constant
+
+# Restore logging by removing the NullHandler
+flaml_logger.removeHandler(null_handler)
 
 from .client_utils import logging_formatter
 from .openai_utils import get_key
