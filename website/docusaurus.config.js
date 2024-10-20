@@ -141,6 +141,11 @@ module.exports = {
           position: "left",
         },
         {
+          to: '/talks',
+          label: 'Community Talk',
+          position: 'left',
+        },
+        {
           href: "https://github.com/autogen-ai/autogen",
           label: "GitHub",
           position: "right",
@@ -234,6 +239,15 @@ module.exports = {
   ],
 
   plugins: [
+    [
+      '@docusaurus/plugin-content-blog',
+      {
+        id: 'talks', 
+        routeBasePath: 'talks', 
+        path: './talks', 
+        showReadingTime: true,
+      },
+    ],
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {

@@ -1,0 +1,197 @@
+---
+custom_edit_url: https://github.com/autogen-ai/autogen/edit/main/website/docs/topics/groupchat/transform_messages_speaker_selection.ipynb
+source_notebook: /website/docs/topics/groupchat/transform_messages_speaker_selection.ipynb
+title: Using Transform Messages during Speaker Selection
+---
+# Using Transform Messages during Speaker Selection
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogen-ai/autogen/blob/main/website/docs/topics/groupchat/transform_messages_speaker_selection.ipynb)
+[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)](https://github.com/autogen-ai/autogen/blob/main/website/docs/topics/groupchat/transform_messages_speaker_selection.ipynb)
+
+
+
+
+
+When using “auto” mode for speaker selection in group chats, a
+nested-chat is used to determine the next speaker. This nested-chat
+includes all of the group chat’s messages and this can result in a lot
+of content which the LLM needs to process for determining the next
+speaker. As conversations progress, it can be challenging to keep the
+context length within the workable window for the LLM. Furthermore,
+reducing the number of overall tokens will improve inference time and
+reduce token costs.
+
+Using [Transform
+Messages](../../../docs/topics/handling_long_contexts/intro_to_transform_messages)
+you gain control over which messages are used for speaker selection and
+the context length within each message as well as overall.
+
+All the transforms available for Transform Messages can be applied to
+the speaker selection nested-chat, such as the `MessageHistoryLimiter`,
+`MessageTokenLimiter`, and `TextMessageCompressor`.
+
+## How do I apply them
+
+When instantiating your `GroupChat` object, all you need to do is assign
+a
+[TransformMessages](../../../docs/reference/agentchat/contrib/capabilities/transform_messages#transformmessages)
+object to the `select_speaker_transform_messages` parameter, and the
+transforms within it will be applied to the nested speaker selection
+chats.
+
+And, as you’re passing in a `TransformMessages` object, multiple
+transforms can be applied to that nested chat.
+
+As part of the nested-chat, an agent called ‘checking_agent’ is used to
+direct the LLM on selecting the next speaker. It is preferable to avoid
+compressing or truncating the content from this agent. How this is done
+is shown in the second last example.
+
+## Creating transforms for speaker selection in a GroupChat
+
+We will progressively create a `TransformMessage` object to show how you
+can build up transforms for speaker selection.
+
+Each iteration will replace the previous one, enabling you to use the
+code in each cell as is.
+
+Importantly, transforms are applied in the order that they are in the
+transforms list.
+
+```python
+# Start by importing the transform capabilities
+
+import autogen
+from autogen.agentchat.contrib.capabilities import transform_messages, transforms
+```
+
+
+```python
+# Limit the number of messages
+
+# Let's start by limiting the number of messages to consider for speaker selection using a
+# MessageHistoryLimiter transform. This example will use the latest 10 messages.
+
+select_speaker_transforms = transform_messages.TransformMessages(
+    transforms=[
+        transforms.MessageHistoryLimiter(max_messages=10),
+    ]
+)
+```
+
+
+```python
+# Compress messages through an LLM
+
+# An interesting and very powerful method of reducing tokens is by "compressing" the text of
+# a message by using an LLM that's specifically designed to do that. The default LLM used for
+# this purpose is LLMLingua (https://github.com/microsoft/LLMLingua) and it aims to reduce the
+# number of tokens without reducing the message's meaning. We use the TextMessageCompressor
+# transform to compress messages.
+
+# There are multiple LLMLingua models available and it defaults to the first version, LLMLingua.
+# This example will show how to use LongLLMLingua which is targeted towards long-context
+# information processing. LLMLingua-2 has been released and you could use that as well.
+
+# Create the compression arguments, which allow us to specify the model and other related
+# parameters, such as whether to use the CPU or GPU.
+select_speaker_compression_args = dict(
+    model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank", use_llmlingua2=True, device_map="cpu"
+)
+
+# Now we can add the TextMessageCompressor as the second step
+
+# Important notes on the parameters used:
+# min_tokens - will only apply text compression if the message has at least 1,000 tokens
+# cache - enables caching, if a message has previously been compressed it will use the
+#         cached version instead of recompressing it (making it much faster)
+# filter_dict - to minimise the chance of compressing key information, we can include or
+#         exclude messages based on role and name.
+#         Here, we are excluding any 'system' messages as well as any messages from
+#         'ceo' (just for example) and the 'checking_agent', which is an agent in the
+#         nested chat speaker selection chat. Change the 'ceo' name or add additional
+#         agent names for any agents that have critical content.
+# exclude_filter - As we are setting this to True, the filter will be an exclusion filter.
+
+# Import the cache functionality
+from autogen.cache.in_memory_cache import InMemoryCache
+
+select_speaker_transforms = transform_messages.TransformMessages(
+    transforms=[
+        transforms.MessageHistoryLimiter(max_messages=10),
+        transforms.TextMessageCompressor(
+            min_tokens=1000,
+            text_compressor=transforms.LLMLingua(select_speaker_compression_args, structured_compression=True),
+            cache=InMemoryCache(seed=43),
+            filter_dict={"role": ["system"], "name": ["ceo", "checking_agent"]},
+            exclude_filter=True,
+        ),
+    ]
+)
+```
+
+
+```python
+# Limit the total number of tokens and tokens per message
+
+# As a final example, we can manage the total tokens and individual message tokens. We have added a
+# MessageTokenLimiter transform that will limit the total number of tokens for the messages to
+# 3,000 with a maximum of 500 per individual message. Additionally, if a message is less than 300
+# tokens it will not be truncated.
+
+select_speaker_compression_args = dict(
+    model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank", use_llmlingua2=True, device_map="cpu"
+)
+
+select_speaker_transforms = transform_messages.TransformMessages(
+    transforms=[
+        transforms.MessageHistoryLimiter(max_messages=10),
+        transforms.TextMessageCompressor(
+            min_tokens=1000,
+            text_compressor=transforms.LLMLingua(select_speaker_compression_args, structured_compression=True),
+            cache=InMemoryCache(seed=43),
+            filter_dict={"role": ["system"], "name": ["ceo", "checking_agent"]},
+            exclude_filter=True,
+        ),
+        transforms.MessageTokenLimiter(max_tokens=3000, max_tokens_per_message=500, min_tokens=300),
+    ]
+)
+```
+
+
+```python
+# Now, we apply the transforms to a group chat. We do this by assigning the message
+# transforms from above to the `select_speaker_transform_messages` parameter on the GroupChat.
+
+import os
+
+llm_config = {
+    "config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}],
+}
+
+# Define your agents
+chief_executive_officer = autogen.ConversableAgent(
+    "ceo",
+    llm_config=llm_config,
+    max_consecutive_auto_reply=1,
+    system_message="You are leading this group chat, and the business, as the chief executive officer.",
+)
+
+general_manager = autogen.ConversableAgent(
+    "gm",
+    llm_config=llm_config,
+    max_consecutive_auto_reply=1,
+    system_message="You are the general manager of the business, running the day-to-day operations.",
+)
+
+financial_controller = autogen.ConversableAgent(
+    "fin_controller",
+    llm_config=llm_config,
+    max_consecutive_auto_reply=1,
+    system_message="You are the financial controller, ensuring all financial matters are managed accordingly.",
+)
+
+your_group_chat = autogen.GroupChat(
+    agents=[chief_executive_officer, general_manager, financial_controller],
+    select_speaker_transform_messages=select_speaker_transforms,
+)
+```
