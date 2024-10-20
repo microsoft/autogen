@@ -50,4 +50,5 @@ introduction
 agents
 teams
 termination
+selector-group-chat
 ```
