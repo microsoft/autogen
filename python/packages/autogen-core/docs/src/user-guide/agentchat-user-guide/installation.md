@@ -91,8 +91,8 @@ To install Docker, follow the instructions for your operating system on the [Doc
 
 A simple example of how to use Docker for code execution is shown below:
 
-```{include} stocksnippet.md
+<!-- ```{include} stocksnippet.md
 
-```
+``` -->
 
-To learn more about code executors, see the [code executors tutorial](/docs/tutorial/code-executors).
+To learn more about agents that execute code, see the [agents tutorial](./tutorial/agents.ipynb).

@@ -16,20 +16,33 @@ If you are interested in implementing complex agent interaction behaviours, defi
 
 ```
 
-## Agents
+::::{grid} 2 2 2 2
+:gutter: 3
 
-Agents provide presets for how an agent might respond to received messages. The following Agents are currently supported:
+:::{grid-item-card} {fas}`download;pst-color-primary` Installation
+:link: ./installation.html
 
-- `CodingAssistantAgent` - Generates responses using an LLM on receipt of a message
-- `CodeExecutionAgent` - Extracts and executes code snippets found in received messages and returns the output
-- `ToolUseAssistantAgent` - Responds with tool call messages based on received messages and a list of tool schemas provided at initialization
+How to install AgentChat
+:::
 
-## Teams
+:::{grid-item-card} {fas}`rocket;pst-color-primary` Quickstart
+:link: ./quickstart.html
 
-Teams define how groups of agents communicate to address tasks. The following Teams are currently supported:
+Build your first agent
+:::
 
-- `RoundRobinGroupChat` - A team where agents take turns sending messages (in a round robin fashion) until a termination condition is met
-- `SelectorGroupChat` - A team where a model is used to select the next agent to send a message based on the current conversation history.
+:::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
+:link: ./tutorial/index.html
+
+Step-by-step guide to using AgentChat
+:::
+
+:::{grid-item-card} {fas}`code;pst-color-primary` Examples
+:link: ./examples/index.html
+
+Sample code and use cases
+:::
+::::
 
 ```{toctree}
 :maxdepth: 1
