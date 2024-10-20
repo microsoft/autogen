@@ -34,19 +34,7 @@ Coordinating multiple agents in teams.
 Determining when to end a task.
 :::
 
-<!-- :::{grid-item-card} {fas}`toolbox;pst-color-primary` Using Tools
-:link: ./tool_use.html
-
-Adding tools to agents
-:::
-
-:::{grid-item-card} {fas}`code;pst-color-primary` Code Execution
-:link: ./code-execution.html
-
-Agents that execute code snippets.
-:::
-
-:::: -->
+::::
 
 ```{toctree}
 :maxdepth: 1
