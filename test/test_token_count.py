@@ -8,6 +8,14 @@
 
 import pytest
 
+try:
+    from autogen.agentchat.contrib.img_utils import num_tokens_from_gpt_image
+
+    img_util_imported = True
+except ImportError:
+    img_util_imported = False
+
+
 from autogen.token_count_utils import (
     count_token,
     get_max_token_limit,
@@ -59,6 +67,52 @@ func3 = {
 )
 def test_num_tokens_from_functions(input_functions, expected_count):
     assert num_tokens_from_functions(input_functions) == expected_count
+
+
+@pytest.mark.skipif(not img_util_imported, reason="img_utils not imported")
+def test_num_tokens_from_gpt_image():
+    # mock num_tokens_from_gpt_image function
+    base64_encoded_image = (
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
+        "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": "you are a helpful assistant. af3758 *3 33(3)",
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "hello asdfjj qeweee"},
+                {"type": "image_url", "image_url": {"url": base64_encoded_image}},
+            ],
+        },
+    ]
+    tokens = count_token(messages, model="gpt-4-vision-preview")
+
+    # The total number of tokens is text + image
+    # where text = 34, as shown in the previous test case
+    # the image token is: 85 + 170 = 255
+    assert tokens == 34 + 255
+
+    # Test low quality
+    messages = [
+        {
+            "role": "system",
+            "content": "you are a helpful assistant. af3758 *3 33(3)",
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "hello asdfjj qeweee"},
+                {"type": "image_url", "image_url": {"url": base64_encoded_image, "detail": "low"}},
+            ],
+        },
+    ]
+    tokens = count_token(messages, model="gpt-4o")
+    assert tokens == 34 + 85
 
 
 def test_count_token():

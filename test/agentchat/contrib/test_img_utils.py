@@ -26,6 +26,7 @@ try:
         gpt4v_formatter,
         llava_formatter,
         message_formatter_pil_to_b64,
+        num_tokens_from_gpt_image,
     )
 except ImportError:
     skip = True
@@ -294,6 +295,40 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         ]
         result = message_formatter_pil_to_b64(messages)
         self.assertEqual(result, expected_output)
+
+
+class ImageTokenCountTest(unittest.TestCase):
+    def test_tokens(self):
+        # Note: Ground Truth manually fetched from https://openai.com/api/pricing/ in 2024/10/05
+        small_image = Image.new("RGB", (10, 10), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(small_image), 85 + 170)
+        self.assertEqual(num_tokens_from_gpt_image(small_image, "gpt-4o"), 255)
+        self.assertEqual(num_tokens_from_gpt_image(small_image, "gpt-4o-mini"), 8500)
+
+        med_image = Image.new("RGB", (512, 1025), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(med_image), 85 + 170 * 1 * 3)
+        self.assertEqual(num_tokens_from_gpt_image(med_image, "gpt-4o"), 595)
+        self.assertEqual(num_tokens_from_gpt_image(med_image, "gpt-4o-mini"), 19834)
+
+        tall_image = Image.new("RGB", (10, 1025), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(tall_image), 85 + 170 * 1 * 3)
+        self.assertEqual(num_tokens_from_gpt_image(tall_image, "gpt-4o"), 595)
+        self.assertEqual(num_tokens_from_gpt_image(tall_image, "gpt-4o-mini"), 19834)
+
+        huge_image = Image.new("RGB", (10000, 10000), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(huge_image), 85 + 170 * 2 * 2)
+        self.assertEqual(num_tokens_from_gpt_image(huge_image, "gpt-4o"), 765)
+        self.assertEqual(num_tokens_from_gpt_image(huge_image, "gpt-4o-mini"), 25501)
+
+        huge_wide_image = Image.new("RGB", (10000, 5000), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image), 85 + 170 * 3 * 2)
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image, "gpt-4o"), 1105)
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image, "gpt-4o-mini"), 36835)
+
+        # Handle low quality
+        self.assertEqual(num_tokens_from_gpt_image(huge_image, "gpt-4-vision", low_quality=True), 85)
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image, "gpt-4o", low_quality=True), 85)
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image, "gpt-4o-mini", low_quality=True), 2833)
 
 
 if __name__ == "__main__":

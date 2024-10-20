@@ -9,12 +9,32 @@ import copy
 import os
 import re
 from io import BytesIO
+from math import ceil
 from typing import Dict, List, Tuple, Union
 
 import requests
 from PIL import Image
 
 from autogen.agentchat import utils
+
+# Parameters for token counting for images for different models
+MODEL_PARAMS = {
+    "gpt-4-vision": {
+        "max_edge": 2048,
+        "min_edge": 768,
+        "tile_size": 512,
+        "base_token_count": 85,
+        "token_multiplier": 170,
+    },
+    "gpt-4o-mini": {
+        "max_edge": 2048,
+        "min_edge": 768,
+        "tile_size": 512,
+        "base_token_count": 2833,
+        "token_multiplier": 5667,
+    },
+    "gpt-4o": {"max_edge": 2048, "min_edge": 768, "tile_size": 512, "base_token_count": 85, "token_multiplier": 170},
+}
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
@@ -304,3 +324,67 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         new_messages.append(message)
 
     return new_messages
+
+
+def num_tokens_from_gpt_image(
+    image_data: Union[str, Image.Image], model: str = "gpt-4-vision", low_quality: bool = False
+) -> int:
+    """
+    Calculate the number of tokens required to process an image based on its dimensions
+    after scaling for different GPT models. Supports "gpt-4-vision", "gpt-4o", and "gpt-4o-mini".
+    This function scales the image so that its longest edge is at most 2048 pixels and its shortest
+    edge is at most 768 pixels (for "gpt-4-vision"). It then calculates the number of 512x512 tiles
+    needed to cover the scaled image and computes the total tokens based on the number of these tiles.
+
+    Reference: https://openai.com/api/pricing/
+
+    Args:
+        image_data : Union[str, Image.Image]: The image data which can either be a base64
+           encoded string, a URL, a file path, or a PIL Image object.
+        model: str: The model being used for image processing. Can be "gpt-4-vision", "gpt-4o", or "gpt-4o-mini".
+
+    Returns:
+        int: The total number of tokens required for processing the image.
+
+    Examples:
+    --------
+    >>> from PIL import Image
+    >>> img = Image.new('RGB', (2500, 2500), color = 'red')
+    >>> num_tokens_from_gpt_image(img, model="gpt-4-vision")
+    765
+    """
+
+    image = get_pil_image(image_data)  # PIL Image
+    width, height = image.size
+
+    # Determine model parameters
+    if "gpt-4-vision" in model or "gpt-4-turbo" in model or "gpt-4v" in model or "gpt-4-v" in model:
+        params = MODEL_PARAMS["gpt-4-vision"]
+    elif "gpt-4o-mini" in model:
+        params = MODEL_PARAMS["gpt-4o-mini"]
+    elif "gpt-4o" in model:
+        params = MODEL_PARAMS["gpt-4o"]
+    else:
+        raise ValueError(
+            f"Model {model} is not supported. Choose 'gpt-4-vision', 'gpt-4-turbo', 'gpt-4v', 'gpt-4-v', 'gpt-4o', or 'gpt-4o-mini'."
+        )
+
+    if low_quality:
+        return params["base_token_count"]
+
+    # 1. Constrain the longest edge
+    if max(width, height) > params["max_edge"]:
+        scale_factor = params["max_edge"] / max(width, height)
+        width, height = int(width * scale_factor), int(height * scale_factor)
+
+    # 2. Further constrain the shortest edge
+    if min(width, height) > params["min_edge"]:
+        scale_factor = params["min_edge"] / min(width, height)
+        width, height = int(width * scale_factor), int(height * scale_factor)
+
+    # 3. Count how many tiles are needed to cover the image
+    tiles_width = ceil(width / params["tile_size"])
+    tiles_height = ceil(height / params["tile_size"])
+    total_tokens = params["base_token_count"] + params["token_multiplier"] * (tiles_width * tiles_height)
+
+    return total_tokens
