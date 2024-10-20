@@ -118,11 +118,11 @@ The .NET SDK does not yet support all of the interfaces that the Python SDK offe
 git clone https://github.com/microsoft/autogen.git
 cd autogen
 
-# Switch to the branch that has this code
+#### Switch to the branch that has this code
 git switch staging-dev
-# Build the project
+#### Build the project
 cd dotnet && dotnet build AutoGen.sln
-# In your source code, add AutoGen to your project
+#### In your source code, add AutoGen to your project
 dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj
 
 Then, define and run your first agent:
