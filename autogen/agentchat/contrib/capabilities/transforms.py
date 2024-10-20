@@ -325,7 +325,7 @@ class TextMessageCompressor:
         text_compressor: Optional[TextCompressor] = None,
         min_tokens: Optional[int] = None,
         compression_params: Dict = dict(),
-        cache: Optional[AbstractCache] = Cache.disk(),
+        cache: Optional[AbstractCache] = None,
         filter_dict: Optional[Dict] = None,
         exclude_filter: bool = True,
     ):
@@ -355,7 +355,11 @@ class TextMessageCompressor:
         self._compression_args = compression_params
         self._filter_dict = filter_dict
         self._exclude_filter = exclude_filter
-        self._cache = cache
+
+        if cache is None:
+            self._cache = Cache.disk()
+        else:
+            self._cache = cache
 
         # Optimizing savings calculations to optimize log generation
         self._recent_tokens_savings = 0
