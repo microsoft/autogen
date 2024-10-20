@@ -75,3 +75,8 @@ sequenceDiagram
     User_Proxy_Agent->>Closure_Agent: Confirm session end
     Closure_Agent->>User: Display session end message
 ```
+### Contributors
+
+- Diana Iftimie (@diftimieMSFT)
+- Oscar Fimbres (@ofimbres)
+- Taylor Rockey (@tarockey)
