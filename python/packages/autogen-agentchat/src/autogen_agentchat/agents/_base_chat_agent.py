@@ -81,6 +81,10 @@ class BaseChatAgent(ABC):
         """Handle incoming messages and return a response message."""
         ...
 
+    async def shutdown(self):
+        """Shutdown the agent and clean up resources."""
+        pass
+
 
 class BaseToolUseChatAgent(BaseChatAgent):
     """Base class for a chat agent that can use tools.

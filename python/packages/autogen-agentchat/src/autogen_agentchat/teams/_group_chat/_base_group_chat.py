@@ -169,5 +169,9 @@ class BaseGroupChat(BaseTeam, ABC):
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()
 
+        # Call shutdown on all participants
+        for participant in self._participants:
+            await participant.shutdown()
+
         # Return the result.
         return TeamRunResult(messages=group_chat_messages)
