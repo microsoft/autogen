@@ -13,7 +13,7 @@
 > [!IMPORTANT]
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a complete rewrite of AutoGen from the ground up. Learn more about the history, goals, and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a significant change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
--
+
 AutoGen is an open-source framework for building AI agent systems. It simplifies the creation of event-driven, distributed, scalable, and resilient agent applications. It allows you to quickly build systems where AI agents collaborate and perform tasks autonomously or with human oversight.
 * [Key Features](#key-features)
 * [API Layering](#api-layering)
@@ -53,8 +53,9 @@ AutoGen has several packages and is built upon a layered architecture. Currently
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-core)
 - [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/quickstart.html)
 
-The core API of AutoGen, `autogen-core`, is built following the [actor model](https://en.wikipedia.org/wiki/Actor_model). It supports asynchronous message passing between agents and event-based workflows. Agents in the core layer handle and produce typed messages, using either direct messaging, which functions like RPC, or broadcasting to topics, which is pub-sub. Agents can be distributed and implemented in different programming languages while still communicating with one another. **Start here if you are building scalable, event-driven agent systems.**
--
+The core API of AutoGen, `autogen-core`, is built following the [actor model](https://en.wikipedia.org/wiki/Actor_model). It supports asynchronous message passing between agents and event-based workflows. Agents in the core layer handle and produce typed messages, using either direct messaging, which functions like RPC, or broadcasting to topics, which is pub-sub. Agents can be distributed and implemented in different programming languages while still communicating with one another. 
+**Start here if you are building scalable, event-driven agent systems.**
+
 ## AgentChat
 
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-agentchat)
