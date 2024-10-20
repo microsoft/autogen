@@ -165,7 +165,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
 
     mockcalculate_vision_tokens = MagicMock()
     monkeypatch.setattr(
-        "autogen_core.components.models._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens
+        "autogen_ext.models._openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens
     )
 
     num_tokens = client.count_tokens(messages, tools=tools)

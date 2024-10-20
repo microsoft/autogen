@@ -522,6 +522,7 @@ source = { editable = "packages/autogen-magentic-one" }
 dependencies = [
     { name = "aiofiles" },
     { name = "autogen-core" },
+    { name = "autogen-ext" },
     { name = "beautifulsoup4" },
     { name = "mammoth" },
     { name = "markdownify" },
@@ -554,6 +555,7 @@ dev = [
 requires-dist = [
     { name = "aiofiles" },
     { name = "autogen-core", editable = "packages/autogen-core" },
+    { name = "autogen-ext", editable = "packages/autogen-ext" },
     { name = "beautifulsoup4" },
     { name = "mammoth" },
     { name = "markdownify" },
