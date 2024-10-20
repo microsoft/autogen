@@ -110,12 +110,14 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
 ### C#
 
 The .NET SDK does not yet support all of the interfaces that the Python SDK offers, but we are working on bringing them to parity. To use the .NET SDK, you need to add a package reference to the source in your project. We will release NuGet packages soon and will update these instructions when that happens.
 
 git clone https://github.com/microsoft/autogen.git
 cd autogen
+
 # Switch to the branch that has this code
 git switch staging-dev
 # Build the project
