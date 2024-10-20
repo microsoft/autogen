@@ -78,13 +78,10 @@ The extension package `autogen-ext` contains implementations of the core interfa
 ### Python (AgentChat)
 
 First, install the packages:
-
 ```bash
 pip install autogen-agentchat==0.4.0dev1 autogen-ext==0.4.0dev1
 ```
-
 The following code uses code execution; you need to have [Docker installed](https://docs.docker.com/engine/install/) and running on your machine.
-
 ```python
 import asyncio
 import logging
@@ -126,7 +123,6 @@ git switch staging-dev
 cd dotnet && dotnet build AutoGen.sln
 # In your source code, add AutoGen to your project
 dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj
-
 
 Then, define and run your first agent:
 
@@ -199,7 +195,6 @@ public interface ISayHello
 ```bash
 dotnet run
 ```
-
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
@@ -252,7 +247,6 @@ AutoGen 0.2 can be installed with:
 ```sh
 pip install autogen-agentchat~=0.2
 ```
-
 ### Will AutoGen Studio be supported in 0.4?
 
 Yes, this is on the [roadmap](#Roadmap). Our current plan is to enable an implementation of AutoGen Studio on the AgentChat high-level API, which implements a set of agent functionalities (agents, teams, etc.).
