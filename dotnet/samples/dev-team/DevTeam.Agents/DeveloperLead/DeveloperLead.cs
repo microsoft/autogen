@@ -9,7 +9,7 @@ namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
 public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
-    : AiAgent<DeveloperLeadState>(context, memory, kernel, typeRegistry), ILeadDevelopers,
+    : SKAiAgent<DeveloperLeadState>(context, memory, kernel, typeRegistry), ILeadDevelopers,
     IHandle<DevPlanRequested>,
     IHandle<DevPlanChainClosed>
 {

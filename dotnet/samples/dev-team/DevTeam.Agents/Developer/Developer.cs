@@ -8,7 +8,7 @@ namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
 public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
-    : AiAgent<DeveloperState>(context, memory, kernel, typeRegistry), IDevelopApps,
+    : SKAiAgent<DeveloperState>(context, memory, kernel, typeRegistry), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>
 {
