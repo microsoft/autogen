@@ -120,7 +120,9 @@ class ZMQDirectorySvc:
         Debug("DirectorySvc", "Starting.")
         self._directory_connector = ZMQActorConnector(self._context, Directory_Svc_Topic)
         if self._no_other_directory():
-            self._directory_actor = ZMQDirectoryActor(Directory_Svc_Topic, "Directory Service", self._context)  # Update this line
+            self._directory_actor = ZMQDirectoryActor(
+                Directory_Svc_Topic, "Directory Service", self._context
+            )  # Update this line
             self._directory_actor.on_start(runtime)
             Info("DirectorySvc", "Directory service started.")
         else:

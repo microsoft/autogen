@@ -3,9 +3,10 @@ from typing import List
 from .actor_connector import IActorConnector
 from .proto.CAP_pb2 import ActorInfo
 
+
 class IMsgActor(ABC):
     @abstractmethod
-    def on_connect(self, runtime: 'IRuntime'):
+    def on_connect(self, runtime: "IRuntime"):
         """Called when the actor connects to the runtime."""
         pass
 
@@ -34,13 +35,14 @@ class IMsgActor(ABC):
         """Dispatch the received message based on its type."""
         pass
 
+
 # Abstract base class for message receivers
 class IMessageReceiver(ABC):
     @abstractmethod
     def init(self, actor_name: str):
         """Initialize the message receiver."""
         pass
-    
+
     @abstractmethod
     def add_listener(self, topic: str):
         """Add a topic to the message receiver."""
@@ -55,6 +57,7 @@ class IMessageReceiver(ABC):
     def stop(self):
         """Stop the message receiver."""
         pass
+
 
 # Abstract base class for the runtime environment
 class IRuntime(ABC):
@@ -94,6 +97,6 @@ class IRuntime(ABC):
         pass
 
     @abstractmethod
-    def find_by_name_regex(self, name_regex) -> List['ActorInfo']:
+    def find_by_name_regex(self, name_regex) -> List["ActorInfo"]:
         """Find actors by name using a regular expression."""
         pass

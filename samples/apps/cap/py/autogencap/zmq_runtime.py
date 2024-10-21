@@ -38,6 +38,7 @@ local_actors: {self.local_actors}\n"
                 self._broker = None
         if self._directory_svc is None:
             from .zmq_directory_svc import ZMQDirectorySvc
+
             self._directory_svc = ZMQDirectorySvc(self._context)
             self._directory_svc.start(self)
         time.sleep(0.25)  # Process queued thread events in Broker and Directory
@@ -51,6 +52,7 @@ local_actors: {self.local_actors}\n"
 
     def get_new_msg_receiver(self) -> IMessageReceiver:
         from .zmq_msg_receiver import ZMQMsgReceiver
+
         return ZMQMsgReceiver(self._context)
 
     def connect(self):

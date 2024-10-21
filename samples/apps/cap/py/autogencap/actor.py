@@ -3,6 +3,7 @@ import traceback
 from .actor_runtime import IMsgActor, IRuntime, IMessageReceiver
 from .debug_log import Debug, Info
 
+
 class Actor(IMsgActor):
     def __init__(self, agent_name: str, description: str, start_thread: bool = True):
         """Initialize the Actor with a name, description, and threading option."""

@@ -5,6 +5,7 @@ from autogencap.config import xpub_url
 import zmq
 import threading
 
+
 class ZMQMsgReceiver(IMessageReceiver):
     def __init__(self, context: zmq.Context):
         self._socket = None
