@@ -2,9 +2,9 @@
 
 For developers contributing to the AutoGen project, we offer a specialized Docker environment. This setup is designed to streamline the development process, ensuring that all contributors work within a consistent and well-equipped environment.
 
-## Autogen Developer Image (autogen_ai_dev_img)
+## Autogen Developer Image (autogenhub_dev_img)
 
-- **Purpose**: The `autogen_ai_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
+- **Purpose**: The `autogenhub_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
 - **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
 - **Updating Dockerfile**: Modify your copy of `Dockerfile` in the `dev` folder as needed for your development work.
@@ -12,10 +12,10 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 
 ## Building the Developer Docker Image
 
-- To build the developer Docker image (`autogen_ai_dev_img`), use the following commands:
+- To build the developer Docker image (`autogenhub_dev_img`), use the following commands:
 
   ```bash
-  docker build -f .devcontainer/dev/Dockerfile -t autogen_ai_dev_img https://github.com/autogenhub/autogen.git#main
+  docker build -f .devcontainer/dev/Dockerfile -t autogenhub_dev_img https://github.com/autogenhub/autogen.git#main
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -33,16 +33,16 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 
 ## Using the Developer Docker Image
 
-Once you have built the `autogen_ai_dev_img`, you can run it using the standard Docker commands. This will place you inside the containerized development environment where you can run tests, develop code, and ensure everything is functioning as expected before submitting your contributions.
+Once you have built the `autogenhub_dev_img`, you can run it using the standard Docker commands. This will place you inside the containerized development environment where you can run tests, develop code, and ensure everything is functioning as expected before submitting your contributions.
 
 ```bash
-docker run -it -p 8081:3000 -v `pwd`/autogen-newcode:newstuff/ autogen_ai_dev_img bash
+docker run -it -p 8081:3000 -v `pwd`/autogen-newcode:newstuff/ autogenhub_dev_img bash
 ```
 
 - Note that the `pwd` is shorthand for present working directory. Thus, any path after the pwd is relative to that. If you want a more verbose method you could remove the "`pwd`/autogen-newcode" and replace it with the full path to your directory
 
 ```bash
-docker run -it -p 8081:3000 -v /home/AutoGenDeveloper/autogen-newcode:newstuff/ autogen_ai_dev_img bash
+docker run -it -p 8081:3000 -v /home/AutoGenDeveloper/autogen-newcode:newstuff/ autogenhub_dev_img bash
 ```
 
 ## Develop in Remote Container
