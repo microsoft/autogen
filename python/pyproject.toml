@@ -24,6 +24,7 @@ dev-dependencies = [
 
 [tool.uv.sources]
 autogen-core = { workspace = true }
+autogen-ext = { workspace = true }
 
 [tool.ruff]
 line-length = 120

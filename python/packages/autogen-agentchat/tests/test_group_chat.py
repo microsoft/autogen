@@ -24,8 +24,9 @@ from autogen_agentchat.teams import (
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
-from autogen_core.components.models import FunctionExecutionResult, OpenAIChatCompletionClient
+from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk

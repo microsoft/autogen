@@ -15,7 +15,7 @@ pip install azure-identity
 ## Using the Model Client
 
 ```python
-from autogen_core.components.models import AzureOpenAIChatCompletionClient
+from autogen_ext.models import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 # Create the token provider
