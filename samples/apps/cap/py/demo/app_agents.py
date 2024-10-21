@@ -4,11 +4,10 @@ Each agent represents a different role and knows how to connect to external syst
 to retrieve information.
 """
 
-from autogencap.Actor import Actor
+from autogencap.actor import Actor
+from autogencap.actor_connector import IActorConnector
 from autogencap.actor_runtime import IRuntime
-from autogencap.ActorConnector import ActorConnector
-from autogencap.DebugLog import Debug, Info, shorten
-from autogencap.runtime_factory import RuntimeFactory
+from autogencap.debug_log import Debug, Info, shorten
 
 
 class GreeterAgent(Actor):
@@ -132,23 +131,23 @@ class PersonalAssistant(Actor):
         description="This is the personal assistant, who knows how to connect to the other agents and get information from them.",
     ):
         super().__init__(agent_name, description)
-        self.fidelity: ActorConnector = None
-        self.financial_planner: ActorConnector = None
-        self.quant: ActorConnector = None
-        self.risk_manager: ActorConnector = None
+        self.fidelity: IActorConnector = None
+        self.financial_planner: IActorConnector = None
+        self.quant: IActorConnector = None
+        self.risk_manager: IActorConnector = None
 
-    def on_connect(self, network: IRuntime):
+    def on_connect(self):
         """
         Connects the personal assistant to the specified local actor network.
 
         Args:
             network (LocalActorNetwork): The local actor network to connect to.
         """
-        Debug(self.actor_name, f"is connecting to {network}")
-        self.fidelity = network.find_by_name("Fidelity")
-        self.financial_planner = network.find_by_name("Financial Planner")
-        self.quant = network.find_by_name("Quant")
-        self.risk_manager = network.find_by_name("Risk Manager")
+        Debug(self.actor_name, f"is connecting to {self._runtime}")
+        self.fidelity = self._runtime.find_by_name("Fidelity")
+        self.financial_planner = self._runtime.find_by_name("Financial Planner")
+        self.quant = self._runtime.find_by_name("Quant")
+        self.risk_manager = self._runtime.find_by_name("Risk Manager")
         Debug(self.actor_name, "connected")
 
     def disconnect_network(self, network: IRuntime):

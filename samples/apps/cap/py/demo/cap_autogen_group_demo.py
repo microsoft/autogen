@@ -1,6 +1,6 @@
-from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
-from autogencap.ag_adapter.CAPGroupChatManager import CAPGroupChatManager
-from autogencap.DebugLog import Info
+from autogencap.ag_adapter.cap_group_chat import CAPGroupChat
+from autogencap.ag_adapter.cap_group_chat_manager import CAPGroupChatManager
+from autogencap.debug_log import Info
 from autogencap.runtime_factory import RuntimeFactory
 
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
@@ -35,7 +35,7 @@ def cap_ag_group_demo():
     cap_groupchat = CAPGroupChat(
         agents=[user_proxy, coder, pm], messages=[], max_round=12, ensemble=ensemble, chat_initiator=user_proxy.name
     )
-    manager = CAPGroupChatManager(groupchat=cap_groupchat, llm_config=gpt4_config, network=ensemble)
+    manager = CAPGroupChatManager(groupchat=cap_groupchat, llm_config=gpt4_config, runtime=ensemble)
     manager.initiate_chat("Find a latest paper about gpt-4 on arxiv and find its potential applications in software.")
     ensemble.disconnect()
     Info("App", "App Exit")

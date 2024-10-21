@@ -1,6 +1,3 @@
-# Agent_Sender takes a zmq context, Topic and creates a
-# socket that can publish to that topic. It exposes this functionality
-# using send_msg method
 import time
 import uuid
 from typing import Any, Dict
@@ -8,11 +5,12 @@ from typing import Any, Dict
 import zmq
 from zmq.utils.monitor import recv_monitor_message
 
-from .Config import router_url, xpub_url, xsub_url
-from .DebugLog import Debug, Error, Info
+from .actor_connector import IActorConnector
+from .config import router_url, xpub_url, xsub_url
+from .debug_log import Debug, Error, Info
 
 
-class ActorSender:
+class ZMQActorSender:
     def __init__(self, context, topic):
         self._context = context
         self._topic = topic
@@ -73,12 +71,12 @@ class ActorSender:
         self._pub_socket.close()
 
 
-class ActorConnector:
+class ZMQActorConnector(IActorConnector):
     def __init__(self, context, topic):
         self._context = context
         self._topic = topic
         self._connect_sub_socket()
-        self._sender = ActorSender(context, topic)
+        self._sender = ZMQActorSender(context, topic)
         time.sleep(0.1)  # Wait for the socket to connect
 
     def _connect_sub_socket(self):

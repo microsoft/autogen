@@ -3,7 +3,7 @@ from typing import Dict, Optional, Union
 
 from autogen import Agent
 
-from ..ActorConnector import ActorConnector
+from ..actor_connector import IActorConnector
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 
 
@@ -13,8 +13,8 @@ class AutoGenConnector:
     to/from the CAP system.
     """
 
-    def __init__(self, cap_sender: ActorConnector):
-        self._can_channel: ActorConnector = cap_sender
+    def __init__(self, cap_sender: IActorConnector):
+        self._can_channel: IActorConnector = cap_sender
 
     def close(self):
         """
