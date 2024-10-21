@@ -235,6 +235,15 @@ module.exports = {
 
   plugins: [
     [
+      '@docusaurus/plugin-content-blog',
+      {
+        id: 'talks',
+        routeBasePath: 'talks',
+        path: './talks',
+        showReadingTime: true,
+      },
+    ],
+    [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
         // ... Your options.

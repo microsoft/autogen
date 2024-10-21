@@ -1,0 +1,116 @@
+.proxy-arg-table {
+    li[role='tab'] {
+      font-weight: 500;
+      font-size: 12px;
+      padding: 0 .5rem;
+    }
+
+    li[role='tab'][aria-selected='true'] {
+      opacity: .8;
+      border: 0px;
+      color: white;
+      background-color: var(--ifm-color-primary-light);
+      border-radius: var(--ifm-global-radius);
+    }
+
+    li[role='tab'][aria-selected='false'] {
+      opacity: .6;
+      transition: opacity .2s;
+      border: 0px
+    }
+
+    li[role='tab']:not(:first-of-type) {
+      margin-left: 5px;
+    }
+
+    td:nth-child(1) {
+      max-width: 500px;
+    }
+  }
+
+  .endpoint {
+    font-family: monospace;
+    font-size: 14px;
+
+    .http-method {
+      padding: 3px 6px;
+      border-radius: 4px;
+      color: white;
+      margin: 0 3px;
+    }
+
+    .green {
+      background-color: rgb(27, 168, 27);
+    }
+
+    .blue {
+      background-color: rgb(111, 111, 182);
+    }
+
+    .gray {
+      background-color: rgb(134, 134, 143);
+    }
+  }
+
+  .responses {
+    li {
+      padding: 2px 8px;
+      border-radius: 5px;
+      margin: 5px 0;
+    }
+
+    .status {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .success {
+      background-color: rgba(0, 255, 0, 0.082);
+      .status {
+        color: rgb(0, 141, 0);
+      }
+    }
+
+    .error {
+      background-color: rgba(255, 0, 0, 0.082);
+      .status {
+        color: rgb(141, 0, 0);
+      }
+    }
+
+    .response-body {
+      font-weight: bold;
+      margin-top: 8px;
+    }
+  }
+
+  [data-theme='dark'] {
+    .proxy-arg-table {
+      li[role='tab'] {
+        opacity: .9;
+      }
+
+      li[role='tab'][aria-selected='false'] {
+        opacity: .6;
+      }
+
+      li[role='tab'][aria-selected='true'] {
+        background-color: var(--ifm-color-primary-darkest);
+      }
+    }
+
+    .success {
+      background-color: rgba(0, 255, 0, 0.075);
+      .status {
+        color: rgb(82, 212, 82);
+      }
+    }
+
+    .error {
+      background-color: rgba(255, 0, 0, 0.192);
+      .status {
+        color: rgb(248, 109, 109);
+      }
+    }
+  }
