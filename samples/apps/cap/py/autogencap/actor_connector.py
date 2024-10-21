@@ -4,8 +4,9 @@ from typing import Any, Optional, Tuple
 
 class IActorConnector(ABC):
     """
-    Abstract base class for actor connectors.
-    Provides an interface for sending and receiving messages between actors.
+    Abstract base class for actor connectors.  Each runtime will have a different implementation.
+    Obtain an instance of the correct connector from the runtime by calling the runtime's find_by_xyz
+    method.
     """
 
     @abstractmethod
