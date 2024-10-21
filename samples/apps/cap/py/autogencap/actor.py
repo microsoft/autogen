@@ -1,6 +1,7 @@
 import threading
 import traceback
-from .actor_runtime import IMsgActor, IRuntime, IMessageReceiver
+
+from .actor_runtime import IMessageReceiver, IMsgActor, IRuntime
 from .debug_log import Debug, Info
 
 

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
+
 from .actor_connector import IActorConnector
 from .proto.CAP_pb2 import ActorInfo
 

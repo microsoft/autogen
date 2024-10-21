@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Optional
+from typing import Any, Optional, Tuple
 
 
 class IActorConnector(ABC):

@@ -2,15 +2,16 @@ import time
 from typing import List
 
 import zmq
+
 from autogencap.debug_log import Debug, Warn
 
 from .actor import Actor
-from .actor_runtime import IRuntime, IMessageReceiver
+from .actor_connector import IActorConnector
+from .actor_runtime import IMessageReceiver, IRuntime
 from .broker import Broker
 from .constants import Termination_Topic
 from .debug_log import Debug, Warn
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
-from .actor_connector import IActorConnector
 from .zmq_actor_connector import ZMQActorConnector
 
 

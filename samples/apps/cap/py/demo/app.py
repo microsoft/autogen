@@ -13,9 +13,9 @@ from cap_autogen_group_demo import cap_ag_group_demo
 from cap_autogen_pair_demo import cap_ag_pair_demo
 from complex_actor_demo import complex_actor_demo
 from list_agents import list_agents
+from remote_autogen_demo import remote_ag_demo
 from simple_actor_demo import simple_actor_demo
 from single_threaded import single_threaded_demo
-from remote_autogen_demo import remote_ag_demo
 
 ####################################################################################################
 

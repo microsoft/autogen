@@ -5,9 +5,9 @@ from typing import Any, Dict
 import zmq
 from zmq.utils.monitor import recv_monitor_message
 
+from .actor_connector import IActorConnector
 from .config import router_url, xpub_url, xsub_url
 from .debug_log import Debug, Error, Info
-from .actor_connector import IActorConnector
 
 
 class ZMQActorSender:

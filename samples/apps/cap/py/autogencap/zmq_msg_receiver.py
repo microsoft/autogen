@@ -1,9 +1,11 @@
 # ZMQ implementation of the message receiver
-from autogencap.debug_log import Debug, Error
+import threading
+
+import zmq
+
 from autogencap.actor_runtime import IMessageReceiver
 from autogencap.config import xpub_url
-import zmq
-import threading
+from autogencap.debug_log import Debug, Error
 
 
 class ZMQMsgReceiver(IMessageReceiver):

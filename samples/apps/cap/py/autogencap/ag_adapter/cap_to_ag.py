@@ -1,12 +1,14 @@
 import json
 from enum import Enum
 from typing import Optional
+
 from autogen import ConversableAgent
+
 from ..actor_runtime import IRuntime
 from ..debug_log import Debug, Error, Info, Warn, shorten
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from .ag_to_cap import AG2CAP
 from .ag_actor import AGActor
+from .ag_to_cap import AG2CAP
 
 
 class CAP2AG(AGActor):
