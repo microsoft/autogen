@@ -3,8 +3,6 @@ from typing import List
 
 import zmq
 
-from autogencap.debug_log import Debug, Warn
-
 from .actor import Actor
 from .actor_connector import IActorConnector
 from .actor_runtime import IMessageReceiver, IRuntime
