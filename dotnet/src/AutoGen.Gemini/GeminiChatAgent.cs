@@ -251,7 +251,7 @@ public class GeminiChatAgent : IStreamingAgent
         }
 
         // merge tools into one tool
-        // because multipe tools are currently not supported by Gemini
+        // because multiple tools are currently not supported by Gemini
         // see https://github.com/googleapis/python-aiplatform/issues/3771
         var aggregatedTool = new Tool
         {
