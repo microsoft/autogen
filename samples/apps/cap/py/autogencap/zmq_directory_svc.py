@@ -5,8 +5,8 @@ import time
 import zmq
 
 from autogencap.actor import Actor
+from autogencap.zmq_actor_connector import ZMQActorConnector, ZMQActorSender
 from autogencap.broker import Broker
-from autogencap.config import router_url, xpub_url, xsub_url
 from autogencap.constants import Directory_Svc_Topic
 from autogencap.debug_log import Debug, Error, Info
 from autogencap.proto.CAP_pb2 import (
@@ -30,10 +30,11 @@ from autogencap.zmq_runtime import ZMQActorConnector, ZMQActorSender
 
 
 class ZMQDirectoryActor(Actor):
-    def __init__(self, topic: str, name: str):
+    def __init__(self, topic: str, name: str, context: zmq.Context):
         super().__init__(topic, name)
         self._registered_actors = {}
         self._network_prefix = ""
+        self._context = context
 
     def on_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
         if msg_type == ActorRegistration.__name__:
@@ -116,12 +117,12 @@ class ZMQDirectorySvc:
             return True
         return False
 
-    def start(self):
+    def start(self, runtime):
         Debug("DirectorySvc", "Starting.")
         self._directory_connector = ZMQActorConnector(self._context, Directory_Svc_Topic)
         if self._no_other_directory():
-            self._directory_actor = ZMQDirectoryActor(Directory_Svc_Topic, "Directory Service")
-            self._directory_actor.on_start(self._context)
+            self._directory_actor = ZMQDirectoryActor(Directory_Svc_Topic, "Directory Service", self._context)  # Update this line
+            self._directory_actor.on_start(runtime)
             Info("DirectorySvc", "Directory service started.")
         else:
             Info("DirectorySvc", "Another directory service is running. This instance will not start.")
@@ -178,13 +179,6 @@ def main():
     # Start the directory service
     directory_svc = ZMQDirectorySvc(context)
     directory_svc.start()
-    # # How do you register an actor?
-    # directory_svc.register_actor_by_name("my_actor")
-    #
-    # # How do you look up an actor?
-    # actor: ActorInfo = directory_svc.lookup_actor_by_name("my_actor")
-    # if actor is not None:
-    #     Info("main", f"Found actor: {actor.name}")
 
     # DirectorySvc is running in a separate thread. Here we are watching the
     # status and printing status every few seconds.  This is

@@ -34,7 +34,7 @@ class BaseLogger:
 
 
 class ConsoleLogger(BaseLogger):
-    def __init__(self, use_color=True):
+    def __init__(self, use_color=config.USE_COLOR_LOGGING):
         super().__init__()
         self._use_color = use_color
 
@@ -56,6 +56,7 @@ class ConsoleLogger(BaseLogger):
         print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
 
 
+# Modify this line to disable color logging by default
 LOGGER = ConsoleLogger()
 
 

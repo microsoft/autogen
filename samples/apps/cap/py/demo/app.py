@@ -15,6 +15,7 @@ from complex_actor_demo import complex_actor_demo
 from list_agents import list_agents
 from simple_actor_demo import simple_actor_demo
 from single_threaded import single_threaded_demo
+from remote_autogen_demo import remote_ag_demo
 
 ####################################################################################################
 

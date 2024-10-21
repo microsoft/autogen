@@ -3,7 +3,7 @@ from typing import Dict, Optional, Union
 
 from autogen import Agent
 
-from ..actor_runtime import IActorConnector
+from ..actor_connector import IActorConnector
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 
 

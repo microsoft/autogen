@@ -14,17 +14,17 @@ def complex_actor_demo():
     sends them to the personal assistant agent, and terminates
     when the user enters "quit".
     """
-    ensemble = RuntimeFactory.get_runtime("ZMQ")
+    runtime = RuntimeFactory.get_runtime("ZMQ")
     # Register agents
-    ensemble.register(PersonalAssistant())
-    ensemble.register(FidelityAgent())
-    ensemble.register(FinancialPlannerAgent())
-    ensemble.register(RiskManager())
-    ensemble.register(QuantAgent())
+    runtime.register(PersonalAssistant())
+    runtime.register(FidelityAgent())
+    runtime.register(FinancialPlannerAgent())
+    runtime.register(RiskManager())
+    runtime.register(QuantAgent())
     # Tell agents to connect to other agents
-    ensemble.connect()
+    runtime.connect()
     # Get a channel to the personal assistant agent
-    pa = ensemble.find_by_name(PersonalAssistant.cls_agent_name)
+    pa = runtime.find_by_name(PersonalAssistant.cls_agent_name)
     info_msg = """
     This is an imaginary personal assistant agent scenario.
     Five actors are connected in a self-determined graph. The user
@@ -48,4 +48,4 @@ def complex_actor_demo():
     # Cleanup
 
     pa.close()
-    ensemble.disconnect()
+    runtime.disconnect()

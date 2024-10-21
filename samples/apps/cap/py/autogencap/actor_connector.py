@@ -1,43 +1,27 @@
-# Agent_Sender takes a zmq context, Topic and creates a
-# socket that can publish to that topic. It exposes this functionality
-# using send_msg method
 from abc import ABC, abstractmethod
-
-
-class IActorSender(ABC):
-    @abstractmethod
-    def send_txt_msg(self, msg):
-        pass
-
-    @abstractmethod
-    def send_bin_msg(self, msg_type: str, msg):
-        pass
-
-    @abstractmethod
-    def send_recv_msg(self, msg_type: str, msg, resp_topic: str):
-        pass
-
-    @abstractmethod
-    def close(self):
-        pass
-
+from typing import Any, Tuple, Optional
 
 class IActorConnector(ABC):
     @abstractmethod
-    def send_txt_msg(self, msg):
+    def send_txt_msg(self, msg: str) -> None:
         pass
 
-    def send_bin_msg(self, msg_type: str, msg):
+    @abstractmethod
+    def send_bin_msg(self, msg_type: str, msg: bytes) -> None:
         pass
 
-    def send_proto_msg(self, msg):
+    @abstractmethod
+    def send_proto_msg(self, msg: Any) -> None:
         pass
 
-    def send_recv_proto_msg(self, msg, num_attempts=5):
+    @abstractmethod
+    def send_recv_proto_msg(self, msg: Any, num_attempts: int = 5) -> Tuple[Optional[str], Optional[str], Optional[bytes]]:
         pass
 
-    def send_recv_msg(self, msg_type: str, msg, num_attempts=5):
+    @abstractmethod
+    def send_recv_msg(self, msg_type: str, msg: bytes, num_attempts: int = 5) -> Tuple[Optional[str], Optional[str], Optional[bytes]]:
         pass
 
-    def close(self):
+    @abstractmethod
+    def close(self) -> None:
         pass

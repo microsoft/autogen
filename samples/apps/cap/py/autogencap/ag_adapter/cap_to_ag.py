@@ -1,9 +1,7 @@
 import json
 from enum import Enum
 from typing import Optional
-
 from autogen import ConversableAgent
-
 from ..actor_runtime import IRuntime
 from ..debug_log import Debug, Error, Info, Warn, shorten
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
@@ -27,15 +25,13 @@ class CAP2AG(AGActor):
         self.STATE = self.States.INIT
         self._can2ag_name: str = self.actor_name + ".can2ag"
         self._self_recursive: bool = self_recursive
-        self._ensemble: IRuntime = None
         self._connectors = {}
 
-    def on_connect(self, ensemble: IRuntime):
+    def on_connect(self):
         """
         Connect to the AutoGen system.
         """
-        self._ensemble = ensemble
-        self._ag2can_other_agent = AG2CAP(self._ensemble, self._other_agent_name)
+        self._ag2can_other_agent = AG2CAP(self._runtime, self._other_agent_name)
         Debug(self._can2ag_name, "connected to {ensemble}")
 
     def disconnect_network(self, ensemble: IRuntime):
@@ -117,7 +113,7 @@ class CAP2AG(AGActor):
         if topic in self._connectors:
             return self._connectors[topic]
         else:
-            connector = self._ensemble.find_by_topic(topic)
+            connector = self._runtime.find_by_topic(topic)
             self._connectors[topic] = connector
             return connector
 
