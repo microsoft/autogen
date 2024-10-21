@@ -1,6 +1,3 @@
-# Agent_Sender takes a zmq context, Topic and creates a
-# socket that can publish to that topic. It exposes this functionality
-# using send_msg method
 import time
 import uuid
 from typing import Any, Dict

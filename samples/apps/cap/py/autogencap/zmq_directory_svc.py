@@ -5,7 +5,6 @@ import time
 import zmq
 
 from autogencap.actor import Actor
-from autogencap.zmq_actor_connector import ZMQActorConnector, ZMQActorSender
 from autogencap.broker import Broker
 from autogencap.constants import Directory_Svc_Topic
 from autogencap.debug_log import Debug, Error, Info
@@ -23,7 +22,7 @@ from autogencap.proto.CAP_pb2 import (
     Error as ErrorMsg,
 )
 from autogencap.utility import report_error_msg
-from autogencap.zmq_runtime import ZMQActorConnector, ZMQActorSender
+from autogencap.zmq_actor_connector import ZMQActorConnector, ZMQActorSender
 
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful

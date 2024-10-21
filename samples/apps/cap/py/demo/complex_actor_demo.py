@@ -1,6 +1,6 @@
 import time
 
-from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, RiskManager
+from app_agents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, RiskManager
 from autogencap.runtime_factory import RuntimeFactory
 from termcolor import colored
 

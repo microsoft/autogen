@@ -9,7 +9,6 @@ from .actor_runtime import IRuntime, IMessageReceiver
 from .broker import Broker
 from .constants import Termination_Topic
 from .debug_log import Debug, Warn
-from .zmq_directory_svc import ZMQDirectorySvc
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
 from .actor_connector import IActorConnector
 from .zmq_actor_connector import ZMQActorConnector
@@ -21,7 +20,7 @@ class ZMQRuntime(IRuntime):
         self._context: zmq.Context = zmq.Context()
         self._start_broker: bool = start_broker
         self._broker: Broker = None
-        self._directory_svc: ZMQDirectorySvc = None
+        self._directory_svc = None
         self._log_name = self.__class__.__name__
 
     def __str__(self):
@@ -38,6 +37,7 @@ local_actors: {self.local_actors}\n"
                 self._start_broker = False  # Don't try to start the broker again
                 self._broker = None
         if self._directory_svc is None:
+            from .zmq_directory_svc import ZMQDirectorySvc
             self._directory_svc = ZMQDirectorySvc(self._context)
             self._directory_svc.start(self)
         time.sleep(0.25)  # Process queued thread events in Broker and Directory
