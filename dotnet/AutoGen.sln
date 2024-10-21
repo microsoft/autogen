@@ -115,6 +115,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloAIAgents", "samples\HelloAIAgents\HelloAIAgents.csproj", "{EB245C0B-9350-484D-85DE-36C8C02139D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -309,6 +311,10 @@ Global
 		{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB245C0B-9350-484D-85DE-36C8C02139D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB245C0B-9350-484D-85DE-36C8C02139D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB245C0B-9350-484D-85DE-36C8C02139D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB245C0B-9350-484D-85DE-36C8C02139D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -364,6 +370,7 @@ Global
 		{21C9EC49-E848-4EAE-932F-0862D44F7A80} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{A905E29A-7110-497F-ADC5-2CE2A148FEA0} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{EB245C0B-9350-484D-85DE-36C8C02139D3} = {FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

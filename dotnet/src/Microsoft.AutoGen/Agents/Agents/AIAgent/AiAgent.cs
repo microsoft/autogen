@@ -69,17 +69,3 @@ public class AgentState<T> where T : class, new()
     public List<ChatHistoryItem> History { get; set; } = [];
     public T Data { get; set; } = new();
 }
-
-public class ChatHistoryItem
-{
-    public required string Message { get; set; }
-    public ChatUserType UserType { get; set; }
-    public int Order { get; set; }
-}
-
-public enum ChatUserType
-{
-    System,
-    User,
-    Agent
-}

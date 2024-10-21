@@ -63,13 +63,6 @@ public abstract class SKAiAgent<T> : AgentBase where T : class, new()
     }
 }
 
-// TODO Remove history when we introduce memory banks
-public class AgentState<T> where T : class, new()
-{
-    public List<ChatHistoryItem> History { get; set; } = [];
-    public T Data { get; set; } = new();
-}
-
 public class ChatHistoryItem
 {
     public required string Message { get; set; }
