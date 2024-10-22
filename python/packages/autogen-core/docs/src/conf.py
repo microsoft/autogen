@@ -64,6 +64,10 @@ myst_enable_extensions = [
 if (path := os.getenv("PY_DOCS_DIR")) is None:
     path = "dev"
 
+
+if (switcher_version := os.getenv("PY_SWITCHER_VERSION")) is None:
+    switcher_version = "dev"
+
 html_baseurl = f"/autogen/{path}/"
 
 # -- Options for HTML output -------------------------------------------------
@@ -115,6 +119,7 @@ html_theme_options = {
     "navbar_start": ["navbar-logo", "version-switcher"],
     "switcher": {
         "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
+        "version_match": switcher_version,
     }
 }
 

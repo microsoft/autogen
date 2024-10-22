@@ -54,6 +54,7 @@ jobs:
         working-directory: ./python
         env:
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
+          PY_SWITCHER_VERSION: ${{ matrix.version.dest-dir }}
       - uses: actions/upload-artifact@v4
         with:
           path: "./python/docs-staging"
