@@ -1,8 +1,8 @@
 import time
 from typing import List
 
-from AppAgents import FidelityAgent, GreeterAgent
-from autogencap.DebugLog import Info
+from app_agents import FidelityAgent, GreeterAgent
+from autogencap.debug_log import Info
 from autogencap.proto.CAP_pb2 import ActorInfo
 from autogencap.runtime_factory import RuntimeFactory
 
