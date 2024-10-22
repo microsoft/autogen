@@ -46,9 +46,18 @@ public static class AgentsApp
         string topic,
         IMessage message,
         WebApplicationBuilder? builder = null,
-        AgentTypes? agentTypes = null,
+        List<string>? agents = null,
         bool local = false)
     {
+        var types = new Dictionary<string, Type>();
+        if (agents != null)
+        {
+            foreach (var type in agents)
+            {
+                types.Add(type, Type.GetType(type) ?? throw new InvalidOperationException($"Type {type} not found"));
+            }
+        }
+        var agentTypes = new AgentTypes(types);
         if (Host == null)
         {
             await StartAsync(builder, agentTypes, local);
@@ -57,7 +66,6 @@ public static class AgentsApp
         await client.PublishEventAsync(topic, message).ConfigureAwait(false);
         return Host;
     }
-
     public static async ValueTask ShutdownAsync()
     {
         if (Host == null)
