@@ -114,7 +114,7 @@ from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
 from autogen_agentchat.logging import ConsoleLogHandler
 from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
 from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
-from autogen_core.components.models import OpenAIChatCompletionClient
+from autogen_ext.models import OpenAIChatCompletionClient
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.addHandler(ConsoleLogHandler())
