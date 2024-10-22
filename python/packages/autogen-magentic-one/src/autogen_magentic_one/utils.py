@@ -8,11 +8,10 @@ from typing import Any, Dict, List, Literal
 from autogen_core.application.logging.events import LLMCallEvent
 from autogen_core.components import Image
 from autogen_core.components.models import (
-    AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
     ModelCapabilities,
-    OpenAIChatCompletionClient,
 )
+from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from .messages import (
     AgentEvent,
@@ -66,7 +65,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # Instantiate the correct client
     if _provider == "openai":
-        return OpenAIChatCompletionClient(**_kwargs)
+        return OpenAIChatCompletionClient(**_kwargs)  # type: ignore
     elif _provider == "azure":
         if _kwargs.get("azure_ad_token_provider", "").lower() == "default":
             if _default_azure_ad_token_provider is None:
@@ -76,7 +75,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
                     DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
                 )
             _kwargs["azure_ad_token_provider"] = _default_azure_ad_token_provider
-        return AzureOpenAIChatCompletionClient(**_kwargs)
+        return AzureOpenAIChatCompletionClient(**_kwargs)  # type: ignore
     else:
         raise ValueError(f"Unknown OAI provider '{_provider}'")
 

@@ -48,7 +48,7 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
 
     .. note::
 
-        This class requires the :code:`azure-code-executor` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`azure` extra for the :code:`autogen-ext` package.
 
 
     **This will execute LLM generated code on an Azure dynamic code container.**
