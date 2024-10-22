@@ -6,7 +6,7 @@
 [![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40Chi_Wang_)](https://x.com/Chi_Wang_)
 
-[![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
+<!-- [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core) -->
 
 # [AutoGen](https://github.com/autogenhub/autogen)
 
@@ -26,7 +26,7 @@ We extend our sincere gratitude to the original owner of `autogen` pypi package 
 📄 **License Change:**
 With this new release and package name, we are officially switching to the Apache 2.0 license. This enhances our commitment to open-source collaboration while providing additional protections for contributors and users alike.
 
-:fire: Oct 20, 2024: A new organization [autogenhub](https://github.com/autogenhub) is created to host the development of AutoGen and related projects with open governance. We invite collaborators from all organizations and individuals.
+:fire: Aug, 2024: A new organization [autogenhub](https://github.com/autogenhub) is created to host the development of AutoGen and related projects with open governance. We invite collaborators from all organizations and individuals.
 
 :tada: May 29, 2024: DeepLearning.ai launched a new short course [AI Agentic Design Patterns with AutoGen](https://www.deeplearning.ai/short-courses/ai-agentic-design-patterns-with-autogen), made in collaboration with Microsoft and Penn State University, and taught by AutoGen creators [Chi Wang](https://github.com/sonichi) and [Qingyun Wu](https://github.com/qingyun-wu).
 
@@ -36,7 +36,7 @@ With this new release and package name, we are officially switching to the Apach
 
 :tada: May 11, 2024: [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation](https://openreview.net/pdf?id=uAjxFFing2) received the best paper award at the [ICLR 2024 LLM Agents Workshop](https://llmagents.github.io/).
 
-:tada: Apr 26, 2024: [AutoGen.NET](https://autogenhub.github.io/autogen-for-net/) is available for .NET developers!
+<!-- :tada: Apr 26, 2024: [AutoGen.NET](https://autogenhub.github.io/autogen-for-net/) is available for .NET developers! -->
 
 :tada: Apr 17, 2024: Andrew Ng cited AutoGen in [The Batch newsletter](https://www.deeplearning.ai/the-batch/issue-245/) and [What's next for AI agentic workflows](https://youtu.be/sal78ACtGTc?si=JduUzN_1kDnMq0vF) at Sequoia Capital's AI Ascent (Mar 26).
 
