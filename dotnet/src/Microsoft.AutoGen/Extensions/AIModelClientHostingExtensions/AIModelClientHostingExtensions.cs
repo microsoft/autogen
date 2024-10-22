@@ -11,21 +11,21 @@ namespace Microsoft.Extensions.Hosting
             .UseFunctionInvocation()
             .UseOpenTelemetry(configure: c => c.EnableSensitiveData = true);
 
-            if (builder.Configuration[$"{serviceName}:Type"] == "ollama")
+            if (builder.Configuration[$"{serviceName}:ModelType"] == "ollama")
             {
                 builder.AddOllamaChatClient(serviceName, pipeline);
             }
-            else if (builder.Configuration[$"{serviceName}:Type"] == "openai")
+            else if (builder.Configuration[$"{serviceName}:ModelType"] == "openai"|| builder.Configuration[$"{serviceName}:ModelType"] == "azureopenai")
             {
                 builder.AddOpenAIChatClient(serviceName, pipeline);
             }
-            else if (builder.Configuration[$"{serviceName}:Type"] == "azureaiinference")
+            else if (builder.Configuration[$"{serviceName}:ModelType"] == "azureaiinference")
             {
                 builder.AddAzureChatClient(serviceName, pipeline);
             }
             else
             {
-                throw new InvalidOperationException("Did not find a valid model implementation for the given service name ${serviceName}");
+                throw new InvalidOperationException("Did not find a valid model implementation for the given service name ${serviceName}, valid supported implemenation types are ollama, openai, azureopenai, azureaiinference");
             }
             return builder;
         }
