@@ -6,8 +6,8 @@ from autogen_core.base import MessageContext, TopicId
 from autogen_core.components import event
 
 from ... import EVENT_LOGGER_NAME
+from ...base import TerminationCondition
 from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent
-from .._termination import TerminationCondition
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
