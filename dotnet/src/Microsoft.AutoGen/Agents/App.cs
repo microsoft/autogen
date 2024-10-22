@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Runtime;
+//using Microsoft.AutoGen.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,29 +15,29 @@ public static class AgentsApp
     public static WebApplicationBuilder CreateBuilder(AgentTypes? agentTypes = null, bool local = false)
     {
         ClientBuilder.AddServiceDefaults();
-        ClientBuilder.AddAgentWorker().AddAgents(agentTypes);
+        if (agentTypes!=null) { ClientBuilder.AddAgentWorker().AddAgents(agentTypes);}
         return ClientBuilder;
     }
     [MemberNotNull(nameof(Host))]
     public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
         // start the server runtime
-        if (builder == null)
+      if (builder == null)
         {
             builder = AgentsApp.CreateBuilder();
         }
-        if (local)
+/*        if (local)
         {
             builder.AddLocalAgentService();
         }
         else
         {
             builder.AddAgentService();
-        }
+        } */
         builder.AddAgentWorker()
             .AddAgents(agentTypes);
         var app = builder.Build();
-        app.MapAgentService();
+        //app.MapAgentService();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
         return Host;
