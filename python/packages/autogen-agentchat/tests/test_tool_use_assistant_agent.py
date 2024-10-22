@@ -3,11 +3,11 @@ import json
 from typing import Any, AsyncGenerator, List
 
 import pytest
-from autogen_agentchat.agents import (
+from autogen_agentchat.agents import ToolUseAssistantAgent
+from autogen_agentchat.messages import (
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
-    ToolUseAssistantAgent,
 )
 from autogen_core.base import CancellationToken
 from autogen_core.components.models import FunctionExecutionResult, OpenAIChatCompletionClient
