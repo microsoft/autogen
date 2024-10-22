@@ -74,7 +74,6 @@ html_title = "AutoGen"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_sidebars = {'packages/index': []}
 
 html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
@@ -112,7 +111,11 @@ html_theme_options = {
     "footer_center": ["footer-middle-links"],
     "footer_end": ["theme-version"],
     "pygments_light_style": "xcode",
-    "pygments_dark_style": "monokai"
+    "pygments_dark_style": "monokai",
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {
+        "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
+    }
 }
 
 html_js_files = ["custom-icon.js"]
