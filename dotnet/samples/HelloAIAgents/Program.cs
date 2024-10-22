@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
 var builder = AgentsApp.CreateBuilder();
-builder.AddChatCompletionService("HelloAgents");
+builder.AddChatCompletionService("HelloAIAgents");
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
