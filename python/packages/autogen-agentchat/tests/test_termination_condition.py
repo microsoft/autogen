@@ -1,5 +1,5 @@
 import pytest
-from autogen_agentchat.agents import StopMessage, TextMessage
+from autogen_agentchat.messages import StopMessage, TextMessage
 from autogen_agentchat.teams import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 
 

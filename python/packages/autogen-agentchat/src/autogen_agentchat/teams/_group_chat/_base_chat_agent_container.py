@@ -8,7 +8,8 @@ from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tool_agent import ToolException
 
 from ... import EVENT_LOGGER_NAME
-from ...agents import BaseChatAgent, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from ...base import BaseChatAgent
+from ...messages import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
 

@@ -3,7 +3,7 @@ import logging
 import sys
 from datetime import datetime
 
-from ..agents import ChatMessage, StopMessage, TextMessage
+from ..messages import ChatMessage, StopMessage, TextMessage
 from ..teams._events import (
     ContentPublishEvent,
     SelectSpeakerEvent,

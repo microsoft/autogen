@@ -12,8 +12,8 @@ from autogen_core.components.models import (
 )
 from autogen_core.components.tools import Tool
 
-from ._base_chat_agent import (
-    BaseToolUseChatAgent,
+from ..base import BaseToolUseChatAgent
+from ..messages import (
     ChatMessage,
     MultiModalMessage,
     StopMessage,
