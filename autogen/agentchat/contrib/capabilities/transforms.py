@@ -248,7 +248,7 @@ class MessageTokenLimiter:
         if post_transform_messages_tokens < pre_transform_messages_tokens:
             logs_str = (
                 f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
-                f"Num_ber of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
+                f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
             )
             return logs_str, True
         return "No tokens were truncated.", False
