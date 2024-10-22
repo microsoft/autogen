@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
+}, local: false);
 
 await app.WaitForShutdownAsync();
 
