@@ -1,23 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 using System.Globalization;
 using System.Text;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Memory;
+using Microsoft.Extensions.AI;
 
 namespace Microsoft.AutoGen.Agents;
 public abstract class AiAgent<T> : AgentBase where T : class, new()
 {
     protected AgentState<T> _state;
     protected Kernel _kernel;
-    private readonly ISemanticTextMemory _memory;
+    private readonly IChatClient _chatClient;
 
-    public AiAgent(IAgentContext context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
+    public AiAgent(IAgentContext context, IChatClient client, EventTypes typeRegistry) : base(context, typeRegistry)
     {
         _state = new();
-        _memory = memory;
-        _kernel = kernel;
+        _chatClient = client;
     }
 
     public void AddToHistory(string message, ChatUserType userType) => _state.History.Add(new ChatHistoryItem
