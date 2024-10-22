@@ -65,9 +65,10 @@ pip install autogen-ext==0.4.0dev1
 
 Extras:
 
-- `langchain-tools` needed for {py:class}`~autogen_ext.tools.LangChainToolAdapter`
-- `azure-code-executor` needed for {py:class}`~autogen_ext.code_executors.ACADynamicSessionsCodeExecutor`
-- `docker-code-executor` needed for {py:class}`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
+- `langchain` needed for {py:class}`~autogen_ext.tools.LangChainToolAdapter`
+- `azure` needed for {py:class}`~autogen_ext.code_executors.ACADynamicSessionsCodeExecutor`
+- `docker` needed for {py:class}`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
+- `openai` needed for {py:class}`~autogen_ext.models.OpenAIChatCompletionClient`
 
 [{fas}`circle-info;pst-color-primary` User Guide](/user-guide/extensions-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/0.4.0.dev1/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
 :::
