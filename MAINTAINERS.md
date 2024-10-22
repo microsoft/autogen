@@ -17,11 +17,11 @@
 | Jieyu Zhang     | [JieyuZ2](https://jieyuz2.github.io/)                  | University of Washington | autobuild, group chat       |
 | Justin Trugman     | [jtrugman](https://github.com/jtrugman)                  | BetterFutureLabs | GPTAssistantAgent, Tool overwrite, Instruction Overwrite     |
 | Gregory Fanous  | [gregory-fanous](https://github.com/gregory-fanous)         | -                     | teachability, rag, tool calling     |
+| Davor Runje     | [davorrunje](https://github.com/davorrunje)                | airt.ai                | Tool calling, IO                        |
 
 **Pending Maintainers list (Marked with \*, Waiting for explicit approval from the maintainers)**
 | Name            | GitHub Handle                                              | Organization           | Features                                |
 |-----------------|------------------------------------------------------------|------------------------|-----------------------------------------|
-| Davor Runje *    | [davorrunje](https://github.com/davorrunje)                | airt.ai                | Tool calling, IO                        |
 | Olaoluwa Ademola Salami * | [olaoluwasalami](https://github.com/olaoluwasalami)  | DevOps Engineer        |                                          |
 | Li Jiang *      | [thinkall](https://github.com/thinkall)                    | Microsoft              | rag, autobuilder, group chat            |
 | Rajan Chari *    | [rajan-chari](https://github.com/rajan-chari)                | Microsoft Research                | CAP                        |
