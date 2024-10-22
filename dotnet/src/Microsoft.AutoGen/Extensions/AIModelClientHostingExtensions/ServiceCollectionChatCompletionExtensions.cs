@@ -51,8 +51,7 @@ public static class ServiceCollectionChatClientExtensions
         Func<ChatClientBuilder, ChatClientBuilder>? builder = null,
         string? modelOrDeploymentName = null)
     {
-        // TODO: We would prefer to use Aspire.AI.OpenAI here, but it doesn't yet support the OpenAI v2 client.
-        // So for now we access the connection string and set up a client manually.
+        // TODO: We would prefer to use Aspire.AI.OpenAI here, 
         var connectionString = hostBuilder.Configuration.GetConnectionString(serviceName);
         if (string.IsNullOrWhiteSpace(connectionString))
         {

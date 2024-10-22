@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
+var builder = AgentsApp.CreateBuilder();
+builder.AddChatCompletionService("HelloAgents");
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
