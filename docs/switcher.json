@@ -9,14 +9,14 @@
         "url": "/autogen/dev/"
     },
     {
-        "name": "0.4.0.dev0",
-        "version": "0.4.0.dev0",
-        "url": "/autogen/0.4.0.dev0/"
+        "name": "0.4.0dev0",
+        "version": "0.4.0dev0",
+        "url": "/autogen/0.4.0dev0/"
     },
     {
-        "name": "0.4.0.dev1",
-        "version": "0.4.0.dev1",
-        "url": "/autogen/0.4.0.dev1/",
+        "name": "0.4.0dev1",
+        "version": "0.4.0dev1",
+        "url": "/autogen/0.4.0dev1/",
         "preferred": true
     }
 ]
