@@ -8,7 +8,8 @@ internal sealed class WorkerGatewayService(WorkerGateway agentWorker) : AgentRpc
 {
     public override async Task OpenChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
-        try{
+        try
+        {
             await agentWorker.ConnectToWorkerProcess(requestStream, responseStream, context);
         }
         catch

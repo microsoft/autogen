@@ -72,5 +72,5 @@ public static class AgentsApp
             builder.AddAgent(type.Key, type.Value);
         }
         return builder;
-    }   
+    }
 }

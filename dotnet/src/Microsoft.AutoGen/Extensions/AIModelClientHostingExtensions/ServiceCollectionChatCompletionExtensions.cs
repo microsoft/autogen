@@ -1,12 +1,12 @@
-using Azure;
-using Azure.AI.OpenAI;
-using Azure.AI.Inference;
 using System.ClientModel;
+using System.Data.Common;
+using Azure;
+using Azure.AI.Inference;
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
-using System.Data.Common;
-using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 public static class ServiceCollectionChatClientExtensions

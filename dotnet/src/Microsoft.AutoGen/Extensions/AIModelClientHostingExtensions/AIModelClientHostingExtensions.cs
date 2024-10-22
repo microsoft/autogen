@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Hosting
             {
                 builder.AddOllamaChatClient(serviceName, pipeline);
             }
-            else if (builder.Configuration[$"{serviceName}:ModelType"] == "openai"|| builder.Configuration[$"{serviceName}:ModelType"] == "azureopenai")
+            else if (builder.Configuration[$"{serviceName}:ModelType"] == "openai" || builder.Configuration[$"{serviceName}:ModelType"] == "azureopenai")
             {
                 builder.AddOpenAIChatClient(serviceName, pipeline);
             }

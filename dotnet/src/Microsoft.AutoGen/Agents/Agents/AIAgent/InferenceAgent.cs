@@ -14,8 +14,8 @@ public abstract class InferenceAgent<T> : AgentBase where T : class, new()
     }
 
     private Task<ChatCompletion> CompleteAsync(
-        IList<ChatMessage> chatMessages, 
-        ChatOptions? options = null, 
+        IList<ChatMessage> chatMessages,
+        ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         return ChatClient.CompleteAsync(chatMessages, options, cancellationToken);
