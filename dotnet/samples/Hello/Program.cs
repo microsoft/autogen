@@ -47,7 +47,7 @@ namespace Hello
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
             //sleep30 seconds
-            await Task.Delay(30000).ConfigureAwait(false);
+            await Task.Delay(10000).ConfigureAwait(false);
             await AgentsApp.ShutdownAsync().ConfigureAwait(false);
 
         }
