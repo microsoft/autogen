@@ -1,8 +1,7 @@
 from typing import Callable, List
 
-from ...agents import BaseChatAgent
+from ...base import BaseChatAgent, TerminationCondition
 from .._events import ContentPublishEvent
-from .._termination import TerminationCondition
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
