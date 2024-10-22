@@ -120,10 +120,12 @@ html_theme_options = {
     "switcher": {
         "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
         "version_match": switcher_version,
-    }
+    },
+    "show_version_warning_banner": True,
+
 }
 
-html_js_files = ["custom-icon.js"]
+html_js_files = ["custom-icon.js", "override-switcher-button.js"]
 html_sidebars = {
     "packages/index": [],
 }
