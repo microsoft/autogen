@@ -18,7 +18,7 @@ builder.AddChatCompletionService("HelloAIAgents");
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
+}, builder, local: true);
 
 await app.WaitForShutdownAsync();
 
