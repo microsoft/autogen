@@ -112,3 +112,7 @@ def should_transform_message(message: Dict[str, Any], filter_dict: Optional[Dict
         return True
 
     return len(filter_config([message], filter_dict, exclude)) > 0
+
+
+def is_tool_call_valid(messages: List[Dict[str, Any]]) -> bool:
+    return messages[0].get("role") != "tool"
