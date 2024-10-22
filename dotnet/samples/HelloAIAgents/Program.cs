@@ -5,6 +5,10 @@ using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
 var builder = AgentsApp.CreateBuilder();
+// put these in your environment or appsettings.json
+builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
+builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
+builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
 builder.AddChatCompletionService("HelloAIAgents");
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
