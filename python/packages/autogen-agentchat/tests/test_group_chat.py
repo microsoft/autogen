@@ -7,15 +7,13 @@ from typing import Any, AsyncGenerator, List, Sequence
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
-    BaseChatAgent,
-    ChatMessage,
     CodeExecutorAgent,
     CodingAssistantAgent,
-    StopMessage,
-    TextMessage,
     ToolUseAssistantAgent,
 )
+from autogen_agentchat.base import BaseChatAgent
 from autogen_agentchat.logging import FileLogHandler
+from autogen_agentchat.messages import ChatMessage, StopMessage, TextMessage
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
@@ -24,8 +22,9 @@ from autogen_agentchat.teams import (
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
-from autogen_core.components.models import FunctionExecutionResult, OpenAIChatCompletionClient
+from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk

@@ -17,7 +17,7 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
     .. note::
 
-        This class requires the :code:`docker-code-executor` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`langchain` extra for the :code:`autogen-ext` package.
 
 
     Args:

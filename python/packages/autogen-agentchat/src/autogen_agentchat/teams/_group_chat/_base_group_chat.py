@@ -8,15 +8,14 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
-from ...agents import BaseChatAgent, BaseToolUseChatAgent, ChatMessage, TextMessage
-from .._base_team import BaseTeam, TeamRunResult
+from ...base import BaseChatAgent, BaseToolUseChatAgent, TaskResult, Team, TerminationCondition
+from ...messages import ChatMessage, TextMessage
 from .._events import ContentPublishEvent, ContentRequestEvent
-from .._termination import TerminationCondition
 from ._base_chat_agent_container import BaseChatAgentContainer
 from ._base_group_chat_manager import BaseGroupChatManager
 
 
-class BaseGroupChat(BaseTeam, ABC):
+class BaseGroupChat(Team, ABC):
     """The base class for group chat teams.
 
     To implement a group chat team, first create a subclass of :class:`BaseGroupChatManager` and then
@@ -69,7 +68,7 @@ class BaseGroupChat(BaseTeam, ABC):
 
         return _factory
 
-    async def run(self, task: str, *, termination_condition: TerminationCondition | None = None) -> TeamRunResult:
+    async def run(self, task: str, *, termination_condition: TerminationCondition | None = None) -> TaskResult:
         """Run the team and return the result."""
         # Create intervention handler for termination.
 
@@ -170,4 +169,4 @@ class BaseGroupChat(BaseTeam, ABC):
         await runtime.stop_when_idle()
 
         # Return the result.
-        return TeamRunResult(messages=group_chat_messages)
+        return TaskResult(messages=group_chat_messages)
