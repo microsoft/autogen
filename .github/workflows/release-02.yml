@@ -1,0 +1,33 @@
+# This workflows will build and upload a Python Package using Twine when a release is published
+# Conda-forge bot will pick up new PyPI version and automatically create new version
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+name: "Release 0.2"
+
+on:
+  push:
+    tags:
+      - "0.2.*"
+permissions: {}
+jobs:
+  deploy:
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        python-version: [3.10]
+    runs-on: ${{ matrix.os }}
+    environment:
+      name: package
+      url: https://pypi.org/p/autogen-agentchat
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        shell: pwsh
+        run: |
+          pip install twine
+          python setup.py sdist bdist_wheel
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
