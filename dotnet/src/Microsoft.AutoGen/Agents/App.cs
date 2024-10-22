@@ -19,10 +19,13 @@ public static class AgentsApp
         return ClientBuilder;
     }
     [MemberNotNull(nameof(Host))]
-    public static async ValueTask<WebApplication> StartAsync(AgentTypes? agentTypes = null, bool local = false)
+    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
         // start the server runtime
-        var builder = WebApplication.CreateBuilder();
+        if (builder == null)
+        {
+            builder = WebApplication.CreateBuilder();
+        }
         if (local)
         {
             builder.AddLocalAgentService();
@@ -42,12 +45,13 @@ public static class AgentsApp
     public static async ValueTask<WebApplication> PublishMessageAsync(
         string topic,
         IMessage message,
+        WebApplicationBuilder? builder = null,
         AgentTypes? agentTypes = null,
         bool local = false)
     {
         if (Host == null)
         {
-            await StartAsync(agentTypes, local);
+            await StartAsync(builder, agentTypes, local);
         }
         var client = Host.Services.GetRequiredService<AgentClient>() ?? throw new InvalidOperationException("Host not started");
         await client.PublishEventAsync(topic, message).ConfigureAwait(false);
