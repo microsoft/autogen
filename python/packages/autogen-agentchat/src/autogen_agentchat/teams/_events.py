@@ -1,7 +1,7 @@
 from autogen_core.base import AgentId
 from pydantic import BaseModel, ConfigDict
 
-from ..agents import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from ..messages import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 
 
 class ContentPublishEvent(BaseModel):
