@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+//using System.Net.Security;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
@@ -28,7 +29,11 @@ public static class HostBuilderExtensions
                     EnableMultipleHttp2Connections = true,
                     KeepAlivePingDelay = TimeSpan.FromSeconds(20),
                     KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests/*,
+                    SslOptions = new SslClientAuthenticationOptions
+                {
+                     RemoteCertificateValidationCallback = (_, _, _, _) => true
+                }*/
                 };
 
                 var methodConfig = new MethodConfig

@@ -24,7 +24,7 @@ public static class AgentsApp
         // start the server runtime
         if (builder == null)
         {
-            builder = WebApplication.CreateBuilder();
+            builder = AgentsApp.CreateBuilder();
         }
         if (local)
         {
@@ -46,21 +46,12 @@ public static class AgentsApp
         string topic,
         IMessage message,
         WebApplicationBuilder? builder = null,
-        List<string>? agents = null,
+        AgentTypes? agents = null,
         bool local = false)
     {
-        var types = new Dictionary<string, Type>();
-        if (agents != null)
-        {
-            foreach (var type in agents)
-            {
-                types.Add(type, Type.GetType(type) ?? throw new InvalidOperationException($"Type {type} not found"));
-            }
-        }
-        var agentTypes = new AgentTypes(types);
         if (Host == null)
         {
-            await StartAsync(builder, agentTypes, local);
+            await StartAsync(builder, agents, local);
         }
         var client = Host.Services.GetRequiredService<AgentClient>() ?? throw new InvalidOperationException("Host not started");
         await client.PublishEventAsync(topic, message).ConfigureAwait(false);
