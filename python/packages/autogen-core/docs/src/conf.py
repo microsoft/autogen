@@ -3,7 +3,6 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import pydata_sphinx_theme
 from sphinx.application import Sphinx
 from typing import Any, Dict
 from pathlib import Path
@@ -12,11 +11,13 @@ import os
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import autogen_core
 
 project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
-version = "0.2"
+version = "0.4"
+release = autogen_core.__version__
 
 
 sys.path.append(str(Path(".").resolve()))
