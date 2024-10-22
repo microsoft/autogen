@@ -20,7 +20,7 @@ Agent ID = (Agent Type, Agent Key)
 ```
 
 The agent type is not an agent class.
-It associate an agent with a specific
+It associates an agent with a specific
 factory function, which produces instances of agents
 of the same agent type.
 For example, different factory functions can produce the same
