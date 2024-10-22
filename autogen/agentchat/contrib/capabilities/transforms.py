@@ -102,6 +102,9 @@ class MessageHistoryLimiter:
             if remaining_count == 0:
                 break
 
+        if not transforms_util.is_tool_call_valid(truncated_messages):
+            truncated_messages.pop()
+
         return truncated_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
@@ -229,6 +232,9 @@ class MessageTokenLimiter:
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
+        if not transforms_util.is_tool_call_valid(processed_messages):
+            processed_messages.pop()
+
         return processed_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
@@ -242,7 +248,7 @@ class MessageTokenLimiter:
         if post_transform_messages_tokens < pre_transform_messages_tokens:
             logs_str = (
                 f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
-                f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
+                f"Num_ber of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
             )
             return logs_str, True
         return "No tokens were truncated.", False
