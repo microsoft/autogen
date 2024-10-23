@@ -18,5 +18,11 @@
         "version": "0.4.0dev1",
         "url": "/autogen/0.4.0dev1/",
         "preferred": true
+    },
+    {
+        "name": "0.4.0dev2",
+        "version": "0.4.0dev2",
+        "url": "/autogen/0.4.0dev2/",
+        "preferred": true
     }
 ]
