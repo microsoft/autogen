@@ -40,6 +40,7 @@ from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_event, log_function_use, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
+from .custom_nested_chat_condition import CustomNestedChatCondition
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 
@@ -2159,6 +2160,12 @@ class ConversableAgent(LLMAgent):
             return trigger == sender
         elif isinstance(trigger, Callable):
             rst = trigger(sender)
+            assert isinstance(rst, bool), f"trigger {trigger} must return a boolean value."
+            return rst
+        elif isinstance(trigger, CustomNestedChatCondition):
+            rst = trigger.call_function()
+            if trigger.state_params is not None:
+                trigger.call_function
             assert isinstance(rst, bool), f"trigger {trigger} must return a boolean value."
             return rst
         elif isinstance(trigger, list):
