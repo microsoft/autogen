@@ -3,19 +3,21 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import pydata_sphinx_theme
 from sphinx.application import Sphinx
 from typing import Any, Dict
 from pathlib import Path
 import sys
+import os
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import autogen_core
 
 project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
-version = "0.2"
+version = "0.4"
+release = autogen_core.__version__
 
 
 sys.path.append(str(Path(".").resolve()))
@@ -60,7 +62,14 @@ myst_enable_extensions = [
     "strikethrough",
 ]
 
-html_baseurl = "/autogen/dev/"
+if (path := os.getenv("PY_DOCS_DIR")) is None:
+    path = "dev"
+
+
+if (switcher_version := os.getenv("PY_SWITCHER_VERSION")) is None:
+    switcher_version = "dev"
+
+html_baseurl = f"/autogen/{path}/"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -70,7 +79,6 @@ html_title = "AutoGen"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_sidebars = {'packages/index': []}
 
 html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
@@ -108,10 +116,17 @@ html_theme_options = {
     "footer_center": ["footer-middle-links"],
     "footer_end": ["theme-version"],
     "pygments_light_style": "xcode",
-    "pygments_dark_style": "monokai"
+    "pygments_dark_style": "monokai",
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {
+        "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
+        "version_match": switcher_version,
+    },
+    "show_version_warning_banner": True,
+
 }
 
-html_js_files = ["custom-icon.js"]
+html_js_files = ["custom-icon.js", "override-switcher-button.js"]
 html_sidebars = {
     "packages/index": [],
 }

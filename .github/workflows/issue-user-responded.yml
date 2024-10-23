@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      pull-requests: write
     steps:
       - run: gh issue edit "$NUMBER" --remove-label "$LABELS"
         if: ${{ github.event.comment.user.login == github.event.issue.user.login && contains(github.event.issue.labels.*.name, 'awaiting-op-response') }}
