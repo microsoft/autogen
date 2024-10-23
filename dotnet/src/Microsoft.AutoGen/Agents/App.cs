@@ -14,32 +14,26 @@ public static class AgentsApp
     public static WebApplicationBuilder ClientBuilder { get; } = WebApplication.CreateBuilder();
     public static WebApplicationBuilder CreateBuilder(bool local = false)
     {
-        ClientBuilder.AddServiceDefaults();
         return ClientBuilder;
     }
     [MemberNotNull(nameof(Host))]
     public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
-        // start the server runtime
-        if (builder == null)
-        {
-            builder = AgentsApp.CreateBuilder();
-        }
+        builder ??= AgentsApp.CreateBuilder();
         if (local)
         {
+            // start the server runtime
             builder.AddLocalAgentService();
-        }
-        else
-        {
-            builder.AddAgentService();
         }
         builder.AddAgentWorker()
             .AddAgents(agentTypes);
+        builder.AddServiceDefaults();
         var app = builder.Build();
         if (local)
         {
             app.MapAgentService();
         }
+        app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
         return Host;
