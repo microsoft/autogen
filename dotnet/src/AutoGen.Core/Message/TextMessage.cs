@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// TextMessage.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace AutoGen.Core;
 

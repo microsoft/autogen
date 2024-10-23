@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Text;
 using Azure.Storage.Files.Shares;
 using DevTeam.Options;

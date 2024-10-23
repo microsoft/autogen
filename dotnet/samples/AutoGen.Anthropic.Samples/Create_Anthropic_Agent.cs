@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Create_Anthropic_Agent.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;

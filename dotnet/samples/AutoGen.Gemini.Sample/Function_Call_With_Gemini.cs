@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Function_Call_With_Gemini.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region Using
 using AutoGen.Core;

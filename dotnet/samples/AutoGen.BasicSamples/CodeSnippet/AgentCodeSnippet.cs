@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentCodeSnippet.cs
+// Copyright (c) Microsoft. All rights reserved.
+
 using AutoGen.Core;
 
 namespace AutoGen.BasicSample.CodeSnippet;

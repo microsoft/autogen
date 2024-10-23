@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Content.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;

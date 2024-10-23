@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// MessageExtensionTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Core;
 using AutoGen.DotnetInteractive.Extension;

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Microsoft.Extensions.AI;
 
 namespace Microsoft.Extensions.Hosting

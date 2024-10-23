@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example03_Agent_FunctionCall.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.BasicSample;
 using AutoGen.Core;

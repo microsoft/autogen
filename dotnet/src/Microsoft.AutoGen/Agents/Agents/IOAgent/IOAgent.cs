@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;

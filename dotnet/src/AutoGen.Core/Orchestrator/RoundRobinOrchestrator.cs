@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// RoundRobinOrchestrator.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Linq;
 using System.Threading;

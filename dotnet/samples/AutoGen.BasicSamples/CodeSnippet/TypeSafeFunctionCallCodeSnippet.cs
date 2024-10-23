@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// TypeSafeFunctionCallCodeSnippet.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text.Json;
 using AutoGen.OpenAI.Extension;

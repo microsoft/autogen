@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// GPTAgent.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.Collections.Generic;

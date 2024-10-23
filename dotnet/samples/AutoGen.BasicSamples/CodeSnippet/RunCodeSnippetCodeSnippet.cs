@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// RunCodeSnippetCodeSnippet.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region code_snippet_0_1
 using AutoGen.Core;

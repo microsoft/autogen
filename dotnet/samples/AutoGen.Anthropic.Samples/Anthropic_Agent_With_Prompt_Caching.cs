@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Anthropic_Agent_With_Prompt_Caching.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Anthropic.DTO;
 using AutoGen.Anthropic.Extensions;

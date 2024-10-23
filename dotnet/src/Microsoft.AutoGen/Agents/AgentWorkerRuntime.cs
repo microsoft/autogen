@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;

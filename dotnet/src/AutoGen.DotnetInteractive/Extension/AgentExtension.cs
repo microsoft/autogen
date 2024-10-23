@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentExtension.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 namespace AutoGen.DotnetInteractive;

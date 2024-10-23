@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.AutoGen.Abstractions;
 
 public class AgentState<T> where T : class, new()

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Agents;

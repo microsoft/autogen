@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Hello;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;

@@ -1,3 +1,2 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// GlobalUsing.cs
+// Copyright (c) Microsoft. All rights reserved.
 

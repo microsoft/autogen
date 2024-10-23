@@ -1,4 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 // this example has been moved to https://github.com/microsoft/autogen/blob/main/dotnet/samples/AutoGen.OpenAI.Sample/Connect_To_Ollama.cs

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// KernelFunctionExtensionTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.ComponentModel;
 using ApprovalTests;

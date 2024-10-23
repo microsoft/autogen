@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AnthropicClientTest.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 using System.Text.Json;

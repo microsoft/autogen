@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AnthropicAgentExtension.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Anthropic.Middleware;
 using AutoGen.Core;

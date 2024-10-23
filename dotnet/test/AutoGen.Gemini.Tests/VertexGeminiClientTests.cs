@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// VertexGeminiClientTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Tests;
 using FluentAssertions;

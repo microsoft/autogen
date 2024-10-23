@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Create_Semantic_Kernel_Chat_Agent.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region Using
 using AutoGen.Core;

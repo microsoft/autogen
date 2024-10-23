@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ModelReplyOptions.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text.Json.Serialization;
 

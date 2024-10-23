@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// DotnetInteractiveStdioKernelConnector.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.DotnetInteractive.Extension;
 using Microsoft.DotNet.Interactive;

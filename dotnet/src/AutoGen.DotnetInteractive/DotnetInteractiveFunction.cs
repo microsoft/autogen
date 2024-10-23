@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// DotnetInteractiveFunction.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 using Microsoft.DotNet.Interactive.Documents;

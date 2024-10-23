@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AnthropicClientAgentTest.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Anthropic.DTO;
 using AutoGen.Anthropic.Extensions;

@@ -1,4 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Program.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 Console.WriteLine("Hello, World!");

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// FunctionExample.test.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text.Json;
 using ApprovalTests;

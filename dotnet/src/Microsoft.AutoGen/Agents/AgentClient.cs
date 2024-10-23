@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Diagnostics;
 using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using DevTeam.Backend;
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;

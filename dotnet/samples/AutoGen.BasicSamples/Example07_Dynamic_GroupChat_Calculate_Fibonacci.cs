@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 using System.Text.Json;

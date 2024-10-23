@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example02_TwoAgent_MathChat.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.BasicSample;
 using AutoGen.Core;

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ITextEmbeddingService.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Threading;
 using System.Threading.Tasks;

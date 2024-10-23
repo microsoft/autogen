@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// FSM_Group_Chat.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 #region Using

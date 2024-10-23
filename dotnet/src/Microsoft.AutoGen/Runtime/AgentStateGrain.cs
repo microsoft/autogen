@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.AutoGen.Runtime;
 
 internal sealed class AgentStateGrain([PersistentState("state", "agent-state")] IPersistentState<Dictionary<string, object>> state) : Grain, IAgentStateGrain

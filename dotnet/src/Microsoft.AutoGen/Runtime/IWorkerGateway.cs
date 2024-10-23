@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 
 using Microsoft.AutoGen.Abstractions;
 

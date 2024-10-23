@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using RpcAgentId = Microsoft.AutoGen.Abstractions.AgentId;
 
 namespace Microsoft.AutoGen.Agents;
