@@ -30,7 +30,7 @@ await app.WaitForShutdownAsync();
 namespace Hello
 {
     [TopicSubscription("HelloAgents")]
-    public class HelloAIAgent(
+    public class HelloAgent(
         IAgentContext context,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
             context,
