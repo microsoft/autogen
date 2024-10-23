@@ -1,0 +1,65 @@
+:root {
+  --ifm-background-section-color: #f2f2f2;
+  --ifm-background-section-dark: #2c2c2c;
+  --ifm-text-color: black;
+  --ifm-text-color-dark: white;
+}
+
+html[data-theme="light"] .card {
+  background-color: var(--ifm-background-section-color);
+  color: var(--ifm-text-color);
+}
+
+html[data-theme="dark"] .card {
+  background-color: var(--ifm-background-section-dark);
+  color: var(--ifm-text-color-dark);
+}
+
+.features {
+  padding: 3rem 0;
+}
+
+.feature {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.feature a {
+  color: unset;
+  text-decoration: none;
+}
+
+.card {
+  flex-grow: 1;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.titles {
+  height: 120px;
+}
+
+@media screen and (max-width: 1200px) {
+  .titles {
+    height: 260px;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .feature img {
+    position: inherit;
+    bottom: inherit;
+  }
+
+  .feature div {
+    height: inherit !important;
+    position: inherit !important;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  #features {
+    padding: 3rem 1rem;
+  }
+}

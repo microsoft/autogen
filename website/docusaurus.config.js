@@ -33,6 +33,11 @@ module.exports = {
     format: "detect", // Support for MD files with .md extension
   },
   themeConfig: {
+    themeConfig: {
+      colorMode: {
+        defaultMode: 'dark',
+      },
+    },
     docs: {
       sidebar: {
         autoCollapseCategories: true,
@@ -141,6 +146,11 @@ module.exports = {
           position: "left",
         },
         {
+          to: "talks",
+          label: "Community Talks",
+          position: "left",
+        },
+        {
           href: "https://github.com/autogenhub/autogen",
           label: "GitHub",
           position: "right",
@@ -160,30 +170,21 @@ module.exports = {
     footer: {
       style: "dark",
       links: [
-        // {
-        //   title: 'Docs',
-        //   items: [
-        //     {
-        //       label: 'Getting Started',
-        //       to: 'docs/getting-started',
-        //     },
-        //   ],
-        // },
         {
-          title: "Community",
+          // title: "Community",
           items: [
             //     // {
             //     //   label: 'Stack Overflow',
             //     //   href: 'https://stackoverflow.com/questions/tagged/pymarlin',
             //     // },
-            {
-              label: "Discord",
-              href: "https://discord.gg/pAbnFJrkgZ",
-            },
-            {
-              label: "Twitter",
-              href: "https://twitter.com/Chi_Wang_",
-            },
+            // {
+            //   label: "Discord",
+            //   href: "https://discord.gg/pAbnFJrkgZ",
+            // },
+            // {
+            //   label: "Twitter",
+            //   href: "https://twitter.com/Chi_Wang_",
+            // },
           ],
         },
       ],

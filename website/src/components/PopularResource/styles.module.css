@@ -1,0 +1,34 @@
+.responsiveIframe {
+    width: 90%;
+    height: 400px;
+    border: none;
+    max-width: 1140px;
+  }
+
+  .iframeDiv {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media screen and (max-width: 1140px) {
+    .responsiveIframe {
+      width: 90%;
+      height: 350px;
+    }
+  }
+
+  @media screen and (max-width: 768px) {
+    .responsiveIframe {
+      width: 100%;
+      height: 300px;
+    }
+  }
+
+  @media screen and (max-width: 425px) {
+    .responsiveIframe {
+      width: 100%;
+      height: 280px;
+    }
+  }
