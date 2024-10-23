@@ -1,11 +1,12 @@
 using Hello;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
-var builder = AgentsApp.CreateBuilder();
+var builder = WebApplication.CreateBuilder();
 // put these in your environment or appsettings.json
 builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
 builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
