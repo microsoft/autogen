@@ -29,8 +29,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // TODO: Please find a better way to override the button text in a better way...
-    // Set a timer for 3 seconds to wait for the button to be rendered.
+    // TODO: Please find a better way to override the button text...
     setTimeout(async function() {
         // Get the button with class "pst-button-link-to-stable-version". There is only one.
         var button = document.querySelector('.pst-button-link-to-stable-version');
