@@ -3,8 +3,8 @@ from typing import List, Sequence
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
 
-from ..base import BaseChatAgent
 from ..messages import ChatMessage, TextMessage
+from ._base_chat_agent import BaseChatAgent
 
 
 class CodeExecutorAgent(BaseChatAgent):

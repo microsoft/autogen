@@ -64,7 +64,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
                                 type="function",
                                 function=Function(
                                     name="pass",
-                                    arguments=json.dumps({"input": "pass"}),
+                                    arguments=json.dumps({"input": "_pass_function"}),
                                 ),
                             )
                         ],
@@ -107,14 +107,5 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         registered_tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
-    response = await tool_use_agent.on_messages(
-        messages=[TextMessage(content="Test", source="user")], cancellation_token=CancellationToken()
-    )
-    assert isinstance(response, ToolCallMessage)
-    tool_call_results = [FunctionExecutionResult(content="", call_id=call.id) for call in response.content]
-
-    response = await tool_use_agent.on_messages(
-        messages=[ToolCallResultMessage(content=tool_call_results, source="test")],
-        cancellation_token=CancellationToken(),
-    )
-    assert isinstance(response, TextMessage)
+    result = await tool_use_agent.run("task")
+    assert len(result.messages) == 3
