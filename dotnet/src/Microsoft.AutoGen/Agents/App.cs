@@ -11,15 +11,10 @@ public static class AgentsApp
 {
     // need a variable to store the runtime instance
     public static WebApplication? Host { get; private set; }
-    public static WebApplicationBuilder ClientBuilder { get; } = WebApplication.CreateBuilder();
-    public static WebApplicationBuilder CreateBuilder(bool local = false)
-    {
-        return ClientBuilder;
-    }
     [MemberNotNull(nameof(Host))]
     public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
-        builder ??= AgentsApp.CreateBuilder();
+        builder ??= WebApplication.CreateBuilder();
         if (local)
         {
             // start the server runtime
