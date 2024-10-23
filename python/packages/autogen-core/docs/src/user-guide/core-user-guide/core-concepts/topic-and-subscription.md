@@ -76,7 +76,7 @@ For Python API, use {py:class}`~autogen_core.components.TypeSubscription`.
 Type-Based Subscription = Topic Type --> Agent Type
 ```
 
-Generally speaking, type-based subscription is the preferred way to delcare
+Generally speaking, type-based subscription is the preferred way to declare
 subscriptions. It is portable and data-independent:
 developers do not need to write application code that depends on specific agent IDs.
 

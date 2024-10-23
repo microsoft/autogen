@@ -6,7 +6,10 @@ on:
   push:
     branches:
       - main
-      - staging
+
+  pull_request:
+    branches:
+      - main
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -17,38 +20,64 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-04:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          [
+            { ref: main, dest-dir: dev },
+            { ref: "v0.4.0dev0", dest-dir: "0.4.0dev0" },
+            { ref: "v0.4.0dev1", dest-dir: "0.4.0dev1" },
+          ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: "true"
+          ref: ${{ matrix.version.ref }}
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          uv sync --locked --all-extras
+          source .venv/bin/activate
+          poe --directory ./packages/autogen-core docs-build
+          mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
+          mv ./packages/autogen-core/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
+        working-directory: ./python
+        env:
+          PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
+          PY_SWITCHER_VERSION: ${{ matrix.version.dest-dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "./python/docs-staging"
+          name: "${{ matrix.version.dest-dir }}-docs"
+
+  gen-redirects:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: 'true'
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+          lfs: "true"
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - run: |
-          uv sync --locked --all-extras
-          source .venv/bin/activate
-          poe --directory ./packages/autogen-core docs-build
-          mkdir -p docs-staging/dev/
-          mv ./packages/autogen-core/docs/build/* docs-staging/dev/
-        working-directory: ./python
+          python-version: "3.11"
       - name: generate redirects
         run: |
+          mkdir -p python/docs-staging/
           python python/packages/autogen-core/docs/redirects/redirects.py python/docs-staging
       - uses: actions/upload-artifact@v4
         with:
           path: "./python/docs-staging"
-          name: "04-docs"
+          name: "redirects"
 
   build-02:
     runs-on: ubuntu-latest
@@ -112,8 +141,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: [build-02, build-04]
-    if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && github.ref == 'refs/heads/main' }}
+    needs: [build-02, build-04, gen-redirects]
+    if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && needs.gen-redirects.result == 'success' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -122,8 +151,9 @@ jobs:
       - name: Copy 02-docs
         run: |
           mkdir -p deploy/
-          cp -r artifacts/02-docs/* deploy/
-          cp -r artifacts/04-docs/* deploy/
+          for dir in artifacts/*; do
+            cp -r $dir/* deploy/
+          done
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
