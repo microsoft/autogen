@@ -29,7 +29,7 @@ myst:
 Library that is at a similar level of abstraction as AutoGen 0.2, including default agents and group chat.
 
 ```sh
-pip install autogen-agentchat==0.4.0dev2
+pip install autogen-agentchat==0.4.0.dev2
 ```
 
 [{fas}`circle-info;pst-color-primary` User Guide](/user-guide/agentchat-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.4.0.dev2/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
@@ -44,7 +44,7 @@ pip install autogen-agentchat==0.4.0dev2
 Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
 
 ```sh
-pip install autogen-core==0.4.0dev2
+pip install autogen-core==0.4.0.dev2
 ```
 
 [{fas}`circle-info;pst-color-primary` User Guide](/user-guide/core-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/0.4.0.dev2/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
@@ -59,7 +59,7 @@ pip install autogen-core==0.4.0dev2
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
 ```sh
-pip install autogen-ext==0.4.0dev2
+pip install autogen-ext==0.4.0.dev2
 ```
 
 Extras:
