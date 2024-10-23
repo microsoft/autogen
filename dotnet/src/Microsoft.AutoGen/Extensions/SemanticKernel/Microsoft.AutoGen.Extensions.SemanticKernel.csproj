@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Agents/Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="..\AIModelClientHostingExtensions\AIModelClientHostingExtensions.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

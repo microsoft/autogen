@@ -4,7 +4,6 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class AgentBaseExtensions
 {
-
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
     {
         Activity? activity = null;
@@ -61,10 +60,9 @@ public static class AgentBaseExtensions
 
         return activity;
     }
-
     public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, Task> func, TState state, Activity? activity, string methodName)
     {
-        if (activity is not null)
+        if (activity is not null && activity.StartTimeUtc == default)
         {
             activity.Start();
 
