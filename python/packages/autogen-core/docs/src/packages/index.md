@@ -32,7 +32,7 @@ Library that is at a similar level of abstraction as AutoGen 0.2, including defa
 pip install autogen-agentchat==0.4.0dev2
 ```
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/agentchat-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.4.0.dev1/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/agentchat-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.4.0.dev2/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
 :::
 
 (pkg-info-autogen-core)=
@@ -47,7 +47,7 @@ Implements the core functionality of the AutoGen framework, providing basic buil
 pip install autogen-core==0.4.0dev2
 ```
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/core-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/0.4.0.dev1/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/core-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/0.4.0.dev2/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
 :::
 
 (pkg-info-autogen-ext)=
@@ -69,7 +69,7 @@ Extras:
 - `docker` needed for {py:class}`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
 - `openai` needed for {py:class}`~autogen_ext.models.OpenAIChatCompletionClient`
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/extensions-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/0.4.0.dev1/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/extensions-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/0.4.0.dev2/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
 :::
 
 (pkg-info-autogen-magentic-one)=
