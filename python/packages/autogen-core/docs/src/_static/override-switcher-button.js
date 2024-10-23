@@ -14,8 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (preferred) {
             // Get current rendered version
             const currentVersion = DOCUMENTATION_OPTIONS.VERSION;
+            const urlVersionPath = DOCUMENTATION_OPTIONS.theme_switcher_version_match;
             // The version compare library seems to not like the dev suffix without - so we're going to do an exact match and hide the banner if so
-            if (currentVersion === preferred.version) {
+            // For the "dev" version which is always latest we don't want to consider hiding the banner
+            if ((currentVersion === preferred.version) && (urlVersionPath !== "dev")) {
                 // Hide the banner with id bd-header-version-warning
                 document.getElementById('bd-header-version-warning').style.display = 'none';
                 return;
