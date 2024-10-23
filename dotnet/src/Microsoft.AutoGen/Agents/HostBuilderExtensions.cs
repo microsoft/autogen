@@ -29,7 +29,7 @@ public static class HostBuilderExtensions
                     EnableMultipleHttp2Connections = true,
                     KeepAlivePingDelay = TimeSpan.FromSeconds(20),
                     KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests/
+                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
                 };
 
                 var methodConfig = new MethodConfig
