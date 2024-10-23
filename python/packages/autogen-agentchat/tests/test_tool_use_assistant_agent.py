@@ -63,8 +63,8 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
                                 id="1",
                                 type="function",
                                 function=Function(
-                                    name="pass",
-                                    arguments=json.dumps({"input": "_pass_function"}),
+                                    name="_pass_function",
+                                    arguments=json.dumps({"input": "task"}),
                                 ),
                             )
                         ],
@@ -109,3 +109,5 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     )
     result = await tool_use_agent.run("task")
     assert len(result.messages) == 3
+    # assert isinstance(result.messages[1], ToolCallMessage)
+    # assert isinstance(result.messages[2], TextMessage)
