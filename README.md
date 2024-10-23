@@ -10,6 +10,7 @@
 # AutoGen
 
 > [!IMPORTANT]
+>
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 
@@ -18,11 +19,11 @@ It simplifies the creation of event-driven, distributed, scalable, and resilient
 It allows you to quickly build systems where AI agents collaborate and perform tasks autonomously
 or with human oversight.
 
-* [Key Features](#key-features)
-* [API Layering](#api-layering)
-* [Quickstart](#quickstart)
-* [Roadmap](#roadmap)
-* [FAQs](#faqs)
+- [Key Features](#key-features)
+- [API Layering](#api-layering)
+- [Quickstart](#quickstart)
+- [Roadmap](#roadmap)
+- [FAQs](#faqs)
 
 AutoGen streamlines AI development and research, enabling the use of multiple large language models (LLMs), integrated tools, and advanced multi-agent design patterns. You can develop and test your agent systems locally, then deploy to a distributed cloud environment as your needs grow.
 
@@ -100,7 +101,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install autogen-agentchat==0.4.0dev1 autogen-ext==0.4.0dev1
+pip install autogen-agentchat==0.4.0dev2 autogen-ext==0.4.0dev2
 ```
 
 The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
@@ -135,7 +136,8 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-### C#
+### C\#
+
 The .NET SDK does not yet support all of the interfaces that the python SDK offers but we are working on bringing them to parity.
 To use the .NET SDK, you need to add a package reference to the src in your project.
 We will release nuget packages soon and will update these instructions when that happens.
@@ -229,13 +231,13 @@ dotnet run
 ## Roadmap
 
 - AutoGen 0.2 - This is the current stable release of AutoGen. We will continue to accept bug fixes and minor enhancements to this version.
-- AutoGen 0.4 - This is the first release of the new architecture. This release is still in _preview_. We will be focusing on the stability of the interfaces, documentation, tutorials, samples, and a collection of built-in agents which you can use. We are excited to work with our community to define the future of AutoGen. We are looking for feedback and contributions to help shape the future of this project. Here are some major planned items:
-    - More programming languages (e.g., TypeScript)
-    - More built-in agents and multi-agent workflows
-    - Deployment of distributed agents
-    - Re-implementation/migration of AutoGen Studio
-    - Integration with other agent frameworks and data sources
-    - Advanced RAG techniques and memory services
+- AutoGen 0.4 - This is the first release of the new architecture. This release is still in *preview*. We will be focusing on the stability of the interfaces, documentation, tutorials, samples, and a collection of built-in agents which you can use. We are excited to work with our community to define the future of AutoGen. We are looking for feedback and contributions to help shape the future of this project. Here are some major planned items:
+  - More programming languages (e.g., TypeScript)
+  - More built-in agents and multi-agent workflows
+  - Deployment of distributed agents
+  - Re-implementation/migration of AutoGen Studio
+  - Integration with other agent frameworks and data sources
+  - Advanced RAG techniques and memory services
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -286,7 +288,7 @@ pip install autogen-agentchat~=0.2
 
 ### Will AutoGen Studio be supported in 0.4?
 
-Yes, this is on the [roadmap](#Roadmap).
+Yes, this is on the [roadmap](#roadmap).
 Our current plan is to enable an implementation of AutoGen Studio
 on the AgentChat high level API which implements a set of agent functionalities
 (agents, teams, etc).
@@ -317,11 +319,11 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
 
 ### Do you use Discord for communications?
 
-We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on https://github.com/microsoft/autogen/discussions/ going forward.
+We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on <https://github.com/microsoft/autogen/discussions/> going forward.
 
 ### What about forks?
 
-https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen.
+<https://github.com/microsoft/autogen/> remains the only official repo for development and support of AutoGen.
 We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them.
 
 ### What is the status of the license and open source?
@@ -329,6 +331,7 @@ We are aware that there are thousands of forks of AutoGen, including many for pe
 Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project.
 
 ### Can you clarify the current state of the packages?
+
 Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
 
 ### Can I still be involved?
@@ -351,9 +354,9 @@ see the [LICENSE](LICENSE) file, and grant you a license to any code in the repo
 Microsoft, Windows, Microsoft Azure, and/or other Microsoft products and services referenced in the documentation
 may be either trademarks or registered trademarks of Microsoft in the United States and/or other countries.
 The licenses for this project do not grant you rights to use any Microsoft names, logos, or trademarks.
-Microsoft's general trademark guidelines can be found at http://go.microsoft.com/fwlink/?LinkID=254653.
+Microsoft's general trademark guidelines can be found at <http://go.microsoft.com/fwlink/?LinkID=254653>.
 
-Privacy information can be found at https://go.microsoft.com/fwlink/?LinkId=521839
+Privacy information can be found at <https://go.microsoft.com/fwlink/?LinkId=521839>
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel, or otherwise.
