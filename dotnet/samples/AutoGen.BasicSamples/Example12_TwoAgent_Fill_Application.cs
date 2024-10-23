@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example12_TwoAgent_Fill_Application.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text;
 using AutoGen.Core;

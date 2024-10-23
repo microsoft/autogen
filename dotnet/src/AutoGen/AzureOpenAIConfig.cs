@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// AzureOpenAIConfig.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using Azure.AI.OpenAI;
 using OpenAI.Chat;

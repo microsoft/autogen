@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.ClientModel;
 using System.Data.Common;
 using Azure;

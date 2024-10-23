@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Dynamic_Group_Chat.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Core;
 using AutoGen.OpenAI;

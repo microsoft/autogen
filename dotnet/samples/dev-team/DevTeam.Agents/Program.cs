@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using DevTeam.Agents;
 using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Extensions.SemanticKernel;

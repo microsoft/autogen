@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Microsoft.AutoGen.Runtime;
 var builder = WebApplication.CreateBuilder(args);
 

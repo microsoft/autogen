@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIChatCompletionMiddlewareTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.ClientModel;
 using System.ClientModel.Primitives;

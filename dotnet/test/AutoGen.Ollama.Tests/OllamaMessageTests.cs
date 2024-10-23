@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// OllamaMessageTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen.Core;
 using AutoGen.Tests;

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// EnvironmentSpecificFactAttribute.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using Xunit;
 

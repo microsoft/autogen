@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// InteractiveService.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Diagnostics;
 using System.Reactive.Linq;

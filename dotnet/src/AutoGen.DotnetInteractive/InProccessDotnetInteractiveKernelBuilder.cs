@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// InProccessDotnetInteractiveKernelBuilder.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #if NET8_0_OR_GREATER
 using AutoGen.DotnetInteractive.Extension;

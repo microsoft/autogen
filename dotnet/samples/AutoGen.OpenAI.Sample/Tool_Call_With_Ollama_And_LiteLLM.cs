@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Tool_Call_With_Ollama_And_LiteLLM.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.ClientModel;
 using AutoGen.Core;

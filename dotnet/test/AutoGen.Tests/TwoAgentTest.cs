@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// TwoAgentTest.cs
+// Copyright (c) Microsoft. All rights reserved.
+
 #pragma warning disable xUnit1013
 using System;
 using System.Collections.Generic;

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Image_Chat_With_Vertex_Gemini.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region Using
 using AutoGen.Core;

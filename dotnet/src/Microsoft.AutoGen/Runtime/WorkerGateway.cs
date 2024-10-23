@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;

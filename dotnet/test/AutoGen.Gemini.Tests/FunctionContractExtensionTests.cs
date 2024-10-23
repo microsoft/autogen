@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// FunctionContractExtensionTests.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using ApprovalTests;
 using ApprovalTests.Namers;

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.AutoGen.Runtime;
 
 internal interface IAgentStateGrain : IGrainWithStringKey

@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example08_LMStudio.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region lmstudio_using_statements
 using System.ClientModel;

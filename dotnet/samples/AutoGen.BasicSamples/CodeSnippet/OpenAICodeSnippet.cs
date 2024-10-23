@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAICodeSnippet.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region using_statement
 using AutoGen.Core;

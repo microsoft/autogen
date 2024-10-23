@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// GetStartCodeSnippet.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region snippet_GetStartCodeSnippet
 using AutoGen;

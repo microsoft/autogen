@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example01_AssistantAgent.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using AutoGen;
 using AutoGen.BasicSample;

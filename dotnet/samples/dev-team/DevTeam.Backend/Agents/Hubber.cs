@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Text.Json;
 using DevTeam;
 using DevTeam.Backend;

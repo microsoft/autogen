@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using System.Threading.Channels;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;

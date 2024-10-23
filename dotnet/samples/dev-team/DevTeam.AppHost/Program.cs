@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();

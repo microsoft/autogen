@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Abstractions;

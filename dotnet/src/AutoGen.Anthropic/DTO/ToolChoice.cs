@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ToolChoice.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Text.Json.Serialization;
 using AutoGen.Anthropic.Converters;

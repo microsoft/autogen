@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace DevTeam.Agents;
 public static class DeveloperSkills

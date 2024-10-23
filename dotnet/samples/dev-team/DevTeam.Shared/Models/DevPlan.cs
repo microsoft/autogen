@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace DevTeam;
 public class DevLeadPlan
 {

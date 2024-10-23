@@ -1,5 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Connect_To_Ollama.cs
+// Copyright (c) Microsoft. All rights reserved.
 
 #region using_statement
 using System.ClientModel;
