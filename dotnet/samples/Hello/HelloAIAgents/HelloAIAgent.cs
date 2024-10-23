@@ -11,7 +11,6 @@ public class HelloAIAgent(
     IChatClient client) : HelloAgent(
         context,
         typeRegistry),
-        ISayHello,
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class
