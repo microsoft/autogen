@@ -10,7 +10,7 @@ internal sealed class WorkerGatewayService(WorkerGateway agentWorker) : AgentRpc
     {
         try
         {
-            await agentWorker.ConnectToWorkerProcess(requestStream, responseStream, context);
+            await agentWorker.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
         }
         catch
         {
