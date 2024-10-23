@@ -4,13 +4,7 @@ from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat.agents import ToolUseAssistantAgent
-from autogen_agentchat.messages import (
-    TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
-)
-from autogen_core.base import CancellationToken
-from autogen_core.components.models import FunctionExecutionResult, OpenAIChatCompletionClient
+from autogen_core.components.models import OpenAIChatCompletionClient
 from autogen_core.components.tools import FunctionTool
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
