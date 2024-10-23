@@ -6,6 +6,7 @@
     <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24507.7</MicrosoftExtensionsAIVersion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.1" />
