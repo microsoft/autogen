@@ -1,15 +1,31 @@
+using Hello;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // send a message to the agent
-var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var builder = WebApplication.CreateBuilder();
+// put these in your environment or appsettings.json
+builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
+builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
+Environment.SetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING", "Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO");
+if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null)
+{
+    throw new InvalidOperationException("AZURE_OPENAI_CONNECTION_STRING not set, try something like AZURE_OPENAI_CONNECTION_STRING = \"Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO\"");
+}
+builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
+builder.AddChatCompletionService("HelloAIAgents");
+var agentTypes = new AgentTypes(new Dictionary<string, Type>
+{
+    { "HelloAIAgents", typeof(HelloAIAgent) }
+});
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
+}, builder, agentTypes, local: true);
 
-await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello
@@ -47,7 +63,10 @@ namespace Hello
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
-            await App.ShutdownAsync();
+            //sleep30 seconds
+            await Task.Delay(30000).ConfigureAwait(false);
+            await AgentsApp.ShutdownAsync().ConfigureAwait(false);
+
         }
         public async Task<string> SayHello(string ask)
         {
