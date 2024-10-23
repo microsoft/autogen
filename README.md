@@ -136,7 +136,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-### C #
+### C\#
 
 The .NET SDK does not yet support all of the interfaces that the python SDK offers but we are working on bringing them to parity.
 To use the .NET SDK, you need to add a package reference to the src in your project.
