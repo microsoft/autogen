@@ -10,7 +10,7 @@ public abstract class FileAgent(
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
-    ) : IOAgent,
+    ) : IOAgent(context, typeRegistry),
         IUseFiles,
         IHandle<Input>,
         IHandle<Output>
