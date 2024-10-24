@@ -1,18 +1,17 @@
-# python\packages\autogen-ext\src\autogen_ext\storage\_chromadb.py
-
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 from autogen_core.application.logging import TRACE_LOGGER_NAME
+from chromadb import GetResult, QueryResult
 
 if TYPE_CHECKING:
-    from chromadb.api import AsyncClientAPI, Client
+    from chromadb.api import AsyncClientAPI, ClientAPI
     from chromadb.api.models.Collection import Collection
+    from chromadb.api.types import Embeddable, EmbeddingFunction, IncludeEnum
     from chromadb.config import Settings
 
 from ._base import AsyncVectorDB, Document, ItemID, QueryResults, VectorDB
-from ._utils import chroma_results_to_query_results, filter_results_by_distance
 
 CHROMADB_MAX_BATCH_SIZE = int(os.environ.get("CHROMADB_MAX_BATCH_SIZE", 40000))
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.{__name__}")
@@ -32,9 +31,11 @@ class ChromaVectorDB(VectorDB):
     def __init__(
         self,
         *,
-        client: Optional["Client"] = None,
+        client: Optional["ClientAPI"] = None,
         path: Optional[str] = None,
-        embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = None,
+        embedding_function: Optional[
+            Union[Callable[[List[str]], List[List[float]]], "EmbeddingFunction[Embeddable]"]
+        ] = None,
         metadata: Optional[Dict[str, Any]] = None,
         client_type: str = "persistent",
         host: str = "localhost",
@@ -48,7 +49,7 @@ class ChromaVectorDB(VectorDB):
             client: chromadb.Client | The client object of the vector database. Default is None.
                 If provided, it will use the client object directly and ignore other arguments.
             path: Optional[str] | The path to the vector database. Required if client_type is 'persistent'.
-            embedding_function: Callable | The embedding function used to generate the vector representation
+            embedding_function: Optional[Union[Callable, EmbeddingFunction]] | The embedding function used to generate the vector representation
                 of the documents. Default is None, SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2") will be used.
             metadata: dict | The metadata of the vector database. Default is None.
             client_type: str | The type of client to use. Can be 'persistent' or 'http'. Default is 'persistent'.
@@ -64,8 +65,10 @@ class ChromaVectorDB(VectorDB):
 
             if chromadb.__version__ < "0.5.0":
                 raise ImportError("Please upgrade chromadb to version 0.5.0 or later.")
-            import chromadb.utils.embedding_functions as ef
             from chromadb.errors import ChromaError
+            from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
+                SentenceTransformerEmbeddingFunction,
+            )
 
             ChromaVectorDB.ChromaError = ChromaError  # Set the class attribute
         except ImportError as e:
@@ -73,15 +76,16 @@ class ChromaVectorDB(VectorDB):
                 "Missing dependencies for ChromaVectorDB. Please ensure the autogen-ext package was installed with the 'chromadb' extra."
             ) from e
 
-        self.client: "Client" = client
-        self.embedding_function = (
-            ef.SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2")
+        self.embedding_function: "EmbeddingFunction[Embeddable]" = (  # type: ignore
+            SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2")
             if embedding_function is None
-            else embedding_function
+            else cast("EmbeddingFunction[Embeddable]", embedding_function)
         )
         self.metadata = metadata if metadata else {}
         self.type = "chroma"
-        if not self.client:
+        if client is not None:
+            self.client: "ClientAPI" = client
+        else:
             if client_type == "persistent":
                 if path is None:
                     raise ValueError("Persistent client requires a 'path' to save the database.")
@@ -90,6 +94,7 @@ class ChromaVectorDB(VectorDB):
                 self.client = chromadb.HttpClient(host=host, port=port, **kwargs)
             else:
                 raise ValueError(f"Invalid client_type: {client_type}")
+
         self.active_collection: Optional["Collection"] = None
 
     def create_collection(
@@ -201,7 +206,7 @@ class ChromaVectorDB(VectorDB):
 
     def insert_docs(
         self,
-        docs: List[Document],
+        docs: Sequence[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -210,7 +215,7 @@ class ChromaVectorDB(VectorDB):
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: List[Document] | A list of documents. Each document is a Pydantic Document model.
+            docs: Sequence[Document] | A list of documents. Each document is a Pydantic Document model.
             collection_name: Optional[str] | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             kwargs: Dict[str, Any] | Additional keyword arguments.
@@ -222,8 +227,6 @@ class ChromaVectorDB(VectorDB):
             return
         if docs[0].content is None and docs[0].embedding is None:
             raise ValueError("Either document content or embedding is required.")
-        if docs[0].id is None:
-            raise ValueError("The document id is required.")
         documents = [doc.content for doc in docs] if docs[0].content else None
         ids = [str(doc.id) for doc in docs]
         collection = self.get_collection(collection_name)
@@ -235,8 +238,8 @@ class ChromaVectorDB(VectorDB):
             collection,
             embeddings=embeddings,
             ids=ids,
-            metadatas=metadatas,
-            documents=documents,
+            metadatas=metadatas,  # type: ignore
+            documents=documents,  # type: ignore
             upsert=upsert,
         )
 
@@ -245,7 +248,7 @@ class ChromaVectorDB(VectorDB):
         Update documents in the collection of the vector database.
 
         Args:
-            docs: List[Document] | A list of documents.
+            docs: Sequence[Document] | A list of documents.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -259,7 +262,7 @@ class ChromaVectorDB(VectorDB):
         Delete documents from the collection of the vector database.
 
         Args:
-            ids: List[ItemID] | A list of document ids. Each id is a typed `ItemID`.
+            ids: Sequence[ItemID] | A list of document ids. Each id is a typed `ItemID`.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -267,7 +270,7 @@ class ChromaVectorDB(VectorDB):
             None
         """
         collection = self.get_collection(collection_name)
-        collection.delete(ids=ids)
+        collection.delete(ids=[str(id_) for id_ in ids] if ids else None)
 
     def retrieve_docs(
         self,
@@ -299,35 +302,49 @@ class ChromaVectorDB(VectorDB):
             query_texts=queries,
             n_results=n_results,
         )
-        results["contents"] = results.pop("documents")
-        results = chroma_results_to_query_results(results)
-        results = filter_results_by_distance(results, distance_threshold)
-        return results
+        results_list = _chroma_results_to_query_results(results)
+        results_filtered = filter_results_by_distance(results_list, distance_threshold)
+        return results_filtered
 
     @staticmethod
-    def _chroma_get_results_to_list_documents(data_dict: Dict[str, Any]) -> List[Document]:
-        """Converts a dictionary with list values to a list of Document.
+    def _chroma_get_results_to_list_documents(data_dict: GetResult) -> List[Document]:
+        """Converts a GetResult dictionary to a list of Document objects.
 
         Args:
-            data_dict: A dictionary where keys map to lists or None.
+            data_dict: GetResult | A GetResult dictionary containing ids, embeddings, documents, metadatas etc.
 
         Returns:
-            List[Document] | The list of Document.
+            List[Document] | The list of Document objects.
         """
         results: List[Document] = []
-        keys = [key for key in data_dict if data_dict[key] is not None]
 
-        for i in range(len(data_dict[keys[0]])):
+        # Get the length from ids which is always present in GetResult
+        n_docs = len(data_dict["ids"])
+
+        for i in range(n_docs):
             doc_dict = {}
-            for key in data_dict.keys():
-                if data_dict[key] is not None and len(data_dict[key]) > i:
-                    doc_dict[key[:-1]] = data_dict[key][i]
+
+            # Process each possible field from GetResult
+            if data_dict["ids"]:
+                doc_dict["id"] = data_dict["ids"][i]
+            if data_dict["embeddings"] is not None:
+                doc_dict["embedding"] = data_dict["embeddings"][i]
+            if data_dict["documents"] is not None:
+                doc_dict["document"] = data_dict["documents"][i]
+            if data_dict["metadatas"] is not None:
+                doc_dict["metadata"] = data_dict["metadatas"][i]
+            if data_dict["uris"] is not None:
+                doc_dict["uri"] = data_dict["uris"][i]
+            if data_dict["data"] is not None:
+                doc_dict["data"] = data_dict["data"][i]
+
             results.append(Document(**doc_dict))  # type: ignore
+
         return results
 
     def get_docs_by_ids(
         self,
-        ids: Optional[List[ItemID]] = None,
+        ids: Optional[Sequence[ItemID]] = None,
         collection_name: Optional[str] = None,
         include: Optional[List[str]] = None,
         **kwargs: Any,
@@ -336,19 +353,22 @@ class ChromaVectorDB(VectorDB):
         Retrieve documents from the collection of the vector database based on the ids.
 
         Args:
-            ids: Optional[List[ItemID]] | A list of document ids. If None, will return all the documents. Default is None.
+            ids: Optional[Sequence[ItemID]] | A list of document ids. If None, will return all the documents. Default is None.
             collection_name: Optional[str] | The name of the collection. Default is None.
-            include: Optional[List[str]] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"]. IDs are always included.
+            include: Optional[List[IncludeEnum]] | The fields to include. Default is None.
+                If None, will include [IncludeEnum.metadatas, IncludeEnum.documents]. IDs are always included.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
         Returns:
             List[Document] | The results.
         """
+        if include is not None:
+            include_enums = [IncludeEnum(item) for item in include]
+        else:
+            include_enums = [IncludeEnum.metadatas, IncludeEnum.documents]
         collection = self.get_collection(collection_name)
-        if include is None:
-            include = ["metadatas", "documents"]
-        results = collection.get(ids=ids, include=include)
+
+        results = collection.get(ids=[str(id_) for id_ in ids] if ids else None, include=include_enums)
         results = self._chroma_get_results_to_list_documents(results)
         return results
 
@@ -367,8 +387,10 @@ class AsyncChromaVectorDB(AsyncVectorDB):
     def __init__(
         self,
         *,
-        client: "AsyncClientAPI",
-        embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = None,
+        client: Optional["AsyncClientAPI"] = None,
+        embedding_function: Optional[
+            Union[Callable[[List[str]], List[List[float]]], "EmbeddingFunction[Embeddable]"]
+        ] = None,
         host: str = "localhost",
         port: int = 8000,
         ssl: bool = False,
@@ -404,6 +426,9 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             if chromadb.__version__ < "0.5.0":
                 raise ImportError("Please upgrade chromadb to version 0.5.0 or later.")
             from chromadb.errors import ChromaError
+            from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
+                SentenceTransformerEmbeddingFunction,
+            )
 
             AsyncChromaVectorDB.ChromaError = ChromaError  # Set the class attribute
         except ImportError as e:
@@ -411,13 +436,17 @@ class AsyncChromaVectorDB(AsyncVectorDB):
                 "Missing dependencies for AsyncChromaVectorDB. Please ensure the autogen-ext package was installed with the 'chromadb' extra."
             ) from e
 
-        self.client: "AsyncClientAPI" = client
-        self.embedding_function = embedding_function
-        if self.embedding_function is None:
-            raise ValueError("An embedding function must be provided for AsyncChromaVectorDB.")
+        self.embedding_function: "EmbeddingFunction[Embeddable]" = (  # type: ignore
+            cast(
+                "EmbeddingFunction[Embeddable]",
+                embedding_function or SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2"),
+            )
+        )
         self.type = "chroma"
-        if not self.client:
-            self.client = chromadb.AsyncHttpClient(
+        if client is not None:
+            self.client: "AsyncClientAPI" = client
+        else:
+            self.client = chromadb.AsyncHttpClient(  # type: ignore
                 host=host,
                 port=port,
                 ssl=ssl,
@@ -427,7 +456,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
                 database=database,
                 **kwargs,
             )
-        self.active_collection: Optional["Collection"] = None
+        self.active_collection: Optional[Any] = None
 
     async def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """
@@ -536,7 +565,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
 
     async def insert_docs(
         self,
-        docs: List[Document],
+        docs: Sequence[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -545,7 +574,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: List[Document] | A list of documents. Each document is a Pydantic Document model.
+            docs: Sequence[Document] | A list of documents. Each document is a Pydantic Document model.
             collection_name: Optional[str] | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             kwargs: Dict[str, Any] | Additional keyword arguments.
@@ -557,8 +586,6 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             return
         if docs[0].content is None and docs[0].embedding is None:
             raise ValueError("Either document content or embedding is required.")
-        if docs[0].id is None:
-            raise ValueError("The document id is required.")
         documents = [doc.content for doc in docs] if docs[0].content else None
         ids = [str(doc.id) for doc in docs]
         collection = await self.get_collection(collection_name)
@@ -575,12 +602,12 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             upsert=upsert,
         )
 
-    async def update_docs(self, docs: List[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    async def update_docs(self, docs: Sequence[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: List[Document] | A list of documents.
+            docs: Sequence[Document] | A list of documents.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -589,12 +616,12 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         """
         await self.insert_docs(docs, collection_name=collection_name, upsert=True, **kwargs)
 
-    async def delete_docs(self, ids: List[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    async def delete_docs(self, ids: Sequence[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Delete documents from the collection of the vector database.
 
         Args:
-            ids: List[ItemID] | A list of document ids. Each id is a typed `ItemID`.
+            ids: Sequence[ItemID] | A list of document ids. Each id is a typed `ItemID`.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -634,10 +661,9 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             query_texts=queries,
             n_results=n_results,
         )
-        results["contents"] = results.pop("documents")
-        results = chroma_results_to_query_results(results)
-        results = filter_results_by_distance(results, distance_threshold)
-        return results
+        results_list = _chroma_results_to_query_results(results)
+        results_filtered = filter_results_by_distance(results_list, distance_threshold)
+        return results_filtered
 
     @staticmethod
     def _chroma_get_results_to_list_documents(data_dict: Dict[str, Any]) -> List[Document]:
@@ -649,7 +675,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         Returns:
             List[Document] | The list of Document.
         """
-        results = []
+        results: List[Document] = []
         keys = [key for key in data_dict if data_dict[key] is not None]
 
         for i in range(len(data_dict[keys[0]])):
@@ -662,7 +688,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
 
     async def get_docs_by_ids(
         self,
-        ids: Optional[List[ItemID]] = None,
+        ids: Optional[Sequence[ItemID]] = None,
         collection_name: Optional[str] = None,
         include: Optional[List[str]] = None,
         **kwargs: Any,
@@ -671,18 +697,101 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         Retrieve documents from the collection of the vector database based on the ids.
 
         Args:
-            ids: Optional[List[ItemID]] | A list of document ids. If None, will return all the documents. Default is None.
+            ids: Optional[Sequence[ItemID]] | A list of document ids. If None, will return all the documents. Default is None.
             collection_name: Optional[str] | The name of the collection. Default is None.
-            include: Optional[List[str]] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"]. IDs are always included.
+            include: Optional[Sequence[IncludeEnum]] | The fields to include. Default is None.
+                If None, will include [IncludeEnum.metadatas, IncludeEnum.documents]. IDs are always included.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
         Returns:
             List[Document] | The results.
         """
         collection = await self.get_collection(collection_name)
-        if include is None:
-            include = ["metadatas", "documents"]
-        results = await collection.get(ids=ids, include=include)
+        if include is not None:
+            include_enums = [IncludeEnum(item) for item in include]
+        else:
+            include_enums = None
+        results = await collection.get(ids=ids, include=include_enums)
         results = self._chroma_get_results_to_list_documents(results)
         return results
+
+
+def _chroma_results_to_query_results(
+    data_dict: QueryResult, special_key: str = "distances"
+) -> List[List[Tuple[Dict[str, Any], float]]]:
+    """Converts a dictionary with list-of-list values to a list of tuples.
+
+    Args:
+        data_dict: A dictionary where keys map to lists of lists or None.
+        special_key: str | The key in the dictionary containing the special values
+                     for each tuple.
+
+    Returns:
+        List[List[Tuple[Dict[str, Any], float]]] | A list of tuples, where each tuple contains
+        a sub-dictionary with some keys from the original dictionary and the value from the
+        special_key.
+
+    Example:
+        data_dict = {
+            "key1s": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            "key2s": [["a", "b", "c"], ["c", "d", "e"], ["e", "f", "g"]],
+            "key3s": None,
+            "key4s": [["x", "y", "z"], ["1", "2", "3"], ["4", "5", "6"]],
+            "distances": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+        }
+
+        results = [
+            [
+                ({"key1": 1, "key2": "a", "key4": "x"}, 0.1),
+                ({"key1": 2, "key2": "b", "key4": "y"}, 0.2),
+                ({"key1": 3, "key2": "c", "key4": "z"}, 0.3),
+            ],
+            [
+                ({"key1": 4, "key2": "c", "key4": "1"}, 0.4),
+                ({"key1": 5, "key2": "d", "key4": "2"}, 0.5),
+                ({"key1": 6, "key2": "e", "key4": "3"}, 0.6),
+            ],
+            [
+                ({"key1": 7, "key2": "e", "key4": "4"}, 0.7),
+                ({"key1": 8, "key2": "f", "key4": "5"}, 0.8),
+                ({"key1": 9, "key2": "g", "key4": "6"}, 0.9),
+            ],
+        ]
+    """
+
+    if not data_dict or special_key not in data_dict or not data_dict.get(special_key):
+        return []
+
+    result: List[List[Tuple[Document, float]]] = []
+    data_special_key: Any = data_dict[special_key]
+
+    if data_special_key is None:
+        return result
+
+    for i in range(len(data_special_key)):
+        sub_result: List[Tuple[Document, float]] = []
+        for j, distance in enumerate(data_special_key[i]):  # type: ignore
+            document = data_dict["documents"][i][j]  # type: ignore
+            sub_result.append((document, distance))
+        result.append(sub_result)
+
+    return result
+
+
+def filter_results_by_distance(
+    results: List[List[Tuple[Dict[str, Any], float]]], distance_threshold: float = -1
+) -> QueryResults:
+    """Filters results based on a distance threshold.
+
+    Args:
+        results: QueryResults | The query results. List[List[Tuple[Document, float]]]
+        distance_threshold: The maximum distance allowed for results.
+
+    Returns:
+        QueryResults | A filtered results containing only distances smaller than the threshold.
+    """
+
+    if distance_threshold > 0:
+        results = [[(key, value) for key, value in data if value < distance_threshold] for data in results]
+
+    return results

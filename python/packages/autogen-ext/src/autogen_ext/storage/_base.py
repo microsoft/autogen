@@ -156,7 +156,7 @@ class AsyncVectorDB(Protocol):
 
     async def retrieve_docs(
         self,
-        queries: Sequence[str],
+        queries: List[str],
         collection_name: Optional[str] = None,
         n_results: int = 10,
         distance_threshold: float = -1,
@@ -183,7 +183,7 @@ class AsyncVectorDB(Protocol):
         self,
         ids: Optional[Sequence[ItemID]] = None,
         collection_name: Optional[str] = None,
-        include: Optional[Sequence[str]] = None,
+        include: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Document]:
         """
@@ -324,7 +324,7 @@ class VectorDB(Protocol):
 
     def retrieve_docs(
         self,
-        queries: Sequence[str],
+        queries: List[str],
         collection_name: Optional[str] = None,
         n_results: int = 10,
         distance_threshold: float = -1,

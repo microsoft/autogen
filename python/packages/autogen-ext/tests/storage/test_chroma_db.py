@@ -1,6 +1,6 @@
-from autogen_ext.storage._base import Document
 import pytest
 from autogen_ext.storage import ChromaVectorDB
+from autogen_ext.storage._base import Document
 from chromadb.errors import ChromaError
 
 
