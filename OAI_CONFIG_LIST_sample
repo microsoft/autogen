@@ -1,5 +1,4 @@
 // Please modify the content, remove these four lines of comment and rename this file to OAI_CONFIG_LIST to run the sample code.
-// If using pyautogen v0.1.x with Azure OpenAI, please replace "base_url" with "api_base" (line 14 and line 21 below). Use "pip list" to check version of pyautogen installed.
 //
 // NOTE: This configuration lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by OpenAI or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
 [

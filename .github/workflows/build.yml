@@ -5,15 +5,13 @@ name: Build
 
 on:
   push:
-    branches: ["main"]
+    branches: ["0.2"]
   pull_request:
-    branches: ["main"]
-  merge_group:
-    types: [checks_requested]
+    branches: ["0.2"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/0.2' }}
 permissions: {}
 jobs:
   paths-filter:

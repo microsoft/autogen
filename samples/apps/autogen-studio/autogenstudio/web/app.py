@@ -12,13 +12,14 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from openai import OpenAIError
 
-from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from ..chatmanager import AutoGenChatManager
 from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..profiler import Profiler
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
 from ..version import VERSION
+from ..websocket_connection_manager import WebSocketConnectionManager
 
 profiler = Profiler()
 managers = {"chat": None}  # manage calls to autogen
@@ -64,11 +65,17 @@ ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
+HUMAN_INPUT_TIMEOUT_SECONDS = 180
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("***** App started *****")
-    managers["chat"] = AutoGenChatManager(message_queue=message_queue)
+    managers["chat"] = AutoGenChatManager(
+        message_queue=message_queue,
+        websocket_manager=websocket_manager,
+        human_input_timeout=HUMAN_INPUT_TIMEOUT_SECONDS,
+    )
     dbmanager.create_db_and_tables()
 
     yield
@@ -449,7 +456,7 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
-        agent_response: Message = managers["chat"].chat(
+        agent_response: Message = await managers["chat"].a_chat(
             message=message,
             history=user_message_history,
             user_dir=user_dir,

@@ -69,6 +69,8 @@ def test_retrievechat():
             "client": client,
             "docs_path": "./website/docs",
             "chunk_token_size": 2000,
+            "get_or_create": True,
+            "overwrite": True,
         },
     )
 

@@ -5,13 +5,10 @@
 name: python-package
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "0.2.*"
 permissions: {}
-  # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
 jobs:
   deploy:
     strategy:
@@ -19,38 +16,18 @@ jobs:
         os: ['ubuntu-latest']
         python-version: [3.10]
     runs-on: ${{ matrix.os }}
-    environment: package
+    environment:
+      name: package
+      url: https://pypi.org/p/autogen-agentchat
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # - name: Cache conda
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key: conda-${{ matrix.os }}-python-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
-      # - name: Setup Miniconda
-      #   uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     auto-update-conda: true
-      #     auto-activate-base: false
-      #     activate-environment: hcrystalball
-      #     python-version: ${{ matrix.python-version }}
-      #     use-only-tar-bz2: true
-      - name: Install from source
-        # This is required for the pre-commit tests
-        shell: pwsh
-        run: pip install .
-      # - name: Conda list
-      #   shell: pwsh
-      #   run: conda list
       - name: Build
         shell: pwsh
         run: |
           pip install twine
           python setup.py sdist bdist_wheel
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        shell: pwsh
-        run: twine upload dist/*
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

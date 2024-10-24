@@ -102,6 +102,9 @@ class MessageHistoryLimiter:
             if remaining_count == 0:
                 break
 
+        if not transforms_util.is_tool_call_valid(truncated_messages):
+            truncated_messages.pop()
+
         return truncated_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
@@ -229,6 +232,9 @@ class MessageTokenLimiter:
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
+        if not transforms_util.is_tool_call_valid(processed_messages):
+            processed_messages.pop()
+
         return processed_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
@@ -319,7 +325,7 @@ class TextMessageCompressor:
         text_compressor: Optional[TextCompressor] = None,
         min_tokens: Optional[int] = None,
         compression_params: Dict = dict(),
-        cache: Optional[AbstractCache] = Cache.disk(),
+        cache: Optional[AbstractCache] = None,
         filter_dict: Optional[Dict] = None,
         exclude_filter: bool = True,
     ):
@@ -391,6 +397,7 @@ class TextMessageCompressor:
 
             cache_key = transforms_util.cache_key(message["content"], self._min_tokens)
             cached_content = transforms_util.cache_content_get(self._cache, cache_key)
+
             if cached_content is not None:
                 message["content"], savings = cached_content
             else:

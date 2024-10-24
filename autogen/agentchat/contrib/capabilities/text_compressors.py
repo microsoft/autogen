@@ -5,7 +5,7 @@ try:
     import llmlingua
 except ImportError:
     IMPORT_ERROR = ImportError(
-        "LLMLingua is not installed. Please install it with `pip install pyautogen[long-context]`"
+        "LLMLingua is not installed. Please install it with `pip install autogen-agentchat[long-context]~=0.2`"
     )
     PromptCompressor = object
 else:

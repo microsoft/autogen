@@ -1,6 +1,6 @@
 from autogencap.actor_runtime import IRuntime
 from autogencap.constants import ZMQ_Runtime
-from autogencap.DebugLog import Error
+from autogencap.debug_log import Error
 from autogencap.zmq_runtime import ZMQRuntime
 
 

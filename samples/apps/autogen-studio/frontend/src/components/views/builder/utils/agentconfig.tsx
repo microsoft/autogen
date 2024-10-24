@@ -193,8 +193,8 @@ export const AgentConfigView = ({
                   options={
                     [
                       { label: "NEVER", value: "NEVER" },
-                      // { label: "TERMINATE", value: "TERMINATE" },
-                      // { label: "ALWAYS", value: "ALWAYS" },
+                      { label: "TERMINATE", value: "TERMINATE" },
+                      { label: "ALWAYS", value: "ALWAYS" },
                     ] as any
                   }
                 />
