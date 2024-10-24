@@ -84,7 +84,6 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             request.Agent.ReceiveMessage(message);
                             break;
                         case Message.MessageOneofCase.CloudEvent:
-                            // TODO: Reimplement
 
                             // HACK: Send the message to an instance of each agent type
                             // where AgentId = (namespace: event.Namespace, name: agentType)
@@ -323,10 +322,28 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             _channel?.Dispose();
         }
     }
-
     public ValueTask SendRequest(RpcRequest request)
     {
         throw new NotImplementedException();
+    }
+    public ValueTask Store(AgentState value)
+    {
+
+        _client.SaveState(value);
+        // TODO: Implement error handling
+        return ValueTask.CompletedTask;
+    }
+    public async ValueTask<AgentState> Read(AgentId agentId)
+    {
+        var response = await _client.GetStateAsync(agentId);
+        if (response.Success)
+        {
+            return response.AgentState;
+        }
+        else
+        {
+            throw new KeyNotFoundException();
+        }
     }
 }
 

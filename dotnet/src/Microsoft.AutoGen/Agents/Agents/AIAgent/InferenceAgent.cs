@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
+using Google.Protobuf;
 namespace Microsoft.AutoGen.Agents.Client;
-public abstract class InferenceAgent<T> : AgentBase where T : class, new()
+public abstract class InferenceAgent<T> : AgentBase where T : IMessage, new()
 {
     protected IChatClient ChatClient { get; }
     public InferenceAgent(
