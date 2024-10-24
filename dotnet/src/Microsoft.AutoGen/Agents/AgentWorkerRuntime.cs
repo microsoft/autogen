@@ -64,6 +64,11 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             {
                 await foreach (var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
                 {
+                    // next if message is null
+                    if (message == null)
+                    {
+                        continue;
+                    }
                     switch (message.MessageCase)
                     {
                         case Message.MessageOneofCase.Request:

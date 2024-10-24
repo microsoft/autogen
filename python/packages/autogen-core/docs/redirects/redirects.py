@@ -46,9 +46,8 @@ def main():
         lines = f.readlines()
 
     for line in lines:
-        # Replace /autogen/ with /autogen/0.2/ and generate redirect
-        old_url = line.strip()
-        new_url = old_url.replace("/autogen/", "/autogen/0.2/")
+        # Split line by comma, where old is left and new is right
+        old_url, new_url = line.strip().split(",")
         # Deal with pages base path of /autogen/
         file_to_write = old_url.replace("/autogen/", "/")
         generate_redirect(file_to_write, new_url, base_dir)

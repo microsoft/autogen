@@ -9,7 +9,8 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
-from ._base_chat_agent import BaseChatAgent, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from ..base import BaseChatAgent
+from ..messages import ChatMessage, MultiModalMessage, StopMessage, TextMessage
 
 
 class CodingAssistantAgent(BaseChatAgent):

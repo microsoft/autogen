@@ -52,7 +52,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
     .. note::
 
-        This class requires the :code:`docker-code-executor` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`docker` extra for the :code:`autogen-ext` package.
 
 
     The executor first saves each code block in a file in the working
@@ -160,7 +160,7 @@ $functions"""
             from docker.models.containers import Container
         except ImportError as e:
             raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
             ) from e
 
         self._container: Container | None = None
@@ -305,7 +305,7 @@ $functions"""
             from docker.errors import NotFound
         except ImportError as e:
             raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
             ) from e
 
         client = docker.from_env()
@@ -324,7 +324,7 @@ $functions"""
             from docker.errors import ImageNotFound
         except ImportError as e:
             raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker-code-executor' extra."
+                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
             ) from e
 
         # Start a container from the image, read to exec commands later
