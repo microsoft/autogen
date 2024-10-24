@@ -58,9 +58,7 @@ class AsyncVectorDB(Protocol):
 
     active_collection: Any = None
     type: str = ""
-    embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = (
-        None  # embeddings = embedding_function(sentences)
-    )
+    embedding_function: Optional[Callable[..., Any]] = None  # embeddings = embedding_function(sentences)
 
     async def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """

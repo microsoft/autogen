@@ -5,7 +5,7 @@ from chromadb.errors import ChromaError
 
 
 # @pytest.mark.skipif(skip, reason="dependency is not installed")
-def test_chromadb():
+def test_chromadb() -> None:
     # test create collection
     db = ChromaVectorDB(path=".db")
     collection_name = "test_collection"
@@ -53,13 +53,13 @@ def test_chromadb():
     # test_retrieve_docs
     queries = ["doc2", "doc3"]
     collection_name = "test_collection"
-    res = db.retrieve_docs(queries, collection_name)
-    assert [[r[0].id for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]
-    res = db.retrieve_docs(queries, collection_name, distance_threshold=0.1)
-    assert [[r[0].id for r in rr] for rr in res] == [["2"], ["3"]]
+    res = db.retrieve_docs(queries, collection_name)  # type: ignore
+    assert [[r[0].id for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]  # type: ignore
+    res = db.retrieve_docs(queries, collection_name, distance_threshold=0.1)  # type: ignore
+    assert [[r[0].id for r in rr] for rr in res] == [["2"], ["3"]]  # type: ignore
 
     # test_get_docs_by_ids
-    res = db.get_docs_by_ids(["1", "2"], collection_name)
-    assert [r.id for r in res] == ["2"]  # "1" has been deleted
-    res = db.get_docs_by_ids(collection_name=collection_name)
-    assert [r.id for r in res] == ["2", "3"]
+    res = db.get_docs_by_ids(["1", "2"], collection_name)  # type: ignore
+    assert [r.id for r in res] == ["2"]  # type: ignore
+    res = db.get_docs_by_ids(collection_name=collection_name)  # type: ignore
+    assert [r.id for r in res] == ["2", "3"]  # type: ignore
