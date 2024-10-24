@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -24,6 +25,7 @@ public class OllamaMessageConnector : IStreamingMiddleware
 
         return reply switch
         {
+            IMessage<ChatResponse> { Content.Message.ToolCalls: not null } messageEnvelope when messageEnvelope.Content.Message.ToolCalls.Any() => ProcessToolCalls(messageEnvelope, agent),
             IMessage<ChatResponse> messageEnvelope when messageEnvelope.Content.Message?.Value is string content => new TextMessage(Role.Assistant, content, messageEnvelope.From),
             IMessage<ChatResponse> messageEnvelope when messageEnvelope.Content.Message?.Value is null => throw new InvalidOperationException("Message content is null"),
             _ => reply
@@ -73,20 +75,21 @@ public class OllamaMessageConnector : IStreamingMiddleware
     {
         return messages.SelectMany(m =>
         {
-            if (m is IMessage<Message> messageEnvelope)
+            if (m is IMessage<Message>)
             {
                 return [m];
             }
-            else
+
+            return m switch
             {
-                return m switch
-                {
-                    TextMessage textMessage => ProcessTextMessage(textMessage, agent),
-                    ImageMessage imageMessage => ProcessImageMessage(imageMessage, agent),
-                    MultiModalMessage multiModalMessage => ProcessMultiModalMessage(multiModalMessage, agent),
-                    _ => [m],
-                };
-            }
+                TextMessage textMessage => ProcessTextMessage(textMessage, agent),
+                ImageMessage imageMessage => ProcessImageMessage(imageMessage, agent),
+                ToolCallMessage toolCallMessage => ProcessToolCallMessage(toolCallMessage, agent),
+                ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
+                AggregateMessage<ToolCallMessage, ToolCallResultMessage> toolCallAggregateMessage => ProcessToolCallAggregateMessage(toolCallAggregateMessage, agent),
+                MultiModalMessage multiModalMessage => ProcessMultiModalMessage(multiModalMessage, agent),
+                _ => [m],
+            };
         });
     }
 
@@ -182,5 +185,65 @@ public class OllamaMessageConnector : IStreamingMiddleware
 
             return [MessageEnvelope.Create(message, agent.Name)];
         }
+    }
+
+    private IMessage ProcessToolCalls(IMessage<ChatResponse> messageEnvelope, IAgent agent)
+    {
+        var toolCalls = new List<ToolCall>();
+        foreach (var messageToolCall in messageEnvelope.Content.Message?.ToolCalls!)
+        {
+            toolCalls.Add(new ToolCall(
+                messageToolCall.Function?.Name ?? string.Empty,
+                JsonSerializer.Serialize(messageToolCall.Function?.Arguments)));
+        }
+
+        return new ToolCallMessage(toolCalls, agent.Name) { Content = messageEnvelope.Content.Message.Value };
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent agent)
+    {
+        var chatMessage = new Message(toolCallMessage.From ?? string.Empty, toolCallMessage.GetContent())
+        {
+            ToolCalls = toolCallMessage.ToolCalls.Select(t => new Message.ToolCall
+            {
+                Function = new Message.Function
+                {
+                    Name = t.FunctionName,
+                    Arguments = JsonSerializer.Deserialize<Dictionary<string, string>>(t.FunctionArguments),
+                },
+            }),
+        };
+
+        return [MessageEnvelope.Create(chatMessage, toolCallMessage.From)];
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallResultMessage(ToolCallResultMessage toolCallResultMessage)
+    {
+        foreach (var toolCall in toolCallResultMessage.ToolCalls)
+        {
+            if (!string.IsNullOrEmpty(toolCall.Result))
+            {
+                return [MessageEnvelope.Create(new Message("tool", toolCall.Result), toolCallResultMessage.From)];
+            }
+        }
+
+        throw new InvalidOperationException("Expected to have at least one tool call result");
+    }
+
+    private IEnumerable<IMessage> ProcessToolCallAggregateMessage(AggregateMessage<ToolCallMessage, ToolCallResultMessage> toolCallAggregateMessage, IAgent agent)
+    {
+        if (toolCallAggregateMessage.From is { } from && from != agent.Name)
+        {
+            var contents = toolCallAggregateMessage.Message2.ToolCalls.Select(t => t.Result);
+            var messages =
+                contents.Select(c => new Message("assistant", c ?? throw new ArgumentNullException(nameof(c))));
+
+            return messages.Select(m => new MessageEnvelope<Message>(m, from: from));
+        }
+
+        var toolCallMessage = ProcessToolCallMessage(toolCallAggregateMessage.Message1, agent);
+        var toolCallResult = ProcessToolCallResultMessage(toolCallAggregateMessage.Message2);
+
+        return toolCallMessage.Concat(toolCallResult);
     }
 }
