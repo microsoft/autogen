@@ -2,16 +2,12 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class IOAgent<T> : AgentBase where T : class, new()
+public abstract class IOAgent : AgentBase
 {
-    protected AgentState<T> _state;
     public string _route = "base";
-
-    public IOAgent(IAgentContext context, EventTypes typeRegistry) : base(context, typeRegistry)
+    protected IOAgent(IAgentContext context, EventTypes eventTypes) : base(context, eventTypes)
     {
-        _state = new();
     }
-
     public virtual async Task Handle(Input item)
     {
 

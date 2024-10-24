@@ -6,6 +6,7 @@ isort:skip_file
 import builtins
 import cloudevent_pb2
 import collections.abc
+import google.protobuf.any_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
@@ -332,6 +333,81 @@ class AddSubscriptionResponse(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___AddSubscriptionResponse = AddSubscriptionResponse
+
+@typing.final
+class AgentState(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    AGENT_ID_FIELD_NUMBER: builtins.int
+    ETAG_FIELD_NUMBER: builtins.int
+    BINARY_DATA_FIELD_NUMBER: builtins.int
+    TEXT_DATA_FIELD_NUMBER: builtins.int
+    PROTO_DATA_FIELD_NUMBER: builtins.int
+    eTag: builtins.str
+    binary_data: builtins.bytes
+    text_data: builtins.str
+    @property
+    def agent_id(self) -> global___AgentId: ...
+    @property
+    def proto_data(self) -> google.protobuf.any_pb2.Any: ...
+    def __init__(
+        self,
+        *,
+        agent_id: global___AgentId | None = ...,
+        eTag: builtins.str = ...,
+        binary_data: builtins.bytes = ...,
+        text_data: builtins.str = ...,
+        proto_data: google.protobuf.any_pb2.Any | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "eTag", b"eTag", "proto_data", b"proto_data", "text_data", b"text_data"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
+
+global___AgentState = AgentState
+
+@typing.final
+class GetStateResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    AGENT_STATE_FIELD_NUMBER: builtins.int
+    SUCCESS_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
+    success: builtins.bool
+    error: builtins.str
+    @property
+    def agent_state(self) -> global___AgentState: ...
+    def __init__(
+        self,
+        *,
+        agent_state: global___AgentState | None = ...,
+        success: builtins.bool = ...,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "agent_state", b"agent_state", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "agent_state", b"agent_state", "error", b"error", "success", b"success"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___GetStateResponse = GetStateResponse
+
+@typing.final
+class SaveStateResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SUCCESS_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
+    success: builtins.bool
+    error: builtins.str
+    def __init__(
+        self,
+        *,
+        success: builtins.bool = ...,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "success", b"success"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___SaveStateResponse = SaveStateResponse
 
 @typing.final
 class Message(google.protobuf.message.Message):

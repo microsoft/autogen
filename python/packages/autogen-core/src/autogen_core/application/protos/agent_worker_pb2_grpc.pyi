@@ -24,10 +24,30 @@ class AgentRpcStub:
         agent_worker_pb2.Message,
     ]
 
+    GetState: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentId,
+        agent_worker_pb2.GetStateResponse,
+    ]
+
+    SaveState: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentState,
+        agent_worker_pb2.SaveStateResponse,
+    ]
+
 class AgentRpcAsyncStub:
     OpenChannel: grpc.aio.StreamStreamMultiCallable[
         agent_worker_pb2.Message,
         agent_worker_pb2.Message,
+    ]
+
+    GetState: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentId,
+        agent_worker_pb2.GetStateResponse,
+    ]
+
+    SaveState: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentState,
+        agent_worker_pb2.SaveStateResponse,
     ]
 
 class AgentRpcServicer(metaclass=abc.ABCMeta):
@@ -37,5 +57,19 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
         request_iterator: _MaybeAsyncIterator[agent_worker_pb2.Message],
         context: _ServicerContext,
     ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]: ...
+
+    @abc.abstractmethod
+    def GetState(
+        self,
+        request: agent_worker_pb2.AgentId,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.GetStateResponse, collections.abc.Awaitable[agent_worker_pb2.GetStateResponse]]: ...
+
+    @abc.abstractmethod
+    def SaveState(
+        self,
+        request: agent_worker_pb2.AgentState,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]]: ...
 
 def add_AgentRpcServicer_to_server(servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

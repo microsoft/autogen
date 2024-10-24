@@ -40,6 +40,7 @@ public abstract class SKAiAgent<T> : AgentBase where T : class, new()
         var function = _kernel.CreateFunctionFromPrompt(template, promptSettings);
         var result = (await _kernel.InvokeAsync(function, arguments).ConfigureAwait(true)).ToString();
         AddToHistory(result, ChatUserType.Agent);
+        //await Store(_state.Data.ToAgentState(AgentId,""));//TODO add eTag
         return result;
     }
 
