@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Microsoft.AutoGen.Extensions.SemanticKernel;
+namespace Microsoft.Extensions.Hosting;
 
-public class OpenAIOptions
+public class AIClientOptions
 {
+    // Model Classname
+    [Required]
+    public required string ModelType { get; set; }
     // Embeddings
     [Required]
     public required string EmbeddingsEndpoint { get; set; }

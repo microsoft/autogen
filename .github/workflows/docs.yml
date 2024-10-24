@@ -32,8 +32,9 @@ jobs:
         version:
           [
             { ref: main, dest-dir: dev },
-            { ref: "v0.4.0dev0", dest-dir: "0.4.0dev0" },
-            { ref: "v0.4.0dev1", dest-dir: "0.4.0dev1" },
+            { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0" },
+            { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1" },
+            { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2" },
           ]
     steps:
       - name: Checkout
@@ -41,7 +42,9 @@ jobs:
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
