@@ -7,13 +7,13 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AutoGen.Agents;
-public abstract class AiAgent<T> : AgentBase where T : class, new()
+public abstract class SKAiAgent<T> : AgentBase where T : class, new()
 {
     protected AgentState<T> _state;
     protected Kernel _kernel;
     private readonly ISemanticTextMemory _memory;
 
-    public AiAgent(IAgentContext context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
+    public SKAiAgent(IAgentContext context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
     {
         _state = new();
         _memory = memory;
@@ -63,7 +63,6 @@ public abstract class AiAgent<T> : AgentBase where T : class, new()
     }
 }
 
-// TODO Remove history when we introduce memory banks
 public class AgentState<T> where T : class, new()
 {
     public List<ChatHistoryItem> History { get; set; } = [];
