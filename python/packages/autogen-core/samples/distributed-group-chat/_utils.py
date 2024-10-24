@@ -30,5 +30,5 @@ def load_config(file_path: str = os.path.join(os.path.dirname(__file__), "config
 def get_serializers(types: Iterable[Type[Any]]) -> list[MessageSerializer[Any]]:
     serializers = []
     for type in types:
-        serializers.extend(try_get_known_serializers_for_type(type))
-    return serializers
+        serializers.extend(try_get_known_serializers_for_type(type))  # type: ignore
+    return serializers  # type: ignore [reportUnknownVariableType]
