@@ -17,7 +17,7 @@ public static class SemanticKernelHostingExtensions
 {
     public static IHostApplicationBuilder ConfigureSemanticKernel(this IHostApplicationBuilder builder)
     {
-        builder.Services.Configure<OpenAIOptions>(o =>
+        builder.Services.Configure<AIClientOptions>(o =>
         {
             o.EmbeddingsEndpoint = o.ImageEndpoint = o.ChatEndpoint = builder.Configuration["OpenAI:Endpoint"] ?? throw new InvalidOperationException("Ensure that OpenAI:Endpoint is set in configuration");
             o.EmbeddingsApiKey = o.ImageApiKey = o.ChatApiKey = builder.Configuration["OpenAI:Key"]!;
@@ -48,7 +48,7 @@ public static class SemanticKernelHostingExtensions
     private static ISemanticTextMemory CreateMemory(IServiceProvider provider)
     {
         var qdrantConfig = provider.GetRequiredService<IOptions<QdrantOptions>>().Value;
-        var openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+        var openAiConfig = provider.GetRequiredService<IOptions<AIClientOptions>>().Value;
         var qdrantHttpClient = new HttpClient();
         if (!string.IsNullOrEmpty(qdrantConfig.ApiKey))
         {
@@ -64,7 +64,7 @@ public static class SemanticKernelHostingExtensions
 
     private static Kernel CreateKernel(IServiceProvider provider)
     {
-        OpenAIOptions openAiConfig = provider.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+        AIClientOptions openAiConfig = provider.GetRequiredService<IOptions<AIClientOptions>>().Value;
         var builder = Kernel.CreateBuilder();
 
         // Chat
