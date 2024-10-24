@@ -18,5 +18,4 @@ local-llms-ollama-litellm
 instrumenting
 topic-subscription-scenarios
 structured-output-agent
-distributed-group-chat
 ```
