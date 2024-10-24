@@ -25,7 +25,8 @@ or with human oversight.
 * [Roadmap](#roadmap)
 * [FAQs](#faqs)
 
-AutoGen streamlines AI development and research, enabling the use of multiple large language models (LLMs), integrated tools, and advanced multi-agent design patterns. You can develop and test your agent systems locally, then deploy to a distributed cloud environment as your needs grow.
+AutoGen streamlines AI development and research, enabling the use of multiple large language models (LLMs), integrated tools, and advanced multi-agent design patterns. 
+You can develop and test your agent systems locally, then deploy to a distributed cloud environment as your needs grow.
 
 ## Key Features
 
