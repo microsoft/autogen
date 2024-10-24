@@ -4,12 +4,13 @@ from typing import List, Sequence
 from autogen_core.base import CancellationToken
 from autogen_core.components.tools import Tool
 
+from ..base import ChatAgent, TaskResult, TerminationCondition, ToolUseChatAgent
 from ..messages import ChatMessage
-from ._base_task import TaskResult, TaskRunner
+from ..teams import RoundRobinGroupChat
 
 
-class BaseChatAgent(TaskRunner, ABC):
-    """Base class for a chat agent that can participant in a team."""
+class BaseChatAgent(ChatAgent, ABC):
+    """Base class for a chat agent."""
 
     def __init__(self, name: str, description: str) -> None:
         self._name = name
@@ -36,13 +37,23 @@ class BaseChatAgent(TaskRunner, ABC):
         ...
 
     async def run(
-        self, task: str, *, source: str = "user", cancellation_token: CancellationToken | None = None
+        self,
+        task: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+        termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
-        # TODO: Implement this method.
-        raise NotImplementedError
+        """Run the agent with the given task and return the result."""
+        group_chat = RoundRobinGroupChat(participants=[self])
+        result = await group_chat.run(
+            task=task,
+            cancellation_token=cancellation_token,
+            termination_condition=termination_condition,
+        )
+        return result
 
 
-class BaseToolUseChatAgent(BaseChatAgent):
+class BaseToolUseChatAgent(BaseChatAgent, ToolUseChatAgent):
     """Base class for a chat agent that can use tools.
 
     Subclass this base class to create an agent class that uses tools by returning

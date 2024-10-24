@@ -8,7 +8,7 @@ from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tool_agent import ToolException
 
 from ... import EVENT_LOGGER_NAME
-from ...base import BaseChatAgent
+from ...base import ChatAgent
 from ...messages import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -27,7 +27,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
         tool_agent_type (AgentType, optional): The agent type of the tool agent. Defaults to None.
     """
 
-    def __init__(self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType | None = None) -> None:
+    def __init__(self, parent_topic_type: str, agent: ChatAgent, tool_agent_type: AgentType | None = None) -> None:
         super().__init__(description=agent.description)
         self._parent_topic_type = parent_topic_type
         self._agent = agent

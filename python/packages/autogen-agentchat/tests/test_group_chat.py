@@ -7,17 +7,17 @@ from typing import Any, AsyncGenerator, List, Sequence
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
+    BaseChatAgent,
     CodeExecutorAgent,
     CodingAssistantAgent,
     ToolUseAssistantAgent,
 )
-from autogen_agentchat.base import BaseChatAgent
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import ChatMessage, StopMessage, TextMessage
+from autogen_agentchat.task import StopMessageTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
-    StopMessageTermination,
 )
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall

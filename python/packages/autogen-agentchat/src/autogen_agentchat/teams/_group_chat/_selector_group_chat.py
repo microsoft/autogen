@@ -5,7 +5,7 @@ from typing import Callable, Dict, List
 from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
 from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from ...base import BaseChatAgent, TerminationCondition
+from ...base import ChatAgent, TerminationCondition
 from ...messages import MultiModalMessage, StopMessage, TextMessage
 from .._events import ContentPublishEvent, SelectSpeakerEvent
 from ._base_group_chat import BaseGroupChat
@@ -178,7 +178,7 @@ class SelectorGroupChat(BaseGroupChat):
 
     def __init__(
         self,
-        participants: List[BaseChatAgent],
+        participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
         selector_prompt: str = """You are in a role play game. The following roles are available:
