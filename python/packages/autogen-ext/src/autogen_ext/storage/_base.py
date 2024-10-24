@@ -107,7 +107,7 @@ class AsyncVectorDB(Protocol):
 
     async def insert_docs(
         self,
-        docs: Sequence[Document],
+        docs: List[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -126,7 +126,7 @@ class AsyncVectorDB(Protocol):
         """
         ...
 
-    async def update_docs(self, docs: Sequence[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    async def update_docs(self, docs: List[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Update documents in the collection of the vector database.
 
@@ -140,7 +140,7 @@ class AsyncVectorDB(Protocol):
         """
         ...
 
-    async def delete_docs(self, ids: Sequence[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    async def delete_docs(self, ids: List[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Delete documents from the collection of the vector database.
 
@@ -181,7 +181,7 @@ class AsyncVectorDB(Protocol):
 
     async def get_docs_by_ids(
         self,
-        ids: Optional[Sequence[ItemID]] = None,
+        ids: Optional[List[ItemID]] = None,
         collection_name: Optional[str] = None,
         include: Optional[List[str]] = None,
         **kwargs: Any,
@@ -275,7 +275,7 @@ class VectorDB(Protocol):
 
     def insert_docs(
         self,
-        docs: Sequence[Document],
+        docs: List[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -294,7 +294,7 @@ class VectorDB(Protocol):
         """
         ...
 
-    def update_docs(self, docs: Sequence[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    def update_docs(self, docs: List[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Update documents in the collection of the vector database.
 
@@ -308,7 +308,7 @@ class VectorDB(Protocol):
         """
         ...
 
-    def delete_docs(self, ids: Sequence[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    def delete_docs(self, ids: List[ItemID], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Delete documents from the collection of the vector database.
 
@@ -349,7 +349,7 @@ class VectorDB(Protocol):
 
     def get_docs_by_ids(
         self,
-        ids: Optional[Sequence[ItemID]] = None,
+        ids: Optional[List[ItemID]] = None,
         collection_name: Optional[str] = None,
         include: Optional[List[str]] = None,
         **kwargs: Any,

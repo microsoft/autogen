@@ -63,18 +63,3 @@ def test_chromadb():
     assert [r.id for r in res] == ["2"]  # "1" has been deleted
     res = db.get_docs_by_ids(collection_name=collection_name)
     assert [r.id for r in res] == ["2", "3"]
-
-    # test _chroma_get_results_to_list_documents
-    data_dict = {
-        "key1s": [1, 2, 3],
-        "key2s": ["a", "b", "c"],
-        "key3s": None,
-        "key4s": ["x", "y", "z"],
-    }
-
-    results = [
-        {"key1": 1, "key2": "a", "key4": "x"},
-        {"key1": 2, "key2": "b", "key4": "y"},
-        {"key1": 3, "key2": "c", "key4": "z"},
-    ]
-    assert db._chroma_get_results_to_list_documents(data_dict) == results  # type: ignore

@@ -3,15 +3,16 @@ import os
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 from autogen_core.application.logging import TRACE_LOGGER_NAME
-from chromadb import GetResult, QueryResult
+from chromadb import GetResult
+from chromadb import QueryResult as ChromaQueryResult
 
 if TYPE_CHECKING:
     from chromadb.api import AsyncClientAPI, ClientAPI
     from chromadb.api.models.Collection import Collection
-    from chromadb.api.types import Embeddable, EmbeddingFunction, IncludeEnum
+    from chromadb.api.types import Embeddable, EmbeddingFunction
     from chromadb.config import Settings
 
-from ._base import AsyncVectorDB, Document, ItemID, QueryResults, VectorDB
+from ._base import AsyncVectorDB, Document, ItemID, Metadata, QueryResults, Vector, VectorDB
 
 CHROMADB_MAX_BATCH_SIZE = int(os.environ.get("CHROMADB_MAX_BATCH_SIZE", 40000))
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.{__name__}")
@@ -65,6 +66,7 @@ class ChromaVectorDB(VectorDB):
 
             if chromadb.__version__ < "0.5.0":
                 raise ImportError("Please upgrade chromadb to version 0.5.0 or later.")
+            from chromadb.api.types import IncludeEnum
             from chromadb.errors import ChromaError
             from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
                 SentenceTransformerEmbeddingFunction,
@@ -76,12 +78,13 @@ class ChromaVectorDB(VectorDB):
                 "Missing dependencies for ChromaVectorDB. Please ensure the autogen-ext package was installed with the 'chromadb' extra."
             ) from e
 
+        self.IncludeEnum = IncludeEnum
         self.embedding_function: "EmbeddingFunction[Embeddable]" = (  # type: ignore
             SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2")
             if embedding_function is None
             else cast("EmbeddingFunction[Embeddable]", embedding_function)
         )
-        self.metadata = metadata if metadata else {}
+        self.metadata = metadata
         self.type = "chroma"
         if client is not None:
             self.client: "ClientAPI" = client
@@ -124,6 +127,7 @@ class ChromaVectorDB(VectorDB):
                 )
         except (ValueError, ChromaVectorDB.ChromaError):
             collection = None
+
         if collection is None:
             return self.client.create_collection(
                 name=collection_name,
@@ -206,7 +210,7 @@ class ChromaVectorDB(VectorDB):
 
     def insert_docs(
         self,
-        docs: Sequence[Document],
+        docs: List[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -215,7 +219,7 @@ class ChromaVectorDB(VectorDB):
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: Sequence[Document] | A list of documents. Each document is a Pydantic Document model.
+            docs: List[Document] | A list of documents. Each document is a Pydantic Document model.
             collection_name: Optional[str] | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             kwargs: Dict[str, Any] | Additional keyword arguments.
@@ -243,12 +247,12 @@ class ChromaVectorDB(VectorDB):
             upsert=upsert,
         )
 
-    def update_docs(self, docs: Sequence[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    def update_docs(self, docs: List[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: Sequence[Document] | A list of documents.
+            docs: List[Document] | A list of documents.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -303,44 +307,8 @@ class ChromaVectorDB(VectorDB):
             n_results=n_results,
         )
         results_list = _chroma_results_to_query_results(results)
-        results_filtered = filter_results_by_distance(results_list, distance_threshold)
+        results_filtered = _filter_results_by_distance(results_list, distance_threshold)
         return results_filtered
-
-    @staticmethod
-    def _chroma_get_results_to_list_documents(data_dict: GetResult) -> List[Document]:
-        """Converts a GetResult dictionary to a list of Document objects.
-
-        Args:
-            data_dict: GetResult | A GetResult dictionary containing ids, embeddings, documents, metadatas etc.
-
-        Returns:
-            List[Document] | The list of Document objects.
-        """
-        results: List[Document] = []
-
-        # Get the length from ids which is always present in GetResult
-        n_docs = len(data_dict["ids"])
-
-        for i in range(n_docs):
-            doc_dict = {}
-
-            # Process each possible field from GetResult
-            if data_dict["ids"]:
-                doc_dict["id"] = data_dict["ids"][i]
-            if data_dict["embeddings"] is not None:
-                doc_dict["embedding"] = data_dict["embeddings"][i]
-            if data_dict["documents"] is not None:
-                doc_dict["document"] = data_dict["documents"][i]
-            if data_dict["metadatas"] is not None:
-                doc_dict["metadata"] = data_dict["metadatas"][i]
-            if data_dict["uris"] is not None:
-                doc_dict["uri"] = data_dict["uris"][i]
-            if data_dict["data"] is not None:
-                doc_dict["data"] = data_dict["data"][i]
-
-            results.append(Document(**doc_dict))  # type: ignore
-
-        return results
 
     def get_docs_by_ids(
         self,
@@ -363,13 +331,13 @@ class ChromaVectorDB(VectorDB):
             List[Document] | The results.
         """
         if include is not None:
-            include_enums = [IncludeEnum(item) for item in include]
+            include_enums = [self.IncludeEnum(item) for item in include]
         else:
-            include_enums = [IncludeEnum.metadatas, IncludeEnum.documents]
+            include_enums = [self.IncludeEnum.metadatas, self.IncludeEnum.documents]
         collection = self.get_collection(collection_name)
 
         results = collection.get(ids=[str(id_) for id_ in ids] if ids else None, include=include_enums)
-        results = self._chroma_get_results_to_list_documents(results)
+        results = _chroma_get_results_to_list_documents(results)
         return results
 
 
@@ -425,6 +393,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
 
             if chromadb.__version__ < "0.5.0":
                 raise ImportError("Please upgrade chromadb to version 0.5.0 or later.")
+            from chromadb.api.types import IncludeEnum
             from chromadb.errors import ChromaError
             from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
                 SentenceTransformerEmbeddingFunction,
@@ -436,6 +405,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
                 "Missing dependencies for AsyncChromaVectorDB. Please ensure the autogen-ext package was installed with the 'chromadb' extra."
             ) from e
 
+        self.IncludeEnum = IncludeEnum
         self.embedding_function: "EmbeddingFunction[Embeddable]" = (  # type: ignore
             cast(
                 "EmbeddingFunction[Embeddable]",
@@ -565,7 +535,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
 
     async def insert_docs(
         self,
-        docs: Sequence[Document],
+        docs: List[Document],
         collection_name: Optional[str] = None,
         upsert: bool = False,
         **kwargs: Any,
@@ -574,7 +544,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: Sequence[Document] | A list of documents. Each document is a Pydantic Document model.
+            docs: List[Document] | A list of documents. Each document is a Pydantic Document model.
             collection_name: Optional[str] | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             kwargs: Dict[str, Any] | Additional keyword arguments.
@@ -597,17 +567,17 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             collection,
             embeddings=embeddings,
             ids=ids,
-            metadatas=metadatas,
-            documents=documents,
+            metadatas=metadatas,  # type: ignore
+            documents=documents,  # type: ignore
             upsert=upsert,
         )
 
-    async def update_docs(self, docs: Sequence[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
+    async def update_docs(self, docs: List[Document], collection_name: Optional[str] = None, **kwargs: Any) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: Sequence[Document] | A list of documents.
+            docs: List[Document] | A list of documents.
             collection_name: Optional[str] | The name of the collection. Default is None.
             kwargs: Dict[str, Any] | Additional keyword arguments.
 
@@ -655,6 +625,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
                 the distance.
         """
         collection = await self.get_collection(collection_name)
+
         if isinstance(queries, str):
             queries = [queries]
         results = await collection.query(
@@ -662,29 +633,8 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             n_results=n_results,
         )
         results_list = _chroma_results_to_query_results(results)
-        results_filtered = filter_results_by_distance(results_list, distance_threshold)
+        results_filtered = _filter_results_by_distance(results_list, distance_threshold)
         return results_filtered
-
-    @staticmethod
-    def _chroma_get_results_to_list_documents(data_dict: Dict[str, Any]) -> List[Document]:
-        """Converts a dictionary with list values to a list of Document.
-
-        Args:
-            data_dict: A dictionary where keys map to lists or None.
-
-        Returns:
-            List[Document] | The list of Document.
-        """
-        results: List[Document] = []
-        keys = [key for key in data_dict if data_dict[key] is not None]
-
-        for i in range(len(data_dict[keys[0]])):
-            doc_dict = {}
-            for key in data_dict.keys():
-                if data_dict[key] is not None and len(data_dict[key]) > i:
-                    doc_dict[key[:-1]] = data_dict[key][i]
-            results.append(Document(**doc_dict))  # type: ignore
-        return results
 
     async def get_docs_by_ids(
         self,
@@ -708,55 +658,45 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         """
         collection = await self.get_collection(collection_name)
         if include is not None:
-            include_enums = [IncludeEnum(item) for item in include]
+            include_enums = [self.IncludeEnum(item) for item in include]
         else:
-            include_enums = None
-        results = await collection.get(ids=ids, include=include_enums)
-        results = self._chroma_get_results_to_list_documents(results)
-        return results
+            include_enums = [self.IncludeEnum.metadatas, self.IncludeEnum.documents]
+        results: GetResult = await collection.get(ids=ids, include=include_enums)
+        results_list = _chroma_get_results_to_list_documents(results)
+        return results_list
 
 
-def _chroma_results_to_query_results(
-    data_dict: QueryResult, special_key: str = "distances"
-) -> List[List[Tuple[Dict[str, Any], float]]]:
-    """Converts a dictionary with list-of-list values to a list of tuples.
+def _chroma_results_to_query_results(data_dict: ChromaQueryResult, special_key: str = "distances") -> QueryResults:
+    """Converts a ChromaDB query result into a list of lists of (Document, float) tuples.
 
     Args:
-        data_dict: A dictionary where keys map to lists of lists or None.
-        special_key: str | The key in the dictionary containing the special values
-                     for each tuple.
+        data_dict: A dictionary containing the results of a ChromaDB query.
+        special_key: The key in the dictionary containing the float values for each tuple (default is "distances").
 
     Returns:
-        List[List[Tuple[Dict[str, Any], float]]] | A list of tuples, where each tuple contains
-        a sub-dictionary with some keys from the original dictionary and the value from the
-        special_key.
+        A list of lists, where each sublist corresponds to a query and contains tuples of (Document, float).
 
     Example:
         data_dict = {
-            "key1s": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-            "key2s": [["a", "b", "c"], ["c", "d", "e"], ["e", "f", "g"]],
-            "key3s": None,
-            "key4s": [["x", "y", "z"], ["1", "2", "3"], ["4", "5", "6"]],
-            "distances": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+            'ids': [['1', '2'], ['3', '4']],
+            'documents': [['doc1', 'doc2'], ['doc3', 'doc4']],
+            'metadatas': [[{'meta': 'data1'}, {'meta': 'data2'}], [{'meta': 'data3'}, {'meta': 'data4'}]],
+            'distances': [[0.1, 0.2], [0.3, 0.4]],
         }
 
-        results = [
-            [
-                ({"key1": 1, "key2": "a", "key4": "x"}, 0.1),
-                ({"key1": 2, "key2": "b", "key4": "y"}, 0.2),
-                ({"key1": 3, "key2": "c", "key4": "z"}, 0.3),
-            ],
-            [
-                ({"key1": 4, "key2": "c", "key4": "1"}, 0.4),
-                ({"key1": 5, "key2": "d", "key4": "2"}, 0.5),
-                ({"key1": 6, "key2": "e", "key4": "3"}, 0.6),
-            ],
-            [
-                ({"key1": 7, "key2": "e", "key4": "4"}, 0.7),
-                ({"key1": 8, "key2": "f", "key4": "5"}, 0.8),
-                ({"key1": 9, "key2": "g", "key4": "6"}, 0.9),
-            ],
-        ]
+        results = _chroma_results_to_query_results(data_dict)
+
+        # results will be:
+        # [
+        #     [
+        #         (Document(id='1', content='doc1', metadata={'meta': 'data1'}, embedding=None), 0.1),
+        #         (Document(id='2', content='doc2', metadata={'meta': 'data2'}, embedding=None), 0.2),
+        #     ],
+        #     [
+        #         (Document(id='3', content='doc3', metadata={'meta': 'data3'}, embedding=None), 0.3),
+        #         (Document(id='4', content='doc4', metadata={'meta': 'data4'}, embedding=None), 0.4),
+        #     ],
+        # ]
     """
 
     if not data_dict or special_key not in data_dict or not data_dict.get(special_key):
@@ -770,17 +710,25 @@ def _chroma_results_to_query_results(
 
     for i in range(len(data_special_key)):
         sub_result: List[Tuple[Document, float]] = []
-        for j, distance in enumerate(data_special_key[i]):  # type: ignore
-            document = data_dict["documents"][i][j]  # type: ignore
-            sub_result.append((document, distance))
+        ids = data_dict["ids"][i]
+        documents = data_dict.get("documents") or [None] * len(ids)
+        metadatas = data_dict.get("metadatas") or [None] * len(ids)
+        embeddings = data_dict.get("embeddings") or [None] * len(ids)
+        for j in range(len(data_special_key[i])):
+            document = Document(
+                id=ids[j],
+                content=cast(str, documents[j]),
+                metadata=cast(Metadata, metadatas[j]),
+                embedding=cast(Vector, embeddings[j]),
+            )
+            value = data_special_key[i][j]
+            sub_result.append((document, value))
         result.append(sub_result)
 
     return result
 
 
-def filter_results_by_distance(
-    results: List[List[Tuple[Dict[str, Any], float]]], distance_threshold: float = -1
-) -> QueryResults:
+def _filter_results_by_distance(results: QueryResults, distance_threshold: float = -1) -> QueryResults:
     """Filters results based on a distance threshold.
 
     Args:
@@ -794,4 +742,33 @@ def filter_results_by_distance(
     if distance_threshold > 0:
         results = [[(key, value) for key, value in data if value < distance_threshold] for data in results]
 
+    return results
+
+
+def _chroma_get_results_to_list_documents(data_dict: GetResult) -> List[Document]:
+    """Converts a dictionary with list values to a list of Document.
+
+    Args:
+        data_dict: A dictionary where keys map to lists or None.
+
+    Returns:
+        List[Document] | The list of Document.
+    """
+    results: List[Document] = []
+
+    num_items = len(data_dict["ids"])
+    ids = data_dict["ids"]
+    documents = data_dict.get("documents") or [None] * num_items
+    metadatas = data_dict.get("metadatas") or [None] * num_items
+    embeddings = data_dict.get("embeddings") or [None] * num_items
+
+    for i in range(num_items):
+        results.append(
+            Document(
+                id=ids[i],
+                content=documents[i],
+                metadata=metadatas[i],
+                embedding=cast(Vector, embeddings[i]),
+            )
+        )
     return results
