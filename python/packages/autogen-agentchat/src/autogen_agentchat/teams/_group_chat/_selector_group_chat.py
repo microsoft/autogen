@@ -3,11 +3,12 @@ import re
 from typing import Callable, Dict, List
 
 from autogen_core.components.models import ChatCompletionClient, SystemMessage
+from autogen_core.components.tools import Tool
 
 from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import MultiModalMessage, StopMessage, TextMessage
-from .._events import ContentPublishEvent, SelectSpeakerEvent
+from .._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -26,6 +27,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        tools: List[Tool] | None,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
@@ -36,79 +38,89 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            tools=tools,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
 
-    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
-        history_messages: List[str] = []
-        for event in thread:
-            msg = event.agent_message
-            source = event.source
-            if source is None:
-                message = ""
-            else:
-                # The agent type must be the same as the topic type, which we use as the agent name.
-                message = f"{source.type}:"
-            if isinstance(msg, TextMessage | StopMessage):
-                message += f" {msg.content}"
-            elif isinstance(msg, MultiModalMessage):
-                for item in msg.content:
-                    if isinstance(item, str):
-                        message += f" {item}"
-                    else:
-                        message += " [Image]"
-            else:
-                raise ValueError(f"Unexpected message type in selector: {type(msg)}")
-            history_messages.append(message)
-        history = "\n".join(history_messages)
+        if len(thread) == 0 or isinstance(thread[-1], ContentPublishEvent):
+            history_messages: List[str] = []
+            for event in thread:
+                msg = event.agent_message
+                source = event.source
+                if source is None:
+                    message = ""
+                else:
+                    # The agent type must be the same as the topic type, which we use as the agent name.
+                    message = f"{source.type}:"
+                if isinstance(msg, TextMessage | StopMessage):
+                    message += f" {msg.content}"
+                elif isinstance(msg, MultiModalMessage):
+                    for item in msg.content:
+                        if isinstance(item, str):
+                            message += f" {item}"
+                        else:
+                            message += " [Image]"
+                else:
+                    raise ValueError(f"Unexpected message type in selector: {type(msg)}")
+                history_messages.append(message)
+            history = "\n".join(history_messages)
 
-        # Construct agent roles, we are using the participant topic type as the agent name.
-        roles = "\n".join(
-            [
-                f"{topic_type}: {description}".strip()
-                for topic_type, description in zip(
-                    self._participant_topic_types, self._participant_descriptions, strict=True
-                )
-            ]
-        )
-
-        # Construct agent list to be selected, skip the previous speaker if not allowed.
-        if self._previous_speaker is not None and not self._allow_repeated_speaker:
-            participants = [p for p in self._participant_topic_types if p != self._previous_speaker]
-        else:
-            participants = self._participant_topic_types
-        assert len(participants) > 0
-
-        # Select the next speaker.
-        if len(participants) > 1:
-            select_speaker_prompt = self._selector_prompt.format(
-                roles=roles, participants=str(participants), history=history
+            # Construct agent roles, we are using the participant topic type as the agent name.
+            roles = "\n".join(
+                [
+                    f"{topic_type}: {description}".strip()
+                    for topic_type, description in zip(
+                        self._participant_topic_types, self._participant_descriptions, strict=True
+                    )
+                ]
             )
-            select_speaker_messages = [SystemMessage(select_speaker_prompt)]
-            response = await self._model_client.create(messages=select_speaker_messages)
-            assert isinstance(response.content, str)
-            mentions = self._mentioned_agents(response.content, self._participant_topic_types)
-            if len(mentions) != 1:
-                raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
-            agent_name = list(mentions.keys())[0]
-            if (
-                not self._allow_repeated_speaker
-                and self._previous_speaker is not None
-                and agent_name == self._previous_speaker
-            ):
-                trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+
+            # Construct agent list to be selected, skip the previous speaker if not allowed.
+            if self._previous_speaker is not None and not self._allow_repeated_speaker:
+                participants = [p for p in self._participant_topic_types if p != self._previous_speaker]
+            else:
+                participants = self._participant_topic_types
+            assert len(participants) > 0
+
+            # Select the next speaker.
+            if len(participants) > 1:
+                select_speaker_prompt = self._selector_prompt.format(
+                    roles=roles, participants=str(participants), history=history
+                )
+                select_speaker_messages = [SystemMessage(select_speaker_prompt)]
+                response = await self._model_client.create(messages=select_speaker_messages)
+                assert isinstance(response.content, str)
+                mentions = self._mentioned_agents(response.content, self._participant_topic_types)
+                if len(mentions) != 1:
+                    raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
+                agent_name = list(mentions.keys())[0]
+                if (
+                    not self._allow_repeated_speaker
+                    and self._previous_speaker is not None
+                    and agent_name == self._previous_speaker
+                ):
+                    trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+            else:
+                agent_name = participants[0]
+            self._previous_speaker = agent_name
+            event_logger.debug(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
+            return agent_name
+        elif isinstance(thread[-1], ToolCallResultEvent):
+            assert self._previous_speaker is not None
+            # Choose the same speaker as the last content event.
+            # TODO: for handoff, we may want to choose a different speaker.
+            event_logger.debug(SelectSpeakerEvent(selected_speaker=self._previous_speaker, source=self.id))
+            return self._previous_speaker
         else:
-            agent_name = participants[0]
-        self._previous_speaker = agent_name
-        event_logger.debug(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
-        return agent_name
+            raise ValueError("Unexpected message type of the last message.")
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
         """Counts the number of times each agent is mentioned in the provided message content.
@@ -213,6 +225,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        tools: List[Tool] | None = None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             parent_topic_type,
@@ -220,6 +233,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            tools,
             self._model_client,
             self._selector_prompt,
             self._allow_repeated_speaker,

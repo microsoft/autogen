@@ -1,9 +1,15 @@
+import logging
 from typing import Callable, List
 
+from autogen_core.components.tools import Tool
+
+from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
-from .._events import ContentPublishEvent
+from .._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class RoundRobinGroupChatManager(BaseGroupChatManager):
@@ -16,6 +22,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        tools: List[Tool] | None = None,
     ) -> None:
         super().__init__(
             parent_topic_type,
@@ -23,14 +30,26 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            tools,
         )
         self._next_speaker_index = 0
+        self._current_speaker: str | None = None
 
-    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
-        current_speaker_index = self._next_speaker_index
-        self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
-        return self._participant_topic_types[current_speaker_index]
+        if len(thread) == 0 or isinstance(thread[-1], ContentPublishEvent):
+            current_speaker_index = self._next_speaker_index
+            self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
+            self._curr_speaker = self._participant_topic_types[current_speaker_index]
+            event_logger.debug(SelectSpeakerEvent(selected_speaker=self._curr_speaker, source=self.id))
+            return self._curr_speaker
+        elif isinstance(thread[-1], ToolCallResultEvent):
+            # Choose the same speaker as the last content event.
+            # TODO: for handoff, we may want to choose a different speaker.
+            event_logger.debug(SelectSpeakerEvent(selected_speaker=self._curr_speaker, source=self.id))
+            return self._curr_speaker
+        else:
+            raise ValueError("Unexpected message type of the last message.")
 
 
 class RoundRobinGroupChat(BaseGroupChat):
@@ -83,6 +102,7 @@ class RoundRobinGroupChat(BaseGroupChat):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        tools: List[Tool] | None = None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -91,6 +111,7 @@ class RoundRobinGroupChat(BaseGroupChat):
                 participant_topic_types,
                 participant_descriptions,
                 termination_condition,
+                tools,
             )
 
         return _factory

@@ -13,7 +13,7 @@ from autogen_agentchat.agents import (
     ToolUseAssistantAgent,
 )
 from autogen_agentchat.logging import FileLogHandler
-from autogen_agentchat.messages import ChatMessage, StopMessage, TextMessage
+from autogen_agentchat.messages import ChatMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from autogen_agentchat.task import StopMessageTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
@@ -212,7 +212,18 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
     team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent])
-    await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
+    result = await team.run(
+        "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+    )
+
+    assert len(result.messages) == 6
+    assert isinstance(result.messages[0], TextMessage)  # task
+    assert isinstance(result.messages[1], ToolCallMessage)  # tool call
+    assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
+    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[4], TextMessage)  # echo agent response
+    assert isinstance(result.messages[5], StopMessage)  # tool use agent response
+
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
     assert isinstance(context[1].content, list)

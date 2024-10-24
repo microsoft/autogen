@@ -13,12 +13,11 @@ from autogen_core.base import (
     TopicId,
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition, ToolUseChatAgent
 from ...messages import ChatMessage, TextMessage
-from .._events import ContentPublishEvent, ContentRequestEvent
+from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
 from ._base_chat_agent_container import BaseChatAgentContainer
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -52,27 +51,20 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        tools: List[Tool] | None = None,
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(
-        self, parent_topic_type: str, agent: ChatAgent, tool_agent_type: AgentType | None
+        self,
+        parent_topic_type: str,
+        agent: ChatAgent,
     ) -> Callable[[], BaseChatAgentContainer]:
         def _factory() -> BaseChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
+            container = BaseChatAgentContainer(parent_topic_type, agent)
             assert container.id == id
             return container
-
-        return _factory
-
-    def _create_tool_agent_factory(
-        self,
-        caller_name: str,
-        tools: List[Tool],
-    ) -> Callable[[], ToolAgent]:
-        def _factory() -> ToolAgent:
-            return ToolAgent(f"Tool agent for {caller_name}", tools)
 
         return _factory
 
@@ -98,20 +90,8 @@ class BaseGroupChat(Team, ABC):
         # Register participants.
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
+        tools: List[Tool] = []
         for participant in self._participants:
-            if isinstance(participant, ToolUseChatAgent):
-                assert participant.registered_tools is not None and len(participant.registered_tools) > 0
-                # Register the tool agent.
-                tool_agent_type = await ToolAgent.register(
-                    runtime,
-                    f"tool_agent_for_{participant.name}",
-                    self._create_tool_agent_factory(participant.name, participant.registered_tools),
-                )
-                # No subscriptions are needed for the tool agent, which will be called via direct messages.
-            else:
-                # No tool agent is needed.
-                tool_agent_type = None
-
             # Use the participant name as the agent type and topic type.
             agent_type = participant.name
             topic_type = participant.name
@@ -119,7 +99,7 @@ class BaseGroupChat(Team, ABC):
             await BaseChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(group_topic_type, participant, tool_agent_type),
+                factory=self._create_participant_factory(group_topic_type, participant),
             )
             # Add subscriptions for the participant.
             await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
@@ -127,6 +107,12 @@ class BaseGroupChat(Team, ABC):
             # Add the participant to the lists.
             participant_descriptions.append(participant.description)
             participant_topic_types.append(topic_type)
+            # Add the tools to the list.
+            if isinstance(participant, ToolUseChatAgent):
+                for tool in participant.registered_tools:
+                    if next((t for t in tools if t.name == tool.name), None) is not None:
+                        raise ValueError(f"Tool '{tool.name}' is already registered, please use a unique name.")
+                    tools.append(tool)
 
         # Register the group chat manager.
         await self._base_group_chat_manager_class.register(
@@ -138,6 +124,7 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
                 termination_condition=termination_condition,
+                tools=tools,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -154,7 +141,10 @@ class BaseGroupChat(Team, ABC):
         group_chat_messages: List[ChatMessage] = []
 
         async def collect_group_chat_messages(
-            _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
+            _runtime: AgentRuntime,
+            id: AgentId,
+            message: ContentPublishEvent | ToolCallEvent | ToolCallResultEvent,
+            ctx: MessageContext,
         ) -> None:
             group_chat_messages.append(message.agent_message)
 
