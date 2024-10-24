@@ -127,7 +127,7 @@ class OllamaClient:
 
         if "num_predict" in params:
             # Maximum number of tokens to predict, note: -1 is infinite, -2 is fill context, 128 is default
-            ollama_params["num_predict"] = validate_parameter(params, "num_predict", int, False, 128, None, None)
+            options_dict["num_predict"] = validate_parameter(params, "num_predict", int, False, 128, None, None)
 
         if "repeat_penalty" in params:
             options_dict["repeat_penalty"] = validate_parameter(
@@ -138,15 +138,15 @@ class OllamaClient:
             options_dict["seed"] = validate_parameter(params, "seed", int, False, 42, None, None)
 
         if "temperature" in params:
-            ollama_params["temperature"] = validate_parameter(
+            options_dict["temperature"] = validate_parameter(
                 params, "temperature", (int, float), False, 0.8, None, None
             )
 
         if "top_k" in params:
-            ollama_params["top_k"] = validate_parameter(params, "top_k", int, False, 40, None, None)
+            options_dict["top_k"] = validate_parameter(params, "top_k", int, False, 40, None, None)
 
         if "top_p" in params:
-            ollama_params["top_p"] = validate_parameter(params, "top_p", (int, float), False, 0.9, None, None)
+            options_dict["top_p"] = validate_parameter(params, "top_p", (int, float), False, 0.9, None, None)
 
         if self._native_tool_calls and self._tools_in_conversation and not self._should_hide_tools:
             ollama_params["tools"] = params["tools"]
