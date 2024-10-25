@@ -2,7 +2,7 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime;
 
-internal sealed class WorkerAgentGrain([PersistentState("state", "agent-state")] IPersistentState<AgentState> state) : Grain, IWorkerAgentGrain
+internal sealed class WorkerAgentGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IWorkerAgentGrain
 {
     public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag)
     {
