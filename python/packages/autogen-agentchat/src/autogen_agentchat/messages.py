@@ -1,7 +1,6 @@
 from typing import List
 
-from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult
+from autogen_core.components import Image
 from pydantic import BaseModel
 
 
@@ -26,20 +25,6 @@ class MultiModalMessage(BaseMessage):
     """The content of the message."""
 
 
-class ToolCallMessage(BaseMessage):
-    """A message containing a list of function calls."""
-
-    content: List[FunctionCall]
-    """The list of function calls."""
-
-
-class ToolCallResultMessage(BaseMessage):
-    """A message containing the results of function calls."""
-
-    content: List[FunctionExecutionResult]
-    """The list of function execution results."""
-
-
 class StopMessage(BaseMessage):
     """A message requesting stop of a conversation."""
 
@@ -54,7 +39,7 @@ class HandoffMessage(BaseMessage):
     """The agent name to handoff the conversation to."""
 
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | ToolCallMessage | ToolCallResultMessage | HandoffMessage
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
 """A message used by agents in a team."""
 
 
@@ -62,9 +47,7 @@ __all__ = [
     "BaseMessage",
     "TextMessage",
     "MultiModalMessage",
-    "ToolCallMessage",
-    "ToolCallResultMessage",
     "StopMessage",
-    "ChatMessage",
     "HandoffMessage",
+    "ChatMessage",
 ]

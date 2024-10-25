@@ -13,11 +13,10 @@ from autogen_core.base import (
     TopicId,
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components.tools import Tool
 
-from ...base import ChatAgent, TaskResult, Team, TerminationCondition, ToolUseChatAgent
+from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import ChatMessage, TextMessage
-from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
+from .._events import GroupChatPublishEvent, GroupChatRequestPublishEvent
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
 
@@ -34,11 +33,6 @@ class BaseGroupChat(Team, ABC):
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
-        for participant in participants:
-            if isinstance(participant, ToolUseChatAgent) and not participant.registered_tools:
-                raise ValueError(
-                    f"Participant '{participant.name}' is a tool use agent so it must have registered tools."
-                )
         self._participants = participants
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
@@ -51,7 +45,6 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
-        tools: List[Tool] | None = None,
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(
@@ -90,7 +83,6 @@ class BaseGroupChat(Team, ABC):
         # Register participants.
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
-        tools: List[Tool] = []
         for participant in self._participants:
             # Use the participant name as the agent type and topic type.
             agent_type = participant.name
@@ -107,12 +99,6 @@ class BaseGroupChat(Team, ABC):
             # Add the participant to the lists.
             participant_descriptions.append(participant.description)
             participant_topic_types.append(topic_type)
-            # Add the tools to the list.
-            if isinstance(participant, ToolUseChatAgent):
-                for tool in participant.registered_tools:
-                    if next((t for t in tools if t.name == tool.name), None) is not None:
-                        raise ValueError(f"Tool '{tool.name}' is already registered, please use a unique name.")
-                    tools.append(tool)
 
         # Register the group chat manager.
         await self._base_group_chat_manager_class.register(
@@ -124,7 +110,6 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
                 termination_condition=termination_condition,
-                tools=tools,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -143,7 +128,7 @@ class BaseGroupChat(Team, ABC):
         async def collect_group_chat_messages(
             _runtime: AgentRuntime,
             id: AgentId,
-            message: ContentPublishEvent | ToolCallEvent | ToolCallResultEvent,
+            message: GroupChatPublishEvent,
             ctx: MessageContext,
         ) -> None:
             group_chat_messages.append(message.agent_message)
@@ -164,10 +149,10 @@ class BaseGroupChat(Team, ABC):
         team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
         group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         await runtime.publish_message(
-            ContentPublishEvent(agent_message=TextMessage(content=task, source="user")),
+            GroupChatPublishEvent(agent_message=TextMessage(content=task, source="user")),
             topic_id=team_topic_id,
         )
-        await runtime.publish_message(ContentRequestEvent(), topic_id=group_chat_manager_topic_id)
+        await runtime.publish_message(GroupChatRequestPublishEvent(), topic_id=group_chat_manager_topic_id)
 
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()

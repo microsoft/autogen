@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat.agents import ToolUseAssistantAgent
-from autogen_agentchat.messages import StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from autogen_agentchat.messages import StopMessage, TextMessage
 from autogen_core.components.models import OpenAIChatCompletionClient
 from autogen_core.components.tools import FunctionTool
 from openai.resources.chat.completions import AsyncCompletions
@@ -103,9 +103,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         registered_tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
     result = await tool_use_agent.run("task")
-    assert len(result.messages) == 5
+    assert len(result.messages) == 3
     assert isinstance(result.messages[0], TextMessage)
-    assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessage)
-    assert isinstance(result.messages[3], TextMessage)
-    assert isinstance(result.messages[4], StopMessage)
+    assert isinstance(result.messages[1], TextMessage)
+    assert isinstance(result.messages[2], StopMessage)
