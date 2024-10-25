@@ -7,7 +7,10 @@ from autogen_core.components.models import ChatCompletionClient, SystemMessage
 from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import MultiModalMessage, StopMessage, TextMessage
-from .._events import ContentPublishEvent, SelectSpeakerEvent
+from .._events import (
+    GroupChatPublishEvent,
+    GroupChatSelectSpeakerEvent,
+)
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -42,7 +45,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
 
-    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[GroupChatPublishEvent]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
@@ -107,7 +110,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
-        event_logger.debug(SelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
+        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
         return agent_name
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
@@ -148,7 +151,7 @@ class SelectorGroupChat(BaseGroupChat):
     to all, using a ChatCompletion model to select the next speaker after each message.
 
     Args:
-        participants (List[BaseChatAgent]): The participants in the group chat,
+        participants (List[ChatAgent]): The participants in the group chat,
             must have unique names and at least two participants.
         model_client (ChatCompletionClient): The ChatCompletion model client used
             to select the next speaker.

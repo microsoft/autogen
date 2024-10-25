@@ -3,13 +3,12 @@ import logging
 import sys
 from datetime import datetime
 
+from ..agents._tool_use_assistant_agent import ToolCallEvent, ToolCallResultEvent
 from ..messages import ChatMessage, StopMessage, TextMessage
 from ..teams._events import (
-    ContentPublishEvent,
-    SelectSpeakerEvent,
+    GroupChatPublishEvent,
+    GroupChatSelectSpeakerEvent,
     TerminationEvent,
-    ToolCallEvent,
-    ToolCallResultEvent,
 )
 
 
@@ -25,7 +24,7 @@ class ConsoleLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
-        if isinstance(record.msg, ContentPublishEvent):
+        if isinstance(record.msg, GroupChatPublishEvent):
             if record.msg.source is None:
                 sys.stdout.write(
                     f"\n{'-'*75} \n"
@@ -41,19 +40,15 @@ class ConsoleLogHandler(logging.Handler):
             sys.stdout.flush()
         elif isinstance(record.msg, ToolCallEvent):
             sys.stdout.write(
-                f"\n{'-'*75} \n"
-                f"\033[91m[{ts}], Tool Call:\033[0m\n"
-                f"\n{self.serialize_chat_message(record.msg.agent_message)}"
+                f"\n{'-'*75} \n" f"\033[91m[{ts}], Tool Call:\033[0m\n" f"\n{str(record.msg.model_dump())}"
             )
             sys.stdout.flush()
         elif isinstance(record.msg, ToolCallResultEvent):
             sys.stdout.write(
-                f"\n{'-'*75} \n"
-                f"\033[91m[{ts}], Tool Call Result:\033[0m\n"
-                f"\n{self.serialize_chat_message(record.msg.agent_message)}"
+                f"\n{'-'*75} \n" f"\033[91m[{ts}], Tool Call Result:\033[0m\n" f"\n{str(record.msg.model_dump())}"
             )
             sys.stdout.flush()
-        elif isinstance(record.msg, SelectSpeakerEvent):
+        elif isinstance(record.msg, GroupChatSelectSpeakerEvent):
             sys.stdout.write(
                 f"\n{'-'*75} \n" f"\033[91m[{ts}], Selected Next Speaker:\033[0m\n" f"\n{record.msg.selected_speaker}"
             )
