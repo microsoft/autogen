@@ -103,12 +103,11 @@ class ChromaVectorDB(VectorDB):
     def create_collection(
         self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
     ) -> "Collection":
-        """
-        Create a collection in the vector database.
+        """Create a collection in the vector database.
+
         Case 1. if the collection does not exist, create the collection.
         Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
-        Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection,
-            otherwise it raises a ValueError.
+        Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection, otherwise it raises a ValueError.
 
         Args:
             collection_name: str | The name of the collection.
@@ -147,8 +146,7 @@ class ChromaVectorDB(VectorDB):
             raise ValueError(f"Collection {collection_name} already exists.")
 
     def get_collection(self, collection_name: Optional[str] = None) -> "Collection":
-        """
-        Get the collection from the vector database.
+        """Get the collection from the vector database.
 
         Args:
             collection_name: Optional[str] | The name of the collection. Default is None.
@@ -429,12 +427,11 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         self.active_collection: Optional[Any] = None
 
     async def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
-        """
-        Create a collection in the vector database.
+        """Create a collection in the vector database.
+
         Case 1. if the collection does not exist, create the collection.
         Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
-        Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection,
-            otherwise it raises a ValueError.
+        Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection, otherwise it raises a ValueError.
 
         Args:
             collection_name: str | The name of the collection.
@@ -712,16 +709,20 @@ def _chroma_results_to_query_results(
 
     for i in range(len(data_special_key)):
         sub_result: List[Tuple[Document, float]] = []
-        ids = data_dict["ids"][i]
-        documents = data_dict.get("documents") or [None] * len(ids)  # type: ignore
-        metadatas = data_dict.get("metadatas") or [None] * len(ids)  # type: ignore
-        embeddings = data_dict.get("embeddings") or [None] * len(ids)
+        ids_i = data_dict["ids"][i]
+        documents_list = data_dict.get("documents")
+        documents_i = documents_list[i] if documents_list else [None] * len(ids_i)  # type: ignore
+        metadatas_list = data_dict.get("metadatas")
+        metadatas_i = metadatas_list[i] if metadatas_list else [None] * len(ids_i)  # type: ignore
+        embeddings_list = data_dict.get("embeddings")
+        embeddings_i = embeddings_list[i] if embeddings_list else [None] * len(ids_i)
+
         for j in range(len(data_special_key[i])):
             document = Document(
-                id=ids[j],
-                content=cast(Optional[str], documents[j]),
-                metadata=cast(Optional[Metadata], metadatas[j]),
-                embedding=cast(Optional[Vector], embeddings[j]),
+                id=ids_i[j],
+                content=documents_i[j],
+                metadata=cast(Optional[Metadata], metadatas_i[j]),
+                embedding=cast(Optional[Vector], embeddings_i[j]),
             )
             value = data_special_key[i][j]
             sub_result.append((document, value))
