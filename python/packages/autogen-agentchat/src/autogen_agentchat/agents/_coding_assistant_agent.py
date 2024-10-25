@@ -8,7 +8,7 @@ from ._assistant_agent import AssistantAgent
 
 
 class CodingAssistantAgent(AssistantAgent):
-    """An agent that provides coding assistance using an LLM model client.
+    """[DEPRECATED] An agent that provides coding assistance using an LLM model client.
 
     It responds with a StopMessage when 'terminate' is detected in the response.
     """
