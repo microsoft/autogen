@@ -34,7 +34,11 @@ namespace Hello
                 Message = response
             }.ToCloudEvent(this.AgentId.Key);
             var entry = "We said hello to " + item.Message;
-            await Store(new AgentState { TextData = entry });
+            await Store(new AgentState 
+            {
+                AgentId = this.AgentId,
+                TextData = entry
+            }).ConfigureAwait(false);
             await PublishEvent(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {

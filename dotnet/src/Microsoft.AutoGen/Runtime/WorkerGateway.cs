@@ -214,7 +214,8 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
     }
     public async ValueTask Store(AgentState value)
     {
-        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
+        var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
+        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
 
