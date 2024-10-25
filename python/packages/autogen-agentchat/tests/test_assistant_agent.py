@@ -42,7 +42,7 @@ async def _echo_function(input: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
         ChatCompletion(
