@@ -1,7 +1,14 @@
 from autogen_core.base import AgentId
 from pydantic import BaseModel, ConfigDict
 
-from ..messages import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from ..messages import (
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
 
 
 class ContentPublishEvent(BaseModel):
@@ -71,5 +78,17 @@ class TerminationEvent(BaseModel):
 
     source: AgentId
     """The agent ID that triggered the termination."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class HandoffEvent(BaseModel):
+    """An event for handing off a conversation to another agent."""
+
+    agent_message: HandoffMessage
+    """The handoff message that requests the handoff."""
+
+    source: AgentId
+    """The agent ID that triggered the handoff."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
