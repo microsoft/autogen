@@ -12,7 +12,6 @@ from autogen_core.components.models import (
 )
 from autogen_core.components.tools import FunctionTool, Tool
 
-from ..base import BaseToolUseChatAgent
 from ..messages import (
     ChatMessage,
     MultiModalMessage,
@@ -21,6 +20,7 @@ from ..messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
+from ._base_chat_agent import BaseToolUseChatAgent
 
 
 class ToolUseAssistantAgent(BaseToolUseChatAgent):

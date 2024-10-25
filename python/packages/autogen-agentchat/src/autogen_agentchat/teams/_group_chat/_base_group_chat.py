@@ -3,12 +3,20 @@ from abc import ABC, abstractmethod
 from typing import Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
+from autogen_core.base import (
+    AgentId,
+    AgentInstantiationContext,
+    AgentRuntime,
+    AgentType,
+    CancellationToken,
+    MessageContext,
+    TopicId,
+)
 from autogen_core.components import ClosureAgent, TypeSubscription
 from autogen_core.components.tool_agent import ToolAgent
 from autogen_core.components.tools import Tool
 
-from ...base import BaseChatAgent, BaseToolUseChatAgent, TaskResult, Team, TerminationCondition
+from ...base import ChatAgent, TaskResult, Team, TerminationCondition, ToolUseChatAgent
 from ...messages import ChatMessage, TextMessage
 from .._events import ContentPublishEvent, ContentRequestEvent
 from ._base_chat_agent_container import BaseChatAgentContainer
@@ -22,13 +30,13 @@ class BaseGroupChat(Team, ABC):
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
 
-    def __init__(self, participants: List[BaseChatAgent], group_chat_manager_class: type[BaseGroupChatManager]):
+    def __init__(self, participants: List[ChatAgent], group_chat_manager_class: type[BaseGroupChatManager]):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
         for participant in participants:
-            if isinstance(participant, BaseToolUseChatAgent) and not participant.registered_tools:
+            if isinstance(participant, ToolUseChatAgent) and not participant.registered_tools:
                 raise ValueError(
                     f"Participant '{participant.name}' is a tool use agent so it must have registered tools."
                 )
@@ -47,7 +55,7 @@ class BaseGroupChat(Team, ABC):
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(
-        self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType | None
+        self, parent_topic_type: str, agent: ChatAgent, tool_agent_type: AgentType | None
     ) -> Callable[[], BaseChatAgentContainer]:
         def _factory() -> BaseChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
@@ -68,7 +76,13 @@ class BaseGroupChat(Team, ABC):
 
         return _factory
 
-    async def run(self, task: str, *, termination_condition: TerminationCondition | None = None) -> TaskResult:
+    async def run(
+        self,
+        task: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+        termination_condition: TerminationCondition | None = None,
+    ) -> TaskResult:
         """Run the team and return the result."""
         # Create intervention handler for termination.
 
@@ -85,7 +99,7 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
         for participant in self._participants:
-            if isinstance(participant, BaseToolUseChatAgent):
+            if isinstance(participant, ToolUseChatAgent):
                 assert participant.registered_tools is not None and len(participant.registered_tools) > 0
                 # Register the tool agent.
                 tool_agent_type = await ToolAgent.register(
