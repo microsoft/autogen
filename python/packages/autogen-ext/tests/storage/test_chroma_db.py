@@ -1,16 +1,19 @@
+from pathlib import Path
 from typing import Generator
 
 import pytest
 from autogen_ext.storage import ChromaVectorDB
 from autogen_ext.storage._base import Document
+from chromadb import Collection
 from chromadb.config import Settings
 from chromadb.errors import ChromaError
 
 
-# Fixture for the synchronous database instance with module-level scope
-@pytest.fixture(scope="module")
-def db() -> Generator[ChromaVectorDB, None, None]:
-    db_instance = ChromaVectorDB(path=".db", settings=Settings(allow_reset=True))
+# Fixture for the synchronous database instance with function-level scope
+@pytest.fixture(scope="function")
+def db(tmp_path: Path) -> Generator[ChromaVectorDB, None, None]:
+    db_path = tmp_path / "test_db"
+    db_instance = ChromaVectorDB(path=str(db_path), settings=Settings(allow_reset=True))
     yield db_instance
     # Teardown code
     db_instance.client.reset()
@@ -18,13 +21,13 @@ def db() -> Generator[ChromaVectorDB, None, None]:
 
 # Fixture for unique collection names per test
 @pytest.fixture(scope="function")
-def collection_name(request) -> str:
-    return f"test_collection_{request.node.name}"
+def collection_name(request: pytest.FixtureRequest) -> str:
+    return f"test_collection_{request.node.name}"  # type: ignore
 
 
 # Fixture to create and delete the collection around each test
 @pytest.fixture(scope="function")
-def collection(db: ChromaVectorDB, collection_name: str):
+def collection(db: ChromaVectorDB, collection_name: str) -> Generator[Collection, None, None]:
     collection = db.create_collection(collection_name, overwrite=True, get_or_create=True)
     yield collection
     db.delete_collection(collection_name)
@@ -60,12 +63,12 @@ def test_more_create_collection(db: ChromaVectorDB, collection_name: str) -> Non
     assert collection.name == collection_name
 
 
-def test_get_collection(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_get_collection(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     retrieved_collection = db.get_collection(collection_name)
     assert retrieved_collection.name == collection_name
 
 
-def test_insert_docs(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_insert_docs(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     docs = [
         Document(content="doc1", id="1"),
         Document(content="doc2", id="2"),
@@ -76,7 +79,7 @@ def test_insert_docs(db: ChromaVectorDB, collection_name: str, collection) -> No
     assert res["documents"] == ["doc1", "doc2"]
 
 
-def test_update_docs(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_update_docs(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     # Insert initial docs
     initial_docs = [
         Document(content="doc1", id="1"),
@@ -95,7 +98,7 @@ def test_update_docs(db: ChromaVectorDB, collection_name: str, collection) -> No
     assert res["documents"] == ["doc11", "doc2"]
 
 
-def test_delete_docs(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_delete_docs(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     # Insert initial docs
     initial_docs = [
         Document(content="doc1", id="1"),
@@ -109,7 +112,7 @@ def test_delete_docs(db: ChromaVectorDB, collection_name: str, collection) -> No
     assert res["documents"] == []
 
 
-def test_retrieve_docs(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_retrieve_docs(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     # Insert initial docs
     initial_docs = [
         Document(content="doc2", id="2"),
@@ -124,7 +127,7 @@ def test_retrieve_docs(db: ChromaVectorDB, collection_name: str, collection) -> 
     assert [[r[0].id for r in rr] for rr in res] == [["2"], ["3"]]
 
 
-def test_get_docs_by_ids(db: ChromaVectorDB, collection_name: str, collection) -> None:
+def test_get_docs_by_ids(db: ChromaVectorDB, collection_name: str, collection: Collection) -> None:
     # Insert initial docs
     initial_docs = [
         Document(content="doc2", id="2"),
