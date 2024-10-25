@@ -18,8 +18,8 @@ from autogen_core.components.tools import Tool
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition, ToolUseChatAgent
 from ...messages import ChatMessage, TextMessage
 from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
-from ._base_chat_agent_container import BaseChatAgentContainer
 from ._base_group_chat_manager import BaseGroupChatManager
+from ._chat_agent_container import ChatAgentContainer
 
 
 class BaseGroupChat(Team, ABC):
@@ -58,11 +58,11 @@ class BaseGroupChat(Team, ABC):
         self,
         parent_topic_type: str,
         agent: ChatAgent,
-    ) -> Callable[[], BaseChatAgentContainer]:
-        def _factory() -> BaseChatAgentContainer:
+    ) -> Callable[[], ChatAgentContainer]:
+        def _factory() -> ChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent)
+            container = ChatAgentContainer(parent_topic_type, agent)
             assert container.id == id
             return container
 
@@ -96,7 +96,7 @@ class BaseGroupChat(Team, ABC):
             agent_type = participant.name
             topic_type = participant.name
             # Register the participant factory.
-            await BaseChatAgentContainer.register(
+            await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
                 factory=self._create_participant_factory(group_topic_type, participant),

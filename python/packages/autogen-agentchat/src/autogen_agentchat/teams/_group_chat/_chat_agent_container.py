@@ -1,22 +1,22 @@
-from typing import List
+from typing import Any, List
 
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, event
 
 from ...base import ChatAgent
-from ...messages import ChatMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage
-from .._events import ContentPublishEvent, ContentRequestEvent, ToolCallEvent, ToolCallResultEvent
+from ...messages import ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage, ToolCallMessage
+from .._events import ContentPublishEvent, ContentRequestEvent, HandoffEvent, ToolCallEvent, ToolCallResultEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
-class BaseChatAgentContainer(SequentialRoutedAgent):
+class ChatAgentContainer(SequentialRoutedAgent):
     """A core agent class that delegates message handling to an
-    :class:`autogen_agentchat.agents.BaseChatAgent` so that it can be used in a
+    :class:`autogen_agentchat.base.ChatAgent` so that it can be used in a
     group chat team.
 
     Args:
         parent_topic_type (str): The topic type of the parent orchestrator.
-        agent (BaseChatAgent): The agent to delegate message handling to.
+        agent (ChatAgent): The agent to delegate message handling to.
     """
 
     def __init__(self, parent_topic_type: str, agent: ChatAgent) -> None:
@@ -27,7 +27,7 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
 
     @event
     async def handle_message(
-        self, message: ContentPublishEvent | ToolCallEvent | ToolCallResultEvent, ctx: MessageContext
+        self, message: ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | HandoffEvent, ctx: MessageContext
     ) -> None:
         """Handle an event by appending the content to the buffer."""
         self._message_buffer.append(message.agent_message)
@@ -51,5 +51,13 @@ class BaseChatAgentContainer(SequentialRoutedAgent):
                 ContentPublishEvent(agent_message=response, source=self.id),
                 topic_id=DefaultTopicId(type=self._parent_topic_type),
             )
+        elif isinstance(response, HandoffMessage):
+            await self.publish_message(
+                HandoffEvent(agent_message=response, source=self.id),
+                topic_id=DefaultTopicId(type=self._parent_topic_type),
+            )
         else:
             raise ValueError(f"Unexpected response type: {type(response)}")
+
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
+        raise ValueError(f"Unhandled message in agent container: {type(message)}")

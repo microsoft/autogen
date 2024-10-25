@@ -12,7 +12,14 @@ from autogen_core.components.tools import Tool
 from ... import EVENT_LOGGER_NAME
 from ...base import TerminationCondition
 from ...messages import ToolCallResultMessage
-from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent, ToolCallEvent, ToolCallResultEvent
+from .._events import (
+    ContentPublishEvent,
+    ContentRequestEvent,
+    HandoffEvent,
+    TerminationEvent,
+    ToolCallEvent,
+    ToolCallResultEvent,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -71,7 +78,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise ValueError("The group topic type must not be the same as the parent topic type.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent] = []
+        self._message_thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | HandoffEvent] = []
         self._termination_condition = termination_condition
         if tools is not None:
             tool_names = [tool.name for tool in tools]
@@ -135,6 +142,26 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
 
     @event
+    async def handle_handoff(self, message: HandoffEvent, ctx: MessageContext) -> None:
+        """Handle a handoff event by selecting a speaker to continue the conversation."""
+        event_logger.info(message)
+        self._message_thread.append(message)
+
+        if self._termination_condition is not None:
+            stop_message = await self._termination_condition([message.agent_message])
+            if stop_message is not None:
+                event_logger.info(TerminationEvent(agent_message=stop_message, source=self.id))
+                # Stop the group chat.
+                return
+
+        if message.agent_message.content not in self._participant_topic_types:
+            raise ValueError("The handoff message must be to a participant.")
+
+        # Select a speaker to continue the conversation.
+        speaker_topic_type = await self.select_speaker(self._message_thread)
+        await self.publish_message(ContentRequestEvent(), topic_id=DefaultTopicId(type=speaker_topic_type))
+
+    @event
     async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
         """Handle a content publish event.
 
@@ -185,7 +212,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self.publish_message(ContentRequestEvent(), topic_id=DefaultTopicId(type=speaker_topic_type))
 
     @abstractmethod
-    async def select_speaker(self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent]) -> str:
+    async def select_speaker(
+        self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | HandoffEvent]
+    ) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         ...

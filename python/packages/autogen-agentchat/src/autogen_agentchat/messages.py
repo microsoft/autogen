@@ -47,7 +47,14 @@ class StopMessage(BaseMessage):
     """The content for the stop message."""
 
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | ToolCallMessage | ToolCallResultMessage
+class HandoffMessage(BaseMessage):
+    """A message requesting handoff of a conversation to another agent."""
+
+    content: str
+    """The agent name to handoff the conversation to."""
+
+
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | ToolCallMessage | ToolCallResultMessage | HandoffMessage
 """A message used by agents in a team."""
 
 
@@ -59,4 +66,5 @@ __all__ = [
     "ToolCallResultMessage",
     "StopMessage",
     "ChatMessage",
+    "HandoffMessage",
 ]

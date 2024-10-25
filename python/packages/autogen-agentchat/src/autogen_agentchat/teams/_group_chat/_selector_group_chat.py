@@ -8,7 +8,7 @@ from autogen_core.components.tools import Tool
 from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import MultiModalMessage, StopMessage, TextMessage
-from .._events import ContentPublishEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
+from .._events import ContentPublishEvent, HandoffEvent, SelectSpeakerEvent, ToolCallEvent, ToolCallResultEvent
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -45,7 +45,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
 
-    async def select_speaker(self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent]) -> str:
+    async def select_speaker(
+        self, thread: List[ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | HandoffEvent]
+    ) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
@@ -116,7 +118,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         elif isinstance(thread[-1], ToolCallResultEvent):
             assert self._previous_speaker is not None
             # Choose the same speaker as the last content event.
-            # TODO: for handoff, we may want to choose a different speaker.
+            event_logger.debug(SelectSpeakerEvent(selected_speaker=self._previous_speaker, source=self.id))
+            return self._previous_speaker
+        elif isinstance(thread[-1], HandoffEvent):
+            self._previous_speaker = thread[-1].agent_message.content
             event_logger.debug(SelectSpeakerEvent(selected_speaker=self._previous_speaker, source=self.id))
             return self._previous_speaker
         else:
