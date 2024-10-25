@@ -31,7 +31,7 @@ We created Magentic-One with one agent of each type because their combined abili
 ### Planning and Tracking Task Progress
 
 <center>
-<img src="./imgs/autogen-magentic-one-arch.png" alt="drawing" style="width:600px;"/>
+<img src="./imgs/autogen-magentic-one-arch.png" alt="drawing" style=""/>
 </center>
 
 The figure illustrates the workflow of an orchestrator managing a multi-agent setup, starting with an initial prompt or task. The orchestrator creates or updates a ledger with gathered information, including verified facts, facts to look up, derived facts, and educated guesses. Using this ledger, a plan is derived, which consists of a sequence of steps and task assignments for the agents. Before execution, the orchestrator clears the agents' contexts to ensure they start fresh. The orchestrator then evaluates if the request is fully satisfied. If so, it reports the final answer or an educated guess.
