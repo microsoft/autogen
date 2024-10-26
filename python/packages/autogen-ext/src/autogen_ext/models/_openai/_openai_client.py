@@ -553,7 +553,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {},
+        extra_create_args: Mapping[str, Any] = {"stream_options": {"include_usage": True}},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         # Make sure all extra_create_args are valid
@@ -602,7 +602,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
         stream = await stream_future
-
+        choice = None
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
@@ -615,8 +615,22 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if cancellation_token is not None:
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
-                choice = chunk.choices[0]
-                stop_reason = choice.finish_reason
+
+                # to process usage chunk in streaming situations
+                # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
+                # However the different api's
+                # OPENAI api usage chunk produces no choices so need to check if there is a choice
+                # liteLLM api usage chunk does produce choices
+                choice = (
+                    chunk.choices[0]
+                    if len(chunk.choices) > 0
+                    else choice
+                    if chunk.usage is not None and stop_reason is not None
+                    else None
+                )
+                # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
+                # set the stop_reason for the usage chunk to the prior stop_reason
+                stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
                 maybe_model = chunk.model
                 # First try get content
                 if choice.delta.content is not None:
@@ -658,17 +672,21 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
-        # TODO fix count token
-        prompt_tokens = 0
-        # prompt_tokens = count_token(messages, model=model)
+        if chunk.usage:
+            prompt_tokens = chunk.usage.prompt_tokens
+        else:
+            prompt_tokens = 0
+
         if stop_reason is None:
             raise ValueError("No stop reason found")
 
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
-            completion_tokens = 0
-            # completion_tokens = count_token(content, model=model)
+            if chunk.usage:
+                completion_tokens = chunk.usage.completion_tokens
+            else:
+                completion_tokens = 0
         else:
             completion_tokens = 0
             # TODO: fix assumption that dict values were added in order and actually order by int index
