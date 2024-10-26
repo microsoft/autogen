@@ -18,6 +18,7 @@
 | Justin Trugman     | [jtrugman](https://github.com/jtrugman)                  | BetterFutureLabs | GPTAssistantAgent, Tool overwrite, Instruction Overwrite     |
 | Gregory Fanous  | [gregory-fanous](https://github.com/gregory-fanous)         | -                     | teachability, rag, tool calling     |
 | Davor Runje     | [davorrunje](https://github.com/davorrunje)                | airt.ai                | Tool calling, IO                        |
+| Aaron Ward     | [AaronWard](https://github.com/AaronWard)                | yappstore.ai                | all                      |
 
 **Pending Maintainers list (Marked with \*, Waiting for explicit approval from the maintainers)**
 | Name            | GitHub Handle                                              | Organization           | Features                                |
