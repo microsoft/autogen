@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import Sequence
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.tools import Tool
 
-from ..base import ChatAgent, TaskResult, TerminationCondition, ToolUseChatAgent
+from ..base import ChatAgent, TaskResult, TerminationCondition
 from ..messages import ChatMessage
 from ..teams import RoundRobinGroupChat
 
@@ -51,21 +50,3 @@ class BaseChatAgent(ChatAgent, ABC):
             termination_condition=termination_condition,
         )
         return result
-
-
-class BaseToolUseChatAgent(BaseChatAgent, ToolUseChatAgent):
-    """Base class for a chat agent that can use tools.
-
-    Subclass this base class to create an agent class that uses tools by returning
-    ToolCallMessage message from the :meth:`on_messages` method and receiving
-    ToolCallResultMessage message from the input to the :meth:`on_messages` method.
-    """
-
-    def __init__(self, name: str, description: str, registered_tools: List[Tool]) -> None:
-        super().__init__(name, description)
-        self._registered_tools = registered_tools
-
-    @property
-    def registered_tools(self) -> List[Tool]:
-        """The list of tools that the agent can use."""
-        return self._registered_tools

@@ -1,16 +1,16 @@
 from autogen_core.base import AgentId
 from pydantic import BaseModel, ConfigDict
 
-from ..messages import MultiModalMessage, StopMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
+from ..messages import ChatMessage, StopMessage
 
 
-class ContentPublishEvent(BaseModel):
-    """An event for sharing some data. Agents receive this event should
+class GroupChatPublishEvent(BaseModel):
+    """An group chat event for sharing some data. Agents receive this event should
     update their internal state (e.g., append to message history) with the
     content of the event.
     """
 
-    agent_message: TextMessage | MultiModalMessage | StopMessage
+    agent_message: ChatMessage
     """The message published by the agent."""
 
     source: AgentId | None = None
@@ -19,39 +19,15 @@ class ContentPublishEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ContentRequestEvent(BaseModel):
-    """An event for requesting to publish a content event.
-    Upon receiving this event, the agent should publish a ContentPublishEvent.
+class GroupChatRequestPublishEvent(BaseModel):
+    """An event for requesting to publish a group chat publish event.
+    Upon receiving this event, the agent should publish a group chat publish event.
     """
 
     ...
 
 
-class ToolCallEvent(BaseModel):
-    """An event produced when requesting a tool call."""
-
-    agent_message: ToolCallMessage
-    """The tool call message."""
-
-    source: AgentId
-    """The sender of the tool call message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class ToolCallResultEvent(BaseModel):
-    """An event produced when a tool call is completed."""
-
-    agent_message: ToolCallResultMessage
-    """The tool call result message."""
-
-    source: AgentId
-    """The sender of the tool call result message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class SelectSpeakerEvent(BaseModel):
+class GroupChatSelectSpeakerEvent(BaseModel):
     """An event for selecting the next speaker in a group chat."""
 
     selected_speaker: str

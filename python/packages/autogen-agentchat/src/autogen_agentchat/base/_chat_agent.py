@@ -1,7 +1,6 @@
-from typing import List, Protocol, Sequence, runtime_checkable
+from typing import Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.tools import Tool
 
 from ..messages import ChatMessage
 from ._task import TaskResult, TaskRunner
@@ -37,14 +36,4 @@ class ChatAgent(TaskRunner, Protocol):
         termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
-        ...
-
-
-@runtime_checkable
-class ToolUseChatAgent(ChatAgent, Protocol):
-    """Protocol for a chat agent that can use tools."""
-
-    @property
-    def registered_tools(self) -> List[Tool]:
-        """The list of tools that the agent can use."""
         ...

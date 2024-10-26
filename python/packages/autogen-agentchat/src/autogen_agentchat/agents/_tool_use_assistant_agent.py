@@ -1,3 +1,6 @@
+import asyncio
+import json
+import logging
 from typing import Any, Awaitable, Callable, List, Sequence
 
 from autogen_core.base import CancellationToken
@@ -5,25 +8,45 @@ from autogen_core.components import FunctionCall
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
 from autogen_core.components.tools import FunctionTool, Tool
+from pydantic import BaseModel, ConfigDict
 
+from .. import EVENT_LOGGER_NAME
 from ..messages import (
     ChatMessage,
-    MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
 )
-from ._base_chat_agent import BaseToolUseChatAgent
+from ._base_chat_agent import BaseChatAgent
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class ToolUseAssistantAgent(BaseToolUseChatAgent):
+class ToolCallEvent(BaseModel):
+    """A tool call event."""
+
+    tool_calls: List[FunctionCall]
+    """The tool call message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class ToolCallResultEvent(BaseModel):
+    """A tool call result event."""
+
+    tool_call_results: List[FunctionExecutionResult]
+    """The tool call result message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class ToolUseAssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
     It responds with a StopMessage when 'terminate' is detected in the response.
@@ -45,46 +68,50 @@ class ToolUseAssistantAgent(BaseToolUseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with 'TERMINATE' when the task has been completed.",
     ):
-        tools: List[Tool] = []
+        super().__init__(name=name, description=description)
+        self._model_client = model_client
+        self._system_messages = [SystemMessage(content=system_message)]
+        self._tools: List[Tool] = []
         for tool in registered_tools:
             if isinstance(tool, Tool):
-                tools.append(tool)
+                self._tools.append(tool)
             elif callable(tool):
                 if hasattr(tool, "__doc__") and tool.__doc__ is not None:
                     description = tool.__doc__
                 else:
                     description = ""
-                tools.append(FunctionTool(tool, description=description))
+                self._tools.append(FunctionTool(tool, description=description))
             else:
                 raise ValueError(f"Unsupported tool type: {type(tool)}")
-        super().__init__(name=name, description=description, registered_tools=tools)
-        self._model_client = model_client
-        self._system_messages = [SystemMessage(content=system_message)]
-        self._tool_schema = [tool.schema for tool in tools]
         self._model_context: List[LLMMessage] = []
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, ToolCallResultMessage):
-                self._model_context.append(FunctionExecutionResultMessage(content=msg.content))
-            elif not isinstance(msg, TextMessage | MultiModalMessage | StopMessage):
-                raise ValueError(f"Unsupported message type: {type(msg)}")
-            else:
-                self._model_context.append(UserMessage(content=msg.content, source=msg.source))
+            # TODO: add special handling for handoff messages
+            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
-        result = await self._model_client.create(
-            llm_messages, tools=self._tool_schema, cancellation_token=cancellation_token
-        )
+        result = await self._model_client.create(llm_messages, tools=self._tools, cancellation_token=cancellation_token)
 
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
-        # Detect tool calls.
-        if isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            return ToolCallMessage(content=result.content, source=self.name)
+        # Run tool calls until the model produces a string response.
+        while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
+            event_logger.debug(ToolCallEvent(tool_calls=result.content))
+            # Execute the tool calls.
+            results = await asyncio.gather(
+                *[self._execute_tool_call(call, cancellation_token) for call in result.content]
+            )
+            event_logger.debug(ToolCallResultEvent(tool_call_results=results))
+            self._model_context.append(FunctionExecutionResultMessage(content=results))
+            # Generate an inference result based on the current model context.
+            result = await self._model_client.create(
+                self._model_context, tools=self._tools, cancellation_token=cancellation_token
+            )
+            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         assert isinstance(result.content, str)
         # Detect stop request.
@@ -93,3 +120,20 @@ class ToolUseAssistantAgent(BaseToolUseChatAgent):
             return StopMessage(content=result.content, source=self.name)
 
         return TextMessage(content=result.content, source=self.name)
+
+    async def _execute_tool_call(
+        self, tool_call: FunctionCall, cancellation_token: CancellationToken
+    ) -> FunctionExecutionResult:
+        """Execute a tool call and return the result."""
+        try:
+            if not self._tools:
+                raise ValueError("No tools are available.")
+            tool = next((t for t in self._tools if t.name == tool_call.name), None)
+            if tool is None:
+                raise ValueError(f"The tool '{tool_call.name}' is not available.")
+            arguments = json.loads(tool_call.arguments)
+            result = await tool.run_json(arguments, cancellation_token)
+            result_as_str = tool.return_value_as_string(result)
+            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id)
+        except Exception as e:
+            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)

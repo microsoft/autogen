@@ -4,12 +4,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
 
+from ..agents._tool_use_assistant_agent import ToolCallEvent, ToolCallResultEvent
 from ..teams._events import (
-    ContentPublishEvent,
-    SelectSpeakerEvent,
+    GroupChatPublishEvent,
+    GroupChatSelectSpeakerEvent,
     TerminationEvent,
-    ToolCallEvent,
-    ToolCallResultEvent,
 )
 
 
@@ -21,7 +20,7 @@ class FileLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         ts = datetime.fromtimestamp(record.created).isoformat()
-        if isinstance(record.msg, ContentPublishEvent | ToolCallEvent | ToolCallResultEvent | TerminationEvent):
+        if isinstance(record.msg, GroupChatPublishEvent | TerminationEvent):
             log_entry = json.dumps(
                 {
                     "timestamp": ts,
@@ -31,13 +30,31 @@ class FileLogHandler(logging.Handler):
                 },
                 default=self.json_serializer,
             )
-        elif isinstance(record.msg, SelectSpeakerEvent):
+        elif isinstance(record.msg, GroupChatSelectSpeakerEvent):
             log_entry = json.dumps(
                 {
                     "timestamp": ts,
                     "source": record.msg.source,
                     "selected_speaker": record.msg.selected_speaker,
                     "type": "SelectSpeakerEvent",
+                },
+                default=self.json_serializer,
+            )
+        elif isinstance(record.msg, ToolCallEvent):
+            log_entry = json.dumps(
+                {
+                    "timestamp": ts,
+                    "tool_calls": record.msg.model_dump(),
+                    "type": "ToolCallEvent",
+                },
+                default=self.json_serializer,
+            )
+        elif isinstance(record.msg, ToolCallResultEvent):
+            log_entry = json.dumps(
+                {
+                    "timestamp": ts,
+                    "tool_call_results": record.msg.model_dump(),
+                    "type": "ToolCallResultEvent",
                 },
                 default=self.json_serializer,
             )

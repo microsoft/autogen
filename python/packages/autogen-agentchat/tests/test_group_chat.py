@@ -13,11 +13,17 @@ from autogen_agentchat.agents import (
     ToolUseAssistantAgent,
 )
 from autogen_agentchat.logging import FileLogHandler
-from autogen_agentchat.messages import ChatMessage, StopMessage, TextMessage
-from autogen_agentchat.task import StopMessageTermination
+from autogen_agentchat.messages import (
+    ChatMessage,
+    HandoffMessage,
+    StopMessage,
+    TextMessage,
+)
+from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
+    Swarm,
 )
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
@@ -212,7 +218,16 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
     team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent])
-    await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
+    result = await team.run(
+        "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
+    )
+
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)  # task
+    assert isinstance(result.messages[1], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[2], TextMessage)  # echo agent response
+    assert isinstance(result.messages[3], StopMessage)  # tool use agent response
+
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
     assert isinstance(context[1].content, list)
@@ -393,3 +408,29 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"
     assert result.messages[3].source == "agent1"
+
+
+class _HandOffAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str, next_agent: str) -> None:
+        super().__init__(name, description)
+        self._next_agent = next_agent
+
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+        return HandoffMessage(content=self._next_agent, source=self.name)
+
+
+@pytest.mark.asyncio
+async def test_swarm() -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    team = Swarm([second_agent, first_agent, third_agent])
+    result = await team.run("task", termination_condition=MaxMessageTermination(6))
+    assert len(result.messages) == 6
+    assert result.messages[0].content == "task"
+    assert result.messages[1].content == "third_agent"
+    assert result.messages[2].content == "first_agent"
+    assert result.messages[3].content == "second_agent"
+    assert result.messages[4].content == "third_agent"
+    assert result.messages[5].content == "first_agent"
