@@ -77,6 +77,13 @@ class Handoff(BaseModel):
             values["description"] = f"Handoff to {values['target']}."
         if values.get("name") is None:
             values["name"] = f"transfer_to_{values['target']}".lower()
+        else:
+            name = values["name"]
+            if not isinstance(name, str):
+                raise ValueError(f"Handoff name must be a string: {values['name']}")
+            # Check if name is a valid identifier.
+            if not name.isidentifier():
+                raise ValueError(f"Handoff name must be a valid identifier: {values['name']}")
         if values.get("message") is None:
             values["message"] = (
                 f"Transferred to {values['target']}, adopting the role of {values['target']} immediately."
