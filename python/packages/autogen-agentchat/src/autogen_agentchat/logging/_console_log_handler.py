@@ -3,7 +3,7 @@ import logging
 import sys
 from datetime import datetime
 
-from ..agents._tool_use_assistant_agent import ToolCallEvent, ToolCallResultEvent
+from ..agents._assistant_agent import ToolCallEvent, ToolCallResultEvent
 from ..messages import ChatMessage, StopMessage, TextMessage
 from ..teams._events import (
     GroupChatPublishEvent,

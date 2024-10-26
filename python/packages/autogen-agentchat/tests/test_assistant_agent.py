@@ -3,10 +3,10 @@ import json
 from typing import Any, AsyncGenerator, List
 
 import pytest
-from autogen_agentchat.agents import ToolUseAssistantAgent
+from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import StopMessage, TextMessage
-from autogen_core.components.models import OpenAIChatCompletionClient
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
@@ -42,7 +42,7 @@ async def _echo_function(input: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
         ChatCompletion(
@@ -97,10 +97,10 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     ]
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
-    tool_use_agent = ToolUseAssistantAgent(
+    tool_use_agent = AssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        registered_tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
+        tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
     result = await tool_use_agent.run("task")
     assert len(result.messages) == 3
