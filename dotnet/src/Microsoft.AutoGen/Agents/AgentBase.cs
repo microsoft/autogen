@@ -108,10 +108,10 @@ public abstract class AgentBase
                 break;
         }
     }
-    protected async Task<string> Store(AgentState state)
+    protected async Task Store(AgentState state)
     {
         await _context.Store(state).ConfigureAwait(false);
-        return ""; // TODO: Implement
+        return;
     }
     protected async Task<T> Read<T>(AgentId agentId) where T: IMessage, new()
     {

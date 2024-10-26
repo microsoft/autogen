@@ -328,21 +328,24 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
     }
     public ValueTask Store(AgentState value)
     {
-
-        _client.SaveState(value);
-        // TODO: Implement error handling
+        var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
+        var response = _client.SaveState(value);
+        if (!response.Success)
+        {
+            throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
+        }
         return ValueTask.CompletedTask;
     }
     public async ValueTask<AgentState> Read(AgentId agentId)
     {
         var response = await _client.GetStateAsync(agentId);
-        if (response.Success)
+        if (response.Success && response.AgentState.AgentId is not null)
         {
             return response.AgentState;
         }
         else
         {
-            throw new KeyNotFoundException();
+            throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
 }
