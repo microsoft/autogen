@@ -12,7 +12,6 @@
 | Shaokun Zhang   | [skzhang1](https://github.com/skzhang1)                    | Penn State University  | AgentOptimizer, Teachability            |
 | Yixuan Zhai     | [randombet](https://github.com/randombet)                  | Meta                   | group chat, sequential_chats, rag       |
 | Yiran Wu        | [yiranwu0](https://github.com/yiranwu0)                    | Penn State University  | alt-models, group chat, logging, infra  |
-| Beibin Li       | [BeibinLi](https://github.com/BeibinLi)                    | Microsoft Research     | alt-models                              |
 | Linxin Song     | [LinxinS97](https://github.com/LinxinS97)                  | University of Southern California | autobuild, group chat       |
 | Jieyu Zhang     | [JieyuZ2](https://jieyuz2.github.io/)                  | University of Washington | autobuild, group chat       |
 | Justin Trugman     | [jtrugman](https://github.com/jtrugman)                  | BetterFutureLabs | GPTAssistantAgent, Tool overwrite, Instruction Overwrite     |
