@@ -109,7 +109,6 @@ message ReadmeRequested {
 }
 ```
 
-
 ```xml
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
@@ -118,4 +117,22 @@ message ReadmeRequested {
   </ItemGroup>
 ```
 
-You can send messages using the [```Microsoft.AutoGen.Agents.AgentClient``` class](autogen/dotnet/src/Microsoft.AutoGen/Agents/AgentClient.cs). Messages are wrapped in [the CloudEvents specification](https://cloudevents.io) and sent to the event bus.
+You can send messages using the [```Microsoft.AutoGen.Agents``` class](autogen/dotnet/src/Microsoft.AutoGen/Agents/AgentClient.cs). Messages are wrapped in [the CloudEvents specification](https://cloudevents.io) and sent to the event bus.
+
+### Managing State
+
+There is a simple API for persisting agent state.
+
+```csharp
+            await Store(new AgentState 
+            {
+                AgentId = this.AgentId,
+                TextData = entry
+            }).ConfigureAwait(false);
+```
+
+which can be read back using Read:
+
+```csharp
+            State = await Read<AgentState>(this.AgentId).ConfigureAwait(false);
+```
