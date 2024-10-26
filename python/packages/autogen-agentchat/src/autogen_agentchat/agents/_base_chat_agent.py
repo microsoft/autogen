@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import Sequence
 
 from autogen_core.base import CancellationToken
-from autogen_core.components.tools import Tool
 
+from ..base import ChatAgent, TaskResult, TerminationCondition
 from ..messages import ChatMessage
-from ._base_task import TaskResult, TaskRunner
+from ..teams import RoundRobinGroupChat
 
 
-class BaseChatAgent(TaskRunner, ABC):
-    """Base class for a chat agent that can participant in a team."""
+class BaseChatAgent(ChatAgent, ABC):
+    """Base class for a chat agent."""
 
     def __init__(self, name: str, description: str) -> None:
         self._name = name
@@ -36,25 +36,17 @@ class BaseChatAgent(TaskRunner, ABC):
         ...
 
     async def run(
-        self, task: str, *, source: str = "user", cancellation_token: CancellationToken | None = None
+        self,
+        task: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+        termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
-        # TODO: Implement this method.
-        raise NotImplementedError
-
-
-class BaseToolUseChatAgent(BaseChatAgent):
-    """Base class for a chat agent that can use tools.
-
-    Subclass this base class to create an agent class that uses tools by returning
-    ToolCallMessage message from the :meth:`on_messages` method and receiving
-    ToolCallResultMessage message from the input to the :meth:`on_messages` method.
-    """
-
-    def __init__(self, name: str, description: str, registered_tools: List[Tool]) -> None:
-        super().__init__(name, description)
-        self._registered_tools = registered_tools
-
-    @property
-    def registered_tools(self) -> List[Tool]:
-        """The list of tools that the agent can use."""
-        return self._registered_tools
+        """Run the agent with the given task and return the result."""
+        group_chat = RoundRobinGroupChat(participants=[self])
+        result = await group_chat.run(
+            task=task,
+            cancellation_token=cancellation_token,
+            termination_condition=termination_condition,
+        )
+        return result
