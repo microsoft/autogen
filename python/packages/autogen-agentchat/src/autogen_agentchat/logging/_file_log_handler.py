@@ -4,7 +4,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
 
-from ..agents._tool_use_assistant_agent import ToolCallEvent, ToolCallResultEvent
+from ..agents._assistant_agent import ToolCallEvent, ToolCallResultEvent
 from ..teams._events import (
     GroupChatPublishEvent,
     GroupChatSelectSpeakerEvent,

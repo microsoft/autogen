@@ -1,20 +1,14 @@
-from typing import List, Sequence
+import warnings
 
-from autogen_core.base import CancellationToken
 from autogen_core.components.models import (
-    AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
-    SystemMessage,
-    UserMessage,
 )
 
-from ..messages import ChatMessage, MultiModalMessage, StopMessage, TextMessage
-from ._base_chat_agent import BaseChatAgent
+from ._assistant_agent import AssistantAgent
 
 
-class CodingAssistantAgent(BaseChatAgent):
-    """An agent that provides coding assistance using an LLM model client.
+class CodingAssistantAgent(AssistantAgent):
+    """[DEPRECATED] An agent that provides coding assistance using an LLM model client.
 
     It responds with a StopMessage when 'terminate' is detected in the response.
     """
@@ -37,29 +31,10 @@ If the result indicates there is an error, fix the error and output the code aga
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
 Reply "TERMINATE" in the end when code has been executed and task is complete.""",
     ):
-        super().__init__(name=name, description=description)
-        self._model_client = model_client
-        self._system_messages = [SystemMessage(content=system_message)]
-        self._model_context: List[LLMMessage] = []
-
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        # Add messages to the model context and detect stopping.
-        for msg in messages:
-            if not isinstance(msg, TextMessage | MultiModalMessage | StopMessage):
-                raise ValueError(f"Unsupported message type: {type(msg)}")
-            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
-
-        # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + self._model_context
-        result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
-        assert isinstance(result.content, str)
-
-        # Add the response to the model context.
-        self._model_context.append(AssistantMessage(content=result.content, source=self.name))
-
-        # Detect stop request.
-        request_stop = "terminate" in result.content.strip().lower()
-        if request_stop:
-            return StopMessage(content=result.content, source=self.name)
-
-        return TextMessage(content=result.content, source=self.name)
+        # Deprecation warning.
+        warnings.warn(
+            "CodingAssistantAgent is deprecated. Use AssistantAgent instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(name, model_client, description=description, system_message=system_message)

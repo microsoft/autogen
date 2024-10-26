@@ -7,10 +7,9 @@ from typing import Any, AsyncGenerator, List, Sequence
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
+    AssistantAgent,
     BaseChatAgent,
     CodeExecutorAgent,
-    CodingAssistantAgent,
-    ToolUseAssistantAgent,
 )
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
@@ -131,7 +130,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         code_executor_agent = CodeExecutorAgent(
             "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)
         )
-        coding_assistant_agent = CodingAssistantAgent(
+        coding_assistant_agent = AssistantAgent(
             "coding_assistant", model_client=OpenAIChatCompletionClient(model=model, api_key="")
         )
         team = RoundRobinGroupChat(participants=[coding_assistant_agent, code_executor_agent])
@@ -211,10 +210,10 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     tool = FunctionTool(_pass_function, name="pass", description="pass function")
-    tool_use_agent = ToolUseAssistantAgent(
+    tool_use_agent = AssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        registered_tools=[tool],
+        tools=[tool],
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
     team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent])
