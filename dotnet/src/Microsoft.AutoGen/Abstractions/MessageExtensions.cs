@@ -32,6 +32,13 @@ public static class MessageExtensions
 
     public static T FromAgentState<T>(this AgentState state) where T : IMessage, new()
     {
+        if (state.HasTextData == true)
+        {
+            if (typeof(T) == typeof(AgentState))
+            {
+                return (T)(IMessage)state;
+            }
+        }
         return state.ProtoData.Unpack<T>();
     }
 }

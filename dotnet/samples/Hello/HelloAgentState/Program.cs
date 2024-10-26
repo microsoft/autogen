@@ -50,7 +50,8 @@ namespace Hello
         public async Task Handle(ConversationClosed item)
         {
             State = await Read<AgentState>(this.AgentId).ConfigureAwait(false);
-            var goodbye = $"{State.ToString}\n*********************  {item.UserId} said {item.UserMessage}  ************************";
+            var read = State?.TextData ?? "No state data found";
+            var goodbye = $"{read}\n*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output
             {
                 Message = goodbye
