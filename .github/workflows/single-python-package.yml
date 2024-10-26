@@ -35,6 +35,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+          version: "0.4.26"
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
         working-directory: python
       - name: Publish package to PyPI
