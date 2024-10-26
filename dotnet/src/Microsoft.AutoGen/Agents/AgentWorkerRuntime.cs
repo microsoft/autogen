@@ -339,7 +339,8 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
     public async ValueTask<AgentState> Read(AgentId agentId)
     {
         var response = await _client.GetStateAsync(agentId);
-        if (response.Success && response.AgentState.AgentId is not null)
+//        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
+        if (response.AgentState.AgentId is not null)
         {
             return response.AgentState;
         }
