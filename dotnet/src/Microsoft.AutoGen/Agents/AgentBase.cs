@@ -113,7 +113,7 @@ public abstract class AgentBase
         await _context.Store(state).ConfigureAwait(false);
         return;
     }
-    protected async Task<T> Read<T>(AgentId agentId) where T: IMessage, new()
+    protected async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
     {
         var agentstate = await _context.Read(agentId).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();

@@ -34,7 +34,7 @@ namespace Hello
                 Message = response
             }.ToCloudEvent(this.AgentId.Key);
             var entry = "We said hello to " + item.Message;
-            await Store(new AgentState 
+            await Store(new AgentState
             {
                 AgentId = this.AgentId,
                 TextData = entry
