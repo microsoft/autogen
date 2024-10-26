@@ -35,8 +35,11 @@ class StopMessage(BaseMessage):
 class HandoffMessage(BaseMessage):
     """A message requesting handoff of a conversation to another agent."""
 
+    target: str
+    """The name of the target agent to handoff to."""
+
     content: str
-    """The agent name to handoff the conversation to."""
+    """The handoff message to the target agent."""
 
 
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
