@@ -356,8 +356,8 @@ class ConversableAgent(LLMAgent):
                 function.
             remove_other_reply_funcs (bool): whether to remove other reply functions when registering this reply function.
         """
-        if not isinstance(trigger, (type, str, Agent, Callable, list)):
-            raise ValueError("trigger must be a class, a string, an agent, a callable or a list.")
+        if not isinstance(trigger, (type, str, Agent, Callable, list, CustomNestedChatCondition)):
+            raise ValueError("trigger must be a class, a string, an agent, a callable, CustomNestedChatCondition or a list.")
         if remove_other_reply_funcs:
             self._reply_func_list.clear()
         self._reply_func_list.insert(
