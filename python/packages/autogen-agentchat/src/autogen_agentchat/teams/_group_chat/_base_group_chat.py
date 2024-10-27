@@ -13,14 +13,12 @@ from autogen_core.base import (
     TopicId,
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components.tool_agent import ToolAgent
-from autogen_core.components.tools import Tool
 
-from ...base import ChatAgent, TaskResult, Team, TerminationCondition, ToolUseChatAgent
+from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import ChatMessage, TextMessage
-from .._events import ContentPublishEvent, ContentRequestEvent
-from ._base_chat_agent_container import BaseChatAgentContainer
+from .._events import GroupChatPublishEvent, GroupChatRequestPublishEvent
 from ._base_group_chat_manager import BaseGroupChatManager
+from ._chat_agent_container import ChatAgentContainer
 
 
 class BaseGroupChat(Team, ABC):
@@ -35,11 +33,6 @@ class BaseGroupChat(Team, ABC):
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
-        for participant in participants:
-            if isinstance(participant, ToolUseChatAgent) and not participant.registered_tools:
-                raise ValueError(
-                    f"Participant '{participant.name}' is a tool use agent so it must have registered tools."
-                )
         self._participants = participants
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
@@ -55,24 +48,16 @@ class BaseGroupChat(Team, ABC):
     ) -> Callable[[], BaseGroupChatManager]: ...
 
     def _create_participant_factory(
-        self, parent_topic_type: str, agent: ChatAgent, tool_agent_type: AgentType | None
-    ) -> Callable[[], BaseChatAgentContainer]:
-        def _factory() -> BaseChatAgentContainer:
+        self,
+        parent_topic_type: str,
+        agent: ChatAgent,
+    ) -> Callable[[], ChatAgentContainer]:
+        def _factory() -> ChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
+            container = ChatAgentContainer(parent_topic_type, agent)
             assert container.id == id
             return container
-
-        return _factory
-
-    def _create_tool_agent_factory(
-        self,
-        caller_name: str,
-        tools: List[Tool],
-    ) -> Callable[[], ToolAgent]:
-        def _factory() -> ToolAgent:
-            return ToolAgent(f"Tool agent for {caller_name}", tools)
 
         return _factory
 
@@ -99,27 +84,14 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str] = []
         participant_descriptions: List[str] = []
         for participant in self._participants:
-            if isinstance(participant, ToolUseChatAgent):
-                assert participant.registered_tools is not None and len(participant.registered_tools) > 0
-                # Register the tool agent.
-                tool_agent_type = await ToolAgent.register(
-                    runtime,
-                    f"tool_agent_for_{participant.name}",
-                    self._create_tool_agent_factory(participant.name, participant.registered_tools),
-                )
-                # No subscriptions are needed for the tool agent, which will be called via direct messages.
-            else:
-                # No tool agent is needed.
-                tool_agent_type = None
-
             # Use the participant name as the agent type and topic type.
             agent_type = participant.name
             topic_type = participant.name
             # Register the participant factory.
-            await BaseChatAgentContainer.register(
+            await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(group_topic_type, participant, tool_agent_type),
+                factory=self._create_participant_factory(group_topic_type, participant),
             )
             # Add subscriptions for the participant.
             await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
@@ -154,7 +126,10 @@ class BaseGroupChat(Team, ABC):
         group_chat_messages: List[ChatMessage] = []
 
         async def collect_group_chat_messages(
-            _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
+            _runtime: AgentRuntime,
+            id: AgentId,
+            message: GroupChatPublishEvent,
+            ctx: MessageContext,
         ) -> None:
             group_chat_messages.append(message.agent_message)
 
@@ -174,10 +149,10 @@ class BaseGroupChat(Team, ABC):
         team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
         group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         await runtime.publish_message(
-            ContentPublishEvent(agent_message=TextMessage(content=task, source="user")),
+            GroupChatPublishEvent(agent_message=TextMessage(content=task, source="user")),
             topic_id=team_topic_id,
         )
-        await runtime.publish_message(ContentRequestEvent(), topic_id=group_chat_manager_topic_id)
+        await runtime.publish_message(GroupChatRequestPublishEvent(), topic_id=group_chat_manager_topic_id)
 
         # Wait for the runtime to stop.
         await runtime.stop_when_idle()
