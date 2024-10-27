@@ -1,4 +1,5 @@
 import json
+import traceback
 from dataclasses import dataclass
 from typing import List
 
@@ -88,5 +89,6 @@ class ToolAgent(RoutedAgent):
                     call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}"
                 ) from e
             except Exception as e:
-                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}") from e
+                tb = traceback.format_exc()
+                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}\n{tb}") from e
         return FunctionExecutionResult(content=result_as_str, call_id=message.id)
