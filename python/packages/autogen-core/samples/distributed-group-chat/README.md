@@ -1,4 +1,4 @@
-# About the Example
+# Distributed Group Chat
 
 This example runs a gRPC server using `{py:class}`~autogen_core.application.WorkerAgentRuntimeHost`and instantiates three distributed runtimes using`{py:class}`~autogen_core.application.WorkerAgentRuntime`. These runtimes connect to the gRPC server as hosts and facilitate a round-robin distributed group chat. This example leverages the [Azure OpenAI Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service) to implement writer and editor LLM agents. Agents are instructed to provide concise answers, as the primary goal of this example is to showcase the distributed runtime rather than the quality of agent responses.
 
