@@ -11,7 +11,7 @@ from ._func_with_reqs import (
 )
 from ._impl.command_line_code_result import CommandLineCodeResult
 from ._impl.local_commandline_code_executor import LocalCommandLineCodeExecutor
-from ._impl.utils import get_file_name_from_content, get_required_packages, lang_to_cmd, silence_pip
+from ._impl.utils import create_virtual_env, get_file_name_from_content, get_required_packages, lang_to_cmd, silence_pip
 from ._utils import extract_markdown_code_blocks
 
 __all__ = [
@@ -34,4 +34,5 @@ __all__ = [
     "lang_to_cmd",
     "get_file_name_from_content",
     "silence_pip",
+    "create_virtual_env",
 ]

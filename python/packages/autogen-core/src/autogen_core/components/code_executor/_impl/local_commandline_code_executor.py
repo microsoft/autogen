@@ -3,12 +3,14 @@
 
 import asyncio
 import logging
+import os
 import sys
 import warnings
 from hashlib import sha256
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, Sequence, Union
+from types import SimpleNamespace
+from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 
 from typing_extensions import ParamSpec
 
@@ -54,6 +56,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             directory is the current directory ".".
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
 
     """
 
@@ -86,6 +89,7 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
+        virtual_env_context: Optional[SimpleNamespace] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -109,6 +113,8 @@ $functions"""
             self._setup_functions_complete = False
         else:
             self._setup_functions_complete = True
+
+        self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
@@ -164,9 +170,14 @@ $functions"""
             cmd_args = ["-m", "pip", "install"]
             cmd_args.extend(required_packages)
 
+            if self._virtual_env_context:
+                py_executable = self._virtual_env_context.env_exe
+            else:
+                py_executable = sys.executable
+
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
-                    sys.executable,
+                    py_executable,
                     *cmd_args,
                     cwd=self._work_dir,
                     stdout=asyncio.subprocess.PIPE,
@@ -253,7 +264,17 @@ $functions"""
                 f.write(code)
             file_names.append(written_file)
 
-            program = sys.executable if lang.startswith("python") else lang_to_cmd(lang)
+            env = os.environ.copy()
+            
+            if self._virtual_env_context:
+                virtual_env_exe_abs_path = os.path.abspath(self._virtual_env_context.env_exe)
+                virtual_env_bin_abs_path = os.path.abspath(self._virtual_env_context.bin_path)
+                env["PATH"] = f"{virtual_env_bin_abs_path}{os.pathsep}{env['PATH']}"
+               
+                program = virtual_env_exe_abs_path if lang.startswith("python") else lang_to_cmd(lang)
+            else:
+                program = sys.executable if lang.startswith("python") else lang_to_cmd(lang)
+
             # Wrap in a task to make it cancellable
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
@@ -262,6 +283,7 @@ $functions"""
                     cwd=self._work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    env=env
                 )
             )
             cancellation_token.link_future(task)
