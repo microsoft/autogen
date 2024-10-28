@@ -1,4 +1,3 @@
-
 <a name="readme-top"></a>
 
 <div align="center">
@@ -58,7 +57,10 @@ AutoGen has several packages and is built upon a layered architecture. Currently
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-core)
 - [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/quickstart.html)
 
-The core API of AutoGen, `autogen-core`, is built following the [actor model](https://en.wikipedia.org/wiki/Actor_model). It supports asynchronous message passing between agents and event-based workflows. Agents in the core layer handle and produce typed messages, using either direct messaging, which functions like RPC, or broadcasting to topics, which is pub-sub. Agents can be distributed and implemented in different programming languages while still communicating with one another. 
+The core API of AutoGen, `autogen-core`, is built following the [actor model](https://en.wikipedia.org/wiki/Actor_model). 
+It supports asynchronous message passing between agents and event-based workflows. Agents in the core layer handle and produce typed messages, 
+using either direct messaging, which functions like RPC, or broadcasting to topics, which is pub-sub. 
+Agents can be distributed and implemented in different programming languages while still communicating with one another. 
 **Start here if you are building scalable, event-driven agent systems.**
 
 ## AgentChat
@@ -66,11 +68,16 @@ The core API of AutoGen, `autogen-core`, is built following the [actor model](ht
 - [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-agentchat)
 - [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html)
 
-The AgentChat API, `autogen-agentchat`, is task-driven and operates at a high level like AutoGen 0.2. It allows you to define conversational agents, compose them into teams, and then use them to solve tasks. AgentChat itself is built on the core layer, but it abstracts away much of the low-level system concepts. If your workflows don't fit into the AgentChat API, target the core instead. **Start here if you just want to focus on quickly getting started with multi-agent workflows.**
+The AgentChat API, `autogen-agentchat`, is task-driven and operates at a high level like AutoGen 0.2. 
+It allows you to define conversational agents, compose them into teams, and then use them to solve tasks. 
+AgentChat itself is built on the core layer, but it abstracts away much of the low-level system concepts. 
+If your workflows don't fit into the AgentChat API, target the core instead. 
+**Start here if you just want to focus on quickly getting started with multi-agent workflows.**
 
 ## Extensions
 
-The extension package `autogen-ext` contains implementations of the core interfaces using third-party systems, such as OpenAI model clients and Azure code executors. Besides the built-in extensions, the package accommodates community-contributed extensions through namespace sub-packages. We look forward to your contributions!
+The extension package `autogen-ext` contains implementations of the core interfaces using third-party systems, such as OpenAI model clients and Azure code executors. 
+Besides the built-in extensions, the package accommodates community-contributed extensions through namespace sub-packages. We look forward to your contributions!
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
@@ -211,7 +218,10 @@ dotnet run
 ## Roadmap
 
 - AutoGen 0.2 - This is the current stable release of AutoGen. We will continue to accept bug fixes and minor enhancements to this version.
-- AutoGen 0.4 - This is the first release of the new architecture. This release is still in _preview_. We will be focusing on the stability of the interfaces, documentation, tutorials, samples, and a collection of built-in agents which you can use. We are excited to work with our community to define the future of AutoGen. We are looking for feedback and contributions to help shape the future of this project. Here are some major planned items:
+- AutoGen 0.4 - This is the first release of the new architecture. This release is still in _preview_. 
+We will be focusing on the stability of the interfaces, documentation, tutorials, samples, and a collection of built-in agents which you can use. 
+We are excited to work with our community to define the future of AutoGen. We are looking for feedback and contributions to help shape the future of this project. 
+Here are some major planned items:
     - More programming languages (e.g., TypeScript)
     - More built-in agents and multi-agent workflows
     - Deployment of distributed agents
@@ -229,19 +239,27 @@ dotnet run
 
 ### What is AutoGen 0.4?
 
-AutoGen v0.4 is a rewrite of AutoGen from the ground up to create a more robust, scalable, easier-to-use, cross-language library for building AI Agents. Some key features include asynchronous messaging, support for scalable distributed agents, modular extensible design (bring your own agents, implement behaviors however you like), cross-language support, improved observability, and full typing integration. It is a breaking change.
+AutoGen v0.4 is a rewrite of AutoGen from the ground up to create a more robust, scalable, easier-to-use, cross-language library for building AI Agents. 
+Some key features include asynchronous messaging, support for scalable distributed agents, 
+modular extensible design (bring your own agents, implement behaviors however you like), cross-language support, improved observability, and full typing integration.
+It is a breaking change.
 
 ### Why these changes?
 
-We listened to our AutoGen users, learned from what was working, and adapted to fix what wasn't. We brought together wide-ranging teams working on many different types of AI Agents and collaborated to design an improved framework with a more flexible programming model and better scalability.
+We listened to our AutoGen users, learned from what was working, and adapted to fix what wasn't. 
+We brought together wide-ranging teams working on many different types of AI Agents 
+and collaborated to design an improved framework with a more flexible programming model and better scalability.
 
 ### Is this project still maintained?
 
-We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4). AutoGen 0.4 is still a work in progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained.
+We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4). 
+AutoGen 0.4 is still a work in progress, and we shared the code now to build with the community. 
+There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained.
 
 ### Who should use 0.4?
 
-This code is still experimental, so expect changes and bugs while we work towards a stable 0.4 release. We encourage early adopters to try it out, give us feedback, and contribute. For those looking for a stable version, we recommend continuing to use 0.2.
+This code is still experimental, so expect changes and bugs while we work towards a stable 0.4 release. 
+We encourage early adopters to try it out, give us feedback, and contribute. For those looking for a stable version, we recommend continuing to use 0.2.
 
 ### I'm using AutoGen 0.2, should I upgrade?
 
@@ -267,35 +285,45 @@ For users familiar with AutoGen, the AgentChat library in 0.4 provides similar c
 
 ### Is 0.4 done?
 
-We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. The Python SDKs are further ahead at this time, but our goal is to achieve parity. We aim to add additional languages in future releases.
+We are still actively developing AutoGen 0.4. One exciting new feature is the emergence of new SDKs for .NET. 
+The Python SDKs are further ahead at this time, but our goal is to achieve parity. We aim to add additional languages in future releases.
 
 ### What is happening next? When will this release be ready?
 
-We are still working on improving the documentation, samples, and enhancing the code. We hope to release before the end of the year when things are ready.
+We are still working on improving the documentation, samples, and enhancing the code. 
+We hope to release before the end of the year when things are ready.
 
 ### What is the history of this project?
 
-The rearchitecture of the framework started with multiple Microsoft teams coming together to address the gaps and learnings from AutoGen 0.2, merging ideas from several predecessor projects. The team worked on this internally for some time to ensure alignment before moving work back to the open in October 2024.
+The rearchitecture of the framework started with multiple Microsoft teams coming together to address the gaps and learnings from AutoGen 0.2, 
+merging ideas from several predecessor projects. 
+The team worked on this internally for some time to ensure alignment before moving work back to the open in October 2024.
 
 ### What is the official channel for support?
 
-Use GitHub [Issues](https://github.com/microsoft/autogen/issues) for bug reports and feature requests. Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for general questions and discussions.
+Use GitHub [Issues](https://github.com/microsoft/autogen/issues) for bug reports and feature requests. 
+Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for general questions and discussions.
 
 ### Do you use Discord for communications?
 
-We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on <https://github.com/microsoft/autogen/discussions/> going forward.
+We are unable to use Discord for project discussions. 
+Therefore, we request that all discussions take place on <https://github.com/microsoft/autogen/discussions/> going forward.
 
 ### What about forks?
 
 https://github.com/microsoft/autogen/ remains the only official repo for development and support of AutoGen.
-We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. We are not involved with any of these forks and are not aware of any plans related to them.
+We are aware that there are thousands of forks of AutoGen, including many for personal development and startups building with or on top of the library. 
+We are not involved with any of these forks and are not aware of any plans related to them.
 
 ### What is the status of the license and open source?
 
-Our project remains fully open-source and accessible to everyone. We understand that some forks use different licenses to align with different interests. We will continue to use the most permissive license (MIT) for the project.
+Our project remains fully open-source and accessible to everyone. 
+We understand that some forks use different licenses to align with different interests. 
+We will continue to use the most permissive license (MIT) for the project.
 
 ### Can you clarify the current state of the packages?
-Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
+Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. 
+Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
 
 ### Can I still be involved?
 
@@ -309,16 +337,20 @@ We are grateful to all the contributors to AutoGen 0.2, and we look forward to c
 
 ## Legal Notices
 
-Microsoft and any contributors grant you a license to the Microsoft documentation and other content in this repository under the [Creative Commons Attribution 4.0 International Public License](https://creativecommons.org/licenses/by/4.0/legalcode), see the [LICENSE](LICENSE) file, and grant you a license to any code in the repository under the [MIT License](https://opensource.org/licenses/MIT), see the [LICENSE-CODE](LICENSE-CODE) file.
+Microsoft and any contributors grant you a license to the Microsoft documentation and other content
+in this repository under the [Creative Commons Attribution 4.0 International Public License](https://creativecommons.org/licenses/by/4.0/legalcode),
+see the [LICENSE](LICENSE) file, and grant you a license to any code in the repository under the [MIT License](https://opensource.org/licenses/MIT), see the
+[LICENSE-CODE](LICENSE-CODE) file.
 
 Microsoft, Windows, Microsoft Azure, and/or other Microsoft products and services referenced in the documentation
 may be either trademarks or registered trademarks of Microsoft in the United States and/or other countries.
 The licenses for this project do not grant you rights to use any Microsoft names, logos, or trademarks.
-Microsoft's general trademark guidelines can be found at http://go.microsoft.com/fwlink/?LinkID=254653.
+Microsoft's general trademark guidelines can be found at <http://go.microsoft.com/fwlink/?LinkID=254653>.
 
 Privacy information can be found at <https://go.microsoft.com/fwlink/?LinkId=521839>
 
-Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents, or trademarks, whether by implication, estoppel, or otherwise.
+Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
+or trademarks, whether by implication, estoppel, or otherwise.
 
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
