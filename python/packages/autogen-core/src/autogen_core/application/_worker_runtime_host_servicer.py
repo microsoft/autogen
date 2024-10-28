@@ -247,7 +247,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     async def GetState(  # type: ignore
         self,
         request: agent_worker_pb2.AgentId,
-        context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.AgentState],
+        context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.GetStateResponse],
     ) -> agent_worker_pb2.GetStateResponse:  # type: ignore
         raise NotImplementedError("Method not implemented!")
 
