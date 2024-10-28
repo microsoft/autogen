@@ -554,9 +554,35 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {"stream_options": {"include_usage": True}},
+        extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        """
+        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+
+        Args:
+            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
+            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to [].
+            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
+            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to {} but this can include:
+                see: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create)
+                in streaming situations the default behaviour is not return token usage counts.
+                however `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
+                return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
+                all preceding chunks will have usage as None.
+                see: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options)
+
+                other examples of OPENAI supported create_args are:
+                - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
+                - `max_tokens` (int): The maximum number of tokens to generate in the completion.
+                - `top_p` (float): An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.
+                - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
+                - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
+            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
+
+        Yields:
+            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
+        """
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
