@@ -23,7 +23,6 @@
 | Name            | GitHub Handle                                              | Organization           | Features                                |
 |-----------------|------------------------------------------------------------|------------------------|-----------------------------------------|
 | Olaoluwa Ademola Salami * | [olaoluwasalami](https://github.com/olaoluwasalami)  | DevOps Engineer        |                                          |
-| Li Jiang *      | [thinkall](https://github.com/thinkall)                    | Microsoft              | rag, autobuilder, group chat            |
 | Rajan Chari *    | [rajan-chari](https://github.com/rajan-chari)                | Microsoft Research                | CAP                        |
 
 ## I would like to join this list. How can I help the project?
