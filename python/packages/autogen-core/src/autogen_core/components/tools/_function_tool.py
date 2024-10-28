@@ -46,5 +46,6 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
                 cancellation_token.link_future(future)
                 result = await future
 
-        assert isinstance(result, self.return_type())
+        if not isinstance(result, self.return_type()):
+            raise ValueError(f"Expected return type {self.return_type()}, got {type(result)}")
         return result
