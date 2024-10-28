@@ -2,7 +2,6 @@
 # Credit to original authors
 
 import asyncio
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -12,48 +11,22 @@ import pytest
 import pytest_asyncio
 from aiofiles import open
 from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
-
-
-def docker_tests_enabled() -> bool:
-    if os.environ.get("SKIP_DOCKER", "unset").lower() == "true":
-        return False
-
-    try:
-        import docker
-        from docker.errors import DockerException
-    except ImportError:
-        return False
-
-    try:
-        client = docker.from_env()
-        client.ping()  # type: ignore
-        return True
-    except DockerException:
-        return False
+from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 
 @pytest_asyncio.fixture(scope="function")  # type: ignore
 async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
-) -> AsyncGenerator[tuple[LocalCommandLineCodeExecutor | DockerCommandLineCodeExecutor, str], None]:
-    if request.param == "local":
-        with tempfile.TemporaryDirectory() as temp_dir:
-            yield LocalCommandLineCodeExecutor(work_dir=temp_dir), temp_dir
-    elif request.param == "docker":
-        if not docker_tests_enabled():
-            pytest.skip("Docker tests are disabled")
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-                yield executor, temp_dir
+) -> AsyncGenerator[tuple[LocalCommandLineCodeExecutor, str], None]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield LocalCommandLineCodeExecutor(work_dir=temp_dir), temp_dir
 
 
-ExecutorFixture: TypeAlias = tuple[LocalCommandLineCodeExecutor | DockerCommandLineCodeExecutor, str]
+ExecutorFixture: TypeAlias = tuple[LocalCommandLineCodeExecutor, str]
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
+@pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
 async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
     executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
@@ -101,7 +74,7 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
+@pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
 async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
     executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
@@ -111,7 +84,6 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
     assert code_result.exit_code and "Timeout" in code_result.output
 
 
-# TODO: add docker when cancellation is supported
 @pytest.mark.asyncio
 async def test_commandline_code_executor_cancellation() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -136,7 +108,7 @@ async def test_local_commandline_code_executor_restart() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
+@pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
 async def test_invalid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
     executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
@@ -151,7 +123,7 @@ print("hello world")
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("executor_and_temp_dir", ["local", "docker"], indirect=True)
+@pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
 async def test_valid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
     executor, temp_dir_str = executor_and_temp_dir
 
@@ -171,24 +143,3 @@ print("hello world")
     assert "test.py" in result.code_file
     assert (temp_dir / Path("test.py")).resolve() == Path(result.code_file).resolve()
     assert (temp_dir / Path("test.py")).exists()
-
-
-@pytest.mark.asyncio
-async def test_docker_commandline_code_executor_start_stop() -> None:
-    if not docker_tests_enabled():
-        pytest.skip("Docker tests are disabled")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = DockerCommandLineCodeExecutor(work_dir=temp_dir)
-        await executor.start()
-        await executor.stop()
-
-
-@pytest.mark.asyncio
-async def test_docker_commandline_code_executor_start_stop_context_manager() -> None:
-    if not docker_tests_enabled():
-        pytest.skip("Docker tests are disabled")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as _exec:
-            pass

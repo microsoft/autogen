@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="./eng/Version.props" />
   <Import Project="./eng/MetaInfo.props" />
   <Import Project="./eng/Sign.props" />
   <PropertyGroup>
-    <PackageTargetFrameworks>netstandard2.0;net6.0;net8.0</PackageTargetFrameworks>
+    <PackageTargetFrameworks>netstandard2.0;net8.0</PackageTargetFrameworks>
     <TestTargetFrameworks>net8.0</TestTargetFrameworks>
     <LangVersion>preview</LangVersion>
 	  <Nullable>enable</Nullable>
@@ -33,6 +32,10 @@
     <NoWarn>$(NoWarn);CA1829</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="ApprovalTests" />
     <PackageReference Include="FluentAssertions" />
@@ -41,6 +44,7 @@
     <PackageReference Include="xunit.runner.console" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="System.Data.SqlClient" />
   </ItemGroup>
 
   <ItemGroup  Condition="'$(IsTestProject)' == 'true'">

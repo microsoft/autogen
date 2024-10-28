@@ -2,6 +2,7 @@
 // Connect_To_Ollama.cs
 
 #region using_statement
+using System.ClientModel;
 using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
 using OpenAI;
@@ -16,7 +17,7 @@ public class Connect_To_Ollama
         #region create_agent
         // api-key is not required for local server
         // so you can use any string here
-        var openAIClient = new OpenAIClient("api-key", new OpenAIClientOptions
+        var openAIClient = new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
         {
             Endpoint = new Uri("http://localhost:11434/v1/"), // remember to add /v1/ at the end to connect to Ollama openai server
         });

@@ -12,6 +12,8 @@ from .base_agent import MagenticOneBaseAgent
 
 
 class BaseOrchestrator(MagenticOneBaseAgent):
+    """Base class for orchestrator that manage a group of agents."""
+
     def __init__(
         self,
         agents: List[AgentProxy],

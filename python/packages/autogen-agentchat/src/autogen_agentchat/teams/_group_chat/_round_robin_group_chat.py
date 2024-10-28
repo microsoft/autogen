@@ -1,10 +1,16 @@
+import logging
 from typing import Callable, List
 
-from ...agents import BaseChatAgent
-from .._events import ContentPublishEvent
-from .._termination import TerminationCondition
+from ... import EVENT_LOGGER_NAME
+from ...base import ChatAgent, TerminationCondition
+from .._events import (
+    GroupChatPublishEvent,
+    GroupChatSelectSpeakerEvent,
+)
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class RoundRobinGroupChatManager(BaseGroupChatManager):
@@ -27,11 +33,13 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         )
         self._next_speaker_index = 0
 
-    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[GroupChatPublishEvent]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
         self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
-        return self._participant_topic_types[current_speaker_index]
+        current_speaker = self._participant_topic_types[current_speaker_index]
+        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=current_speaker, source=self.id))
+        return current_speaker
 
 
 class RoundRobinGroupChat(BaseGroupChat):
@@ -74,7 +82,7 @@ class RoundRobinGroupChat(BaseGroupChat):
 
     """
 
-    def __init__(self, participants: List[BaseChatAgent]):
+    def __init__(self, participants: List[ChatAgent]):
         super().__init__(participants, group_chat_manager_class=RoundRobinGroupChatManager)
 
     def _create_group_chat_manager_factory(

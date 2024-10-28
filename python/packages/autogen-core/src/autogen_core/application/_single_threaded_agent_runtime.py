@@ -339,50 +339,50 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
-            responses: List[Awaitable[Any]] = []
-            recipients = await self._subscription_manager.get_subscribed_recipients(message_envelope.topic_id)
-            for agent_id in recipients:
-                # Avoid sending the message back to the sender
-                if message_envelope.sender is not None and agent_id == message_envelope.sender:
-                    continue
-
-                sender_agent = (
-                    await self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
-                )
-                sender_name = str(sender_agent.id) if sender_agent is not None else "Unknown"
-                logger.info(
-                    f"Calling message handler for {agent_id.type} with message type {type(message_envelope.message).__name__} published by {sender_name}"
-                )
-                # event_logger.info(
-                #     MessageEvent(
-                #         payload=message_envelope.message,
-                #         sender=message_envelope.sender,
-                #         receiver=agent,
-                #         kind=MessageKind.PUBLISH,
-                #         delivery_stage=DeliveryStage.DELIVER,
-                #     )
-                # )
-                message_context = MessageContext(
-                    sender=message_envelope.sender,
-                    topic_id=message_envelope.topic_id,
-                    is_rpc=False,
-                    cancellation_token=message_envelope.cancellation_token,
-                )
-                agent = await self._get_agent(agent_id)
-
-                async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                    with self._tracer_helper.trace_block("process", agent.id, parent=None):
-                        with MessageHandlerContext.populate_context(agent.id):
-                            return await agent.on_message(
-                                message_envelope.message,
-                                ctx=message_context,
-                            )
-
-                future = _on_message(agent, message_context)
-                responses.append(future)
-
             try:
-                _all_responses = await asyncio.gather(*responses)
+                responses: List[Awaitable[Any]] = []
+                recipients = await self._subscription_manager.get_subscribed_recipients(message_envelope.topic_id)
+                for agent_id in recipients:
+                    # Avoid sending the message back to the sender
+                    if message_envelope.sender is not None and agent_id == message_envelope.sender:
+                        continue
+
+                    sender_agent = (
+                        await self._get_agent(message_envelope.sender) if message_envelope.sender is not None else None
+                    )
+                    sender_name = str(sender_agent.id) if sender_agent is not None else "Unknown"
+                    logger.info(
+                        f"Calling message handler for {agent_id.type} with message type {type(message_envelope.message).__name__} published by {sender_name}"
+                    )
+                    # event_logger.info(
+                    #     MessageEvent(
+                    #         payload=message_envelope.message,
+                    #         sender=message_envelope.sender,
+                    #         receiver=agent,
+                    #         kind=MessageKind.PUBLISH,
+                    #         delivery_stage=DeliveryStage.DELIVER,
+                    #     )
+                    # )
+                    message_context = MessageContext(
+                        sender=message_envelope.sender,
+                        topic_id=message_envelope.topic_id,
+                        is_rpc=False,
+                        cancellation_token=message_envelope.cancellation_token,
+                    )
+                    agent = await self._get_agent(agent_id)
+
+                    async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
+                        with self._tracer_helper.trace_block("process", agent.id, parent=None):
+                            with MessageHandlerContext.populate_context(agent.id):
+                                return await agent.on_message(
+                                    message_envelope.message,
+                                    ctx=message_context,
+                                )
+
+                    future = _on_message(agent, message_context)
+                    responses.append(future)
+
+                await asyncio.gather(*responses)
             except BaseException as e:
                 # Ignore cancelled errors from logs
                 if isinstance(e, CancelledError):

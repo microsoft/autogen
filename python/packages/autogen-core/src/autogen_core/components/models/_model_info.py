@@ -5,7 +5,7 @@ from ._model_client import ModelCapabilities
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
-    "gpt-4o": "gpt-4o-2024-05-13",
+    "gpt-4o": "gpt-4o-2024-08-06",
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
     "gpt-4-turbo-preview": "gpt-4-0125-preview",

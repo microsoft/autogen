@@ -25,7 +25,7 @@ public class Use_Json_Mode
             name: "assistant",
             systemMessage: "You are a helpful assistant designed to output JSON.",
             seed: 0, // explicitly set a seed to enable deterministic output
-            responseFormat: ChatResponseFormat.JsonObject) // set response format to JSON object to enable JSON mode
+            responseFormat: ChatResponseFormat.CreateJsonObjectFormat()) // set response format to JSON object to enable JSON mode
             .RegisterMessageConnector()
             .RegisterPrintMessage();
         #endregion create_agent

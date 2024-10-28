@@ -2,10 +2,10 @@ from typing import Optional, Type
 
 import pytest
 from autogen_core.base import CancellationToken
-from autogen_ext.tools.langchain import LangChainToolAdapter  # type: ignore
-from langchain.tools import BaseTool as LangChainTool  # type: ignore
-from langchain.tools import tool  # pyright: ignore
+from autogen_ext.tools import LangChainToolAdapter  # type: ignore
 from langchain_core.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
+from langchain_core.tools import BaseTool as LangChainTool
+from langchain_core.tools import tool  # pyright: ignore
 from pydantic import BaseModel, Field
 
 
@@ -46,7 +46,7 @@ async def test_langchain_tool_adapter() -> None:
     langchain_tool = add  # type: ignore
 
     # Create an adapter
-    adapter = LangChainToolAdapter(langchain_tool)  # pyright: ignore
+    adapter = LangChainToolAdapter(langchain_tool)  # type: ignore
 
     # Test schema generation
     schema = adapter.schema
@@ -75,7 +75,7 @@ async def test_langchain_tool_adapter() -> None:
 
     # Test CustomCalculatorTool
     custom_langchain_tool = CustomCalculatorTool()
-    custom_adapter = LangChainToolAdapter(custom_langchain_tool)  # pyright: ignore
+    custom_adapter = LangChainToolAdapter(custom_langchain_tool)  # type: ignore
 
     # Test schema generation for CustomCalculatorTool
     custom_schema = custom_adapter.schema

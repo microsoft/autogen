@@ -6,6 +6,7 @@
 
 agentchat-user-guide/index
 core-user-guide/index
+extensions-user-guide/index
 ```
 
 ::::{grid} 1 2 2 3

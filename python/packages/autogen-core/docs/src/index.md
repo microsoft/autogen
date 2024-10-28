@@ -13,6 +13,17 @@ sd_hide_title: true
   font-weight: bold;
   margin: 2rem auto 0;
 }
+
+.wip-card {
+  border: 1px solid var(--pst-color-success);
+  background-color: var(--pst-color-success-bg);
+  border-radius: .25rem;
+  padding: 0.3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
 </style>
 
 # AutoGen
@@ -32,17 +43,25 @@ A framework for building AI agents and multi-agent applications
 
 <div style="margin-top: 2rem;">
 
-
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} {fas}`people-group;pst-color-primary` AgentChat
+:::{grid-item-card}
 :shadow: none
 :margin: 2 0 0 0
 
+<div class="wip-card">
+
+{fas}`triangle-exclamation` Work in progress
+</div>
+
+<div class="sd-card-title sd-font-weight-bold docutils">
+
+{fas}`people-group;pst-color-primary`
+AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
-pip install autogen-agentchat==0.4.0dev0
+pip install autogen-agentchat==0.4.0.dev2
 ```
 
 💡 *Start here if you are looking for an API similar to AutoGen 0.2*
@@ -63,7 +82,7 @@ Get Started
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
-pip install autogen-core==0.4.0dev0
+pip install autogen-core==0.4.0.dev2
 ```
 
 +++
