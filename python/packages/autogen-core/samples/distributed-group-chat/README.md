@@ -1,24 +1,26 @@
 # Distributed Group Chat
 
-This example runs a gRPC server using `{py:class}`~autogen_core.application.WorkerAgentRuntimeHost`and instantiates three distributed runtimes using`{py:class}`~autogen_core.application.WorkerAgentRuntime`. These runtimes connect to the gRPC server as hosts and facilitate a round-robin distributed group chat. This example leverages the [Azure OpenAI Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service) to implement writer and editor LLM agents. Agents are instructed to provide concise answers, as the primary goal of this example is to showcase the distributed runtime rather than the quality of agent responses.
+from autogen_core.application import WorkerAgentRuntimeHost
 
-# Setup
+This example runs a gRPC server using [WorkerAgentRuntimeHost](../../src/autogen_core/application/_worker_runtime_host.py) and instantiates three distributed runtimes using [WorkerAgentRuntime](../../src/autogen_core/application/_worker_runtime.py). These runtimes connect to the gRPC server as hosts and facilitate a round-robin distributed group chat. This example leverages the [Azure OpenAI Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service) to implement writer and editor LLM agents. Agents are instructed to provide concise answers, as the primary goal of this example is to showcase the distributed runtime rather than the quality of agent responses.
 
-## General Configuration
+## Setup
 
-In the `config.yaml` file, you can configure the `client_config` section to connect the code to the Azure OpenAI Service.
-
-## Authentication
-
-The recommended method for authentication is through Azure Active Directory (AAD), as explained in [Model Clients - Azure AI](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/model-clients.html#azure-openai). This example works with both the AAD approach (recommended) and by providing the `api_key` in the `config.yaml` file.
-
-## Setup Python Environment
+### Setup Python Environment
 
 You should run this project using the same virtual environment created for it. Instructions are provided in the [README](../../../../../../../../README.md).
 
-# Run
+### General Configuration
 
-## Run Through Scripts
+In the `config.yaml` file, you can configure the `client_config` section to connect the code to the Azure OpenAI Service.
+
+### Authentication
+
+The recommended method for authentication is through Azure Active Directory (AAD), as explained in [Model Clients - Azure AI](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/model-clients.html#azure-openai). This example works with both the AAD approach (recommended) and by providing the `api_key` in the `config.yaml` file.
+
+## Run
+
+### Run Through Scripts
 
 The [run.sh](./run.sh) file provides commands to run the host and agents using [tmux](https://github.com/tmux/tmux/wiki). The steps for this approach are:
 
@@ -32,7 +34,7 @@ Here is a screen recording of the execution:
 
 **Note**: Some `asyncio.sleep` commands have been added to the example code to make the `./run.sh` execution look sequential and visually easy to follow. In practice, these lines are not necessary.
 
-## Run Individual Files
+### Run Individual Files
 
 If you prefer to run Python files individually, follow these steps. Note that each step must be run in a different terminal process, and the virtual environment should be activated using `source .venv/bin/activate`.
 
@@ -41,7 +43,7 @@ If you prefer to run Python files individually, follow these steps. Note that ea
 3. `python run_writer.py`: Starts the writer agent and connects it to the host.
 4. `python run_group_chat_manager.py`: Starts the group chat manager and sends a message to initiate the writer agent.
 
-# What's Going On?
+## What's Going On?
 
 The general flow of this example is as follows:
 

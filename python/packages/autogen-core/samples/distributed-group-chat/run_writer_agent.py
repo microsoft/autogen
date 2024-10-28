@@ -8,7 +8,7 @@ from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components import (
     TypeSubscription,
 )
-from autogen_core.components.models._openai_client import AzureOpenAIChatCompletionClient
+from autogen_ext.models import AzureOpenAIChatCompletionClient
 from rich.console import Console
 from rich.markdown import Markdown
 
