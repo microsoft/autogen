@@ -1,3 +1,4 @@
+using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents
@@ -13,7 +14,7 @@ namespace Microsoft.AutoGen.Agents
         Task<RpcResponse> HandleRequest(RpcRequest request);
         void ReceiveMessage(Message message);
         Task Store(AgentState state);
-        Task<T> Read<T>(AgentId agentId);
+        Task<T> Read<T>(AgentId agentId) where T : IMessage, new();
         ValueTask PublishEvent(CloudEvent item);
     }
 }
