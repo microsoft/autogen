@@ -1,0 +1,28 @@
+host:
+  hostname: "localhost"
+  port: 50060
+
+group_chat_manager:
+  topic_type: "group_chat"
+  max_rounds: 7
+
+writer_agent:
+  topic_type: "Writer"
+  description: "Writer for creating any text content."
+  system_message: "You are a one sentence Writer and provide one line content each time"
+
+editor_agent:
+  topic_type: "Editor"
+  description: "Editor for planning and reviewing the content."
+  system_message: "You are an Editor. You provide just max 10 words as feedback on writers content."
+
+client_config:
+  model: "gpt-4o"
+  azure_endpoint: "https://{your-custom-endpoint}.openai.azure.com"
+  azure_deployment: "{your-azure-deployment}"
+  api_version: "2024-08-01-preview"
+  api_key: ""
+  model_capabilities:
+    vision: True
+    function_calling: True
+    json_output: True
