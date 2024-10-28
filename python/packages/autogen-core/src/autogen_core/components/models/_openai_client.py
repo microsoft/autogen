@@ -39,6 +39,7 @@ from openai.types.chat import (
     completion_create_params,
 )
 from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Unpack
@@ -601,7 +602,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
         stream = await stream_future
-        choice = None
+        choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], ChunkChoice] = cast(ChunkChoice, None)
+        chunk = None
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
@@ -625,8 +627,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     if len(chunk.choices) > 0
                     else choice
                     if chunk.usage is not None and stop_reason is not None
-                    else None
+                    else cast(ChunkChoice, None)
                 )
+
                 # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
                 # set the stop_reason for the usage chunk to the prior stop_reason
                 stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
@@ -671,7 +674,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
-        if chunk.usage:
+        if chunk and chunk.usage:
             prompt_tokens = chunk.usage.prompt_tokens
         else:
             prompt_tokens = 0
@@ -682,7 +685,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
-            if chunk.usage:
+            if chunk and chunk.usage:
                 completion_tokens = chunk.usage.completion_tokens
             else:
                 completion_tokens = 0
