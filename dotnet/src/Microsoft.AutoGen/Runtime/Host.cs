@@ -19,6 +19,7 @@ public static class Host
         }
         var app = builder.Build();
         app.MapAgentService();
+        app.MapDefaultEndpoints();
         await app.StartAsync().ConfigureAwait(false);
         return app;
     }

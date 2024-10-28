@@ -1,6 +1,6 @@
 import pytest
 from autogen_agentchat.messages import StopMessage, TextMessage
-from autogen_agentchat.teams import MaxMessageTermination, StopMessageTermination, TextMentionTermination
+from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 
 
 @pytest.mark.asyncio
