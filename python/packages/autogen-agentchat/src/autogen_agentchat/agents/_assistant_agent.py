@@ -21,9 +21,9 @@ from .. import EVENT_LOGGER_NAME
 from ..messages import (
     ChatMessage,
     HandoffMessage,
+    ResetMessage,
     StopMessage,
     TextMessage,
-    ResetMessage,
 )
 from ._base_chat_agent import BaseChatAgent
 

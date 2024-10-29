@@ -41,6 +41,7 @@ class HandoffMessage(BaseMessage):
     content: str
     """The handoff message to the target agent."""
 
+
 class ResetMessage(BaseMessage):
     """A message requesting reset of the recipient's state in the current conversation."""
 
