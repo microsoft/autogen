@@ -21,6 +21,7 @@ from .. import EVENT_LOGGER_NAME
 from ..messages import (
     ChatMessage,
     HandoffMessage,
+    ResetMessage,
     StopMessage,
     TextMessage,
 )
@@ -209,7 +210,10 @@ class AssistantAgent(BaseChatAgent):
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         # Add messages to the model context.
         for msg in messages:
-            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
+            if isinstance(msg, ResetMessage):
+                self._model_context.clear()
+            else:
+                self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
