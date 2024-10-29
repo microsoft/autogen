@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -221,34 +222,31 @@ public abstract class AgentBase : IAgentBase
                 var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
                 var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
                 var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
-                var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+
+                MethodInfo methodInfo;
                 try
                 {
-                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                    // check that our target actually implements this interface, otherwise call the default static
+                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
+                    {
+                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                    }
+                    else
+                    {
+                        // The error here is we have registered for an event that we do not have code to listen to
+                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, $"Error invoking method {methodInfo.Name}");
+                    Logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                    throw; // TODO: ?
                 }
             }
         }
 
-/* 
-        if (EventTypes.EventsMap[GetType()].Contains(item.Type))
-        {
-            var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-            var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
-            var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-            try
-            {
-                return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, $"Error invoking method {methodInfo.Name}");
-            }
-        } */
         return Task.CompletedTask;
     }
 

@@ -2,13 +2,13 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents
 {
-    public interface IHandleConsole
+    public interface IHandleConsole : IHandle<Output>, IHandle<Input>
     {
         string Route { get; }
         AgentId AgentId { get; }
         ValueTask PublishEvent(CloudEvent item);
 
-        static async Task Handle(Output item)
+        async Task IHandle<Output>.Handle(Output item)
         {
             // Assuming item has a property `Message` that we want to write to the console
             Console.WriteLine(item.Message);
@@ -20,7 +20,7 @@ namespace Microsoft.AutoGen.Agents
             }.ToCloudEvent(AgentId.Key);
             await PublishEvent(evt); */
         }
-        async Task Handle(Input item)
+        async Task IHandle<Input>.Handle(Input item)
         {
             Console.WriteLine("Please enter input:");
             string content = Console.ReadLine() ?? string.Empty;
