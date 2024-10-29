@@ -10,7 +10,6 @@ public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime 
     : AgentBase(new ClientContext(logger, runtime, distributedContextPropagator), eventTypes)
 {
     public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
-    public async ValueTask<RpcResponse> SendRequestAsync(AgentId target, string method, Dictionary<string, string> parameters) => await RequestAsync(target, method, parameters);
     public async ValueTask PublishEventAsync(string topic, IMessage evt)
     {
         await PublishEventAsync(evt.ToCloudEvent(topic)).ConfigureAwait(false);
