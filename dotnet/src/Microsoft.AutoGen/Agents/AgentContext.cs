@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
+internal sealed class AgentContext(AgentId agentId, IAgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
 {
-    private readonly AgentWorkerRuntime _runtime = runtime;
+    private readonly IAgentWorkerRuntime _runtime = runtime;
 
     public AgentId AgentId { get; } = agentId;
     public ILogger Logger { get; } = logger;

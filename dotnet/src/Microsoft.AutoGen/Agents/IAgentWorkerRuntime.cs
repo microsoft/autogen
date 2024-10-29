@@ -6,6 +6,8 @@ namespace Microsoft.AutoGen.Agents;
 public interface IAgentWorkerRuntime
 {
     ValueTask PublishEvent(CloudEvent evt);
-    ValueTask SendRequest(RpcRequest request);
+    ValueTask SendRequest(AgentBase agent, RpcRequest request);
     ValueTask SendResponse(RpcResponse response);
+    ValueTask Store(AgentState value);
+    ValueTask<AgentState> Read(AgentId agentId);
 }

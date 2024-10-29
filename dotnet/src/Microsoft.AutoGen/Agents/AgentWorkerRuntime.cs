@@ -322,10 +322,6 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             _channel?.Dispose();
         }
     }
-    public ValueTask SendRequest(RpcRequest request)
-    {
-        throw new NotImplementedException();
-    }
     public ValueTask Store(AgentState value)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
