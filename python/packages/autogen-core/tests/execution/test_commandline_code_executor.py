@@ -6,16 +6,15 @@ import os
 import shutil
 import sys
 import tempfile
-from pathlib import Path
-from types import SimpleNamespace
-from typing import AsyncGenerator, TypeAlias
 import venv
+from pathlib import Path
+from typing import AsyncGenerator, TypeAlias
 
 import pytest
 import pytest_asyncio
 from aiofiles import open
 from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor, create_virtual_env
+from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 
 @pytest_asyncio.fixture(scope="function")  # type: ignore
@@ -147,13 +146,6 @@ print("hello world")
     assert "test.py" in result.code_file
     assert (temp_dir / Path("test.py")).resolve() == Path(result.code_file).resolve()
     assert (temp_dir / Path("test.py")).exists()
-
-
-def test_create_virtual_env() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        venv_context = create_virtual_env(temp_dir)
-        assert isinstance(venv_context, SimpleNamespace)
-        assert venv_context.env_name == os.path.split(temp_dir)[1]
 
 
 @pytest.mark.asyncio

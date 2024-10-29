@@ -58,6 +58,32 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
 
+    Example:
+
+        .. code-block:: python
+
+            import venv
+            from pathlib import Path
+
+            from autogen_core.base import CancellationToken
+            from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
+
+            work_dir = Path("coding")
+            work_dir.mkdir(exist_ok=True)
+
+            venv_dir = work_dir / ".venv"
+            venv_builder = venv.EnvBuilder(with_pip=True)
+            venv_builder.create(venv_dir)
+            venv_context = venv_builder.ensure_directories(venv_dir)
+
+            local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir, virtual_env_context=venv_context)
+            await local_executor.execute_code_blocks(
+                code_blocks=[
+                    CodeBlock(language="bash", code="pip install matplotlib"),
+                ],
+                cancellation_token=CancellationToken(),
+            )
+
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
