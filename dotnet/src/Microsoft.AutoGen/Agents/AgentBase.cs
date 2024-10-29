@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase
+public abstract class AgentBase : IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     private readonly object _lock = new();
@@ -218,4 +218,22 @@ public abstract class AgentBase
     }
 
     protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+
+    public virtual Task Handle(object item)
+    {
+        // get all Handle<T> methods
+        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == nameof(IHandle.Handle) && m.GetParameters().Length == 1).ToList();
+
+        // get the one that matches the type of the item
+        var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
+
+        // if we found one, invoke it
+        if (handleTMethod != null)
+        {
+            return (Task)handleTMethod.Invoke(this, new[] { item })!;
+        }
+
+        // otherwise, complain
+        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
 }
