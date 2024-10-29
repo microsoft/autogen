@@ -16,7 +16,8 @@ class StopMessageTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self._terminated:
-            raise TerminatedException("Termination condition has already been reached")
+            raise TerminatedException(
+                "Termination condition has already been reached")
         for message in messages:
             if isinstance(message, StopMessage):
                 self._terminated = True
@@ -44,11 +45,12 @@ class MaxMessageTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise TerminatedException("Termination condition has already been reached")
+            raise TerminatedException(
+                "Termination condition has already been reached")
         self._message_count += len(messages)
         if self._message_count >= self._max_messages:
             return StopMessage(
-                content=f"Maximal number of messages {self._max_messages} reached, current message count: {self._message_count}",
+                content=f"Maximum number of messages {self._max_messages} reached, current message count: {self._message_count}",
                 source="MaxMessageTermination",
             )
         return None
@@ -74,7 +76,8 @@ class TextMentionTermination(TerminationCondition):
 
     async def __call__(self, messages: Sequence[ChatMessage]) -> StopMessage | None:
         if self._terminated:
-            raise TerminatedException("Termination condition has already been reached")
+            raise TerminatedException(
+                "Termination condition has already been reached")
         for message in messages:
             if isinstance(message, TextMessage | StopMessage) and self._text in message.content:
                 self._terminated = True
