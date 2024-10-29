@@ -8,18 +8,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase
+public abstract class AgentBase : IAgentBase
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
+    public AgentId AgentId => _context.AgentId;
     private readonly object _lock = new();
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentContext _context;
-
-    protected internal AgentId AgentId => _context.AgentId;
     protected internal ILogger Logger => _context.Logger;
-    protected internal IAgentContext Context => _context;
+    public IAgentContext Context => _context;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(IAgentContext context, EventTypes eventTypes)
@@ -54,7 +53,7 @@ public abstract class AgentBase
         }
     }
 
-    internal void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
+    public void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
 
     private async Task RunMessagePump()
     {
@@ -79,7 +78,7 @@ public abstract class AgentBase
         }
     }
 
-    private async Task HandleRpcMessage(Message msg)
+    protected internal async Task HandleRpcMessage(Message msg)
     {
         switch (msg.MessageCase)
         {
@@ -108,12 +107,12 @@ public abstract class AgentBase
                 break;
         }
     }
-    protected async Task Store(AgentState state)
+    public async Task Store(AgentState state)
     {
         await _context.Store(state).ConfigureAwait(false);
         return;
     }
-    protected async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
+    public async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
     {
         var agentstate = await _context.Read(agentId).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
@@ -132,7 +131,6 @@ public abstract class AgentBase
 
         completion.SetResult(response);
     }
-
     private async Task OnRequestCore(RpcRequest request)
     {
         RpcResponse response;
@@ -193,7 +191,7 @@ public abstract class AgentBase
         return await completion.Task.ConfigureAwait(false);
     }
 
-    protected async ValueTask PublishEvent(CloudEvent item)
+    public async ValueTask PublishEvent(CloudEvent item)
     {
         var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
@@ -225,5 +223,5 @@ public abstract class AgentBase
         return Task.CompletedTask;
     }
 
-    protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 }
