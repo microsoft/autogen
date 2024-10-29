@@ -84,7 +84,6 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             request.Agent.ReceiveMessage(message);
                             break;
                         case Message.MessageOneofCase.CloudEvent:
-                            // TODO: Reimplement
 
                             // HACK: Send the message to an instance of each agent type
                             // where AgentId = (namespace: event.Namespace, name: agentType)
@@ -323,10 +322,32 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             _channel?.Dispose();
         }
     }
-
     public ValueTask SendRequest(RpcRequest request)
     {
         throw new NotImplementedException();
+    }
+    public ValueTask Store(AgentState value)
+    {
+        var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
+        var response = _client.SaveState(value);
+        if (!response.Success)
+        {
+            throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
+        }
+        return ValueTask.CompletedTask;
+    }
+    public async ValueTask<AgentState> Read(AgentId agentId)
+    {
+        var response = await _client.GetStateAsync(agentId);
+        //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
+        if (response.AgentState.AgentId is not null)
+        {
+            return response.AgentState;
+        }
+        else
+        {
+            throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
+        }
     }
 }
 

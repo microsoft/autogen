@@ -37,6 +37,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
+        // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _workers)
         {
@@ -211,7 +212,18 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
             await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } });
         }
     }
+    public async ValueTask Store(AgentState value)
+    {
+        var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
+        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        await agentState.WriteStateAsync(value, value.ETag);
+    }
 
+    public async ValueTask<AgentState> Read(AgentId agentId)
+    {
+        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        return await agentState.ReadStateAsync();
+    }
     /*
     private async ValueTask SubscribeToTopic(WorkerProcessConnection connection, RpcRequest request)
     {
