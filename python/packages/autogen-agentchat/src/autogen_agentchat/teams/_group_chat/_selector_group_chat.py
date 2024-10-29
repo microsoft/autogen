@@ -68,8 +68,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     else:
                         message += " [Image]"
             else:
-                raise ValueError(
-                    f"Unexpected message type in selector: {type(msg)}")
+                raise ValueError(f"Unexpected message type in selector: {type(msg)}")
             history_messages.append(message)
         history = "\n".join(history_messages)
 
@@ -85,8 +84,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         # Construct agent list to be selected, skip the previous speaker if not allowed.
         if self._previous_speaker is not None and not self._allow_repeated_speaker:
-            participants = [
-                p for p in self._participant_topic_types if p != self._previous_speaker]
+            participants = [p for p in self._participant_topic_types if p != self._previous_speaker]
         else:
             participants = self._participant_topic_types
         assert len(participants) > 0
@@ -99,24 +97,20 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             select_speaker_messages = [SystemMessage(select_speaker_prompt)]
             response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
-            mentions = self._mentioned_agents(
-                response.content, self._participant_topic_types)
+            mentions = self._mentioned_agents(response.content, self._participant_topic_types)
             if len(mentions) != 1:
-                raise ValueError(
-                    f"Expected exactly one agent to be mentioned, but got {mentions}")
+                raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
             agent_name = list(mentions.keys())[0]
             if (
                 not self._allow_repeated_speaker
                 and self._previous_speaker is not None
                 and agent_name == self._previous_speaker
             ):
-                trace_logger.warning(
-                    f"Selector selected the previous speaker: {agent_name}")
+                trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
-        event_logger.debug(GroupChatSelectSpeakerEvent(
-            selected_speaker=agent_name, source=self.id))
+        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
         return agent_name
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
@@ -202,18 +196,17 @@ Read the above conversation. Then select the next role from {participants} to pl
 """,
         allow_repeated_speaker: bool = False,
     ):
-        super().__init__(participants, termination_condition=termination_condition,
-                         group_chat_manager_class=SelectorGroupChatManager)
+        super().__init__(
+            participants, termination_condition=termination_condition, group_chat_manager_class=SelectorGroupChatManager
+        )
         # Validate the participants.
         if len(participants) < 2:
-            raise ValueError(
-                "At least two participants are required for SelectorGroupChat.")
+            raise ValueError("At least two participants are required for SelectorGroupChat.")
         # Validate the selector prompt.
         if "{roles}" not in selector_prompt:
             raise ValueError("The selector prompt must contain '{roles}'")
         if "{participants}" not in selector_prompt:
-            raise ValueError(
-                "The selector prompt must contain '{participants}'")
+            raise ValueError("The selector prompt must contain '{participants}'")
         if "{history}" not in selector_prompt:
             raise ValueError("The selector prompt must contain '{history}'")
         self._selector_prompt = selector_prompt

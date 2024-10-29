@@ -39,10 +39,8 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         if len(thread) > 0 and isinstance(thread[-1].agent_message, HandoffMessage):
             self._current_speaker = thread[-1].agent_message.target
             if self._current_speaker not in self._participant_topic_types:
-                raise ValueError(
-                    "The selected speaker in the handoff message is not a participant.")
-            event_logger.debug(GroupChatSelectSpeakerEvent(
-                selected_speaker=self._current_speaker, source=self.id))
+                raise ValueError("The selected speaker in the handoff message is not a participant.")
+            event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=self._current_speaker, source=self.id))
             return self._current_speaker
         else:
             return self._current_speaker
@@ -85,8 +83,9 @@ class Swarm(BaseGroupChat):
     """
 
     def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
-        super().__init__(participants, termination_condition=termination_condition,
-                         group_chat_manager_class=SwarmGroupChatManager)
+        super().__init__(
+            participants, termination_condition=termination_condition, group_chat_manager_class=SwarmGroupChatManager
+        )
 
     def _create_group_chat_manager_factory(
         self,

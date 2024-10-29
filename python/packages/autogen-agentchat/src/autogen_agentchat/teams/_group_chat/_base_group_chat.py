@@ -28,7 +28,12 @@ class BaseGroupChat(Team, ABC):
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
 
-    def __init__(self, participants: List[ChatAgent], group_chat_manager_class: type[BaseGroupChatManager], termination_condition: TerminationCondition | None = None):
+    def __init__(
+        self,
+        participants: List[ChatAgent],
+        group_chat_manager_class: type[BaseGroupChatManager],
+        termination_condition: TerminationCondition | None = None,
+    ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
@@ -92,8 +97,7 @@ class BaseGroupChat(Team, ABC):
             await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(
-                    group_topic_type, participant),
+                factory=self._create_participant_factory(group_topic_type, participant),
             )
             # Add subscriptions for the participant.
             await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
@@ -111,21 +115,18 @@ class BaseGroupChat(Team, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
-                termination_condition=termination_condition or self._termination_condition
+                termination_condition=termination_condition or self._termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_chat_manager_topic_type,
-                             agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_topic_type,
-                             agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
         await runtime.add_subscription(
-            TypeSubscription(topic_type=team_topic_type,
-                             agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=team_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
 
         group_chat_messages: List[ChatMessage] = []
@@ -143,8 +144,7 @@ class BaseGroupChat(Team, ABC):
             type="collect_group_chat_messages",
             closure=collect_group_chat_messages,
             subscriptions=lambda: [
-                TypeSubscription(topic_type=group_topic_type,
-                                 agent_type="collect_group_chat_messages"),
+                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages"),
             ],
         )
 
@@ -153,11 +153,9 @@ class BaseGroupChat(Team, ABC):
 
         # Run the team by publishing the task to the team topic and then requesting the result.
         team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
-        group_chat_manager_topic_id = TopicId(
-            type=group_chat_manager_topic_type, source=self._team_id)
+        group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         await runtime.publish_message(
-            GroupChatPublishEvent(agent_message=TextMessage(
-                content=task, source="user")),
+            GroupChatPublishEvent(agent_message=TextMessage(content=task, source="user")),
             topic_id=team_topic_id,
         )
         await runtime.publish_message(GroupChatRequestPublishEvent(), topic_id=group_chat_manager_topic_id)

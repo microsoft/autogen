@@ -36,11 +36,9 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
     async def select_speaker(self, thread: List[GroupChatPublishEvent]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
-        self._next_speaker_index = (
-            current_speaker_index + 1) % len(self._participant_topic_types)
+        self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
         current_speaker = self._participant_topic_types[current_speaker_index]
-        event_logger.debug(GroupChatSelectSpeakerEvent(
-            selected_speaker=current_speaker, source=self.id))
+        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=current_speaker, source=self.id))
         return current_speaker
 
 
@@ -85,8 +83,11 @@ class RoundRobinGroupChat(BaseGroupChat):
     """
 
     def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
-        super().__init__(participants, termination_condition=termination_condition,
-                         group_chat_manager_class=RoundRobinGroupChatManager)
+        super().__init__(
+            participants,
+            termination_condition=termination_condition,
+            group_chat_manager_class=RoundRobinGroupChatManager,
+        )
 
     def _create_group_chat_manager_factory(
         self,
