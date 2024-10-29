@@ -573,7 +573,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         However `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
         return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
         all preceding chunks will have usage as None. See: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
-        
+
         Other examples of OPENAI supported arguments that can be included in `extra_create_args`:
             - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
             - `max_tokens` (int): The maximum number of tokens to generate in the completion.
