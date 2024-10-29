@@ -8,17 +8,17 @@ namespace Microsoft.AutoGen.Agents
         AgentId AgentId { get; }
         ValueTask PublishEvent(CloudEvent item);
 
-        async Task Handle(Output item)
+        static async Task Handle(Output item)
         {
             // Assuming item has a property `Message` that we want to write to the console
             Console.WriteLine(item.Message);
             await ProcessOutput(item.Message);
 
-            var evt = new OutputWritten
+/*             var evt = new OutputWritten
             {
                 Route = "console"
             }.ToCloudEvent(AgentId.Key);
-            await PublishEvent(evt);
+            await PublishEvent(evt); */
         }
         async Task Handle(Input item)
         {

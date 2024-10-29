@@ -94,13 +94,13 @@ public static class HostBuilderExtensions
             {
                 foreach (var iface in item)
                 {
-                    if (eventsMap.TryGetValue(iface.t, out var events))
+                    if (eventsMap.TryGetValue(iface.Item2, out var events))
                     {
                         events.UnionWith(iface.Item3);
                     }
                     else
                     {
-                        eventsMap[iface.t] = iface.Item3;
+                        eventsMap[iface.Item2] = iface.Item3;
                     }
                 }
             }

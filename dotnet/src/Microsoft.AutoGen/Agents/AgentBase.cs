@@ -213,14 +213,42 @@ public abstract class AgentBase : IAgentBase
     public Task CallHandler(CloudEvent item)
     {
         // Only send the event to the handler if the agent type is handling that type
+        // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
+        foreach (var key in EventTypes.EventsMap.Keys)
+        {
+            if (EventTypes.EventsMap[key].Contains(item.Type))
+            {
+                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
+                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
+                var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                try
+                {
+                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, $"Error invoking method {methodInfo.Name}");
+                }
+            }
+        }
+
+/* 
         if (EventTypes.EventsMap[GetType()].Contains(item.Type))
         {
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
             var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
             var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-            return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-        }
+            try
+            {
+                return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, $"Error invoking method {methodInfo.Name}");
+            }
+        } */
         return Task.CompletedTask;
     }
 
