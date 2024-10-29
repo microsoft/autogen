@@ -2,7 +2,7 @@ namespace Microsoft.AutoGen.Abstractions;
 
 public interface IHandle
 {
-    Task Handle(object item);
+    Task HandleObject(object item);
 }
 
 public interface IHandle<T> : IHandle

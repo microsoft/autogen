@@ -219,10 +219,10 @@ public abstract class AgentBase : IHandle
 
     protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
-    public virtual Task Handle(object item)
+    public virtual Task HandleObject(object item)
     {
         // get all Handle<T> methods
-        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == nameof(IHandle.Handle) && m.GetParameters().Length == 1).ToList();
+        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
 
         // get the one that matches the type of the item
         var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
@@ -230,7 +230,7 @@ public abstract class AgentBase : IHandle
         // if we found one, invoke it
         if (handleTMethod != null)
         {
-            return (Task)handleTMethod.Invoke(this, new[] { item })!;
+            return (Task)handleTMethod.Invoke(this, [item])!;
         }
 
         // otherwise, complain

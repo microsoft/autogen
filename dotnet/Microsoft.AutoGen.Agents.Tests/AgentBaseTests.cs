@@ -16,8 +16,8 @@ public class AgentBaseTests
         var mockContext = new Mock<IAgentContext>();
         var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []));
 
-        await agent.Handle("hello world");
-        await agent.Handle(42);
+        await agent.HandleObject("hello world");
+        await agent.HandleObject(42);
 
         agent.ReceivedItems.Should().HaveCount(2);
         agent.ReceivedItems[0].Should().Be("hello world");
