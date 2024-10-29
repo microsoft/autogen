@@ -101,7 +101,7 @@ class ChromaVectorDB(VectorDB):
         self.active_collection: Optional["Collection"] = None
 
     def create_collection(
-        self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
+        self, collection_name: str, overwrite: bool = False, get_or_create: bool = True, **kwargs: Any
     ) -> "Collection":
         """Create a collection in the vector database.
 
@@ -130,15 +130,17 @@ class ChromaVectorDB(VectorDB):
         if collection is None:
             return self.client.create_collection(
                 name=collection_name,
-                embedding_function=self.embedding_function,
-                metadata=self.metadata,
+                embedding_function=kwargs.pop("embedding_function", self.embedding_function),
+                metadata=kwargs.pop("metadata", self.metadata),
+                data_loader=kwargs.pop("data_loader", None),
             )
         elif overwrite:
             self.client.delete_collection(name=collection_name)
             return self.client.create_collection(
                 name=collection_name,
-                embedding_function=self.embedding_function,
-                metadata=self.metadata,
+                embedding_function=kwargs.pop("embedding_function", self.embedding_function),
+                metadata=kwargs.pop("metadata", self.metadata),
+                data_loader=kwargs.pop("data_loader", None),
             )
         elif get_or_create:
             return collection
@@ -426,7 +428,9 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             )
         self.active_collection: Optional[Any] = None
 
-    async def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
+    async def create_collection(
+        self, collection_name: str, overwrite: bool = False, get_or_create: bool = True, **kwargs: Any
+    ) -> Any:
         """Create a collection in the vector database.
 
         Case 1. if the collection does not exist, create the collection.
@@ -437,6 +441,7 @@ class AsyncChromaVectorDB(AsyncVectorDB):
             collection_name: str | The name of the collection.
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
             get_or_create: bool | Whether to get the collection if it exists. Default is True.
+
 
         Returns:
             Any | The collection object.
@@ -453,15 +458,17 @@ class AsyncChromaVectorDB(AsyncVectorDB):
         if collection is None:
             return await self.client.create_collection(
                 name=collection_name,
-                embedding_function=self.embedding_function,
-                metadata={},
+                embedding_function=kwargs.pop("embedding_function", self.embedding_function),
+                metadata=kwargs.pop("metadata", {}),
+                data_loader=kwargs.pop("data_loader", None),
             )
         elif overwrite:
             await self.client.delete_collection(name=collection_name)
             return await self.client.create_collection(
                 name=collection_name,
-                embedding_function=self.embedding_function,
-                metadata={},
+                embedding_function=kwargs.pop("embedding_function", self.embedding_function),
+                metadata=kwargs.pop("metadata", {}),
+                data_loader=kwargs.pop("data_loader", None),
             )
         elif get_or_create:
             return collection

@@ -60,7 +60,13 @@ class AsyncVectorDB(Protocol):
     type: str = ""
     embedding_function: Optional[Callable[..., Any]] = None  # embeddings = embedding_function(sentences)
 
-    async def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
+    async def create_collection(
+        self,
+        collection_name: str,
+        overwrite: bool = False,
+        get_or_create: bool = True,
+        **kwargs: Any,
+    ) -> Any:
         """
         Create a collection in the vector database.
         Case 1. if the collection does not exist, create the collection.
@@ -72,6 +78,7 @@ class AsyncVectorDB(Protocol):
             collection_name: str | The name of the collection.
             overwrite: bool | Whether to overwrite the collection if it exists. Default is False.
             get_or_create: bool | Whether to get the collection if it exists. Default is True.
+            kwargs: Dict[str, Any] | Additional keyword arguments for collection creation (e.g. schema).
 
         Returns:
             Any | The collection object.
@@ -228,7 +235,9 @@ class VectorDB(Protocol):
         None  # embeddings = embedding_function(sentences)
     )
 
-    def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
+    def create_collection(
+        self, collection_name: str, overwrite: bool = False, get_or_create: bool = True, **kwargs: Any
+    ) -> Any:
         """
         Create a collection in the vector database.
         Case 1. if the collection does not exist, create the collection.
