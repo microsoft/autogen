@@ -33,12 +33,4 @@ internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, 
     {
         return await _runtime.Read(agentId).ConfigureAwait(false);
     }
-    public async ValueTask Store(AgentState value)
-    {
-        await _runtime.Store(value);
-    }
-    public async ValueTask<AgentState> Read(AgentId agentId)
-    {
-        return await _runtime.Read(agentId);
-    }
 }
