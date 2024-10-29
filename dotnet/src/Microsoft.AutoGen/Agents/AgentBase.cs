@@ -108,7 +108,16 @@ public abstract class AgentBase
                 break;
         }
     }
-
+    protected async Task Store(AgentState state)
+    {
+        await _context.Store(state).ConfigureAwait(false);
+        return;
+    }
+    protected async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
+    {
+        var agentstate = await _context.Read(agentId).ConfigureAwait(false);
+        return agentstate.FromAgentState<T>();
+    }
     private void OnResponseCore(RpcResponse response)
     {
         var requestId = response.RequestId;
@@ -186,7 +195,6 @@ public abstract class AgentBase
 
     protected async ValueTask PublishEvent(CloudEvent item)
     {
-        //TODO: Reimplement
         var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
@@ -200,7 +208,7 @@ public abstract class AgentBase
             },
             (this, item, completion),
             activity,
-            item.Type).ConfigureAwait(false);// TODO: It's not the descriptor's name probably
+            item.Type).ConfigureAwait(false);
     }
 
     public Task CallHandler(CloudEvent item)
