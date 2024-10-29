@@ -10,6 +10,7 @@ public sealed class AgentClient(AgentWorkerRuntime runtime, DistributedContextPr
     : AgentBase(new AgentContext(new AgentId("client", Guid.NewGuid().ToString()), runtime, logger, distributedContextPropagator), eventTypes)
 {
     public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
+
     public async ValueTask PublishEventAsync(string topic, IMessage evt)
     {
         await PublishEventAsync(evt.ToCloudEvent(topic)).ConfigureAwait(false);
