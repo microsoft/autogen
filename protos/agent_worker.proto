@@ -82,6 +82,29 @@ message AddSubscriptionResponse {
 
 service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
+    rpc GetState(AgentId) returns (GetStateResponse);
+    rpc SaveState(AgentState) returns (SaveStateResponse);
+}
+
+message AgentState {
+  AgentId agent_id = 1;
+  string eTag = 2;
+  oneof  data {
+    bytes binary_data = 3;
+    string text_data = 4;
+    google.protobuf.Any proto_data = 5;
+  }
+}
+
+message GetStateResponse {
+	AgentState agent_state = 1;
+	bool success = 2;
+    optional string error = 3;
+}
+
+message SaveStateResponse {
+	bool success = 1;
+    optional string error = 2;
 }
 
 message Message {
