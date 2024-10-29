@@ -33,13 +33,5 @@ public sealed class AgentClient(ILogger<AgentClient> logger, AgentWorkerRuntime 
         {
             await runtime.SendResponse(response).ConfigureAwait(false);
         }
-        public ValueTask Store(AgentState value)
-        {
-            throw new NotImplementedException();
-        }
-        public ValueTask<AgentState> Read(AgentId agentId)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
