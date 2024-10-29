@@ -144,7 +144,8 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         var success = false;
         var error = String.Empty;
 
-        try{
+        try
+        {
             await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
             success = true;
         }
