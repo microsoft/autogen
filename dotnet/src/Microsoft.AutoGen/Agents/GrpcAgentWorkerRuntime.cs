@@ -219,7 +219,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         await WriteChannelAsync(new Message { Response = response }).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequest(AgentBase agent, RpcRequest request)
+    public async ValueTask SendRequest(IAgentBase agent, RpcRequest request)
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
