@@ -14,8 +14,8 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
+    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly Channel<Message> _outboundMessagesChannel = Channel.CreateBounded<Message>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -83,6 +83,13 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
+                        case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                            if (!message.RegisterAgentTypeResponse.Success)
+                            {
+                                throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
+                            }
+                            break;
+
                         case Message.MessageOneofCase.CloudEvent:
 
                             // HACK: Send the message to an instance of each agent type
@@ -163,7 +170,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         }
     }
 
-    private AgentBase GetOrActivateAgent(AgentId agentId)
+    private IAgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -197,6 +204,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
                 RegisterAgentTypeRequest = new RegisterAgentTypeRequest
                 {
                     Type = type,
+                    RequestId = Guid.NewGuid().ToString(),
                     //TopicTypes = { topicTypes },
                     //StateType = state?.Name,
                     //Events = { events }
