@@ -14,11 +14,11 @@ namespace Microsoft.AutoGen.Agents
             Console.WriteLine(item.Message);
             await ProcessOutput(item.Message);
 
-            /*             var evt = new OutputWritten
-                        {
-                            Route = "console"
-                        }.ToCloudEvent(AgentId.Key);
-                        await PublishEvent(evt); */
+            var evt = new OutputWritten
+            {
+                Route = "console"
+            }.ToCloudEvent(AgentId.Key);
+            await PublishEvent(evt);
         }
         async Task IHandle<Input>.Handle(Input item)
         {
