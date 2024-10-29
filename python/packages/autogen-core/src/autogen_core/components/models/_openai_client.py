@@ -557,7 +557,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
-        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+        Creates an AsyncGenerator that will yield a stream of chat completions based on the provided messages and tools.
 
         Args:
             messages (Sequence[LLMMessage]): A sequence of messages to be processed.
@@ -565,7 +565,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to {} but this can include:
                 see: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create)
-                in streaming situations the default behaviour is not return token usage counts.
+                in streaming situations the default behaviour is not return token usage counts,
                 however `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
                 return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
                 all preceding chunks will have usage as None.
