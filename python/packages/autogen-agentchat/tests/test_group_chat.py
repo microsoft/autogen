@@ -12,6 +12,7 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
     Handoff,
 )
+from autogen_agentchat.base import Response
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
     ChatMessage,
@@ -62,14 +63,14 @@ class _EchoAgent(BaseChatAgent):
         super().__init__(name, description)
         self._last_message: str | None = None
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content
-            return TextMessage(content=messages[0].content, source=self.name)
+            return Response(chat_message=TextMessage(content=messages[0].content, source=self.name))
         else:
             assert self._last_message is not None
-            return TextMessage(content=self._last_message, source=self.name)
+            return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
 
 class _StopAgent(_EchoAgent):
@@ -78,11 +79,11 @@ class _StopAgent(_EchoAgent):
         self._count = 0
         self._stop_at = stop_at
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
         if self._count < self._stop_at:
             return await super().on_messages(messages, cancellation_token)
-        return StopMessage(content="TERMINATE", source=self.name)
+        return Response(chat_message=StopMessage(content="TERMINATE", source=self.name))
 
 
 def _pass_function(input: str) -> str:
@@ -415,8 +416,12 @@ class _HandOffAgent(BaseChatAgent):
         super().__init__(name, description)
         self._next_agent = next_agent
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        return HandoffMessage(content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name)
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(
+            chat_message=HandoffMessage(
+                content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name
+            )
+        )
 
 
 @pytest.mark.asyncio

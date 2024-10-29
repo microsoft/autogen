@@ -37,10 +37,12 @@ class ChatAgentContainer(SequentialRoutedAgent):
         # Pass the messages in the buffer to the delegate agent.
         response = await self._agent.on_messages(self._message_buffer, ctx.cancellation_token)
 
+        # TODO: publish inner messages to a side-channel topic for streaming run.
+
         # Publish the response.
         self._message_buffer.clear()
         await self.publish_message(
-            GroupChatPublishEvent(agent_message=response, source=self.id),
+            GroupChatPublishEvent(agent_message=response.chat_message, source=self.id),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
         )
 
