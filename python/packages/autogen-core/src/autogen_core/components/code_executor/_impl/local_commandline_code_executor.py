@@ -60,7 +60,8 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
     Example:
 
-    How to use `LocalCommandLineCodeExecutor` with a virtual environment: Set up a virtual environment using the `venv` module, and pass its context to the initializer of `LocalCommandLineCodeExecutor`. Any code executed will run within this environment.
+    How to use `LocalCommandLineCodeExecutor` with a virtual environment different from the one used to run the autogen application:
+    Set up a virtual environment using the `venv` module, and pass its context to the initializer of `LocalCommandLineCodeExecutor`. This way, the executor will run code within the new environment.
 
         .. code-block:: python
 
