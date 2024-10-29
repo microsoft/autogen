@@ -49,7 +49,7 @@ public static class HostBuilderExtensions
             });
         });
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<IAgentWorkerRuntime, AgentWorkerRuntime>();
+        builder.Services.AddSingleton<IAgentWorkerRuntime, GrpcAgentWorkerRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorkerRuntime>());
         builder.Services.AddSingleton<AgentWorker>();
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
