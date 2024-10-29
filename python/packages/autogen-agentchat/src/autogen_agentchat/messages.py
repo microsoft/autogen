@@ -41,8 +41,14 @@ class HandoffMessage(BaseMessage):
     content: str
     """The handoff message to the target agent."""
 
+class ResetMessage(BaseMessage):
+    """A message requesting reset of the recipient's state in the current conversation."""
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
+    content: str
+    """The content for the reset message."""
+
+
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ResetMessage
 """A message used by agents in a team."""
 
 
@@ -52,5 +58,6 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
+    "ResetMessage",
     "ChatMessage",
 ]
