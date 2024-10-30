@@ -1,4 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// FunctionCallTemplateEncodingTests.cs
 
 using AutoGen.SourceGenerator.Template; // Needed for FunctionCallTemplate
 using Xunit; // Needed for Fact and Assert

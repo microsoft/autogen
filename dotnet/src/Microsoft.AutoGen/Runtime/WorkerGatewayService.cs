@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// WorkerGatewayService.cs
+
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 

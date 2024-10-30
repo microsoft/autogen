@@ -1,11 +1,20 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
 
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-// send a message to the agent
+// step 1: create in-memory agent runtime
+
+// step 2: register HelloAgent to that agent runtime
+
+// step 3: start the agent runtime
+
+// step 4: send a message to the agent
+
+// step 5: wait for the agent runtime to shutdown
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"

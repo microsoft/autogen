@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// App.cs
+
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;

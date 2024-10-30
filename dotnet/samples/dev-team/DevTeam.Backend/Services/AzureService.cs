@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AzureService.cs
 
 using System.Text;
 using Azure;

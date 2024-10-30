@@ -1,7 +1,9 @@
-using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// IAgentBase.cs
 
-namespace Microsoft.AutoGen.Agents;
+using Google.Protobuf;
+
+namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentBase
 {

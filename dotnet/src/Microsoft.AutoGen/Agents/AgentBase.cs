@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentBase.cs
+
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -9,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase : IAgentBase
+public abstract class AgentBase : IAgentBase, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _context.AgentId;
@@ -251,5 +254,23 @@ public abstract class AgentBase : IAgentBase
         return Task.CompletedTask;
     }
 
-    public virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+
+    public virtual Task HandleObject(object item)
+    {
+        // get all Handle<T> methods
+        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
+
+        // get the one that matches the type of the item
+        var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
+
+        // if we found one, invoke it
+        if (handleTMethod != null)
+        {
+            return (Task)handleTMethod.Invoke(this, [item])!;
+        }
+
+        // otherwise, complain
+        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
 }

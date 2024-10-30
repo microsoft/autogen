@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Developer.cs
+
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
