@@ -7,7 +7,7 @@ import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent, Handoff
 from autogen_agentchat.logging import FileLogHandler
-from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
+from autogen_agentchat.messages import HandoffMessage, TextMessage, ToolCallMessage, ToolCallResultMessages
 from autogen_core.base import CancellationToken
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
@@ -111,10 +111,11 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
     result = await tool_use_agent.run("task")
-    assert len(result.messages) == 3
+    assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
-    assert isinstance(result.messages[1], TextMessage)
-    assert isinstance(result.messages[2], StopMessage)
+    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert isinstance(result.messages[3], TextMessage)
 
 
 @pytest.mark.asyncio
@@ -162,5 +163,5 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
     response = await tool_use_agent.on_messages(
         [TextMessage(content="task", source="user")], cancellation_token=CancellationToken()
     )
-    assert isinstance(response, HandoffMessage)
-    assert response.target == "agent2"
+    assert isinstance(response.chat_message, HandoffMessage)
+    assert response.chat_message.target == "agent2"

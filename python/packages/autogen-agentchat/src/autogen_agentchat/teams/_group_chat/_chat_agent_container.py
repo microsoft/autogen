@@ -16,12 +16,14 @@ class ChatAgentContainer(SequentialRoutedAgent):
 
     Args:
         parent_topic_type (str): The topic type of the parent orchestrator.
+        output_topic_type (str): The topic type for the output.
         agent (ChatAgent): The agent to delegate message handling to.
     """
 
-    def __init__(self, parent_topic_type: str, agent: ChatAgent) -> None:
+    def __init__(self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent) -> None:
         super().__init__(description=agent.description)
         self._parent_topic_type = parent_topic_type
+        self._output_topic_type = output_topic_type
         self._agent = agent
         self._message_buffer: List[ChatMessage] = []
 
@@ -36,18 +38,27 @@ class ChatAgentContainer(SequentialRoutedAgent):
         to the delegate agent and publish the response."""
         # Pass the messages in the buffer to the delegate agent.
         response = await self._agent.on_messages(self._message_buffer, ctx.cancellation_token)
-        if not any(isinstance(response, msg_type) for msg_type in self._agent.produced_message_types):
+        if not any(isinstance(response.chat_message, msg_type) for msg_type in self._agent.produced_message_types):
             raise ValueError(
                 f"The agent {self._agent.name} produced an unexpected message type: {type(response)}. "
-                f"Expected one of: {self._agent.produced_message_types}"
+                f"Expected one of: {self._agent.produced_message_types}. "
+                f"Check the agent's produced_message_types property."
             )
+
+        # Publish inner messages to the output topic.
+        if response.inner_messages is not None:
+            for inner_message in response.inner_messages:
+                await self.publish_message(inner_message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
         # Publish the response.
         self._message_buffer.clear()
         await self.publish_message(
-            GroupChatPublishEvent(agent_message=response, source=self.id),
+            GroupChatPublishEvent(agent_message=response.chat_message, source=self.id),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
         )
+
+        # Publish the response to the output topic.
+        await self.publish_message(response.chat_message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in agent container: {type(message)}")

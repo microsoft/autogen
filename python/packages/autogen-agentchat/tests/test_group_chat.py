@@ -12,12 +12,15 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
     Handoff,
 )
+from autogen_agentchat.base import Response
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
     StopMessage,
     TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessages,
 )
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination
 from autogen_agentchat.teams import (
@@ -66,14 +69,14 @@ class _EchoAgent(BaseChatAgent):
     def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content
-            return TextMessage(content=messages[0].content, source=self.name)
+            return Response(chat_message=TextMessage(content=messages[0].content, source=self.name))
         else:
             assert self._last_message is not None
-            return TextMessage(content=self._last_message, source=self.name)
+            return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
 
 class _StopAgent(_EchoAgent):
@@ -86,11 +89,11 @@ class _StopAgent(_EchoAgent):
     def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage, StopMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
         if self._count < self._stop_at:
             return await super().on_messages(messages, cancellation_token)
-        return StopMessage(content="TERMINATE", source=self.name)
+        return Response(chat_message=StopMessage(content="TERMINATE", source=self.name))
 
 
 def _pass_function(input: str) -> str:
@@ -230,11 +233,13 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
     )
 
-    assert len(result.messages) == 4
+    assert len(result.messages) == 6
     assert isinstance(result.messages[0], TextMessage)  # task
-    assert isinstance(result.messages[1], TextMessage)  # tool use agent response
-    assert isinstance(result.messages[2], TextMessage)  # echo agent response
-    assert isinstance(result.messages[3], StopMessage)  # tool use agent response
+    assert isinstance(result.messages[1], ToolCallMessage)  # tool call
+    assert isinstance(result.messages[2], ToolCallResultMessages)  # tool call result
+    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[4], TextMessage)  # echo agent response
+    assert isinstance(result.messages[5], StopMessage)  # tool use agent response
 
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
@@ -427,8 +432,12 @@ class _HandOffAgent(BaseChatAgent):
     def produced_message_types(self) -> List[type[ChatMessage]]:
         return [HandoffMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        return HandoffMessage(content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name)
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(
+            chat_message=HandoffMessage(
+                content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -513,9 +522,11 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     agent2 = _HandOffAgent("agent2", description="agent 2", next_agent="agent1")
     team = Swarm([agnet1, agent2])
     result = await team.run("task", termination_condition=StopMessageTermination())
-    assert len(result.messages) == 5
+    assert len(result.messages) == 7
     assert result.messages[0].content == "task"
-    assert result.messages[1].content == "handoff to agent2"
-    assert result.messages[2].content == "Transferred to agent1."
-    assert result.messages[3].content == "Hello"
-    assert result.messages[4].content == "TERMINATE"
+    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert result.messages[3].content == "handoff to agent2"
+    assert result.messages[4].content == "Transferred to agent1."
+    assert result.messages[5].content == "Hello"
+    assert result.messages[6].content == "TERMINATE"

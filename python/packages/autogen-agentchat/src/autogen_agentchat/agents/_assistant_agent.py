@@ -18,12 +18,16 @@ from autogen_core.components.tools import FunctionTool, Tool
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .. import EVENT_LOGGER_NAME
+from ..base import Response
 from ..messages import (
     ChatMessage,
     HandoffMessage,
+    InnerMessage,
     ResetMessage,
     StopMessage,
     TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessages,
 )
 from ._base_chat_agent import BaseChatAgent
 
@@ -214,13 +218,16 @@ class AssistantAgent(BaseChatAgent):
             return [TextMessage, HandoffMessage, StopMessage]
         return [TextMessage, StopMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Add messages to the model context.
         for msg in messages:
             if isinstance(msg, ResetMessage):
                 self._model_context.clear()
             else:
                 self._model_context.append(UserMessage(content=msg.content, source=msg.source))
+
+        # Inner messages.
+        inner_messages: List[InnerMessage] = []
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
@@ -234,12 +241,16 @@ class AssistantAgent(BaseChatAgent):
         # Run tool calls until the model produces a string response.
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             event_logger.debug(ToolCallEvent(tool_calls=result.content, source=self.name))
+            # Add the tool call message to the output.
+            inner_messages.append(ToolCallMessage(content=result.content, source=self.name))
+
             # Execute the tool calls.
             results = await asyncio.gather(
                 *[self._execute_tool_call(call, cancellation_token) for call in result.content]
             )
             event_logger.debug(ToolCallResultEvent(tool_call_results=results, source=self.name))
             self._model_context.append(FunctionExecutionResultMessage(content=results))
+            inner_messages.append(ToolCallResultMessages(content=results, source=self.name))
 
             # Detect handoff requests.
             handoffs: List[Handoff] = []
@@ -249,8 +260,13 @@ class AssistantAgent(BaseChatAgent):
             if len(handoffs) > 0:
                 if len(handoffs) > 1:
                     raise ValueError(f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
-                # Respond with a handoff message.
-                return HandoffMessage(content=handoffs[0].message, target=handoffs[0].target, source=self.name)
+                # Return the output messages to signal the handoff.
+                return Response(
+                    chat_message=HandoffMessage(
+                        content=handoffs[0].message, target=handoffs[0].target, source=self.name
+                    ),
+                    inner_messages=inner_messages,
+                )
 
             # Generate an inference result based on the current model context.
             result = await self._model_client.create(
@@ -262,9 +278,13 @@ class AssistantAgent(BaseChatAgent):
         # Detect stop request.
         request_stop = "terminate" in result.content.strip().lower()
         if request_stop:
-            return StopMessage(content=result.content, source=self.name)
+            return Response(
+                chat_message=StopMessage(content=result.content, source=self.name), inner_messages=inner_messages
+            )
 
-        return TextMessage(content=result.content, source=self.name)
+        return Response(
+            chat_message=TextMessage(content=result.content, source=self.name), inner_messages=inner_messages
+        )
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken

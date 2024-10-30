@@ -1,10 +1,22 @@
+from dataclasses import dataclass
 from typing import List, Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
 
-from ..messages import ChatMessage
+from ..messages import ChatMessage, InnerMessage
 from ._task import TaskResult, TaskRunner
 from ._termination import TerminationCondition
+
+
+@dataclass(kw_only=True)
+class Response:
+    """A response from calling :meth:`ChatAgent.on_messages`."""
+
+    chat_message: ChatMessage
+    """A chat message produced by the agent as the response."""
+
+    inner_messages: List[InnerMessage] | None = None
+    """Inner messages produced by the agent."""
 
 
 @runtime_checkable
@@ -29,8 +41,8 @@ class ChatAgent(TaskRunner, Protocol):
         """The types of messages that the agent produces."""
         ...
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        """Handle incoming messages and return a response message."""
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        """Handles incoming messages and returns a response."""
         ...
 
     async def run(
