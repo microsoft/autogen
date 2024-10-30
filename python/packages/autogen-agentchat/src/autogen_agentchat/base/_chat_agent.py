@@ -1,4 +1,4 @@
-from typing import Protocol, Sequence, runtime_checkable
+from typing import List, Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
 
@@ -22,6 +22,11 @@ class ChatAgent(TaskRunner, Protocol):
         """The description of the agent. This is used by team to
         make decisions about which agents to use. The description should
         describe the agent's capabilities and how to interact with it."""
+        ...
+
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
         ...
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:

@@ -207,6 +207,13 @@ class AssistantAgent(BaseChatAgent):
             )
         self._model_context: List[LLMMessage] = []
 
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the assistant agent produces."""
+        if self._handoffs:
+            return [TextMessage, HandoffMessage, StopMessage]
+        return [TextMessage, StopMessage]
+
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         # Add messages to the model context.
         for msg in messages:

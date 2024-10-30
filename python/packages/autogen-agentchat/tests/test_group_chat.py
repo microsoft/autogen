@@ -62,6 +62,10 @@ class _EchoAgent(BaseChatAgent):
         super().__init__(name, description)
         self._last_message: str | None = None
 
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        return [TextMessage]
+
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
@@ -77,6 +81,10 @@ class _StopAgent(_EchoAgent):
         super().__init__(name, description)
         self._count = 0
         self._stop_at = stop_at
+
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        return [TextMessage, StopMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         self._count += 1
@@ -414,6 +422,10 @@ class _HandOffAgent(BaseChatAgent):
     def __init__(self, name: str, description: str, next_agent: str) -> None:
         super().__init__(name, description)
         self._next_agent = next_agent
+
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        return [HandoffMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         return HandoffMessage(content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name)
