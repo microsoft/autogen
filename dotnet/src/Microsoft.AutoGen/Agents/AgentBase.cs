@@ -19,6 +19,7 @@ public abstract class AgentBase : IAgentBase
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentContext _context;
     public string Route { get; set; } = "base";
+
     protected internal ILogger Logger => _context.Logger;
     public IAgentContext Context => _context;
     protected readonly EventTypes EventTypes;
