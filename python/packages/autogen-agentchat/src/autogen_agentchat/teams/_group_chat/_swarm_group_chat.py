@@ -82,8 +82,10 @@ class Swarm(BaseGroupChat):
             await team.run("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
     """
 
-    def __init__(self, participants: List[ChatAgent]):
-        super().__init__(participants, group_chat_manager_class=SwarmGroupChatManager)
+    def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
+        super().__init__(
+            participants, termination_condition=termination_condition, group_chat_manager_class=SwarmGroupChatManager
+        )
 
     def _create_group_chat_manager_factory(
         self,
