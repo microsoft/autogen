@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
+internal sealed class AgentContext(AgentId agentId, IAgentWorkerRuntime runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
 {
-    private readonly AgentWorkerRuntime _runtime = runtime;
+    private readonly IAgentWorkerRuntime _runtime = runtime;
 
     public AgentId AgentId { get; } = agentId;
     public ILogger Logger { get; } = logger;
@@ -19,18 +19,18 @@ internal sealed class AgentContext(AgentId agentId, AgentWorkerRuntime runtime, 
     }
     public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request)
     {
-        await _runtime.SendRequest(agent, request);
+        await _runtime.SendRequest(agent, request).ConfigureAwait(false);
     }
     public async ValueTask PublishEventAsync(CloudEvent @event)
     {
-        await _runtime.PublishEvent(@event);
+        await _runtime.PublishEvent(@event).ConfigureAwait(false);
     }
     public async ValueTask Store(AgentState value)
     {
-        await _runtime.Store(value);
+        await _runtime.Store(value).ConfigureAwait(false);
     }
-    public async ValueTask<AgentState> Read(AgentId agentId)
+    public ValueTask<AgentState> Read(AgentId agentId)
     {
-        return await _runtime.Read(agentId);
+        return _runtime.Read(agentId);
     }
 }

@@ -141,8 +141,22 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+        var success = false;
+        var error = String.Empty;
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+        try
+        {
+            await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+            success = true;
+        }
+        catch (InvalidOperationException exception)
+        {
+            error = $"Error registering agent type '{msg.Type}'.";
+            _logger.LogWarning(exception, error);
+        }
+        var request_id = msg.RequestId;
+        var response = new RegisterAgentTypeResponse { RequestId = request_id, Success = success, Error = error };
+        await connection.SendMessage(new Message { RegisterAgentTypeResponse = response });
     }
 
     private async ValueTask DispatchEventAsync(CloudEvent evt)
