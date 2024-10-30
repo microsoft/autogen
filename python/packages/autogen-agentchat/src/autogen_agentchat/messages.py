@@ -1,6 +1,7 @@
 from typing import List
 
-from autogen_core.components import Image
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResult
 from pydantic import BaseModel
 
 
@@ -49,8 +50,26 @@ class ResetMessage(BaseMessage):
     """The content for the reset message."""
 
 
+class ToolCallMessage(BaseMessage):
+    """A message signaling the use of tools."""
+
+    content: List[FunctionCall]
+    """The tool calls."""
+
+
+class ToolCallResultMessages(BaseMessage):
+    """A message signaling the results of tool calls."""
+
+    content: List[FunctionExecutionResult]
+    """The tool call results."""
+
+
+InnerMessage = ToolCallMessage | ToolCallResultMessages
+"""Messages for intra-agent monologues."""
+
+
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ResetMessage
-"""A message used by agents in a team."""
+"""Messages for agent-to-agent communication."""
 
 
 __all__ = [
@@ -60,5 +79,7 @@ __all__ = [
     "StopMessage",
     "HandoffMessage",
     "ResetMessage",
+    "ToolCallMessage",
+    "ToolCallResultMessages",
     "ChatMessage",
 ]

@@ -86,6 +86,10 @@ class Swarm(BaseGroupChat):
         super().__init__(
             participants, termination_condition=termination_condition, group_chat_manager_class=SwarmGroupChatManager
         )
+        # The first participant must be able to produce handoff messages.
+        first_participant = self._participants[0]
+        if HandoffMessage not in first_participant.produced_message_types:
+            raise ValueError("The first participant must be able to produce a handoff messages.")
 
     def _create_group_chat_manager_factory(
         self,
