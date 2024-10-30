@@ -15,12 +15,11 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
-    private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly Dictionary<string, List<IWorkerGateway>> _supportedAgentTypes = [];
     private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
-    private readonly ConcurrentDictionary<string, IWorkerGateway> _workers = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string RequestId)> _pendingRequests = new();
     private readonly ConcurrentDictionary<AgentId, IWorkerGateway> _agentPlacements = new();
+    private readonly Dictionary<(string Type, string Key), IWorkerGateway> _agentDirectory = [];
 
     AgentId IAgentContext.AgentId => throw new NotImplementedException();
 
@@ -146,18 +145,41 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask<(IWorkerGateway? Gateway, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
+    private IWorkerGateway? GetCompatibleWorkerCore(string type)
     {
-        if (!_agentPlacements.TryGetValue(agentId, out var gateway))
+        if (_supportedAgentTypes.TryGetValue(type, out var workers))
         {
-            gateway = _workers.Values.FirstOrDefault();
-            if (gateway != null)
+            // Return a random compatible worker.
+            return workers[Random.Shared.Next(workers.Count)];
+        }
+
+        return null;
+    }public ValueTask<(IWorkerGateway? Gateway, bool NewPlacment)> GetOrPlaceAgent(AgentId agentId)
+    {
+        // TODO: 
+        bool isNewPlacement;
+        if (!_agentDirectory.TryGetValue((agentId.Type, agentId.Key), out var worker) || !_workerStates.ContainsKey(worker))
+        {
+            worker = GetCompatibleWorkerCore(agentId.Type);
+            if (worker is not null)
             {
-                _agentPlacements[agentId] = gateway;
-                return ValueTask.FromResult((gateway, true));
+                // New activation.
+                _agentDirectory[(agentId.Type, agentId.Key)] = worker;
+                isNewPlacement = true;
+            }
+            else
+            {
+                // No activation, and failed to place.
+                isNewPlacement = false;
             }
         }
-        return ValueTask.FromResult((gateway, false));
+        else
+        {
+            // Existing activation.
+            isNewPlacement = false;
+        }
+
+        return new((worker, isNewPlacement));
     }
 
     // IWorkerGateway implementation
