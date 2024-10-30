@@ -34,6 +34,8 @@ public abstract class AgentBase : IAgentBase, IHandle
 
     internal Task Completion { get; }
 
+    Abstractions.AgentId IAgentBase.AgentId => throw new NotImplementedException();
+
     internal Task Start()
     {
         var didSuppress = false;
