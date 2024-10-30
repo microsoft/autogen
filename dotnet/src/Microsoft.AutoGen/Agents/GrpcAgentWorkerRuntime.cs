@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GrpcAgentWorkerRuntime.cs
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;

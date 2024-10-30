@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Host.cs
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 

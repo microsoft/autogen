@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentContext.cs
+
 using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;

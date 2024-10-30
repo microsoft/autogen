@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentId.cs
+
 using RpcAgentId = Microsoft.AutoGen.Abstractions.AgentId;
 
 namespace Microsoft.AutoGen.Agents;

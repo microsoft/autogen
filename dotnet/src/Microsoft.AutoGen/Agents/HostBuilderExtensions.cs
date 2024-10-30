@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// HostBuilderExtensions.cs
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;

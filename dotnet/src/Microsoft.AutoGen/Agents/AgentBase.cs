@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentBase.cs
+
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -223,7 +226,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         return Task.CompletedTask;
     }
 
-    protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
     public virtual Task HandleObject(object item)
     {

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ServiceCollectionChatCompletionExtensions.cs
+
 using System.ClientModel;
 using System.Data.Common;
 using Azure;
