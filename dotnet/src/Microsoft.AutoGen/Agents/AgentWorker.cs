@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentWorker.cs
+
 using System.Diagnostics;
 using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;

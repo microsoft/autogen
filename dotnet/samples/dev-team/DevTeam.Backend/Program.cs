@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
+
 using Azure.Identity;
 using DevTeam.Backend;
 using DevTeam.Options;

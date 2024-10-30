@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AIModelClientHostingExtensions.cs
+
 using Microsoft.Extensions.AI;
 
 namespace Microsoft.Extensions.Hosting;
