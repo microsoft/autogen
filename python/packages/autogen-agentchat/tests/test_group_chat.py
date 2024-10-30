@@ -19,6 +19,8 @@ from autogen_agentchat.messages import (
     HandoffMessage,
     StopMessage,
     TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessages,
 )
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination
 from autogen_agentchat.teams import (
@@ -223,11 +225,13 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         "Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination()
     )
 
-    assert len(result.messages) == 4
+    assert len(result.messages) == 6
     assert isinstance(result.messages[0], TextMessage)  # task
-    assert isinstance(result.messages[1], TextMessage)  # tool use agent response
-    assert isinstance(result.messages[2], TextMessage)  # echo agent response
-    assert isinstance(result.messages[3], StopMessage)  # tool use agent response
+    assert isinstance(result.messages[1], ToolCallMessage)  # tool call
+    assert isinstance(result.messages[2], ToolCallResultMessages)  # tool call result
+    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[4], TextMessage)  # echo agent response
+    assert isinstance(result.messages[5], StopMessage)  # tool use agent response
 
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
@@ -506,9 +510,11 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     agent2 = _HandOffAgent("agent2", description="agent 2", next_agent="agent1")
     team = Swarm([agnet1, agent2])
     result = await team.run("task", termination_condition=StopMessageTermination())
-    assert len(result.messages) == 5
+    assert len(result.messages) == 7
     assert result.messages[0].content == "task"
-    assert result.messages[1].content == "handoff to agent2"
-    assert result.messages[2].content == "Transferred to agent1."
-    assert result.messages[3].content == "Hello"
-    assert result.messages[4].content == "TERMINATE"
+    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert result.messages[3].content == "handoff to agent2"
+    assert result.messages[4].content == "Transferred to agent1."
+    assert result.messages[5].content == "Hello"
+    assert result.messages[6].content == "TERMINATE"
