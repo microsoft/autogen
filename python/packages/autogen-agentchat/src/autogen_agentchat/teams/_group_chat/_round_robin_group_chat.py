@@ -82,8 +82,12 @@ class RoundRobinGroupChat(BaseGroupChat):
 
     """
 
-    def __init__(self, participants: List[ChatAgent]):
-        super().__init__(participants, group_chat_manager_class=RoundRobinGroupChatManager)
+    def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
+        super().__init__(
+            participants,
+            termination_condition=termination_condition,
+            group_chat_manager_class=RoundRobinGroupChatManager,
+        )
 
     def _create_group_chat_manager_factory(
         self,
