@@ -126,7 +126,7 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
 
     public ValueTask AddWorker(IWorkerGateway worker)
     {
-        _workers[worker.ToString()] = worker;
+        GetOrAddWorker(worker);
         return ValueTask.CompletedTask;
     }
 
