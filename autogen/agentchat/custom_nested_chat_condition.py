@@ -10,6 +10,9 @@ class CustomNestedChatCondition():
         Args:
             func: A callable function defined by the user.
             params: A dictionary of variables and names to act as the func's parameters.
+            name: Optional string to name the custom condition. if none given, it will use the func.__name__ value
+            off_switch: Testing shows that once once the condition is set to true, it needs to be switched off or else it remains true and will always be true. Therefore, control over when to turn off nested chats needs to be specified. "immediate" for one-and-done nested chats, "recurring_condition" for something that may happen regularly, "temporary_attention_switch" for if you need to get more information outside the chat from somewhere else
+            
         """
         # ennforce func is callable that returns bool
         if not callable(func):
@@ -60,7 +63,3 @@ class CustomNestedChatCondition():
                 raise TypeError(f"Parameter '{new_param_value}' has type of {type(new_param_value)}should be of type {type(self.state_params["new_param_name"])}")
             else:
                 self.state_params["new_param_name"] = new_param_value
-
-
-
-        
