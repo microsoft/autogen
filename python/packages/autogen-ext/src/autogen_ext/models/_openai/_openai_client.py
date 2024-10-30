@@ -60,6 +60,7 @@ from openai.types.chat import (
     completion_create_params,
 )
 from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Unpack
@@ -556,6 +557,31 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        """
+        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+
+        Args:
+            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
+            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
+            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
+            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
+            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
+
+        Yields:
+            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
+
+        In streaming, the default behaviour is not return token usage counts. See: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create).
+        However `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
+        return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
+        all preceding chunks will have usage as None. See: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
+
+        Other examples of OPENAI supported arguments that can be included in `extra_create_args`:
+            - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
+            - `max_tokens` (int): The maximum number of tokens to generate in the completion.
+            - `top_p` (float): An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.
+            - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
+            - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
+        """
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
@@ -602,7 +628,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
         stream = await stream_future
-
+        choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], ChunkChoice] = cast(ChunkChoice, None)
+        chunk = None
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
@@ -615,8 +642,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if cancellation_token is not None:
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
-                choice = chunk.choices[0]
-                stop_reason = choice.finish_reason
+
+                # to process usage chunk in streaming situations
+                # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
+                # However the different api's
+                # OPENAI api usage chunk produces no choices so need to check if there is a choice
+                # liteLLM api usage chunk does produce choices
+                choice = (
+                    chunk.choices[0]
+                    if len(chunk.choices) > 0
+                    else choice
+                    if chunk.usage is not None and stop_reason is not None
+                    else cast(ChunkChoice, None)
+                )
+
+                # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
+                # set the stop_reason for the usage chunk to the prior stop_reason
+                stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
                 maybe_model = chunk.model
                 # First try get content
                 if choice.delta.content is not None:
@@ -658,17 +700,21 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
-        # TODO fix count token
-        prompt_tokens = 0
-        # prompt_tokens = count_token(messages, model=model)
+        if chunk and chunk.usage:
+            prompt_tokens = chunk.usage.prompt_tokens
+        else:
+            prompt_tokens = 0
+
         if stop_reason is None:
             raise ValueError("No stop reason found")
 
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
-            completion_tokens = 0
-            # completion_tokens = count_token(content, model=model)
+            if chunk and chunk.usage:
+                completion_tokens = chunk.usage.completion_tokens
+            else:
+                completion_tokens = 0
         else:
             completion_tokens = 0
             # TODO: fix assumption that dict values were added in order and actually order by int index

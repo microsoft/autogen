@@ -48,7 +48,7 @@ class MaxMessageTermination(TerminationCondition):
         self._message_count += len(messages)
         if self._message_count >= self._max_messages:
             return StopMessage(
-                content=f"Maximal number of messages {self._max_messages} reached, current message count: {self._message_count}",
+                content=f"Maximum number of messages {self._max_messages} reached, current message count: {self._message_count}",
                 source="MaxMessageTermination",
             )
         return None

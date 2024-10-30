@@ -49,9 +49,9 @@ public static class HostBuilderExtensions
             });
         });
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<AgentClient>();
-        builder.Services.AddSingleton<AgentWorkerRuntime>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AgentWorkerRuntime>());
+        builder.Services.AddSingleton<IAgentWorkerRuntime, GrpcAgentWorkerRuntime>();
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorkerRuntime>());
+        builder.Services.AddSingleton<AgentWorker>();
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
@@ -111,7 +111,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
                                 .SelectMany(assembly => assembly.GetTypes())
                                 .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
-                                    && !type.Name.Equals("AgentClient"))
+                                    && !type.Name.Equals("AgentWorker"))
                                 .ToDictionary(type => type.Name, type => type);
 
         return new AgentTypes(agents);
