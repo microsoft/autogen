@@ -111,7 +111,16 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     }
     public ValueTask UnregisterAgentType(string type, IWorkerGateway worker)
     {
-        _agentTypes.TryRemove(type, out _);
+        if (_workerStates.TryGetValue(worker, out var state))
+        {
+            state.SupportedTypes.Remove(type);
+        }
+
+        if (_supportedAgentTypes.TryGetValue(type, out var workers))
+        {
+            workers.Remove(worker);
+        }
+
         return ValueTask.CompletedTask;
     }
 
