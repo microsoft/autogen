@@ -132,7 +132,17 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
 
     public ValueTask RemoveWorker(IWorkerGateway worker)
     {
-        _workers.TryRemove(worker.ToString(), out _);
+        if (_workerStates.Remove(worker, out var state))
+        {
+            foreach (var type in state.SupportedTypes)
+            {
+                if (_supportedAgentTypes.TryGetValue(type, out var workers))
+                {
+                    workers.Remove(worker);
+                }
+            }
+        }
+
         return ValueTask.CompletedTask;
     }
 
