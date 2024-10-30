@@ -16,6 +16,8 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
+    private readonly Dictionary<string, List<IWorkerGateway>> _supportedAgentTypes = [];
+    private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
     private readonly ConcurrentDictionary<string, IWorkerGateway> _workers = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string RequestId)> _pendingRequests = new();
     private readonly ConcurrentDictionary<AgentId, IWorkerGateway> _agentPlacements = new();
@@ -82,14 +84,14 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     // IAgentWorkerRegistryGrain implementation
     public ValueTask RegisterAgentType(string type, IWorkerGateway worker)
     {
-        if (!_agentTypes.TryGetValue(type, out var supportedAgentTypes))
+        if (!_supportedAgentTypes.TryGetValue(type, out var supportedAgentTypes))
         {
-            supportedAgentTypes = _agentTypes[type] = [];
+            supportedAgentTypes = _supportedAgentTypes[type] = [];
         }
 
-        if (!_agentTypes.TryGetValue(worker, out var worker))
+        if (!supportedAgentTypes.Contains(worker))
         {
-            _agentTypes.Add(worker, new WorkerState());
+            supportedAgentTypes.Add(worker);
         }
 
         var workerState = GetOrAddWorker(worker);
@@ -97,7 +99,16 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
 
         return ValueTask.CompletedTask;
     }
+    private WorkerState GetOrAddWorker(IWorkerGateway worker)
+    {
+        if (!_workerStates.TryGetValue(worker, out var workerState))
+        {
+            workerState = _workerStates[worker] = new();
+        }
 
+        workerState.LastSeen = DateTimeOffset.UtcNow;
+        return workerState;
+    }
     public ValueTask UnregisterAgentType(string type, IWorkerGateway worker)
     {
         _agentTypes.TryRemove(type, out _);
@@ -178,5 +189,10 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     async ValueTask IAgentContext.PublishEventAsync(CloudEvent @event)
     {
         await _eventsQueue.Writer.WriteAsync(@event);
+    }
+    private sealed class WorkerState
+    {
+        public HashSet<string> SupportedTypes { get; set; } = [];
+        public DateTimeOffset LastSeen { get; set; }
     }
 }
