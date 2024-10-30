@@ -18,10 +18,11 @@ namespace Hello
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentContext context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),
             ISayHello,
+            IHandleConsole,
             IHandle<NewMessageReceived>,
             IHandle<ConversationClosed>
     {
