@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// IHandleConsole.cs
+
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
