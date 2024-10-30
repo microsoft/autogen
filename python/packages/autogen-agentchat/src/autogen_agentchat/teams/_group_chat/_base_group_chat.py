@@ -28,7 +28,12 @@ class BaseGroupChat(Team, ABC):
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
 
-    def __init__(self, participants: List[ChatAgent], group_chat_manager_class: type[BaseGroupChatManager]):
+    def __init__(
+        self,
+        participants: List[ChatAgent],
+        group_chat_manager_class: type[BaseGroupChatManager],
+        termination_condition: TerminationCondition | None = None,
+    ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
@@ -36,6 +41,7 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
+        self._termination_condition = termination_condition
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -109,7 +115,7 @@ class BaseGroupChat(Team, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
-                termination_condition=termination_condition,
+                termination_condition=termination_condition or self._termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.
