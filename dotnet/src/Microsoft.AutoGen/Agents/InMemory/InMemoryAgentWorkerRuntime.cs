@@ -11,15 +11,15 @@ namespace Microsoft.AutoGen.Agents;
 
 public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegistryGrain, IWorkerGateway, IAgentContext
 {
+    private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<InMemoryAgentWorkerRuntime> _logger;
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly Dictionary<string, List<IWorkerGateway>> _supportedAgentTypes = [];
     private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string RequestId)> _pendingRequests = new();
-    private readonly ConcurrentDictionary<AgentId, IWorkerGateway> _agentPlacements = new();
     private readonly Dictionary<(string Type, string Key), IWorkerGateway> _agentDirectory = [];
+    private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
     AgentId IAgentContext.AgentId => throw new NotImplementedException();
 
@@ -183,10 +183,34 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     }
 
     // IWorkerGateway implementation
-    public ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
+    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
     {
-        // Implement in-memory request invocation logic
-        return ValueTask.FromResult(new RpcResponse());
+        (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
+        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
+        {
+            // Activate the agent on a compatible worker process.
+            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
+            {
+                connection = workers[Random.Shared.Next(workers.Count)];
+                _agentDirectory[agentId] = connection;
+            }
+            else
+            {
+                return new(new RpcResponse { Error = "Agent not found." });
+            }
+        }
+
+        // Proxy the request to the agent.
+        var originalRequestId = request.RequestId;
+        var newRequestId = Guid.NewGuid().ToString();
+        var completion = _pendingRequests[(_messageQueue, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        request.RequestId = newRequestId;
+        await _messageQueue.Writer.WriteAsync(new Message { Request = request });
+
+        // Wait for the response and send it back to the caller.
+        var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
+        response.RequestId = originalRequestId;
+        return response;
     }
 
     public ValueTask BroadcastEvent(CloudEvent evt)
