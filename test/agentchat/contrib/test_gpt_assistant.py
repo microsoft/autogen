@@ -634,6 +634,76 @@ def test_gpt_reflection_with_llm() -> None:
     assert result is not None
 
 
+@pytest.mark.skipif(
+    skip_openai,
+    reason=reason,
+)
+def test_assistant_tool_and_function_role_messages() -> None:
+    """
+    Tests that internally generated roles ('tool', 'function') are correctly mapped to
+    OpenAI Assistant API-compatible role ('assistant') before sending to the OpenAI API
+    to prevent BadRequestError when using GPTAssistantAgent with other tool-calling agents.
+
+    See PR: Fix role mapping in GPTAssistantAgent for OpenAI API compatibility #46
+    """
+    name = f"For test_gpt_assistant_special_roles {uuid.uuid4()}"
+    assistant = GPTAssistantAgent(
+        name,
+        llm_config={
+            "config_list": openai_config_list,
+        },
+    )
+
+    try:
+        # Test cases for different message role combinations
+        test_cases = [
+            # Case 1: Tool messages
+            [
+                {
+                    "role": "user",
+                    "content": "Hello, can you help me?",
+                },
+                {
+                    "role": "tool",
+                    "content": "Tool execution result: Success",
+                },
+                {
+                    "role": "assistant",
+                    "content": "I received the tool result.",
+                },
+            ],
+            # Case 2: Function messages
+            [
+                {
+                    "role": "user",
+                    "content": "What's the weather?",
+                },
+                {
+                    "role": "function",
+                    "content": '{"temperature": 72, "condition": "sunny"}',
+                },
+                {
+                    "role": "assistant",
+                    "content": "The weather is sunny and 72 degrees.",
+                },
+            ],
+        ]
+
+        # Test each case
+        for messages in test_cases:
+            success, response = assistant._invoke_assistant(messages)
+
+            # Verify response
+            assert success is True
+            assert isinstance(response, dict)
+            assert "content" in response
+            assert "role" in response
+            assert response["role"] == "assistant"
+
+    finally:
+        assistant.delete_assistant()
+
+
 if __name__ == "__main__":
     # test_gpt_assistant_chat()
     # test_get_assistant_instructions()
