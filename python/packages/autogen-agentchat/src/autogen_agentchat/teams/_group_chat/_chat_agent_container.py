@@ -36,6 +36,11 @@ class ChatAgentContainer(SequentialRoutedAgent):
         to the delegate agent and publish the response."""
         # Pass the messages in the buffer to the delegate agent.
         response = await self._agent.on_messages(self._message_buffer, ctx.cancellation_token)
+        if not any(isinstance(response, msg_type) for msg_type in self._agent.produced_message_types):
+            raise ValueError(
+                f"The agent {self._agent.name} produced an unexpected message type: {type(response)}. "
+                f"Expected one of: {self._agent.produced_message_types}"
+            )
 
         # Publish the response.
         self._message_buffer.clear()
