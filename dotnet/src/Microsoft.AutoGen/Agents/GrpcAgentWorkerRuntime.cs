@@ -10,12 +10,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWorkerRuntime
+public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgentWorkerRuntime
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
+    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly Channel<Message> _outboundMessagesChannel = Channel.CreateBounded<Message>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -26,19 +26,19 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
     private readonly AgentRpc.AgentRpcClient _client;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
-    private readonly ILogger<AgentWorkerRuntime> _logger;
+    private readonly ILogger<GrpcAgentWorkerRuntime> _logger;
     private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCts;
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
 
-    public AgentWorkerRuntime(
+    public GrpcAgentWorkerRuntime(
         AgentRpc.AgentRpcClient client,
         IHostApplicationLifetime hostApplicationLifetime,
         IServiceProvider serviceProvider,
         [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<AgentWorkerRuntime> logger,
+        ILogger<GrpcAgentWorkerRuntime> logger,
         DistributedContextPropagator distributedContextPropagator)
     {
         _client = client;
@@ -83,8 +83,14 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
+                        case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                            if (!message.RegisterAgentTypeResponse.Success)
+                            {
+                                throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
+                            }
+                            break;
+
                         case Message.MessageOneofCase.CloudEvent:
-                            // TODO: Reimplement
 
                             // HACK: Send the message to an instance of each agent type
                             // where AgentId = (namespace: event.Namespace, name: agentType)
@@ -164,7 +170,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         }
     }
 
-    private AgentBase GetOrActivateAgent(AgentId agentId)
+    private IAgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -198,6 +204,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
                 RegisterAgentTypeRequest = new RegisterAgentTypeRequest
                 {
                     Type = type,
+                    RequestId = Guid.NewGuid().ToString(),
                     //TopicTypes = { topicTypes },
                     //StateType = state?.Name,
                     //Events = { events }
@@ -212,7 +219,7 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
         await WriteChannelAsync(new Message { Response = response }).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequest(AgentBase agent, RpcRequest request)
+    public async ValueTask SendRequest(IAgentBase agent, RpcRequest request)
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
@@ -323,10 +330,28 @@ public sealed class AgentWorkerRuntime : IHostedService, IDisposable, IAgentWork
             _channel?.Dispose();
         }
     }
-
-    public ValueTask SendRequest(RpcRequest request)
+    public ValueTask Store(AgentState value)
     {
-        throw new NotImplementedException();
+        var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
+        var response = _client.SaveState(value);
+        if (!response.Success)
+        {
+            throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
+        }
+        return ValueTask.CompletedTask;
+    }
+    public async ValueTask<AgentState> Read(AgentId agentId)
+    {
+        var response = await _client.GetStateAsync(agentId);
+        //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
+        if (response.AgentState.AgentId is not null)
+        {
+            return response.AgentState;
+        }
+        else
+        {
+            throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
+        }
     }
 }
 
