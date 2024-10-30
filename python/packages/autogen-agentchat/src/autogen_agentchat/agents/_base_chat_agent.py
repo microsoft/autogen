@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import List, Sequence
 
 from autogen_core.base import CancellationToken
 
@@ -29,6 +29,12 @@ class BaseChatAgent(ChatAgent, ABC):
         make decisions about which agents to use. The description should
         describe the agent's capabilities and how to interact with it."""
         return self._description
+
+    @property
+    @abstractmethod
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
+        ...
 
     @abstractmethod
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
