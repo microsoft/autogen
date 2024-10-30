@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package marketing;
+
+option csharp_namespace = "Marketing.Shared";
+
+message UserChatInput {
+  string user_id = 1;
+  string user_message = 2;
+}
+
+message ArticleCreated {
+  string user_id = 1;
+  string article = 2;
+  string user_message = 3;
+}
+message UserConnected {
+  string user_id = 1;
+}
+message GraphicDesignCreated {
+  string user_id = 1;
+  string image_uri = 2;
+}
+message SocialMediaPostCreated {
+  string user_id = 1;
+  string social_media_post = 2;
+}
+message AuditText {
+  string user_id = 1;
+  string text = 2;
+}
+message AuditorAlert {
+  string user_id = 1;
+  string auditor_alert_message = 2;
+}

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package marketing;
+
+option csharp_namespace = "Marketing.Shared";
+
+message CommunityManagerState {
+    string written_social_media_post = 1;
+    string article = 2;
+}
+
+message WriterState {
+    string written_article = 1;
+}
+
+message GraphicDesignerState {
+    string image_url = 1;
+}
+
+message AuditorState {
+    string article = 1;
+}
+

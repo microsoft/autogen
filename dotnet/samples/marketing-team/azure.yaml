@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: marketing-team
+services:  
+  app:
+    language: dotnet
+    project: .\Marketing.AppHost\Marketing.AppHost.csproj
+    host: containerapp

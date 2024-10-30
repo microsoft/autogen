@@ -1,9 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -29,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\CloudEvents\Microsoft.AutoGen.Extensions.CloudEvents.csproj" />
+    <ProjectReference Include="..\Marketing.Shared\Marketing.Shared.csproj" />
   </ItemGroup>
 
 </Project>
