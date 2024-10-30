@@ -158,6 +158,7 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
         tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
         handoffs=[handoff],
     )
+    assert HandoffMessage in tool_use_agent.produced_message_types
     response = await tool_use_agent.on_messages(
         [TextMessage(content="task", source="user")], cancellation_token=CancellationToken()
     )

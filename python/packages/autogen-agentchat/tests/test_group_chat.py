@@ -63,7 +63,7 @@ class _EchoAgent(BaseChatAgent):
         self._last_message: str | None = None
 
     @property
-    def produced_messages(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
@@ -83,7 +83,7 @@ class _StopAgent(_EchoAgent):
         self._stop_at = stop_at
 
     @property
-    def produced_messages(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage, StopMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
@@ -424,7 +424,7 @@ class _HandOffAgent(BaseChatAgent):
         self._next_agent = next_agent
 
     @property
-    def produced_messages(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [HandoffMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:

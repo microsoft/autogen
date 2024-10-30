@@ -32,7 +32,7 @@ class BaseChatAgent(ChatAgent, ABC):
 
     @property
     @abstractmethod
-    def produced_messages(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the agent produces."""
         ...
 

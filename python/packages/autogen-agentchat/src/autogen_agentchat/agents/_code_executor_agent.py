@@ -21,7 +21,7 @@ class CodeExecutorAgent(BaseChatAgent):
         self._code_executor = code_executor
 
     @property
-    def produced_messages(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the code executor agent produces."""
         return [TextMessage]
 
