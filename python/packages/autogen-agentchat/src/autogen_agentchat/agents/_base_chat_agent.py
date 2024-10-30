@@ -29,6 +29,12 @@ class BaseChatAgent(ChatAgent, ABC):
         describe the agent's capabilities and how to interact with it."""
         return self._description
 
+    @property
+    @abstractmethod
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
+        ...
+
     @abstractmethod
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handles incoming messages and returns a response."""

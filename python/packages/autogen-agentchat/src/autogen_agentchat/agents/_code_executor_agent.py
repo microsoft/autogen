@@ -21,7 +21,12 @@ class CodeExecutorAgent(BaseChatAgent):
         super().__init__(name=name, description=description)
         self._code_executor = code_executor
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the code executor agent produces."""
+        return [TextMessage]
+
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:
