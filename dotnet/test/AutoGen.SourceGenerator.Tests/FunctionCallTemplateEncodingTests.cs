@@ -3,85 +3,84 @@
 using AutoGen.SourceGenerator.Template; // Needed for FunctionCallTemplate
 using Xunit; // Needed for Fact and Assert
 
-namespace AutoGen.SourceGenerator.Tests
+namespace AutoGen.SourceGenerator.Tests;
+
+public class FunctionCallTemplateEncodingTests
 {
-    public class FunctionCallTemplateEncodingTests
+    [Fact]
+    public void FunctionDescription_Should_Encode_DoubleQuotes()
     {
-        [Fact]
-        public void FunctionDescription_Should_Encode_DoubleQuotes()
+        // Arrange
+        var functionContracts = new List<SourceGeneratorFunctionContract>
         {
-            // Arrange
-            var functionContracts = new List<SourceGeneratorFunctionContract>
+            new SourceGeneratorFunctionContract
             {
-                new SourceGeneratorFunctionContract
+                Name = "TestFunction",
+                Description = "This is a \"test\" function",
+                Parameters = new SourceGeneratorParameterContract[]
                 {
-                    Name = "TestFunction",
-                    Description = "This is a \"test\" function",
-                    Parameters = new SourceGeneratorParameterContract[]
+                    new SourceGeneratorParameterContract
                     {
-                        new SourceGeneratorParameterContract
-                        {
-                            Name = "param1",
-                            Description = "This is a \"parameter\" description",
-                            Type = "string",
-                            IsOptional = false
-                        }
-                    },
-                    ReturnType = "void"
-                }
-            };
+                        Name = "param1",
+                        Description = "This is a \"parameter\" description",
+                        Type = "string",
+                        IsOptional = false
+                    }
+                },
+                ReturnType = "void"
+            }
+        };
 
-            var template = new FunctionCallTemplate
-            {
-                NameSpace = "TestNamespace",
-                ClassName = "TestClass",
-                FunctionContracts = functionContracts
-            };
-
-            // Act
-            var result = template.TransformText();
-
-            // Assert
-            Assert.Contains("Description = @\"This is a \"\"test\"\" function\"", result);
-            Assert.Contains("Description = @\"This is a \"\"parameter\"\" description\"", result);
-        }
-
-        [Fact]
-        public void ParameterDescription_Should_Encode_DoubleQuotes()
+        var template = new FunctionCallTemplate
         {
-            // Arrange
-            var functionContracts = new List<SourceGeneratorFunctionContract>
+            NameSpace = "TestNamespace",
+            ClassName = "TestClass",
+            FunctionContracts = functionContracts
+        };
+
+        // Act
+        var result = template.TransformText();
+
+        // Assert
+        Assert.Contains("Description = @\"This is a \"\"test\"\" function\"", result);
+        Assert.Contains("Description = @\"This is a \"\"parameter\"\" description\"", result);
+    }
+
+    [Fact]
+    public void ParameterDescription_Should_Encode_DoubleQuotes()
+    {
+        // Arrange
+        var functionContracts = new List<SourceGeneratorFunctionContract>
+        {
+            new SourceGeneratorFunctionContract
             {
-                new SourceGeneratorFunctionContract
+                Name = "TestFunction",
+                Description = "This is a test function",
+                Parameters = new SourceGeneratorParameterContract[]
                 {
-                    Name = "TestFunction",
-                    Description = "This is a test function",
-                    Parameters = new SourceGeneratorParameterContract[]
+                    new SourceGeneratorParameterContract
                     {
-                        new SourceGeneratorParameterContract
-                        {
-                            Name = "param1",
-                            Description = "This is a \"parameter\" description",
-                            Type = "string",
-                            IsOptional = false
-                        }
-                    },
-                    ReturnType = "void"
-                }
-            };
+                        Name = "param1",
+                        Description = "This is a \"parameter\" description",
+                        Type = "string",
+                        IsOptional = false
+                    }
+                },
+                ReturnType = "void"
+            }
+        };
 
-            var template = new FunctionCallTemplate
-            {
-                NameSpace = "TestNamespace",
-                ClassName = "TestClass",
-                FunctionContracts = functionContracts
-            };
+        var template = new FunctionCallTemplate
+        {
+            NameSpace = "TestNamespace",
+            ClassName = "TestClass",
+            FunctionContracts = functionContracts
+        };
 
-            // Act
-            var result = template.TransformText();
+        // Act
+        var result = template.TransformText();
 
-            // Assert
-            Assert.Contains("Description = @\"This is a \"\"parameter\"\" description\"", result);
-        }
+        // Assert
+        Assert.Contains("Description = @\"This is a \"\"parameter\"\" description\"", result);
     }
 }
