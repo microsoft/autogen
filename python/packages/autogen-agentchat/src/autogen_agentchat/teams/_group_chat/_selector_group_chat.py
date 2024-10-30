@@ -140,7 +140,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 + re.escape(name.replace("_", r"\_"))
                 + r")(?=\W)"
             )
-            count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
+            # Pad the message to help with matching
+            count = len(re.findall(regex, f" {message_content} "))
             if count > 0:
                 mentions[name] = count
         return mentions
@@ -184,6 +185,7 @@ class SelectorGroupChat(BaseGroupChat):
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
+        termination_condition: TerminationCondition | None = None,
         selector_prompt: str = """You are in a role play game. The following roles are available:
 {roles}.
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
@@ -194,7 +196,9 @@ Read the above conversation. Then select the next role from {participants} to pl
 """,
         allow_repeated_speaker: bool = False,
     ):
-        super().__init__(participants, group_chat_manager_class=SelectorGroupChatManager)
+        super().__init__(
+            participants, termination_condition=termination_condition, group_chat_manager_class=SelectorGroupChatManager
+        )
         # Validate the participants.
         if len(participants) < 2:
             raise ValueError("At least two participants are required for SelectorGroupChat.")
