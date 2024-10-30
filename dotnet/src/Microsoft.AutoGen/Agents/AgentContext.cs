@@ -26,7 +26,7 @@ internal sealed class AgentContext(AgentId agentId, IAgentWorkerRuntime runtime,
     }
     public async ValueTask PublishEventAsync(CloudEvent @event)
     {
-        await _runtime.PublishEvent(@event).ConfigureAwait(false);
+        await _runtime.PublishEventAsync(@event).ConfigureAwait(false);
     }
     public async ValueTask Store(AgentState value)
     {

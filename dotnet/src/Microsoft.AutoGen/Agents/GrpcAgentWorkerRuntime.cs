@@ -232,7 +232,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         await WriteChannelAsync(new Message { Request = request }).ConfigureAwait(false);
     }
 
-    public async ValueTask PublishEvent(CloudEvent @event)
+    public async ValueTask PublishEventAsync(CloudEvent @event)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }).ConfigureAwait(false);
     }
