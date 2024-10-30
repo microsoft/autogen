@@ -26,7 +26,7 @@ class CodeExecutorAgent(BaseChatAgent):
         """The types of messages that the code executor agent produces."""
         return [TextMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:

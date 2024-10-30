@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 from dataclasses import dataclass
-=======
->>>>>>> origin/main
 from typing import List, Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
@@ -39,18 +36,13 @@ class ChatAgent(TaskRunner, Protocol):
         describe the agent's capabilities and how to interact with it."""
         ...
 
-<<<<<<< HEAD
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        """Handles incoming messages and returns a response."""
-=======
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the agent produces."""
         ...
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        """Handle incoming messages and return a response message."""
->>>>>>> origin/main
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        """Handles incoming messages and returns a response."""
         ...
 
     async def run(
