@@ -46,7 +46,7 @@ class ChatAgent(TaskRunner, Protocol):
 
     def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[InnerMessage | ChatMessage | Response, None]:
-        """Handles incoming messages and returns a stream of messages and
+    ) -> AsyncGenerator[InnerMessage | Response, None]:
+        """Handles incoming messages and returns a stream of inner messages and
         and the final item is the response."""
         ...

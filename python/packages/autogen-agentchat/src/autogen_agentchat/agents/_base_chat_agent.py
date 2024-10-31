@@ -42,14 +42,13 @@ class BaseChatAgent(ChatAgent, ABC):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[InnerMessage | ChatMessage | Response, None]:
+    ) -> AsyncGenerator[InnerMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in :class:`BaseChatAgent`
         simply calls :meth:`on_messages` and yields the messages in the response."""
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message
-        yield response.chat_message
         yield response
 
     async def run(
@@ -84,6 +83,8 @@ class BaseChatAgent(ChatAgent, ABC):
         messages: List[InnerMessage | ChatMessage] = [first_message]
         async for message in self.on_messages_stream([first_message], cancellation_token):
             if isinstance(message, Response):
+                yield message.chat_message
+                messages.append(message.chat_message)
                 yield TaskResult(messages=messages)
             else:
                 messages.append(message)

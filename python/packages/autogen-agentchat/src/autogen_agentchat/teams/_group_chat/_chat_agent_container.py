@@ -40,6 +40,10 @@ class ChatAgentContainer(SequentialRoutedAgent):
         response: Response | None = None
         async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
             if isinstance(msg, Response):
+                await self.publish_message(
+                    msg.chat_message,
+                    topic_id=DefaultTopicId(type=self._output_topic_type),
+                )
                 response = msg
             else:
                 # Publish the message to the output topic.

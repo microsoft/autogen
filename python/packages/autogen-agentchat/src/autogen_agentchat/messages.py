@@ -57,14 +57,14 @@ class ToolCallMessage(BaseMessage):
     """The tool calls."""
 
 
-class ToolCallResultMessages(BaseMessage):
+class ToolCallResultMessage(BaseMessage):
     """A message signaling the results of tool calls."""
 
     content: List[FunctionExecutionResult]
     """The tool call results."""
 
 
-InnerMessage = ToolCallMessage | ToolCallResultMessages
+InnerMessage = ToolCallMessage | ToolCallResultMessage
 """Messages for intra-agent monologues."""
 
 
@@ -80,6 +80,6 @@ __all__ = [
     "HandoffMessage",
     "ResetMessage",
     "ToolCallMessage",
-    "ToolCallResultMessages",
+    "ToolCallResultMessage",
     "ChatMessage",
 ]

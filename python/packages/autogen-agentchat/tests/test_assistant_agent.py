@@ -8,7 +8,7 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent, Handoff
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.logging import FileLogHandler
-from autogen_agentchat.messages import HandoffMessage, TextMessage, ToolCallMessage, ToolCallResultMessages
+from autogen_agentchat.messages import HandoffMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -114,7 +114,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert isinstance(result.messages[2], ToolCallResultMessage)
     assert isinstance(result.messages[3], TextMessage)
 
     # Test streaming.
@@ -174,7 +174,7 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert isinstance(result.messages[2], ToolCallResultMessage)
     assert isinstance(result.messages[3], HandoffMessage)
 
     # Test streaming.

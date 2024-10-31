@@ -20,7 +20,7 @@ from autogen_agentchat.messages import (
     StopMessage,
     TextMessage,
     ToolCallMessage,
-    ToolCallResultMessages,
+    ToolCallResultMessage,
 )
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination
 from autogen_agentchat.teams import (
@@ -253,7 +253,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert len(result.messages) == 6
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallMessage)  # tool call
-    assert isinstance(result.messages[2], ToolCallResultMessages)  # tool call result
+    assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], StopMessage)  # tool use agent response
@@ -528,7 +528,8 @@ async def test_swarm_handoff() -> None:
 
     # Test streaming.
     index = 0
-    async for message in team.run_stream("task", termination_condition=MaxMessageTermination(6)):
+    stream = team.run_stream("task", termination_condition=MaxMessageTermination(6))
+    async for message in stream:
         if isinstance(message, TaskResult):
             assert message == result
         else:
@@ -604,7 +605,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     assert len(result.messages) == 7
     assert result.messages[0].content == "task"
     assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert isinstance(result.messages[2], ToolCallResultMessage)
     assert result.messages[3].content == "handoff to agent2"
     assert result.messages[4].content == "Transferred to agent1."
     assert result.messages[5].content == "Hello"
@@ -614,7 +615,8 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
-    async for message in team.run_stream("task", termination_condition=StopMessageTermination()):
+    stream = team.run_stream("task", termination_condition=StopMessageTermination())
+    async for message in stream:
         if isinstance(message, TaskResult):
             assert message == result
         else:

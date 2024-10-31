@@ -61,24 +61,45 @@ class RoundRobinGroupChat(BaseGroupChat):
 
         .. code-block:: python
 
-            from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.task import StopMessageTermination
 
-            assistant = ToolUseAssistantAgent("Assistant", model_client=..., registered_tools=...)
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+            async def get_weather(location: str) -> str:
+                return f"The weather in {location} is sunny."
+
+
+            assistant = AssistantAgent(
+                "Assistant",
+                model_client=model_client,
+                tools=[get_weather],
+            )
             team = RoundRobinGroupChat([assistant])
-            await team.run("What's the weather in New York?", termination_condition=StopMessageTermination())
+            stream = team.run_stream("What's the weather in New York?", termination_condition=StopMessageTermination())
+            async for message in stream:
+                print(message)
 
     A team with multiple participants:
 
         .. code-block:: python
 
-            from autogen_agentchat.agents import CodingAssistantAgent, CodeExecutorAgent
-            from autogen_agentchat.teams import RoundRobinGroupChat, StopMessageTermination
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.task import StopMessageTermination
 
-            coding_assistant = CodingAssistantAgent("Coding_Assistant", model_client=...)
-            executor_agent = CodeExecutorAgent("Code_Executor", code_executor=...)
-            team = RoundRobinGroupChat([coding_assistant, executor_agent])
-            await team.run("Write a program that prints 'Hello, world!'", termination_condition=StopMessageTermination())
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            agent1 = AssistantAgent("Assistant1", model_client=model_client)
+            agent2 = AssistantAgent("Assistant2", model_client=model_client)
+            team = RoundRobinGroupChat([agent1, agent2])
+            stream = team.run_stream("Tell me some jokes.", termination_condition=StopMessageTermination())
+            async for message in stream:
+                print(message)
 
     """
 
