@@ -6,23 +6,23 @@ import chainlit as cl
 from _agents import GroupChatManager
 from _types import AppConfig, GroupChatMessage, RequestToSpeak
 from _utils import get_serializers, load_config, set_all_log_levels
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.components import (
-    TypeSubscription,
-)
-from autogen_core.components._default_topic import DefaultTopicId
-from autogen_core.components.models import (
-    UserMessage,
-)
 from autogen_ext.models import AzureOpenAIChatCompletionClient
 from rich.console import Console
 from rich.markdown import Markdown
 
+from autogen_core.application import WorkerAgentRuntime
+from autogen_core.components import (
+    DefaultTopicId,
+    TypeSubscription,
+)
+from autogen_core.components.models import (
+    UserMessage,
+)
+
 set_all_log_levels(logging.ERROR)
 
-group_chat_manager_runtime: WorkerAgentRuntime = None
 
-
+# TODO: This is the simple hack to send messages to the UI, needs to be improved once we get some help in https://github.com/Chainlit/chainlit/issues/1491
 async def send_cl(msg: str, author: str) -> None:
     await cl.Message(content=msg, author=author).send()
 
@@ -72,7 +72,7 @@ async def main(config: AppConfig):
     Console().print("Manager left the chat!")
 
 
-@cl.on_chat_start
+@cl.on_chat_start  # type: ignore
 async def start_chat():
     set_all_log_levels(logging.ERROR)
     warnings.filterwarnings("ignore", category=UserWarning, message="Resolved model mismatch.*")

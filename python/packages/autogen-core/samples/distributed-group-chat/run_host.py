@@ -1,14 +1,13 @@
 import asyncio
-import logging
 
 from _types import HostConfig
 from _utils import load_config
-from autogen_core.application import WorkerAgentRuntimeHost
 from rich.console import Console
 from rich.markdown import Markdown
 
+from autogen_core.application import WorkerAgentRuntimeHost
 
-# TODO: Use config.yaml
+
 async def main(host_config: HostConfig):
     host = WorkerAgentRuntimeHost(address=host_config.address)
     host.start()

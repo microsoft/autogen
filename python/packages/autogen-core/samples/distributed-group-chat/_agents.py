@@ -61,7 +61,7 @@ class GroupChatManager(RoutedAgent):
         model_client: ChatCompletionClient,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        on_message_func: Awaitable[Callable[[str, str], None]],
+        on_message_func: Callable[[str, str], Awaitable[None]],
         max_rounds: int = 3,
     ) -> None:
         super().__init__("Group chat manager")
@@ -78,8 +78,8 @@ class GroupChatManager(RoutedAgent):
     @message_handler
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         assert isinstance(message.body, UserMessage)
-        await self._on_message_func(message.body.content, message.body.source)
-        self._chat_history.append(message.body)  # type: ignore[reportargumenttype]
+        await self._on_message_func(message.body.content, message.body.source)  # type: ignore[arg-type]
+        self._chat_history.append(message.body)  # type: ignore[reportargumenttype,arg-type]
 
         # Format message history.
         messages: List[str] = []
@@ -120,9 +120,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         assert isinstance(completion.content, str)
 
         if completion.content.upper() == "FINISH":
-            message = f"\n{'-'*80}\n Manager ({id(self)}): I think it's enough iterations on the story! Thanks for collaborating!"
-            await self._on_message_func(message, "group_chat_manager")
-            self.console.print(Markdown(message))
+            manager_message = f"\n{'-'*80}\n Manager ({id(self)}): I think it's enough iterations on the story! Thanks for collaborating!"
+            await self._on_message_func(manager_message, "group_chat_manager")
+            self.console.print(Markdown(manager_message))
             return
 
         selected_topic_type: str

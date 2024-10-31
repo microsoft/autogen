@@ -31,7 +31,7 @@ The [run.sh](./run.sh) file provides commands to run the host and agents using [
 
 Here is a screen recording of the execution:
 
-![Distributed Group Chat Sample Run](./distributed_group_chat.gif)
+[![Distributed Group Chat Demo with Simple UI Integration](https://img.youtube.com/vi/kLTzI-3VgPQ/0.jpg)](https://youtu.be/kLTzI-3VgPQ)
 
 **Note**: Some `asyncio.sleep` commands have been added to the example code to make the `./run.sh` execution look sequential and visually easy to follow. In practice, these lines are not necessary.
 
@@ -68,21 +68,21 @@ graph TD;
     end
 
     subgraph Distributed Writer Runtime
-        writer_agent[<img src="public/avatars/writer.png" width="20"/> Writer Agent] --> A1
+        writer_agent[<img src="./public/avatars/writer.png" width="50"/> Writer Agent] --> A1
         wt -.->|2 - Subscription| writer_agent
         gct -.->|4 - Subscription| writer_agent
         writer_agent -.->|3 - Publish: Group Chat Message| gct
     end
 
     subgraph Distributed Editor Runtime
-        editor_agent[<img src="public/avatars/editor.png" width="20"/> Editor Agent] --> A1
+        editor_agent[<img src="./public/avatars/editor.png" width="50"/> Editor Agent] --> A1
         et -.->|6 - Subscription| editor_agent
         gct -.->|4 - Subscription| editor_agent
         editor_agent -.->|7 - Publish: Group Chat Message| gct
     end
 
     subgraph Distributed Group Chat Manager Runtime
-        group_chat_manager[<img src="public/avatars/group_chat_manager.png" width="20"/> Group Chat Manager Agent] --> A1
+        group_chat_manager[<img src="./public/avatars/group_chat_manager.png" width="50"/> Group Chat Manager Agent] --> A1
         gct -.->|4 - Subscription| group_chat_manager
         group_chat_manager -.->|1 - Request To Speak| wt
         group_chat_manager -.->|5 - Request To Speak| et
@@ -101,4 +101,4 @@ graph TD;
 
 - [ ] Properly handle chat restarts. It complains about group chat manager being already registered
 - [ ] Send Chainlit messages within each agent (Currently the manager can just sends messages in the group chat topic)
-- [ ] Add streaming to the UI (like [this example](https://docs.chainlit.io/advanced-features/streaming) but Autogen's Open AI Client [does not supporting streaming yet](https://github.com/microsoft/autogen/bl ob/0f4dd0cc6dd3eea303ad3d2063979b4b9a1aacfc/python/packages/autogen-ext/src/autogen_ext/models/\_openai/\_openai_client.py#L81))
+- [ ] Add streaming to the UI like [this example](https://docs.chainlit.io/advanced-features/streaming) but Autogen's Open AI Client [does not supporting streaming yet](https://github.com/microsoft/autogen/blob/0f4dd0cc6dd3eea303ad3d2063979b4b9a1aacfc/python/packages/autogen-ext/src/autogen_ext/models/_openai/_openai_client.py#L81)
