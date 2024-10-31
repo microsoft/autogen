@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// DevPlan.cs
+
 namespace DevTeam;
 public class DevLeadPlan
 {

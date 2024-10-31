@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import List, Sequence
 
 from autogen_core.base import CancellationToken
 
-from ..base import ChatAgent, TaskResult, TerminationCondition
-from ..messages import ChatMessage
-from ..teams import RoundRobinGroupChat
+from ..base import ChatAgent, Response, TaskResult, TerminationCondition
+from ..messages import ChatMessage, InnerMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -30,9 +29,15 @@ class BaseChatAgent(ChatAgent, ABC):
         describe the agent's capabilities and how to interact with it."""
         return self._description
 
+    @property
     @abstractmethod
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        """Handle incoming messages and return a response message."""
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
+        ...
+
+    @abstractmethod
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        """Handles incoming messages and returns a response."""
         ...
 
     async def run(
@@ -43,10 +48,12 @@ class BaseChatAgent(ChatAgent, ABC):
         termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
-        group_chat = RoundRobinGroupChat(participants=[self])
-        result = await group_chat.run(
-            task=task,
-            cancellation_token=cancellation_token,
-            termination_condition=termination_condition,
-        )
-        return result
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        first_message = TextMessage(content=task, source="user")
+        response = await self.on_messages([first_message], cancellation_token)
+        messages: List[InnerMessage | ChatMessage] = [first_message]
+        if response.inner_messages is not None:
+            messages += response.inner_messages
+        messages.append(response.chat_message)
+        return TaskResult(messages=messages)

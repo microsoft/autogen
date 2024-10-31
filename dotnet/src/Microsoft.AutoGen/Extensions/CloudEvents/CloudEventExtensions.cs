@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// CloudEventExtensions.cs
+
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Abstractions;

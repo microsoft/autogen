@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GithubWebHookProcessor.cs
+
 using System.Globalization;
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;

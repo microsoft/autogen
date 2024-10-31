@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GrpcAgentWorkerRuntime.cs
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
@@ -83,6 +86,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
+
                         case Message.MessageOneofCase.RegisterAgentTypeResponse:
                             if (!message.RegisterAgentTypeResponse.Success)
                             {
