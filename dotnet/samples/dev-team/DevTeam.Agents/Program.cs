@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
+
 using DevTeam.Agents;
 using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Extensions.SemanticKernel;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// FileAgent.cs
+
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,7 +13,7 @@ public abstract class FileAgent(
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
-    ) : IOAgent<AgentState>(context, typeRegistry),
+    ) : IOAgent(context, typeRegistry),
         IUseFiles,
         IHandle<Input>,
         IHandle<Output>

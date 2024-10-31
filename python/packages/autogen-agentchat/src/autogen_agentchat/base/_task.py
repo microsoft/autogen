@@ -3,7 +3,7 @@ from typing import Protocol, Sequence
 
 from autogen_core.base import CancellationToken
 
-from ..messages import ChatMessage
+from ..messages import ChatMessage, InnerMessage
 from ._termination import TerminationCondition
 
 
@@ -11,7 +11,7 @@ from ._termination import TerminationCondition
 class TaskResult:
     """Result of running a task."""
 
-    messages: Sequence[ChatMessage]
+    messages: Sequence[InnerMessage | ChatMessage]
     """Messages produced by the task."""
 
 

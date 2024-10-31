@@ -1,7 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// SKAiAgent.cs
 
 using System.Globalization;
 using System.Text;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
@@ -40,6 +42,7 @@ public abstract class SKAiAgent<T> : AgentBase where T : class, new()
         var function = _kernel.CreateFunctionFromPrompt(template, promptSettings);
         var result = (await _kernel.InvokeAsync(function, arguments).ConfigureAwait(true)).ToString();
         AddToHistory(result, ChatUserType.Agent);
+        //await Store(_state.Data.ToAgentState(AgentId,""));//TODO add eTag
         return result;
     }
 

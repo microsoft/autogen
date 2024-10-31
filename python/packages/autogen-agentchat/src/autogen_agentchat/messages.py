@@ -1,6 +1,7 @@
 from typing import List
 
-from autogen_core.components import Image
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResult
 from pydantic import BaseModel
 
 
@@ -35,12 +36,40 @@ class StopMessage(BaseMessage):
 class HandoffMessage(BaseMessage):
     """A message requesting handoff of a conversation to another agent."""
 
+    target: str
+    """The name of the target agent to handoff to."""
+
     content: str
-    """The agent name to handoff the conversation to."""
+    """The handoff message to the target agent."""
 
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
-"""A message used by agents in a team."""
+class ResetMessage(BaseMessage):
+    """A message requesting reset of the recipient's state in the current conversation."""
+
+    content: str
+    """The content for the reset message."""
+
+
+class ToolCallMessage(BaseMessage):
+    """A message signaling the use of tools."""
+
+    content: List[FunctionCall]
+    """The tool calls."""
+
+
+class ToolCallResultMessages(BaseMessage):
+    """A message signaling the results of tool calls."""
+
+    content: List[FunctionExecutionResult]
+    """The tool call results."""
+
+
+InnerMessage = ToolCallMessage | ToolCallResultMessages
+"""Messages for intra-agent monologues."""
+
+
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ResetMessage
+"""Messages for agent-to-agent communication."""
 
 
 __all__ = [
@@ -49,5 +78,8 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
+    "ResetMessage",
+    "ToolCallMessage",
+    "ToolCallResultMessages",
     "ChatMessage",
 ]

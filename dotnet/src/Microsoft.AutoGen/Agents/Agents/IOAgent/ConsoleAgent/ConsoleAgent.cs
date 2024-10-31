@@ -1,9 +1,12 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ConsoleAgent.cs
+
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class ConsoleAgent : IOAgent<AgentState>,
+public abstract class ConsoleAgent : IOAgent,
         IUseConsole,
         IHandle<Input>,
         IHandle<Output>

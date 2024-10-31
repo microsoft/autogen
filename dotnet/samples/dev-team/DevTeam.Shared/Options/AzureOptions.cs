@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AzureOptions.cs
+
 using System.ComponentModel.DataAnnotations;
 
 namespace DevTeam.Options;
