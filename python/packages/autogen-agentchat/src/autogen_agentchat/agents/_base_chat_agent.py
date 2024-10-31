@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import AsyncGenerator, List, Sequence
 
 from autogen_core.base import CancellationToken
 
@@ -39,6 +39,16 @@ class BaseChatAgent(ChatAgent, ABC):
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handles incoming messages and returns a response."""
         ...
+    
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[InnerMessage | ChatMessage | Response, None]:
+        """Handles incoming messages and returns a stream of messages and
+        and the final item is the response."""
+        response = await self.on_messages(messages, cancellation_token)
+        for inner_message in response.inner_messages or []:
+            yield inner_message
+        yield response
 
     async def run(
         self,
