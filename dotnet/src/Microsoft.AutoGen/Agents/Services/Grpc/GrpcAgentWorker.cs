@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcAgentWorkerRuntime : WorkerRuntime,IHostedService, IDisposable, IAgentWorker, IAgentRegistry
+public sealed class GrpcAgentWorker : AgentWorker,IHostedService, IDisposable, IAgentWorker, IAgentRegistry
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -29,19 +29,19 @@ public sealed class GrpcAgentWorkerRuntime : WorkerRuntime,IHostedService, IDisp
     private readonly AgentRpc.AgentRpcClient _client;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
-    private readonly ILogger<GrpcAgentWorkerRuntime> _logger;
+    private readonly ILogger<GrpcAgentWorker> _logger;
     private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCts;
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
 
-    public GrpcAgentWorkerRuntime(
+    public GrpcAgentWorker(
         AgentRpc.AgentRpcClient client,
         IHostApplicationLifetime hostApplicationLifetime,
         IServiceProvider serviceProvider,
         [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<GrpcAgentWorkerRuntime> logger,
+        ILogger<GrpcAgentWorker> logger,
         DistributedContextPropagator distributedContextPropagator) : base(logger)
     {
         _client = client;

@@ -40,7 +40,7 @@ public class AgentWorker : IAgentWorker
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
-        return _messageQueue.Writer.WriteAsync(new Message { Request = request });
+        return this.WriteAsync(new Message { Request = request });
     }
 
     public ValueTask SendResponse(RpcResponse response)
@@ -221,5 +221,11 @@ public class AgentWorker : IAgentWorker
     {
         public HashSet<string> SupportedTypes { get; set; } = [];
         public DateTimeOffset LastSeen { get; set; }
+    }
+
+    // In-Memory specific implementations
+    private ValueTask WriteAsync(Message message)
+    {
+        return _messageQueue.Writer.WriteAsync(message);
     }
 }

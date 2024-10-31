@@ -3,7 +3,7 @@
 
 namespace Microsoft.AutoGen.Abstractions;
 
-internal interface IWorkerAgentGrain
+public interface IAgentState
 {
     ValueTask<AgentState> ReadStateAsync();
     ValueTask<string> WriteStateAsync(AgentState state, string eTag);
