@@ -165,13 +165,13 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     public async ValueTask Store(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
-        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
 
     public async ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default)
     {
-        var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
     }
 }

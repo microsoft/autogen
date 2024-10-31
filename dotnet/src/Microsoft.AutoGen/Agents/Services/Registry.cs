@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Abstractions;
 namespace Microsoft.AutoGen.Agents;
-public class Registry : IAgentRegistry
+public class Registry : Grain, IAgentRegistry
 {
     // InMemory Registry implementation
     private readonly Dictionary<string, List<IGateway>> _supportedAgentTypes = [];
