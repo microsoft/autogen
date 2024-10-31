@@ -4,7 +4,7 @@ using Orleans;
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IAgentState : IAgentRegistry, IGrainWithStringKey
+public interface IAgentState : IGrainWithStringKey
 {
     ValueTask<AgentState> ReadStateAsync();
     ValueTask<string> WriteStateAsync(AgentState state, string eTag);
