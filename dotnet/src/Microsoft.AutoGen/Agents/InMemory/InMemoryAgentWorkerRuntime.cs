@@ -19,6 +19,8 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly Dictionary<string, List<IWorkerGateway>> _supportedAgentTypes = [];
     private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
     private readonly Dictionary<(string Type, string Key), IWorkerGateway> _agentDirectory = [];
+    private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
+
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
     AgentId IAgentContext.AgentId => throw new NotImplementedException();
@@ -212,12 +214,18 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
         response.RequestId = originalRequestId;
         return response;
     }
-
-    public ValueTask BroadcastEvent(CloudEvent evt)
+    public async ValueTask BroadcastEvent(CloudEvent evt)
     {
-        // Implement in-memory event broadcasting logic
-        return ValueTask.CompletedTask;
+        // TODO: filter the workers that receive the event
+        var tasks = new List<Task>(_workers.Count);
+        foreach (var (_, connection) in _workers)
+        {
+            tasks.Add(connection.Writer.WriteAsync(evt).AsTask());
+        }
+
+        await Task.WhenAll(tasks);
     }
+    
 
     public ValueTask Store(AgentState value)
     {

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// WorkerGateway.cs
+
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
