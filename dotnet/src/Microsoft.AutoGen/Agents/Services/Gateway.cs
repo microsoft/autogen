@@ -2,7 +2,6 @@
 // Gateway.cs
 
 using System.Collections.Concurrent;
-using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,14 +21,16 @@ internal class Gateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
+    private readonly InMemoryQueue<Message> _eventsQueue = new();
+
 
     public Gateway(IClusterClient clusterClient, ILogger<Gateway> logger)
     {
         _logger = logger;
-        /*
+        
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);*/
+        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
     }
 
     public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
@@ -43,9 +44,10 @@ internal class Gateway : BackgroundService, IGateway
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    private async Task SendMessage(InMemoryQueue<CloudEvent> connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    private async Task SendMessage(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
-        await connection.Writer.WriteAsync(cloudEvent).AsTask();
+        var queue = (InMemoryQueue<CloudEvent>)connection;
+        await queue.Writer.WriteAsync(cloudEvent, cancellationToken).AsTask();
     }
 
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
@@ -112,7 +114,7 @@ internal class Gateway : BackgroundService, IGateway
         }
     }
 
-    internal async Task OnReceivedMessageAsync(WorkerProcessConnection connection, Message message)
+    internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message)
     {
         _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
         switch (message.MessageCase)
@@ -134,7 +136,7 @@ internal class Gateway : BackgroundService, IGateway
         };
     }
 
-    private async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentTypeRequest msg)
+    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
@@ -151,7 +153,7 @@ internal class Gateway : BackgroundService, IGateway
         */
     }
 
-    private async ValueTask DispatchRequestAsync(WorkerProcessConnection connection, RpcRequest request)
+    private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
         var requestId = request.RequestId;
         if (request.Target is null)
@@ -196,7 +198,7 @@ internal class Gateway : BackgroundService, IGateway
         //}
     }
 
-    private static async Task InvokeRequestDelegate(WorkerProcessConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
     {
         try
         {
@@ -209,14 +211,14 @@ internal class Gateway : BackgroundService, IGateway
             await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } });
         }
     }
-    public async ValueTask Store(AgentState value)
+    public async ValueTask Store(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
         var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
 
-    public async ValueTask<AgentState> Read(AgentId agentId)
+    public async ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IWorkerAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
@@ -255,12 +257,12 @@ internal class Gateway : BackgroundService, IGateway
     internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
-        var workerProcess = new WorkerProcessConnection(this, requestStream, responseStream, context);
+        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers[workerProcess] = workerProcess;
         return workerProcess.Completion;
     }
 
-    internal void OnRemoveWorkerProcess(WorkerProcessConnection workerProcess)
+    internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
     {
         _workers.TryRemove(workerProcess, out _);
         var types = workerProcess.GetSupportedTypes();
@@ -277,7 +279,7 @@ internal class Gateway : BackgroundService, IGateway
         {
             if (pair.Value == workerProcess)
             {
-                ((IDictionary<(string Type, string Key), WorkerProcessConnection>)_agentDirectory).Remove(pair);
+                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
             }
         }
     }

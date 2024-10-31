@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// GrpcAgentWorkerRuntime.cs
+// GrpcAgentWorker.cs
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcAgentWorker : AgentWorker,IHostedService, IDisposable, IAgentWorker, IAgentRegistry
+public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, IAgentWorker, IAgentRegistry
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -131,7 +131,6 @@ public sealed class GrpcAgentWorker : AgentWorker,IHostedService, IDisposable, I
             }
         }
     }
-
     private async Task RunWritePump()
     {
         var channel = GetChannel();
@@ -173,7 +172,6 @@ public sealed class GrpcAgentWorker : AgentWorker,IHostedService, IDisposable, I
             }
         }
     }
-
     private IAgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))

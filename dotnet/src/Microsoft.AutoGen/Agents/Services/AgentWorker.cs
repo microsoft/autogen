@@ -14,7 +14,6 @@ public class AgentWorker : IAgentWorker
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
-
     public AgentWorker(ILogger<AgentWorker> logger)
     {
         _logger = logger;
@@ -23,7 +22,6 @@ public class AgentWorker : IAgentWorker
     {
         await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
     }
-
     public ValueTask SendRequest(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
@@ -32,13 +30,11 @@ public class AgentWorker : IAgentWorker
         request.RequestId = requestId;
         return this.WriteAsync(new Message { Request = request }, cancellationToken);
     }
-
     public ValueTask SendResponse(RpcResponse response, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Sending response '{Response}'.", response);
         return this.WriteAsync(new Message { Response = response }, cancellationToken);
     }
-
     public ValueTask Store(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
@@ -49,7 +45,6 @@ public class AgentWorker : IAgentWorker
         }
         return ValueTask.CompletedTask;
     }
-
     public ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default)
     {
         _agentStates.TryGetValue(agentId.ToString(), out var state);
@@ -63,9 +58,6 @@ public class AgentWorker : IAgentWorker
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
-
-
-
     // In-Memory specific implementations
     private ValueTask WriteAsync(Message message, CancellationToken cancellationToken = default)
     {

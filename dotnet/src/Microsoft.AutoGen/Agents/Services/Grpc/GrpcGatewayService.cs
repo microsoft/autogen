@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// WorkerGatewayService.cs
+// GrpcGatewayService.cs
 
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Abstractions;
 namespace Microsoft.AutoGen.Agents;
 
 // gRPC service which handles communication between the agent worker and the cluster.
-internal sealed class WorkerGatewayService(Gateway agentWorker) : AgentRpc.AgentRpcBase
+internal sealed class GrpcGatewayService(Gateway agentWorker) : AgentRpc.AgentRpcBase
 {
     public override async Task OpenChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {

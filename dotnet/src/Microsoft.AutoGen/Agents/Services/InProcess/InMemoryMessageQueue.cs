@@ -2,8 +2,9 @@
 // InMemoryMessageQueue.cs
 
 using System.Threading.Channels;
+using Microsoft.AutoGen.Abstractions;
 namespace Microsoft.AutoGen.Agents;
-internal sealed class InMemoryQueue<T>
+internal sealed class InMemoryQueue<T> : IConnection
 {
     public Task<bool> Completion { get; } = Task.FromResult(true);
     private readonly Channel<T> _channel =

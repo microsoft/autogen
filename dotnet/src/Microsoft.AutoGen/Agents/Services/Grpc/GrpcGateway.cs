@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// WorkerGateway.cs
+// GrpcGateway.cs
 
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
@@ -18,15 +17,14 @@ internal sealed class GrpcGateway : Gateway, IGateway
     private readonly IGateway _reference;
 
     // The local mapping of agents to worker processes.
-    private readonly ConcurrentDictionary<WorkerProcessConnection, WorkerProcessConnection> _workers = new();
+    private readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
     // The agents supported by each worker process.
-    private readonly ConcurrentDictionary<string, List<WorkerProcessConnection>> _supportedAgentTypes = [];
+    private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     // The mapping from agent id to worker process.
-    private readonly ConcurrentDictionary<(string Type, string Key), WorkerProcessConnection> _agentDirectory = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
-    private readonly ConcurrentDictionary<(WorkerProcessConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     // InMemory Message Queue
-    private readonly InMemoryQueue<Message> _messageQueue = new();
 
     public WorkerGateway(IClusterClient clusterClient, ILogger<Gateway> logger)
     {
@@ -35,47 +33,12 @@ internal sealed class GrpcGateway : Gateway, IGateway
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
     }
-
-    public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
-    {
-        Gateway.BroadcastEvent(evt,cancellationToken);
-    }
-    private async ValueTask SendMessage(WorkerProcessConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    private async ValueTask SendMessage(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken);
     }
 
-    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
-    {
-        (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
-        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
-        {
-            // Activate the agent on a compatible worker process.
-            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
-            {
-                connection = workers[Random.Shared.Next(workers.Count)];
-                _agentDirectory[agentId] = connection;
-            }
-            else
-            {
-                return new(new RpcResponse { Error = "Agent not found." });
-            }
-        }
-
-        // Proxy the request to the agent.
-        var originalRequestId = request.RequestId;
-        var newRequestId = Guid.NewGuid().ToString();
-        var completion = _pendingRequests[(connection, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        request.RequestId = newRequestId;
-        await connection.ResponseStream.WriteAsync(new Message { Request = request });
-
-        // Wait for the response and send it back to the caller.
-        var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
-        response.RequestId = originalRequestId;
-        return response;
-    }
-
-    private void DispatchResponse(WorkerProcessConnection connection, RpcResponse response)
+    private void DispatchResponse(GrpcWorkerConnection connection, RpcResponse response)
     {
         if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
         {
@@ -112,8 +75,8 @@ internal sealed class GrpcGateway : Gateway, IGateway
             _logger.LogWarning(exception, "Error removing worker from registry.");
         }
     }
-
-    internal async Task OnReceivedMessageAsync(WorkerProcessConnection connection, Message message)
+    //new is intentional...
+    internal new async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message)
     {
         _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
         switch (message.MessageCase)
@@ -135,7 +98,7 @@ internal sealed class GrpcGateway : Gateway, IGateway
         };
     }
 
-    private async ValueTask RegisterAgentTypeAsync(WorkerProcessConnection connection, RegisterAgentTypeRequest msg)
+    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
@@ -152,7 +115,7 @@ internal sealed class GrpcGateway : Gateway, IGateway
         */
     }
 
-    private async ValueTask DispatchRequestAsync(WorkerProcessConnection connection, RpcRequest request)
+    private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
         var requestId = request.RequestId;
         if (request.Target is null)
@@ -197,7 +160,7 @@ internal sealed class GrpcGateway : Gateway, IGateway
         //}
     }
 
-    private static async Task InvokeRequestDelegate(WorkerProcessConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
     {
         try
         {
@@ -256,12 +219,12 @@ internal sealed class GrpcGateway : Gateway, IGateway
     internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
-        var workerProcess = new WorkerProcessConnection(this, requestStream, responseStream, context);
+        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers[workerProcess] = workerProcess;
         return workerProcess.Completion;
     }
 
-    internal void OnRemoveWorkerProcess(WorkerProcessConnection workerProcess)
+    internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
     {
         _workers.TryRemove(workerProcess, out _);
         var types = workerProcess.GetSupportedTypes();
@@ -278,7 +241,7 @@ internal sealed class GrpcGateway : Gateway, IGateway
         {
             if (pair.Value == workerProcess)
             {
-                ((IDictionary<(string Type, string Key), WorkerProcessConnection>)_agentDirectory).Remove(pair);
+                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
             }
         }
     }

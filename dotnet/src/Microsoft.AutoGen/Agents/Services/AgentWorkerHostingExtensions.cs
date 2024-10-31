@@ -43,7 +43,7 @@ public static class AgentWorkerHostingExtensions
     }
     public static WebApplication MapAgentService(this WebApplication app)
     {
-        app.MapGrpcService<WorkerGatewayService>();
+        app.MapGrpcService<GrpcGatewayService>();
         return app;
     }
 }

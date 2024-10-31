@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentWorkerRegistryGrain.cs
+// RegistryGrain.cs
 
 using Microsoft.AutoGen.Abstractions;
 
