@@ -116,8 +116,8 @@ class DataclassJsonMessageSerializer(MessageSerializer[DataclassT]):
         message_str = payload.decode("utf-8")
         return self.cls(**json.loads(message_str))
 
-    def serialize(self, message: DataclassT) -> bytes:
-        return json.dumps(asdict(message)).encode("utf-8")
+    def serialize(self, message: DataclassT, **kwargs) -> bytes:
+        return json.dumps(asdict(message), **kwargs).encode("utf-8")
 
 
 PydanticT = TypeVar("PydanticT", bound=BaseModel)
@@ -139,8 +139,8 @@ class PydanticJsonMessageSerializer(MessageSerializer[PydanticT]):
         message_str = payload.decode("utf-8")
         return self.cls.model_validate_json(message_str)
 
-    def serialize(self, message: PydanticT) -> bytes:
-        return message.model_dump_json().encode("utf-8")
+    def serialize(self, message: PydanticT, **kwargs) -> bytes:
+        return message.model_dump_json(**kwargs).encode("utf-8")
 
 
 @dataclass
@@ -191,12 +191,12 @@ class SerializationRegistry:
 
         return serializer.deserialize(payload)
 
-    def serialize(self, message: Any, *, type_name: str, data_content_type: str) -> bytes:
+    def serialize(self, message: Any, *, type_name: str, data_content_type: str, **kwargs) -> bytes:
         serializer = self._serializers.get((type_name, data_content_type))
         if serializer is None:
             raise ValueError(f"Unknown type {type_name} with content type {data_content_type}")
 
-        return serializer.serialize(message)
+        return serializer.serialize(message, **kwargs)
 
     def is_registered(self, type_name: str, data_content_type: str) -> bool:
         return (type_name, data_content_type) in self._serializers
