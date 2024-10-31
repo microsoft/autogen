@@ -23,18 +23,18 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly IAgentContext _context;
     public string Route { get; set; } = "base";
 
-    protected internal ILogger Logger => _context.Logger;
+    protected internal ILogger<IAgentBase> _logger;
     public IAgentContext Context => _context;
     protected readonly EventTypes EventTypes;
 
-    protected AgentBase(IAgentContext context, EventTypes eventTypes)
+    protected AgentBase(IAgentContext context, EventTypes eventTypes, ILogger<IAgentBase> logger)
     {
         _context = context;
         context.AgentInstance = this;
         this.EventTypes = eventTypes;
+        _logger = logger;
         Completion = Start();
     }
-
     internal Task Completion { get; }
 
     internal Task Start()
@@ -79,7 +79,7 @@ public abstract class AgentBase : IAgentBase, IHandle
             }
             catch (Exception ex)
             {
-                _context.Logger.LogError(ex, "Error processing message.");
+                _logger.LogError(ex, "Error processing message.");
             }
         }
     }
@@ -174,7 +174,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Context.DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        _context.Update(activity, request);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state) =>
             {
@@ -272,5 +272,11 @@ public abstract class AgentBase : IAgentBase, IHandle
 
         // otherwise, complain
         throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
+    public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
+
+    public async ValueTask PublishEventAsync(string topic, IMessage evt)
+    {
+        await PublishEventAsync(evt.ToCloudEvent(topic)).ConfigureAwait(false);
     }
 }

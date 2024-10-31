@@ -15,7 +15,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 
     private readonly ILogger<WorkerGateway> _logger;
     private readonly IClusterClient _clusterClient;
-    private readonly IAgentWorkerRegistryGrain _gatewayRegistry;
+    private readonly IAgentRegistry _gatewayRegistry;
     private readonly IWorkerGateway _reference;
 
     // The local mapping of agents to worker processes.
@@ -35,7 +35,7 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
         _logger = logger;
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IWorkerGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IAgentWorkerRegistryGrain>(0);
+        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
     }
 
     public async ValueTask BroadcastEvent(CloudEvent evt)

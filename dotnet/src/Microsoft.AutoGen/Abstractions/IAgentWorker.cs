@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// IAgentWorkerRuntime.cs
+// IAgentWorker.cs
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IAgentWorkerRuntime
+public interface IAgentWorker
 {
-    ValueTask PublishEventAsync(CloudEvent evt);
+    ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default);
     ValueTask SendRequest(IAgentBase agent, RpcRequest request);
     ValueTask SendResponse(RpcResponse response);
     ValueTask Store(AgentState value);

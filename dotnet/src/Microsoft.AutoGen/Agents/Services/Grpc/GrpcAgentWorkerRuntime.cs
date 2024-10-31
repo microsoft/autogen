@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcAgentWorkerRuntime : WorkerRuntime,IHostedService, IDisposable, IAgentWorkerRuntime, IAgentWorkerRegistryGrain
+public sealed class GrpcAgentWorkerRuntime : WorkerRuntime,IHostedService, IDisposable, IAgentWorker, IAgentRegistry
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();

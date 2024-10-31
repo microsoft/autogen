@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public class WorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegistryGrain, IWorkerGateway, IAgentContext
+public class PublishEvent : IAgentWorker
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<WorkerRuntime> _logger;
@@ -24,15 +24,12 @@ public class WorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegistryGrain, IWo
     private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    public IAgentBase? AgentInstance { get; set; }
-    AgentId IAgentContext.AgentId => AgentInstance?.AgentId ?? throw new InvalidOperationException("AgentId is not set.");
 
-    public WorkerRuntime(ILogger<WorkerRuntime> logger)
+    public PublishEvent(ILogger<WorkerRuntime> logger)
     {
         _logger = logger;
     }
-
-    public async ValueTask PublishEventAsync(CloudEvent evt)
+    public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         await _eventsQueue.Writer.WriteAsync(evt);
     }

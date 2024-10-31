@@ -13,10 +13,10 @@ using Octokit.Webhooks.Models;
 
 namespace DevTeam.Backend;
 
-public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, AgentWorker client) : WebhookEventProcessor
+public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, PublishEvent client) : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger = logger;
-    private readonly AgentWorker _client = client;
+    private readonly PublishEvent _client = client;
 
     protected override async Task ProcessIssuesWebhookAsync(WebhookHeaders headers, IssuesEvent issuesEvent, IssuesAction action)
     {

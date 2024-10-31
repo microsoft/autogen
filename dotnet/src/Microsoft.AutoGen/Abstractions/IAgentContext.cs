@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentContext.cs
 
+using System.Diagnostics;
+
 namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentContext
@@ -12,4 +14,5 @@ public interface IAgentContext
     ValueTask SendResponseAsync(RpcRequest request, RpcResponse response);
     ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request);
     ValueTask PublishEventAsync(CloudEvent @event);
+    void Update(Activity? activity, RpcRequest request);
 }
