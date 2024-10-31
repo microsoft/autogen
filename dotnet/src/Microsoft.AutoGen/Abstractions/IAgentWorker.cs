@@ -6,8 +6,8 @@ namespace Microsoft.AutoGen.Abstractions;
 public interface IAgentWorker
 {
     ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default);
-    ValueTask SendRequest(IAgentBase agent, RpcRequest request);
-    ValueTask SendResponse(RpcResponse response);
-    ValueTask Store(AgentState value);
-    ValueTask<AgentState> Read(AgentId agentId);
+    ValueTask SendRequest(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask SendResponse(RpcResponse response, CancellationToken cancellationToken = default);
+    ValueTask Store(AgentState value, CancellationToken cancellationToken = default);
+    ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default);
 }

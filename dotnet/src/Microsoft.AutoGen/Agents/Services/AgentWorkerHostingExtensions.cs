@@ -30,8 +30,8 @@ public static class AgentWorkerHostingExtensions
         builder.Services.AddGrpc();
         builder.AddOrleans(local);
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<WorkerGateway>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WorkerGateway>());
+        builder.Services.AddSingleton<Gateway>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<Gateway>());
 
         return builder;
     }

@@ -15,10 +15,10 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
-    private readonly WorkerGateway _gateway;
+    private readonly Gateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
 
-    public WorkerProcessConnection(WorkerGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    public WorkerProcessConnection(Gateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _gateway = agentWorker;
         RequestStream = requestStream;

@@ -3,10 +3,10 @@
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IWorkerGateway
+public interface IGateway
 {
-    ValueTask<RpcResponse> InvokeRequest(RpcRequest request);
-    ValueTask BroadcastEvent(CloudEvent evt);
-    ValueTask Store(AgentState value);
-    ValueTask<AgentState> Read(AgentId agentId);
+    ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default);
+    ValueTask Store(AgentState value, CancellationToken cancellationToken = default);
+    ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default);
 }

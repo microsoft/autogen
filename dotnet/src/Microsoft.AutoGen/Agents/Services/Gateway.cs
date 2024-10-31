@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// WorkerGateway.cs
+// Gateway.cs
 
 using System.Collections.Concurrent;
 using Grpc.Core;
@@ -9,48 +9,46 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
+internal class Gateway : BackgroundService, IGateway
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
-
-    private readonly ILogger<WorkerGateway> _logger;
+    private readonly ILogger<Gateway> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IAgentRegistry _gatewayRegistry;
-    private readonly IWorkerGateway _reference;
+    private readonly IGateway _reference;
 
-    // The local mapping of agents to worker processes.
-    private readonly ConcurrentDictionary<WorkerProcessConnection, WorkerProcessConnection> _workers = new();
+    private readonly ConcurrentDictionary<string, List<InMemoryQueue<CloudEvent>>> _supportedAgentTypes = [];
+    private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<CloudEvent>> _agentDirectory = new();
+    private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
+    private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    private readonly InMemoryQueue<Message> _messageQueue = new();
 
-    // The agents supported by each worker process.
-    private readonly ConcurrentDictionary<string, List<WorkerProcessConnection>> _supportedAgentTypes = [];
-
-    // The mapping from agent id to worker process.
-    private readonly ConcurrentDictionary<(string Type, string Key), WorkerProcessConnection> _agentDirectory = new();
-
-    // RPC
-    private readonly ConcurrentDictionary<(WorkerProcessConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-
-    public WorkerGateway(IClusterClient clusterClient, ILogger<WorkerGateway> logger)
+    public Gateway(IClusterClient clusterClient, ILogger<Gateway> logger)
     {
         _logger = logger;
+        /*
         _clusterClient = clusterClient;
-        _reference = clusterClient.CreateObjectReference<IWorkerGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
+        _reference = clusterClient.CreateObjectReference<IGateway>(this);
+        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);*/
     }
 
-    public async ValueTask BroadcastEvent(CloudEvent evt)
+    public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _workers)
         {
-            tasks.Add(connection.SendMessage(new Message { CloudEvent = evt }));
+            tasks.Add(this.SendMessage(connection, evt, default));
         }
-
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
+    private async Task SendMessage(InMemoryQueue<CloudEvent> connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    {
+        await connection.Writer.WriteAsync(cloudEvent).AsTask();
+    }
+
+    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
         (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
@@ -66,28 +64,24 @@ internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
                 return new(new RpcResponse { Error = "Agent not found." });
             }
         }
-
         // Proxy the request to the agent.
         var originalRequestId = request.RequestId;
         var newRequestId = Guid.NewGuid().ToString();
-        var completion = _pendingRequests[(connection, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = _pendingRequests[(_messageQueue, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
         request.RequestId = newRequestId;
-        await connection.ResponseStream.WriteAsync(new Message { Request = request });
-
+        await _messageQueue.Writer.WriteAsync(new Message { Request = request });
         // Wait for the response and send it back to the caller.
         var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
         response.RequestId = originalRequestId;
         return response;
     }
-
-    private void DispatchResponse(WorkerProcessConnection connection, RpcResponse response)
+    private void DispatchResponse(InMemoryQueue<Message> connection, RpcResponse response)
     {
         if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
         {
             _logger.LogWarning("Received response for unknown request.");
             return;
         }
-
         // Complete the request.
         completion.SetResult(response);
     }
