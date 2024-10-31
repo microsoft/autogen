@@ -334,7 +334,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
             raise ValueError("AzureOpenAIChatCompletionClient requires explicit model capabilities")
         elif model_capabilities is None:
-            self._model_capabilities = _model_info.get_capabilties(create_args["model"])
+            self._model_capabilities = _model_info.get_capabilities(create_args["model"])
         else:
             self._model_capabilities = model_capabilities
 
