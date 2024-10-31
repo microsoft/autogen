@@ -2,14 +2,10 @@ import asyncio
 import logging
 import warnings
 
-import chainlit as cl
+import chainlit as cl  # type: ignore [reportUnknownMemberType] # This dependency is installed through instructions
 from _agents import GroupChatManager
 from _types import AppConfig, GroupChatMessage, RequestToSpeak
 from _utils import get_serializers, load_config, set_all_log_levels
-from autogen_ext.models import AzureOpenAIChatCompletionClient
-from rich.console import Console
-from rich.markdown import Markdown
-
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components import (
     DefaultTopicId,
@@ -18,13 +14,16 @@ from autogen_core.components import (
 from autogen_core.components.models import (
     UserMessage,
 )
+from autogen_ext.models import AzureOpenAIChatCompletionClient
+from rich.console import Console
+from rich.markdown import Markdown
 
 set_all_log_levels(logging.ERROR)
 
 
 # TODO: This is the simple hack to send messages to the UI, needs to be improved once we get some help in https://github.com/Chainlit/chainlit/issues/1491
 async def send_cl(msg: str, author: str) -> None:
-    await cl.Message(content=msg, author=author).send()
+    await cl.Message(content=msg, author=author).send()  # type: ignore [reportAttributeAccessIssue,reportUnknownMemberType]
 
 
 async def main(config: AppConfig):
