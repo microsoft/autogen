@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import AsyncIterator, Protocol, Sequence
+from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core.base import CancellationToken
 
@@ -33,7 +33,7 @@ class TaskRunner(Protocol):
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncIterator[InnerMessage | ChatMessage | TaskResult]:
+    ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         as the last item in the stream."""
         ...

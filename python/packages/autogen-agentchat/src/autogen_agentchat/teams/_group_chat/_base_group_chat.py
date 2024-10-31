@@ -1,6 +1,6 @@
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import AsyncGenerator, Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import (
@@ -169,3 +169,11 @@ class BaseGroupChat(Team, ABC):
 
         # Return the result.
         return TaskResult(messages=output_messages)
+
+    async def run_stream(
+        self,
+        task: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+    ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
+        pass
