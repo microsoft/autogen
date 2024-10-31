@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegistryGrain, IWorkerGateway, IAgentContext
+public class WorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegistryGrain, IWorkerGateway, IAgentContext
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
-    private readonly ILogger<InMemoryAgentWorkerRuntime> _logger;
+    private readonly ILogger<WorkerRuntime> _logger;
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
@@ -27,12 +27,11 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     public IAgentBase? AgentInstance { get; set; }
     AgentId IAgentContext.AgentId => AgentInstance?.AgentId ?? throw new InvalidOperationException("AgentId is not set.");
 
-    public InMemoryAgentWorkerRuntime(ILogger<InMemoryAgentWorkerRuntime> logger)
+    public WorkerRuntime(ILogger<WorkerRuntime> logger)
     {
         _logger = logger;
     }
 
-    // IAgentWorkerRuntime implementation
     public async ValueTask PublishEventAsync(CloudEvent evt)
     {
         await _eventsQueue.Writer.WriteAsync(evt);

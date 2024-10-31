@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgentWorkerRuntime
+public sealed class GrpcAgentWorkerRuntime : WorkerRuntime,IHostedService, IDisposable, IAgentWorkerRuntime, IAgentWorkerRegistryGrain
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -42,7 +42,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         IServiceProvider serviceProvider,
         [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
         ILogger<GrpcAgentWorkerRuntime> logger,
-        DistributedContextPropagator distributedContextPropagator)
+        DistributedContextPropagator distributedContextPropagator) : base(logger)
     {
         _client = client;
         _serviceProvider = serviceProvider;
@@ -356,6 +356,11 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         {
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
+    }
+
+    public override async ValueTask RunAsync(IAgentContext context)
+    {
+        // Implementation specific to GrpcAgentWorkerRuntime
     }
 }
 
