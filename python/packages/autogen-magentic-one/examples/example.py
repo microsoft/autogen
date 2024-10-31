@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import argparse
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
@@ -28,14 +29,14 @@ async def confirm_code(code: CodeBlock) -> bool:
     return response.lower() == "yes"
 
 
-async def main() -> None:
+async def main(logs_dir: str, hil_mode: bool) -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
     client = create_completion_client_from_env(model="gpt-4o")
 
-    async with DockerCommandLineCodeExecutor() as code_executor:
+    async with DockerCommandLineCodeExecutor(work_dir=logs_dir) as code_executor:
         # Register agents.
         await Coder.register(runtime, "Coder", lambda: Coder(model_client=client))
         coder = AgentProxy(AgentId("Coder", "default"), runtime)
@@ -61,11 +62,14 @@ async def main() -> None:
         )
         user_proxy = AgentProxy(AgentId("UserProxy", "default"), runtime)
 
+        agent_list = [web_surfer, coder, executor, file_surfer]
+        if hil_mode:
+            agent_list.append(user_proxy)
         await LedgerOrchestrator.register(
             runtime,
             "Orchestrator",
             lambda: LedgerOrchestrator(
-                agents=[web_surfer, user_proxy, coder, executor, file_surfer],
+                agents=agent_list,
                 model_client=client,
                 max_rounds=30,
                 max_time=25 * 60,
@@ -83,6 +87,7 @@ async def main() -> None:
             start_page="https://www.bing.com",
             browser_channel="chromium",
             headless=True,
+            debug_dir=logs_dir,
         )
 
         await runtime.send_message(RequestReplyMessage(), user_proxy.id)
@@ -90,8 +95,14 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run MagenticOne example with log directory.")
+    parser.add_argument("--logs_dir", type=str, default=os.getcwd(), help="Directory to store log files and downloads")
+    parser.add_argument("--hil_mode", action="store_true", default=False, help="Run in human-in-the-loop mode")
+    if not os.path.exists(parser.parse_args().logs_dir):
+        os.makedirs(parser.parse_args().logs_dir)
+    args = parser.parse_args()
     logger = logging.getLogger(EVENT_LOGGER_NAME)
     logger.setLevel(logging.INFO)
-    log_handler = LogHandler()
+    log_handler = LogHandler(filename=os.path.join(args.logs_dir, "log.jsonl"))
     logger.handlers = [log_handler]
-    asyncio.run(main())
+    asyncio.run(main(args.logs_dir, args.hil_mode))
