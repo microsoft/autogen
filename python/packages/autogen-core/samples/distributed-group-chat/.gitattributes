@@ -1,7 +1,0 @@
-distributed_group_chat.gif filter=lfs diff=lfs merge=lfs -text
-public/favicon.png filter=lfs diff=lfs merge=lfs -text
-public/logo.png filter=lfs diff=lfs merge=lfs -text
-public/avatars/writer.png filter=lfs diff=lfs merge=lfs -text
-public/avatars/editor.png filter=lfs diff=lfs merge=lfs -text
-public/avatars/group_chat_manager.png filter=lfs diff=lfs merge=lfs -text
-public/avatars/user.png filter=lfs diff=lfs merge=lfs -text
