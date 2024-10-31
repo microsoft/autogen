@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentContext.cs
 
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-
 namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentContext

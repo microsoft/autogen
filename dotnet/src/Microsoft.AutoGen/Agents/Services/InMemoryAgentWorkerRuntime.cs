@@ -2,7 +2,6 @@
 // InMemoryAgentWorkerRuntime.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -25,10 +24,8 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-
-    DistributedContextPropagator IAgentContext.DistributedContextPropagator => throw new NotImplementedException();
-
-    ILogger IAgentContext.Logger => _logger;
+    public IAgentBase? AgentInstance { get; set; }
+    AgentId IAgentContext.AgentId => AgentInstance?.AgentId ?? throw new InvalidOperationException("AgentId is not set.");
 
     public InMemoryAgentWorkerRuntime(ILogger<InMemoryAgentWorkerRuntime> logger)
     {
