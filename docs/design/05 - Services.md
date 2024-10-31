@@ -11,6 +11,7 @@ Each AutoGen agent system has one or more Agent Workers and a set of services fo
 
 The Services in the system include:
 
+- Worker: Hosts the Agents and is a client to the Gateway
 - Gateway:
 -- RPC gateway for the other services APIs
 -- Provides an RPC bridge between the workers and the Event Bus
