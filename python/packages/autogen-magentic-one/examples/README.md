@@ -5,7 +5,27 @@
 
 We include various examples for using Magentic-One and is agents:
 
-- [example.py](example.py): Is a human-in-the-loop of Magentic-One trying to solve a task specified by user input. If you wish for the team to execute the task without involving the user, remove user_proxy from the Orchestrator agents list.
+- [example.py](example.py): Is [human-in-the-loop] Magentic-One trying to solve a task specified by user input. 
+
+
+
+    ```bash
+    # Basic usage
+    python examples/example.py
+
+    # Specify logs directory
+    python examples/example.py --logs_dir ./my_logs
+
+    # Enable human-in-the-loop mode
+    python examples/example.py --hil_mode
+    ```
+
+    Arguments:
+
+    - logs_dir: Directory for logs, downloads and screenshots of browser (default: current directory)
+    - hil_mode: Enable human-in-the-loop mode (default: disabled)
+
+
 
 - [example_coder.py](example_coder.py): Is an example of the Coder + Execution agents in Magentic-One -- without the Magentic-One orchestrator. In a loop, specified by using the RoundRobinOrchestrator, the coder will write code based on user input, executor will run the code and then the user is asked for input again.
 
