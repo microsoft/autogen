@@ -3,5 +3,5 @@
 
 using Microsoft.Extensions.Hosting;
 
-var app = await Microsoft.AutoGen.Runtime.Host.StartAsync(local: true);
+var app = await Microsoft.AutoGen.Agents.Host.StartAsync(local: true);
 await app.WaitForShutdownAsync();
