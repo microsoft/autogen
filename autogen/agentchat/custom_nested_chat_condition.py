@@ -27,7 +27,7 @@ class CustomNestedChatCondition():
             pass  # Ignore if the function can't be called without arguments (further checking may be necessary)
         
         self.func = func           # Store the function itself
-        self.state_params = state_params       # Store the parameter names as a list
+        self.state_params = state_params       # Store the parameter names as a dict
         if name:
             self._name = name
         else:
@@ -49,7 +49,9 @@ class CustomNestedChatCondition():
         Call the function using the provided params, matching by parameter name.
         """
         # Call the function using **params to match by parameter name
-        return self.func(**self.state_params)
+        result = self.func(**self.state_params)
+        self.state_params=None
+        return result
             
     def update_state(self, new_state: dict):
         """
