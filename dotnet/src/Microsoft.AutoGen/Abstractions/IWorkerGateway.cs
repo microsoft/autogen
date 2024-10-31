@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IWorkerGateway.cs
 
+using Orleans;
+
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IGateway
+public interface IGateway : IGrainObserver
 {
     ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default);
     ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default);
