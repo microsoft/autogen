@@ -98,7 +98,11 @@ class Handoff(BaseModel):
     @property
     def handoff_tool(self) -> Tool:
         """Create a handoff tool from this handoff configuration."""
-        return FunctionTool(lambda: self.message, name=self.name, description=self.description)
+
+        def _handoff_tool() -> str:
+            return self.message
+
+        return FunctionTool(_handoff_tool, name=self.name, description=self.description)
 
 
 class AssistantAgent(BaseChatAgent):
