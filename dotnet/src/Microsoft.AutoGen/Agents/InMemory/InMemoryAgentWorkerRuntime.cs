@@ -17,10 +17,14 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly Dictionary<string, List<IWorkerGateway>> _supportedAgentTypes = [];
-    private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
-    private readonly Dictionary<(string Type, string Key), IWorkerGateway> _agentDirectory = [];
-    private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
+    private readonly ConcurrentDictionary<string, List<InMemoryQueue<CloudEvent>>> _gatewaySupportedAgentTypes = [];
 
+    private readonly Dictionary<IWorkerGateway, WorkerState> _workerStates = [];
+    private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<CloudEvent>> _agentDirectory = new();
+    private readonly Dictionary<(string Type, string Key), IWorkerGateway> _agentRegistryDirectory = [];
+
+    private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
+    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
     AgentId IAgentContext.AgentId => throw new NotImplementedException();
@@ -46,7 +50,7 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
-        _pendingRequests[requestId] = (agent, request.RequestId);
+        _pendingClientRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         return _messageQueue.Writer.WriteAsync(new Message { Request = request });
     }
@@ -160,13 +164,13 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     {
         // TODO: 
         bool isNewPlacement;
-        if (!_agentDirectory.TryGetValue((agentId.Type, agentId.Key), out var worker) || !_workerStates.ContainsKey(worker))
+        if (!_agentRegistryDirectory.TryGetValue((agentId.Type, agentId.Key), out var worker) || !_workerStates.ContainsKey(worker))
         {
             worker = GetCompatibleWorkerCore(agentId.Type);
             if (worker is not null)
             {
                 // New activation.
-                _agentDirectory[(agentId.Type, agentId.Key)] = worker;
+                _agentRegistryDirectory[(agentId.Type, agentId.Key)] = worker;
                 isNewPlacement = true;
             }
             else
@@ -191,7 +195,7 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
         {
             // Activate the agent on a compatible worker process.
-            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
+            if (_gatewaySupportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
             {
                 connection = workers[Random.Shared.Next(workers.Count)];
                 _agentDirectory[agentId] = connection;
@@ -223,45 +227,23 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
             tasks.Add(connection.Writer.WriteAsync(evt).AsTask());
         }
 
-        await Task.WhenAll(tasks);
-    }
-    
-
-    public ValueTask Store(AgentState value)
-    {
-        // Implement in-memory state storing logic
-        return ValueTask.CompletedTask;
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public ValueTask<AgentState> Read(AgentId agentId)
+    async ValueTask IAgentContext.SendResponseAsync(RpcRequest request, RpcResponse response)
     {
-        // Implement in-memory state reading logic
-        return ValueTask.FromResult(new AgentState());
+        response.RequestId = request.RequestId;
+        await this.SendResponse(response).ConfigureAwait(false);
     }
 
-    ValueTask IAgentContext.Store(AgentState value)
+    async ValueTask IAgentContext.SendRequestAsync(IAgentBase agent, RpcRequest request)
     {
-        throw new NotImplementedException();
-    }
-
-    ValueTask<AgentState> IAgentContext.Read(AgentId agentId)
-    {
-        throw new NotImplementedException();
-    }
-
-    ValueTask IAgentContext.SendResponseAsync(RpcRequest request, RpcResponse response)
-    {
-        throw new NotImplementedException();
-    }
-
-    ValueTask IAgentContext.SendRequestAsync(IAgentBase agent, RpcRequest request)
-    {
-        throw new NotImplementedException();
+        await this.SendRequest(agent, request).ConfigureAwait(false);
     }
 
     async ValueTask IAgentContext.PublishEventAsync(CloudEvent @event)
     {
-        await _eventsQueue.Writer.WriteAsync(@event);
+        await _eventsQueue.Writer.WriteAsync(@event).ConfigureAwait(false);
     }
     private sealed class WorkerState
     {

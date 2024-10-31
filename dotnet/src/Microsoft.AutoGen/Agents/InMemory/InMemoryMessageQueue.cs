@@ -5,6 +5,7 @@ using System.Threading.Channels;
 namespace Microsoft.AutoGen.Agents;
 internal sealed class InMemoryQueue<T>
 {
+    public Task<bool> Completion { get; } = Task.FromResult(true);
     private readonly Channel<T> _channel =
         Channel.CreateUnbounded<T>();
 
