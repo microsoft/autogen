@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
 internal sealed class WorkerGateway : BackgroundService, IWorkerGateway
 {

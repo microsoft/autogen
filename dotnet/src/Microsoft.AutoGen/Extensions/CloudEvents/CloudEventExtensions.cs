@@ -5,7 +5,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
 public static class CloudEventExtensions
 

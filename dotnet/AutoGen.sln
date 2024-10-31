@@ -79,8 +79,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extension
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.CloudEvents", "src\Microsoft.AutoGen\Extensions\CloudEvents\Microsoft.AutoGen.Extensions.CloudEvents.csproj", "{21C9EC49-E848-4EAE-932F-0862D44F7A80}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Runtime", "src\Microsoft.AutoGen\Runtime\Microsoft.AutoGen.Runtime.csproj", "{A905E29A-7110-497F-ADC5-2CE2A148FEA0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{D7E9D90B-5595-4E72-A90A-6DE20D9AB7AE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{668726B9-77BC-45CF-B576-0F0773BF1615}"

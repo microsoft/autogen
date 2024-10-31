@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
 public interface IWorkerGateway : IGrainObserver
 {

@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Runtime;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
