@@ -15,9 +15,11 @@ The Services in the system include:
 - Gateway:
 -- RPC gateway for the other services APIs
 -- Provides an RPC bridge between the workers and the Event Bus
-- Registry: keeps track of the agents in the system and which events they can handle
+-- Message Session state (track message queues/delivery)
+- Registry: keeps track of the {agents:agent types} in the system and which events they can handle (subscriptions/topics)
 - AgentState: persistent state for agents
 - Routing: delivers events to agents based on their subscriptions+topics
+-- *Roadmap: add subscription management APIs*
 - *Roadmap: Management APIs for the Agent System*
 - *Roadmap: Scheduling: manages placement of agents*
 - *Roadmap: Discovery: allows discovery of agents and services*

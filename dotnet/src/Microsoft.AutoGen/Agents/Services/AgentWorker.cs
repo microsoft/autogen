@@ -228,4 +228,8 @@ public class AgentWorker : IAgentWorker
     {
         return _messageQueue.Writer.WriteAsync(message);
     }
+    private ValueTask WriteAsync(CloudEvent evt)
+    {
+        return _eventsQueue.Writer.WriteAsync(evt);
+    }
 }
