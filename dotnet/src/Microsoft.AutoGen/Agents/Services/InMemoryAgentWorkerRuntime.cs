@@ -26,10 +26,6 @@ public class InMemoryAgentWorkerRuntime : IAgentWorkerRuntime, IAgentWorkerRegis
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
-    AgentId IAgentContext.AgentId => throw new NotImplementedException();
-
-    IAgentBase? IAgentContext.AgentInstance { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
     DistributedContextPropagator IAgentContext.DistributedContextPropagator => throw new NotImplementedException();
 
     ILogger IAgentContext.Logger => _logger;
