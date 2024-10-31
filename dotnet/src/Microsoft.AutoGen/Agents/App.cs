@@ -46,7 +46,7 @@ public static class AgentsApp
         {
             await StartAsync(builder, agents, local);
         }
-        var client = Host.Services.GetRequiredService<PublishEvent>() ?? throw new InvalidOperationException("Host not started");
+        var client = Host.Services.GetRequiredService<AgentBase>() ?? throw new InvalidOperationException("Host not started");
         await client.PublishEventAsync(topic, message).ConfigureAwait(false);
         return Host;
     }

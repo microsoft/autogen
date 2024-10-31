@@ -26,7 +26,7 @@ builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
     //.AddAgent<Sandbox>(nameof(Sandbox))
     .AddAgent<Hubber>(nameof(Hubber));
 
-builder.Services.AddSingleton<PublishEvent>();
+builder.Services.AddSingleton<AgentWorker>();
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
 builder.Services.AddSingleton<GithubAuthService>();
 builder.Services.AddSingleton<IManageAzure, AzureService>();

@@ -15,4 +15,5 @@ public interface IAgentContext
     ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request);
     ValueTask PublishEventAsync(CloudEvent @event);
     void Update(Activity? activity, RpcRequest request);
+    void Update(Activity? activity, CloudEvent cloudEvent);
 }

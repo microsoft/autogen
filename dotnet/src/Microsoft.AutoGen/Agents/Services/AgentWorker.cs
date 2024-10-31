@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// InMemoryAgentWorkerRuntime.cs
+// AgentWorker.cs
 
 using System.Collections.Concurrent;
 using Microsoft.AutoGen.Abstractions;
@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public class PublishEvent : IAgentWorker
+public class AgentWorker : IAgentWorker
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
-    private readonly ILogger<WorkerRuntime> _logger;
+    private readonly ILogger<AgentWorker> _logger;
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
@@ -25,7 +25,7 @@ public class PublishEvent : IAgentWorker
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
-    public PublishEvent(ILogger<WorkerRuntime> logger)
+    public AgentWorker(ILogger<AgentWorker> logger)
     {
         _logger = logger;
     }
@@ -216,22 +216,6 @@ public class PublishEvent : IAgentWorker
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
-    }
-
-    async ValueTask IAgentContext.SendResponseAsync(RpcRequest request, RpcResponse response)
-    {
-        response.RequestId = request.RequestId;
-        await this.SendResponse(response).ConfigureAwait(false);
-    }
-
-    async ValueTask IAgentContext.SendRequestAsync(IAgentBase agent, RpcRequest request)
-    {
-        await this.SendRequest(agent, request).ConfigureAwait(false);
-    }
-
-    async ValueTask IAgentContext.PublishEventAsync(CloudEvent @event)
-    {
-        await _eventsQueue.Writer.WriteAsync(@event).ConfigureAwait(false);
     }
     private sealed class WorkerState
     {

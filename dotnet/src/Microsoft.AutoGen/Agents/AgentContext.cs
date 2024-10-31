@@ -20,6 +20,10 @@ internal sealed class AgentContext(AgentId agentId, IAgentWorker runtime, ILogge
     {
         DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
+    public void Update(Activity? activity, CloudEvent cloudEvent)
+    {
+        DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+    }
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response)
     {
         response.RequestId = request.RequestId;

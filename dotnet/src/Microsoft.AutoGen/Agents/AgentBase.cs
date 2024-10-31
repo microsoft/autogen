@@ -204,7 +204,7 @@ public abstract class AgentBase : IAgentBase, IHandle
 
         var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
-        Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        _context.Update(activity,item);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
             {
@@ -245,7 +245,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                    _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
                     throw; // TODO: ?
                 }
             }
