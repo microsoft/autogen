@@ -1,4 +1,4 @@
-from typing import List
+from typing import Awaitable, Callable, List
 
 from _types import GroupChatMessage, RequestToSpeak
 from autogen_core.base import MessageContext
@@ -61,6 +61,7 @@ class GroupChatManager(RoutedAgent):
         model_client: ChatCompletionClient,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        on_message_func: Callable[[str, str], Awaitable[None]],
         max_rounds: int = 3,
     ) -> None:
         super().__init__("Group chat manager")
@@ -70,14 +71,15 @@ class GroupChatManager(RoutedAgent):
         self._chat_history: List[GroupChatMessage] = []
         self._max_rounds = max_rounds
         self.console = Console()
+        self._on_message_func = on_message_func
         self._participant_descriptions = participant_descriptions
         self._previous_participant_topic_type: str | None = None
 
     @message_handler
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         assert isinstance(message.body, UserMessage)
-
-        self._chat_history.append(message.body)  # type: ignore[reportargumenttype]
+        await self._on_message_func(message.body.content, message.body.source)  # type: ignore[arg-type]
+        self._chat_history.append(message.body)  # type: ignore[reportargumenttype,arg-type]
 
         # Format message history.
         messages: List[str] = []
@@ -118,11 +120,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         assert isinstance(completion.content, str)
 
         if completion.content.upper() == "FINISH":
-            self.console.print(
-                Markdown(
-                    f"\n{'-'*80}\n Manager ({id(self)}): I think it's enough iterations on the story! Thanks for collaborating!"
-                )
-            )
+            manager_message = f"\n{'-'*80}\n Manager ({id(self)}): I think it's enough iterations on the story! Thanks for collaborating!"
+            await self._on_message_func(manager_message, "group_chat_manager")
+            self.console.print(Markdown(manager_message))
             return
 
         selected_topic_type: str

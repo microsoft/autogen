@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Iterable, Type
 
@@ -32,3 +33,11 @@ def get_serializers(types: Iterable[Type[Any]]) -> list[MessageSerializer[Any]]:
     for type in types:
         serializers.extend(try_get_known_serializers_for_type(type))  # type: ignore
     return serializers  # type: ignore [reportUnknownVariableType]
+
+
+# TODO: This is a helper function to get rid of a lot of logs until we find exact loggers to properly set log levels ...
+def set_all_log_levels(log_leve: int):
+    # Iterate through all existing loggers and set their levels
+    for _, logger in logging.root.manager.loggerDict.items():
+        if isinstance(logger, logging.Logger):  # Ensure it's actually a Logger object
+            logger.setLevel(log_leve)  # Adjust to DEBUG or another level as needed
