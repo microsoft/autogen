@@ -1,6 +1,5 @@
 from typing import Protocol
 
-
 from ._task import TaskRunner
 
 

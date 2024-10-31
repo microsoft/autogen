@@ -76,19 +76,21 @@ class BaseGroupChat(Team, ABC):
         cancellation_token: CancellationToken | None = None,
         termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
-        """Run the team and return the result. The base implementation uses 
+        """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result."""
-        async for message in self.run_stream(task, cancellation_token=cancellation_token):
+        async for message in self.run_stream(
+            task, cancellation_token=cancellation_token, termination_condition=termination_condition
+        ):
             if isinstance(message, TaskResult):
                 return message
-        assert False, "The stream should have returned the final result."
-
+        raise AssertionError("The stream should have returned the final result.")
 
     async def run_stream(
         self,
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
+        termination_condition: TerminationCondition | None = None,
     ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         as the last item in the stream."""
@@ -131,7 +133,7 @@ class BaseGroupChat(Team, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
-                termination_condition=self._termination_condition,
+                termination_condition=termination_condition or self._termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -174,6 +176,7 @@ class BaseGroupChat(Team, ABC):
         group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         first_chat_message = TextMessage(content=task, source="user")
         output_messages.append(first_chat_message)
+        await output_message_queue.put(first_chat_message)
         await runtime.publish_message(
             GroupChatPublishEvent(agent_message=first_chat_message),
             topic_id=team_topic_id,
@@ -184,6 +187,7 @@ class BaseGroupChat(Team, ABC):
         async def stop_runtime() -> None:
             await runtime.stop_when_idle()
             await output_message_queue.put(None)
+
         shutdown_task = asyncio.create_task(stop_runtime())
 
         # Yield the messsages until the queue is empty.
@@ -192,7 +196,7 @@ class BaseGroupChat(Team, ABC):
             if message is None:
                 break
             yield message
-        
+
         # Wait for the shutdown task to finish.
         await shutdown_task
 
