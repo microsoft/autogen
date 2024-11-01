@@ -35,13 +35,13 @@ HTML_TEMPLATE = """
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 70vw;
             margin: 0 auto;
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            height: 800px;
+            height: 80vh;
             overflow-y: auto;
         }
         
@@ -62,8 +62,8 @@ HTML_TEMPLATE = """
         }
         
         .user .message-content {
-            background-color: #007bff;
-            color: white;
+            background-color: #f3f4f6;
+            color: black;
         }
         
         .user .message-content pre {
@@ -77,8 +77,8 @@ HTML_TEMPLATE = """
         }
         
         .websurfer .message-content {
-            background-color: #dcfce7;
-            border: 1px solid #bbf7d0;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
         }
         
         .system .message-content {
@@ -318,17 +318,27 @@ HTML_TEMPLATE = """
                                           source === 'UserProxy' ? 'user' : 
                                           source === 'WebSurfer' ? 'websurfer' : 'system'}`;
 
-    
+            const iconMap = {
+                'UserProxy': 'user_proxy.png',
+                'Orchestrator': 'orchestrator.png',
+                'WebSurfer': 'websurfer.png',
+                'Coder': 'coder.png',
+                'Executor': 'computerterminal.png',
+                'file_surfer': 'filesurfer.png'
+            };
+
+            const iconSrc = iconMap[source] ? `/icons/${iconMap[source]}` : '';
 
             let messageHtml = `
                 <div class="message-content">
                     <div class="message-header">
+                        ${iconSrc ? `<img src="${iconSrc}" alt="${source} icon" style="width: 24px; height: 24px;">` : ''}
                         <span class="source">${source}</span>
                     </div>
                     `;
             let messageContent = log.message;
 
-            if (source.includes('thought') && messageContent.includes('Updated Ledger:')) {
+            if (source.toLowerCase().includes('orchestrator') && messageContent.includes('Updated Ledger:')) {
                 const ledgerStart = messageContent.indexOf('{');
                 const ledgerEnd = messageContent.lastIndexOf('}') + 1;
                 const ledgerJson = messageContent.substring(ledgerStart, ledgerEnd);
@@ -357,6 +367,7 @@ HTML_TEMPLATE = """
                 messageHtml = `
                     <div class="message-content">
                         <div class="message-header">
+                            ${iconSrc ? `<img src="${iconSrc}" alt="${source} icon" style="width: 24px; height: 24px;">` : ''}
                             <span class="source">${source}</span>
                         </div>
                     <div class="screenshot">
@@ -438,6 +449,12 @@ def serve_screenshot(filename: str) -> send_file:
     return send_file(os.path.join(LOG_DIR, filename))
 
 
+@app.route("/icons/<path:filename>")
+def serve_icon(filename: str) -> send_file:
+    """Serve icon images from the icons directory."""
+    return send_file(os.path.join("magentic_one_icons", filename))
+
+
 def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
     """Load logs from a JSONL file."""
     logs = []
@@ -478,11 +495,12 @@ def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
                         logs[i]["message"] += "\n\n" + first_line_log_j
                         break
 
-    # remove all WebSurfer logs
     for i, log in enumerate(logs):
         if log["type"] == "OrchestrationEvent" and "source" in log and log["source"] == "WebSurfer":
             indices_to_remove.append(i)
-
+    for i, log in enumerate(logs):
+        if "source" in log and "Orchestrator" in log["source"]:
+            logs[i]["source"] = "Orchestrator"
     logs = [log for i, log in enumerate(logs) if i not in indices_to_remove]
 
     return logs
