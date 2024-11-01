@@ -25,7 +25,7 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
             IssueNumber = item.IssueNumber,
             Code = code
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(CodeChainClosed item)
@@ -36,7 +36,7 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
         {
             Code = lastCode
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task<string> GenerateCode(string ask)

@@ -23,7 +23,7 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
         {
             Readme = lastReadme
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(ReadmeRequested item)
@@ -36,7 +36,7 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
             Repo = item.Repo,
             IssueNumber = item.IssueNumber
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task<string> CreateReadme(string ask)

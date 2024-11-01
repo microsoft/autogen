@@ -22,7 +22,7 @@ public class AgentWorker : IAgentWorker
     {
         await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
     }
-    public ValueTask SendRequest(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
@@ -30,12 +30,12 @@ public class AgentWorker : IAgentWorker
         request.RequestId = requestId;
         return this.WriteAsync(new Message { Request = request }, cancellationToken);
     }
-    public ValueTask SendResponse(RpcResponse response, CancellationToken cancellationToken = default)
+    public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Sending response '{Response}'.", response);
         return this.WriteAsync(new Message { Response = response }, cancellationToken);
     }
-    public ValueTask Store(AgentState value, CancellationToken cancellationToken = default)
+    public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
         var response = _agentStates.TryAdd(agentId.ToString(), value);
@@ -45,7 +45,7 @@ public class AgentWorker : IAgentWorker
         }
         return ValueTask.CompletedTask;
     }
-    public ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default)
+    public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         _agentStates.TryGetValue(agentId.ToString(), out var state);
         //TODO: BUG:if (response.Success && response.AgentState.AgentId is not null) - why is success always false?

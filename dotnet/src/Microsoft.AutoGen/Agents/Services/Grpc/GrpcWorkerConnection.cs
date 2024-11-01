@@ -15,10 +15,10 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
-    private readonly Gateway _gateway;
+    private readonly GrpcGateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
 
-    public GrpcWorkerConnection(Gateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _gateway = agentWorker;
         RequestStream = requestStream;

@@ -24,13 +24,13 @@ public abstract class FileAgent(
         if (!File.Exists(inputPath))
         {
             var errorMessage = $"File not found: {inputPath}";
-            Logger.LogError(errorMessage);
+            _logger.LogError(errorMessage);
             //publish IOError event
             var err = new IOError
             {
                 Message = errorMessage
             }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(err);
+            await PublishEventAsync(err);
             return;
         }
         string content;
@@ -43,7 +43,7 @@ public abstract class FileAgent(
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
     public override async Task Handle(Output item)
     {
@@ -55,7 +55,7 @@ public abstract class FileAgent(
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
     public override async Task<string> ProcessInput(string message)
     {
@@ -63,7 +63,7 @@ public abstract class FileAgent(
         {
             Route = _route,
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
         return message;
     }
     public override Task ProcessOutput(string message)

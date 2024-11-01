@@ -13,7 +13,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, IAgentWorker, IAgentRegistry
+public sealed class GrpcAgentWorker(
+    AgentRpc.AgentRpcClient client,
+    IHostApplicationLifetime hostApplicationLifetime,
+    IServiceProvider serviceProvider,
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+    ILogger<GrpcAgentWorker> logger,
+    DistributedContextPropagator distributedContextPropagator) : AgentWorker(logger), IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -26,38 +32,21 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
         SingleWriter = false,
         FullMode = BoundedChannelFullMode.Wait
     });
-    private readonly AgentRpc.AgentRpcClient _client;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
-    private readonly ILogger<GrpcAgentWorker> _logger;
-    private readonly DistributedContextPropagator _distributedContextPropagator;
-    private readonly CancellationTokenSource _shutdownCts;
+    private readonly AgentRpc.AgentRpcClient _client = client;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
+    private readonly ILogger<GrpcAgentWorker> _logger = logger;
+    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
+    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
-
-    public GrpcAgentWorker(
-        AgentRpc.AgentRpcClient client,
-        IHostApplicationLifetime hostApplicationLifetime,
-        IServiceProvider serviceProvider,
-        [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<GrpcAgentWorker> logger,
-        DistributedContextPropagator distributedContextPropagator) : base(logger)
-    {
-        _client = client;
-        _serviceProvider = serviceProvider;
-        _configuredAgentTypes = configuredAgentTypes;
-        _logger = logger;
-        _distributedContextPropagator = distributedContextPropagator;
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    }
 
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
         _channel?.Dispose();
     }
-
     private async Task RunReadPump()
     {
         var channel = GetChannel();
@@ -191,7 +180,7 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
         return agent;
     }
 
-    private async ValueTask RegisterAgentType(string type, Type agentType)
+    private async ValueTask RegisterAgentTypeAsync(string type, Type agentType, CancellationToken cancellationToken = default)
     {
         if (_agentTypes.TryAdd(type, agentType))
         {
@@ -211,33 +200,31 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
                     //StateType = state?.Name,
                     //Events = { events }
                 }
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public async ValueTask SendResponse(RpcResponse response)
+    // new is intentional
+    public new async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Sending response '{Response}'.", response);
-        await WriteChannelAsync(new Message { Response = response }).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
-
-    public async ValueTask SendRequest(IAgentBase agent, RpcRequest request)
+    // new is intentional
+    public new async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
-        await WriteChannelAsync(new Message { Request = request }).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
-
-    public async ValueTask PublishEventAsync(CloudEvent @event)
+    // new is intentional
+    public new async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
-        await WriteChannelAsync(new Message { CloudEvent = @event }).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);
     }
-
-    private async Task WriteChannelAsync(Message message)
+    private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
     {
-        await _outboundMessagesChannel.Writer.WriteAsync(message).ConfigureAwait(false);
+        await _outboundMessagesChannel.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
     }
 
     private AsyncDuplexStreamingCall<Message, Message> GetChannel()
@@ -283,10 +270,10 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
         var tasks = new List<Task>(_agentTypes.Count);
         foreach (var (typeName, type) in _configuredAgentTypes)
         {
-            tasks.Add(RegisterAgentType(typeName, type).AsTask());
+            tasks.Add(RegisterAgentTypeAsync(typeName, type, cancellationToken).AsTask());
         }
 
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        await Task.WhenAll(tasks).ConfigureAwait(true);
 
         void StartCore()
         {
@@ -332,19 +319,20 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
             _channel?.Dispose();
         }
     }
-    public ValueTask Store(AgentState value)
+    // new intentional
+    public new async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
-        var response = _client.SaveState(value);
+        var response = _client.SaveState(value, null, null, cancellationToken);
         if (!response.Success)
         {
             throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
         }
-        return ValueTask.CompletedTask;
     }
-    public async ValueTask<AgentState> Read(AgentId agentId)
+    // new intentional
+    public new async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
-        var response = await _client.GetStateAsync(agentId);
+        var response = await _client.GetStateAsync(agentId).ConfigureAwait(true);
         //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
         if (response.AgentState.AgentId is not null)
         {
@@ -354,11 +342,6 @@ public sealed class GrpcAgentWorker : AgentWorker, IHostedService, IDisposable, 
         {
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
-    }
-
-    public override async ValueTask RunAsync(IAgentContext context)
-    {
-        // Implementation specific to GrpcAgentWorkerRuntime
     }
 }
 

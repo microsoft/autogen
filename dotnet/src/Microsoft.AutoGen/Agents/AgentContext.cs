@@ -15,7 +15,19 @@ internal sealed class AgentContext(AgentId agentId, IAgentWorker runtime, ILogge
     public ILogger Logger { get; } = logger;
     public IAgentBase? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
-    
+    public (string?, string?) GetTraceIDandState(IDictionary<string, string> metadata)
+    {
+        DistributedContextPropagator.ExtractTraceIdAndState(metadata,
+            static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
+            {
+                var metadata = (IDictionary<string, string>)carrier!;
+                fieldValues = null;
+                metadata.TryGetValue(fieldName, out fieldValue);
+            },
+            out var traceParent,
+            out var traceState);
+        return (traceParent, traceState);
+    }
     public void Update(Activity? activity, RpcRequest request)
     {
         DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
@@ -24,25 +36,37 @@ internal sealed class AgentContext(AgentId agentId, IAgentWorker runtime, ILogge
     {
         DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
-    public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response)
+    public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
         response.RequestId = request.RequestId;
-        await _runtime.SendResponse(response);
+        await _runtime.SendResponseAsync(response, cancellationToken);
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request)
+    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
-        await _runtime.SendRequest(agent, request).ConfigureAwait(false);
+        await _runtime.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask PublishEventAsync(CloudEvent @event)
+    public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
-        await _runtime.PublishEventAsync(@event).ConfigureAwait(false);
+        await _runtime.PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask Store(AgentState value)
+    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
-        await _runtime.Store(value).ConfigureAwait(false);
+        await _runtime.StoreAsync(value, cancellationToken).ConfigureAwait(false);
     }
-    public ValueTask<AgentState> Read(AgentId agentId)
+    public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
-        return _runtime.Read(agentId);
+        return _runtime.ReadAsync(agentId, cancellationToken);
+    }
+
+    public IDictionary<string, string> ExtractMetadata(IDictionary<string, string> metadata)
+    {
+        var baggage = DistributedContextPropagator.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
+        {
+            var metadata = (IDictionary<string, string>)carrier!;
+            fieldValues = null;
+            metadata.TryGetValue(fieldName, out fieldValue);
+        });
+    
+        return baggage as IDictionary<string, string> ?? new Dictionary<string, string>();
     }
 }

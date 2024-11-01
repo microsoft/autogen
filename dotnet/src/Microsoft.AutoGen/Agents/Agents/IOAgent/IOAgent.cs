@@ -18,7 +18,7 @@ public abstract class IOAgent : AgentBase
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public virtual async Task Handle(Output item)
@@ -27,7 +27,7 @@ public abstract class IOAgent : AgentBase
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public abstract Task ProcessInput(string message);

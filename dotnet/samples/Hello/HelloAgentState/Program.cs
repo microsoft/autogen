@@ -35,29 +35,29 @@ namespace Hello
                 Message = response
             }.ToCloudEvent(this.AgentId.Key);
             var entry = "We said hello to " + item.Message;
-            await Store(new AgentState
+            await StoreAsync(new AgentState
             {
                 AgentId = this.AgentId,
                 TextData = entry
             }).ConfigureAwait(false);
-            await PublishEvent(evt).ConfigureAwait(false);
+            await PublishEventAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
             }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(goodbye).ConfigureAwait(false);
+            await PublishEventAsync(goodbye).ConfigureAwait(false);
         }
         public async Task Handle(ConversationClosed item)
         {
-            State = await Read<AgentState>(this.AgentId).ConfigureAwait(false);
+            State = await ReadAsync<AgentState>(this.AgentId).ConfigureAwait(false);
             var read = State?.TextData ?? "No state data found";
             var goodbye = $"{read}\n*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output
             {
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(evt).ConfigureAwait(false);
+            await PublishEventAsync(evt).ConfigureAwait(false);
             //sleep
             await Task.Delay(10000).ConfigureAwait(false);
             await AgentsApp.ShutdownAsync().ConfigureAwait(false);

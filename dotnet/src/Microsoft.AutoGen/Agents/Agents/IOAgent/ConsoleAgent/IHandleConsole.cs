@@ -9,7 +9,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
     string Route { get; }
     AgentId AgentId { get; }
-    ValueTask PublishEvent(CloudEvent item);
+    ValueTask PublishEventAsync(CloudEvent item);
 
     async Task IHandle<Output>.Handle(Output item)
     {
@@ -21,7 +21,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         {
             Route = "console"
         }.ToCloudEvent(AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
     async Task IHandle<Input>.Handle(Input item)
     {
@@ -34,7 +34,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         {
             Route = "console"
         }.ToCloudEvent(AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
     static Task ProcessOutput(string message)
     {

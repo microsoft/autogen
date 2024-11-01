@@ -15,7 +15,7 @@ public interface IAgentBase
     Task CallHandler(CloudEvent item);
     Task<RpcResponse> HandleRequest(RpcRequest request);
     void ReceiveMessage(Message message);
-    Task Store(AgentState state);
-    Task<T> Read<T>(AgentId agentId) where T : IMessage, new();
-    ValueTask PublishEvent(CloudEvent item);
+    Task StoreAsync(AgentState state, CancellationToken cancellationToken = default);
+    Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new();
+    ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default);
 }

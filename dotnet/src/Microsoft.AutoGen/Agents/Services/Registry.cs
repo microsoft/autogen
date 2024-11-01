@@ -21,10 +21,8 @@ public class Registry : Grain, IAgentRegistry
         {
             supportedAgentTypes.Add(worker);
         }
-
         var workerState = GetOrAddWorker(worker);
         workerState.SupportedTypes.Add(type);
-
         return ValueTask.CompletedTask;
     }
     private WorkerState GetOrAddWorker(IGateway worker)
@@ -33,7 +31,6 @@ public class Registry : Grain, IAgentRegistry
         {
             workerState = _workerStates[worker] = new();
         }
-
         workerState.LastSeen = DateTimeOffset.UtcNow;
         return workerState;
     }
@@ -48,7 +45,6 @@ public class Registry : Grain, IAgentRegistry
         {
             workers.Remove(worker);
         }
-
         return ValueTask.CompletedTask;
     }
 
@@ -57,7 +53,6 @@ public class Registry : Grain, IAgentRegistry
         GetOrAddWorker(worker);
         return ValueTask.CompletedTask;
     }
-
     public ValueTask RemoveWorker(IGateway worker)
     {
         if (_workerStates.Remove(worker, out var state))
@@ -70,10 +65,8 @@ public class Registry : Grain, IAgentRegistry
                 }
             }
         }
-
         return ValueTask.CompletedTask;
     }
-
     private IGateway? GetCompatibleWorkerCore(string type)
     {
         if (_supportedAgentTypes.TryGetValue(type, out var workers))
@@ -81,9 +74,9 @@ public class Registry : Grain, IAgentRegistry
             // Return a random compatible worker.
             return workers[Random.Shared.Next(workers.Count)];
         }
-
         return null;
-    }public ValueTask<(IGateway? Gateway, bool NewPlacment)> GetOrPlaceAgent(AgentId agentId)
+    }
+    public ValueTask<(IGateway? Gateway, bool NewPlacment)> GetOrPlaceAgent(AgentId agentId)
     {
         // TODO: 
         bool isNewPlacement;
@@ -107,7 +100,6 @@ public class Registry : Grain, IAgentRegistry
             // Existing activation.
             isNewPlacement = false;
         }
-
         return new((worker, isNewPlacement));
     }
     private sealed class WorkerState

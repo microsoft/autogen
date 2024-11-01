@@ -26,7 +26,7 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
             IssueNumber = item.IssueNumber,
             Plan = plan
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(DevPlanChainClosed item)
@@ -37,7 +37,7 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
         {
             Plan = lastPlan
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
     public async Task<string> CreatePlan(string ask)
     {

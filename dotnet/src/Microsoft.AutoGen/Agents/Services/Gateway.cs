@@ -10,6 +10,7 @@ namespace Microsoft.AutoGen.Agents;
 
 internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
 {
+    //TODO: make configurable
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<Gateway> _logger;
     private readonly IClusterClient _clusterClient;
@@ -37,15 +38,16 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _workers)
         {
-            tasks.Add(this.SendMessage(connection, evt, default));
+            tasks.Add(this.SendMessageAsync(connection, evt, default));
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    private async Task SendMessage(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    // intentionally not static
+    private async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (InMemoryQueue<CloudEvent>)connection;
-        await queue.Writer.WriteAsync(cloudEvent, cancellationToken).AsTask();
+        await queue.Writer.WriteAsync(cloudEvent, cancellationToken).AsTask().ConfigureAwait(false);
     }
 
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
@@ -162,14 +164,14 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
             await connection.Writer.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } });
         }
     }
-    public async ValueTask Store(AgentState value, CancellationToken cancellationToken = default)
+    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
         var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
 
-    public async ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();

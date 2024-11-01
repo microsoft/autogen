@@ -62,7 +62,7 @@ public abstract class WebAPIAgent : IOAgent,
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -72,7 +72,7 @@ public abstract class WebAPIAgent : IOAgent,
         {
             Route = _route
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        await PublishEventAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)
