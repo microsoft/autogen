@@ -3,8 +3,6 @@
 
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 // step 1: create in-memory agent runtime
 
@@ -27,7 +25,8 @@ namespace Hello
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentContext context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+        IHostApplicationLifetime hostApplicationLifetime) : AgentBase(
             context,
             typeRegistry),
             ISayHello,
@@ -58,11 +57,11 @@ namespace Hello
                 Message = goodbye
             }.ToCloudEvent(this.AgentId.Key);
             await PublishEvent(evt).ConfigureAwait(false);
-            //sleep
-            await Task.Delay(10000).ConfigureAwait(false);
-            await AgentsApp.ShutdownAsync().ConfigureAwait(false);
 
+            // Signal shutdown.
+            hostApplicationLifetime.StopApplication();
         }
+
         public async Task<string> SayHello(string ask)
         {
             var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";

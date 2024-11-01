@@ -6,9 +6,9 @@ from typing import Any, AsyncGenerator, List
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent, Handoff
+from autogen_agentchat.base import TaskResult
 from autogen_agentchat.logging import FileLogHandler
-from autogen_agentchat.messages import HandoffMessage, TextMessage, ToolCallMessage, ToolCallResultMessages
-from autogen_core.base import CancellationToken
+from autogen_agentchat.messages import HandoffMessage, TextMessage, ToolCallMessage, ToolCallResultMessage
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -78,7 +78,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
@@ -88,7 +88,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
@@ -100,7 +100,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -113,9 +113,27 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await tool_use_agent.run("task")
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].model_usage is None
     assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessages)
+    assert result.messages[1].model_usage is not None
+    assert result.messages[1].model_usage.completion_tokens == 5
+    assert result.messages[1].model_usage.prompt_tokens == 10
+    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert result.messages[2].model_usage is None
     assert isinstance(result.messages[3], TextMessage)
+    assert result.messages[3].model_usage is not None
+    assert result.messages[3].model_usage.completion_tokens == 5
+    assert result.messages[3].model_usage.prompt_tokens == 10
+
+    # Test streaming.
+    mock._curr_index = 0  # pyright: ignore
+    index = 0
+    async for message in tool_use_agent.run_stream("task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
 
 
 @pytest.mark.asyncio
@@ -148,7 +166,7 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=CompletionUsage(prompt_tokens=42, completion_tokens=43, total_tokens=85),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -160,8 +178,27 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
         handoffs=[handoff],
     )
     assert HandoffMessage in tool_use_agent.produced_message_types
-    response = await tool_use_agent.on_messages(
-        [TextMessage(content="task", source="user")], cancellation_token=CancellationToken()
-    )
-    assert isinstance(response.chat_message, HandoffMessage)
-    assert response.chat_message.target == "agent2"
+    result = await tool_use_agent.run("task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].model_usage is None
+    assert isinstance(result.messages[1], ToolCallMessage)
+    assert result.messages[1].model_usage is not None
+    assert result.messages[1].model_usage.completion_tokens == 43
+    assert result.messages[1].model_usage.prompt_tokens == 42
+    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert result.messages[2].model_usage is None
+    assert isinstance(result.messages[3], HandoffMessage)
+    assert result.messages[3].content == handoff.message
+    assert result.messages[3].target == handoff.target
+    assert result.messages[3].model_usage is None
+
+    # Test streaming.
+    mock._curr_index = 0  # pyright: ignore
+    index = 0
+    async for message in tool_use_agent.run_stream("task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1

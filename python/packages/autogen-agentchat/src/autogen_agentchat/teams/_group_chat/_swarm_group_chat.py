@@ -56,35 +56,49 @@ class Swarm(BaseGroupChat):
 
     Args:
         participants (List[ChatAgent]): The agents participating in the group chat. The first agent in the list is the initial speaker.
+        termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
+            Without a termination condition, the group chat will run indefinitely.
 
     Examples:
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
             from autogen_agentchat.task import MaxMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            agent1 = AssistantAgent(
-                "Alice",
-                model_client=model_client,
-                handoffs=["Bob"],
-                system_message="You are Alice and you only answer questions about yourself.",
-            )
-            agent2 = AssistantAgent(
-                "Bob", model_client=model_client, system_message="You are Bob and your birthday is on 1st January."
-            )
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            team = Swarm([agent1, agent2])
-            await team.run("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
+                agent1 = AssistantAgent(
+                    "Alice",
+                    model_client=model_client,
+                    handoffs=["Bob"],
+                    system_message="You are Alice and you only answer questions about yourself.",
+                )
+                agent2 = AssistantAgent(
+                    "Bob", model_client=model_client, system_message="You are Bob and your birthday is on 1st January."
+                )
+
+                termination = MaxMessageTermination(3)
+                team = Swarm([agent1, agent2], termination_condition=termination)
+
+                stream = team.run_stream("What is bob's birthday?")
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
     """
 
-    def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
+    def __init__(
+        self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None
+    ) -> None:
         super().__init__(
-            participants, termination_condition=termination_condition, group_chat_manager_class=SwarmGroupChatManager
+            participants, group_chat_manager_class=SwarmGroupChatManager, termination_condition=termination_condition
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
