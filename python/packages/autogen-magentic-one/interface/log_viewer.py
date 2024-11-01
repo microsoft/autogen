@@ -1,0 +1,480 @@
+from flask import Flask, render_template_string, jsonify, request, send_file
+import json
+from datetime import datetime
+from typing import List, Dict, Any
+import os
+import re
+import markdown
+from pathlib import Path
+
+app = Flask(__name__)
+
+# Global variable to store logs and log directory
+LOGS: List[Dict[str, Any]] = []
+LOG_DIR: str = ""
+
+# Add markdown extension for fenced code blocks
+md = markdown.Markdown(extensions=["fenced_code", "tables"])
+
+# HTML template with embedded CSS and JavaScript
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log Viewer</title>
+    <!-- Add highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 800px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            max-width: 80%;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .message.user {
+            margin-left: auto;
+        }
+        
+        .message-content {
+            padding: 12px;
+            border-radius: 8px;
+            overflow-wrap: break-word;
+        }
+        
+        .user .message-content {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .user .message-content pre {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .orchestrator .message-content {
+            background-color: #f3e8ff;
+            border: 1px solid #e9d5ff;
+        }
+        
+        .websurfer .message-content {
+            background-color: #dcfce7;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .system .message-content {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .source {
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .timestamp {
+            color: #666;
+            font-size: 0.8em;
+        }
+        
+        pre {
+            background-color: #f8f9fa !important;
+            padding: 12px !important;
+            border-radius: 6px !important;
+            overflow-x: auto !important;
+            margin: 8px 0 !important;
+            font-size: 0.9em !important;
+        }
+        
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        }
+        
+        .screenshot {
+            margin-top: 12px;
+        }
+        
+        .screenshot img {
+            max-width: 50%;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .token-info {
+            margin-top: 8px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Markdown content styling */
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        
+        .markdown-content p {
+            margin: 0.5em 0;
+        }
+        
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+        
+        .markdown-content table {
+            border-collapse: collapse;
+            margin: 1em 0;
+            width: 100%;
+        }
+        
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .markdown-content th {
+            background-color: #f8f9fa;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+ /* Ledger specific styling */
+        .ledger-item {
+            margin: 10px 0;
+            padding: 8px;
+            border-left: 3px solid #e9d5ff;
+        }
+
+        .ledger-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .ledger-reason {
+            font-size: 0.9em;
+            color: #666;
+            margin-left: 20px;
+            font-style: italic;
+        }
+
+        .ledger-checkbox {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #666;
+            border-radius: 3px;
+            margin-right: 8px;
+            position: relative;
+            top: 2px;
+        }
+
+        .ledger-checkbox.checked::after {
+            content: "✓";
+            position: absolute;
+            color: #4CAF50;
+            font-weight: bold;
+            left: 1px;
+            top: -2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button id="pauseBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+    <div class="container" id="messages"></div>
+
+    <script>
+        let isPaused = false;
+        let currentIndex = 0;
+        
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            isPaused = !isPaused;
+            this.textContent = isPaused ? 'Resume' : 'Pause';
+            if (!isPaused) {
+                addNextMessage();
+            }
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            currentIndex = 0;
+            document.getElementById('messages').innerHTML = '';
+            if (isPaused) {
+                isPaused = false;
+                document.getElementById('pauseBtn').textContent = 'Pause';
+                addNextMessage();
+            }
+        });
+
+        function formatLedger(ledgerData) {
+            try {
+                const ledger = JSON.parse(ledgerData);
+                let html = '<div class="ledger-container">';
+                
+                for (const [key, value] of Object.entries(ledger)) {
+                    html += `
+                        <div class="ledger-item">
+                            <div class="ledger-title">
+                                ${key === 'is_request_satisfied' ? 'Request Satisfied' :
+                                  key === 'is_in_loop' ? 'In Loop' :
+                                  key === 'is_progress_being_made' ? 'Progress Being Made' :
+                                  key === 'next_speaker' ? 'Next Speaker' :
+                                  key === 'instruction_or_question' ? 'Instruction/Question' :
+                                  key}:
+                                ${typeof value.answer === 'boolean' ? 
+                                  `<span class="ledger-checkbox ${value.answer ? 'checked' : ''}"></span>` :
+                                  `<strong>${value.answer}</strong>`}
+                            </div>
+                            <div class="ledger-reason">
+                                ${value.reason}
+                            </div>
+                        </div>`;
+                }
+                
+                html += '</div>';
+                return html;
+            } catch (e) {
+                console.error('Error parsing ledger:', e);
+                return ledgerData;
+            }
+        }
+
+        function createMessageElement(log) {
+            const messageDiv = document.createElement('div');
+            const source = log.source || 'System';
+            if (source === 'System') {
+            // dont create message element for system logs
+                return;
+            }
+
+            messageDiv.className = `message ${source.toLowerCase().includes('orchestrator') ? 'orchestrator' : 
+                                          source === 'UserProxy' ? 'user' : 
+                                          source === 'WebSurfer' ? 'websurfer' : 'system'}`;
+
+    
+
+            let messageHtml = `
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="source">${source}</span>
+                    </div>
+                    `;
+            let messageContent = log.message;
+
+            if (source.includes('thought') && messageContent.includes('Updated Ledger:')) {
+                const ledgerStart = messageContent.indexOf('{');
+                const ledgerEnd = messageContent.lastIndexOf('}') + 1;
+                const ledgerJson = messageContent.substring(ledgerStart, ledgerEnd);
+                messageContent = formatLedger(ledgerJson);
+                messageHtml += `
+                    <div class="markdown-content">${messageContent}</div>`;
+            }
+            // check if message includes "Here is a screenshot of", if so remove everyting after that including it
+            else if (messageContent.includes('Here is a screenshot of')) {
+                messageContent = messageContent.split('Here is a screenshot of')[0];
+                messageHtml += `
+                    <div class="markdown-content">${messageContent}</div>`;
+            }
+            else {
+                messageHtml += `
+                    <div class="markdown-content">${log.message_html || log.message}</div>`;
+            }
+            // Handle screenshots for WebSurfer messages
+            if (log.message && log.message.startsWith('Screenshot:')) {
+                const screenshotFile = log.message.split(': ')[1];
+                // check if _som is in the screenshot file name
+                if (screenshotFile.includes('_som')) {
+                    return;
+                }
+                
+                messageHtml = `
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="source">${source}</span>
+                        </div>
+                    <div class="screenshot">
+                        <img src="/screenshots/${screenshotFile}" alt="Screenshot">
+                    </div>`;
+            }
+
+            // Add token info for LLM calls
+            if (log.type === 'LLMCallEvent') {
+                messageHtml += `
+                    <div class="token-info">
+                        Tokens: ${log.prompt_tokens} prompt, ${log.completion_tokens} completion
+                    </div>`;
+            }
+
+            messageHtml += '</div>';
+            messageDiv.innerHTML = messageHtml;
+
+            // Apply syntax highlighting to code blocks
+            messageDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            return messageDiv;
+        }
+
+        function addNextMessage() {
+            if (isPaused) return;
+            
+            fetch(`/logs?index=${currentIndex}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.log) {
+                        const messageElement = createMessageElement(data.log);
+                        if (!messageElement) {
+                            currentIndex++;
+                            setTimeout(addNextMessage, 500);
+                            return;
+                        }
+                        const container = document.getElementById('messages');
+                        container.appendChild(messageElement);
+                        container.scrollTop = container.scrollHeight;
+                        currentIndex++;
+                        setTimeout(addNextMessage, 1000);
+                    }
+                });
+        }
+
+        // Start displaying logs when page loads
+        document.addEventListener('DOMContentLoaded', addNextMessage);
+    </script>
+</body>
+</html>
+"""
+
+
+@app.route("/")
+def index():
+    return render_template_string(HTML_TEMPLATE)
+
+
+@app.route("/logs")
+def get_logs():
+    index = int(request.args.get("index", 0))
+    if index < len(LOGS):
+        log = LOGS[index].copy()
+        # Convert message to Markdown HTML if it's a string
+        if isinstance(log.get("message"), str):
+            log["message_html"] = md.convert(log["message"])
+        return jsonify({"log": log})
+    return jsonify({"log": None})
+
+
+@app.route("/screenshots/<path:filename>")
+def serve_screenshot(filename):
+    """Serve screenshot images from the log directory."""
+    return send_file(os.path.join(LOG_DIR, filename))
+
+
+def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
+    """Load logs from a JSONL file."""
+    logs = []
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                logs.append(json.loads(line.strip()))
+            except json.JSONDecodeError:
+                print(f"Warning: Skipping invalid JSON line: {line.strip()}")
+    return logs
+
+
+def run_viewer(jsonl_path: str, port: int = 5000):
+    """
+    Run the log viewer with logs from the specified JSONL file.
+
+    Args:
+        jsonl_path: Path to the JSONL file containing logs
+        port: Port number to run the server on (default: 5000)
+    """
+    global LOGS, LOG_DIR
+
+    if not os.path.exists(jsonl_path):
+        raise FileNotFoundError(f"Log file not found: {jsonl_path}")
+
+    # Set the log directory to the directory containing the JSONL file
+    LOG_DIR = str(Path(jsonl_path).parent)
+    LOGS = load_jsonl(jsonl_path)
+
+    print(f"Loaded {len(LOGS)} log entries")
+    print(f"Log viewer running at http://localhost:{port}")
+    app.run(port=port, debug=False)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run the log viewer")
+    parser.add_argument("jsonl_path", help="Path to the JSONL log file")
+    parser.add_argument("--port", type=int, default=5000, help="Port to run the server on")
+
+    args = parser.parse_args()
+    run_viewer(args.jsonl_path, args.port)
