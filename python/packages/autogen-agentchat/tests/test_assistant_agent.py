@@ -166,7 +166,7 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=CompletionUsage(prompt_tokens=42, completion_tokens=43, total_tokens=85),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -184,8 +184,8 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[0].model_usage is None
     assert isinstance(result.messages[1], ToolCallMessage)
     assert result.messages[1].model_usage is not None
-    assert result.messages[1].model_usage.completion_tokens == 0
-    assert result.messages[1].model_usage.prompt_tokens == 0
+    assert result.messages[1].model_usage.completion_tokens == 43
+    assert result.messages[1].model_usage.prompt_tokens == 42
     assert isinstance(result.messages[2], ToolCallResultMessage)
     assert result.messages[2].model_usage is None
     assert isinstance(result.messages[3], HandoffMessage)
