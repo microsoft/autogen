@@ -83,7 +83,7 @@ async def main(logs_dir: str, hil_mode: bool) -> None:
         actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, type=MultimodalWebSurfer)
         await actual_surfer.init(
             model_client=client,
-            downloads_folder=os.getcwd(),
+            downloads_folder=logs_dir,
             start_page="https://www.bing.com",
             browser_channel="chromium",
             headless=True,
@@ -96,7 +96,9 @@ async def main(logs_dir: str, hil_mode: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run MagenticOne example with log directory.")
-    parser.add_argument("--logs_dir", type=str, default=os.getcwd(), help="Directory to store log files and downloads")
+    parser.add_argument(
+        "--logs_dir", type=str, default=os.getcwd() + "/logs", help="Directory to store log files and downloads"
+    )
     parser.add_argument("--hil_mode", action="store_true", default=False, help="Run in human-in-the-loop mode")
     if not os.path.exists(parser.parse_args().logs_dir):
         os.makedirs(parser.parse_args().logs_dir)
