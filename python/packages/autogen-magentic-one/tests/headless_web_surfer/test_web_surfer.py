@@ -101,7 +101,6 @@ async def make_browser_request(browser: MultimodalWebSurfer, tool: ToolSchema, a
 @pytest.mark.skip(reason="Need to fix this test to use a local website instead of a public one.")
 @pytest.mark.asyncio
 async def test_web_surfer() -> None:
-    _create_logs_dir()
     env = {
         ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
         ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
@@ -175,7 +174,6 @@ async def test_web_surfer() -> None:
     with pytest.raises(AuthenticationError):
         tool_resp = await make_browser_request(actual_surfer, TOOL_SUMMARIZE_PAGE)
     await runtime.stop_when_idle()
-    _rm_folder(DEBUG_DIR)
 
 
 @pytest.mark.skipif(
@@ -184,8 +182,6 @@ async def test_web_surfer() -> None:
 )
 @pytest.mark.asyncio
 async def test_web_surfer_oai() -> None:
-    _create_logs_dir()
-
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
@@ -245,7 +241,6 @@ async def test_web_surfer_oai() -> None:
         sender=user_proxy.id,
     )
     await runtime.stop_when_idle()
-    _rm_folder(DEBUG_DIR)
 
 
 @pytest.mark.skipif(
@@ -254,7 +249,6 @@ async def test_web_surfer_oai() -> None:
 )
 @pytest.mark.asyncio
 async def test_web_surfer_bing() -> None:
-    _create_logs_dir()
     env = {
         ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
         ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
@@ -296,9 +290,9 @@ async def test_web_surfer_bing() -> None:
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
+
+    _create_logs_dir()
     asyncio.run(test_web_surfer())
-    asyncio.sleep(1)  # to allow for creation and deletion of logs folder
     asyncio.run(test_web_surfer_oai())
-    asyncio.sleep(1)  # to allow for creation and deletion of logs folder
+    # IMPORTANT: last test should remove the logs directory
     asyncio.run(test_web_surfer_bing())
-    asyncio.sleep(1)  # to allow for creation and deletion of logs folder
