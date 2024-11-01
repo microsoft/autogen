@@ -109,7 +109,6 @@ message ReadmeRequested {
 }
 ```
 
-
 ```xml
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
