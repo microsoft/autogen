@@ -79,7 +79,10 @@ class Swarm(BaseGroupChat):
             )
 
             team = Swarm([agent1, agent2])
-            await team.run("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
+
+            stream = team.run_stream("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
+            async for message in stream:
+                print(message)
     """
 
     def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):

@@ -170,14 +170,48 @@ class SelectorGroupChat(BaseGroupChat):
 
         .. code-block:: python
 
-            from autogen_agentchat.agents import ToolUseAssistantAgent
-            from autogen_agentchat.teams import SelectorGroupChat, StopMessageTermination
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import SelectorGroupChat
+            from autogen_agentchat.task import StopMessageTermination
 
-            travel_advisor = ToolUseAssistantAgent("Travel_Advisor", model_client=..., registered_tools=...)
-            hotel_agent = ToolUseAssistantAgent("Hotel_Agent", model_client=..., registered_tools=...)
-            flight_agent = ToolUseAssistantAgent("Flight_Agent", model_client=..., registered_tools=...)
-            team = SelectorGroupChat([travel_advisor, hotel_agent, flight_agent], model_client=...)
-            await team.run("Book a 3-day trip to new york.", termination_condition=StopMessageTermination())
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+            async def lookup_hotel(location: str) -> str:
+                return f"Here are some hotels in {location}: hotel1, hotel2, hotel3."
+
+
+            async def lookup_flight(origin: str, destination: str) -> str:
+                return f"Here are some flights from {origin} to {destination}: flight1, flight2, flight3."
+
+
+            async def book_trip() -> str:
+                return "Your trip is booked!"
+
+
+            travel_advisor = AssistantAgent(
+                "Travel_Advisor",
+                model_client,
+                tools=[book_trip],
+                description="Helps with travel planning.",
+            )
+            hotel_agent = AssistantAgent(
+                "Hotel_Agent",
+                model_client,
+                tools=[lookup_hotel],
+                description="Helps with hotel booking.",
+            )
+            flight_agent = AssistantAgent(
+                "Flight_Agent",
+                model_client,
+                tools=[lookup_flight],
+                description="Helps with flight booking.",
+            )
+            team = SelectorGroupChat([travel_advisor, hotel_agent, flight_agent], model_client=model_client)
+            stream = team.run_stream("Book a 3-day trip to new york.", termination_condition=StopMessageTermination())
+            async for message in stream:
+                print(message)
     """
 
     def __init__(
