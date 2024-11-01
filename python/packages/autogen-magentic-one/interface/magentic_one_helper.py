@@ -41,6 +41,7 @@ class MagenticOneHelper:
         self.runtime: Optional[SingleThreadedAgentRuntime] = None
         self.log_handler: Optional[LogHandler] = None
 
+
         if not os.path.exists(self.logs_dir):
             os.makedirs(self.logs_dir)
 
@@ -92,7 +93,6 @@ class MagenticOneHelper:
                 return_final_answer=True,
             ),
         )
-        # orchestrator = AgentProxy(AgentId("Orchestrator", "default"), runtime)
 
         self.runtime.start()
 
@@ -120,6 +120,24 @@ class MagenticOneHelper:
 
         await self.runtime.publish_message(task_message, topic_id=DefaultTopicId())
         await self.runtime.stop_when_idle()
+
+    def get_final_answer(self) -> Optional[str]:
+        """
+        Get the final answer from the Orchestrator.
+
+        Returns:
+            The final answer as a string
+        """
+        if not self.log_handler:
+            raise RuntimeError("Log handler not initialized")
+
+        for log_entry in self.log_handler.logs_list:
+            if (
+                log_entry.get("type") == "OrchestrationEvent"
+                and log_entry.get("source") == "Orchestrator (final answer)"
+            ):
+                return log_entry.get("message")
+        return None
 
     async def stream_logs(self) -> AsyncGenerator[Dict[str, Any], None]:
         """

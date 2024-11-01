@@ -1,5 +1,6 @@
 from flask import Flask, render_template_string, jsonify, request, send_file
 import json
+import argparse
 from datetime import datetime
 from typing import List, Dict, Any
 import os
@@ -413,12 +414,12 @@ HTML_TEMPLATE = """
 
 
 @app.route("/")
-def index():
+def index() -> str:
     return render_template_string(HTML_TEMPLATE)
 
 
 @app.route("/logs")
-def get_logs():
+def get_logs() -> jsonify:
     index = int(request.args.get("index", 0))
     if index < len(LOGS):
         log = LOGS[index].copy()
@@ -430,7 +431,7 @@ def get_logs():
 
 
 @app.route("/screenshots/<path:filename>")
-def serve_screenshot(filename):
+def serve_screenshot(filename: str) -> send_file:
     """Serve screenshot images from the log directory."""
     return send_file(os.path.join(LOG_DIR, filename))
 
@@ -446,35 +447,41 @@ def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
                 print(f"Warning: Skipping invalid JSON line: {line.strip()}")
     return logs
 
+def load_logs_from_folder(folder_path: str) -> List[Dict[str, Any]]:
+    """Load logs from all JSONL files in the specified folder."""
+    logs = []
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".jsonl"):
+            file_path = os.path.join(folder_path, file_name)
+            logs.extend(load_jsonl(file_path))
+    return logs
 
-def run_viewer(jsonl_path: str, port: int = 5000):
+def run_viewer(log_folder: str, port: int = 5000) -> None:
     """
-    Run the log viewer with logs from the specified JSONL file.
+    Run the log viewer with logs from the specified folder.
 
     Args:
-        jsonl_path: Path to the JSONL file containing logs
+        log_folder: Path to the folder containing JSONL log files
         port: Port number to run the server on (default: 5000)
     """
     global LOGS, LOG_DIR
 
-    if not os.path.exists(jsonl_path):
-        raise FileNotFoundError(f"Log file not found: {jsonl_path}")
+    if not os.path.exists(log_folder):
+        raise FileNotFoundError(f"Log folder not found: {log_folder}")
 
-    # Set the log directory to the directory containing the JSONL file
-    LOG_DIR = str(Path(jsonl_path).parent)
-    LOGS = load_jsonl(jsonl_path)
+    # Set the log directory to the specified folder
+    LOG_DIR = log_folder
+    LOGS = load_logs_from_folder(log_folder)
 
     print(f"Loaded {len(LOGS)} log entries")
     print(f"Log viewer running at http://localhost:{port}")
     app.run(port=port, debug=False)
 
-
 if __name__ == "__main__":
-    import argparse
 
     parser = argparse.ArgumentParser(description="Run the log viewer")
-    parser.add_argument("jsonl_path", help="Path to the JSONL log file")
+    parser.add_argument("log_folder", help="Path to the folder containing JSONL log files")
     parser.add_argument("--port", type=int, default=5000, help="Port to run the server on")
 
     args = parser.parse_args()
-    run_viewer(args.jsonl_path, args.port)
+    run_viewer(args.log_folder, args.port)

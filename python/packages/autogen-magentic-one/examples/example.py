@@ -1,9 +1,9 @@
 """This example demonstrates MagenticOne performing a task given by the user and returning a final answer."""
 
+import argparse
 import asyncio
 import logging
 import os
-import argparse
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
