@@ -1,6 +1,7 @@
+import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import AsyncGenerator, Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import (
@@ -32,7 +33,6 @@ class BaseGroupChat(Team, ABC):
         self,
         participants: List[ChatAgent],
         group_chat_manager_class: type[BaseGroupChatManager],
-        termination_condition: TerminationCondition | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -41,7 +41,6 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
-        self._termination_condition = termination_condition
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -75,9 +74,24 @@ class BaseGroupChat(Team, ABC):
         cancellation_token: CancellationToken | None = None,
         termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
-        """Run the team and return the result."""
-        # Create intervention handler for termination.
+        """Run the team and return the result. The base implementation uses
+        :meth:`run_stream` to run the team and then returns the final result."""
+        async for message in self.run_stream(
+            task, cancellation_token=cancellation_token, termination_condition=termination_condition
+        ):
+            if isinstance(message, TaskResult):
+                return message
+        raise AssertionError("The stream should have returned the final result.")
 
+    async def run_stream(
+        self,
+        task: str,
+        *,
+        cancellation_token: CancellationToken | None = None,
+        termination_condition: TerminationCondition | None = None,
+    ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
+        """Run the team and produces a stream of messages and the final result
+        as the last item in the stream."""
         # Create the runtime.
         runtime = SingleThreadedAgentRuntime()
 
@@ -117,7 +131,7 @@ class BaseGroupChat(Team, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
-                termination_condition=termination_condition or self._termination_condition,
+                termination_condition=termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -132,6 +146,7 @@ class BaseGroupChat(Team, ABC):
         )
 
         output_messages: List[InnerMessage | ChatMessage] = []
+        output_message_queue: asyncio.Queue[InnerMessage | ChatMessage | None] = asyncio.Queue()
 
         async def collect_output_messages(
             _runtime: AgentRuntime,
@@ -140,6 +155,7 @@ class BaseGroupChat(Team, ABC):
             ctx: MessageContext,
         ) -> None:
             output_messages.append(message)
+            await output_message_queue.put(message)
 
         await ClosureAgent.register(
             runtime,
@@ -158,14 +174,29 @@ class BaseGroupChat(Team, ABC):
         group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
         first_chat_message = TextMessage(content=task, source="user")
         output_messages.append(first_chat_message)
+        await output_message_queue.put(first_chat_message)
         await runtime.publish_message(
             GroupChatPublishEvent(agent_message=first_chat_message),
             topic_id=team_topic_id,
         )
         await runtime.publish_message(GroupChatRequestPublishEvent(), topic_id=group_chat_manager_topic_id)
 
-        # Wait for the runtime to stop.
-        await runtime.stop_when_idle()
+        # Start a coroutine to stop the runtime and signal the output message queue is complete.
+        async def stop_runtime() -> None:
+            await runtime.stop_when_idle()
+            await output_message_queue.put(None)
 
-        # Return the result.
-        return TaskResult(messages=output_messages)
+        shutdown_task = asyncio.create_task(stop_runtime())
+
+        # Yield the messsages until the queue is empty.
+        while True:
+            message = await output_message_queue.get()
+            if message is None:
+                break
+            yield message
+
+        # Wait for the shutdown task to finish.
+        await shutdown_task
+
+        # Yield the final result.
+        yield TaskResult(messages=output_messages)

@@ -3,7 +3,7 @@ from typing import Any, List
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, event
 
-from ...base import ChatAgent
+from ...base import ChatAgent, Response
 from ...messages import ChatMessage
 from .._events import GroupChatPublishEvent, GroupChatRequestPublishEvent
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -37,28 +37,26 @@ class ChatAgentContainer(SequentialRoutedAgent):
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
         # Pass the messages in the buffer to the delegate agent.
-        response = await self._agent.on_messages(self._message_buffer, ctx.cancellation_token)
-        if not any(isinstance(response.chat_message, msg_type) for msg_type in self._agent.produced_message_types):
-            raise ValueError(
-                f"The agent {self._agent.name} produced an unexpected message type: {type(response)}. "
-                f"Expected one of: {self._agent.produced_message_types}. "
-                f"Check the agent's produced_message_types property."
-            )
+        response: Response | None = None
+        async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
+            if isinstance(msg, Response):
+                await self.publish_message(
+                    msg.chat_message,
+                    topic_id=DefaultTopicId(type=self._output_topic_type),
+                )
+                response = msg
+            else:
+                # Publish the message to the output topic.
+                await self.publish_message(msg, topic_id=DefaultTopicId(type=self._output_topic_type))
+        if response is None:
+            raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 
-        # Publish inner messages to the output topic.
-        if response.inner_messages is not None:
-            for inner_message in response.inner_messages:
-                await self.publish_message(inner_message, topic_id=DefaultTopicId(type=self._output_topic_type))
-
-        # Publish the response.
+        # Publish the response to the group chat.
         self._message_buffer.clear()
         await self.publish_message(
             GroupChatPublishEvent(agent_message=response.chat_message, source=self.id),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
         )
-
-        # Publish the response to the output topic.
-        await self.publish_message(response.chat_message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in agent container: {type(message)}")

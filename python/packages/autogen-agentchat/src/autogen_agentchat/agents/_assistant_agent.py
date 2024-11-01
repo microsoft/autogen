@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Any, Awaitable, Callable, Dict, List, Sequence
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Sequence
 
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
@@ -24,10 +24,9 @@ from ..messages import (
     HandoffMessage,
     InnerMessage,
     ResetMessage,
-    StopMessage,
     TextMessage,
     ToolCallMessage,
-    ToolCallResultMessages,
+    ToolCallResultMessage,
 )
 from ._base_chat_agent import BaseChatAgent
 
@@ -98,7 +97,11 @@ class Handoff(BaseModel):
     @property
     def handoff_tool(self) -> Tool:
         """Create a handoff tool from this handoff configuration."""
-        return FunctionTool(lambda: self.message, name=self.name, description=self.description)
+
+        def _handoff_tool() -> str:
+            return self.message
+
+        return FunctionTool(_handoff_tool, name=self.name, description=self.description)
 
 
 class AssistantAgent(BaseChatAgent):
@@ -127,21 +130,27 @@ class AssistantAgent(BaseChatAgent):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.task import MaxMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
-            agent = AssistantAgent(name="assistant", model_client=model_client)
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(name="assistant", model_client=model_client)
 
-            await agent.run("What is the capital of France?", termination_condition=MaxMessageTermination(2))
+                result await agent.run("What is the capital of France?", termination_condition=MaxMessageTermination(2))
+                print(result)
+
+            asyncio.run(main())
 
 
         The following example demonstrates how to create an assistant agent with
-        a model client and a tool, and generate a response to a simple task using the tool.
+        a model client and a tool, and generate a stream of messages for a task.
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.task import MaxMessageTermination
@@ -151,10 +160,17 @@ class AssistantAgent(BaseChatAgent):
                 return "The current time is 12:00 PM."
 
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
-            agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
 
-            await agent.run("What is the current time?", termination_condition=MaxMessageTermination(3))
+                stream = agent.run_stream("What is the current time?", termination_condition=MaxMessageTermination(3))
+
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
 
     """
 
@@ -215,10 +231,18 @@ class AssistantAgent(BaseChatAgent):
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         if self._handoffs:
-            return [TextMessage, HandoffMessage, StopMessage]
-        return [TextMessage, StopMessage]
+            return [TextMessage, HandoffMessage]
+        return [TextMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        async for message in self.on_messages_stream(messages, cancellation_token):
+            if isinstance(message, Response):
+                return message
+        raise AssertionError("The stream should have returned the final result.")
+
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[InnerMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
             if isinstance(msg, ResetMessage):
@@ -242,7 +266,8 @@ class AssistantAgent(BaseChatAgent):
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             event_logger.debug(ToolCallEvent(tool_calls=result.content, source=self.name))
             # Add the tool call message to the output.
-            inner_messages.append(ToolCallMessage(content=result.content, source=self.name))
+            inner_messages.append(ToolCallMessage(content=result.content, source=self.name, model_usage=result.usage))
+            yield ToolCallMessage(content=result.content, source=self.name, model_usage=result.usage)
 
             # Execute the tool calls.
             results = await asyncio.gather(
@@ -250,7 +275,8 @@ class AssistantAgent(BaseChatAgent):
             )
             event_logger.debug(ToolCallResultEvent(tool_call_results=results, source=self.name))
             self._model_context.append(FunctionExecutionResultMessage(content=results))
-            inner_messages.append(ToolCallResultMessages(content=results, source=self.name))
+            inner_messages.append(ToolCallResultMessage(content=results, source=self.name))
+            yield ToolCallResultMessage(content=results, source=self.name)
 
             # Detect handoff requests.
             handoffs: List[Handoff] = []
@@ -261,12 +287,13 @@ class AssistantAgent(BaseChatAgent):
                 if len(handoffs) > 1:
                     raise ValueError(f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
                 # Return the output messages to signal the handoff.
-                return Response(
+                yield Response(
                     chat_message=HandoffMessage(
                         content=handoffs[0].message, target=handoffs[0].target, source=self.name
                     ),
                     inner_messages=inner_messages,
                 )
+                return
 
             # Generate an inference result based on the current model context.
             result = await self._model_client.create(
@@ -275,15 +302,9 @@ class AssistantAgent(BaseChatAgent):
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         assert isinstance(result.content, str)
-        # Detect stop request.
-        request_stop = "terminate" in result.content.strip().lower()
-        if request_stop:
-            return Response(
-                chat_message=StopMessage(content=result.content, source=self.name), inner_messages=inner_messages
-            )
-
-        return Response(
-            chat_message=TextMessage(content=result.content, source=self.name), inner_messages=inner_messages
+        yield Response(
+            chat_message=TextMessage(content=result.content, source=self.name, model_usage=result.usage),
+            inner_messages=inner_messages,
         )
 
     async def _execute_tool_call(

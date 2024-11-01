@@ -22,19 +22,25 @@ class TerminationCondition(ABC):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_agentchat.teams import MaxTurnsTermination, TextMentionTermination
 
-            # Terminate the conversation after 10 turns or if the text "TERMINATE" is mentioned.
-            cond1 = MaxTurnsTermination(10) | TextMentionTermination("TERMINATE")
 
-            # Terminate the conversation after 10 turns and if the text "TERMINATE" is mentioned.
-            cond2 = MaxTurnsTermination(10) & TextMentionTermination("TERMINATE")
+            async def main() -> None:
+                # Terminate the conversation after 10 turns or if the text "TERMINATE" is mentioned.
+                cond1 = MaxTurnsTermination(10) | TextMentionTermination("TERMINATE")
 
-            ...
+                # Terminate the conversation after 10 turns and if the text "TERMINATE" is mentioned.
+                cond2 = MaxTurnsTermination(10) & TextMentionTermination("TERMINATE")
 
-            # Reset the termination condition.
-            await cond1.reset()
-            await cond2.reset()
+                # ...
+
+                # Reset the termination condition.
+                await cond1.reset()
+                await cond2.reset()
+
+
+            asyncio.run(main())
     """
 
     @property
