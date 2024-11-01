@@ -9,7 +9,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
     string Route { get; }
     AgentId AgentId { get; }
-    ValueTask PublishEventAsync(CloudEvent item);
+    ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default);
 
     async Task IHandle<Output>.Handle(Output item)
     {
