@@ -33,6 +33,7 @@ class BaseGroupChat(Team, ABC):
         self,
         participants: List[ChatAgent],
         group_chat_manager_class: type[BaseGroupChatManager],
+        termination_condition: TerminationCondition | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -41,6 +42,7 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
+        self._termination_condition = termination_condition
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -72,12 +74,12 @@ class BaseGroupChat(Team, ABC):
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
-        termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result."""
         async for message in self.run_stream(
-            task, cancellation_token=cancellation_token, termination_condition=termination_condition
+            task,
+            cancellation_token=cancellation_token,
         ):
             if isinstance(message, TaskResult):
                 return message
@@ -88,10 +90,9 @@ class BaseGroupChat(Team, ABC):
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
-        termination_condition: TerminationCondition | None = None,
     ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
-        as the last item in the stream."""
+        of the type :class:`TaskResult` as the last item in the stream."""
         # Create the runtime.
         runtime = SingleThreadedAgentRuntime()
 
@@ -131,7 +132,7 @@ class BaseGroupChat(Team, ABC):
                 group_topic_type=group_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
-                termination_condition=termination_condition,
+                termination_condition=self._termination_condition,
             ),
         )
         # Add subscriptions for the group chat manager.

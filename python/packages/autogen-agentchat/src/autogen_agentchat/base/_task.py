@@ -33,5 +33,5 @@ class TaskRunner(Protocol):
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
-        as the last item in the stream."""
+        :class:`TaskResult` as the last item in the stream."""
         ...
