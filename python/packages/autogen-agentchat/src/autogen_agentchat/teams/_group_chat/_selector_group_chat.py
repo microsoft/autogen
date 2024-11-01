@@ -230,9 +230,7 @@ Read the above conversation. Then select the next role from {participants} to pl
 """,
         allow_repeated_speaker: bool = False,
     ):
-        super().__init__(
-            participants, termination_condition=termination_condition, group_chat_manager_class=SelectorGroupChatManager
-        )
+        super().__init__(participants, group_chat_manager_class=SelectorGroupChatManager)
         # Validate the participants.
         if len(participants) < 2:
             raise ValueError("At least two participants are required for SelectorGroupChat.")

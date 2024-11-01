@@ -516,8 +516,8 @@ async def test_swarm_handoff() -> None:
     second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
     third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
 
-    team = Swarm([second_agent, first_agent, third_agent], termination_condition=MaxMessageTermination(6))
-    result = await team.run("task")
+    team = Swarm([second_agent, first_agent, third_agent])
+    result = await team.run("task", termination_condition=MaxMessageTermination(6))
     assert len(result.messages) == 6
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
