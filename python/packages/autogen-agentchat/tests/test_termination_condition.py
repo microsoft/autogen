@@ -1,6 +1,11 @@
 import pytest
 from autogen_agentchat.messages import StopMessage, TextMessage
-from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
+from autogen_agentchat.task import (
+    MaxMessageTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+    TokenUsageTermination,
+)
 
 
 @pytest.mark.asyncio
@@ -44,6 +49,24 @@ async def test_mention_termination() -> None:
     assert await termination([TextMessage(content="Hello", source="user")]) is None
     await termination.reset()
     assert await termination([TextMessage(content="stop", source="user")]) is not None
+    await termination.reset()
+    assert (
+        await termination([TextMessage(content="Hello", source="user"), TextMessage(content="stop", source="user")])
+        is not None
+    )
+
+
+@pytest.mark.asyncio
+async def test_token_usage_termination() -> None:
+    termination = TokenUsageTermination(max_total_token=10)
+    assert await termination([]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    await termination.reset()
+    assert (
+        await termination([TextMessage(content="Hello", source="user"), TextMessage(content="World", source="agent")])
+        is None
+    )
     await termination.reset()
     assert (
         await termination([TextMessage(content="Hello", source="user"), TextMessage(content="stop", source="user")])
