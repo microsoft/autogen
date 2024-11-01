@@ -32,10 +32,6 @@
     <NoWarn>$(NoWarn);CA1829</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="ApprovalTests" />
     <PackageReference Include="FluentAssertions" />
