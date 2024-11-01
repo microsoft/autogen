@@ -5,9 +5,9 @@ namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentWorkerRuntime
 {
-    ValueTask PublishEvent(CloudEvent evt);
-    ValueTask SendRequest(IAgentBase agent, RpcRequest request);
-    ValueTask SendResponse(RpcResponse response);
-    ValueTask Store(AgentState value);
-    ValueTask<AgentState> Read(AgentId agentId);
+    ValueTask PublishEvent(CloudEvent evt, CancellationToken cancellationToken);
+    ValueTask SendRequest(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken);
+    ValueTask SendResponse(RpcResponse response, CancellationToken cancellationToken);
+    ValueTask Store(AgentState value, CancellationToken cancellationToken);
+    ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken);
 }
