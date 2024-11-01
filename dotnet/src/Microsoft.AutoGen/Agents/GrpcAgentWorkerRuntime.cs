@@ -228,13 +228,13 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         }
     }
 
-    public async ValueTask SendResponse(RpcResponse response)
+    public async ValueTask SendResponse(RpcResponse response, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Sending response '{Response}'.", response);
-        await WriteChannelAsync(new Message { Response = response }).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequest(IAgentBase agent, RpcRequest request)
+    public async ValueTask SendRequest(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("[{AgentId}] Sending request '{Request}'.", agent.AgentId, request);
         var requestId = Guid.NewGuid().ToString();
@@ -242,7 +242,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         request.RequestId = requestId;
         try
         {
-            await WriteChannelAsync(new Message { Request = request }).ConfigureAwait(false);
+            await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -253,11 +253,11 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         }
     }
 
-    public async ValueTask PublishEvent(CloudEvent @event)
+    public async ValueTask PublishEvent(CloudEvent @event, CancellationToken cancellationToken)
     {
         try
         {
-            await WriteChannelAsync(new Message { CloudEvent = @event }).ConfigureAwait(false);
+            await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -265,7 +265,7 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
         }
     }
 
-    private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
+    private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await _outboundMessagesChannel.Writer.WriteAsync((message, tcs), cancellationToken).ConfigureAwait(false);
@@ -364,19 +364,19 @@ public sealed class GrpcAgentWorkerRuntime : IHostedService, IDisposable, IAgent
             _channel?.Dispose();
         }
     }
-    public ValueTask Store(AgentState value)
+    public ValueTask Store(AgentState value, CancellationToken cancellationToken)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
-        var response = _client.SaveState(value);
+        var response = _client.SaveState(value, cancellationToken: cancellationToken);
         if (!response.Success)
         {
             throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
         }
         return ValueTask.CompletedTask;
     }
-    public async ValueTask<AgentState> Read(AgentId agentId)
+    public async ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken)
     {
-        var response = await _client.GetStateAsync(agentId);
+        var response = await _client.GetStateAsync(agentId, cancellationToken: cancellationToken);
         //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
         if (response.AgentState.AgentId is not null)
         {
