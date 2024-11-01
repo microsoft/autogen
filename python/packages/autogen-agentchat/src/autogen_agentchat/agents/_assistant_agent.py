@@ -24,7 +24,6 @@ from ..messages import (
     HandoffMessage,
     InnerMessage,
     ResetMessage,
-    StopMessage,
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
@@ -232,8 +231,8 @@ class AssistantAgent(BaseChatAgent):
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         if self._handoffs:
-            return [TextMessage, HandoffMessage, StopMessage]
-        return [TextMessage, StopMessage]
+            return [TextMessage, HandoffMessage]
+        return [TextMessage]
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
@@ -303,16 +302,9 @@ class AssistantAgent(BaseChatAgent):
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         assert isinstance(result.content, str)
-        # Detect stop request.
-        request_stop = "terminate" in result.content.strip().lower()
-        if request_stop:
-            yield Response(
-                chat_message=StopMessage(content=result.content, source=self.name), inner_messages=inner_messages
-            )
-        else:
-            yield Response(
-                chat_message=TextMessage(content=result.content, source=self.name), inner_messages=inner_messages
-            )
+        yield Response(
+            chat_message=TextMessage(content=result.content, source=self.name), inner_messages=inner_messages
+        )
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
