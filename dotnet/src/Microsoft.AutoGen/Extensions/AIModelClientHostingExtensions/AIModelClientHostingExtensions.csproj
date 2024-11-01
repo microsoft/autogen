@@ -3,6 +3,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- The following properties are used to suppress warnings that are not relevant to this project. -->
+    <NoWarn>$(NoWarnDuplicatePackages)</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.AI.OpenAI" />
@@ -14,5 +17,6 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="System.Text.Json" VersionOverride="9.0.0-rc.2.24473.5" />
   </ItemGroup>
 </Project>
