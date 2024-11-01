@@ -12,9 +12,9 @@ public interface IAgentContext
     IAgentBase? AgentInstance { get; set; }
     DistributedContextPropagator DistributedContextPropagator { get; } // TODO: Remove this. An abstraction should not have a dependency on DistributedContextPropagator.
     ILogger Logger { get; } // TODO: Remove this. An abstraction should not have a dependency on ILogger.
-    ValueTask Store(AgentState value);
-    ValueTask<AgentState> Read(AgentId agentId);
-    ValueTask SendResponseAsync(RpcRequest request, RpcResponse response);
-    ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request);
-    ValueTask PublishEventAsync(CloudEvent @event);
+    ValueTask Store(AgentState value, CancellationToken cancellationToken = default);
+    ValueTask<AgentState> Read(AgentId agentId, CancellationToken cancellationToken = default);
+    ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default);
+    ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default);
 }
