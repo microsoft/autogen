@@ -80,7 +80,8 @@ class RoundRobinGroupChat(BaseGroupChat):
                     model_client=model_client,
                     tools=[get_weather],
                 )
-                team = RoundRobinGroupChat([assistant], termination_condition=TextMentionTermination("TERMINATE"))
+                termination = TextMentionTermination("TERMINATE")
+                team = RoundRobinGroupChat([assistant], termination_condition=termination)
                 stream = team.run_stream("What's the weather in New York?")
                 async for message in stream:
                     print(message)
@@ -104,7 +105,8 @@ class RoundRobinGroupChat(BaseGroupChat):
 
                 agent1 = AssistantAgent("Assistant1", model_client=model_client)
                 agent2 = AssistantAgent("Assistant2", model_client=model_client)
-                team = RoundRobinGroupChat([agent1, agent2], termination_condition=TextMentionTermination("TERMINATE"))
+                termination = TextMentionTermination("TERMINATE")
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
                 stream = team.run_stream("Tell me some jokes.")
                 async for message in stream:
                     print(message)

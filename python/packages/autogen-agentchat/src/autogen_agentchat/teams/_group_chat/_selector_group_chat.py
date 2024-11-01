@@ -226,10 +226,11 @@ class SelectorGroupChat(BaseGroupChat):
                     tools=[lookup_flight],
                     description="Helps with flight booking.",
                 )
+                termination = TextMentionTermination("TERMINATE")
                 team = SelectorGroupChat(
                     [travel_advisor, hotel_agent, flight_agent],
                     model_client=model_client,
-                    termination_condition=TextMentionTermination("TERMINATE"),
+                    termination_condition=termination,
                 )
                 stream = team.run_stream("Book a 3-day trip to new york.")
                 async for message in stream:
@@ -279,11 +280,12 @@ class SelectorGroupChat(BaseGroupChat):
                         return "Agent2"
                     return None
 
+                termination = TextMentionTermination("Correct!")
                 team = SelectorGroupChat(
                     [agent1, agent2],
                     model_client=model_client,
                     selector_func=selector_func,
-                    termination_condition=TextMentionTermination("Correct!"),
+                    termination_condition=termination,
                 )
 
                 stream = team.run_stream("What is 1 + 1?")

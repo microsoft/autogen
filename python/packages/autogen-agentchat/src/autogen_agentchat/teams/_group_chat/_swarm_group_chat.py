@@ -83,7 +83,8 @@ class Swarm(BaseGroupChat):
                     "Bob", model_client=model_client, system_message="You are Bob and your birthday is on 1st January."
                 )
 
-                team = Swarm([agent1, agent2], termination_condition=MaxMessageTermination(3))
+                termination = MaxMessageTermination(3)
+                team = Swarm([agent1, agent2], termination_condition=termination)
 
                 stream = team.run_stream("What is bob's birthday?")
                 async for message in stream:
