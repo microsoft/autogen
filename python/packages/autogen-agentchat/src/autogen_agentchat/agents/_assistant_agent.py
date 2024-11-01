@@ -266,8 +266,8 @@ class AssistantAgent(BaseChatAgent):
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             event_logger.debug(ToolCallEvent(tool_calls=result.content, source=self.name))
             # Add the tool call message to the output.
-            inner_messages.append(ToolCallMessage(content=result.content, source=self.name))
-            yield ToolCallMessage(content=result.content, source=self.name)
+            inner_messages.append(ToolCallMessage(content=result.content, source=self.name, model_usage=result.usage))
+            yield ToolCallMessage(content=result.content, source=self.name, model_usage=result.usage)
 
             # Execute the tool calls.
             results = await asyncio.gather(
@@ -303,7 +303,8 @@ class AssistantAgent(BaseChatAgent):
 
         assert isinstance(result.content, str)
         yield Response(
-            chat_message=TextMessage(content=result.content, source=self.name), inner_messages=inner_messages
+            chat_message=TextMessage(content=result.content, source=self.name, model_usage=result.usage),
+            inner_messages=inner_messages,
         )
 
     async def _execute_tool_call(
