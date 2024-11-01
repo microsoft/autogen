@@ -171,14 +171,13 @@ class MagenticOneHelper:
                 if (
                     log_entry.get("type") == "OrchestrationEvent"
                     and log_entry.get("source") == "Orchestrator (termination condition)"
-                    and log_entry.get("message") == "No agent selected."
                 ):
                     found_termination = True
 
                 last_index += 1
 
                 # If both conditions are met, stop streaming
-                if found_final_answer and found_termination:
+                if found_final_answer or found_termination:
                     return
 
             await asyncio.sleep(0.1)  # Small delay to prevent busy waiting

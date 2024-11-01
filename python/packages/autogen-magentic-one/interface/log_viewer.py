@@ -7,6 +7,8 @@ import os
 import re
 import markdown
 from pathlib import Path
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -252,9 +254,9 @@ HTML_TEMPLATE = """
     <div class="container" id="messages"></div>
 
     <script>
-        let isPaused = false;
+        let isPaused = false; // Ensure this is set to false initially
         let currentIndex = 0;
-        
+
         document.getElementById('pauseBtn').addEventListener('click', function() {
             isPaused = !isPaused;
             this.textContent = isPaused ? 'Resume' : 'Pause';
@@ -262,7 +264,7 @@ HTML_TEMPLATE = """
                 addNextMessage();
             }
         });
-        
+
         document.getElementById('resetBtn').addEventListener('click', function() {
             currentIndex = 0;
             document.getElementById('messages').innerHTML = '';
@@ -419,7 +421,9 @@ HTML_TEMPLATE = """
         }
 
         // Start displaying logs when page loads
-        document.addEventListener('DOMContentLoaded', addNextMessage);
+        document.addEventListener('DOMContentLoaded', function() {
+            addNextMessage(); // Ensure this is called on page load
+        });
     </script>
 </body>
 </html>
@@ -516,6 +520,19 @@ def load_logs_from_folder(folder_path: str) -> List[Dict[str, Any]]:
     return logs
 
 
+def reload_logs(log_folder: str, interval: int = 5) -> None:
+    """
+    Reload logs from the specified folder at regular intervals.
+
+    Args:
+        log_folder: Path to the folder containing JSONL log files
+        interval: Time interval (in seconds) to reload logs (default: 60)
+    """
+    global LOGS
+    while True:
+        LOGS = load_logs_from_folder(log_folder)
+        time.sleep(interval)
+
 def run_viewer(log_folder: str, port: int = 5000) -> None:
     """
     Run the log viewer with logs from the specified folder.
@@ -532,6 +549,11 @@ def run_viewer(log_folder: str, port: int = 5000) -> None:
     # Set the log directory to the specified folder
     LOG_DIR = log_folder
     LOGS = load_logs_from_folder(log_folder)
+
+    # Start a background thread to reload logs periodically
+    reload_thread = threading.Thread(target=reload_logs, args=(log_folder,))
+    reload_thread.daemon = True
+    reload_thread.start()
 
     print(f"Loaded {len(LOGS)} log entries")
     print(f"Log viewer running at http://localhost:{port}")

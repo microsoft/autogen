@@ -297,8 +297,8 @@ async def test_web_surfer_bing() -> None:
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
     asyncio.run(test_web_surfer())
-    asyncio.sleep(1) # to allow for creation and deletion of logs folder
+    asyncio.sleep(1)  # to allow for creation and deletion of logs folder
     asyncio.run(test_web_surfer_oai())
-    asyncio.sleep(1) # to allow for creation and deletion of logs folder
+    asyncio.sleep(1)  # to allow for creation and deletion of logs folder
     asyncio.run(test_web_surfer_bing())
-    asyncio.sleep(1) # to allow for creation and deletion of logs folder
+    asyncio.sleep(1)  # to allow for creation and deletion of logs folder

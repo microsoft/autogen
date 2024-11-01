@@ -5,7 +5,6 @@ This repository contains the interface for interacting with the MagenticOne syst
 
 
 
-
 ## Installation
 
 Make sure to clone AutoGen first:

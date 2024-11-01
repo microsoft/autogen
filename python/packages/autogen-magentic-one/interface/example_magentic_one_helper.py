@@ -1,15 +1,12 @@
 from magentic_one_helper import MagenticOneHelper
 import asyncio
 import json
-
-
-async def main():
-    # Create and initialize MagenticOne
-    magnetic_one = MagenticOneHelper(logs_dir="./logs")
+import argparse
+import os
+async def main(task, logs_dir):    
+    magnetic_one = MagenticOneHelper(logs_dir=logs_dir)
     await magnetic_one.initialize()
     print("MagenticOne initialized.")
-    # Start a task and stream logs
-    task = "code for fibonacci and run it"
 
     # Create task and log streaming tasks
     task_future = asyncio.create_task(magnetic_one.run_task(task))
@@ -32,4 +29,10 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Run a task with MagenticOneHelper.")
+    parser.add_argument("task", type=str, help="The task to run")
+    parser.add_argument("--logs_dir", type=str, default="./logs", help="Directory to store logs")
+    args = parser.parse_args()
+    if not os.path.exists(args.logs_dir):
+        os.makedirs(args.logs_dir)
+    asyncio.run(main(args.task, args.logs_dir))
