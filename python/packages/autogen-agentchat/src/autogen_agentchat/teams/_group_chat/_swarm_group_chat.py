@@ -85,10 +85,8 @@ class Swarm(BaseGroupChat):
                 print(message)
     """
 
-    def __init__(self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None):
-        super().__init__(
-            participants, termination_condition=termination_condition, group_chat_manager_class=SwarmGroupChatManager
-        )
+    def __init__(self, participants: List[ChatAgent]):
+        super().__init__(participants, group_chat_manager_class=SwarmGroupChatManager)
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
         if HandoffMessage not in first_participant.produced_message_types:
