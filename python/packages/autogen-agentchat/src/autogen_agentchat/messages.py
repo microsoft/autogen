@@ -1,7 +1,7 @@
 from typing import List
 
 from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult
+from autogen_core.components.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel
 
 
@@ -10,6 +10,9 @@ class BaseMessage(BaseModel):
 
     source: str
     """The name of the agent that sent this message."""
+
+    model_usage: RequestUsage | None = None
+    """The model client usage incurred when producing this message."""
 
 
 class TextMessage(BaseMessage):
