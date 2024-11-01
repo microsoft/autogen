@@ -6,6 +6,7 @@ from autogen_agentchat.task import (
     TextMentionTermination,
     TokenUsageTermination,
 )
+from autogen_core.components.models import RequestUsage
 
 
 @pytest.mark.asyncio
@@ -61,15 +62,42 @@ async def test_token_usage_termination() -> None:
     termination = TokenUsageTermination(max_total_token=10)
     assert await termination([]) is None
     await termination.reset()
-    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    assert (
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=10, completion_tokens=10)
+                )
+            ]
+        )
+        is not None
+    )
     await termination.reset()
     assert (
-        await termination([TextMessage(content="Hello", source="user"), TextMessage(content="World", source="agent")])
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                ),
+                TextMessage(
+                    content="World", source="agent", model_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                ),
+            ]
+        )
         is None
     )
     await termination.reset()
     assert (
-        await termination([TextMessage(content="Hello", source="user"), TextMessage(content="stop", source="user")])
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=5, completion_tokens=0)
+                ),
+                TextMessage(
+                    content="stop", source="user", model_usage=RequestUsage(prompt_tokens=0, completion_tokens=5)
+                ),
+            ]
+        )
         is not None
     )
 
