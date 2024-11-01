@@ -1,4 +1,4 @@
-from magentic_one import MagenticOneHelper
+from magentic_one_helper import MagenticOneHelper
 import asyncio
 import json
 
