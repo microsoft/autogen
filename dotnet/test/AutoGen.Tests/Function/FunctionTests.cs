@@ -56,7 +56,7 @@ public class FunctionTests
             GetWeatherStatic,
             GetWeatherAsync,
             GetWeatherAsyncStatic,
-            ];
+        ];
 
         var functionContracts = availableDelegates.Select(function => (FunctionContract)AIFunctionFactory.Create(function).Metadata).ToList();
 

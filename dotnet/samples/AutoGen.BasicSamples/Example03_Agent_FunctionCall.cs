@@ -124,7 +124,7 @@ public partial class Example03_Agent_FunctionCall
             AIFunctionFactory.Create(instance.UpperCase),
             AIFunctionFactory.Create(instance.ConcatString),
             AIFunctionFactory.Create(instance.CalculateTax),
-            ];
+        ];
 
         var toolCallMiddleware = new FunctionCallMiddleware(tools);
 
