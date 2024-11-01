@@ -415,7 +415,7 @@ HTML_TEMPLATE = """
                         messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
                         currentIndex++;
-                        setTimeout(addNextMessage, 1000);
+                        setTimeout(addNextMessage, 1500);
                     }
                 });
         }
