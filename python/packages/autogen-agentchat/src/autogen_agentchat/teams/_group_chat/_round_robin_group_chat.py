@@ -61,46 +61,55 @@ class RoundRobinGroupChat(BaseGroupChat):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.task import StopMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                async def get_weather(location: str) -> str:
+                    return f"The weather in {location} is sunny."
+
+                assistant = AssistantAgent(
+                    "Assistant",
+                    model_client=model_client,
+                    tools=[get_weather],
+                )
+                team = RoundRobinGroupChat([assistant])
+                stream = team.run_stream("What's the weather in New York?", termination_condition=StopMessageTermination())
+                async for message in stream:
+                    print(message)
 
 
-            async def get_weather(location: str) -> str:
-                return f"The weather in {location} is sunny."
-
-
-            assistant = AssistantAgent(
-                "Assistant",
-                model_client=model_client,
-                tools=[get_weather],
-            )
-            team = RoundRobinGroupChat([assistant])
-            stream = team.run_stream("What's the weather in New York?", termination_condition=StopMessageTermination())
-            async for message in stream:
-                print(message)
+            asyncio.run(main())
 
     A team with multiple participants:
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.task import StopMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            agent1 = AssistantAgent("Assistant1", model_client=model_client)
-            agent2 = AssistantAgent("Assistant2", model_client=model_client)
-            team = RoundRobinGroupChat([agent1, agent2])
-            stream = team.run_stream("Tell me some jokes.", termination_condition=StopMessageTermination())
-            async for message in stream:
-                print(message)
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                team = RoundRobinGroupChat([agent1, agent2])
+                stream = team.run_stream("Tell me some jokes.", termination_condition=StopMessageTermination())
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
     """
 
     def __init__(self, participants: List[ChatAgent]):

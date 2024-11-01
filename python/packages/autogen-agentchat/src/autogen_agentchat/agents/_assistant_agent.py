@@ -131,14 +131,19 @@ class AssistantAgent(BaseChatAgent):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.task import MaxMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
-            agent = AssistantAgent(name="assistant", model_client=model_client)
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(name="assistant", model_client=model_client)
 
-            await agent.run("What is the capital of France?", termination_condition=MaxMessageTermination(2))
+                result await agent.run("What is the capital of France?", termination_condition=MaxMessageTermination(2))
+                print(result)
+
+            asyncio.run(main())
 
 
         The following example demonstrates how to create an assistant agent with
@@ -146,6 +151,7 @@ class AssistantAgent(BaseChatAgent):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.task import MaxMessageTermination
@@ -155,14 +161,17 @@ class AssistantAgent(BaseChatAgent):
                 return "The current time is 12:00 PM."
 
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
-            agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
 
-            stream = agent.run_stream("What is the current time?", termination_condition=MaxMessageTermination(3))
+                stream = agent.run_stream("What is the current time?", termination_condition=MaxMessageTermination(3))
 
-            async for message in stream:
-                print(message)
+                async for message in stream:
+                    print(message)
 
+
+            asyncio.run(main())
 
     """
 
