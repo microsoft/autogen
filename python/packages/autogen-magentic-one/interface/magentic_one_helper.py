@@ -41,7 +41,6 @@ class MagenticOneHelper:
         self.runtime: Optional[SingleThreadedAgentRuntime] = None
         self.log_handler: Optional[LogHandler] = None
 
-
         if not os.path.exists(self.logs_dir):
             os.makedirs(self.logs_dir)
 
@@ -90,6 +89,7 @@ class MagenticOneHelper:
                 model_client=client,
                 max_rounds=30,
                 max_time=25 * 60,
+                max_stalls_before_replan= 10,
                 return_final_answer=True,
             ),
         )
@@ -153,6 +153,7 @@ class MagenticOneHelper:
         last_index = 0
         found_final_answer = False
         found_termination = False
+        found_termination_no_agent = False
 
         while True:
             current_logs = self.log_handler.logs_list
@@ -174,11 +175,37 @@ class MagenticOneHelper:
                 ):
                     found_termination = True
 
+                if (
+                    log_entry.get("type") == "OrchestrationEvent"
+                    and log_entry.get("source") == "Orchestrator (final answer)"
+                ):
+                    found_final_answer = True
+
+                # Check for termination condition
+                if (
+                    log_entry.get("type") == "OrchestrationEvent"
+                    and log_entry.get("source") == "Orchestrator (termination condition)"
+                ):
+                    found_termination = True
+
+                # Check for termination condition
+                if (
+                    log_entry.get("type") == "OrchestrationEvent"
+                    and log_entry.get("source") == "Orchestrator (termination condition)"
+                    and log_entry.get("message") == "No agent selected."
+                ):
+                    found_termination_no_agent = True
+
+                if self.runtime._run_context is None:
+                    return
+
+                if found_termination_no_agent and found_final_answer:
+                    return
+                elif found_termination and not found_termination_no_agent:
+                    return
+
                 last_index += 1
 
-                # If both conditions are met, stop streaming
-                if found_final_answer or found_termination:
-                    return
 
             await asyncio.sleep(0.1)  # Small delay to prevent busy waiting
 

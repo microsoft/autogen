@@ -488,7 +488,6 @@ def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
             if "New tab or window." in log["message"]:
                 indices_to_remove.append(i)
             elif "Screenshot:" not in log["message"]:
-                # find the next log that is source WebSurfer without type WebSurferEvent, and append its message to this log
                 for j in range(i + 1, len(logs)):
                     if (
                         logs[j]["type"] == "OrchestrationEvent"
@@ -532,6 +531,7 @@ def reload_logs(log_folder: str, interval: int = 5) -> None:
     while True:
         LOGS = load_logs_from_folder(log_folder)
         time.sleep(interval)
+
 
 def run_viewer(log_folder: str, port: int = 5000) -> None:
     """

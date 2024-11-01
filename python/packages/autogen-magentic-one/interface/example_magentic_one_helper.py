@@ -3,7 +3,9 @@ import asyncio
 import json
 import argparse
 import os
-async def main(task, logs_dir):    
+
+
+async def main(task, logs_dir):
     magnetic_one = MagenticOneHelper(logs_dir=logs_dir)
     await magnetic_one.initialize()
     print("MagenticOne initialized.")

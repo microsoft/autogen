@@ -53,7 +53,7 @@ Reply "TERMINATE" in the end when everything is done.""")
             self._system_messages + self._chat_history, cancellation_token=cancellation_token
         )
         assert isinstance(response.content, str)
-        return "TERMINATE" in response.content, response.content
+        return False, response.content
 
 
 # True if the user confirms the code, False otherwise
