@@ -202,15 +202,14 @@ public abstract class AgentBase : IAgentBase, IHandle
         var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
-        var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
         Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
+            static async ((AgentBase Agent, CloudEvent Event) state) =>
             {
                 await state.Agent._context.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
-            (this, item, completion),
+            (this, item),
             activity,
             item.Type).ConfigureAwait(false);
     }
