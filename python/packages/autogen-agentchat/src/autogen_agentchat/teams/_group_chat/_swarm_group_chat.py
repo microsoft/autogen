@@ -61,28 +61,34 @@ class Swarm(BaseGroupChat):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
             from autogen_agentchat.task import MaxMessageTermination
 
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            agent1 = AssistantAgent(
-                "Alice",
-                model_client=model_client,
-                handoffs=["Bob"],
-                system_message="You are Alice and you only answer questions about yourself.",
-            )
-            agent2 = AssistantAgent(
-                "Bob", model_client=model_client, system_message="You are Bob and your birthday is on 1st January."
-            )
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            team = Swarm([agent1, agent2])
+                agent1 = AssistantAgent(
+                    "Alice",
+                    model_client=model_client,
+                    handoffs=["Bob"],
+                    system_message="You are Alice and you only answer questions about yourself.",
+                )
+                agent2 = AssistantAgent(
+                    "Bob", model_client=model_client, system_message="You are Bob and your birthday is on 1st January."
+                )
 
-            stream = team.run_stream("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
-            async for message in stream:
-                print(message)
+                team = Swarm([agent1, agent2])
+
+                stream = team.run_stream("What is bob's birthday?", termination_condition=MaxMessageTermination(3))
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
     """
 
     def __init__(self, participants: List[ChatAgent]):

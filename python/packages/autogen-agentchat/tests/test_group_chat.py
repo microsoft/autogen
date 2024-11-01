@@ -493,6 +493,54 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
         index += 1
 
 
+@pytest.mark.asyncio
+async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent3", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    agent4 = _EchoAgent("agent4", description="echo agent 4")
+
+    def _select_agent(messages: Sequence[ChatMessage]) -> str | None:
+        if len(messages) == 0:
+            return "agent1"
+        elif messages[-1].source == "agent1":
+            return "agent2"
+        elif messages[-1].source == "agent2":
+            return None
+        elif messages[-1].source == "agent3":
+            return "agent4"
+        else:
+            return "agent1"
+
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3, agent4],
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        selector_func=_select_agent,
+    )
+    result = await team.run("task", termination_condition=MaxMessageTermination(6))
+    assert len(result.messages) == 6
+    assert result.messages[1].source == "agent1"
+    assert result.messages[2].source == "agent2"
+    assert result.messages[3].source == "agent3"
+    assert result.messages[4].source == "agent4"
+    assert result.messages[5].source == "agent1"
+
+
 class _HandOffAgent(BaseChatAgent):
     def __init__(self, name: str, description: str, next_agent: str) -> None:
         super().__init__(name, description)
