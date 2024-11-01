@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // App.cs
-
+using Microsoft.AutoGen.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
@@ -46,8 +46,8 @@ public static class AgentsApp
         {
             await StartAsync(builder, agents, local);
         }
-        var client = Host.Services.GetRequiredService<AgentBase>() ?? throw new InvalidOperationException("Host not started");
-        await client.PublishEventAsync(topic, message).ConfigureAwait(false);
+        var client = Host.Services.GetRequiredService<IAgentBase>() ?? throw new InvalidOperationException("Host not started");
+        await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(false);
         return Host;
     }
     public static async ValueTask ShutdownAsync()
