@@ -256,7 +256,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
-    assert isinstance(result.messages[5], StopMessage)  # tool use agent response
+    assert isinstance(result.messages[5], TextMessage)  # tool use agent response
 
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
