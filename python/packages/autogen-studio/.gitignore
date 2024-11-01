@@ -10,6 +10,7 @@ autogenstudio/web/ui/*
 autogenstudio/web/skills/user/*
 .release.sh
 .nightly.sh
+notebooks/test
 
 notebooks/work_dir/*
 

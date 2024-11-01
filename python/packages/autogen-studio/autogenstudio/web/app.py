@@ -46,7 +46,8 @@ def message_handler():
                 logger.info(
                     f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
                 )
-                asyncio.run(websocket_manager.send_message(message, connection))
+                asyncio.run(websocket_manager.send_message(
+                    message, connection))
             else:
                 logger.info(
                     f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
@@ -122,8 +123,6 @@ api.mount(
 
 
 # manage websocket connections
-
-
 def create_entity(model: Any, model_class: Any, filters: dict = None):
     """Create a new entity"""
     model = check_and_cast_datetime_fields(model)
@@ -312,12 +311,14 @@ async def get_workflow(workflow_id: int, user_id: str):
 @api.get("/workflows/export/{workflow_id}")
 async def export_workflow(workflow_id: int, user_id: str):
     """Export a user workflow"""
-    response = Response(message="Workflow exported successfully", status=True, data=None)
+    response = Response(
+        message="Workflow exported successfully", status=True, data=None)
     try:
         workflow_details = workflow_from_id(workflow_id, dbmanager=dbmanager)
         response.data = workflow_details
     except Exception as ex_error:
-        response.message = "Error occurred while exporting workflow: " + str(ex_error)
+        response.message = "Error occurred while exporting workflow: " + \
+            str(ex_error)
         response.status = False
     return response.model_dump(mode="json")
 
@@ -396,7 +397,8 @@ async def get_linked_workflow_agents(workflow_id: int):
 async def profile_agent_task_run(message_id: int):
     """Profile an agent task run"""
     try:
-        agent_message = dbmanager.get(Message, filters={"id": message_id}).data[0]
+        agent_message = dbmanager.get(
+            Message, filters={"id": message_id}).data[0]
 
         profile = profiler.profile(agent_message)
         return {
@@ -445,7 +447,8 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         user_message_history = (
             dbmanager.get(
                 Message,
-                filters={"user_id": message.user_id, "session_id": message.session_id},
+                filters={"user_id": message.user_id,
+                         "session_id": message.session_id},
                 return_json=True,
             ).data
             if session_id is not None
@@ -453,7 +456,8 @@ async def run_session_workflow(message: Message, session_id: int, workflow_id: i
         )
         # save incoming message
         dbmanager.upsert(message)
-        user_dir = os.path.join(folders["files_static_root"], "user", sha256_hash(message.user_id))
+        user_dir = os.path.join(
+            folders["files_static_root"], "user", sha256_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
         workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
         agent_response: Message = await managers["chat"].a_chat(
