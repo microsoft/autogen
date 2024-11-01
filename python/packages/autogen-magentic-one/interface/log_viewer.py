@@ -398,7 +398,9 @@ HTML_TEMPLATE = """
                         }
                         const container = document.getElementById('messages');
                         container.appendChild(messageElement);
-                        container.scrollTop = container.scrollHeight;
+                        // container.scrollTop = container.scrollHeight;
+                        messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
                         currentIndex++;
                         setTimeout(addNextMessage, 1000);
                     }
@@ -445,16 +447,56 @@ def load_jsonl(file_path: str) -> List[Dict[str, Any]]:
                 logs.append(json.loads(line.strip()))
             except json.JSONDecodeError:
                 print(f"Warning: Skipping invalid JSON line: {line.strip()}")
+
+    # process logs
+    indices_to_remove = []
+
+    for i, log in enumerate(logs):
+        if "source" not in log or "message" not in log:
+            indices_to_remove.append(i)
+        elif "Orchestrator (thought)" in log["source"] and ("Request satisfied." in log["message"]):
+            indices_to_remove.append(i)
+        elif "Next speaker" in log["message"] or "No agent selected." in log["message"]:
+            indices_to_remove.append(i)
+        elif "Orchestrator (->" in log["source"]:
+            indices_to_remove.append(i)
+        elif "Orchestrator (termination condition)" in log["source"] or "No agent selected." in log["message"]:
+            indices_to_remove.append(i)
+        elif "type" in log and "WebSurferEvent" in log["type"]:
+            # websurfer filtering
+            if "New tab or window." in log["message"]:
+                indices_to_remove.append(i)
+            elif "Screenshot:" not in log["message"]:
+                # find the next log that is source WebSurfer without type WebSurferEvent, and append its message to this log
+                for j in range(i + 1, len(logs)):
+                    if (
+                        logs[j]["type"] == "OrchestrationEvent"
+                        and "source" in logs[j]
+                        and logs[j]["source"] == "WebSurfer"
+                    ):
+                        first_line_log_j = logs[j]["message"].split("\n")[0]
+                        logs[i]["message"] += "\n\n" + first_line_log_j
+                        break
+
+    # remove all WebSurfer logs
+    for i, log in enumerate(logs):
+        if log["type"] == "OrchestrationEvent" and "source" in log and log["source"] == "WebSurfer":
+            indices_to_remove.append(i)
+
+    logs = [log for i, log in enumerate(logs) if i not in indices_to_remove]
+
     return logs
+
 
 def load_logs_from_folder(folder_path: str) -> List[Dict[str, Any]]:
     """Load logs from all JSONL files in the specified folder."""
     logs = []
     for file_name in os.listdir(folder_path):
-        if file_name.endswith(".jsonl"):
+        if file_name.endswith("log.jsonl"):
             file_path = os.path.join(folder_path, file_name)
             logs.extend(load_jsonl(file_path))
     return logs
+
 
 def run_viewer(log_folder: str, port: int = 5000) -> None:
     """
@@ -477,8 +519,8 @@ def run_viewer(log_folder: str, port: int = 5000) -> None:
     print(f"Log viewer running at http://localhost:{port}")
     app.run(port=port, debug=False)
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the log viewer")
     parser.add_argument("log_folder", help="Path to the folder containing JSONL log files")
     parser.add_argument("--port", type=int, default=5000, help="Port to run the server on")
