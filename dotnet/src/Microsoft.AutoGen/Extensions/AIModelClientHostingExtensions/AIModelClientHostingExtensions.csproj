@@ -4,7 +4,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <!-- The following properties are used to suppress warnings that are not relevant to this project. -->
     <NoWarn>$(NoWarnDuplicatePackages)</NoWarn>
   </PropertyGroup>
   <ItemGroup>
