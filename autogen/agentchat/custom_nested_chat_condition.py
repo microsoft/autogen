@@ -8,10 +8,15 @@ class CustomNestedChatCondition():
         """Class to hold a user-defined function signature and its parameters to act as conditions for nested conversations.
         
         Args:
-            func: A callable function defined by the user.
-            params: A dictionary of variables and names to act as the func's parameters.
-            name: Optional string to name the custom condition. if none given, it will use the func.__name__ value
-            off_switch: Testing shows that once once the condition is set to true, it needs to be switched off or else it remains true and will always be true. Therefore, control over when to turn off nested chats needs to be specified. "immediate" for one-and-done nested chats, "recurring_condition" for something that may happen regularly, "temporary_attention_switch" for if you need to get more information outside the chat from somewhere else
+            func (Callable): A callable function defined by the user.
+            params (Dict): A dictionary of variables and names to act as the func's parameters.
+            name (str): Optional string to name the custom condition. if none given, it will use the func.__name__ value
+            state_ttl_management (str): The time-to-live for the state of the parameters needs to change or else the nested chat will forever be triggered. 
+                Possible values are "STATELESS", "PERSISTENT",
+                (1) When "STATELESS", the state_params will be reset to an empty dict immediately after the trigger is checked.
+                The following 2 enum values are for scenarios where the trigger function needs to work with runtime state variables and external data that changes by itself. Should the developer need the runtime state data to work with that external data, this should provide that support
+                (2) When "STATE_KEPT_TILL_TRUE", the state will be kept as-is until trigger function returns true, whereby it will be reset to None.
+                (3) When "STATE_KEPT_TILL_FALSE", the state will be kept as-is until trigger function returns false, whereby it will be reset to None.
             
         """
         # ennforce func is callable that returns bool
@@ -49,9 +54,26 @@ class CustomNestedChatCondition():
         Call the function using the provided params, matching by parameter name.
         """
         # Call the function using **params to match by parameter name
-        result = self.func(**self.state_params)
-        self.state_params=None
-        return result
+        trigger_result = self.func(**self.state_params)
+        
+        # Handle state_params reset based on state_ttl_management
+        if self.state_ttl_management == "STATELESS":
+            # Reset state_params to an empty dict immediately after the trigger is checked
+            self.state_params = {}
+        elif self.state_ttl_management == "STATE_KEPT_TILL_TRUE":
+            # Reset state_params to None if trigger function returns True
+            if trigger_result is True:
+                self.state_params = None
+        elif self.state_ttl_management == "STATE_KEPT_TILL_FALSE":
+            # Reset state_params to None if trigger function returns False
+            if trigger_result is False:
+                self.state_params = None
+        else:
+            # Default behavior: reset state_params to None
+            self.state_params = None
+
+        return trigger_result
+
             
     def update_state(self, new_state: dict):
         """
