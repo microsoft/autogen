@@ -161,20 +161,6 @@ class MagenticOneHelper:
                 log_entry = current_logs[last_index]
                 yield log_entry
 
-                # Check for final answer
-                if (
-                    log_entry.get("type") == "OrchestrationEvent"
-                    and log_entry.get("source") == "Orchestrator (final answer)"
-                ):
-                    found_final_answer = True
-
-                # Check for termination condition
-                if (
-                    log_entry.get("type") == "OrchestrationEvent"
-                    and log_entry.get("source") == "Orchestrator (termination condition)"
-                ):
-                    found_termination = True
-
                 if (
                     log_entry.get("type") == "OrchestrationEvent"
                     and log_entry.get("source") == "Orchestrator (final answer)"
