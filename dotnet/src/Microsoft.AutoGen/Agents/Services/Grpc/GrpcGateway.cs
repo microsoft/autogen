@@ -15,8 +15,6 @@ internal sealed class GrpcGateway : Gateway, IGateway
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
 
-    // The local mapping of agents to worker processes.
-    private readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     // The mapping from agent id to worker process.
@@ -33,7 +31,7 @@ internal sealed class GrpcGateway : Gateway, IGateway
         _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
     }
     //intetionally not static so can be called by some methods implemented in base class
-    private async ValueTask SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    public override async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (GrpcWorkerConnection)connection;
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);

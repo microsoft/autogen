@@ -9,4 +9,6 @@ public interface IGateway : IGrainObserver
     ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default);
     ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default);
     ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default);
+    Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default);
+
 }

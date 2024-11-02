@@ -19,7 +19,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
 
     private readonly ConcurrentDictionary<string, List<InMemoryQueue<CloudEvent>>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<CloudEvent>> _agentDirectory = new();
-    private readonly ConcurrentDictionary<InMemoryQueue<CloudEvent>, InMemoryQueue<CloudEvent>> _workers = new();
+    public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
 
@@ -44,7 +44,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     }
 
     // intentionally not static
-    private async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    public virtual async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (InMemoryQueue<CloudEvent>)connection;
         await queue.Writer.WriteAsync(cloudEvent, cancellationToken).AsTask().ConfigureAwait(false);
