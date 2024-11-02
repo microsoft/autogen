@@ -7,9 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
-public sealed class Client(AgentWorker runtime, DistributedContextPropagator distributedContextPropagator,
+public sealed class Client(IAgentWorker runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<AgentBase> logger)
     : AgentBase(new AgentContext(new AgentId("client", Guid.NewGuid().ToString()), runtime, logger, distributedContextPropagator), eventTypes)
 {
-   
 }
