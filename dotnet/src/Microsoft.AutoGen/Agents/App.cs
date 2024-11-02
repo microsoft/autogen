@@ -47,7 +47,7 @@ public static class AgentsApp
             await StartAsync(builder, agents, local);
         }
         var client = Host.Services.GetRequiredService<IAgentBase>() ?? throw new InvalidOperationException("Host not started");
-        await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(false);
+        await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(true);
         return Host;
     }
     public static async ValueTask ShutdownAsync()
