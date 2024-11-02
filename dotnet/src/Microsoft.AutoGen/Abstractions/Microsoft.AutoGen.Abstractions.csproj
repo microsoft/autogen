@@ -21,7 +21,12 @@
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
+ 		<PackageReference Include="Microsoft.Orleans.Sdk" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
+  <PropertyGroup>
+   	<ServerGarbageCollection>true</ServerGarbageCollection>
+   	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+	</PropertyGroup>
 
 </Project>

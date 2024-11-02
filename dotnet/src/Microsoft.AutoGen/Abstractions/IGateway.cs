@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IGateway.cs
 
-using Orleans;
-
 namespace Microsoft.AutoGen.Abstractions;
 
 public interface IGateway : IGrainObserver
