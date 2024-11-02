@@ -21,7 +21,7 @@ public static class Host
             builder.AddAgentService(useGrpc);
         }
         var app = builder.Build();
-        app.MapAgentService(local);
+        app.MapAgentService(local, useGrpc);
         app.MapDefaultEndpoints();
         await app.StartAsync().ConfigureAwait(false);
         return app;

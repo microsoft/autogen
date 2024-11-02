@@ -34,5 +34,9 @@
 		<PackageReference Include="Microsoft.Orleans.Reminders" />
 		<PackageReference Include="OrleansDashboard"/>
 	</ItemGroup>
+	<PropertyGroup>
+    	<ServerGarbageCollection>true</ServerGarbageCollection>
+    	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+	</PropertyGroup>
 
 </Project>
