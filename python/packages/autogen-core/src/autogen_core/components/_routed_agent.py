@@ -19,13 +19,13 @@ from typing import (
     runtime_checkable,
 )
 
-from ..base import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
+from ..base import Agent, BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
 from ..base._type_helpers import AnyType, get_types
 from ..base.exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
 
-AgentT = TypeVar("AgentT")
+AgentT = TypeVar("AgentT", bound=Agent)
 ReceivesT = TypeVar("ReceivesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
 
@@ -47,13 +47,19 @@ class MessageHandler(Protocol[AgentT, ReceivesT, ProducesT]):  # type: ignore
     async def __call__(agent_instance: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT: ...
 
 
-# NOTE: this works on concrete types and not inheritance
-# TODO: Use a protocol for the outer function to check checked arg names
+@runtime_checkable
+class MessageHandlerFunction(Protocol[AgentT, ReceivesT, ProducesT]):  # type: ignore
+    @staticmethod
+    async def __call__(
+        self: AgentT,  # type: ignore [reportSelfClsParameterName]
+        message: ReceivesT,
+        ctx: MessageContext,
+    ) -> ProducesT: ...
 
 
 @overload
 def message_handler(
-    func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+    func: MessageHandlerFunction[AgentT, ReceivesT, ProducesT],
 ) -> MessageHandler[AgentT, ReceivesT, ProducesT]: ...
 
 
@@ -64,7 +70,7 @@ def message_handler(
     match: None = ...,
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    [MessageHandlerFunction[AgentT, ReceivesT, ProducesT]],
     MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
@@ -76,19 +82,19 @@ def message_handler(
     match: Callable[[ReceivesT, MessageContext], bool],
     strict: bool = ...,
 ) -> Callable[
-    [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+    [MessageHandlerFunction[AgentT, ReceivesT, ProducesT]],
     MessageHandler[AgentT, ReceivesT, ProducesT],
 ]: ...
 
 
 def message_handler(
-    func: None | Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]] = None,
+    func: None | MessageHandlerFunction[AgentT, ReceivesT, ProducesT] = None,
     *,
     strict: bool = True,
     match: None | Callable[[ReceivesT, MessageContext], bool] = None,
 ) -> (
     Callable[
-        [Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]]],
+        [MessageHandlerFunction[AgentT, ReceivesT, ProducesT]],
         MessageHandler[AgentT, ReceivesT, ProducesT],
     ]
     | MessageHandler[AgentT, ReceivesT, ProducesT]
@@ -115,7 +121,7 @@ def message_handler(
     """
 
     def decorator(
-        func: Callable[[AgentT, ReceivesT, MessageContext], Coroutine[Any, Any, ProducesT]],
+        func: MessageHandlerFunction[AgentT, ReceivesT, ProducesT],
     ) -> MessageHandler[AgentT, ReceivesT, ProducesT]:
         type_hints = get_type_hints(func)
         if "message" not in type_hints:
