@@ -14,9 +14,6 @@
     <SKEXPNoWarn>SKEXP0001;SKEXP0010;SKEXP0020</SKEXPNoWarn>
     <NoWarn>$(NoWarn);$(CSNoWarn);$(SKEXPNoWarn);NU5104</NoWarn>
 
-    <!-- Some properties require a different version of System.Json.Text > 8.0.5
-    Some csprojs override the version and this is a workaround from duplicate package references -->
-    <NoWarnDuplicatePackages>$(NoWarn);NU1504;NU1605</NoWarnDuplicatePackages>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
@@ -35,10 +32,6 @@
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <NoWarn>$(NoWarn);CA1829</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="ApprovalTests" />

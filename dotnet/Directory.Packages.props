@@ -111,6 +111,5 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.5" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.10" />
-    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 </Project>
