@@ -11,7 +11,8 @@ var allSamples = new List<(string, Func<Task>)>
     // When a new sample is created please add them to the allSamples collection
     ("Assistant Agent", Example01_AssistantAgent.RunAsync),
     ("Two-agent Math Chat", Example02_TwoAgent_MathChat.RunAsync),
-    ("Agent Function Call", Example03_Agent_FunctionCall.RunAsync),
+    ("Agent Function Call With Source Generator", Example03_Agent_FunctionCall.ToolCallWithSourceGenerator),
+    ("Agent Function Call With M.E.A.I AI Functions", Example03_Agent_FunctionCall.ToolCallWithMEAITools),
     ("Dynamic Group Chat Coding Task", Example04_Dynamic_GroupChat_Coding_Task.RunAsync),
     ("DALL-E and GPT4v", Example05_Dalle_And_GPT4V.RunAsync),
     ("User Proxy Agent", Example06_UserProxyAgent.RunAsync),
