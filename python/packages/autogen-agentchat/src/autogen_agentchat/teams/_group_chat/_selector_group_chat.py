@@ -169,6 +169,8 @@ class SelectorGroupChat(BaseGroupChat):
             must have unique names and at least two participants.
         model_client (ChatCompletionClient): The ChatCompletion model client used
             to select the next speaker.
+        termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
+            Without a termination condition, the group chat will run indefinitely.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
             Must contain '{roles}', '{participants}', and '{history}' to be filled in.
         allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
@@ -187,10 +189,11 @@ class SelectorGroupChat(BaseGroupChat):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
-            from autogen_agentchat.task import StopMessageTermination
+            from autogen_agentchat.task import TextMentionTermination
 
 
             async def main() -> None:
@@ -223,13 +226,16 @@ class SelectorGroupChat(BaseGroupChat):
                     tools=[lookup_flight],
                     description="Helps with flight booking.",
                 )
-                team = SelectorGroupChat([travel_advisor, hotel_agent, flight_agent], model_client=model_client)
-                stream = team.run_stream("Book a 3-day trip to new york.", termination_condition=StopMessageTermination())
+                termination = TextMentionTermination("TERMINATE")
+                team = SelectorGroupChat(
+                    [travel_advisor, hotel_agent, flight_agent],
+                    model_client=model_client,
+                    termination_condition=termination,
+                )
+                stream = team.run_stream("Book a 3-day trip to new york.")
                 async for message in stream:
                     print(message)
 
-
-            import asyncio
 
             asyncio.run(main())
 
@@ -237,6 +243,7 @@ class SelectorGroupChat(BaseGroupChat):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
@@ -273,14 +280,18 @@ class SelectorGroupChat(BaseGroupChat):
                         return "Agent2"
                     return None
 
-                team = SelectorGroupChat([agent1, agent2], model_client=model_client, selector_func=selector_func)
+                termination = TextMentionTermination("Correct!")
+                team = SelectorGroupChat(
+                    [agent1, agent2],
+                    model_client=model_client,
+                    selector_func=selector_func,
+                    termination_condition=termination,
+                )
 
-                stream = team.run_stream("What is 1 + 1?", termination_condition=TextMentionTermination("Correct!"))
+                stream = team.run_stream("What is 1 + 1?")
                 async for message in stream:
                     print(message)
 
-
-            import asyncio
 
             asyncio.run(main())
     """
@@ -290,6 +301,7 @@ class SelectorGroupChat(BaseGroupChat):
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
+        termination_condition: TerminationCondition | None = None,
         selector_prompt: str = """You are in a role play game. The following roles are available:
 {roles}.
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
@@ -301,7 +313,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         allow_repeated_speaker: bool = False,
         selector_func: Callable[[Sequence[ChatMessage]], str | None] | None = None,
     ):
-        super().__init__(participants, group_chat_manager_class=SelectorGroupChatManager)
+        super().__init__(
+            participants, group_chat_manager_class=SelectorGroupChatManager, termination_condition=termination_condition
+        )
         # Validate the participants.
         if len(participants) < 2:
             raise ValueError("At least two participants are required for SelectorGroupChat.")
