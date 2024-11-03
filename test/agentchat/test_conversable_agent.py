@@ -22,7 +22,7 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
 
 import autogen
-from autogen.agentchat import ConversableAgent, UserProxyAgent
+from autogen.agentchat import ConversableAgent, UserProxyAgent, CustomNestedChatCondition
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
@@ -88,6 +88,67 @@ def test_sync_trigger():
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
 
+    # Test user defined with trigger
+    def user_defined_trigger():
+        return True
+    nested_chat_condition = CustomNestedChatCondition(
+        func=user_defined_trigger
+    )
+    agent.register_reply(
+        nested_chat_condition, lambda recipient, messages, sender, config: (True, "hello agent1")
+    )
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent1"
+    # Test user defined trigger with params (default state management: STATELESS)
+    # Test with blank slate agents
+    def user_defined_trigger_with_params(f: int):
+        if f > 0:
+            return True
+        else:
+            return False
+    nested_chat_condition_state = {
+        "f":1
+    }
+    nested_chat_condition = CustomNestedChatCondition(
+        func=user_defined_trigger_with_params,
+        state_params=nested_chat_condition_state
+    )
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent.register_reply(
+        nested_chat_condition, lambda recipient, messages, sender, config: (True, "hello agent1")
+    )
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent1"
+    # Now that trigger has been activated, state should reset to None, and initiating chat aain would fail
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent) == None #is there another bettter way to assert agent1 wont reply?
+
+    # Test user defined trigger with params (default state management: STATE_KEPT_TILL_TRUE)
+    # Test with blank slate agents
+    nested_chat_condition.state_ttl_management="STATE_KEPT_TILL_TRUE"
+    agent.register_reply(
+        nested_chat_condition, lambda recipient, messages, sender, config: (True, "hello agent1")
+    )
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent1"
+    # Now that trigger has been activated, state should reset to None, and initiating chat aain would fail
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent) == None and nested_chat_condition.state_params == None #is there another bettter way to assert agent1 wont reply?
+    # Test user defined trigger with params (default state management: STATE_KEPT_TILL_FALSE)
+    # Test with blank slate agents
+    nested_chat_condition.state_ttl_management="STATE_KEPT_TILL_FALSE"
+    nested_chat_condition.update_state({
+        "f":-1
+    })
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent.register_reply(
+        nested_chat_condition, lambda recipient, messages, sender, config: (True, "hello agent1")
+    )
+    agent1.initiate_chat(agent, message="hi")
+    # Now that trigger has been failed, state should reset to None
+    assert agent1.last_message(agent) == None and nested_chat_condition.state_params == None
 
 @pytest.mark.asyncio
 async def test_async_trigger():

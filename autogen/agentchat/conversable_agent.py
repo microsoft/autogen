@@ -302,7 +302,7 @@ class ConversableAgent(LLMAgent):
 
     def register_reply(
         self,
-        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], CustomNestedChatCondition, List],
         reply_func: Callable,
         position: int = 0,
         config: Optional[Any] = None,
