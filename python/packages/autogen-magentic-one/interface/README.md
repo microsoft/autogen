@@ -1,6 +1,6 @@
 # MagenticOne Interface
 
-This repository contains the interface for interacting with the MagenticOne system. It includes helper classes, a log viewer, and example usage.
+This repository contains a previewe interface for interacting with the MagenticOne system. It includes helper classes, a log viewer, and example usage.
 
 
 
@@ -27,7 +27,7 @@ pip install flask markdown
 
 ### MagenticOneHelper
 
-The MagenticOneHelper class provides an interface to interact with the MagenticOne system.
+The MagenticOneHelper class provides an interface to interact with the MagenticOne system. It saves logs to a user-specified directory and provides methods to run tasks, stream logs, and retrieve the final answer.
 
 The class provides the following methods:
 - async initialize(self) -> None: Initializes the MagenticOne system, setting up agents and runtime.

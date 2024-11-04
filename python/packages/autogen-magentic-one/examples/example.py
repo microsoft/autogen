@@ -9,7 +9,7 @@ from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import AgentId, AgentProxy
 from autogen_core.components.code_executor import CodeBlock
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors import DockerCommandLineCodeExecutor
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
@@ -29,7 +29,7 @@ async def confirm_code(code: CodeBlock) -> bool:
     return response.lower() == "yes"
 
 
-async def main(logs_dir: str, hil_mode: bool) -> None:
+async def main(logs_dir: str, hil_mode: bool, save_screenshots: bool) -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
@@ -89,6 +89,7 @@ async def main(logs_dir: str, hil_mode: bool) -> None:
             browser_channel="chromium",
             headless=True,
             debug_dir=logs_dir,
+            to_save_screenshots=save_screenshots,
         )
 
         await runtime.send_message(RequestReplyMessage(), user_proxy.id)
@@ -97,15 +98,20 @@ async def main(logs_dir: str, hil_mode: bool) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run MagenticOne example with log directory.")
-    parser.add_argument(
-        "--logs_dir", type=str, default=os.getcwd() + "/logs", help="Directory to store log files and downloads"
-    )
+    parser.add_argument("--logs_dir", type=str, required=True, help="Directory to store log files and downloads")
     parser.add_argument("--hil_mode", action="store_true", default=False, help="Run in human-in-the-loop mode")
-    if not os.path.exists(parser.parse_args().logs_dir):
-        os.makedirs(parser.parse_args().logs_dir)
+    parser.add_argument(
+        "--save_screenshots", action="store_true", default=False, help="Save additional browser screenshots to file"
+    )
+
     args = parser.parse_args()
+
+    # Ensure the log directory exists
+    if not os.path.exists(args.logs_dir):
+        os.makedirs(args.logs_dir)
+
     logger = logging.getLogger(EVENT_LOGGER_NAME)
     logger.setLevel(logging.INFO)
     log_handler = LogHandler(filename=os.path.join(args.logs_dir, "log.jsonl"))
     logger.handlers = [log_handler]
-    asyncio.run(main(args.logs_dir, args.hil_mode))
+    asyncio.run(main(args.logs_dir, args.hil_mode, args.save_screenshots))

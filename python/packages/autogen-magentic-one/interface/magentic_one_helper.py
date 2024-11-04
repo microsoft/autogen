@@ -29,17 +29,19 @@ async def confirm_code(code: CodeBlock) -> bool:
 
 
 class MagenticOneHelper:
-    def __init__(self, logs_dir: str = None):
+    def __init__(self, logs_dir: str = None, save_screenshots: bool = False) -> None:
         """
         A helper class to interact with the MagenticOne system.
         Initialize MagenticOne instance.
 
         Args:
             logs_dir: Directory to store logs and downloads
+            save_screenshots: Whether to save screenshots of web pages
         """
         self.logs_dir = logs_dir or os.getcwd()
         self.runtime: Optional[SingleThreadedAgentRuntime] = None
         self.log_handler: Optional[LogHandler] = None
+        self.save_screenshots = save_screenshots
 
         if not os.path.exists(self.logs_dir):
             os.makedirs(self.logs_dir)
@@ -104,6 +106,7 @@ class MagenticOneHelper:
             browser_channel="chromium",
             headless=True,
             debug_dir=self.logs_dir,
+            to_save_screenshots=self.save_screenshots,
         )
 
     async def run_task(self, task: str) -> None:
@@ -160,6 +163,7 @@ class MagenticOneHelper:
             while last_index < len(current_logs):
                 log_entry = current_logs[last_index]
                 yield log_entry
+                # Check for termination condition
 
                 if (
                     log_entry.get("type") == "OrchestrationEvent"
@@ -167,14 +171,12 @@ class MagenticOneHelper:
                 ):
                     found_final_answer = True
 
-                # Check for termination condition
                 if (
                     log_entry.get("type") == "OrchestrationEvent"
                     and log_entry.get("source") == "Orchestrator (termination condition)"
                 ):
                     found_termination = True
 
-                # Check for termination condition
                 if (
                     log_entry.get("type") == "OrchestrationEvent"
                     and log_entry.get("source") == "Orchestrator (termination condition)"
