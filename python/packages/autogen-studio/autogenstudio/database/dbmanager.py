@@ -3,27 +3,15 @@ from datetime import datetime
 from typing import Optional
 
 from loguru import logger
-from sqlalchemy import exc
+from sqlalchemy import exc, text, func
 from sqlmodel import Session, SQLModel, and_, create_engine, select
+from .schema_manager import SchemaManager
 
 from ..datamodel import (
-    Agent,
-    AgentModelLink,
-    AgentToolLink,
-    Model,
     Response,
-    Team,
-    TeamAgentLink,
-    Tool,
+    LinkTypes
 )
 # from .dbutils import init_db_samples
-
-valid_link_types = ["agent_model", "agent_tool", "team_agent"]
-
-
-class TeamAgentMap(SQLModel):
-    agent: Agent
-    link: TeamAgentLink
 
 
 class DBManager:
@@ -35,12 +23,90 @@ class DBManager:
         connection_args = {
             "check_same_thread": True} if "sqlite" in engine_uri else {}
         self.engine = create_engine(engine_uri, connect_args=connection_args)
+        self.schema_manager = SchemaManager(
+            engine=self.engine,
+            auto_upgrade=True  # Set to False in production
+        )
+
+        # Check and upgrade on startup
+        upgraded, status = self.schema_manager.check_and_upgrade()
+        if upgraded:
+            logger.info("Database schema was upgraded automatically")
+        else:
+            logger.info(f"Schema status: {status}")
+
+    def reset_db(self, recreate_tables: bool = True):
+        """
+        Reset the database by dropping all tables and optionally recreating them.
+
+        Args:
+            recreate_tables (bool): If True, recreates the tables after dropping them.
+                                Set to False if you want to call create_db_and_tables() separately.
+        """
+        if not self._init_lock.acquire(blocking=False):
+            logger.warning("Database reset already in progress")
+            return Response(
+                message="Database reset already in progress",
+                status=False,
+                data=None
+            )
+
+        try:
+            # Dispose existing connections
+            self.engine.dispose()
+
+            with Session(self.engine) as session:
+                try:
+                    # Disable foreign key checks for SQLite
+                    if 'sqlite' in str(self.engine.url):
+                        session.exec(text('PRAGMA foreign_keys=OFF'))
+
+                    # Drop all tables
+                    SQLModel.metadata.drop_all(self.engine)
+                    logger.info("All tables dropped successfully")
+
+                    # Re-enable foreign key checks for SQLite
+                    if 'sqlite' in str(self.engine.url):
+                        session.exec(text('PRAGMA foreign_keys=ON'))
+
+                    session.commit()
+
+                except Exception as e:
+                    session.rollback()
+                    raise e
+                finally:
+                    session.close()
+                    self._init_lock.release()
+
+            if recreate_tables:
+                logger.info("Recreating tables...")
+                self.create_db_and_tables()
+
+            return Response(
+                message="Database reset successfully" if recreate_tables else "Database tables dropped successfully",
+                status=True,
+                data=None
+            )
+
+        except Exception as e:
+            error_msg = f"Error while resetting database: {str(e)}"
+            logger.error(error_msg)
+            return Response(
+                message=error_msg,
+                status=False,
+                data=None
+            )
+        finally:
+            if self._init_lock.locked():
+                self._init_lock.release()
+                logger.info("Database reset lock released")
 
     def create_db_and_tables(self):
         """Create a new database and tables"""
         with self._init_lock:
             try:
                 SQLModel.metadata.create_all(self.engine)
+                logger.info("Database tables created successfully")
                 try:
                     # init_db_samples(self)
                     pass
@@ -165,139 +231,101 @@ class DBManager:
 
         return Response(message=status_message, status=status, data=None)
 
-    def get_linked_entities(
-        self,
-        link_type: str,
-        primary_id: int,
-        return_json: bool = False,
-    ):
-        """Get linked entities based on link type and primary ID."""
-
-        linked_entities = []
-
-        if link_type not in valid_link_types:
-            return Response(message=f"Invalid link type: {link_type}", status=False, data=[])
-
-        with Session(self.engine) as session:
-            try:
-                if link_type == "agent_model":
-                    agent = session.get(Agent, primary_id)
-                    linked_entities = agent.models if agent else []
-                elif link_type == "agent_tool":
-                    agent = session.get(Agent, primary_id)
-                    linked_entities = agent.tools if agent else []
-                elif link_type == "team_agent":
-                    linked_entities = session.exec(
-                        select(TeamAgentLink, Agent)
-                        .join(Agent, TeamAgentLink.agent_id == Agent.id)
-                        .where(TeamAgentLink.team_id == primary_id)
-                    ).all()
-                    linked_entities = [TeamAgentMap(agent=agent, link=link) for link,
-                                       agent in linked_entities]
-                    linked_entities.sort(key=lambda x: x.link.sequence)
-
-                if return_json:
-                    linked_entities = [
-                        entity.model_dump() for entity in linked_entities]
-
-            except Exception as e:
-                return Response(
-                    message=f"Error getting linked entities: {e}", status=False, data=[]
-                )
-
-        return Response(
-            message="Linked entities retrieved successfully", status=True, data=linked_entities
-        )
-
     def link(
         self,
-        link_type: str,
+        link_type: LinkTypes,
         primary_id: int,
         secondary_id: int,
-        sequence: Optional[int] = None,  # For team_agent links
+        sequence: Optional[int] = None,
     ):
-        """Link two entities."""
-
-        if link_type not in valid_link_types:
-            return Response(
-                message=f"Invalid link type: {link_type}", status=False
-            )
-
+        """Link two entities with automatic sequence handling."""
         with Session(self.engine) as session:
             try:
-                if link_type == "agent_model":
-                    primary_model = session.get(Agent, primary_id)
-                    secondary_model = session.get(Model, secondary_id)
-                    link_table = AgentModelLink
-                elif link_type == "agent_tool":
-                    primary_model = session.get(Agent, primary_id)
-                    secondary_model = session.get(Tool, secondary_id)
-                    link_table = AgentToolLink
-                elif link_type == "team_agent":
-                    primary_model = session.get(Team, primary_id)
-                    secondary_model = session.get(Agent, secondary_id)
-                    link_table = TeamAgentLink
+                # Get classes from LinkTypes
+                primary_class = link_type.primary_class
+                secondary_class = link_type.secondary_class
+                link_table = link_type.link_table
 
-                if not primary_model or not secondary_model:
-                    return Response(
-                        message="One or both entities do not exist", status=False
-                    )
+                # Get entities
+                primary_entity = session.get(primary_class, primary_id)
+                secondary_entity = session.get(secondary_class, secondary_id)
 
-                # Check for existing link (adapt as needed for sequence)
+                if not primary_entity or not secondary_entity:
+                    return Response(message="One or both entities do not exist", status=False)
+
+                # Get field names
+                primary_id_field = f"{primary_class.__name__.lower()}_id"
+                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
+
+                # Check for existing link
                 existing_link = session.exec(
                     select(link_table).where(
-                        link_table.agent_id == primary_id
-                        if hasattr(link_table, "agent_id") and hasattr(link_table, "primary_id")
-                        else link_table.team_id == primary_id,
-                        getattr(link_table, "model_id", getattr(
-                            link_table, "tool_id", getattr(link_table, "agent_id"))) == secondary_id
+                        and_(
+                            getattr(link_table, primary_id_field) == primary_id,
+                            getattr(
+                                link_table, secondary_id_field) == secondary_id
+                        )
                     )
                 ).first()
 
                 if existing_link:
                     return Response(message="Link already exists", status=False)
 
-                if link_type == "team_agent":
-                    new_link = link_table(
-                        team_id=primary_id, agent_id=secondary_id, sequence=sequence)
-                    session.add(new_link)
-                else:
-                    getattr(primary_model, link_type.split("_")[1] +
-                            "s").append(secondary_model)  # type: ignore
+                # Get the next sequence number if not provided
+                if sequence is None:
+                    max_seq_result = session.exec(
+                        select(func.max(link_table.sequence)).where(
+                            getattr(link_table, primary_id_field) == primary_id
+                        )
+                    ).first()
+                    sequence = 0 if max_seq_result is None else max_seq_result + 1
 
+                # Create new link
+                new_link = link_table(**{
+                    primary_id_field: primary_id,
+                    secondary_id_field: secondary_id,
+                    'sequence': sequence
+                })
+                session.add(new_link)
                 session.commit()
 
-                return Response(message="Entities linked successfully", status=True)
+                return Response(
+                    message=f"Entities linked successfully with sequence {sequence}",
+                    status=True
+                )
 
             except Exception as e:
                 session.rollback()
-                return Response(message=f"Error linking entities: {e}", status=False)
+                return Response(message=f"Error linking entities: {str(e)}", status=False)
 
     def unlink(
-        self, link_type: str, primary_id: int, secondary_id: int, sequence: Optional[int] = None
+        self,
+        link_type: LinkTypes,
+        primary_id: int,
+        secondary_id: int,
+        sequence: Optional[int] = None
     ):
-        """Unlink two entities."""
-
-        if link_type not in valid_link_types:
-            return Response(message=f"Invalid link type: {link_type}", status=False)
-
+        """Unlink two entities and reorder sequences if needed."""
         with Session(self.engine) as session:
             try:
-                if link_type == "agent_model":
-                    link_table = AgentModelLink
-                elif link_type == "agent_tool":
-                    link_table = AgentToolLink
-                elif link_type == "team_agent":
-                    link_table = TeamAgentLink
+                # Get classes from LinkTypes
+                primary_class = link_type.primary_class
+                secondary_class = link_type.secondary_class
+                link_table = link_type.link_table
+
+                # Get field names
+                primary_id_field = f"{primary_class.__name__.lower()}_id"
+                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
+
                 # Find existing link
                 statement = select(link_table).where(
-                    getattr(link_table, "agent_id",
-                            link_table.team_id) == primary_id,
-                    getattr(link_table, "model_id", getattr(
-                        link_table, "tool_id", link_table.agent_id)) == secondary_id
+                    and_(
+                        getattr(link_table, primary_id_field) == primary_id,
+                        getattr(link_table, secondary_id_field) == secondary_id
+                    )
                 )
 
-                if link_type == "team_agent" and sequence is not None:  # add sequence to filter
+                if sequence is not None:
                     statement = statement.where(
                         link_table.sequence == sequence)
 
@@ -306,11 +334,71 @@ class DBManager:
                 if not existing_link:
                     return Response(message="Link does not exist", status=False)
 
+                deleted_sequence = existing_link.sequence
                 session.delete(existing_link)
+
+                # Reorder sequences for remaining links
+                remaining_links = session.exec(
+                    select(link_table)
+                    .where(getattr(link_table, primary_id_field) == primary_id)
+                    .where(link_table.sequence > deleted_sequence)
+                    .order_by(link_table.sequence)
+                ).all()
+
+                # Decrease sequence numbers to fill the gap
+                for link in remaining_links:
+                    link.sequence -= 1
+
                 session.commit()
 
-                return Response(message="Entities unlinked successfully", status=True)
+                return Response(
+                    message="Entities unlinked successfully and sequences reordered",
+                    status=True
+                )
 
             except Exception as e:
                 session.rollback()
-                return Response(message=f"Error unlinking entities: {e}", status=False)
+                return Response(message=f"Error unlinking entities: {str(e)}", status=False)
+
+    def get_linked_entities(
+        self,
+        link_type: LinkTypes,
+        primary_id: int,
+        return_json: bool = False,
+    ):
+        """Get linked entities based on link type and primary ID, ordered by sequence."""
+        with Session(self.engine) as session:
+            try:
+                # Get classes from LinkTypes
+                primary_class = link_type.primary_class
+                secondary_class = link_type.secondary_class
+                link_table = link_type.link_table
+
+                # Get field names
+                primary_id_field = f"{primary_class.__name__.lower()}_id"
+                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
+
+                # Query both link and entity, ordered by sequence
+                items = session.exec(
+                    select(secondary_class)
+                    .join(link_table, getattr(link_table, secondary_id_field) == secondary_class.id)
+                    .where(getattr(link_table, primary_id_field) == primary_id)
+                    .order_by(link_table.sequence)
+                ).all()
+
+                result = [
+                    item.model_dump() if return_json else item for item in items]
+
+                return Response(
+                    message="Linked entities retrieved successfully",
+                    status=True,
+                    data=result
+                )
+
+            except Exception as e:
+                logger.error(f"Error getting linked entities: {str(e)}")
+                return Response(
+                    message=f"Error getting linked entities: {str(e)}",
+                    status=False,
+                    data=[]
+                )

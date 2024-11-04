@@ -1,16 +1,10 @@
 
-from .datamodel import AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig
-from autogen_agentchat.agents import AssistantAgent, CodingAssistantAgent
+from .datamodel import AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig, ModelTypes, AgentTypes, TeamTypes, TerminationTypes
+from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 from autogen_core.components.tools import FunctionTool
-
-
-AgentTypes = AssistantAgent | CodingAssistantAgent
-TeamTypes = RoundRobinGroupChat | SelectorGroupChat
-ModelTypes = OpenAIChatCompletionClient | None
-TerminationTypes = MaxMessageTermination | StopMessageTermination | TextMentionTermination
 
 
 class Provider():
@@ -18,13 +12,15 @@ class Provider():
         pass
 
     def load_model(self, model_config: ModelConfig | dict) -> ModelTypes:
+        if not model_config:
+            return None
         if isinstance(model_config, dict):
             try:
                 model_config = ModelConfig(**model_config)
             except:
                 raise ValueError("Invalid model config")
         model = None
-        if model_config.model_type == "OpenAIChatCompletionClient":
+        if model_config.model_type == ModelTypes.openai:
             model = OpenAIChatCompletionClient(model=model_config.model)
         return model
 
@@ -117,8 +113,10 @@ class Provider():
             except:
                 raise ValueError("Invalid team config")
         team = None
+        print("*** team config ***", team_config)
         agents = []
         termination = self.load_termination(team_config.termination_condition)
+        model_client = self.load_model(team_config.model_client)
         for agent_config in team_config.participants:
             agent = self.load_agent(agent_config)
             agents.append(agent)
@@ -126,6 +124,7 @@ class Provider():
             team = RoundRobinGroupChat(
                 agents, termination_condition=termination)
         elif team_config.team_type == "SelectorGroupChat":
-            team = SelectorGroupChat(agents, termination_condition=termination)
+            team = SelectorGroupChat(
+                agents, termination_condition=termination, model_client=model_client)
 
         return team

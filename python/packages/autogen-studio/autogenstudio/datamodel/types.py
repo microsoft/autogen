@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
+from autogen_agentchat.base._task import TaskResult
 from sqlmodel import (
     SQLModel,
 )
@@ -85,14 +86,14 @@ class TeamConfig(SQLModel, table=False):
 
 
 class TeamResult(SQLModel, table=False):
-    messages: List[Dict[str, str]]
+    task_result: TaskResult
     usage: str
     duration: float
 
 
 class MessageMeta(SQLModel, table=False):
     task: Optional[str] = None
-    messages: Optional[List[Dict[str, Any]]] = None
+    task_result: Optional[TaskResult] = None
     summary_method: Optional[str] = "last"
     files: Optional[List[dict]] = None
     time: Optional[datetime] = None

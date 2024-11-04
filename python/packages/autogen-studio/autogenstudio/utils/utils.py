@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 
-from ..datamodel import CodeExecutionConfigTypes, Model, Skill
+from ..datamodel import Model
 from ..version import APP_NAME
 
 
