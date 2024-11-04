@@ -230,7 +230,7 @@ class WebSurferAgent(ConversableAgent):
         def _find_on_page_ctrl_f(
             search_string: Annotated[
                 str, "The string to search for on the page. This search string supports wildcards like '*'"
-            ]
+            ],
         ) -> str:
             find_result = self.browser.find_on_page(search_string)
             header, content = _browser_state()
@@ -344,7 +344,7 @@ class WebSurferAgent(ConversableAgent):
 
         # Clone the messages to give context
         self._assistant.chat_messages[self._user_proxy] = list()
-        history = messages[0 : len(messages) - 1]
+        history = messages[:]
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
 
