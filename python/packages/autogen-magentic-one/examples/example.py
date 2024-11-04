@@ -65,6 +65,7 @@ async def main(logs_dir: str, hil_mode: bool) -> None:
         agent_list = [web_surfer, coder, executor, file_surfer]
         if hil_mode:
             agent_list.append(user_proxy)
+
         await LedgerOrchestrator.register(
             runtime,
             "Orchestrator",

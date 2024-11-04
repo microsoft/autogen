@@ -89,7 +89,7 @@ class MagenticOneHelper:
                 model_client=client,
                 max_rounds=30,
                 max_time=25 * 60,
-                max_stalls_before_replan= 10,
+                max_stalls_before_replan=10,
                 return_final_answer=True,
             ),
         )
@@ -191,7 +191,6 @@ class MagenticOneHelper:
                     return
 
                 last_index += 1
-
 
             await asyncio.sleep(0.1)  # Small delay to prevent busy waiting
 

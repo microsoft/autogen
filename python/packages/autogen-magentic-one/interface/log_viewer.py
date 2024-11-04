@@ -1,3 +1,4 @@
+'''
 from flask import Flask, render_template_string, jsonify, request, send_file
 import json
 import argparse
@@ -567,3 +568,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     run_viewer(args.log_folder, args.port)
+'''
