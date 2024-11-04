@@ -1,6 +1,6 @@
 # MagenticOne Interface
 
-This repository contains a previewe interface for interacting with the MagenticOne system. It includes helper classes, a log viewer, and example usage.
+This repository contains a previewe interface for interacting with the MagenticOne system. It includes helper classes, and example usage.
 
 
 
@@ -15,11 +15,6 @@ cd autogen/python/packages/autogen-magentic-one/interface
 
 You need to have installed autogen-magentic-one and set it up based on [magentic-one README](../README.md).
 
-To run the log viewer you need to install these additional dependencies, run:
-
-```sh
-pip install flask markdown
-```
 
 
 ## Usage
@@ -67,22 +62,3 @@ async def magentic_one_example():
     else:
         print("No final answer found in logs.")
 ```
-
-### Log Viewer
-
-The log viewer python file is commented out, you need to uncomment the entire file to run it. It is not secure to run, so run at your own risk.
-
-You need to generate logs by having MagenticOne save screenshots and logs. You can do this by running the example code with the `--save_screenshots` flag or by setting the `save_screenshots` attribute to `True` in the `MagenticOneHelper` class.
-
-To run the log viewer, use the following command:
-
-```sh
-python log_viewer.py <log_folder> --port <port>
-```
-
-Where:
-- <log_folder>: Path to the folder containing JSONL log files.
-- <port>: Port number to run the server on (default: 5000).
-
-The log viewer provides a web interface to view logs in the browser. It will start by default on http://localhost:5000.
-
