@@ -37,9 +37,6 @@ bld/
 # vs code cache
 .vscode/
 
-# Properties
-Properties/
-
 artifacts/
 output/
 
@@ -55,8 +52,6 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-
-appsettings.json
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
