@@ -63,7 +63,9 @@ class MagenticOneHelper:
         client = create_completion_client_from_env(model="gpt-4o")
 
         # Set up code executor
-        code_executor = LocalCommandLineCodeExecutor(work_dir=self.logs_dir)
+        self.code_executor = DockerCommandLineCodeExecutor(work_dir=self.logs_dir)
+        await self.code_executor.__aenter__()
+
         await Coder.register(self.runtime, "Coder", lambda: Coder(model_client=client))
 
         coder = AgentProxy(AgentId("Coder", "default"), self.runtime)
@@ -71,7 +73,7 @@ class MagenticOneHelper:
         await Executor.register(
             self.runtime,
             "Executor",
-            lambda: Executor("A agent for executing code", executor=code_executor, confirm_execution=confirm_code),
+            lambda: Executor("A agent for executing code", executor=self.code_executor, confirm_execution=confirm_code),
         )
         executor = AgentProxy(AgentId("Executor", "default"), self.runtime)
 
@@ -108,6 +110,13 @@ class MagenticOneHelper:
             debug_dir=self.logs_dir,
             to_save_screenshots=self.save_screenshots,
         )
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Clean up resources.
+        """
+        if self.code_executor:
+            await self.code_executor.__aexit__(exc_type, exc_value, traceback)
 
     async def run_task(self, task: str) -> None:
         """

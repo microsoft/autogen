@@ -1,6 +1,6 @@
 # Examples of Magentic-One
 
-**Note**: The examples in this folder are ran at your own risk. They involve agents navigating the web, executing code and browsing local files. Please supervise the execution of the agents to reduce any risks. We also recommend running the examples in a docker environment.
+**Note**: The examples in this folder are ran at your own risk. They involve agents navigating the web, executing code and browsing local files. Please supervise the execution of the agents to reduce any risks. We also recommend running the examples in a virtual machine or a sandboxed environment.
 
 
 We include various examples for using Magentic-One and is agents:
@@ -39,4 +39,3 @@ The following examples are for individual agents in Magentic-One:
 - [example_websurfer.py](example_websurfer.py): Is an example of the MultimodalWebSurfer agent in Magentic-one -- without the orchestrator. To view the browser the agent uses, pass the argument 'headless = False' to 'actual_surfer.init'. In a loop, specified by using the RoundRobinOrchestrator, the web surfer will perform a single action on the browser in response to user input and then the user is asked for input again.
 
 
-Running these examples is simple. First make sure you have installed 'autogen-magentic-one' either from source or from pip, then run 'python example.py'

@@ -1,20 +1,6 @@
 # MagenticOne Interface
 
-This repository contains a previewe interface for interacting with the MagenticOne system. It includes helper classes, and example usage.
-
-
-
-## Installation
-
-Make sure to clone AutoGen first:
-
-```sh
-git clone https://github.com/microsoft/autogen.git
-cd autogen/python/packages/autogen-magentic-one/interface
-```
-
-You need to have installed autogen-magentic-one and set it up based on [magentic-one README](../README.md).
-
+This repository contains a preview interface for interacting with the MagenticOne system. It includes helper classes, and example usage.
 
 
 ## Usage

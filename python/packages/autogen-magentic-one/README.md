@@ -1,7 +1,21 @@
 # Magentic-One
 
+> [!CAUTION]
+> Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
+>
+> 1. **Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
+> 2. **Virtual Environment**: Use a virtual environment to run the agents and prevent them from accessing sensitive data.
+> 3. **Monitor Logs**: Closely monitor logs during and after execution to detect and mitigate risky behavior.
+> 4. **Human Oversight**: Run the examples with a human in the loop to supervise the agents and prevent unintended consequences.
+> 5. **Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
+> 6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
+> Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
 
-Magentic-One is a generalist multi-agent softbot that utilizes a combination of five agents, including LLM and tool-based agents, to tackle intricate tasks. For example, it can be used to solve general tasks that involve multi-step planning and action in the real-world.
+> [!NOTE]
+> This code is currently being ported to AutoGen AgentChat. If you want to build on top of Magentic-One, we recommend waiting for the port to be completed. In the meantime, you can use this codebase to experiment with Magentic-One.
+
+
+We are introducing Magentic-One, our new generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. Magentic-One represents a significant step towards developing agents that can complete tasks that people encounter in their work and personal lives.
 
 ![](./imgs/autogen-magentic-one-example.png)
 
@@ -51,11 +65,11 @@ Team One agents can emit several log events that can be consumed by a log handle
 
 In addition, developers can also handle and process logs generated from the AutoGen core library (e.g., LLMCallEvent etc). See the example log handler in [utils.py](src/autogen_magentic_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
 
-# Setup
+# Setup and Usage
 
-You can install the Magentic-One package using pip and then run the example code to see how the agents work together to accomplish a task.
+You can install the Magentic-One package and then run the example code to see how the agents work together to accomplish a task.
 
-1. Clone the code.
+1. Clone the code and install the package:
 
 ```bash
 git clone -b staging https://github.com/microsoft/autogen.git
@@ -63,38 +77,50 @@ cd autogen/python/packages/autogen-magentic-one
 pip install -e .
 ```
 
-2. Configure the environment variables for the chat completion client. See instructions below.
-3. Now you can run the example code to see how the agents work together to accomplish a task.
+The following instructions are for running the example code:
 
-**NOTE:** The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code.
+2. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
+3. Magentic-One code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/) to run any examples.
+4. Magentic-One uses playwright to interact with web pages. You need to install the playwright dependencies. Run the following command to install the playwright dependencies:
 
+```bash
+playwright install-deps
+```
+5. Now you can run the example code to see how the agents work together to accomplish a task.
 
+> [!CAUTION]  
+> The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code. 
 
-    ```bash
+> [!NOTE]
+> You will need to ensure Docker is running prior to running the example. 
 
-    # Specify logs directory
-    python examples/example.py --logs_dir ./my_logs
+  ```bash
 
-    # Enable human-in-the-loop mode
-    python examples/example.py -logs_dir ./my_logs --hil_mode
+  # Specify logs directory
+  python examples/example.py --logs_dir ./my_logs
 
-    # Save screenshots of browser
-    python examples/example.py -logs_dir ./my_logs --save_screenshots
-    ```
+  # Enable human-in-the-loop mode
+  python examples/example.py -logs_dir ./my_logs --hil_mode
 
-    Arguments:
+  # Save screenshots of browser
+  python examples/example.py -logs_dir ./my_logs --save_screenshots
+  ```
 
-    - logs_dir: (Required) Directory for logs, downloads and screenshots of browser (default: current directory)
-    - hil_mode: (Optional) Enable human-in-the-loop mode (default: disabled)
-    - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
+  Arguments:
 
-4. [Preview] We have a preview API for Magentic-One. 
+  - logs_dir: (Required) Directory for logs, downloads and screenshots of browser (default: current directory)
+  - hil_mode: (Optional) Enable human-in-the-loop mode (default: disabled)
+  - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
+
+6. [Preview] We have a preview API for Magentic-One. 
  You can use the `MagenticOneHelper` class to interact with the system. See the [interface README](interface/README.md) for more details.
 
 
 ## Environment Configuration for Chat Completion Client
 
 This guide outlines how to configure your environment to use the `create_completion_client_from_env` function, which reads environment variables to return an appropriate `ChatCompletionClient`.
+
+Currently, Magentic-One only supports OpenAI's GPT-4o as the underlying LLM.
 
 ### Azure with Active Directory
 
@@ -130,8 +156,9 @@ To configure for OpenAI, set the following environment variables:
   "model": "gpt-4o-2024-05-13"
 }
 ```
+Feel free to replace the model with newer versions of gpt-4o if needed.
 
-### Other Keys
+### Other Keys (Optional)
 
 Some functionalities, such as using web-search requires an API key for Bing.
 You can set it using:
