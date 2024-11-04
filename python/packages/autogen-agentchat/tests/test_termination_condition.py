@@ -66,7 +66,7 @@ async def test_token_usage_termination() -> None:
         await termination(
             [
                 TextMessage(
-                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=10, completion_tokens=10)
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=10, completion_tokens=10)
                 )
             ]
         )
@@ -77,10 +77,10 @@ async def test_token_usage_termination() -> None:
         await termination(
             [
                 TextMessage(
-                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
                 ),
                 TextMessage(
-                    content="World", source="agent", model_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                    content="World", source="agent", models_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
                 ),
             ]
         )
@@ -91,10 +91,10 @@ async def test_token_usage_termination() -> None:
         await termination(
             [
                 TextMessage(
-                    content="Hello", source="user", model_usage=RequestUsage(prompt_tokens=5, completion_tokens=0)
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=5, completion_tokens=0)
                 ),
                 TextMessage(
-                    content="stop", source="user", model_usage=RequestUsage(prompt_tokens=0, completion_tokens=5)
+                    content="stop", source="user", models_usage=RequestUsage(prompt_tokens=0, completion_tokens=5)
                 ),
             ]
         )
