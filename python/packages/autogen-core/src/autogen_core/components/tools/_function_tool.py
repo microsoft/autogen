@@ -26,6 +26,13 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
 
         It is the user's responsibility to verify that the tool's output type matches the expected type.
 
+    Args:
+        func (Callable[..., ReturnT | Awaitable[ReturnT]]): The function to wrap and expose as a tool.
+        description (str): A description to inform the model of the function's purpose, specifying what
+            it does and the context in which it should be called.
+        name (str, optional): An optional custom name for the tool. Defaults to
+            the function's original name if not provided.
+
     Example:
 
         .. code-block:: python
@@ -53,18 +60,6 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
     """
 
     def __init__(self, func: Callable[..., Any], description: str, name: str | None = None) -> None:
-        """
-        Initializes a FunctionTool instance, setting up the Pydantic model for
-        argument validation and determining if the function supports cancellation.
-
-        Args:
-            func (Callable[..., ReturnT | Awaitable[ReturnT]]): The function to wrap and expose as a tool.
-            description (str): A description to inform the model of the function's purpose, specifying what
-                it does and the context in which it should be called.
-            name (str, optional): An optional custom name for the tool. Defaults to
-                the function's original name if not provided.
-        """
-
         self._func = func
         signature = get_typed_signature(func)
         func_name = name or func.__name__
