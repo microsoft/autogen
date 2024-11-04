@@ -4,7 +4,6 @@ This repository contains a previewe interface for interacting with the MagenticO
 
 
 
-
 ## Installation
 
 Make sure to clone AutoGen first:
@@ -50,7 +49,7 @@ async def magentic_one_example():
     print("MagenticOne initialized.")
     
     # Start a task and stream logs
-    task = "code for fibonacci and run it"
+    task = "How many members are in the MSR HAX Team"
     task_future = asyncio.create_task(magnetic_one.run_task(task))
 
     # Stream and process logs
@@ -70,6 +69,10 @@ async def magentic_one_example():
 ```
 
 ### Log Viewer
+
+The log viewer python file is commented out, you need to uncomment the entire file to run it. It is not secure to run, so run at your own risk.
+
+You need to generate logs by having MagenticOne save screenshots and logs. You can do this by running the example code with the `--save_screenshots` flag or by setting the `save_screenshots` attribute to `True` in the `MagenticOneHelper` class.
 
 To run the log viewer, use the following command:
 

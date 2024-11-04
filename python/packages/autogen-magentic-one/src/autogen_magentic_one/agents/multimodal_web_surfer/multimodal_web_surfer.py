@@ -234,7 +234,7 @@ class MultimodalWebSurfer(BaseWorker):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.metadata["type"],
@@ -436,8 +436,8 @@ class MultimodalWebSurfer(BaseWorker):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:
-                await file.write(new_screenshot)
+            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:  # type: ignore
+                await file.write(new_screenshot)  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.metadata["type"],
@@ -486,7 +486,7 @@ class MultimodalWebSurfer(BaseWorker):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot_som" + current_timestamp + ".png"
-            som_screenshot.save(os.path.join(self.debug_dir, screenshot_png_name))
+            som_screenshot.save(os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.metadata["type"],
@@ -573,7 +573,7 @@ When deciding between tools, consider if the request can be best addressed by:
         scaled_screenshot = som_screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
         som_screenshot.close()
         if self.to_save_screenshots:
-            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))
+            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
         # Add the multimodal message and make the request
         history.append(
