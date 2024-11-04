@@ -32,7 +32,7 @@ When using code, you must indicate the script type in the code block. The user c
 If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
 If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
-""")
+Reply "TERMINATE" in the end when everything is done.""")
     ]
 
     def __init__(
@@ -40,10 +40,12 @@ When you find an answer, verify the answer carefully. Include verifiable evidenc
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
         system_messages: List[SystemMessage] = DEFAULT_SYSTEM_MESSAGES,
+        request_terminate: bool = False,
     ) -> None:
         super().__init__(description)
         self._model_client = model_client
         self._system_messages = system_messages
+        self._request_terminate = request_terminate
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
@@ -53,7 +55,10 @@ When you find an answer, verify the answer carefully. Include verifiable evidenc
             self._system_messages + self._chat_history, cancellation_token=cancellation_token
         )
         assert isinstance(response.content, str)
-        return False, response.content
+        if self._request_terminate:
+            return "TERMINATE" in response.content, response.content
+        else:
+            return False, response.content
 
 
 # True if the user confirms the code, False otherwise
