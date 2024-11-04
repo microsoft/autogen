@@ -13,6 +13,7 @@
     <CSNoWarn>CS1998;CS1591;CS8002;</CSNoWarn>
     <SKEXPNoWarn>SKEXP0001;SKEXP0010;SKEXP0020</SKEXPNoWarn>
     <NoWarn>$(NoWarn);$(CSNoWarn);$(SKEXPNoWarn);NU5104</NoWarn>
+
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>

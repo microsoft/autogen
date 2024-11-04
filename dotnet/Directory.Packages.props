@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MicrosoftSemanticKernelVersion>1.22.0</MicrosoftSemanticKernelVersion>
     <MicrosoftSemanticKernelExperimentalVersion>1.22.0-alpha</MicrosoftSemanticKernelExperimentalVersion>
-    <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24507.7</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24525.1</MicrosoftExtensionsAIVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0-rc.1.24511.1" />
@@ -111,6 +111,5 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.5" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.10" />
-    <PackageVersion Include="System.Text.Json" Version="9.0.0-rc.2.24473.5" />
   </ItemGroup>
 </Project>
