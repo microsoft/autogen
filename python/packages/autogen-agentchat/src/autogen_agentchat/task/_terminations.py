@@ -131,10 +131,10 @@ class TokenUsageTermination(TerminationCondition):
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
-            if message.model_usage is not None:
-                self._prompt_token_count += message.model_usage.prompt_tokens
-                self._completion_token_count += message.model_usage.completion_tokens
-                self._total_token_count += message.model_usage.prompt_tokens + message.model_usage.completion_tokens
+            if message.models_usage is not None:
+                self._prompt_token_count += message.models_usage.prompt_tokens
+                self._completion_token_count += message.models_usage.completion_tokens
+                self._total_token_count += message.models_usage.prompt_tokens + message.models_usage.completion_tokens
         if self.terminated:
             content = f"Token usage limit reached, total token count: {self._total_token_count}, prompt token count: {self._prompt_token_count}, completion token count: {self._completion_token_count}."
             return StopMessage(content=content, source="TokenUsageTermination")

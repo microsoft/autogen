@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.AI;
 
 namespace AutoGen.Core;
 
@@ -41,6 +43,19 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         this.Name = name ?? nameof(FunctionCallMiddleware);
         this.functions = functions;
         this.functionMap = functionMap;
+    }
+
+    /// <summary>
+    /// Create a new instance of <see cref="FunctionCallMiddleware"/> with a list of <see cref="AIFunction"/>.
+    /// </summary>
+    /// <param name="functions">function list</param>
+    /// <param name="name">optional middleware name. If not provided, the class name <see cref="FunctionCallMiddleware"/> will be used.</param>
+    public FunctionCallMiddleware(IEnumerable<AIFunction> functions, string? name = null)
+    {
+        this.Name = name ?? nameof(FunctionCallMiddleware);
+        this.functions = functions.Select(f => (FunctionContract)f.Metadata).ToArray();
+
+        this.functionMap = functions.Select(f => (f.Metadata.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
     }
 
     public string? Name { get; }
@@ -172,5 +187,21 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         {
             return toolCallMsg;
         }
+    }
+
+    private Func<string, Task<string>> AIToolInvokeWrapper(Func<IEnumerable<KeyValuePair<string, object?>>?, CancellationToken, Task<object?>> lambda)
+    {
+        return async (string args) =>
+        {
+            var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(args);
+            var result = await lambda(arguments, CancellationToken.None);
+
+            return result switch
+            {
+                string s => s,
+                JsonElement e => e.ToString(),
+                _ => JsonSerializer.Serialize(result),
+            };
+        };
     }
 }
