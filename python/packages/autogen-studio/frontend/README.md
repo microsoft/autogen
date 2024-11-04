@@ -1,31 +1,49 @@
-## 🚀 Running UI in Dev Mode
+<p align="center">
+  <a href="https://www.gatsbyjs.com/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts">
+    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
+  </a>
+</p>
+<h1 align="center">
+  Gatsby Minimal TypeScript Starter
+</h1>
 
-Run the UI in dev mode (make changes and see them reflected in the browser with hotreloading):
+## 🚀 Quick start
 
-- npm install
-- npm run start
+1.  **Create a Gatsby site.**
 
-This should start the server on port 8000.
+    Use the Gatsby CLI to create a new site, specifying the minimal TypeScript starter.
 
-## Design Elements
+    ```shell
+    # create a new Gatsby site using the minimal TypeScript starter
+    npm init gatsby -- -ts
+    ```
 
-- **Gatsby**: The app is created in Gatsby. A guide on bootstrapping a Gatsby app can be found here - https://www.gatsbyjs.com/docs/quick-start/.
-  This provides an overview of the project file structure include functionality of files like `gatsby-config.js`, `gatsby-node.js`, `gatsby-browser.js` and `gatsby-ssr.js`.
-- **TailwindCSS**: The app uses TailwindCSS for styling. A guide on using TailwindCSS with Gatsby can be found here - https://tailwindcss.com/docs/guides/gatsby.https://tailwindcss.com/docs/guides/gatsby . This will explain the functionality in tailwind.config.js and postcss.config.js.
+2.  **Start developing.**
 
-## Modifying the UI, Adding Pages
+    Navigate into your new site’s directory and start it up.
 
-The core of the app can be found in the `src` folder. To add pages, add a new folder in `src/pages` and add a `index.js` file. This will be the entry point for the page. For example to add a route in the app like `/about`, add a folder `about` in `src/pages` and add a `index.tsx` file. You can follow the content style in `src/pages/index.tsx` to add content to the page.
+    ```shell
+    cd my-gatsby-site/
+    npm run develop
+    ```
 
-Core logic for each component should be written in the `src/components` folder and then imported in pages as needed.
+3.  **Open the code and start customizing!**
 
-## connecting to front end
+    Your site is now running at http://localhost:8000!
 
-the front end makes request to the backend api and expects it at /api on localhost port 8081
+    Edit `src/pages/index.tsx` to see your site update in real-time!
 
-## setting env variables for the UI
+4.  **Learn more**
 
-- please look at `.env.default`
-- make a copy of this file and name it `.env.development`
-- set the values for the variables in this file
-  - The main variable here is `GATSBY_API_URL` which should be set to `http://localhost:8081/api` for local development. This tells the UI where to make requests to the backend.
+    - [Documentation](https://www.gatsbyjs.com/docs/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+    - [Tutorials](https://www.gatsbyjs.com/docs/tutorial/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+    - [Guides](https://www.gatsbyjs.com/docs/how-to/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+    - [API Reference](https://www.gatsbyjs.com/docs/api-reference/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+    - [Plugin Library](https://www.gatsbyjs.com/plugins?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+    - [Cheat Sheet](https://www.gatsbyjs.com/docs/cheat-sheet/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+
+## 🚀 Quick start (Netlify)
+
+Deploy this starter with one click on [Netlify](https://app.netlify.com/signup):
+
+[<img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" />](https://app.netlify.com/start/deploy?repository=https://github.com/gatsbyjs/gatsby-starter-minimal-ts)

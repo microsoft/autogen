@@ -1,14 +1,13 @@
 import * as React from "react";
+import Layout from "../components/layout";
 import { graphql } from "gatsby";
-import Layout from "../../components/layout";
-import GalleryView from "../../components/views/gallery/gallery";
 
 // markup
-const GalleryPage = ({ location, data }: any) => {
+const SettingsPage = ({ data }: any) => {
   return (
-    <Layout meta={data.site.siteMetadata} title="Gallery" link={"/gallery"}>
+    <Layout meta={data.site.siteMetadata} title="Home" link={"/build"}>
       <main style={{ height: "100%" }} className=" h-full ">
-        <GalleryView location={location} />
+        Settings
       </main>
     </Layout>
   );
@@ -25,4 +24,4 @@ export const query = graphql`
   }
 `;
 
-export default GalleryPage;
+export default SettingsPage;

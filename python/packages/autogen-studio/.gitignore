@@ -2,6 +2,8 @@ database.sqlite
 .cache/*
 autogenstudio/web/files/user/*
 autogenstudio/test
+autogenstudio/database/alembic.ini 
+autogenstudio/database/alembic/*
 autogenstudio/web/files/ui/*
 OAI_CONFIG_LIST
 scratch/
