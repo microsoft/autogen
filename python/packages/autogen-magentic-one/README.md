@@ -69,7 +69,7 @@ The following instructions are for running the example code:
 4. Magentic-One uses playwright to interact with web pages. You need to install the playwright dependencies. Run the following command to install the playwright dependencies:
 
 ```bash
-playwright install-deps
+playwright install --with-deps chromium
 ```
 5. Now you can run the example code to see how the agents work together to accomplish a task.
 
