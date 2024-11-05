@@ -6,6 +6,7 @@ import logging
 import os
 import pathlib
 import re
+import time
 import traceback
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union, cast  # Any, Callable, Dict, List, Literal, Tuple
 from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlunparse
@@ -85,7 +86,7 @@ class MultimodalWebSurfer(BaseWorker):
         self,
         description: str = DEFAULT_DESCRIPTION,
     ):
-        """Do not instantiate directly. Call MultimodalWebSurfer.create instead."""
+        """To instantiate properly please make sure to call MultimodalWebSurfer.init"""
         super().__init__(description)
 
         # Call init to set these
@@ -116,12 +117,28 @@ class MultimodalWebSurfer(BaseWorker):
         start_page: str | None = None,
         downloads_folder: str | None = None,
         debug_dir: str | None = os.getcwd(),
+        to_save_screenshots: bool = False,
         # navigation_allow_list=lambda url: True,
         markdown_converter: Any | None = None,  # TODO: Fixme
     ) -> None:
+        """
+        Initialize the MultimodalWebSurfer.
+
+        Args:
+            model_client (ChatCompletionClient): The client to use for chat completions.
+            headless (bool): Whether to run the browser in headless mode. Defaults to True.
+            browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
+            browser_data_dir (str | None): The directory to store browser data. Defaults to None.
+            start_page (str | None): The initial page to visit. Defaults to DEFAULT_START_PAGE.
+            downloads_folder (str | None): The folder to save downloads. Defaults to None.
+            debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
+            to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
+            markdown_converter (Any | None): The markdown converter to use. Defaults to None.
+        """
         self._model_client = model_client
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.downloads_folder = downloads_folder
+        self.to_save_screenshots = to_save_screenshots
         self._chat_history: List[LLMMessage] = []
         self._last_download = None
         self._prior_metadata_hash = None
@@ -175,35 +192,57 @@ class MultimodalWebSurfer(BaseWorker):
 
         if not os.path.isdir(self.debug_dir):
             os.mkdir(self.debug_dir)
-
-        debug_html = os.path.join(self.debug_dir, "screenshot.html")
-        async with aiofiles.open(debug_html, "wt") as file:
-            await file.write(
-                f"""
-<html style="width:100%; margin: 0px; padding: 0px;">
-<body style="width: 100%; margin: 0px; padding: 0px;">
-    <img src="screenshot.png" id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
-    <script language="JavaScript">
-var counter = 0;
-setInterval(function() {{
-   counter += 1;
-   document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
-}}, 300);
-    </script>
-</body>
-</html>
-""".strip(),
+        current_timestamp = "_" + int(time.time()).__str__()
+        screenshot_png_name = "screenshot" + current_timestamp + ".png"
+        debug_html = os.path.join(self.debug_dir, "screenshot" + current_timestamp + ".html")
+        if self.to_save_screenshots:
+            async with aiofiles.open(debug_html, "wt") as file:
+                await file.write(
+                    f"""
+    <html style="width:100%; margin: 0px; padding: 0px;">
+    <body style="width: 100%; margin: 0px; padding: 0px;">
+        <img src= {screenshot_png_name} id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
+        <script language="JavaScript">
+    var counter = 0;
+    setInterval(function() {{
+    counter += 1;
+    document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
+    }}, 300);
+        </script>
+    </body>
+    </html>
+    """.strip(),
+                )
+        if self.to_save_screenshots:
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.metadata["type"],
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
             )
-        await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
-        self.logger.info(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
+            self.logger.info(
+                f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n"
+            )
 
     async def _reset(self, cancellation_token: CancellationToken) -> None:
         assert self._page is not None
         future = super()._reset(cancellation_token)
         await future
         await self._visit_page(self.start_page)
-        if self.debug_dir:
-            await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
+        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.metadata["type"],
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
+            )
+
         self.logger.info(
             WebSurferEvent(
                 source=self.metadata["type"],
@@ -373,7 +412,7 @@ setInterval(function() {{
 
         # Handle metadata
         page_metadata = json.dumps(await self._get_page_metadata(), indent=4)
-        metadata_hash = hashlib.sha256(page_metadata.encode("utf-8")).hexdigest()
+        metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
         if metadata_hash != self._prior_metadata_hash:
             page_metadata = (
                 "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
@@ -394,9 +433,18 @@ setInterval(function() {{
             position_text = str(percent_scrolled) + "% down from the top of the page"
 
         new_screenshot = await self._page.screenshot()
-        if self.debug_dir:
-            async with aiofiles.open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as file:
-                await file.write(new_screenshot)
+        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:  # type: ignore
+                await file.write(new_screenshot)  # type: ignore
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.metadata["type"],
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
+            )
 
         ocr_text = (
             await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token) if use_ocr is True else ""
@@ -435,9 +483,17 @@ setInterval(function() {{
         screenshot = await self._page.screenshot()
         som_screenshot, visible_rects, rects_above, rects_below = add_set_of_mark(screenshot, rects)
 
-        if self.debug_dir:
-            som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
-
+        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot_som" + current_timestamp + ".png"
+            som_screenshot.save(os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.metadata["type"],
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
+            )
         # What tools are available?
         tools = [
             TOOL_VISIT_URL,
@@ -516,8 +572,8 @@ When deciding between tools, consider if the request can be best addressed by:
         # Scale the screenshot for the MLM, and close the original
         scaled_screenshot = som_screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
         som_screenshot.close()
-        if self.debug_dir:
-            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))
+        if self.to_save_screenshots:
+            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
         # Add the multimodal message and make the request
         history.append(
