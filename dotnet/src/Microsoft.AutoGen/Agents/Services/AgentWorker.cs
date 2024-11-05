@@ -11,32 +11,48 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public class AgentWorker(
-    IHostApplicationLifetime hostApplicationLifetime,
-    IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) :
+public class AgentWorker :
      IHostedService,
      IAgentWorker
 {
+    private readonly object _lock = new();
+    private readonly IAgentRegistry _gatewayRegistry;
+    private readonly IGateway _reference;
+    private readonly HashSet<string> _supportedTypes = [];
+    private readonly ConcurrentDictionary<string, List<IConnection>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
-    private readonly ILogger<AgentWorker> _logger = logger;
+    private readonly ILogger<AgentWorker> _logger;
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
-    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
-    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
+    private readonly CancellationTokenSource _shutdownCts;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
+    private readonly DistributedContextPropagator _distributedContextPropagator;
 
     private Task? _readTask;
     private Task? _writeTask;
     private readonly object _channelLock = new();
 
+    public AgentWorker(
+    IHostApplicationLifetime hostApplicationLifetime,
+    IServiceProvider serviceProvider,
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+    ILogger<GrpcAgentWorker> logger,
+    DistributedContextPropagator distributedContextPropagator) 
+    {
+        _logger = logger;
+        _serviceProvider = serviceProvider;
+        _configuredAgentTypes = configuredAgentTypes;
+        _distributedContextPropagator = distributedContextPropagator;
+        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+        _reference = _serviceProvider.GetRequiredService<IGateway>();
+        IClusterClient _clusterClient = _serviceProvider.GetRequiredService<IClusterClient>();
+        _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
+    }
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
@@ -197,7 +213,9 @@ public class AgentWorker(
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
-
+                        case Message.MessageOneofCase.RegisterAgentTypeRequest:
+                          await GatewayRegisterAgentTypeAsync(_messageQueue, message.RegisterAgentTypeRequest);
+                            break;
                         case Message.MessageOneofCase.RegisterAgentTypeResponse:
                             if (!message.RegisterAgentTypeResponse.Success)
                             {
@@ -240,6 +258,14 @@ public class AgentWorker(
                 break;
             }
         }
+    }
+    private async ValueTask GatewayRegisterAgentTypeAsync(IConnection connection, RegisterAgentTypeRequest msg)
+    {
+        AddSupportedType(msg.Type);
+        var gateway = _serviceProvider.GetRequiredService<IGateway>();
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
     private async Task RunWritePump()
     {
@@ -298,5 +324,11 @@ public class AgentWorker(
 
         return agent;
     }
-
+    public void AddSupportedType(string type)
+    {
+        lock (_lock)
+        {
+            _supportedTypes.Add(type);
+        }
+    }
 }

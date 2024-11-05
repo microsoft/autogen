@@ -19,8 +19,8 @@ public sealed class GrpcAgentWorker(
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
     ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) : 
-    AgentWorker(hostApplicationLifetime, 
+    DistributedContextPropagator distributedContextPropagator) :
+    AgentWorker(hostApplicationLifetime,
     serviceProvider, configuredAgentTypes,logger,distributedContextPropagator), IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
