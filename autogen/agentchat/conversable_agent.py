@@ -40,8 +40,8 @@ from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_event, log_function_use, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from .custom_nested_chat_condition import CustomNestedChatCondition
 from .chat import ChatResult, a_initiate_chats, initiate_chats
+from .custom_nested_chat_condition import CustomNestedChatCondition
 from .utils import consolidate_chat_info, gather_usage_summary
 
 __all__ = ("ConversableAgent",)
@@ -357,7 +357,9 @@ class ConversableAgent(LLMAgent):
             remove_other_reply_funcs (bool): whether to remove other reply functions when registering this reply function.
         """
         if not isinstance(trigger, (type, str, Agent, Callable, list, CustomNestedChatCondition)):
-            raise ValueError("trigger must be a class, a string, an agent, a callable, CustomNestedChatCondition or a list.")
+            raise ValueError(
+                "trigger must be a class, a string, an agent, a callable, CustomNestedChatCondition or a list."
+            )
         if remove_other_reply_funcs:
             self._reply_func_list.clear()
         self._reply_func_list.insert(
