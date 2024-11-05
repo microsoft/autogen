@@ -18,7 +18,7 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, StopMessage, TextMessage
+from ...messages import AgentMessage, TextMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatStart, GroupChatTermination
@@ -155,7 +155,7 @@ class BaseGroupChat(Team, ABC):
         )
 
         # Create a closure agent to collect the output messages.
-        stop_message: StopMessage | None = None
+        stop_reason: str | None = None
         output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
 
         async def collect_output_messages(
@@ -166,8 +166,8 @@ class BaseGroupChat(Team, ABC):
         ) -> None:
             event_logger.info(message.message)
             if isinstance(message, GroupChatTermination):
-                nonlocal stop_message
-                stop_message = message.message
+                nonlocal stop_reason
+                stop_reason = message.message.content
                 return
             await output_message_queue.put(message.message)
 
@@ -211,4 +211,4 @@ class BaseGroupChat(Team, ABC):
         await shutdown_task
 
         # Yield the final result.
-        yield TaskResult(messages=output_messages, stop_message=stop_message)
+        yield TaskResult(messages=output_messages, stop_reason=stop_reason)

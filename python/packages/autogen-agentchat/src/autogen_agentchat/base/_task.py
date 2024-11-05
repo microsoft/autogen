@@ -3,7 +3,7 @@ from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core.base import CancellationToken
 
-from ..messages import AgentMessage, StopMessage
+from ..messages import AgentMessage
 
 
 @dataclass
@@ -13,8 +13,8 @@ class TaskResult:
     messages: Sequence[AgentMessage]
     """Messages produced by the task."""
 
-    stop_message: StopMessage | None = None
-    """The termination message indicating the reason the task stopped."""
+    stop_reason: str | None = None
+    """The reason the task stopped."""
 
 
 class TaskRunner(Protocol):

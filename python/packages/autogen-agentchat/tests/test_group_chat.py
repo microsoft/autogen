@@ -171,7 +171,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         # Assert that all expected messages are in the collected messages
         assert normalized_messages == expected_messages
 
-        assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+        assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
         # Test streaming.
         mock.reset()
@@ -263,7 +263,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
-    assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
@@ -369,7 +369,7 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[3].source == "agent1"
     assert result.messages[4].source == "agent2"
     assert result.messages[5].source == "agent1"
-    assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     mock.reset()
@@ -423,7 +423,7 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
     assert result.messages[4].source == "agent1"
     # only one chat completion was called
     assert mock._curr_index == 1  # pyright: ignore
-    assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     mock.reset()
@@ -491,7 +491,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"
     assert result.messages[3].source == "agent1"
-    assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     mock.reset()
@@ -554,8 +554,8 @@ async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPat
     assert result.messages[4].source == "agent4"
     assert result.messages[5].source == "agent1"
     assert (
-        result.stop_message is not None
-        and result.stop_message.content == "Maximum number of messages 6 reached, current message count: 6"
+        result.stop_reason is not None
+        and result.stop_reason == "Maximum number of messages 6 reached, current message count: 6"
     )
 
 
@@ -593,8 +593,8 @@ async def test_swarm_handoff() -> None:
     assert result.messages[4].content == "Transferred to third_agent."
     assert result.messages[5].content == "Transferred to first_agent."
     assert (
-        result.stop_message is not None
-        and result.stop_message.content == "Maximum number of messages 6 reached, current message count: 6"
+        result.stop_reason is not None
+        and result.stop_reason == "Maximum number of messages 6 reached, current message count: 6"
     )
 
     # Test streaming.
@@ -683,7 +683,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     assert result.messages[4].content == "Transferred to agent1."
     assert result.messages[5].content == "Hello"
     assert result.messages[6].content == "TERMINATE"
-    assert result.stop_message is not None and result.stop_message.content == "Text 'TERMINATE' mentioned"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     agent1._model_context.clear()  # pyright: ignore
