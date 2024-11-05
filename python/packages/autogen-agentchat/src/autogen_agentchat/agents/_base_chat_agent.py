@@ -4,7 +4,7 @@ from typing import AsyncGenerator, List, Sequence
 from autogen_core.base import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import ChatMessage, InnerMessage, TextMessage
+from ..messages import AgentMessage, ChatMessage, InnerMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -62,7 +62,7 @@ class BaseChatAgent(ChatAgent, ABC):
             cancellation_token = CancellationToken()
         first_message = TextMessage(content=task, source="user")
         response = await self.on_messages([first_message], cancellation_token)
-        messages: List[InnerMessage | ChatMessage] = [first_message]
+        messages: List[AgentMessage] = [first_message]
         if response.inner_messages is not None:
             messages += response.inner_messages
         messages.append(response.chat_message)
@@ -73,14 +73,14 @@ class BaseChatAgent(ChatAgent, ABC):
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         first_message = TextMessage(content=task, source="user")
         yield first_message
-        messages: List[InnerMessage | ChatMessage] = [first_message]
+        messages: List[AgentMessage] = [first_message]
         async for message in self.on_messages_stream([first_message], cancellation_token):
             if isinstance(message, Response):
                 yield message.chat_message

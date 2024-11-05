@@ -2,7 +2,7 @@ from typing import List
 
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, RequestUsage
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BaseMessage(BaseModel):
@@ -13,6 +13,8 @@ class BaseMessage(BaseModel):
 
     models_usage: RequestUsage | None = None
     """The model client usage incurred when producing this message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TextMessage(BaseMessage):
@@ -75,6 +77,10 @@ ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | R
 """Messages for agent-to-agent communication."""
 
 
+AgentMessage = InnerMessage | ChatMessage
+"""All message types."""
+
+
 __all__ = [
     "BaseMessage",
     "TextMessage",
@@ -85,4 +91,6 @@ __all__ = [
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ChatMessage",
+    "InnerMessage",
+    "AgentMessage",
 ]

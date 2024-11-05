@@ -15,7 +15,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import FunctionTool, Tool
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from .. import EVENT_LOGGER_NAME
 from ..base import Response
@@ -31,30 +31,6 @@ from ..messages import (
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-
-
-class ToolCallEvent(BaseModel):
-    """A tool call event."""
-
-    source: str
-    """The source of the event."""
-
-    tool_calls: List[FunctionCall]
-    """The tool call message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class ToolCallResultEvent(BaseModel):
-    """A tool call result event."""
-
-    source: str
-    """The source of the event."""
-
-    tool_call_results: List[FunctionExecutionResult]
-    """The tool call result message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Handoff(BaseModel):
@@ -264,19 +240,21 @@ class AssistantAgent(BaseChatAgent):
 
         # Run tool calls until the model produces a string response.
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            event_logger.debug(ToolCallEvent(tool_calls=result.content, source=self.name))
+            tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+            event_logger.debug(tool_call_msg)
             # Add the tool call message to the output.
-            inner_messages.append(ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage))
-            yield ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+            inner_messages.append(tool_call_msg)
+            yield tool_call_msg
 
             # Execute the tool calls.
             results = await asyncio.gather(
                 *[self._execute_tool_call(call, cancellation_token) for call in result.content]
             )
-            event_logger.debug(ToolCallResultEvent(tool_call_results=results, source=self.name))
+            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+            event_logger.debug(tool_call_result_msg)
             self._model_context.append(FunctionExecutionResultMessage(content=results))
-            inner_messages.append(ToolCallResultMessage(content=results, source=self.name))
-            yield ToolCallResultMessage(content=results, source=self.name)
+            inner_messages.append(tool_call_result_msg)
+            yield tool_call_result_msg
 
             # Detect handoff requests.
             handoffs: List[Handoff] = []
