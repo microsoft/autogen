@@ -1,16 +1,12 @@
-import logging
 from typing import Any, List
 
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, event
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
-from ._events import GroupChatAgentResponse, GroupChatRequestPublish, GroupChatStart
+from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatStart
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ChatAgentContainer(SequentialRoutedAgent):
@@ -34,7 +30,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle a start event by appending the content to the buffer."""
-        self._message_buffer.append(message.user_message)
+        self._message_buffer.append(message.message)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -49,15 +45,17 @@ class ChatAgentContainer(SequentialRoutedAgent):
         response: Response | None = None
         async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
             if isinstance(msg, Response):
-                event_logger.info(msg.chat_message)
+                # Log the response.
                 await self.publish_message(
-                    msg.chat_message,
+                    GroupChatMessage(message=msg.chat_message),
                     topic_id=DefaultTopicId(type=self._output_topic_type),
                 )
                 response = msg
             else:
-                event_logger.info(msg)
-                await self.publish_message(msg, topic_id=DefaultTopicId(type=self._output_topic_type))
+                # Log the message.
+                await self.publish_message(
+                    GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
         if response is None:
             raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 

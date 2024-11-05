@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Callable, List
@@ -15,11 +16,14 @@ from autogen_core.base import (
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
 
+from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, TextMessage
+from ...messages import AgentMessage, StopMessage, TextMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatStart
+from ._events import GroupChatMessage, GroupChatStart, GroupChatTermination
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChat(Team, ABC):
@@ -95,6 +99,11 @@ class BaseGroupChat(Team, ABC):
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream."""
+
+        # TODO: runtime is currently a local variable, but it should be stored in
+        # a managed context so it can be accessed by all nested teams. Also, the runtime
+        # should be not be started or stopped by the team, but by the context.
+
         # Create the runtime.
         runtime = SingleThreadedAgentRuntime()
 
@@ -145,17 +154,22 @@ class BaseGroupChat(Team, ABC):
             TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
 
-        output_messages: List[AgentMessage] = []
+        # Create a closure agent to collect the output messages.
+        stop_message: StopMessage | None = None
         output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
 
         async def collect_output_messages(
             _runtime: AgentRuntime,
             id: AgentId,
-            message: AgentMessage,
+            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
-            output_messages.append(message)
-            await output_message_queue.put(message)
+            event_logger.info(message.message)
+            if isinstance(message, GroupChatTermination):
+                nonlocal stop_message
+                stop_message = message.message
+                return
+            await output_message_queue.put(message.message)
 
         await ClosureAgent.register(
             runtime,
@@ -172,8 +186,8 @@ class BaseGroupChat(Team, ABC):
         # Run the team by publishing the task to the group chat manager.
         first_chat_message = TextMessage(content=task, source="user")
         await runtime.publish_message(
-            GroupChatStart(user_message=first_chat_message),
-            topic_id=TopicId(type=group_chat_manager_topic_type, source=self._team_id),
+            GroupChatStart(message=first_chat_message),
+            topic_id=TopicId(type=group_topic_type, source=self._team_id),
         )
 
         # Start a coroutine to stop the runtime and signal the output message queue is complete.
@@ -183,15 +197,18 @@ class BaseGroupChat(Team, ABC):
 
         shutdown_task = asyncio.create_task(stop_runtime())
 
+        # Collect the output messages in order.
+        output_messages: List[AgentMessage] = []
         # Yield the messsages until the queue is empty.
         while True:
             message = await output_message_queue.get()
             if message is None:
                 break
             yield message
+            output_messages.append(message)
 
         # Wait for the shutdown task to finish.
         await shutdown_task
 
         # Yield the final result.
-        yield TaskResult(messages=output_messages)
+        yield TaskResult(messages=output_messages, stop_message=stop_message)

@@ -1,17 +1,13 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, List
 
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, event
 
-from ... import EVENT_LOGGER_NAME
 from ...base import TerminationCondition
 from ...messages import AgentMessage, StopMessage
-from ._events import GroupChatAgentResponse, GroupChatRequestPublish, GroupChatStart
+from ._events import GroupChatAgentResponse, GroupChatRequestPublish, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChatManager(SequentialRoutedAgent, ABC):
@@ -52,25 +48,31 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
-        event_logger.info(message.user_message)
-        await self.publish_message(message.user_message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
+        # Log the start message.
+        await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+
+        # Check if the conversation has already terminated.
         if self._termination_condition is not None and self._termination_condition.terminated:
-            # The group chat has been terminated.
-            early_stop_message = StopMessage(content="The group chat has been terminated.", source="Group chat manager")
-            event_logger.info(early_stop_message)
-            await self.publish_message(early_stop_message, topic_id=DefaultTopicId(type=self._output_topic_type))
+            early_stop_message = StopMessage(
+                content="The group chat has already terminated.", source="Group chat manager"
+            )
+            await self.publish_message(
+                GroupChatTermination(message=early_stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+            )
+            # Stop the group chat.
             return
 
         # Append the user message to the message thread.
-        self._message_thread.append(message.user_message)
+        self._message_thread.append(message.message)
 
         # Check if the conversation should be terminated.
         if self._termination_condition is not None:
-            stop_message = await self._termination_condition([message.user_message])
+            stop_message = await self._termination_condition([message.message])
             if stop_message is not None:
-                event_logger.info(stop_message)
-                await self.publish_message(stop_message, topic_id=DefaultTopicId(type=self._output_topic_type))
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
                 # Stop the group chat.
                 return
 
@@ -79,13 +81,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
-        if self._termination_condition is not None and self._termination_condition.terminated:
-            # The group chat has been terminated.
-            early_stop_message = StopMessage(content="The group chat has been terminated.", source="Group chat manager")
-            event_logger.info(early_stop_message)
-            await self.publish_message(early_stop_message, topic_id=DefaultTopicId(type=self._output_topic_type))
-            return
-
         # Append the message to the message thread and construct the delta.
         delta: List[AgentMessage] = []
         if message.agent_response.inner_messages is not None:
@@ -99,8 +94,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         if self._termination_condition is not None:
             stop_message = await self._termination_condition(delta)
             if stop_message is not None:
-                event_logger.info(stop_message)
-                await self.publish_message(stop_message, topic_id=DefaultTopicId(type=self._output_topic_type))
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
                 # Stop the group chat.
                 return
 
