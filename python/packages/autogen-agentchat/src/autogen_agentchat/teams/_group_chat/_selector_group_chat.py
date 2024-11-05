@@ -6,10 +6,15 @@ from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
 from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
-from ...messages import ChatMessage, MultiModalMessage, StopMessage, TextMessage
-from .._events import (
-    GroupChatPublishEvent,
-    GroupChatSelectSpeakerEvent,
+from ...messages import (
+    AgentMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    ResetMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
 )
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -24,21 +29,23 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     def __init__(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
-        selector_func: Callable[[Sequence[ChatMessage]], str | None] | None,
+        selector_func: Callable[[Sequence[AgentMessage]], str | None] | None,
     ) -> None:
         super().__init__(
-            parent_topic_type,
             group_topic_type,
+            output_topic_type,
             participant_topic_types,
             participant_descriptions,
+            message_thread,
             termination_condition,
         )
         self._model_client = model_client
@@ -47,7 +54,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
 
-    async def select_speaker(self, thread: List[GroupChatPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
 
@@ -56,23 +63,20 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         # Use the selector function if provided.
         if self._selector_func is not None:
-            speaker = self._selector_func([msg.agent_message for msg in thread])
+            speaker = self._selector_func(thread)
             if speaker is not None:
                 # Skip the model based selection.
-                event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=speaker, source=self.id))
                 return speaker
 
         # Construct the history of the conversation.
         history_messages: List[str] = []
-        for event in thread:
-            msg = event.agent_message
-            source = event.source
-            if source is None:
-                message = ""
-            else:
-                # The agent type must be the same as the topic type, which we use as the agent name.
-                message = f"{source.type}:"
-            if isinstance(msg, TextMessage | StopMessage):
+        for msg in thread:
+            if isinstance(msg, ToolCallMessage | ToolCallResultMessage | ResetMessage):
+                # Ignore tool call messages and reset messages.
+                continue
+            # The agent type must be the same as the topic type, which we use as the agent name.
+            message = f"{msg.source}:"
+            if isinstance(msg, TextMessage | StopMessage | HandoffMessage):
                 message += f" {msg.content}"
             elif isinstance(msg, MultiModalMessage):
                 for item in msg.content:
@@ -123,7 +127,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
-        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=agent_name, source=self.id))
+        trace_logger.debug(f"Selected speaker: {agent_name}")
         return agent_name
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
@@ -175,7 +179,7 @@ class SelectorGroupChat(BaseGroupChat):
             Must contain '{roles}', '{participants}', and '{history}' to be filled in.
         allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
             consecutively. Defaults to False.
-        selector_func (Callable[[Sequence[ChatMessage]], str | None], optional): A custom selector
+        selector_func (Callable[[Sequence[AgentMessage]], str | None], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
@@ -311,7 +315,7 @@ Read the following conversation. Then select the next role from {participants} t
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """,
         allow_repeated_speaker: bool = False,
-        selector_func: Callable[[Sequence[ChatMessage]], str | None] | None = None,
+        selector_func: Callable[[Sequence[AgentMessage]], str | None] | None = None,
     ):
         super().__init__(
             participants, group_chat_manager_class=SelectorGroupChatManager, termination_condition=termination_condition
@@ -333,17 +337,19 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     def _create_group_chat_manager_factory(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
-            parent_topic_type,
             group_topic_type,
+            output_topic_type,
             participant_topic_types,
             participant_descriptions,
+            message_thread,
             termination_condition,
             self._model_client,
             self._selector_prompt,

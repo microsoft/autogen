@@ -15,6 +15,7 @@ from autogen_agentchat.agents import (
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
+    AgentMessage,
     ChatMessage,
     HandoffMessage,
     StopMessage,
@@ -160,6 +161,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             'Here is the program\n ```python\nprint("Hello, world!")\n```',
             "Hello, world!",
             "TERMINATE",
+            "Text 'TERMINATE' mentioned",
         ]
         # Normalize the messages to remove \r\n and any leading/trailing whitespace.
         normalized_messages = [
@@ -253,7 +255,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         "Write a program that prints 'Hello, world!'",
     )
 
-    assert len(result.messages) == 6
+    assert len(result.messages) == 7
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallMessage)  # tool call
     assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
@@ -520,7 +522,7 @@ async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPat
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _select_agent(messages: Sequence[ChatMessage]) -> str | None:
+    def _select_agent(messages: Sequence[AgentMessage]) -> str | None:
         if len(messages) == 0:
             return "agent1"
         elif messages[-1].source == "agent1":
@@ -540,7 +542,7 @@ async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPat
         termination_condition=termination,
     )
     result = await team.run("task")
-    assert len(result.messages) == 6
+    assert len(result.messages) == 7
     assert result.messages[1].source == "agent1"
     assert result.messages[2].source == "agent2"
     assert result.messages[3].source == "agent3"
@@ -574,7 +576,7 @@ async def test_swarm_handoff() -> None:
     termination = MaxMessageTermination(6)
     team = Swarm([second_agent, first_agent, third_agent], termination_condition=termination)
     result = await team.run("task")
-    assert len(result.messages) == 6
+    assert len(result.messages) == 7
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
     assert result.messages[2].content == "Transferred to first_agent."
@@ -660,7 +662,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     termination = TextMentionTermination("TERMINATE")
     team = Swarm([agent1, agent2], termination_condition=termination)
     result = await team.run("task")
-    assert len(result.messages) == 7
+    assert len(result.messages) == 8
     assert result.messages[0].content == "task"
     assert isinstance(result.messages[1], ToolCallMessage)
     assert isinstance(result.messages[2], ToolCallResultMessage)

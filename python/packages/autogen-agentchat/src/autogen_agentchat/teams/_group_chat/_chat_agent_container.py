@@ -1,12 +1,16 @@
+import logging
 from typing import Any, List
 
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, event
 
+from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
-from .._events import GroupChatPublishEvent, GroupChatRequestPublishEvent
+from ._events import GroupChatAgentResponse, GroupChatRequestPublish, GroupChatStart
 from ._sequential_routed_agent import SequentialRoutedAgent
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ChatAgentContainer(SequentialRoutedAgent):
@@ -28,25 +32,31 @@ class ChatAgentContainer(SequentialRoutedAgent):
         self._message_buffer: List[ChatMessage] = []
 
     @event
-    async def handle_message(self, message: GroupChatPublishEvent, ctx: MessageContext) -> None:
-        """Handle an event by appending the content to the buffer."""
-        self._message_buffer.append(message.agent_message)
+    async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
+        """Handle a start event by appending the content to the buffer."""
+        self._message_buffer.append(message.user_message)
 
     @event
-    async def handle_content_request(self, message: GroupChatRequestPublishEvent, ctx: MessageContext) -> None:
+    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
+        """Handle an agent response event by appending the content to the buffer."""
+        self._message_buffer.append(message.agent_response.chat_message)
+
+    @event
+    async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
         # Pass the messages in the buffer to the delegate agent.
         response: Response | None = None
         async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
             if isinstance(msg, Response):
+                event_logger.info(msg.chat_message)
                 await self.publish_message(
                     msg.chat_message,
                     topic_id=DefaultTopicId(type=self._output_topic_type),
                 )
                 response = msg
             else:
-                # Publish the message to the output topic.
+                event_logger.info(msg)
                 await self.publish_message(msg, topic_id=DefaultTopicId(type=self._output_topic_type))
         if response is None:
             raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
@@ -54,7 +64,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         # Publish the response to the group chat.
         self._message_buffer.clear()
         await self.publish_message(
-            GroupChatPublishEvent(agent_message=response.chat_message, source=self.id),
+            GroupChatAgentResponse(agent_response=response),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
         )
 
