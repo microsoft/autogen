@@ -19,42 +19,27 @@ We are introducing Magentic-One, our new generalist multi-agent system for solvi
 
 ![](./imgs/autogen-magentic-one-example.png)
 
-> _Example_: Suppose a user requests the following: _Can you rewrite the readme of the autogen GitHub repository to be more clear_. Magentic-One will use the following process to handle this task. The Orchestrator agent will break down the task into subtasks and assign them to the appropriate agents. In this case, the WebSurfer will navigate to GiHub, search for the autogen repository, and extract the readme file. Next the Coder agent will rewrite the readme file for clarity and return the updated content to the Orchestrator. At each point, the Orchestrator will monitor progress via a ledger, and terminate when the task is completed successfully.
+> _Example_: The figure above illustrates Magentic-One mutli-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
 
 ## Architecture
 
-<!-- <center>
-<img src="./imgs/autgen" alt="drawing" style="width:350px;"/>
-</center> -->
 
-![](./imgs/autogen-magentic-one-agents.png)
 
-Magentic-One uses agents with the following personas and capabilities:
+![](./imgs/autogen-magentic-one-orch.png)
 
-- Orchestrator: The orchestrator agent is responsible for planning, managing subgoals, and coordinating the other agents. It can break down complex tasks into smaller subtasks and assign them to the appropriate agents. It also keeps track of the overall progress and takes corrective actions if needed (such as reassigning tasks or replanning when stuck).
+Magentic-One work is based on a multi-agent architecture where a lead Orchestrator agent is responsible for high-level planning, directing other agents and tracking task progress. The Orchestrator begins by creating a plan to tackle the task, gathering needed facts and educated guesses in a Task Ledger that is maintained. At each step of its plan, the Orchestrator creates a Progress Ledger where it self-reflects on task progress and checks whether the task is completed. If the task is not yet completed, it assigns one of Magentic-One other agents a subtask to complete. After the assigned agent completes its subtask, the Orchestrator updates the Progress Ledger and continues in this way until the task is complete. If the Orchestrator finds that progress is not being made for enough steps, it can update the Task Ledger and create a new plan. This is illustrated in the figure above; the Orchestrator work is thus divided into an outer loop where it updates the Task Ledger and an inner loop to update the Progress Ledger.
 
-- Coder: The coder agent is skilled in programming languages and is responsible for writing code.
+Overall, Magentic-One consists of the following agents:
+- Orchestrator: the lead agent responsible for task decomposition and planning, directing other agents in executing subtasks, tracking overall progress, and taking corrective actions as needed 
+- WebSurfer: This is an LLM-based agent that is proficient in commanding and managing the state of a Chromium-based web browser. With each incoming request, the WebSurfer performs an action on the browser then reports on the new state of the web page   The action space of the WebSurfer includes navigation (e.g. visiting a URL, performing a web search);  web page actions (e.g., clicking and typing); and reading actions (e.g., summarizing or answering questions). The WebSurfer relies on the accessibility tree of the browser and on set-of-marks prompting to perform its actions.
+- FileSurfer: This is an LLM-based agent that commands a markdown-based file preview application to read local files of most types. The FileSurfer can also perform common navigation tasks such as listing the contents of directories and navigating a folder structure.
+- Coder: This is an LLM-based agent specialized through its system prompt for writing code, analyzing information collected from the other agents, or creating new artifacts.
+- ComputerTerminal: Finally, ComputerTerminal provides the team with access to a console shell where the Coder’s programs can be executed, and where new programming libraries can be installed.
 
-- Computer Terminal: The computer terminal agent acts as the interface that can execute code written by the coder agent.
+Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities that it needs to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments. 
 
-- Web Surfer: The web surfer agent is proficient is responsible for web-related tasks. It can browse the internet, retrieve information from websites, and interact with web-based applications. It can handle interactive web pages, forms, and other web elements.
+While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using OpenAI o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o. 
 
-- File Surfer: The file surfer agent specializes in navigating files such as pdfs, powerpoints, WAV files, and other file types. It can search, read, and extract information from files.
-
-We created Magentic-One with one agent of each type because their combined abilities help tackle tough benchmarks. By splitting tasks among different agents, we keep the code simple and modular, like in object-oriented programming. This also makes each agent's job easier since they only need to focus on specific tasks. For example, the websurfer agent only needs to navigate webpages and doesn't worry about writing code, making the team more efficient and effective.
-
-### Planning and Tracking Task Progress
-
-<center>
-<img src="./imgs/autogen-magentic-one-arch.png" alt="drawing" style=""/>
-</center>
-
-The figure illustrates the workflow of an orchestrator managing a multi-agent setup, starting with an initial prompt or task. The orchestrator creates or updates a ledger with gathered information, including verified facts, facts to look up, derived facts, and educated guesses. Using this ledger, a plan is derived, which consists of a sequence of steps and task assignments for the agents. Before execution, the orchestrator clears the agents' contexts to ensure they start fresh. The orchestrator then evaluates if the request is fully satisfied. If so, it reports the final answer or an educated guess.
-
-If the request is not fully satisfied, the orchestrator assesses whether the work is progressing or if there are significant barriers. If progress is being made, the orchestrator orchestrates the next step by selecting an agent and providing instructions. If the process stalls for more than two iterations, the ledger is updated with new information, and the plan is adjusted. This cycle continues, iterating through steps and evaluations, until the task is completed. The orchestrator ensures organized, effective tracking and iterative problem-solving to achieve the prompt's goal.
-
-Note that many parameters such as terminal logic and maximum number of stalled iterations are configurable. Also note that the orchestrator cannot instantiate new agents. This is possible but not implemented in Magentic-One.
-  |
 
 ### Logging in Team One Agents
 
