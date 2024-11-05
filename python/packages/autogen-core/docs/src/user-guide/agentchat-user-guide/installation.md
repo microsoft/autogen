@@ -61,7 +61,7 @@ Install the `autogen-agentchat` package using pip:
 
 ```bash
 
-pip install autogen-agentchat==0.4.0.dev3
+pip install 'autogen-agentchat==0.4.0.dev4'
 ```
 
 ## Install Docker for Code Execution
