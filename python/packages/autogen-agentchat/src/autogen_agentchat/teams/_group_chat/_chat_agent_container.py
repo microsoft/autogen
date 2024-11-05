@@ -40,6 +40,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
     @event
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
         """Handle a reset event by resetting the agent."""
+        self._message_buffer.clear()
         await self._agent.reset(ctx.cancellation_token)
 
     @event
