@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// HostBuilderExtensions.cs
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -49,9 +52,9 @@ public static class HostBuilderExtensions
             });
         });
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<AgentClient>();
-        builder.Services.AddSingleton<AgentWorkerRuntime>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AgentWorkerRuntime>());
+        builder.Services.AddSingleton<IAgentWorkerRuntime, GrpcAgentWorkerRuntime>();
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorkerRuntime>());
+        builder.Services.AddSingleton<AgentWorker>();
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
@@ -71,7 +74,52 @@ public static class HostBuilderExtensions
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                                   .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
                                     .ToDictionary(item => item.t, item => item.Item2);
+            // if the assembly contains any interfaces of type IHandler, then add all the methods of the interface to the eventsMap
+            var handlersMap = AppDomain.CurrentDomain.GetAssemblies()
+                                    .SelectMany(assembly => assembly.GetTypes())
+                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                    .Select(t => (t, t.GetMethods()
+                                                  .Where(m => m.Name == "Handle")
+                                                  .Select(m => (GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? "")).ToHashSet()))
+                                    .ToDictionary(item => item.t, item => item.Item2);
+            // get interfaces implemented by the agent and get the methods of the interface if they are named Handle
+            var ifaceHandlersMap = AppDomain.CurrentDomain.GetAssemblies()
+                                    .SelectMany(assembly => assembly.GetTypes())
+                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                    .Select(t => t.GetInterfaces()
+                                                  .Select(i => (t, i, i.GetMethods()
+                                                  .Where(m => m.Name == "Handle")
+                                                    .Select(m => (GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? ""))
+                                                    //to dictionary of type t and paramter type of the method
+                                                    .ToDictionary(m => m, m => m).Keys.ToHashSet())).ToList());
+            // for each item in ifaceHandlersMap, add the handlers to eventsMap with item as the key 
+            foreach (var item in ifaceHandlersMap)
+            {
+                foreach (var iface in item)
+                {
+                    if (eventsMap.TryGetValue(iface.Item2, out var events))
+                    {
+                        events.UnionWith(iface.Item3);
+                    }
+                    else
+                    {
+                        eventsMap[iface.Item2] = iface.Item3;
+                    }
+                }
+            }
 
+            // merge the handlersMap into the eventsMap
+            foreach (var item in handlersMap)
+            {
+                if (eventsMap.TryGetValue(item.Key, out var events))
+                {
+                    events.UnionWith(item.Value);
+                }
+                else
+                {
+                    eventsMap[item.Key] = item.Value;
+                }
+            }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
         return new AgentApplicationBuilder(builder);
@@ -111,7 +159,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
                                 .SelectMany(assembly => assembly.GetTypes())
                                 .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
-                                    && !type.Name.Equals("AgentClient"))
+                                    && !type.Name.Equals("AgentWorker"))
                                 .ToDictionary(type => type.Name, type => type);
 
         return new AgentTypes(agents);

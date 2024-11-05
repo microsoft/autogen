@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ArticlesController.cs
+
 using Marketing.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AutoGen.Agents;
@@ -9,17 +12,17 @@ namespace Marketing.Backend.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class Articles(AgentClient client) : ControllerBase
+public class Articles(AgentWorker client) : ControllerBase
 {
-    private readonly AgentClient _client = client;
+    private readonly AgentWorker _client = client;
 
-    // GET api/<Post>/5
-    [HttpGet("{id}")]
-    public async Task<string> Get(string id)
-    {
-        var response = await _client.SendRequestAsync(new AgentId("writer", id), "GetArticle", []);
-        return response.Payload.Data.ToStringUtf8();
-    }
+    //// GET api/<Post>/5
+    //[HttpGet("{id}")]
+    //public async Task<string> Get(string id)
+    //{
+    //    var response = await _client.(new AgentId("writer", id), "GetArticle", []);
+    //    return response.Payload.Data.ToStringUtf8();
+    //}
 
     // PUT api/<Post>/5
     [HttpPut("{UserId}")]

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
+
 using Marketing.Backend.Agents;
 using Marketing.Shared;
 using Marketing.Backend.Hubs;
@@ -14,7 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
     .AddAgent<SignalRAgent>("signalr-hub");
-builder.Services.AddSingleton<AgentClient>();
+builder.Services.AddSingleton<AgentWorker>();
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
 // Allow any CORS origin if in DEV

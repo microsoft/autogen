@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// SignalRAgent.cs
+
 using Marketing.Shared;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel;

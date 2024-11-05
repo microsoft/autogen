@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// IWorkerGateway.cs
 
 using Microsoft.AutoGen.Abstractions;
 

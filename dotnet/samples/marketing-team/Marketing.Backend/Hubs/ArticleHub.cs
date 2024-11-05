@@ -1,4 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ArticleHub.cs
 
 using Marketing.Shared;
 using Microsoft.AspNetCore.SignalR;
@@ -7,7 +8,7 @@ using Microsoft.AutoGen.Runtime;
 
 namespace Marketing.Backend.Hubs;
 
-public class ArticleHub(AgentClient client) : Hub<IArticleHub>
+public class ArticleHub(AgentWorker client) : Hub<IArticleHub>
 {
     public override async Task OnConnectedAsync()
     {

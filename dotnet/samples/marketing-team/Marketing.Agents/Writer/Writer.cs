@@ -1,6 +1,6 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Writer.cs
 
-using Google.Protobuf;
 using Marketing.Shared;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel;
@@ -74,19 +74,19 @@ public class Writer(IAgentContext context, Kernel kernel, ISemanticTextMemory me
         await PublishEvent(auditTextEvent);
     }
 
-    protected override Task<RpcResponse> HandleRequest(RpcRequest request) => request.Method switch
-    {
-        "GetArticle" => Task.FromResult(new RpcResponse
-        {
-            Payload = new Payload
-            {
-                DataContentType = "text/plain",
-                Data = ByteString.CopyFromUtf8(_state.Data.WrittenArticle),
-                DataType = "text"
-            }
-        }),
-        _ => Task.FromResult(new RpcResponse { Error = $"Unknown method, '{request.Method}'." }),
-    };
+    //protected override Task<RpcResponse> HandleRequest(RpcRequest request) => request.Method switch
+    //{
+    //    "GetArticle" => Task.FromResult(new RpcResponse
+    //    {
+    //        Payload = new Payload
+    //        {
+    //            DataContentType = "text/plain",
+    //            Data = ByteString.CopyFromUtf8(_state.Data.WrittenArticle),
+    //            DataType = "text"
+    //        }
+    //    }),
+    //    _ => Task.FromResult(new RpcResponse { Error = $"Unknown method, '{request.Method}'." }),
+    //};
 
     public Task<string> GetArticle()
     {

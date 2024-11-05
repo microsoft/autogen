@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AzureGenie.cs
+
 using DevTeam.Backend;
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;

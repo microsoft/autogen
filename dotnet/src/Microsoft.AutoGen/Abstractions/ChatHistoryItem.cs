@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ChatHistoryItem.cs
+
 namespace Microsoft.AutoGen.Abstractions;
 
 [Serializable]

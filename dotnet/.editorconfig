@@ -193,10 +193,6 @@ csharp_using_directive_placement = outside_namespace:error
 csharp_prefer_static_local_function = true:warning
 csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:warning
 
-# Header template
-file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.\n{fileName}
-dotnet_diagnostic.IDE0073.severity = error
-
 # enable format error
 dotnet_diagnostic.IDE0055.severity = error
 
@@ -221,13 +217,14 @@ dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
 
 csharp_style_var_elsewhere = true:suggestion # Prefer 'var' everywhere
 csharp_prefer_simple_using_statement = true:suggestion
-csharp_style_namespace_declarations = block_scoped:silent
+csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_top_level_statements = true:silent
 csharp_style_prefer_primary_constructors = true:suggestion
 csharp_style_expression_bodied_lambdas = true:silent
 csharp_style_prefer_local_over_anonymous_function = true:suggestion
 dotnet_diagnostic.CA2016.severity = suggestion
+csharp_prefer_static_anonymous_function = true:suggestion
 
 # disable check for generated code
 [*.generated.cs]
@@ -556,8 +553,8 @@ dotnet_diagnostic.IDE0060.severity = warning
 dotnet_diagnostic.IDE0062.severity = warning
 
 # IDE0073: File header
-dotnet_diagnostic.IDE0073.severity = suggestion
-file_header_template = Copyright (c) Microsoft. All rights reserved.
+dotnet_diagnostic.IDE0073.severity = warning
+file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.\n{fileName}
 
 # IDE1006: Required naming style
 dotnet_diagnostic.IDE1006.severity = warning
@@ -697,6 +694,7 @@ dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
 dotnet_style_namespace_match_folder = true:suggestion
+dotnet_style_qualification_for_method = false:silent
 
 [**/*.g.cs]
 generated_code = true

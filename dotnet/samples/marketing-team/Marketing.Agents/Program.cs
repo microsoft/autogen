@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
+
 using Marketing.Agents;
 using Marketing.Shared;
 using Microsoft.AutoGen.Agents;

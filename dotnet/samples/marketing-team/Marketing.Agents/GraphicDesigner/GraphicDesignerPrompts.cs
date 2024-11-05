@@ -1,4 +1,7 @@
-﻿namespace Marketing.Agents;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GraphicDesignerPrompts.cs
+
+namespace Marketing.Agents;
 
 public static class GraphicDesignerPrompts
 {

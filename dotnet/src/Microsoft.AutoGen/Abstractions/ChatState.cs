@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ChatState.cs
+
 using Google.Protobuf;
 
 namespace Microsoft.AutoGen.Abstractions;

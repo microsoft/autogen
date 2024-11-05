@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AIClientOptions.cs
+
 using System.ComponentModel.DataAnnotations;
 
 namespace Microsoft.Extensions.Hosting;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// OpenAIOptions.cs
+
 using System.ComponentModel.DataAnnotations;
 
 namespace Marketing.Shared.Options;

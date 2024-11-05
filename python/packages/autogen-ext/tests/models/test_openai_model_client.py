@@ -11,6 +11,7 @@ from autogen_core.components.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    RequestUsage,
     SystemMessage,
     UserMessage,
 )
@@ -24,28 +25,83 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceD
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.completion_usage import CompletionUsage
+from pydantic import BaseModel
+
+
+class MockChunkDefinition(BaseModel):
+    # defining elements for diffentiating mocking chunks
+    chunk_choice: ChunkChoice
+    usage: CompletionUsage | None
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
     model = resolve_model(kwargs.get("model", "gpt-4o"))
-    chunks = ["Hello", " Another Hello", " Yet Another Hello"]
-    for chunk in chunks:
+    mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
+
+    # The openai api implementations (OpenAI and Litellm) stream chunks of tokens
+    # with content as string, and then at the end a token with stop set and finally if
+    # usage requested with `"stream_options": {"include_usage": True}` a chunk with the usage data
+    mock_chunks = [
+        # generate the list of mock chunk content
+        MockChunkDefinition(
+            chunk_choice=ChunkChoice(
+                finish_reason=None,
+                index=0,
+                delta=ChoiceDelta(
+                    content=mock_chunk_content,
+                    role="assistant",
+                ),
+            ),
+            usage=None,
+        )
+        for mock_chunk_content in mock_chunks_content
+    ] + [
+        # generate the stop chunk
+        MockChunkDefinition(
+            chunk_choice=ChunkChoice(
+                finish_reason="stop",
+                index=0,
+                delta=ChoiceDelta(
+                    content=None,
+                    role="assistant",
+                ),
+            ),
+            usage=None,
+        )
+    ]
+    # generate the usage chunk if configured
+    if kwargs.get("stream_options", {}).get("include_usage") is True:
+        mock_chunks = mock_chunks + [
+            # ---- API differences
+            # OPENAI API does NOT create a choice
+            # LITELLM (proxy) DOES create a choice
+            # Not simulating all the API options, just implementing the LITELLM variant
+            MockChunkDefinition(
+                chunk_choice=ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                    ),
+                ),
+                usage=CompletionUsage(prompt_tokens=3, completion_tokens=3, total_tokens=6),
+            )
+        ]
+    elif kwargs.get("stream_options", {}).get("include_usage") is False:
+        pass
+    else:
+        pass
+
+    for mock_chunk in mock_chunks:
         await asyncio.sleep(0.1)
         yield ChatCompletionChunk(
             id="id",
-            choices=[
-                ChunkChoice(
-                    finish_reason="stop",
-                    index=0,
-                    delta=ChoiceDelta(
-                        content=chunk,
-                        role="assistant",
-                    ),
-                )
-            ],
+            choices=[mock_chunk.chunk_choice],
             created=0,
             model=model,
             object="chat.completion.chunk",
+            usage=mock_chunk.usage,
         )
 
 
@@ -95,17 +151,64 @@ async def test_openai_chat_completion_client_create(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create_stream(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create_stream_with_usage(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
-    async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+        # include_usage not the default of the OPENAI API and must be explicitly set
+        extra_create_args={"stream_options": {"include_usage": True}},
+    ):
         chunks.append(chunk)
     assert chunks[0] == "Hello"
     assert chunks[1] == " Another Hello"
     assert chunks[2] == " Yet Another Hello"
     assert isinstance(chunks[-1], CreateResult)
     assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_no_usage_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+        # include_usage not the default of the OPENAI APIis ,
+        # it can be explicitly set
+        # or just not declared which is the default
+        # extra_create_args={"stream_options": {"include_usage": False}},
+    ):
+        chunks.append(chunk)
+    assert chunks[0] == "Hello"
+    assert chunks[1] == " Another Hello"
+    assert chunks[2] == " Yet Another Hello"
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+    assert chunks[-1].usage == RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_no_usage_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+        # include_usage is not the default of the OPENAI API ,
+        # it can be explicitly set
+        # or just not declared which is the default
+        extra_create_args={"stream_options": {"include_usage": False}},
+    ):
+        chunks.append(chunk)
+    assert chunks[0] == "Hello"
+    assert chunks[1] == " Another Hello"
+    assert chunks[2] == " Yet Another Hello"
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+    assert chunks[-1].usage == RequestUsage(prompt_tokens=0, completion_tokens=0)
 
 
 @pytest.mark.asyncio

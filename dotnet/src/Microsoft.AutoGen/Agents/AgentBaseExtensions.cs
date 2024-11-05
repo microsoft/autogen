@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentBaseExtensions.cs
+
 using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Agents;
