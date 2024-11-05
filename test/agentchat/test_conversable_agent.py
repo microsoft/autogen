@@ -116,7 +116,7 @@ def test_sync_trigger():
     assert agent1.last_message(agent)["content"] == "hello agent1"
     # Now that trigger has been activated, state should reset to None, and initiating chat aain would fail
     agent1.initiate_chat(agent, message="hi")
-    assert agent1.last_message(agent) == None  # is there another bettter way to assert agent1 wont reply?
+    assert agent1.last_message(agent) == None  # is there another better way to assert agent1 won't reply?
 
     # Test user defined trigger with params (default state management: STATE_KEPT_TILL_TRUE)
     # Test with blank slate agents
@@ -128,7 +128,7 @@ def test_sync_trigger():
     agent1.initiate_chat(agent, message="hi")
     assert (
         agent1.last_message(agent) == None and nested_chat_condition.state_params == None
-    )  # is there another bettter way to assert agent1 wont reply?
+    )  # is there another better way to assert agent1 won't reply?
     # Test user defined trigger with params (default state management: STATE_KEPT_TILL_FALSE)
     # Test with blank slate agents
     nested_chat_condition.state_ttl_management = "STATE_KEPT_TILL_FALSE"
