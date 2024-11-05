@@ -1,16 +1,9 @@
-import logging
 from typing import Callable, List
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
-from .._events import (
-    GroupChatPublishEvent,
-    GroupChatSelectSpeakerEvent,
-)
+from ...messages import AgentMessage
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class RoundRobinGroupChatManager(BaseGroupChatManager):
@@ -18,27 +11,28 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     def __init__(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> None:
         super().__init__(
-            parent_topic_type,
             group_topic_type,
+            output_topic_type,
             participant_topic_types,
             participant_descriptions,
+            message_thread,
             termination_condition,
         )
         self._next_speaker_index = 0
 
-    async def select_speaker(self, thread: List[GroupChatPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
         self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
         current_speaker = self._participant_topic_types[current_speaker_index]
-        event_logger.debug(GroupChatSelectSpeakerEvent(selected_speaker=current_speaker, source=self.id))
         return current_speaker
 
 
@@ -126,18 +120,20 @@ class RoundRobinGroupChat(BaseGroupChat):
 
     def _create_group_chat_manager_factory(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
-                parent_topic_type,
                 group_topic_type,
+                output_topic_type,
                 participant_topic_types,
                 participant_descriptions,
+                message_thread,
                 termination_condition,
             )
 

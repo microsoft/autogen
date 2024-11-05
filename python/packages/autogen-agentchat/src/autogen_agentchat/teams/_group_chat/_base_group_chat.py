@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Callable, List
@@ -15,11 +16,14 @@ from autogen_core.base import (
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
 
+from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import ChatMessage, InnerMessage, TextMessage
-from .._events import GroupChatPublishEvent, GroupChatRequestPublishEvent
+from ...messages import AgentMessage, TextMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
+from ._events import GroupChatMessage, GroupChatStart, GroupChatTermination
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChat(Team, ABC):
@@ -43,14 +47,16 @@ class BaseGroupChat(Team, ABC):
         self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
+        self._message_thread: List[AgentMessage] = []
 
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], BaseGroupChatManager]: ...
 
@@ -90,9 +96,14 @@ class BaseGroupChat(Team, ABC):
         task: str,
         *,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[InnerMessage | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream."""
+
+        # TODO: runtime is currently a local variable, but it should be stored in
+        # a managed context so it can be accessed by all nested teams. Also, the runtime
+        # should be not be started or stopped by the team, but by the context.
+
         # Create the runtime.
         runtime = SingleThreadedAgentRuntime()
 
@@ -100,7 +111,6 @@ class BaseGroupChat(Team, ABC):
         group_chat_manager_agent_type = AgentType("group_chat_manager")
         group_chat_manager_topic_type = group_chat_manager_agent_type.type
         group_topic_type = "round_robin_group_topic"
-        team_topic_type = "team_topic"
         output_topic_type = "output_topic"
 
         # Register participants.
@@ -128,10 +138,11 @@ class BaseGroupChat(Team, ABC):
             runtime,
             type=group_chat_manager_agent_type.type,
             factory=self._create_group_chat_manager_factory(
-                parent_topic_type=team_topic_type,
                 group_topic_type=group_topic_type,
+                output_topic_type=output_topic_type,
                 participant_topic_types=participant_topic_types,
                 participant_descriptions=participant_descriptions,
+                message_thread=self._message_thread,
                 termination_condition=self._termination_condition,
             ),
         )
@@ -142,21 +153,23 @@ class BaseGroupChat(Team, ABC):
         await runtime.add_subscription(
             TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
-        await runtime.add_subscription(
-            TypeSubscription(topic_type=team_topic_type, agent_type=group_chat_manager_agent_type.type)
-        )
 
-        output_messages: List[InnerMessage | ChatMessage] = []
-        output_message_queue: asyncio.Queue[InnerMessage | ChatMessage | None] = asyncio.Queue()
+        # Create a closure agent to collect the output messages.
+        stop_reason: str | None = None
+        output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
 
         async def collect_output_messages(
             _runtime: AgentRuntime,
             id: AgentId,
-            message: InnerMessage | ChatMessage,
+            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
-            output_messages.append(message)
-            await output_message_queue.put(message)
+            event_logger.info(message.message)
+            if isinstance(message, GroupChatTermination):
+                nonlocal stop_reason
+                stop_reason = message.message.content
+                return
+            await output_message_queue.put(message.message)
 
         await ClosureAgent.register(
             runtime,
@@ -170,17 +183,12 @@ class BaseGroupChat(Team, ABC):
         # Start the runtime.
         runtime.start()
 
-        # Run the team by publishing the task to the team topic and then requesting the result.
-        team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
-        group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
+        # Run the team by publishing the task to the group chat manager.
         first_chat_message = TextMessage(content=task, source="user")
-        output_messages.append(first_chat_message)
-        await output_message_queue.put(first_chat_message)
         await runtime.publish_message(
-            GroupChatPublishEvent(agent_message=first_chat_message),
-            topic_id=team_topic_id,
+            GroupChatStart(message=first_chat_message),
+            topic_id=TopicId(type=group_topic_type, source=self._team_id),
         )
-        await runtime.publish_message(GroupChatRequestPublishEvent(), topic_id=group_chat_manager_topic_id)
 
         # Start a coroutine to stop the runtime and signal the output message queue is complete.
         async def stop_runtime() -> None:
@@ -189,15 +197,18 @@ class BaseGroupChat(Team, ABC):
 
         shutdown_task = asyncio.create_task(stop_runtime())
 
+        # Collect the output messages in order.
+        output_messages: List[AgentMessage] = []
         # Yield the messsages until the queue is empty.
         while True:
             message = await output_message_queue.get()
             if message is None:
                 break
             yield message
+            output_messages.append(message)
 
         # Wait for the shutdown task to finish.
         await shutdown_task
 
         # Yield the final result.
-        yield TaskResult(messages=output_messages)
+        yield TaskResult(messages=output_messages, stop_reason=stop_reason)
