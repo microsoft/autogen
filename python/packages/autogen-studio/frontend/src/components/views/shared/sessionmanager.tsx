@@ -273,19 +273,35 @@ const SessionManager: React.FC = () => {
     </div>
   );
 
+  const handleNewNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewSessionName(e.target.value);
+    },
+    []
+  );
+
+  const handleEditNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setEditedName(e.target.value);
+    },
+    []
+  );
+
   // Session management content
   const SessionContent = () => (
     <div className="flex gap-2 items-center">
       {showCreateForm ? (
         <div className="flex gap-2 items-center w-full">
           <Input
+            key="create-session-input"
             placeholder="Enter session name"
             value={newSessionName}
-            onChange={(e) => setNewSessionName(e.target.value)}
+            onChange={handleNewNameChange}
             onPressEnter={createSession}
             className="flex-1"
             maxLength={100}
             disabled={creating}
+            autoFocus
           />
           <Button onClick={createSession} loading={creating} type="primary">
             Create
@@ -297,13 +313,15 @@ const SessionManager: React.FC = () => {
       ) : editingSession ? (
         <div className="flex gap-2 items-center w-full">
           <Input
+            key="edit-session-input"
             placeholder="Enter new session name"
             value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
+            onChange={handleEditNameChange}
             onPressEnter={updateSession}
             className="flex-1"
             maxLength={100}
             disabled={updating}
+            autoFocus
           />
           <Button onClick={updateSession} loading={updating} type="primary">
             Update

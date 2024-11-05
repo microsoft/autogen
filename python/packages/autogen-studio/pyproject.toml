@@ -23,8 +23,6 @@ dependencies = [
     "fastapi",
     "typer",
     "uvicorn", 
-     "autogen-agentchat @ git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-agentchat",
-    "autogen-ext @ git+https://github.com/microsoft/autogen.git#subdirectory=python/packages/autogen-ext",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",

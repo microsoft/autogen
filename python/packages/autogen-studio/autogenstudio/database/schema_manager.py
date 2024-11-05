@@ -46,19 +46,28 @@ class SchemaManager:
 
     def _cleanup_existing_alembic(self) -> None:
         """
-        Safely removes existing Alembic configuration.
+        Safely removes existing Alembic configuration while preserving versions directory.
         """
-        logger.info("Cleaning up existing Alembic configuration...")
+        logger.info(
+            "Cleaning up existing Alembic configuration while preserving versions...")
 
-        # Remove alembic directory if it exists
+        # Create a backup of versions directory if it exists
+        if self.alembic_dir.exists() and (self.alembic_dir / 'versions').exists():
+            logger.info("Preserving existing versions directory")
+
+        # Remove alembic directory contents EXCEPT versions
         if self.alembic_dir.exists():
-            try:
-                shutil.rmtree(self.alembic_dir)
-                logger.info(
-                    f"Removed existing alembic directory: {self.alembic_dir}")
-            except Exception as e:
-                logger.error(f"Failed to remove alembic directory: {e}")
-                raise
+            for item in self.alembic_dir.iterdir():
+                if item.name != 'versions':
+                    try:
+                        if item.is_dir():
+                            shutil.rmtree(item)
+                            logger.info(f"Removed directory: {item}")
+                        else:
+                            item.unlink()
+                            logger.info(f"Removed file: {item}")
+                    except Exception as e:
+                        logger.error(f"Failed to remove {item}: {e}")
 
         # Remove alembic.ini if it exists
         if self.alembic_ini_path.exists():
@@ -68,7 +77,6 @@ class SchemaManager:
                     f"Removed existing alembic.ini: {self.alembic_ini_path}")
             except Exception as e:
                 logger.error(f"Failed to remove alembic.ini: {e}")
-                raise
 
     def _ensure_alembic_setup(self, force: bool = False) -> None:
         """
@@ -94,48 +102,92 @@ class SchemaManager:
             logger.info("Alembic initialization complete")
 
     def _initialize_alembic(self) -> str:
-        """
-        Initializes Alembic configuration in the local directory.
-        """
+        """Initializes Alembic configuration in the local directory."""
         logger.info("Initializing Alembic configuration...")
 
-        # Ensure directories don't exist before creating
-        if self.alembic_dir.exists():
-            raise RuntimeError(
-                "Alembic directory already exists. Use force_init=True to override.")
+        # Check if versions exists
+        has_versions = (self.alembic_dir / 'versions').exists()
+        logger.info(f"Existing versions directory found: {has_versions}")
 
-        # Create base directory if it doesn't exist
-        self.base_dir.mkdir(exist_ok=True)
+        # Create base directories
+        self.alembic_dir.mkdir(exist_ok=True)
+        if not has_versions:
+            (self.alembic_dir / 'versions').mkdir(exist_ok=True)
 
-        # Write alembic.ini with proper configuration
+        # Write alembic.ini
         ini_content = self._generate_alembic_ini_content()
         with open(self.alembic_ini_path, 'w') as f:
             f.write(ini_content)
+        logger.info("Created alembic.ini")
 
-        # Initialize alembic structure
-        try:
-            os.chdir(self.base_dir)
+        if not has_versions:
+            # Only run init if no versions directory
             config = self.get_alembic_config()
             command.init(config, str(self.alembic_dir))
-            logger.info("Created Alembic directory structure")
-        except Exception as e:
-            logger.error(f"Failed to initialize Alembic: {e}")
-            self._cleanup_existing_alembic()  # Cleanup on failure
-            raise
+            logger.info("Initialized new Alembic directory structure")
+        else:
+            # Create minimal env.py if it doesn't exist
+            env_path = self.alembic_dir / 'env.py'
+            if not env_path.exists():
+                self._create_minimal_env_py(env_path)
+                logger.info("Created minimal env.py")
+            else:
+                # Update existing env.py
+                self._update_env_py(env_path)
+                logger.info("Updated existing env.py")
 
-        # Update env.py and create initial migration
-        try:
-            self._update_env_py(self.alembic_dir / 'env.py')
-            config = self.get_alembic_config()
-            command.revision(config, message="initial", autogenerate=True)
-            logger.info("Created initial migration")
-        except Exception as e:
-            logger.error(f"Failed to complete Alembic setup: {e}")
-            self._cleanup_existing_alembic()  # Cleanup on failure
-            raise
-
-        logger.info(f"Alembic initialized successfully at {self.base_dir}")
+        logger.info(f"Alembic setup completed at {self.base_dir}")
         return str(self.alembic_ini_path)
+
+    def _create_minimal_env_py(self, env_path: Path) -> None:
+        """Creates a minimal env.py file for Alembic."""
+        content = '''
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+from alembic import context
+from sqlmodel import SQLModel
+
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = SQLModel.metadata
+
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        compare_type=True
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+def run_migrations_online() -> None:
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, 
+            target_metadata=target_metadata,
+            compare_type=True
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()'''
+
+        with open(env_path, 'w') as f:
+            f.write(content)
 
     def _generate_alembic_ini_content(self) -> str:
         """
@@ -184,24 +236,27 @@ datefmt = %H:%M:%S
     def _update_env_py(self, env_path: Path) -> None:
         """
         Updates the env.py file to use SQLModel metadata.
-
-        Args:
-            env_path: Path to env.py file
         """
         try:
             with open(env_path, 'r') as f:
                 content = f.read()
 
-            # Add SQLModel import if not present
-            import_line = "from sqlmodel import SQLModel\n"
-            if import_line not in content:
-                content = import_line + content
+            # Add SQLModel import
+            if "from sqlmodel import SQLModel" not in content:
+                content = "from sqlmodel import SQLModel\n" + content
 
             # Replace target_metadata
             content = content.replace(
                 "target_metadata = None",
                 "target_metadata = SQLModel.metadata"
             )
+
+            # Add compare_type=True to context.configure
+            if "context.configure(" in content and "compare_type=True" not in content:
+                content = content.replace(
+                    "context.configure(",
+                    "context.configure(compare_type=True,"
+                )
 
             with open(env_path, 'w') as f:
                 f.write(content)

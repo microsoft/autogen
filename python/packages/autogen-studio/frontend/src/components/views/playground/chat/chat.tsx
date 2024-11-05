@@ -7,7 +7,6 @@ import MessageList from "./messagelist";
 import ChatInput from "./chatinput";
 import { getServerUrl } from "../../../utils";
 import SessionManager from "../../shared/sessionmanager";
-import { appContext } from "../../../../hooks/provider";
 
 interface ChatViewProps {
   initMessages: any[];
