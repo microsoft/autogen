@@ -40,10 +40,12 @@ Reply "TERMINATE" in the end when everything is done.""")
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
         system_messages: List[SystemMessage] = DEFAULT_SYSTEM_MESSAGES,
+        request_terminate: bool = False,
     ) -> None:
         super().__init__(description)
         self._model_client = model_client
         self._system_messages = system_messages
+        self._request_terminate = request_terminate
 
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Respond to a reply request."""
@@ -53,7 +55,10 @@ Reply "TERMINATE" in the end when everything is done.""")
             self._system_messages + self._chat_history, cancellation_token=cancellation_token
         )
         assert isinstance(response.content, str)
-        return "TERMINATE" in response.content, response.content
+        if self._request_terminate:
+            return "TERMINATE" in response.content, response.content
+        else:
+            return False, response.content
 
 
 # True if the user confirms the code, False otherwise

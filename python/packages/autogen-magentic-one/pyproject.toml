@@ -7,7 +7,7 @@ name = "autogen-magentic-one"
 version = "0.0.1"
 license = {file = "LICENSE-CODE"}
 description = ''
-readme = "readme.md"
+readme = "README.md"
 requires-python = ">=3.10"
 keywords = []
 classifiers = [
@@ -18,7 +18,7 @@ classifiers = [
 
 dependencies = [
     "autogen-core",
-    "autogen-ext",
+    "autogen-ext[docker]",
     "beautifulsoup4",
     "aiofiles",
     "requests",

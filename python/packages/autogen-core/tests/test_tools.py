@@ -1,5 +1,5 @@
 import inspect
-from typing import Annotated
+from typing import Annotated, List
 
 import pytest
 from autogen_core.base import CancellationToken
@@ -324,3 +324,15 @@ def test_convert_tools_accepts_both_tool_and_schema() -> None:
 
     assert len(converted_tool_schema) == 2
     assert converted_tool_schema[0] == converted_tool_schema[1]
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_list() -> None:
+    def my_function() -> List[int]:
+        return [1, 2]
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, list)
+    assert result == [1, 2]
+    assert tool.return_value_as_string(result) == "[1, 2]"
