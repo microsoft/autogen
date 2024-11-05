@@ -14,5 +14,6 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="System.Text.Json" VersionOverride="9.0.0-rc.2.24473.5" />
   </ItemGroup>
 </Project>
