@@ -11,7 +11,7 @@ class BaseMessage(BaseModel):
     source: str
     """The name of the agent that sent this message."""
 
-    model_usage: RequestUsage | None = None
+    models_usage: RequestUsage | None = None
     """The model client usage incurred when producing this message."""
 
 
