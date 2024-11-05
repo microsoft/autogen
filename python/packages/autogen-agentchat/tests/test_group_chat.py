@@ -82,6 +82,9 @@ class _EchoAgent(BaseChatAgent):
             assert self._last_message is not None
             return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
+    async def reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
 
 class _StopAgent(_EchoAgent):
     def __init__(self, name: str, description: str, *, stop_at: int = 1) -> None:
@@ -574,6 +577,9 @@ class _HandOffAgent(BaseChatAgent):
                 content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name
             )
         )
+
+    async def reset(self, cancellation_token: CancellationToken) -> None:
+        pass
 
 
 @pytest.mark.asyncio

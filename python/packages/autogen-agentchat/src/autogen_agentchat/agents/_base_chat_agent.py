@@ -89,3 +89,8 @@ class BaseChatAgent(ChatAgent, ABC):
             else:
                 messages.append(message)
                 yield message
+
+    @abstractmethod
+    async def reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent to its initialization state."""
+        ...
