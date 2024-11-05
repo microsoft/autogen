@@ -20,15 +20,15 @@ public static class AgentsApp
         if (local)
         {
             // start the server runtime
-            builder.AddLocalAgentService();
+            builder.AddLocalAgentService(useGrpc: false);
         }
-        builder.AddAgentWorker()
+        builder.AddAgentWorker(local: local)
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
         if (local)
         {
-            app.MapAgentService();
+            app.MapAgentService(local: true, useGrpc: false);
         }
         app.MapDefaultEndpoints();
         Host = app;

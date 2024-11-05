@@ -19,7 +19,9 @@ public sealed class GrpcAgentWorker(
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
     ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) : AgentWorker(logger), IHostedService, IDisposable, IAgentWorker
+    DistributedContextPropagator distributedContextPropagator) : 
+    AgentWorker(hostApplicationLifetime, 
+    serviceProvider, configuredAgentTypes,logger,distributedContextPropagator), IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -226,7 +228,6 @@ public sealed class GrpcAgentWorker(
     {
         await _outboundMessagesChannel.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
     }
-
     private AsyncDuplexStreamingCall<Message, Message> GetChannel()
     {
         if (_channel is { } channel)
@@ -262,7 +263,7 @@ public sealed class GrpcAgentWorker(
         return _channel;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public new async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
         StartCore();
@@ -299,7 +300,7 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public new async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
 

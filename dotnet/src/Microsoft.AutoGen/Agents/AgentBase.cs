@@ -23,19 +23,19 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly IAgentContext _context;
     public string Route { get; set; } = "base";
 
-    protected internal ILogger<IAgentBase> _logger;
+    protected internal ILogger<AgentBase> _logger;
     public IAgentContext Context => _context;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(
         IAgentContext context,
         EventTypes eventTypes,
-        ILogger<IAgentBase>? logger = null)
+        ILogger<AgentBase>? logger = null)
     {
         _context = context;
         context.AgentInstance = this;
         this.EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => {}).CreateLogger<IAgentBase>();
+        _logger = logger ?? LoggerFactory.Create(builder => {}).CreateLogger<AgentBase>();
         Completion = Start();
     }
     internal Task Completion { get; }
