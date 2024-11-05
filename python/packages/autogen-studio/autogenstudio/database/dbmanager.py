@@ -25,7 +25,8 @@ class DBManager:
         self.engine = create_engine(engine_uri, connect_args=connection_args)
         self.schema_manager = SchemaManager(
             engine=self.engine,
-            auto_upgrade=True  # Set to False in production
+            auto_upgrade=True,  # Set to False in production
+            force_init=True
         )
 
         # Check and upgrade on startup

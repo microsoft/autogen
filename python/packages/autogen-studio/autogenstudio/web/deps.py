@@ -85,7 +85,7 @@ async def get_current_user(
 # Manager initialization and cleanup
 
 
-def init_managers(database_uri: str) -> None:
+async def init_managers(database_uri: str) -> None:
     """Initialize all manager instances"""
     global _db_manager, _connection_manager, _team_manager
 
@@ -110,7 +110,7 @@ def init_managers(database_uri: str) -> None:
 
     except Exception as e:
         logger.error(f"Failed to initialize managers: {str(e)}")
-        cleanup_managers()  # Cleanup any partially initialized managers
+        await cleanup_managers()  # Cleanup any partially initialized managers
         raise
 
 

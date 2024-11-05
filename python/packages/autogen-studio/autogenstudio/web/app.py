@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Initializing application...")
     try:
         # Initialize managers (DB, Connection, Team)
-        init_managers(database_engine_uri)
+        await init_managers(database_engine_uri)
         logger.info("Managers initialized successfully")
 
         # Any other initialization code

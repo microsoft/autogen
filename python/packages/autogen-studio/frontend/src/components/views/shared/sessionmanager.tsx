@@ -8,6 +8,7 @@ import {
   Popconfirm,
   Collapse,
   Badge,
+  CollapseProps,
 } from "antd";
 import { Plus, Edit, Trash2, ChevronDown } from "lucide-react";
 import { getServerUrl } from "../../utils";
@@ -272,8 +273,120 @@ const SessionManager: React.FC = () => {
     </div>
   );
 
+  // Session management content
+  const SessionContent = () => (
+    <div className="flex gap-2 items-center">
+      {showCreateForm ? (
+        <div className="flex gap-2 items-center w-full">
+          <Input
+            placeholder="Enter session name"
+            value={newSessionName}
+            onChange={(e) => setNewSessionName(e.target.value)}
+            onPressEnter={createSession}
+            className="flex-1"
+            maxLength={100}
+            disabled={creating}
+          />
+          <Button onClick={createSession} loading={creating} type="primary">
+            Create
+          </Button>
+          <Button onClick={resetCreateForm} disabled={creating}>
+            Cancel
+          </Button>
+        </div>
+      ) : editingSession ? (
+        <div className="flex gap-2 items-center w-full">
+          <Input
+            placeholder="Enter new session name"
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onPressEnter={updateSession}
+            className="flex-1"
+            maxLength={100}
+            disabled={updating}
+          />
+          <Button onClick={updateSession} loading={updating} type="primary">
+            Update
+          </Button>
+          <Button onClick={resetEditForm} disabled={updating}>
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <>
+          <Select
+            className="w-64"
+            placeholder={
+              fetchingList ? "Loading sessions..." : "Select a session"
+            }
+            loading={fetchingList}
+            disabled={fetchingList}
+            onChange={handleSessionSelect}
+            value={session?.id}
+            options={sessions.map((s) => ({
+              label: (
+                <div className="flex items-center justify-between">
+                  <span>{s.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="text"
+                      size="small"
+                      className="p-0"
+                      icon={<Edit className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(s.id);
+                      }}
+                    />
+                    <Popconfirm
+                      title="Delete Session"
+                      description="Are you sure you want to delete this session?"
+                      onConfirm={(e) => {
+                        e?.stopPropagation();
+                        deleteSession(s.id);
+                      }}
+                      onCancel={(e) => e?.stopPropagation()}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        className="p-0"
+                        danger
+                        icon={<Trash2 className="w-4 h-4" />}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+              ),
+              value: s.id,
+            }))}
+            notFoundContent={
+              sessions.length === 0 ? "No sessions found" : undefined
+            }
+          />
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            New Session
+          </Button>
+        </>
+      )}
+    </div>
+  );
+
+  const items: CollapseProps["items"] = [
+    {
+      key: "1",
+      label: <CollapsibleHeader />,
+      children: <SessionContent />,
+    },
+  ];
+
   return (
     <Collapse
+      items={items}
       className="bg-secondary border-0 shadow-sm"
       defaultActiveKey={["1"]}
       expandIcon={({ isActive }) => (
@@ -284,109 +397,7 @@ const SessionManager: React.FC = () => {
         />
       )}
       onChange={(keys) => setIsOpen(keys.includes("1"))}
-    >
-      <Panel header={<CollapsibleHeader />} key="1" className="border-0">
-        <div className="flex gap-2 items-center">
-          {showCreateForm ? (
-            <div className="flex gap-2 items-center w-full">
-              <Input
-                placeholder="Enter session name"
-                value={newSessionName}
-                onChange={(e) => setNewSessionName(e.target.value)}
-                onPressEnter={createSession}
-                className="flex-1"
-                maxLength={100}
-                disabled={creating}
-              />
-              <Button onClick={createSession} loading={creating} type="primary">
-                Create
-              </Button>
-              <Button onClick={resetCreateForm} disabled={creating}>
-                Cancel
-              </Button>
-            </div>
-          ) : editingSession ? (
-            <div className="flex gap-2 items-center w-full">
-              <Input
-                placeholder="Enter new session name"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                onPressEnter={updateSession}
-                className="flex-1"
-                maxLength={100}
-                disabled={updating}
-              />
-              <Button onClick={updateSession} loading={updating} type="primary">
-                Update
-              </Button>
-              <Button onClick={resetEditForm} disabled={updating}>
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Select
-                className="w-64"
-                placeholder={
-                  fetchingList ? "Loading sessions..." : "Select a session"
-                }
-                loading={fetchingList}
-                disabled={fetchingList}
-                onChange={handleSessionSelect}
-                value={session?.id}
-                options={sessions.map((s) => ({
-                  label: (
-                    <div className="flex items-center justify-between">
-                      <span>{s.name}</span>
-                      <div className="flex gap-2">
-                        <Button
-                          type="text"
-                          size="small"
-                          className="p-0"
-                          icon={<Edit className="w-4 h-4" />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditing(s.id);
-                          }}
-                        />
-                        <Popconfirm
-                          title="Delete Session"
-                          description="Are you sure you want to delete this session?"
-                          onConfirm={(e) => {
-                            e?.stopPropagation();
-                            deleteSession(s.id);
-                          }}
-                          onCancel={(e) => e?.stopPropagation()}
-                        >
-                          <Button
-                            type="text"
-                            size="small"
-                            className="p-0"
-                            danger
-                            icon={<Trash2 className="w-4 h-4" />}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </Popconfirm>
-                      </div>
-                    </div>
-                  ),
-                  value: s.id,
-                }))}
-                notFoundContent={
-                  sessions.length === 0 ? "No sessions found" : undefined
-                }
-              />
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                icon={<Plus className="w-4 h-4" />}
-              >
-                New Session
-              </Button>
-            </>
-          )}
-        </div>
-      </Panel>
-    </Collapse>
+    />
   );
 };
 

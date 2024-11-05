@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 from typing import Optional, Tuple, List
 from loguru import logger
 from alembic import command
@@ -26,7 +27,8 @@ class SchemaManager:
         self,
         engine: Engine,
         auto_upgrade: bool = True,
-        auto_init: bool = True
+        auto_init: bool = True,
+        force_init: bool = False
     ):
         self.engine = engine
         self.auto_upgrade = auto_upgrade
@@ -38,91 +40,146 @@ class SchemaManager:
 
         # Initialize on creation
         if auto_init:
-            self._ensure_alembic_setup()
+            self._ensure_alembic_setup(force=force_init)
         else:
             self._validate_alembic_setup()
+
+    def _cleanup_existing_alembic(self) -> None:
+        """
+        Safely removes existing Alembic configuration.
+        """
+        logger.info("Cleaning up existing Alembic configuration...")
+
+        # Remove alembic directory if it exists
+        if self.alembic_dir.exists():
+            try:
+                shutil.rmtree(self.alembic_dir)
+                logger.info(
+                    f"Removed existing alembic directory: {self.alembic_dir}")
+            except Exception as e:
+                logger.error(f"Failed to remove alembic directory: {e}")
+                raise
+
+        # Remove alembic.ini if it exists
+        if self.alembic_ini_path.exists():
+            try:
+                self.alembic_ini_path.unlink()
+                logger.info(
+                    f"Removed existing alembic.ini: {self.alembic_ini_path}")
+            except Exception as e:
+                logger.error(f"Failed to remove alembic.ini: {e}")
+                raise
+
+    def _ensure_alembic_setup(self, force: bool = False) -> None:
+        """
+        Ensures Alembic is properly set up, initializing if necessary.
+
+        Args:
+            force: If True, removes existing configuration and reinitializes
+        """
+        try:
+            self._validate_alembic_setup()
+            if force:
+                logger.info(
+                    "Force initialization requested. Cleaning up existing configuration...")
+                self._cleanup_existing_alembic()
+                self._initialize_alembic()
+        except FileNotFoundError:
+            logger.info("Alembic configuration not found. Initializing...")
+            if self.alembic_dir.exists():
+                logger.warning(
+                    "Found existing alembic directory but missing configuration")
+                self._cleanup_existing_alembic()
+            self._initialize_alembic()
+            logger.info("Alembic initialization complete")
 
     def _initialize_alembic(self) -> str:
         """
         Initializes Alembic configuration in the local directory.
-
-        Returns:
-            str: Path to created alembic.ini
         """
         logger.info("Initializing Alembic configuration...")
 
-        # First create alembic.ini
-        ini_content = f"""
-    [alembic]
-    script_location = {self.alembic_dir}
-    sqlalchemy.url = {self.engine.url}
+        # Ensure directories don't exist before creating
+        if self.alembic_dir.exists():
+            raise RuntimeError(
+                "Alembic directory already exists. Use force_init=True to override.")
 
-    [loggers]
-    keys = root,sqlalchemy,alembic
-
-    [handlers]
-    keys = console
-
-    [formatters]
-    keys = generic
-
-    [logger_root]
-    level = WARN
-    handlers = console
-    qualname =
-
-    [logger_sqlalchemy]
-    level = WARN
-    handlers =
-    qualname = sqlalchemy.engine
-
-    [logger_alembic]
-    level = INFO
-    handlers =
-    qualname = alembic
-
-    [handler_console]
-    class = StreamHandler
-    args = (sys.stderr,)
-    level = NOTSET
-    formatter = generic
-
-    [formatter_generic]
-    format = %(levelname)-5.5s [%(name)s] %(message)s
-    datefmt = %H:%M:%S
-    """
-        # Ensure base directory exists
+        # Create base directory if it doesn't exist
         self.base_dir.mkdir(exist_ok=True)
 
-        # Write alembic.ini
+        # Write alembic.ini with proper configuration
+        ini_content = self._generate_alembic_ini_content()
         with open(self.alembic_ini_path, 'w') as f:
-            f.write(ini_content.strip())
+            f.write(ini_content)
 
-        # Now initialize alembic with the config file
+        # Initialize alembic structure
         try:
-            os.chdir(self.base_dir)  # Change to schema_manager directory
-            config = self.get_alembic_config()  # Now we can get config since ini exists
+            os.chdir(self.base_dir)
+            config = self.get_alembic_config()
             command.init(config, str(self.alembic_dir))
             logger.info("Created Alembic directory structure")
         except Exception as e:
             logger.error(f"Failed to initialize Alembic: {e}")
+            self._cleanup_existing_alembic()  # Cleanup on failure
             raise
 
-        # Update env.py to use SQLModel metadata
-        env_path = self.alembic_dir / 'env.py'
-        self._update_env_py(env_path)
-
+        # Update env.py and create initial migration
         try:
-            # Create initial migration
+            self._update_env_py(self.alembic_dir / 'env.py')
             config = self.get_alembic_config()
             command.revision(config, message="initial", autogenerate=True)
             logger.info("Created initial migration")
         except Exception as e:
-            logger.error(f"Failed to create initial migration: {e}")
+            logger.error(f"Failed to complete Alembic setup: {e}")
+            self._cleanup_existing_alembic()  # Cleanup on failure
             raise
 
-        logger.info(f"Alembic initialized at {self.base_dir}")
+        logger.info(f"Alembic initialized successfully at {self.base_dir}")
         return str(self.alembic_ini_path)
+
+    def _generate_alembic_ini_content(self) -> str:
+        """
+        Generates content for alembic.ini file.
+        """
+        return f"""
+[alembic]
+script_location = {self.alembic_dir}
+sqlalchemy.url = {self.engine.url}
+
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+""".strip()
 
     def _update_env_py(self, env_path: Path) -> None:
         """
@@ -154,12 +211,27 @@ class SchemaManager:
             logger.error(f"Failed to update env.py: {e}")
             raise
 
-    def _ensure_alembic_setup(self) -> None:
-        """Ensures Alembic is properly set up, initializing if necessary."""
+    # Fixed: use keyword-only argument
+    def _ensure_alembic_setup(self, *, force: bool = False) -> None:
+        """
+        Ensures Alembic is properly set up, initializing if necessary.
+
+        Args:
+            force: If True, removes existing configuration and reinitializes
+        """
         try:
             self._validate_alembic_setup()
+            if force:
+                logger.info(
+                    "Force initialization requested. Cleaning up existing configuration...")
+                self._cleanup_existing_alembic()
+                self._initialize_alembic()
         except FileNotFoundError:
             logger.info("Alembic configuration not found. Initializing...")
+            if self.alembic_dir.exists():
+                logger.warning(
+                    "Found existing alembic directory but missing configuration")
+                self._cleanup_existing_alembic()
             self._initialize_alembic()
             logger.info("Alembic initialization complete")
 
