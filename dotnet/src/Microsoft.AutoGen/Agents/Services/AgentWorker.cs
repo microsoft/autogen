@@ -49,8 +49,9 @@ public class AgentWorker :
         _configuredAgentTypes = configuredAgentTypes;
         _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-        _reference = _serviceProvider.GetRequiredService<IGateway>();
         IClusterClient _clusterClient = _serviceProvider.GetRequiredService<IClusterClient>();
+        var gateway = _serviceProvider.GetRequiredService<IGateway>();
+        _reference = gateway.GetReferece().Result;
         _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
     }
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)

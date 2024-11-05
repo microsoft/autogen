@@ -31,6 +31,8 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
     }
+    public Task<IGateway> GetReferece() => Task.FromResult(_reference);
+    public Task<IAgentRegistry> GetRegistry() => Task.FromResult(_gatewayRegistry);
     public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         // TODO: filter the workers that receive the event
