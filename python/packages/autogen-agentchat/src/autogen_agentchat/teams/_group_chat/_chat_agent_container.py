@@ -5,7 +5,7 @@ from autogen_core.components import DefaultTopicId, event
 
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
-from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatStart
+from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatReset, GroupChatStart
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
@@ -36,6 +36,12 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         """Handle an agent response event by appending the content to the buffer."""
         self._message_buffer.append(message.agent_response.chat_message)
+
+    @event
+    async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
+        """Handle a reset event by resetting the agent."""
+        self._message_buffer.clear()
+        await self._agent.reset(ctx.cancellation_token)
 
     @event
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:

@@ -10,7 +10,6 @@ from ...messages import (
     AgentMessage,
     HandoffMessage,
     MultiModalMessage,
-    ResetMessage,
     StopMessage,
     TextMessage,
     ToolCallMessage,
@@ -71,8 +70,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, ToolCallMessage | ToolCallResultMessage | ResetMessage):
-                # Ignore tool call messages and reset messages.
+            if isinstance(msg, ToolCallMessage | ToolCallResultMessage):
+                # Ignore tool call messages.
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.
             message = f"{msg.source}:"
