@@ -172,11 +172,11 @@ jobs:
           python-version: "3.11"
       - run: uv sync --locked --all-extras
         working-directory: ./python
-      - name: Run task
-        run: |
-          source ${{ github.workspace }}/python/.venv/bin/activate
-          poe gen-proto
-        working-directory: ./python
+    #   - name: Run task
+    #     run: |
+    #       source ${{ github.workspace }}/python/.venv/bin/activate
+    #       poe gen-proto
+    #     working-directory: ./python
       - name: Evaluate if there are changes
         run: |
           if ! git status --porcelain; then
