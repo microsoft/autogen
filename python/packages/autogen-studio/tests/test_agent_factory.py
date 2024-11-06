@@ -9,12 +9,12 @@ from autogen_core.components.tools import FunctionTool
 from autogenstudio.datamodel import (
     AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig, ModelTypes, AgentTypes, TeamTypes, TerminationTypes
 )
-from autogenstudio.provider import Provider
+from autogenstudio.database import AgentFactory
 
 
 @pytest.fixture
-def provider():
-    return Provider()
+def agent_factory():
+    return AgentFactory()
 
 
 @pytest.fixture
@@ -80,9 +80,9 @@ def sample_team_config(sample_agent_config: AgentConfig, sample_termination_conf
     )
 
 
-def test_load_tool(provider: Provider, sample_tool_config: ToolConfig):
+def test_load_tool(agent_factory: AgentFactory, sample_tool_config: ToolConfig):
     # Test loading tool from ToolConfig
-    tool = provider.load_tool(sample_tool_config)
+    tool = agent_factory.load_tool(sample_tool_config)
     assert isinstance(tool, FunctionTool)
     assert tool.name == "calculator"
     assert tool.description == "A simple calculator function"
@@ -92,10 +92,11 @@ def test_load_tool(provider: Provider, sample_tool_config: ToolConfig):
     assert result == 8
 
 
-def test_load_tool_invalid_config(provider: Provider):
+def test_load_tool_invalid_config(agent_factory: AgentFactory):
     # Test with missing required fields
     with pytest.raises(ValueError):
-        provider.load_tool(ToolConfig(name="test", description="", content=""))
+        agent_factory.load_tool(ToolConfig(
+            name="test", description="", content=""))
 
     # Test with invalid Python code
     invalid_config = ToolConfig(
@@ -104,30 +105,30 @@ def test_load_tool_invalid_config(provider: Provider):
         content="def invalid_func(): return invalid syntax"
     )
     with pytest.raises(ValueError):
-        provider.load_tool(invalid_config)
+        agent_factory.load_tool(invalid_config)
 
 
-def test_load_model(provider: Provider, sample_model_config: ModelConfig):
+def test_load_model(agent_factory: AgentFactory, sample_model_config: ModelConfig):
     # Test loading model from ModelConfig
-    model = provider.load_model(sample_model_config)
+    model = agent_factory.load_model(sample_model_config)
     assert model is not None
 
 
-def test_load_agent(provider: Provider, sample_agent_config: AgentConfig):
+def test_load_agent(agent_factory: AgentFactory, sample_agent_config: AgentConfig):
     # Test loading agent from AgentConfig
-    agent = provider.load_agent(sample_agent_config)
+    agent = agent_factory.load_agent(sample_agent_config)
     assert isinstance(agent, AssistantAgent)
     assert agent.name == "test_agent"
     assert len(agent._tools) == 1
 
 
-def test_load_termination(provider: Provider):
+def test_load_termination(agent_factory: AgentFactory):
     # Test MaxMessageTermination
     max_msg_config = TerminationConfig(
         termination_type=TerminationTypes.max_messages,
         max_messages=5
     )
-    termination = provider.load_termination(max_msg_config)
+    termination = agent_factory.load_termination(max_msg_config)
     assert isinstance(termination, MaxMessageTermination)
     assert termination._max_messages == 5
 
@@ -135,7 +136,7 @@ def test_load_termination(provider: Provider):
     stop_msg_config = TerminationConfig(
         termination_type=TerminationTypes.stop_message
     )
-    termination = provider.load_termination(stop_msg_config)
+    termination = agent_factory.load_termination(stop_msg_config)
     assert isinstance(termination, StopMessageTermination)
 
     # Test TextMentionTermination
@@ -143,14 +144,14 @@ def test_load_termination(provider: Provider):
         termination_type=TerminationTypes.text_mention,
         text="DONE"
     )
-    termination = provider.load_termination(text_mention_config)
+    termination = agent_factory.load_termination(text_mention_config)
     assert isinstance(termination, TextMentionTermination)
     assert termination._text == "DONE"
 
 
-def test_load_team(provider: Provider, sample_team_config: TeamConfig, sample_model_config: ModelConfig):
+def test_load_team(agent_factory: AgentFactory, sample_team_config: TeamConfig, sample_model_config: ModelConfig):
     # Test loading RoundRobinGroupChat team
-    team = provider.load_team(sample_team_config)
+    team = agent_factory.load_team(sample_team_config)
     assert isinstance(team, RoundRobinGroupChat)
     assert len(team._participants) == 1
 
@@ -172,15 +173,15 @@ def test_load_team(provider: Provider, sample_team_config: TeamConfig, sample_mo
         termination_condition=sample_team_config.termination_condition,
         model_client=sample_model_config
     )
-    team = provider.load_team(selector_team_config)
+    team = agent_factory.load_team(selector_team_config)
     assert isinstance(team, SelectorGroupChat)
     assert len(team._participants) == 2  # Verify we have two participants
 
 
-def test_invalid_configs(provider: Provider):
+def test_invalid_configs(agent_factory: AgentFactory):
     # Test invalid agent type
     with pytest.raises(ValueError):
-        provider.load_agent(AgentConfig(
+        agent_factory.load_agent(AgentConfig(
             name="test",
             agent_type="InvalidAgent",  # type: ignore
             system_message="test"
@@ -188,7 +189,7 @@ def test_invalid_configs(provider: Provider):
 
     # Test invalid team type
     with pytest.raises(ValueError):
-        provider.load_team(TeamConfig(
+        agent_factory.load_team(TeamConfig(
             name="test",
             team_type="InvalidTeam",  # type: ignore
             participants=[]
@@ -196,6 +197,6 @@ def test_invalid_configs(provider: Provider):
 
     # Test invalid termination type
     with pytest.raises(ValueError):
-        provider.load_termination(TerminationConfig(
+        agent_factory.load_termination(TerminationConfig(
             termination_type="InvalidTermination"  # type: ignore
         ))

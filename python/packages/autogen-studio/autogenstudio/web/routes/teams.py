@@ -1,8 +1,8 @@
 # api/routes/teams.py
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, List
+from typing import Dict
 from ..deps import get_db
-from ...datamodel import Team, Agent, TeamAgentLink
+from ...datamodel import Team
 
 router = APIRouter()
 

@@ -14,15 +14,16 @@ from ..datamodel import (
 # from .dbutils import init_db_samples
 
 
-class DBManager:
+class DatabaseManager:
     """A class to manage database operations"""
 
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str):
+    def __init__(self, engine_uri: str, config_dir: Optional[str] = None):
         connection_args = {
             "check_same_thread": True} if "sqlite" in engine_uri else {}
         self.engine = create_engine(engine_uri, connect_args=connection_args)
+        self.config_dir = config_dir  # dir containing default agent config files
         self.schema_manager = SchemaManager(
             engine=self.engine,
             auto_upgrade=True,  # Set to False in production
@@ -55,7 +56,6 @@ class DBManager:
         try:
             # Dispose existing connections
             self.engine.dispose()
-
             with Session(self.engine) as session:
                 try:
                     # Disable foreign key checks for SQLite
@@ -403,3 +403,15 @@ class DBManager:
                     status=False,
                     data=[]
                 )
+    # Add new close method
+
+    async def close(self):
+        """Close database connections and cleanup resources"""
+        logger.info("Closing database connections...")
+        try:
+            # Dispose of the SQLAlchemy engine
+            self.engine.dispose()
+            logger.info("Database connections closed successfully")
+        except Exception as e:
+            logger.error(f"Error closing database connections: {str(e)}")
+            raise

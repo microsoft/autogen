@@ -7,10 +7,11 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+
 from .routes import sessions, runs, teams, agents, models, tools, ws
 from .deps import init_managers, cleanup_managers
 from .config import settings
-from ..utils import init_app_folders
+from .initialization import AppInitializer
 from ..version import VERSION
 
 # Configure logging
@@ -18,10 +19,15 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # Initialize application paths
+# app_file_path = os.path.dirname(os.path.abspath(__file__))
+# initializer = AppInitializer(settings)
+# folders = initializer.init_folders(app_file_path)
+# ui_folder_path = folders["static_folder_root"]
+# database_engine_uri = folders["database_engine_uri"]
+
+# Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
-folders = init_app_folders(app_file_path)
-ui_folder_path = os.path.join(app_file_path, "ui")
-database_engine_uri = folders["database_engine_uri"]
+initializer = AppInitializer(settings, app_file_path)
 
 
 @asynccontextmanager
@@ -34,7 +40,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Initializing application...")
     try:
         # Initialize managers (DB, Connection, Team)
-        await init_managers(database_engine_uri)
+        await init_managers(initializer.database_uri)
         logger.info("Managers initialized successfully")
 
         # Any other initialization code
@@ -164,10 +170,10 @@ async def health_check():
 app.mount("/api", api)
 app.mount(
     "/files",
-    StaticFiles(directory=folders["files_static_root"], html=True),
+    StaticFiles(directory=initializer.static_root, html=True),
     name="files",
 )
-app.mount("/", StaticFiles(directory=ui_folder_path, html=True), name="ui")
+app.mount("/", StaticFiles(directory=initializer.ui_root, html=True), name="ui")
 
 # Error handlers
 

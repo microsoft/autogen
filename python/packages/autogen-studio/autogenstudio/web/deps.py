@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 import logging
 from contextlib import contextmanager
 
-from ..database.dbmanager import DBManager
+from ..database import DatabaseManager
 from .managers.connection import ConnectionManager
 from ..teammanager import TeamManager
 from .config import settings
@@ -12,7 +12,7 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 # Global manager instances
-_db_manager: Optional[DBManager] = None
+_db_manager: Optional[DatabaseManager] = None
 _connection_manager: Optional[ConnectionManager] = None
 _team_manager: Optional[TeamManager] = None
 
@@ -39,7 +39,7 @@ def get_db_context():
 # Dependency providers
 
 
-async def get_db() -> DBManager:
+async def get_db() -> DatabaseManager:
     """Dependency provider for database manager"""
     if not _db_manager:
         raise HTTPException(
@@ -93,7 +93,7 @@ async def init_managers(database_uri: str) -> None:
 
     try:
         # Initialize database manager
-        _db_manager = DBManager(engine_uri=database_uri)
+        _db_manager = DatabaseManager(engine_uri=database_uri)
         _db_manager.create_db_and_tables()
         logger.info("Database manager initialized")
 
@@ -120,27 +120,19 @@ async def cleanup_managers() -> None:
 
     logger.info("Cleaning up managers...")
 
-    # Cleanup connection manager
+    # Cleanup connection manager first to ensure all active connections are closed
     if _connection_manager:
         try:
-            # Cancel any ongoing cleanup tasks
-            _connection_manager.cleanup_task.cancel()
-            await _connection_manager.cleanup_task
+            await _connection_manager.cleanup()
         except Exception as e:
             logger.error(f"Error cleaning up connection manager: {str(e)}")
         finally:
             _connection_manager = None
 
-    # Cleanup team manager
-    if _team_manager:
-        try:
-            await _team_manager.cleanup()
-        except Exception as e:
-            logger.error(f"Error cleaning up team manager: {str(e)}")
-        finally:
-            _team_manager = None
+    # TeamManager doesn't need explicit cleanup since ConnectionManager handles it
+    _team_manager = None
 
-    # Cleanup database manager
+    # Cleanup database manager last
     if _db_manager:
         try:
             await _db_manager.close()
@@ -148,6 +140,8 @@ async def cleanup_managers() -> None:
             logger.error(f"Error cleaning up database manager: {str(e)}")
         finally:
             _db_manager = None
+
+    logger.info("All managers cleaned up")
 
 # Utility functions for dependency management
 

@@ -1,3 +1,4 @@
+# api/config.py
 from pydantic_settings import BaseSettings
 
 
@@ -6,6 +7,7 @@ class Settings(BaseSettings):
     API_DOCS: bool = False
     CLEANUP_INTERVAL: int = 300  # 5 minutes
     SESSION_TIMEOUT: int = 3600  # 1 hour
+    CONFIG_DIR: str = "configs"  # Default config directory relative to app_root
 
     class Config:
         env_prefix = "AUTOGENSTUDIO_"

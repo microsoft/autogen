@@ -2,7 +2,7 @@ import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
 
-from autogenstudio.database import DBManager
+from autogenstudio.database import DatabaseManager
 from autogenstudio.datamodel import (
     Model, ModelConfig, Agent, AgentConfig, Tool, ToolConfig,
     Team, TeamConfig, ModelTypes, AgentTypes, TeamTypes,
@@ -11,9 +11,9 @@ from autogenstudio.datamodel import (
 
 
 @pytest.fixture
-def test_db() -> Generator[DBManager, None, None]:
+def test_db() -> Generator[DatabaseManager, None, None]:
     """Fixture for test database"""
-    db = DBManager("sqlite:///test.db")
+    db = DatabaseManager("sqlite:///test.db")
     db.reset_db()
     db.create_db_and_tables()
     yield db
@@ -81,7 +81,7 @@ def sample_team(test_user: str, sample_agent: Agent) -> Team:
 
 
 class TestDatabaseOperations:
-    def test_basic_setup(self, test_db: DBManager):
+    def test_basic_setup(self, test_db: DatabaseManager):
         """Test basic database setup and connection"""
         with Session(test_db.engine) as session:
             # Using raw SQL - returns tuple
@@ -90,7 +90,7 @@ class TestDatabaseOperations:
             result = session.exec(select(1)).first()
             assert result == 1
 
-    def test_basic_entity_creation(self, test_db: DBManager, sample_model: Model,
+    def test_basic_entity_creation(self, test_db: DatabaseManager, sample_model: Model,
                                    sample_tool: Tool, sample_agent: Agent, sample_team: Team):
         """Test creating all entity types with proper configs"""
         with Session(test_db.engine) as session:
@@ -114,7 +114,7 @@ class TestDatabaseOperations:
             assert session.get(Agent, agent_id) is not None
             assert session.get(Team, team_id) is not None
 
-    def test_complex_relationships(self, test_db: DBManager, sample_model: Model,
+    def test_complex_relationships(self, test_db: DatabaseManager, sample_model: Model,
                                    sample_tool: Tool, sample_agent: Agent, sample_team: Team):
         """Test creating and querying complex relationships between entities"""
         # Store IDs for later use
@@ -153,7 +153,7 @@ class TestDatabaseOperations:
         assert len(team_agents.data) == 1
         assert team_agents.data[0].id == agent_id
 
-    def test_multiple_links(self, test_db: DBManager, sample_agent: Agent):
+    def test_multiple_links(self, test_db: DatabaseManager, sample_agent: Agent):
         """Test linking multiple models to an agent"""
         with Session(test_db.engine) as session:
             # Create two models
@@ -189,7 +189,7 @@ class TestDatabaseOperations:
         assert "gpt-4" in model_names
         assert "gpt-3.5" in model_names
 
-    def test_entity_queries(self, test_db: DBManager, test_user: str, sample_agent: Agent):
+    def test_entity_queries(self, test_db: DatabaseManager, test_user: str, sample_agent: Agent):
         """Test querying entities with filters"""
         with Session(test_db.engine) as session:
             session.add(sample_agent)
@@ -207,7 +207,7 @@ class TestDatabaseOperations:
         assert user_agents.data[0].id == agent_id
         assert user_agents.data[0].user_id == test_user
 
-    def test_error_handling(self, test_db: DBManager, sample_agent: Agent):
+    def test_error_handling(self, test_db: DatabaseManager, sample_agent: Agent):
         """Test error handling scenarios"""
         # Test linking non-existent entities
         response = test_db.link(LinkTypes.AGENT_MODEL, 999, 888)
@@ -235,7 +235,7 @@ class TestDatabaseOperations:
         assert not response.status
         assert "already exists" in response.message.lower()
 
-    def test_delete_cascade(self, test_db: DBManager, sample_model: Model,
+    def test_delete_cascade(self, test_db: DatabaseManager, sample_model: Model,
                             sample_tool: Tool, sample_agent: Agent, sample_team: Team):
         """Test deletion with cascading relationships"""
         with Session(test_db.engine) as session:

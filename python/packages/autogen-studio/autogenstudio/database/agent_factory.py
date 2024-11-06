@@ -1,5 +1,5 @@
 
-from .datamodel import AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig, ModelTypes, AgentTypes, TeamTypes, TerminationTypes
+from ..datamodel import AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig, ModelTypes, AgentTypes, TeamTypes, TerminationTypes
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
@@ -7,7 +7,7 @@ from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination
 from autogen_core.components.tools import FunctionTool
 
 
-class Provider():
+class AgentFactory():
     def __init__(self):
         pass
 

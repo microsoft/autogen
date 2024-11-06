@@ -24,6 +24,22 @@ else:
 # pylint: disable=protected-access
 
 
+class ComponentTypes(Enum):
+    TEAM = "team"
+    AGENT = "agent"
+    MODEL = "model"
+    TOOL = "tool"
+
+    @property
+    def model_class(self) -> Type[SQLModel]:
+        return {
+            ComponentTypes.TEAM: Team,
+            ComponentTypes.AGENT: Agent,
+            ComponentTypes.MODEL: Model,
+            ComponentTypes.TOOL: Tool
+        }[self]
+
+
 class LinkTypes(Enum):
     AGENT_MODEL = "agent_model"
     AGENT_TOOL = "agent_tool"
