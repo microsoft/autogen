@@ -172,25 +172,31 @@ jobs:
           python-version: "3.11"
       - run: uv sync --locked --all-extras
         working-directory: ./python
-    #   - name: Run task
-    #     run: |
-    #       source ${{ github.workspace }}/python/.venv/bin/activate
-    #       poe gen-proto
-    #     working-directory: ./python
-      - name: Evaluate if there are changes
+      - name: Run task
         run: |
-          if ! git status --porcelain; then
-              echo "Error: git status failed" >&2
-              exit 1
-          fi
-          if [[ `git status --porcelain` ]]; then
-            echo "There are changes that need to be generated and commit for the proto files"
-            git status --porcelain > status.txt
-            cat status.txt
-            git --no-pager diff > diff.txt
-            cat diff.txt
-            echo "Please run 'poe gen-proto' and commit the changes"
-            exit 1
-          fi
-        shell: bash
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe gen-proto
         working-directory: ./python
+      - name: Check for uncommitted changes
+        id: check-changes
+        uses: mskri/check-uncommitted-changes-action@v1.0.1
+      - name: Print uncommitted changes
+        if: steps.check-changes.outputs.changes != ''
+        run: echo "There are uncommitted changes"
+    #   - name: Evaluate if there are changes
+    #     run: |
+    #       if ! git status --porcelain; then
+    #           echo "Error: git status failed" >&2
+    #           exit 1
+    #       fi
+    #       if [[ `git status --porcelain` ]]; then
+    #         echo "There are changes that need to be generated and commit for the proto files"
+    #         git status --porcelain > status.txt
+    #         cat status.txt
+    #         git --no-pager diff > diff.txt
+    #         cat diff.txt
+    #         echo "Please run 'poe gen-proto' and commit the changes"
+    #         exit 1
+    #       fi
+    #     shell: bash
+    #     working-directory: ./python
