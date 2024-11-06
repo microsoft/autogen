@@ -189,3 +189,4 @@ jobs:
             exit 1
           fi
         shell: bash
+        working-directory: ./python
