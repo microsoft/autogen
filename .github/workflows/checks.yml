@@ -182,6 +182,7 @@ jobs:
           if [[ `git status --porcelain` ]]; then
             echo "There are changes that need to be generated and commit for the proto files"
             git --no-pager diff
+            echo "Please run 'poe gen-proto' and commit the changes"
             exit 1
           fi
         shell: bash
