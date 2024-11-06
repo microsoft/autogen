@@ -15,6 +15,7 @@ autogenstudio/web/skills/user/*
 notebooks/test
 
 notebooks/work_dir/*
+notebooks/test.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

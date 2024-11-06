@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import { message } from "antd";
-import { IMessage, IStatus, LogEvent } from "./../../../types";
 import MessageList from "./messagelist";
 import ChatInput from "./chatinput";
 import { getServerUrl } from "../../../utils";
-import SessionManager from "../../shared/sessionmanager";
+import { SessionManager } from "../../shared/session/manager";
+import { IStatus } from "../../../types/app";
+import { Message } from "../../../types/datamodel";
 
 interface ChatViewProps {
   initMessages: any[];
@@ -23,13 +24,14 @@ export default function ChatView({
     status: true,
     message: "All good",
   });
-  const [messages, setMessages] = React.useState<IMessage[]>([]);
+  const [messages, setMessages] = React.useState<Message[]>([]);
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(
     null
   );
-  const [sessionLogs, setSessionLogs] = React.useState<
-    Record<string, LogEvent[]>
-  >({});
+  const [currentRunId, setCurrentRunId] = React.useState<string | null>(null);
+  const [sessionLogs, setSessionLogs] = React.useState<Record<string, any[]>>(
+    {}
+  );
   const [activeSockets, setActiveSockets] = React.useState<
     Record<string, WebSocket>
   >({});
@@ -57,55 +59,136 @@ export default function ChatView({
     };
   }, [activeSockets]);
 
-  const connectWebSocket = async (sessionId: string) => {
+  const createRun = async (sessionId: string): Promise<string> => {
+    const response = await fetch(`${serverUrl}/sessions/${sessionId}/runs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: "current-user", // Replace with actual user management
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create run");
+    }
+
+    const data = await response.json();
+    return data.data.run_id;
+  };
+
+  const startRun = async (runId: string, query: string) => {
+    const response = await fetch(`${serverUrl}/runs/${runId}/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: {
+          user_id: "current-user", // Replace with actual user management
+          session_id: currentSessionId,
+          config: {
+            content: query,
+            source: "user",
+          },
+          message_meta: {
+            team_id: "default-team", // Replace with actual team management
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to start run");
+    }
+
+    return await response.json();
+  };
+
+  const connectWebSocket = async (runId: string) => {
     const baseUrl = getBaseUrl(serverUrl);
-    const wsUrl = `ws://${baseUrl}/api/ws/logs/${sessionId}`;
+    const wsUrl = `ws://${baseUrl}/api/ws/runs/${runId}`;
 
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       setActiveSockets((prev) => ({
         ...prev,
-        [sessionId]: socket,
+        [runId]: socket,
       }));
     };
 
     socket.onmessage = (event) => {
-      const logEvent = JSON.parse(event.data);
+      const message = JSON.parse(event.data);
 
       setSessionLogs((prev) => ({
         ...prev,
-        [sessionId]: [...(prev[sessionId] || []), logEvent],
+        [runId]: [...(prev[runId] || []), message],
       }));
 
-      if (logEvent.type === "GroupChatPublishEvent") {
+      if (message.type === "StreamEvent") {
+        switch (message.event_type) {
+          case "message":
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (msg.runId === runId && msg.sender === "bot") {
+                  return {
+                    ...msg,
+                    text: (msg.text || "") + message.data.content,
+                  };
+                }
+                return msg;
+              })
+            );
+            break;
+
+          case "completion":
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (msg.runId === runId && msg.sender === "bot") {
+                  return {
+                    ...msg,
+                    status: "complete",
+                    finalResponse: message.data.final_message,
+                  };
+                }
+                return msg;
+              })
+            );
+            break;
+        }
+      }
+
+      if (message.type === "TerminationEvent") {
+        const status =
+          message.reason === "cancelled"
+            ? "cancelled"
+            : message.error
+            ? "error"
+            : "complete";
+
         setMessages((prev) =>
           prev.map((msg) => {
-            if (msg.sessionId === sessionId && msg.sender === "bot") {
+            if (msg.runId === runId && msg.sender === "bot") {
               return {
                 ...msg,
-                text: logEvent.content,
+                status,
+                error: message.error,
               };
             }
             return msg;
           })
         );
-      }
 
-      if (logEvent.type === "TerminationEvent") {
         socket.close();
-        setActiveSockets((prev) => {
-          const newSockets = { ...prev };
-          delete newSockets[sessionId];
-          return newSockets;
-        });
       }
     };
 
     socket.onclose = () => {
       setActiveSockets((prev) => {
         const newSockets = { ...prev };
-        delete newSockets[sessionId];
+        delete newSockets[runId];
         return newSockets;
       });
     };
@@ -114,142 +197,104 @@ export default function ChatView({
       console.error("WebSocket error:", error);
       message.error("WebSocket connection error");
       socket.close();
-      setActiveSockets((prev) => {
-        const newSockets = { ...prev };
-        delete newSockets[sessionId];
-        return newSockets;
-      });
     };
 
     return socket;
   };
 
-  const createRun = async (): Promise<string> => {
-    const response = await fetch(`${serverUrl}/create_session`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to create session");
+  const cancelRun = async (runId: string) => {
+    const socket = activeSockets[runId];
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "cancel",
+        })
+      );
     }
-
-    const data = await response.json();
-    return data.session_id;
-  };
-
-  const chatHistory = (messages: IMessage[]) => {
-    let history = "";
-    messages.forEach((message) => {
-      history += `${message.config.source}: ${message.config.content}\n`;
-    });
-    return history;
-  };
-
-  const getLastMessage = (messages: any[], n: number = 5) => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const content = messages[i]["content"];
-      if (content.length > n) {
-        return content;
-      }
-    }
-    return null;
   };
 
   const getCompletion = async (query: string) => {
     setError(null);
     setLoading(true);
 
-    let currentSessionId: string | null = null;
+    let runId: string | null = null;
+
     try {
-      currentSessionId = await createSession();
-      setCurrentSessionId(currentSessionId);
+      // Create new run
+      runId = await createRun(currentSessionId!);
+      setCurrentRunId(runId);
 
-      await connectWebSocket(currentSessionId);
-
-      const userMessage: IMessage = {
+      // Add messages to UI
+      const userMessage: Message = {
         text: query,
         sender: "user",
         sessionId: currentSessionId,
+        runId: runId,
       };
 
-      const botMessage: IMessage = {
+      const botMessage: Message = {
         text: "",
         sender: "bot",
         sessionId: currentSessionId,
+        runId: runId,
         status: "processing",
       };
 
       setMessages((prev) => [...prev, userMessage, botMessage]);
 
-      const generateUrl = `${serverUrl}/generate`;
-      const response = await fetch(generateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: query,
-          history: chatHistory(messages),
-          session_id: currentSessionId,
-        }),
-      });
+      // Connect WebSocket first
+      await connectWebSocket(runId);
 
-      if (!response.ok) {
-        throw new Error("Generate request failed");
+      // Start the run
+      await startRun(runId, query);
+    } catch (err) {
+      console.error("Error:", err);
+      message.error("Error during request processing");
+
+      if (runId && activeSockets[runId]) {
+        activeSockets[runId].close();
       }
 
-      const data = await response.json();
+      setError({
+        status: false,
+        message: err instanceof Error ? err.message : "Unknown error occurred",
+      });
 
-      if (data.status) {
-        const lastMessage = getLastMessage(data.data.messages);
+      // Update message status if it was created
+      if (runId) {
         setMessages((prev) =>
           prev.map((msg) => {
-            if (msg.sessionId === currentSessionId && msg.sender === "bot") {
+            if (msg.runId === runId && msg.sender === "bot") {
               return {
                 ...msg,
-                finalResponse: lastMessage,
-                status: "complete",
+                status: "error",
+                error:
+                  err instanceof Error ? err.message : "Unknown error occurred",
               };
             }
             return msg;
           })
         );
-      } else {
-        message.error(data.message);
       }
-    } catch (err) {
-      console.error("Error:", err);
-      message.error("Error during request processing");
-      if (currentSessionId && activeSockets[currentSessionId]) {
-        activeSockets[currentSessionId].close();
-      }
-      setError({
-        status: false,
-        message: err instanceof Error ? err.message : "Unknown error occurred",
-      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="text-primary  h-full   overflow-auto bg-primary relative   rounded flex-1">
+    <div className="text-primary h-full overflow-auto bg-primary relative rounded flex-1">
       <div className="flex flex-col h-full">
-        <div className="flex-1 ">
-          {" "}
+        <div className="flex-1">
           <SessionManager />
           <MessageList
             messages={messages}
             sessionLogs={sessionLogs}
             onRetry={getCompletion}
+            onCancel={cancelRun}
             loading={loading}
           />
         </div>
-        <div className=" ">
-          {" "}
+        <div>
           <ChatInput onSubmit={getCompletion} loading={loading} error={error} />
         </div>
       </div>

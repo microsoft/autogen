@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
-import { IMessage, ISession } from "../components/types";
+import { Message, Session } from "../components/types/datamodel";
 
 interface ISidebarState {
   isExpanded: boolean;
@@ -8,12 +8,12 @@ interface ISidebarState {
 }
 
 export interface IConfigState {
-  messages: IMessage[];
-  setMessages: (messages: IMessage[]) => void;
-  session: ISession | null;
-  setSession: (session: ISession | null) => void;
-  sessions: ISession[];
-  setSessions: (sessions: ISession[]) => void;
+  messages: Message[];
+  setMessages: (messages: Message[]) => void;
+  session: Session | null;
+  setSession: (session: Session | null) => void;
+  sessions: Session[];
+  setSessions: (sessions: Session[]) => void;
   version: string | null;
   setVersion: (version: string | null) => void;
 

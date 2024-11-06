@@ -18,7 +18,8 @@
     }
   ],
   "termination_condition": {
-    "termination_type": "StopMessageTermination"
+    "termination_type": "MaxMessageTermination",
+    "max_messages": 5
   },
   "team_type": "RoundRobinGroupChat",
   "model_client": null

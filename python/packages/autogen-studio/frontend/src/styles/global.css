@@ -259,6 +259,9 @@ a:hover {
 }
 .ant-upload-drag-container,
 .ant-upload-text,
+.ant-btn,
+.ant-select,
+.ant-form-item-required,
 .ant-upload-hint {
   @apply text-primary !important;
 }
@@ -267,7 +270,9 @@ a:hover {
 .ant-upload-list-item-info:hover {
   @apply bg-secondary text-accent !important;
 }
-.ant-pagination .ant-pagination-item {
+.ant-pagination .ant-pagination-item,
+.ant-select-selector,
+.ant-btn-variant-outlined {
   @apply bg-primary  !important;
 }
 .ant-pagination .ant-pagination-item-active a {
@@ -293,6 +298,7 @@ a:hover {
 .ant-btn:hover {
   @apply text-primary !important;
 }
+
 :where(.ant-btn).ant-btn-compact-item.ant-btn-primary:not([disabled])
   + .ant-btn-compact-item.ant-btn-primary:not([disabled]):before {
   @apply bg-secondary !important;
