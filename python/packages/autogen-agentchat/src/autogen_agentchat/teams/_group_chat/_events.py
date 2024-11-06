@@ -36,3 +36,9 @@ class GroupChatTermination(BaseModel):
 
     message: StopMessage
     """The stop message that indicates the reason of termination."""
+
+
+class GroupChatReset(BaseModel):
+    """A request to reset the agents in the group chat."""
+
+    ...
