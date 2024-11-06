@@ -179,6 +179,10 @@ jobs:
         working-directory: ./python
       - name: Evaluate if there are changes
         run: |
+          if ! git status --porcelain; then
+              echo "Error: git status failed" >&2
+              exit 1
+          fi
           if [[ `git status --porcelain` ]]; then
             echo "There are changes that need to be generated and commit for the proto files"
             git status --porcelain > status.txt
