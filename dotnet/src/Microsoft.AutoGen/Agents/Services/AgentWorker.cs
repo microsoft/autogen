@@ -32,6 +32,8 @@ public class AgentWorker :
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
     private readonly DistributedContextPropagator _distributedContextPropagator;
+    private readonly CancellationTokenSource _shutdownCancellationToken = new();
+    private readonly Gateway _gateway;
 
     private Task? _readTask;
     private Task? _writeTask;
@@ -50,10 +52,12 @@ public class AgentWorker :
         _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
         IClusterClient _clusterClient = _serviceProvider.GetRequiredService<IClusterClient>();
+        _gateway = (Gateway)_serviceProvider.GetRequiredService<IGateway>();
         var gateway = _serviceProvider.GetRequiredService<IGateway>();
         _reference = gateway.GetReferece().Result;
         _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
     }
+    public InMemoryQueue<Message> GetMessageQueue() => _messageQueue;
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
@@ -130,6 +134,27 @@ public class AgentWorker :
             }, cancellationToken).ConfigureAwait(false);
         }
     }
+     public async Task RunReadPump()
+    {
+        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        try
+        {
+            await foreach (var message in _messageQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token))
+            {
+
+                // Fire and forget
+                _gateway.OnReceivedMessageAsync(this, message).Ignore();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            _shutdownCancellationToken.Cancel();
+        }
+    }
+
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -184,80 +209,6 @@ public class AgentWorker :
         }
         lock (_channelLock)
         {
-        }
-    }
-    private async Task RunReadPump()
-    {
-        //var channel = GetChannel();
-        while (!_shutdownCts.Token.IsCancellationRequested)
-        {
-            try
-            {
-                await foreach (var message in _messageQueue.Reader.ReadAllAsync(_shutdownCts.Token))
-                {
-                    // next if message is null
-                    if (message == null)
-                    {
-                        continue;
-                    }
-                    switch (message.MessageCase)
-                    {
-                        case Message.MessageOneofCase.Request:
-                            GetOrActivateAgent(message.Request.Target).ReceiveMessage(message);
-                            break;
-                        case Message.MessageOneofCase.Response:
-                            if (!_pendingRequests.TryRemove(message.Response.RequestId, out var request))
-                            {
-                                throw new InvalidOperationException($"Unexpected response '{message.Response}'");
-                            }
-
-                            message.Response.RequestId = request.OriginalRequestId;
-                            request.Agent.ReceiveMessage(message);
-                            break;
-                        case Message.MessageOneofCase.RegisterAgentTypeRequest:
-                          await GatewayRegisterAgentTypeAsync(_messageQueue, message.RegisterAgentTypeRequest);
-                            break;
-                        case Message.MessageOneofCase.RegisterAgentTypeResponse:
-                            if (!message.RegisterAgentTypeResponse.Success)
-                            {
-                                throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
-                            }
-                            break;
-
-                        case Message.MessageOneofCase.CloudEvent:
-
-                            // HACK: Send the message to an instance of each agent type
-                            // where AgentId = (namespace: event.Namespace, name: agentType)
-                            // i.e, assume each agent type implicitly subscribes to each event.
-
-                            var item = message.CloudEvent;
-
-                            foreach (var (typeName, _) in _agentTypes)
-                            {
-                                var agent = GetOrActivateAgent(new AgentId(typeName, item.Source));
-                                agent.ReceiveMessage(message);
-                            }
-
-                            break;
-                        default:
-                            throw new InvalidOperationException($"Unexpected message '{message}'.");
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Time to shut down.
-                break;
-            }
-            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
-            {
-                _logger.LogError(ex, "Error reading from channel.");
-            }
-            catch
-            {
-                // Shutdown requested.
-                break;
-            }
         }
     }
     private async ValueTask GatewayRegisterAgentTypeAsync(IConnection connection, RegisterAgentTypeRequest msg)

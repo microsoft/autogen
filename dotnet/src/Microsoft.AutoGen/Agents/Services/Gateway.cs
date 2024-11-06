@@ -90,6 +90,14 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         completion.SetResult(response);
     }
 
+    private async ValueTask RegisterAgentTypeAsync(AgentWorker connection, RegisterAgentTypeRequest msg)
+    {
+        connection.AddSupportedType(msg.Type);
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+    }
+
     // Required to inherit from BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -124,7 +132,28 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         await topic.OnNextAsync(evt.ToEvent());
         */
     }
-
+  internal async Task OnReceivedMessageAsync(AgentWorker connection, Message message)
+    {
+        InMemoryQueue<Message> _connection = (InMemoryQueue<Message>)connection.GetMessageQueue();
+        _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
+        switch (message.MessageCase)
+        {
+            case Message.MessageOneofCase.Request:
+                await DispatchRequestAsync(_connection, message.Request);
+                break;
+            case Message.MessageOneofCase.Response:
+                DispatchResponse(_connection, message.Response);
+                break;
+            case Message.MessageOneofCase.CloudEvent:
+                await DispatchEventAsync(message.CloudEvent);
+                break;
+            case Message.MessageOneofCase.RegisterAgentTypeRequest:
+                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown message type for message '{message}'.");
+        };
+    }
     private async ValueTask DispatchRequestAsync(InMemoryQueue<Message> connection, RpcRequest request)
     {
         var requestId = request.RequestId;
