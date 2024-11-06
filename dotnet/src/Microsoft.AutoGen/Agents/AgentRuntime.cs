@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentContext.cs
+// AgentRuntime.cs
 
 using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
@@ -7,9 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentContext(AgentId agentId, IAgentWorker runtime, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentContext
+internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {
-    private readonly IAgentWorker _runtime = runtime;
+    private readonly IAgentWorker worker = worker;
 
     public AgentId AgentId { get; } = agentId;
     public ILogger Logger { get; } = logger;
@@ -39,23 +39,23 @@ internal sealed class AgentContext(AgentId agentId, IAgentWorker runtime, ILogge
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
         response.RequestId = request.RequestId;
-        await _runtime.SendResponseAsync(response, cancellationToken);
+        await worker.SendResponseAsync(response, cancellationToken);
     }
     public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
-        await _runtime.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
+        await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }
     public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
-        await _runtime.PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);
+        await worker.PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);
     }
     public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
-        await _runtime.StoreAsync(value, cancellationToken).ConfigureAwait(false);
+        await worker.StoreAsync(value, cancellationToken).ConfigureAwait(false);
     }
     public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
-        return _runtime.ReadAsync(agentId, cancellationToken);
+        return worker.ReadAsync(agentId, cancellationToken);
     }
 
     public IDictionary<string, string> ExtractMetadata(IDictionary<string, string> metadata)

@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Hello;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
-    IAgentContext context,
+    IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IChatClient client) : HelloAgent(
         context,

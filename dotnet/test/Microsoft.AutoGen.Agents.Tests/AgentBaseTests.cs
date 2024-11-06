@@ -15,7 +15,7 @@ public class AgentBaseTests
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
-        var mockContext = new Mock<IAgentContext>();
+        var mockContext = new Mock<IAgentRuntime>();
         var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
@@ -31,7 +31,7 @@ public class AgentBaseTests
     /// </summary>
     public class TestAgent : AgentBase, IHandle<string>, IHandle<int>
     {
-        public TestAgent(IAgentContext context, EventTypes eventTypes, Logger<AgentBase> logger) : base(context, eventTypes, logger)
+        public TestAgent(IAgentRuntime context, EventTypes eventTypes, Logger<AgentBase> logger) : base(context, eventTypes, logger)
         {
         }
 

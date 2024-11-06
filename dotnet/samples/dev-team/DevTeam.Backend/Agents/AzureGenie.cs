@@ -9,7 +9,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 namespace Microsoft.AI.DevTeam;
 
-public class AzureGenie(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
+public class AzureGenie(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
     : SKAiAgent<object>(context, memory, kernel, typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>

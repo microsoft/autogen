@@ -9,7 +9,7 @@ public abstract class InferenceAgent<T> : AgentBase where T : IMessage, new()
 {
     protected IChatClient ChatClient { get; }
     public InferenceAgent(
-        IAgentContext context,
+        IAgentRuntime context,
         EventTypes typeRegistry, IChatClient client
         ) : base(context, typeRegistry)
     {

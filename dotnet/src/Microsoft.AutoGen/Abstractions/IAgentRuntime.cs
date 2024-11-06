@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// IAgentContext.cs
+// IAgentRuntime.cs
 
 using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IAgentContext
+public interface IAgentRuntime
 {
     AgentId AgentId { get; }
     IAgentBase? AgentInstance { get; set; }

@@ -93,7 +93,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     private async ValueTask RegisterAgentTypeAsync(AgentWorker connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection.GetEventQueue());
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
@@ -148,7 +148,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
                 await DispatchEventAsync(message.CloudEvent);
                 break;
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
-                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
+                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest).ConfigureAwait(false);
                 break;
             default:
                 throw new InvalidOperationException($"Unknown message type for message '{message}'.");

@@ -22,7 +22,6 @@ public class AgentWorker :
     private readonly ConcurrentDictionary<string, List<IConnection>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly ILogger<AgentWorker> _logger;
     private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
@@ -58,6 +57,7 @@ public class AgentWorker :
         _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
     }
     public InMemoryQueue<Message> GetMessageQueue() => _messageQueue;
+    public InMemoryQueue<CloudEvent> GetEventQueue() => _eventsQueue;
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
@@ -154,7 +154,6 @@ public class AgentWorker :
             _shutdownCancellationToken.Cancel();
         }
     }
-
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -264,7 +263,7 @@ public class AgentWorker :
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
+                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
                 agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }

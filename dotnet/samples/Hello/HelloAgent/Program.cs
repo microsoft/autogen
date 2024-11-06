@@ -26,7 +26,7 @@ namespace Hello
 {
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentContext context,
+        IAgentRuntime context,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),

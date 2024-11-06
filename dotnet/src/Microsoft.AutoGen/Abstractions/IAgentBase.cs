@@ -9,7 +9,7 @@ public interface IAgentBase
 {
     // Properties
     AgentId AgentId { get; }
-    IAgentContext Context { get; }
+    IAgentRuntime Context { get; }
 
     // Methods
     Task CallHandler(CloudEvent item);

@@ -13,7 +13,7 @@ public abstract class ConsoleAgent : IOAgent,
 {
 
     // instead of the primary constructor above, make a constructr here that still calls the base constructor
-    public ConsoleAgent(IAgentContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : base(context, typeRegistry)
+    public ConsoleAgent(IAgentRuntime context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : base(context, typeRegistry)
     {
         _route = "console";
     }

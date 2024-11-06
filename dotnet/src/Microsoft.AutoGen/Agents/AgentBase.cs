@@ -20,15 +20,15 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly IAgentContext _context;
+    private readonly IAgentRuntime _context;
     public string Route { get; set; } = "base";
 
     protected internal ILogger<AgentBase> _logger;
-    public IAgentContext Context => _context;
+    public IAgentRuntime Context => _context;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(
-        IAgentContext context,
+        IAgentRuntime context,
         EventTypes eventTypes,
         ILogger<AgentBase>? logger = null)
     {

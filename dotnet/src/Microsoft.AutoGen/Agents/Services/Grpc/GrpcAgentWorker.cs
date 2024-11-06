@@ -49,7 +49,7 @@ public sealed class GrpcAgentWorker(
         _outboundMessagesChannel.Writer.TryComplete();
         _channel?.Dispose();
     }
-    private async Task RunReadPump()
+    private new async Task RunReadPump()
     {
         var channel = GetChannel();
         while (!_shutdownCts.Token.IsCancellationRequested)
@@ -169,7 +169,7 @@ public sealed class GrpcAgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
+                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
                 agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
