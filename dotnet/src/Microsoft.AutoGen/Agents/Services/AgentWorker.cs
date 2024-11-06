@@ -43,7 +43,7 @@ public class AgentWorker :
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
     ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) 
+    DistributedContextPropagator distributedContextPropagator)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -60,7 +60,7 @@ public class AgentWorker :
     public InMemoryQueue<CloudEvent> GetEventQueue() => _eventsQueue;
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
-        await this.WriteAsync(evt,cancellationToken).ConfigureAwait(false);
+        await this.WriteAsync(evt, cancellationToken).ConfigureAwait(false);
     }
     public ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
@@ -134,16 +134,25 @@ public class AgentWorker :
             }, cancellationToken).ConfigureAwait(false);
         }
     }
-     public async Task RunReadPump()
+    public async Task RunReadPump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         try
         {
-            await foreach (var message in _messageQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token))
+            await foreach (var message in _messageQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
             {
 
                 // Fire and forget
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
+            }
+            await foreach (var message in _eventsQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
+            {
+
+                foreach (var (typeName, _) in _agentTypes)
+                {
+                    var agent = GetOrActivateAgent(new AgentId(typeName, message.Source));
+                    agent.ReceiveMessage(new Message { CloudEvent = message });
+                }
             }
         }
         catch (OperationCanceledException)
@@ -190,7 +199,6 @@ public class AgentWorker :
             }
         }
     }
-
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
@@ -257,7 +265,7 @@ public class AgentWorker :
             }
         }
     }
-        private IAgentBase GetOrActivateAgent(AgentId agentId)
+    private IAgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
