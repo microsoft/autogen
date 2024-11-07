@@ -124,7 +124,7 @@ async def main() -> None:
         termination = TextMentionTermination("TERMINATE")
         group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent], termination_condition=termination)
         stream = group_chat.run_stream(
-            "Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
+            task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
         )
         async for message in stream:
             print(message)
