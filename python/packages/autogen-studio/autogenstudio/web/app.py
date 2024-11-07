@@ -1,12 +1,12 @@
 # api/app.py
 import os
-import logging
+# import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-
+from loguru import logger
 
 from .routes import sessions, runs, teams, agents, models, tools, ws
 from .deps import init_managers, cleanup_managers
@@ -15,8 +15,8 @@ from .initialization import AppInitializer
 from ..version import VERSION
 
 # Configure logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
 
 # Initialize application paths
 # app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Initializing application...")
     try:
         # Initialize managers (DB, Connection, Team)
-        await init_managers(initializer.database_uri)
+        await init_managers(initializer.database_uri, initializer.config_dir)
         logger.info("Managers initialized successfully")
 
         # Any other initialization code
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Error during shutdown: {str(e)}")
 
 # Create FastAPI application
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, debug=True)
 
 # CORS middleware configuration
 app.add_middleware(
@@ -136,12 +136,6 @@ api.include_router(
     responses={404: {"description": "Not found"}},
 )
 
-api.include_router(
-    sessions.router,
-    prefix="/sessions",
-    tags=["sessions"],
-    responses={404: {"description": "Not found"}},
-)
 
 # Version endpoint
 

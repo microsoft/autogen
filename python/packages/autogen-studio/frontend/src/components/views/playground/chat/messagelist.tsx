@@ -8,18 +8,18 @@ import {
 import { Collapse } from "antd";
 import * as React from "react";
 import Markdown from "react-markdown";
-import { LogEvent, IMessage } from "../../../types";
+import { Message } from "../../../types/datamodel";
 
 export interface MessageListProps {
-  messages: IMessage[];
-  sessionLogs: Record<string, LogEvent[]>;
+  messages: Message[];
+  runLogs: Record<string, Message[]>;
   onRetry: (text: string) => void;
   loading: boolean;
 }
 
 export default function MessageList({
   messages,
-  sessionLogs,
+  runLogs,
   onRetry,
   loading,
 }: MessageListProps) {
@@ -27,7 +27,7 @@ export default function MessageList({
 
   React.useEffect(() => {
     scrollToBottom();
-  }, [messages, sessionLogs]);
+  }, [messages, runLogs]);
 
   const scrollToBottom = () => {
     messageBoxRef.current?.scroll({
@@ -37,8 +37,8 @@ export default function MessageList({
   };
 
   const renderLogs = (sessionId: string) => {
-    const logs = sessionLogs[sessionId] || [];
-    return logs.map((log: LogEvent, index: number) => {
+    const logs = runLogs[sessionId] || [];
+    return logs.map((log: Message, index: number) => {
       const isEven = index % 2 === 0;
       return (
         <div
@@ -116,7 +116,7 @@ export default function MessageList({
                         </div>
                       )}
 
-                      {message.sessionId && sessionLogs[message.sessionId] && (
+                      {message.sessionId && runLogs[message.sessionId] && (
                         <Collapse
                           defaultActiveKey={
                             message.status === "processing" ? ["1"] : []

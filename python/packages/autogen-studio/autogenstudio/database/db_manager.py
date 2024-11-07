@@ -19,11 +19,10 @@ class DatabaseManager:
 
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, config_dir: Optional[str] = None):
+    def __init__(self, engine_uri: str):
         connection_args = {
             "check_same_thread": True} if "sqlite" in engine_uri else {}
         self.engine = create_engine(engine_uri, connect_args=connection_args)
-        self.config_dir = config_dir  # dir containing default agent config files
         self.schema_manager = SchemaManager(
             engine=self.engine,
             auto_upgrade=True,  # Set to False in production
@@ -117,8 +116,17 @@ class DatabaseManager:
             except Exception as e:
                 logger.info("Error while creating database tables:" + str(e))
 
-    def upsert(self, model: SQLModel):
-        """Create or update an entity"""
+    def upsert(self, model: SQLModel, return_json: bool = True):
+        """Create or update an entity
+
+        Args:
+            model (SQLModel): The model instance to create or update
+            return_json (bool, optional): If True, returns the model as a dictionary. 
+                If False, returns the SQLModel instance. Defaults to True.
+
+        Returns:
+            Response: Contains status, message and data (either dict or SQLModel based on return_json)
+        """
         status = True
         model_class = type(model)
         existing_model = None
@@ -150,7 +158,7 @@ class DatabaseManager:
                 else f"{model_class.__name__} Created Successfully"
             ),
             status=status,
-            data=model.model_dump(),
+            data=model.model_dump() if return_json else model,
         )
 
     def _model_to_dict(self, model_obj):

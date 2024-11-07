@@ -68,7 +68,6 @@ class AppInitializer:
         self.app_root.mkdir(parents=True, exist_ok=True)
         dirs = [self.static_root, self.user_files,
                 self.ui_root, self.config_dir]
-        print("Creating directories", dirs)
         for path in dirs:
             path.mkdir(parents=True, exist_ok=True)
 

@@ -26,6 +26,9 @@ export const SessionManager: React.FC = () => {
       setIsLoading(true);
       const data = await sessionAPI.listSessions(user.email);
       setSessions(data);
+      if (!session && data.length > 0) {
+        setSession(data[0]);
+      }
     } catch (error) {
       console.error("Error fetching sessions:", error);
       message.error("Error loading sessions");
@@ -119,17 +122,19 @@ export const SessionManager: React.FC = () => {
   // Session management content
   const SessionContent = () => (
     <div className="flex gap-2 items-center">
-      <SessionList
-        sessions={sessions}
-        currentSession={session}
-        onSelect={handleSelectSession}
-        onEdit={(session) => {
-          setEditingSession(session);
-          setIsEditorOpen(true);
-        }}
-        onDelete={handleDeleteSession}
-        isLoading={isLoading}
-      />
+      {sessions && sessions.length > 0 && (
+        <SessionList
+          sessions={sessions}
+          currentSession={session}
+          onSelect={handleSelectSession}
+          onEdit={(session) => {
+            setEditingSession(session);
+            setIsEditorOpen(true);
+          }}
+          onDelete={handleDeleteSession}
+          isLoading={isLoading}
+        />
+      )}
       <Button
         onClick={() => {
           setEditingSession(undefined);
@@ -152,18 +157,10 @@ export const SessionManager: React.FC = () => {
 
   return (
     <>
-      <Collapse
-        items={items}
-        className="bg-secondary border-0 shadow-sm"
-        defaultActiveKey={["1"]}
-        expandIcon={({ isActive }) => (
-          <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${
-              isActive ? "rotate-180" : ""
-            }`}
-          />
-        )}
-      />
+      <div className="bg-secondary rounded p-2">
+        {" "}
+        <SessionContent />
+      </div>
       <SessionEditor
         session={editingSession}
         isOpen={isEditorOpen}

@@ -8,6 +8,9 @@ import { getServerUrl } from "../../../utils";
 import { SessionManager } from "../../shared/session/manager";
 import { IStatus } from "../../../types/app";
 import { Message } from "../../../types/datamodel";
+import { useConfigStore } from "../../../../hooks/store";
+import nodata from "../../../../images/landing/welcome.svg";
+import { appContext } from "../../../../hooks/provider";
 
 interface ChatViewProps {
   initMessages: any[];
@@ -25,13 +28,10 @@ export default function ChatView({
     message: "All good",
   });
   const [messages, setMessages] = React.useState<Message[]>([]);
-  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(
-    null
-  );
-  const [currentRunId, setCurrentRunId] = React.useState<string | null>(null);
-  const [sessionLogs, setSessionLogs] = React.useState<Record<string, any[]>>(
-    {}
-  );
+
+  const [runLogs, setRunLogs] = React.useState<Record<string, any[]>>({});
+  const { user } = React.useContext(appContext);
+  const { session, sessions } = useConfigStore();
   const [activeSockets, setActiveSockets] = React.useState<
     Record<string, WebSocket>
   >({});
@@ -59,17 +59,17 @@ export default function ChatView({
     };
   }, [activeSockets]);
 
-  const createRun = async (sessionId: string): Promise<string> => {
-    const response = await fetch(`${serverUrl}/sessions/${sessionId}/runs`, {
+  const createRun = async (sessionId: number): Promise<string> => {
+    const payload = { session_id: sessionId, user_id: user?.email || "" };
+
+    const response = await fetch(`${serverUrl}/runs`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        user_id: "current-user", // Replace with actual user management
-      }),
+      body: JSON.stringify(payload),
     });
-
+    console;
     if (!response.ok) {
       throw new Error("Failed to create run");
     }
@@ -79,27 +79,25 @@ export default function ChatView({
   };
 
   const startRun = async (runId: string, query: string) => {
+    const messagePayload = {
+      user_id: user?.email,
+      session_id: session?.id,
+      config: {
+        content: query,
+        source: "user",
+      },
+    };
+    console.log("payload: ", messagePayload);
     const response = await fetch(`${serverUrl}/runs/${runId}/start`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        message: {
-          user_id: "current-user", // Replace with actual user management
-          session_id: currentSessionId,
-          config: {
-            content: query,
-            source: "user",
-          },
-          message_meta: {
-            team_id: "default-team", // Replace with actual team management
-          },
-        },
-      }),
+      body: JSON.stringify(messagePayload),
     });
 
     if (!response.ok) {
+      response.json().then((data) => console.log("Error", data));
       throw new Error("Failed to start run");
     }
 
@@ -122,67 +120,69 @@ export default function ChatView({
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
 
-      setSessionLogs((prev) => ({
-        ...prev,
-        [runId]: [...(prev[runId] || []), message],
-      }));
+      console.log("streamed message: ", message);
 
-      if (message.type === "StreamEvent") {
-        switch (message.event_type) {
-          case "message":
-            setMessages((prev) =>
-              prev.map((msg) => {
-                if (msg.runId === runId && msg.sender === "bot") {
-                  return {
-                    ...msg,
-                    text: (msg.text || "") + message.data.content,
-                  };
-                }
-                return msg;
-              })
-            );
-            break;
+      // setRunLogs((prev) => ({
+      //   ...prev,
+      //   [runId]: [...(prev[runId] || []), message],
+      // }));
 
-          case "completion":
-            setMessages((prev) =>
-              prev.map((msg) => {
-                if (msg.runId === runId && msg.sender === "bot") {
-                  return {
-                    ...msg,
-                    status: "complete",
-                    finalResponse: message.data.final_message,
-                  };
-                }
-                return msg;
-              })
-            );
-            break;
-        }
-      }
+      // if (message.type === "StreamEvent") {
+      //   switch (message.event_type) {
+      //     case "message":
+      //       setMessages((prev) =>
+      //         prev.map((msg) => {
+      //           if (msg.runId === runId && msg.sender === "bot") {
+      //             return {
+      //               ...msg,
+      //               text: (msg.text || "") + message.data.content,
+      //             };
+      //           }
+      //           return msg;
+      //         })
+      //       );
+      //       break;
 
-      if (message.type === "TerminationEvent") {
-        const status =
-          message.reason === "cancelled"
-            ? "cancelled"
-            : message.error
-            ? "error"
-            : "complete";
+      //     case "completion":
+      //       setMessages((prev) =>
+      //         prev.map((msg) => {
+      //           if (msg.runId === runId && msg.sender === "bot") {
+      //             return {
+      //               ...msg,
+      //               status: "complete",
+      //               finalResponse: message.data.final_message,
+      //             };
+      //           }
+      //           return msg;
+      //         })
+      //       );
+      //       break;
+      //   }
+      // }
 
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.runId === runId && msg.sender === "bot") {
-              return {
-                ...msg,
-                status,
-                error: message.error,
-              };
-            }
-            return msg;
-          })
-        );
+      // if (message.type === "TerminationEvent") {
+      //   const status =
+      //     message.reason === "cancelled"
+      //       ? "cancelled"
+      //       : message.error
+      //       ? "error"
+      //       : "complete";
 
-        socket.close();
-      }
+      //   setMessages((prev) =>
+      //     prev.map((msg) => {
+      //       if (msg.runId === runId && msg.sender === "bot") {
+      //         return {
+      //           ...msg,
+      //           status,
+      //           error: message.error,
+      //         };
+      //       }
+      //       return msg;
+      //     })
+      //   );
+
+      //   socket.close();
+      // }
     };
 
     socket.onclose = () => {
@@ -213,31 +213,38 @@ export default function ChatView({
     }
   };
 
-  const getCompletion = async (query: string) => {
+  const runTask = async (query: string) => {
     setError(null);
     setLoading(true);
+
+    if (!session || !session.id) {
+      setLoading(false);
+      return;
+    }
 
     let runId: string | null = null;
 
     try {
       // Create new run
-      runId = await createRun(currentSessionId!);
-      setCurrentRunId(runId);
+      runId = await createRun(session?.id);
+      console.log("runId: ", runId);
 
-      // Add messages to UI
       const userMessage: Message = {
-        text: query,
-        sender: "user",
-        sessionId: currentSessionId,
-        runId: runId,
+        config: {
+          content: query,
+          source: "user",
+        },
+        session_id: session?.id,
+        run_id: runId,
       };
 
       const botMessage: Message = {
-        text: "",
-        sender: "bot",
-        sessionId: currentSessionId,
-        runId: runId,
-        status: "processing",
+        config: {
+          content: query,
+          source: "bot",
+        },
+        session_id: session?.id,
+        run_id: runId,
       };
 
       setMessages((prev) => [...prev, userMessage, botMessage]);
@@ -264,12 +271,10 @@ export default function ChatView({
       if (runId) {
         setMessages((prev) =>
           prev.map((msg) => {
-            if (msg.runId === runId && msg.sender === "bot") {
+            if (msg.run_id === runId) {
               return {
                 ...msg,
                 status: "error",
-                error:
-                  err instanceof Error ? err.message : "Unknown error occurred",
               };
             }
             return msg;
@@ -286,16 +291,25 @@ export default function ChatView({
       <div className="flex flex-col h-full">
         <div className="flex-1">
           <SessionManager />
-          <MessageList
+          {/* <MessageList
             messages={messages}
-            sessionLogs={sessionLogs}
-            onRetry={getCompletion}
+            runLogs={runLogs}
+            onRetry={runTask}
             onCancel={cancelRun}
             loading={loading}
-          />
+          /> */}
         </div>
+        {sessions && sessions.length == 0 && (
+          <div className="flex flex-col items-center justify-center w-full h-full">
+            <img src={nodata} alt="Autogen Logo" className="  w-72" />
+            <div className="mt-4   text-sm text-secondary  text-center">
+              {" "}
+              Welcome! Create a session to get started!
+            </div>
+          </div>
+        )}
         <div>
-          <ChatInput onSubmit={getCompletion} loading={loading} error={error} />
+          <ChatInput onSubmit={runTask} loading={loading} error={error} />
         </div>
       </div>
     </div>

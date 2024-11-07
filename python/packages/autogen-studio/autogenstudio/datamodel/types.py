@@ -46,7 +46,7 @@ class TerminationTypes(str, Enum):
 class MessageConfig(SQLModel, table=False):
     source: str
     content: str
-    message_type: str
+    message_type: Optional[str] = "text"
 
 
 class ModelConfig(SQLModel, table=False):

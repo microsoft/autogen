@@ -113,7 +113,6 @@ class AgentFactory():
             except:
                 raise ValueError("Invalid team config")
         team = None
-        print("*** team config ***", team_config)
         agents = []
         termination = self.load_termination(team_config.termination_condition)
         model_client = self.load_model(team_config.model_client)

@@ -1,13 +1,12 @@
 import os
 import json
-from typing import Optional, Union
+from typing import Optional, Union, List, Dict
 from loguru import logger
 
-from sqlmodel import Session, text, select
 from ..datamodel import (
     Model, ModelConfig, Team, TeamConfig,
     Agent, AgentConfig, Tool, ToolConfig,
-    ModelTypes, TeamTypes, AgentTypes, LinkTypes,
+    LinkTypes,
     Response, ComponentTypes
 )
 
@@ -18,26 +17,28 @@ from .db_manager import DatabaseManager
 class ConfigurationManager:
     """Manages loading, validation, and storage of configurations for teams, agents, models, and tools."""
 
-    def __init__(self, db_manager: DatabaseManager):
+    # Configurable uniqueness fields for each component type
+    DEFAULT_UNIQUENESS_FIELDS = {
+        ComponentTypes.MODEL: ['model_type', 'model'],
+        ComponentTypes.TOOL: ['name'],
+        ComponentTypes.AGENT: ['agent_type', 'name'],
+        ComponentTypes.TEAM: ['team_type', 'name']
+    }
+
+    def __init__(self, db_manager: DatabaseManager, uniqueness_fields: Dict[ComponentTypes, List[str]] = None):
         """
         Initialize Configuration Manager.
 
         Args:
-            db_manager: Database manager instance for storage operations 
+            db_manager: Database manager instance for storage operations
+            uniqueness_fields: Optional custom uniqueness fields configuration
         """
         self.db_manager = db_manager
-        self.agent_factory = AgentFactory()
+        self.agent_factory: AgentFactory = AgentFactory()
+        self.uniqueness_fields = uniqueness_fields or self.DEFAULT_UNIQUENESS_FIELDS
 
     def _load_config_file(self, path: str) -> Response:
-        """
-        Load configuration from JSON or YAML file.
-
-        Args:
-            path: Path to configuration file
-
-        Returns:
-            Response object containing loaded configuration or error
-        """
+        """Load configuration from JSON or YAML file."""
         try:
             ext = path.lower().split('.')[-1]
 
@@ -58,40 +59,59 @@ class ConfigurationManager:
             logger.error(f"Failed to load config file {path}: {str(e)}")
             return Response(message=f"Failed to load config file: {str(e)}", status=False)
 
-    def validate_config(self, config: dict) -> Response:
+    def _check_exists(self, component_type: ComponentTypes, config: dict, user_id: str) -> Optional[Union[Model, Tool, Agent, Team]]:
         """
-        Validate configuration using provider.
+        Check if component exists based on configured uniqueness fields.
 
         Args:
-            config: Configuration dictionary to validate
+            component_type: Type of component to check
+            config: Configuration to check
+            user_id: User ID to check against
 
         Returns:
-            Response indicating validation result
+            Existing component if found, None otherwise
         """
-        try:
-            # Determine config type and validate accordingly
-            if "team_type" in config:
-                self.agent_factory.load_team(config)
-            elif "agent_type" in config:
-                self.agent_factory.load_agent(config)
-            elif "model_type" in config:
-                self.agent_factory.load_model(config)
-            elif "name" in config and "content" in config:
-                self.agent_factory.load_tool(config)
-            else:
-                return Response(message="Unknown configuration type", status=False)
+        # Get uniqueness fields for this component type
+        fields = self.uniqueness_fields.get(component_type, [])
+        if not fields:
+            return None
 
-            return Response(message="Configuration is valid", status=True)
-        except Exception as e:
-            return Response(message=f"Configuration validation failed: {str(e)}", status=False)
+        # Get all components of this type for the user
+        component_class = {
+            ComponentTypes.MODEL: Model,
+            ComponentTypes.TOOL: Tool,
+            ComponentTypes.AGENT: Agent,
+            ComponentTypes.TEAM: Team
+        }.get(component_type)
 
-    def import_model_config(self, config: dict, user_id: str) -> Response:
+        components = self.db_manager.get(
+            component_class, {"user_id": user_id}).data
+
+        # Check each component for matching uniqueness fields
+        for component in components:
+            matches = all(
+                component.config.get(field) == config.get(field)
+                for field in fields
+            )
+            if matches:
+                return component
+
+        return None
+
+    def _format_exists_message(self, component_type: ComponentTypes, config: dict) -> str:
+        """Format existence message with identifying fields."""
+        fields = self.uniqueness_fields.get(component_type, [])
+        field_values = [f"{field}='{config.get(field)}'" for field in fields]
+        return f"{component_type.value} with {' and '.join(field_values)} already exists"
+
+    def import_model_config(self, config: dict, user_id: str, check_exists: bool = True) -> Response:
         """
         Import model configuration.
 
         Args:
             config: Model configuration dictionary
             user_id: User ID to associate with the model
+            check_exists: Whether to check for existing models
 
         Returns:
             Response containing imported model details or error
@@ -99,6 +119,18 @@ class ConfigurationManager:
         try:
             # Validate using provider
             self.agent_factory.load_model(config)
+
+            # Check existence if requested
+            if check_exists:
+                existing = self._check_exists(
+                    ComponentTypes.MODEL, config, user_id)
+                if existing:
+                    return Response(
+                        message=self._format_exists_message(
+                            ComponentTypes.MODEL, config),
+                        status=True,
+                        data={"id": existing.id}
+                    )
 
             # Create model
             model = Model(
@@ -110,13 +142,14 @@ class ConfigurationManager:
             logger.error(f"Failed to import model config: {str(e)}")
             return Response(message=f"Failed to import model: {str(e)}", status=False)
 
-    def import_tool_config(self, config: dict, user_id: str) -> Response:
+    def import_tool_config(self, config: dict, user_id: str, check_exists: bool = True) -> Response:
         """
         Import tool configuration.
 
         Args:
             config: Tool configuration dictionary
             user_id: User ID to associate with the tool
+            check_exists: Whether to check for existing tools
 
         Returns:
             Response containing imported tool details or error
@@ -124,6 +157,18 @@ class ConfigurationManager:
         try:
             # Validate using provider
             self.agent_factory.load_tool(config)
+
+            # Check existence if requested
+            if check_exists:
+                existing = self._check_exists(
+                    ComponentTypes.TOOL, config, user_id)
+                if existing:
+                    return Response(
+                        message=self._format_exists_message(
+                            ComponentTypes.TOOL, config),
+                        status=True,
+                        data={"id": existing.id}
+                    )
 
             tool = Tool(
                 user_id=user_id,
@@ -134,13 +179,14 @@ class ConfigurationManager:
             logger.error(f"Failed to import tool config: {str(e)}")
             return Response(message=f"Failed to import tool: {str(e)}", status=False)
 
-    def import_agent_config(self, config: dict, user_id: str) -> Response:
+    def import_agent_config(self, config: dict, user_id: str, check_exists: bool = True) -> Response:
         """
         Import agent configuration and its dependencies.
 
         Args:
             config: Agent configuration dictionary
             user_id: User ID to associate with the agent
+            check_exists: Whether to check for existing agents
 
         Returns:
             Response containing imported agent details or error
@@ -149,11 +195,23 @@ class ConfigurationManager:
             # Validate using provider
             self.agent_factory.load_agent(config)
 
+            # Check existence if requested
+            if check_exists:
+                existing = self._check_exists(
+                    ComponentTypes.AGENT, config, user_id)
+                if existing:
+                    return Response(
+                        message=self._format_exists_message(
+                            ComponentTypes.AGENT, config),
+                        status=True,
+                        data={"id": existing.id}
+                    )
+
             # Import model if present
             model_id = None
             if "model_client" in config:
                 model_result = self.import_model_config(
-                    config["model_client"], user_id)
+                    config["model_client"], user_id, check_exists=check_exists)
                 if not model_result.status:
                     return model_result
                 model_id = model_result.data["id"]
@@ -161,7 +219,8 @@ class ConfigurationManager:
             # Import tools if present
             tool_ids = []
             for tool_config in config.get("tools", []):
-                tool_result = self.import_tool_config(tool_config, user_id)
+                tool_result = self.import_tool_config(
+                    tool_config, user_id, check_exists=check_exists)
                 if not tool_result.status:
                     return tool_result
                 tool_ids.append(tool_result.data["id"])
@@ -189,13 +248,14 @@ class ConfigurationManager:
             logger.error(f"Failed to import agent config: {str(e)}")
             return Response(message=f"Failed to import agent: {str(e)}", status=False)
 
-    def import_team_config(self, config: dict, user_id: str) -> Response:
+    def import_team_config(self, config: dict, user_id: str, check_exists: bool = True) -> Response:
         """
         Import team configuration and all its dependencies.
 
         Args:
             config: Team configuration dictionary
             user_id: User ID to associate with the team
+            check_exists: Whether to check for existing teams
 
         Returns:
             Response containing imported team details or error
@@ -204,10 +264,23 @@ class ConfigurationManager:
             # Validate full config using provider
             self.agent_factory.load_team(config)
 
+            # Check existence if requested
+            if check_exists:
+                existing = self._check_exists(
+                    ComponentTypes.TEAM, config, user_id)
+                if existing:
+                    return Response(
+                        message=self._format_exists_message(
+                            ComponentTypes.TEAM, config),
+                        status=True,
+                        data={"id": existing.id}
+                    )
+
             # Import all agents first
             agent_ids = []
             for participant in config["participants"]:
-                agent_result = self.import_agent_config(participant, user_id)
+                agent_result = self.import_agent_config(
+                    participant, user_id, check_exists=check_exists)
                 if not agent_result.status:
                     return agent_result
                 agent_ids.append(agent_result.data["id"])
@@ -244,7 +317,9 @@ class ConfigurationManager:
             return ComponentTypes.TOOL
         return None
 
-    def import_config(self, config: Union[str, dict], user_id: str, component_type: Optional[ComponentTypes] = None) -> Response:
+    def import_config(self, config: Union[str, dict], user_id: str,
+                      component_type: Optional[ComponentTypes] = None,
+                      check_exists: bool = True) -> Response:
         """
         Import any type of configuration from file or dict.
 
@@ -252,6 +327,7 @@ class ConfigurationManager:
             config: Configuration file path or dictionary
             user_id: User ID to associate with imported items
             component_type: Optional explicit ComponentTypes to override automatic detection
+            check_exists: Whether to check for existing components
 
         Returns:
             Response containing import results or error
@@ -280,7 +356,7 @@ class ConfigurationManager:
                 ComponentTypes.MODEL: self.import_model_config,
                 ComponentTypes.TOOL: self.import_tool_config
             }
-            return import_methods[detected_type](config, user_id)
+            return import_methods[detected_type](config, user_id, check_exists=check_exists)
         except Exception as e:
             logger.error(
                 f"Failed to import {detected_type.value} config: {str(e)}")
@@ -289,13 +365,14 @@ class ConfigurationManager:
                 status=False
             )
 
-    def import_from_directory(self, directory: str, user_id: str) -> Response:
+    def import_from_directory(self, directory: str, user_id: str, check_exists: bool = True) -> Response:
         """
         Import all configurations from a directory.
 
         Args:
             directory: Path to directory containing configuration files
             user_id: User ID to associate with imported items
+            check_exists: Whether to check for existing components
 
         Returns:
             Response containing import results for all files
@@ -305,7 +382,8 @@ class ConfigurationManager:
             for filename in os.listdir(directory):
                 if filename.lower().endswith(('.json', '.yaml', '.yml')):
                     path = os.path.join(directory, filename)
-                    result = self.import_config(path, user_id)
+                    result = self.import_config(
+                        path, user_id, check_exists=check_exists)
                     results.append({
                         "file": filename,
                         "status": result.status,
@@ -320,116 +398,3 @@ class ConfigurationManager:
         except Exception as e:
             logger.error(f"Failed to import directory {directory}: {str(e)}")
             return Response(message=f"Failed to import directory: {str(e)}", status=False)
-
-    def export_config(self, team_id: int) -> Response:
-        """
-        Export team configuration to dictionary format.
-
-        Args:
-            team_id: ID of team to export
-
-        Returns:
-            Response containing complete team configuration or error
-        """
-        try:
-            # Get team
-            team_result = self.db_manager.get(Team, {"id": team_id})
-            if not team_result.status or not team_result.data:
-                return Response(message="Team not found", status=False)
-
-            team = team_result.data[0]
-            team_config = team.config  # Base team config
-
-            # Get linked agents
-            linked_agents = self.db_manager.get_linked_entities(
-                LinkTypes.TEAM_AGENT,
-                team_id
-            )
-            if not linked_agents.status:
-                return linked_agents
-
-            # Build participants list
-            participants = []
-            for agent in linked_agents.data:
-                agent_config = agent.config.copy()  # Start with base agent config
-
-                # Get agent's model
-                model_result = self.db_manager.get_linked_entities(
-                    LinkTypes.AGENT_MODEL,
-                    agent.id
-                )
-                if model_result.status and model_result.data:
-                    agent_config["model_client"] = model_result.data[0].config
-
-                # Get agent's tools
-                tools_result = self.db_manager.get_linked_entities(
-                    LinkTypes.AGENT_TOOL,
-                    agent.id
-                )
-                if tools_result.status and tools_result.data:
-                    agent_config["tools"] = [
-                        tool.config for tool in tools_result.data
-                    ]
-
-                participants.append(agent_config)
-
-            # Reconstruct full team config
-            full_config = team_config.copy()
-            full_config["participants"] = participants
-
-            return Response(
-                message="Team configuration exported successfully",
-                status=True,
-                data=full_config
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to export team config: {str(e)}")
-            return Response(
-                message=f"Failed to export team configuration: {str(e)}",
-                status=False
-            )
-
-    def export_config_to_file(self, team_id: int, filepath: str) -> Response:
-        """
-        Export team configuration to a JSON or YAML file.
-
-        Args:
-            team_id: ID of team to export
-            filepath: Path where to save the configuration file
-
-        Returns:
-            Response indicating success or failure
-        """
-        try:
-            # Get configuration
-            config_result = self.export_config(team_id)
-            if not config_result.status:
-                return config_result
-
-            # Determine format from file extension
-            ext = filepath.lower().split('.')[-1]
-
-            with open(filepath, 'w') as f:
-                if ext == 'json':
-                    json.dump(config_result.data, f, indent=2)
-                elif ext in ('yaml', 'yml'):
-                    import yaml
-                    yaml.dump(config_result.data, f, sort_keys=False)
-                else:
-                    return Response(
-                        message=f"Unsupported file format: {ext}",
-                        status=False
-                    )
-
-            return Response(
-                message=f"Configuration exported to {filepath}",
-                status=True
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to export config to file: {str(e)}")
-            return Response(
-                message=f"Failed to export configuration to file: {str(e)}",
-                status=False
-            )

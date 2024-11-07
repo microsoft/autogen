@@ -1,108 +1,78 @@
-from fastapi import WebSocket
-from typing import Dict, Optional, Union
-import asyncio
-import logging
-import json
+import traceback
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import Dict, Optional, Any
 from uuid import UUID
+import logging
+from datetime import datetime
+from enum import Enum
 
 from ...datamodel import Run, RunStatus, TeamResult
 from ...database import DatabaseManager
-from autogen_core.base import CancellationToken
 from autogen_agentchat.messages import InnerMessage, ChatMessage
+from autogen_core.base import CancellationToken
 
 logger = logging.getLogger(__name__)
 
 
-class ConnectionManager:
-    def __init__(self, db_manager: DatabaseManager, cleanup_interval: int = 300):  # 5 min cleanup
-        self.active_connections: Dict[UUID, WebSocket] = {}
-        self.cancellation_tokens: Dict[UUID, CancellationToken] = {}
+class WebSocketManager:
+    """Manages WebSocket connections and message streaming for team task execution"""
+
+    def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
-        self._lock = asyncio.Lock()
-        self.cleanup_interval = cleanup_interval
+        self._connections: Dict[UUID, WebSocket] = {}
+        self._cancellation_tokens: Dict[UUID, CancellationToken] = {}
 
-        # Store the cleanup task reference
-        self.cleanup_task = asyncio.create_task(self._cleanup_stale_runs())
+    async def connect(self, websocket: WebSocket, run_id: UUID) -> bool:
+        """Initialize WebSocket connection for a run
 
-    async def create_run(self, session_id: int) -> Run:
-        """Create a new run for a session"""
-        run = Run(session_id=session_id)
-        response = self.db_manager.upsert(run)
-        if not response.status:
-            raise Exception(f"Failed to create run: {response.message}")
-        return response.data
+        Args:
+            websocket: The WebSocket connection to initialize
+            run_id: UUID of the run to associate with this connection
 
-    async def connect(self, run_id: UUID, websocket: WebSocket) -> bool:
-        """Connect a WebSocket to a run"""
-        async with self._lock:
-            # Get run from database
-            run_response = self.db_manager.get(
-                Run,
-                filters={"id": run_id},
-                return_json=False
-            )
-            if not run_response.status or not run_response.data:
-                return False
-
-            run = run_response.data[0]
-
-            # Only allow connection if run is in valid state
-            if run.status not in [RunStatus.CREATED, RunStatus.ACTIVE]:
-                return False
-
-            # Accept the WebSocket connection
+        Returns:
+            bool: True if connection was successful, False otherwise
+        """
+        try:
             await websocket.accept()
+            self._connections[run_id] = websocket
 
-            # Store connection
-            self.active_connections[run_id] = websocket
+            run = await self._get_run(run_id)
+            if run:
+                run.status = RunStatus.ACTIVE
+                self.db_manager.upsert(run)
 
-            # Update run status
-            run.status = RunStatus.ACTIVE
-            self.db_manager.upsert(run)
+            await self._send_message(run_id, {
+                "type": "system",
+                "status": "connected",
+                "timestamp": datetime.utcnow().isoformat()
+            })
 
             return True
 
-    async def disconnect(self, run_id: UUID) -> None:
-        """Disconnect and cleanup a run's WebSocket"""
-        async with self._lock:
-            if run_id in self.active_connections:
-                websocket = self.active_connections[run_id]
-                try:
-                    await websocket.close()
-                except Exception:
-                    pass
-                finally:
-                    del self.active_connections[run_id]
-
-            # Cleanup cancellation token if exists
-            if run_id in self.cancellation_tokens:
-                self.cancellation_tokens[run_id].cancel()
-                del self.cancellation_tokens[run_id]
-
-    async def send_message(self, run_id: UUID, message: str) -> bool:
-        """Send a message to a run's WebSocket if connected"""
-        async with self._lock:
-            if run_id in self.active_connections:
-                try:
-                    await self.active_connections[run_id].send_text(message)
-                    return True
-                except Exception as e:
-                    logger.error(
-                        f"Error sending message to run {run_id}: {str(e)}")
-                    await self.disconnect(run_id)
+        except Exception as e:
+            logger.error(f"Connection error for run {run_id}: {e}")
             return False
 
-    async def start_streaming_task(
+    async def start_stream(
         self,
         run_id: UUID,
-        team_manager,  # TeamManager instance
+        team_manager: Any,
         task: str,
         team_config: dict
     ) -> None:
-        """Start a streaming task and send updates via WebSocket"""
-        # Create cancellation token for this run
+        """Start streaming task execution
+
+        Args:
+            run_id: UUID of the run
+            team_manager: Instance of the team manager
+            task: Task string to execute
+            team_config: Team configuration dictionary
+        """
+        if run_id not in self._connections:
+            raise ValueError(f"No active connection for run {run_id}")
+
         cancellation_token = CancellationToken()
-        self.cancellation_tokens[run_id] = cancellation_token
+        self._cancellation_tokens[run_id] = cancellation_token
 
         try:
             async for message in team_manager.run_stream(
@@ -110,150 +80,178 @@ class ConnectionManager:
                 team_config=team_config,
                 cancellation_token=cancellation_token
             ):
-                if not await self._stream_message(run_id, message):
-                    break  # Stop if we can't send messages
 
-            await self.complete_run(run_id)
+                if cancellation_token.is_cancelled():
+                    logger.info(f"Stream cancelled for run {run_id}")
+                    break
 
-        except asyncio.CancelledError:
-            await self.complete_run(run_id, error="Task cancelled by user")
+                formatted_message = self._format_message(message)
+                if formatted_message:
+                    await self._send_message(run_id, {
+                        "type": "message",
+                        "data": formatted_message,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+
+            # Only send completion if not cancelled
+            if not cancellation_token.is_cancelled():
+                await self._send_message(run_id, {
+                    "type": "completion",
+                    "status": "success",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                await self._update_run_status(run_id, RunStatus.COMPLETE)
+            else:
+                await self._send_message(run_id, {
+                    "type": "completion",
+                    "status": "cancelled",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                await self._update_run_status(run_id, RunStatus.STOPPED)
+
         except Exception as e:
-            logger.error(f"Task error for run {run_id}: {str(e)}")
-            await self.complete_run(run_id, error=str(e))
-        finally:
-            if run_id in self.cancellation_tokens:
-                del self.cancellation_tokens[run_id]
+            print(traceback.format_exc())
+            logger.error(f"Stream error for run {run_id}: {e}")
+            await self._handle_stream_error(run_id, e)
 
-    async def _stream_message(
-        self,
-        run_id: UUID,
-        message: Union[InnerMessage, ChatMessage, TeamResult]
-    ) -> bool:
-        """Format and send a streaming message"""
+        finally:
+            self._cancellation_tokens.pop(run_id, None)
+
+    async def stop_run(self, run_id: UUID) -> None:
+        """Stop a running task
+
+        Args:
+            run_id: UUID of the run to stop
+        """
+        if run_id in self._cancellation_tokens:
+            logger.info(f"Stopping run {run_id}")
+            self._cancellation_tokens[run_id].cancel()
+
+    async def disconnect(self, run_id: UUID) -> None:
+        """Clean up connection and associated resources
+
+        Args:
+            run_id: UUID of the run to disconnect
+        """
+        logger.info(f"Disconnecting run {run_id}")
+        await self.stop_run(run_id)
+
+        if run_id in self._connections:
+            try:
+                await self._connections[run_id].close()
+            except Exception as e:
+                logger.error(f"Error closing websocket for run {run_id}: {e}")
+            finally:
+                self._connections.pop(run_id, None)
+                self._cancellation_tokens.pop(run_id, None)
+
+    async def _send_message(self, run_id: UUID, message: dict) -> None:
+        """Send a message through the WebSocket
+
+        Args:
+            run_id: UUID of the run
+            message: Message dictionary to send
+        """
+        try:
+            if run_id in self._connections:
+                await self._connections[run_id].send_json(message)
+        except WebSocketDisconnect:
+            logger.warning(
+                f"WebSocket disconnected while sending message for run {run_id}")
+            await self.disconnect(run_id)
+        except Exception as e:
+            logger.error(f"Error sending message for run {run_id}: {e}")
+            await self._handle_stream_error(run_id, e)
+
+    async def _handle_stream_error(self, run_id: UUID, error: Exception) -> None:
+        """Handle stream errors consistently
+
+        Args:
+            run_id: UUID of the run
+            error: Exception that occurred
+        """
+        try:
+            await self._send_message(run_id, {
+                "type": "completion",
+                "status": "error",
+                "error": str(error),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as send_error:
+            logger.error(
+                f"Failed to send error message for run {run_id}: {send_error}")
+
+        await self._update_run_status(run_id, RunStatus.ERROR, str(error))
+
+    def _format_message(self, message: Any) -> Optional[dict]:
+        """Format message for WebSocket transmission
+
+        Args:
+            message: Message to format
+
+        Returns:
+            Optional[dict]: Formatted message or None if formatting fails
+        """
         try:
             if isinstance(message, (InnerMessage, ChatMessage)):
-                payload = {
-                    "type": "StreamEvent",
-                    "event_type": "message",
-                    "data": {
-                        "role": message.role if hasattr(message, 'role') else "system",
-                        "content": message.content,
-                        "name": message.name if hasattr(message, 'name') else None
-                    }
+                return {
+                    "message_type": "chat",
+                    "role": getattr(message, 'role', 'system'),
+                    "content": message.content,
+                    "name": getattr(message, 'name', None)
                 }
             elif isinstance(message, TeamResult):
-                payload = {
-                    "type": "StreamEvent",
-                    "event_type": "completion",
-                    "data": {
+                return {
+                    "message_type": "result",
+                    "content": message.task_result.messages[-1].content if message.task_result.messages else None,
+                    "metadata": {
                         "duration": message.duration,
-                        "usage": message.usage,
-                        "final_message": message.task_result.messages[-1].content
-                            if message.task_result.messages else None
+                        "usage": message.usage
                     }
                 }
-            else:
-                logger.warning(
-                    f"Unknown message type for run {run_id}: {type(message)}")
-                return True  # Continue streaming even if we don't understand a message
-
-            return await self.send_message(run_id, json.dumps(payload))
-
+            return None
         except Exception as e:
-            logger.error(f"Error streaming message for run {run_id}: {str(e)}")
-            return False
+            logger.error(f"Message formatting error: {e}")
+            return None
 
-    async def cancel_run(self, run_id: UUID) -> None:
-        """Cancel a running task"""
-        if run_id in self.cancellation_tokens:
-            self.cancellation_tokens[run_id].cancel()
+    async def _get_run(self, run_id: UUID) -> Optional[Run]:
+        """Get run from database
 
-    async def complete_run(self, run_id: UUID, error: Optional[str] = None) -> None:
-        """Mark a run as complete or error and cleanup"""
-        async with self._lock:
-            run_response = self.db_manager.get(
-                Run,
-                filters={"id": run_id},
-                return_json=False
-            )
-            if run_response.status and run_response.data:
-                run = run_response.data[0]
-                run.status = RunStatus.ERROR if error else RunStatus.COMPLETE
-                run.error_message = error
-                self.db_manager.upsert(run)
+        Args:
+            run_id: UUID of the run to retrieve
 
-                # Send completion/error message to client
-                completion_message = {
-                    "type": "TerminationEvent",
-                    "reason": "cancelled" if error == "Task cancelled by user" else "error" if error else "complete",
-                    "error": error
-                }
-                await self.send_message(run_id, json.dumps(completion_message))
+        Returns:
+            Optional[Run]: Run object if found, None otherwise
+        """
+        response = self.db_manager.get(
+            Run, filters={"id": run_id}, return_json=False)
+        return response.data[0] if response.status and response.data else None
 
-            # Cancel task if still running
-            if run_id in self.cancellation_tokens:
-                self.cancellation_tokens[run_id].cancel()
-                del self.cancellation_tokens[run_id]
+    async def _update_run_status(
+        self,
+        run_id: UUID,
+        status: RunStatus,
+        error: Optional[str] = None
+    ) -> None:
+        """Update run status in database
 
-            await self.disconnect(run_id)
+        Args:
+            run_id: UUID of the run to update
+            status: New status to set
+            error: Optional error message
+        """
+        run = await self._get_run(run_id)
+        if run:
+            run.status = status
+            run.error_message = error
+            self.db_manager.upsert(run)
 
-    async def _cleanup_stale_runs(self) -> None:
-        """Periodically clean up stale runs"""
-        while True:
-            try:
-                async with self._lock:
-                    # Get all active runs
-                    active_runs_response = self.db_manager.get(
-                        Run,
-                        filters={"status": RunStatus.ACTIVE},
-                        return_json=False
-                    )
+    @property
+    def active_connections(self) -> set[UUID]:
+        """Get set of active run IDs"""
+        return set(self._connections.keys())
 
-                    if active_runs_response.status and active_runs_response.data:
-                        for run in active_runs_response.data:
-                            # If run is active but has no connection
-                            if run.id not in self.active_connections:
-                                # Mark as error
-                                run.status = RunStatus.ERROR
-                                run.error_message = "Connection lost"
-                                self.db_manager.upsert(run)
-
-                    # Cleanup disconnected websockets and cancellation tokens
-                    disconnected_runs = [
-                        run_id for run_id, ws in self.active_connections.items()
-                        if ws.client_state.DISCONNECTED
-                    ]
-                    for run_id in disconnected_runs:
-                        await self.complete_run(run_id, error="Connection lost")
-
-            except Exception as e:
-                logger.error(f"Error in run cleanup: {str(e)}")
-
-            await asyncio.sleep(self.cleanup_interval)
-
-    async def cleanup(self) -> None:
-        """Cleanup all manager resources during shutdown"""
-        logger.info("Starting ConnectionManager cleanup...")
-
-        try:
-            # Cancel the background cleanup task
-            if hasattr(self, 'cleanup_task'):
-                self.cleanup_task.cancel()
-                try:
-                    await self.cleanup_task
-                except asyncio.CancelledError:
-                    pass
-
-            # Close all active connections and mark runs as ERROR
-            async with self._lock:
-                for run_id in list(self.active_connections.keys()):
-                    await self.complete_run(run_id, error="Server shutdown")
-
-                self.active_connections.clear()
-                self.cancellation_tokens.clear()
-
-            logger.info("ConnectionManager cleanup completed successfully")
-
-        except Exception as e:
-            logger.error(f"Error during connection manager cleanup: {str(e)}")
-            raise  # Re-raise to let caller handle it
+    @property
+    def active_runs(self) -> set[UUID]:
+        """Get set of runs with active cancellation tokens"""
+        return set(self._cancellation_tokens.keys())

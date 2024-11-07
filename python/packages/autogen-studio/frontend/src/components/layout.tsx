@@ -97,7 +97,7 @@ const Layout = ({
           />
         )}
 
-        <main className="flex-1 p-4 text-primary">{children}</main>
+        <main className="flex-1 p-2 text-primary">{children}</main>
 
         <Footer />
       </div>

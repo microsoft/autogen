@@ -12,6 +12,8 @@ export interface DBModel {
 
 export interface Message extends DBModel {
   config: MessageConfig;
+  session_id: number;
+  run_id: string;
 }
 
 export interface Session extends DBModel {
@@ -19,8 +21,16 @@ export interface Session extends DBModel {
   team_id?: string;
 }
 
-export interface Team extends DBModel {
+export interface TeamConfig {
   name: string;
+  participants: AgentConfig[];
+  team_type: TeamTypes;
+  model_client?: ModelConfig;
+  termination_condition?: TerminationConfig;
+}
+
+export interface Team extends DBModel {
+  config: TeamConfig;
 }
 
 export type ModelTypes = "OpenAIChatCompletionClient";
@@ -60,12 +70,4 @@ export interface TerminationConfig {
   termination_type: TerminationTypes;
   max_messages?: number;
   text?: string;
-}
-
-export interface TeamConfig {
-  name: string;
-  participants: AgentConfig[];
-  team_type: TeamTypes;
-  model_client?: ModelConfig;
-  termination_condition?: TerminationConfig;
 }

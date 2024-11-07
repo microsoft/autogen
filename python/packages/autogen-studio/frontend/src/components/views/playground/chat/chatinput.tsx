@@ -6,7 +6,7 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import * as React from "react";
-import { IStatus } from "../../../types";
+import { IStatus } from "../../../types/app";
 
 interface ChatInputProps {
   onSubmit: (text: string) => void;
@@ -86,6 +86,7 @@ export default function ChatInput({
             id="queryInput"
             name="queryInput"
             ref={textAreaRef}
+            defaultValue={"what is the height of the eiffel tower"}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             className="flex items-center w-full resize-none text-gray-600 rounded  border border-accent bg-white p-2 pl-5 pr-16"

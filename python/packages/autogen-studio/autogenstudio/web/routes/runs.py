@@ -1,79 +1,78 @@
-# api/routes/runs.py
-from fastapi import APIRouter, Depends, HTTPException
+# /api/runs routes
+from fastapi import APIRouter, Body, Depends, HTTPException
 from uuid import UUID
 from typing import Dict
-import asyncio
-from ..deps import get_db, get_connection_manager, get_team_manager
-from ...datamodel import Run, Session, Message, Team, RunStatus
+import traceback  # tbd remove
+
+from pydantic import BaseModel
+from ..deps import get_db, get_websocket_manager, get_team_manager
+from ...datamodel import Run, Session, Message, Team, RunStatus, MessageConfig
+
+from ...teammanager import TeamManager
+from autogen_core.base import CancellationToken
 
 router = APIRouter()
 
 
-@router.post("/sessions/{session_id}/runs")
+class CreateRunRequest(BaseModel):
+    session_id: int
+    user_id: str
+
+
+@router.post("/")
 async def create_run(
-    session_id: int,
-    user_id: str,
+    request: CreateRunRequest,
     db=Depends(get_db),
-    conn_manager=Depends(get_connection_manager)
 ) -> Dict:
-    """Create a new run for a session"""
+    """Create a new run"""
     session_response = db.get(
         Session,
-        filters={"id": session_id, "user_id": user_id},
+        filters={"id": request.session_id, "user_id": request.user_id},
         return_json=False
     )
     if not session_response.status or not session_response.data:
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        run = await conn_manager.create_run(session_id)
+
+        run = db.upsert(Run(session_id=request.session_id), return_json=False)
         return {
-            "status": True,
-            "data": {"run_id": str(run.id)}
+            "status":  run.status,
+            "data": {"run_id": str(run.data.id)}
         }
+
+        # }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/runs/{run_id}/start")
+@router.post("/{run_id}/start")
 async def start_run(
     run_id: UUID,
-    message: Message,
+    message: Message = Body(...),
+    ws_manager=Depends(get_websocket_manager),
+    team_manager=Depends(get_team_manager),
     db=Depends(get_db),
-    conn_manager=Depends(get_connection_manager),
-    team_manager=Depends(get_team_manager)
 ) -> Dict:
-    """Start a run with a team task"""
-    # Get run and verify status
-    run_response = db.get(Run, filters={"id": run_id}, return_json=False)
-    if not run_response.status or not run_response.data:
-        raise HTTPException(status_code=404, detail="Run not found")
+    """Start streaming task execution"""
 
-    run = run_response.data[0]
-    if run.status != RunStatus.ACTIVE:
-        raise HTTPException(status_code=400, detail="Run not in active state")
+    if isinstance(message.config, dict):
+        message.config = MessageConfig(**message.config)
 
-    # Get team
-    team_response = db.get(
-        Team,
-        filters={"id": message.message_meta.get("team_id")},
-        return_json=False
-    )
-    if not team_response.status or not team_response.data:
-        raise HTTPException(status_code=404, detail="Team not found")
+    session = db.get(Session, filters={
+                     "id": message.session_id}, return_json=False)
 
-    team = team_response.data[0]
+    team = db.get(
+        Team, filters={"id": session.data[0].team_id}, return_json=False)
 
-    # Start streaming task in background
-    asyncio.create_task(conn_manager.start_streaming_task(
-        run_id=run_id,
-        team_manager=team_manager,
-        task=message.config.content,
-        team_config=team.config
-    ))
+    try:
+        await ws_manager.start_stream(run_id, team_manager, message.config.content, team.data[0].config)
+        return {
+            "status": True,
+            "message": "Stream started successfully",
+            "data": {"run_id": str(run_id)}
+        }
 
-    return {
-        "status": True,
-        "message": "Run started successfully",
-        "data": {"run_id": str(run_id)}
-    }
+    except Exception as e:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))

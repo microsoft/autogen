@@ -5,15 +5,16 @@ import logging
 from contextlib import contextmanager
 
 from ..database import DatabaseManager
-from .managers.connection import ConnectionManager
+from .managers.connection import WebSocketManager
 from ..teammanager import TeamManager
 from .config import settings
+from ..database import ConfigurationManager
 
 logger = logging.getLogger(__name__)
 
 # Global manager instances
 _db_manager: Optional[DatabaseManager] = None
-_connection_manager: Optional[ConnectionManager] = None
+_websocket_manager: Optional[WebSocketManager] = None
 _team_manager: Optional[TeamManager] = None
 
 # Context manager for database sessions
@@ -49,14 +50,14 @@ async def get_db() -> DatabaseManager:
     return _db_manager
 
 
-async def get_connection_manager() -> ConnectionManager:
+async def get_websocket_manager() -> WebSocketManager:
     """Dependency provider for connection manager"""
-    if not _connection_manager:
+    if not _websocket_manager:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Connection manager not initialized"
         )
-    return _connection_manager
+    return _websocket_manager
 
 
 async def get_team_manager() -> TeamManager:
@@ -85,9 +86,9 @@ async def get_current_user(
 # Manager initialization and cleanup
 
 
-async def init_managers(database_uri: str) -> None:
+async def init_managers(database_uri: str, config_dir: str) -> None:
     """Initialize all manager instances"""
-    global _db_manager, _connection_manager, _team_manager
+    global _db_manager, _websocket_manager, _team_manager
 
     logger.info("Initializing managers...")
 
@@ -97,10 +98,15 @@ async def init_managers(database_uri: str) -> None:
         _db_manager.create_db_and_tables()
         logger.info("Database manager initialized")
 
+        # init default team config
+
+        _team_config_manager = ConfigurationManager(db_manager=_db_manager)
+        _team_config_manager.import_from_directory(
+            config_dir, settings.DEFAULT_USER_ID)
+
         # Initialize connection manager
-        _connection_manager = ConnectionManager(
-            db_manager=_db_manager,
-            cleanup_interval=settings.CLEANUP_INTERVAL
+        _websocket_manager = WebSocketManager(
+            db_manager=_db_manager
         )
         logger.info("Connection manager initialized")
 
@@ -116,20 +122,20 @@ async def init_managers(database_uri: str) -> None:
 
 async def cleanup_managers() -> None:
     """Cleanup and shutdown all manager instances"""
-    global _db_manager, _connection_manager, _team_manager
+    global _db_manager, _websocket_manager, _team_manager
 
     logger.info("Cleaning up managers...")
 
     # Cleanup connection manager first to ensure all active connections are closed
-    if _connection_manager:
+    if _websocket_manager:
         try:
-            await _connection_manager.cleanup()
+            await _websocket_manager.cleanup()
         except Exception as e:
             logger.error(f"Error cleaning up connection manager: {str(e)}")
         finally:
-            _connection_manager = None
+            _websocket_manager = None
 
-    # TeamManager doesn't need explicit cleanup since ConnectionManager handles it
+    # TeamManager doesn't need explicit cleanup since WebSocketManager handles it
     _team_manager = None
 
     # Cleanup database manager last
@@ -150,7 +156,7 @@ def get_manager_status() -> dict:
     """Get the initialization status of all managers"""
     return {
         "database_manager": _db_manager is not None,
-        "connection_manager": _connection_manager is not None,
+        "websocket_manager": _websocket_manager is not None,
         "team_manager": _team_manager is not None
     }
 
@@ -161,7 +167,7 @@ async def get_managers():
     """Get all managers in one dependency"""
     return {
         "db": await get_db(),
-        "connection": await get_connection_manager(),
+        "connection": await get_websocket_manager(),
         "team": await get_team_manager()
     }
 

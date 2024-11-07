@@ -205,6 +205,10 @@ class Message(SQLModel, table=True):
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
+    run_id: Optional[UUID] = Field(
+        default=None, foreign_key="run.id"
+    )
+
     message_meta: Optional[Union[MessageMeta, dict]] = Field(
         default={}, sa_column=Column(JSON))
 
@@ -233,6 +237,7 @@ class RunStatus(str, Enum):
     ACTIVE = "active"
     COMPLETE = "complete"
     ERROR = "error"
+    STOPPED = "stopped"
 
 
 class Run(SQLModel, table=True):

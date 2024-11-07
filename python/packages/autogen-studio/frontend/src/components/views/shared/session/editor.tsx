@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Modal, Form, Input, message, Button, Select, Spin } from "antd";
 import { TriangleAlertIcon } from "lucide-react";
 import type { FormProps } from "antd";
 import { SessionEditorProps } from "./types";
 import { Team } from "../../../types/datamodel";
 import { teamAPI } from "../team/api";
+import { appContext } from "../../../../hooks/provider";
 
 type FieldType = {
   name: string;
@@ -20,6 +21,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [form] = Form.useForm();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useContext(appContext);
 
   // Fetch teams when modal opens
   useEffect(() => {
@@ -27,8 +29,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       if (isOpen) {
         try {
           setLoading(true);
-          // Note: You'll need to get userId from your auth context/store
-          const userId = "your-user-id"; // Replace with actual user ID source
+          const userId = user?.email || "";
           const teamsData = await teamAPI.listTeams(userId);
           setTeams(teamsData);
         } catch (error) {
@@ -41,7 +42,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     };
 
     fetchTeams();
-  }, [isOpen]);
+  }, [isOpen, user?.email]);
 
   // Set form values when modal opens or session changes
   useEffect(() => {
@@ -126,15 +127,15 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                   .includes(input.toLowerCase())
               }
               options={teams.map((team) => ({
-                value: team.id?.toString(),
-                label: team.name,
+                value: team.id,
+                label: `${team.config.name} (${team.config.team_type})`,
               }))}
               notFoundContent={loading ? <Spin size="small" /> : null}
             />
           </Form.Item>
         </div>
         {hasNoTeams && (
-          <div className="flex border  p-1 rounded -mt-2 mb-4 items-center gap-1.5 text-sm text-yellow-600">
+          <div className="flex border p-1 rounded -mt-2 mb-4 items-center gap-1.5 text-sm text-yellow-600">
             <TriangleAlertIcon className="h-4 w-4" />
             <span>No teams found. Please create a team first.</span>
           </div>
@@ -152,3 +153,5 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     </Modal>
   );
 };
+
+export default SessionEditor;
