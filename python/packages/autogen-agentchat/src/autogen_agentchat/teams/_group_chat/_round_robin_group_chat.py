@@ -9,31 +9,23 @@ from ._base_group_chat_manager import BaseGroupChatManager
 class RoundRobinGroupChatManager(BaseGroupChatManager):
     """A group chat manager that selects the next speaker in a round-robin fashion."""
 
-    def __init__(
-        self,
-        group_topic_type: str,
-        output_topic_type: str,
-        participant_topic_types: List[str],
-        participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
-        termination_condition: TerminationCondition | None,
-    ) -> None:
-        super().__init__(
-            group_topic_type,
-            output_topic_type,
-            participant_topic_types,
-            participant_descriptions,
-            message_thread,
-            termination_condition,
-        )
-        self._next_speaker_index = 0
-
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
-        current_speaker_index = self._next_speaker_index
-        self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
-        current_speaker = self._participant_topic_types[current_speaker_index]
-        return current_speaker
+        if len(thread) == 0:
+            # If no messages have been sent yet, select the first participant.
+            return self._participant_topic_types[0]
+        # Find the last speaker that is a participant in the group chat.
+        last_speaker_index = None
+        for message in reversed(thread):
+            if message.source in self._participant_topic_types:
+                last_speaker_index = self._participant_topic_types.index(message.source)
+                break
+        if last_speaker_index is None:
+            # If no participant has spoken yet, select the first participant.
+            return self._participant_topic_types[0]
+        # Select the next speaker in a round-robin fashion.
+        next_speaker_index = (last_speaker_index + 1) % len(self._participant_topic_types)
+        return self._participant_topic_types[next_speaker_index]
 
 
 class RoundRobinGroupChat(BaseGroupChat):

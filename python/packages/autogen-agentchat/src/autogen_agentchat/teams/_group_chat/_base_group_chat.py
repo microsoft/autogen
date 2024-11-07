@@ -21,7 +21,7 @@ from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import AgentMessage, TextMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatMessage, GroupChatStart, GroupChatTermination
+from ._events import GroupChatMessage, GroupChatStart, GroupChatTermination, GroupChatReset
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -48,6 +48,22 @@ class BaseGroupChat(Team, ABC):
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
         self._message_thread: List[AgentMessage] = []
+        # Constants for the group chat.
+        self._group_topic_type = "group_topic"
+        self._output_topic_type = "output_topic"
+        self._group_chat_manager_topic_type = "group_chat_manager"
+        self._participant_topic_types: List[str] = [participant.name for participant in participants]
+        self._participant_descriptions: List[str] = [participant.description for participant in participants]
+        self._collector_agent_type = "collect_output_messages"
+        # Constants for the closure agent to collect the output messages.
+        self._stop_reason: str | None = None
+        self._output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
+
+        # Create a runtime for the team.
+        # TODO: The runtime should be created by a managed context.
+        self._runtime = SingleThreadedAgentRuntime()
+
+        self._initialized = False
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -74,6 +90,66 @@ class BaseGroupChat(Team, ABC):
             return container
 
         return _factory
+    
+    async def _init(self, runtime: AgentRuntime) -> None:
+        # Constants for the group chat manager.
+        group_chat_manager_agent_type = AgentType(self._group_chat_manager_topic_type)
+
+        # Register participants.
+        for participant, participant_topic_type in zip(self._participants, self._participant_topic_types):
+            # Use the participant topic type as the agent type.
+            agent_type = participant_topic_type
+            # Register the participant factory.
+            await ChatAgentContainer.register(
+                runtime,
+                type=agent_type,
+                factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
+            )
+            # Add subscriptions for the participant.
+            await runtime.add_subscription(TypeSubscription(topic_type=participant_topic_type, agent_type=agent_type))
+            await runtime.add_subscription(TypeSubscription(topic_type=self._group_topic_type, agent_type=agent_type))
+
+        # Register the group chat manager.
+        await self._base_group_chat_manager_class.register(
+            runtime,
+            type=group_chat_manager_agent_type.type,
+            factory=self._create_group_chat_manager_factory(
+                group_topic_type=self._group_topic_type,
+                output_topic_type=self._output_topic_type,
+                participant_topic_types=self._participant_topic_types,
+                participant_descriptions=self._participant_descriptions,
+                message_thread=self._message_thread,
+                termination_condition=self._termination_condition,
+            ),
+        )
+        # Add subscriptions for the group chat manager.
+        await runtime.add_subscription(
+            TypeSubscription(topic_type=self._group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type)
+        )
+        await runtime.add_subscription(
+            TypeSubscription(topic_type=self._group_topic_type, agent_type=group_chat_manager_agent_type.type)
+        )
+
+        async def collect_output_messages(
+            _runtime: AgentRuntime,
+            id: AgentId,
+            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
+            ctx: MessageContext,
+        ) -> None:
+            event_logger.info(message.message)
+            if isinstance(message, GroupChatTermination):
+                self._stop_reason = message.message.content
+                return
+            await self._output_message_queue.put(message.message)
+
+        await ClosureAgent.register(
+            runtime,
+            type=self._collector_agent_type,
+            closure=collect_output_messages,
+            subscriptions=lambda: [
+                TypeSubscription(topic_type=self._output_topic_type, agent_type=self._collector_agent_type),
+            ],
+        )
 
     async def run(
         self,
@@ -100,103 +176,28 @@ class BaseGroupChat(Team, ABC):
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream."""
 
-        # TODO: runtime is currently a local variable, but it should be stored in
-        # a managed context so it can be accessed by all nested teams. Also, the runtime
-        # should be not be started or stopped by the team, but by the context.
-
-        # Create the runtime.
-        runtime = SingleThreadedAgentRuntime()
-
-        # Constants for the group chat manager.
-        group_chat_manager_agent_type = AgentType("group_chat_manager")
-        group_chat_manager_topic_type = group_chat_manager_agent_type.type
-        group_topic_type = "round_robin_group_topic"
-        output_topic_type = "output_topic"
-
-        # Register participants.
-        participant_topic_types: List[str] = []
-        participant_descriptions: List[str] = []
-        for participant in self._participants:
-            # Use the participant name as the agent type and topic type.
-            agent_type = participant.name
-            topic_type = participant.name
-            # Register the participant factory.
-            await ChatAgentContainer.register(
-                runtime,
-                type=agent_type,
-                factory=self._create_participant_factory(group_topic_type, output_topic_type, participant),
-            )
-            # Add subscriptions for the participant.
-            await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
-            await runtime.add_subscription(TypeSubscription(topic_type=group_topic_type, agent_type=agent_type))
-            # Add the participant to the lists.
-            participant_descriptions.append(participant.description)
-            participant_topic_types.append(topic_type)
-
-        # Register the group chat manager.
-        await self._base_group_chat_manager_class.register(
-            runtime,
-            type=group_chat_manager_agent_type.type,
-            factory=self._create_group_chat_manager_factory(
-                group_topic_type=group_topic_type,
-                output_topic_type=output_topic_type,
-                participant_topic_types=participant_topic_types,
-                participant_descriptions=participant_descriptions,
-                message_thread=self._message_thread,
-                termination_condition=self._termination_condition,
-            ),
-        )
-        # Add subscriptions for the group chat manager.
-        await runtime.add_subscription(
-            TypeSubscription(topic_type=group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type)
-        )
-        await runtime.add_subscription(
-            TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
-        )
-
-        # Create a closure agent to collect the output messages.
-        stop_reason: str | None = None
-        output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
-
-        async def collect_output_messages(
-            _runtime: AgentRuntime,
-            id: AgentId,
-            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
-            ctx: MessageContext,
-        ) -> None:
-            event_logger.info(message.message)
-            if isinstance(message, GroupChatTermination):
-                nonlocal stop_reason
-                stop_reason = message.message.content
-                return
-            await output_message_queue.put(message.message)
-
-        await ClosureAgent.register(
-            runtime,
-            type="collect_output_messages",
-            closure=collect_output_messages,
-            subscriptions=lambda: [
-                TypeSubscription(topic_type=output_topic_type, agent_type="collect_output_messages"),
-            ],
-        )
-
         # Start the runtime.
-        runtime.start()
+        # TODO: The runtime should be started by a managed context.
+        self._runtime.start()
 
-        # Run the team by publishing the task to the group chat manager.
+        if not self._initialized:
+            await self._init(self._runtime)
+            self._initialized = True
+
+        # Run the team by publishing the start message.
         if task is None:
             first_chat_message = None
         else:
             first_chat_message = TextMessage(content=task, source="user")
-        await runtime.publish_message(
+        await self._runtime.publish_message(
             GroupChatStart(message=first_chat_message),
-            topic_id=TopicId(type=group_topic_type, source=self._team_id),
+            topic_id=TopicId(type=self._group_topic_type, source=self._team_id),
         )
 
         # Start a coroutine to stop the runtime and signal the output message queue is complete.
         async def stop_runtime() -> None:
-            await runtime.stop_when_idle()
-            await output_message_queue.put(None)
+            await self._runtime.stop_when_idle()
+            await self._output_message_queue.put(None)
 
         shutdown_task = asyncio.create_task(stop_runtime())
 
@@ -204,7 +205,7 @@ class BaseGroupChat(Team, ABC):
         output_messages: List[AgentMessage] = []
         # Yield the messsages until the queue is empty.
         while True:
-            message = await output_message_queue.get()
+            message = await self._output_message_queue.get()
             if message is None:
                 break
             yield message
@@ -214,4 +215,20 @@ class BaseGroupChat(Team, ABC):
         await shutdown_task
 
         # Yield the final result.
-        yield TaskResult(messages=output_messages, stop_reason=stop_reason)
+        yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
+
+
+    async def reset(self) -> None:
+        """Reset the group chat and its participants."""
+
+        if not self._initialized:
+            raise ValueError("The group chat has not been initialized. It must be run before it can be reset.")
+        
+        if self._is_running:
+            raise ValueError("The group chat is currently running. It must be stopped before it can be reset.")
+        
+        # Send a reset message to the group chat.
+        await self._runtime.publish_message(
+            GroupChatReset(),
+            topic_id=TopicId(type=self._group_topic_type, source=self._team_id),
+        )

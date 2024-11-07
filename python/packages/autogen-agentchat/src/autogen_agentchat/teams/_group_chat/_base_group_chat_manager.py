@@ -49,9 +49,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
 
-        # Log the start message.
-        await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
-
         # Check if the conversation has already terminated.
         if self._termination_condition is not None and self._termination_condition.terminated:
             early_stop_message = StopMessage(
@@ -64,6 +61,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             return
 
         if message.message is not None:
+            # Log the start message.
+            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+
             # Append the user message to the message thread.
             self._message_thread.append(message.message)
 
