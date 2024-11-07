@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Gateway.cs
-
 using System.Collections.Concurrent;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
@@ -47,8 +46,8 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     // intentionally not static
     public virtual async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
-        var queue = (InMemoryQueue<CloudEvent>)connection;
-        await queue.Writer.WriteAsync(cloudEvent, cancellationToken).AsTask().ConfigureAwait(false);
+        var queue = (InMemoryQueue<Message>)connection;
+        await queue.Writer.WriteAsync(new Message {CloudEvent = cloudEvent}, cancellationToken).AsTask().ConfigureAwait(false);
     }
 
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
@@ -95,7 +94,8 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection.GetMessageQueue());
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(false);
+        await ConnectToWorkerProcess(connection.GetMessageQueue(), msg.Type).ConfigureAwait(false);
     }
 
     // Required to inherit from BackgroundService
@@ -153,6 +153,12 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
             default:
                 throw new InvalidOperationException($"Unknown message type for message '{message}'.");
         };
+    }
+    internal Task ConnectToWorkerProcess(InMemoryQueue<Message> channel, string type)
+    {
+        _logger.LogInformation("Received new connection from {type}.", type);
+        _workers[channel] = channel;
+        return Task.CompletedTask;
     }
     private async ValueTask DispatchRequestAsync(InMemoryQueue<Message> connection, RpcRequest request)
     {
