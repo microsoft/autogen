@@ -63,18 +63,20 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             # Stop the group chat.
             return
 
-        # Append the user message to the message thread.
-        self._message_thread.append(message.message)
+        if message.message is not None:
+            # Append the user message to the message thread.
+            self._message_thread.append(message.message)
 
-        # Check if the conversation should be terminated.
-        if self._termination_condition is not None:
-            stop_message = await self._termination_condition([message.message])
-            if stop_message is not None:
-                await self.publish_message(
-                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
-                # Stop the group chat.
-                return
+            # Check if the conversation should be terminated.
+            if self._termination_condition is not None:
+                stop_message = await self._termination_condition([message.message])
+                if stop_message is not None:
+                    await self.publish_message(
+                        GroupChatTermination(message=stop_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    # Stop the group chat.
+                    return
 
         speaker_topic_type = await self.select_speaker(self._message_thread)
         await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))

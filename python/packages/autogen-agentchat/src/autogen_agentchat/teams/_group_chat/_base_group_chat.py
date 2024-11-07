@@ -77,14 +77,14 @@ class BaseGroupChat(Team, ABC):
 
     async def run(
         self,
-        task: str,
         *,
+        task: str | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result."""
         async for message in self.run_stream(
-            task,
+            task=task,
             cancellation_token=cancellation_token,
         ):
             if isinstance(message, TaskResult):
@@ -93,8 +93,8 @@ class BaseGroupChat(Team, ABC):
 
     async def run_stream(
         self,
-        task: str,
         *,
+        task: str | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
@@ -184,7 +184,10 @@ class BaseGroupChat(Team, ABC):
         runtime.start()
 
         # Run the team by publishing the task to the group chat manager.
-        first_chat_message = TextMessage(content=task, source="user")
+        if task is None:
+            first_chat_message = None
+        else:
+            first_chat_message = TextMessage(content=task, source="user")
         await runtime.publish_message(
             GroupChatStart(message=first_chat_message),
             topic_id=TopicId(type=group_topic_type, source=self._team_id),
