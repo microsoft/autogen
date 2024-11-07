@@ -30,7 +30,8 @@ class ChatAgentContainer(SequentialRoutedAgent):
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle a start event by appending the content to the buffer."""
-        self._message_buffer.append(message.message)
+        if message.message is not None:
+            self._message_buffer.append(message.message)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
