@@ -164,7 +164,41 @@ class BaseGroupChat(Team, ABC):
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
-        :meth:`run_stream` to run the team and then returns the final result."""
+        :meth:`run_stream` to run the team and then returns the final result.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                result = await team.run(task="Count from 1 to 10, respond one at a time.")
+                print(result)
+
+                # Reset the termination condition.
+                await termination.reset()
+
+                # Run the team again without a task.
+                result = await team.run()
+                print(result)
+
+
+            asyncio.run(main())
+        """
         result: TaskResult | None = None
         async for message in self.run_stream(
             task=task,
@@ -183,7 +217,42 @@ class BaseGroupChat(Team, ABC):
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
-        of the type :class:`TaskResult` as the last item in the stream."""
+        of the type :class:`TaskResult` as the last item in the stream.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+                # Reset the termination condition.
+                await termination.reset()
+
+                # Run the team again without a task.
+                stream = team.run_stream()
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
+        """
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -233,13 +302,50 @@ class BaseGroupChat(Team, ABC):
         self._is_running = False
 
     async def reset(self) -> None:
-        """Reset the team and its participants to their initial state. This includes the termination condition."""
+        """Reset the team and its participants to their initial state.
+
+        This includes the termination condition. The team must be stopped before it can be reset.
+
+        Raises:
+            RuntimeError: If the team has not been initialized or is currently running.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+                # Reset the team.
+                await team.reset()
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
+        """
 
         if not self._initialized:
-            raise ValueError("The group chat has not been initialized. It must be run before it can be reset.")
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be reset.")
 
         if self._is_running:
-            raise ValueError("The group chat is currently running. It must be stopped before it can be reset.")
+            raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")
         self._is_running = True
 
         # Start the runtime.
