@@ -90,13 +90,15 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         completion.SetResult(response);
     }
 
-    private async ValueTask RegisterAgentTypeAsync(AgentWorker connection, RegisterAgentTypeRequest msg)
+    private async ValueTask RegisterAgentTypeAsync(AgentWorker agentWorker, RegisterAgentTypeRequest msg)
     {
-        connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection.GetMessageQueue());
+        agentWorker.AddSupportedType(msg.Type);
+
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(new InMemoryQueue<Message>());
+        //_supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(agentWorker.GetMessageQueue());
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(false);
-        await ConnectToWorkerProcess(connection.GetMessageQueue(), msg.Type).ConfigureAwait(false);
+        await ConnectToWorkerProcess(agentWorker.GetMessageQueue(), msg.Type).ConfigureAwait(false);
     }
 
     // Required to inherit from BackgroundService
