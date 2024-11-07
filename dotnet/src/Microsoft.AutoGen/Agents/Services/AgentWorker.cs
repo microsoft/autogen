@@ -23,7 +23,6 @@ public class AgentWorker :
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
-    private readonly InMemoryQueue<CloudEvent> _eventsQueue = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
@@ -57,10 +56,9 @@ public class AgentWorker :
         _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
     }
     public InMemoryQueue<Message> GetMessageQueue() => _messageQueue;
-    public InMemoryQueue<CloudEvent> GetEventQueue() => _eventsQueue;
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
-        await this.WriteAsync(evt, cancellationToken).ConfigureAwait(false);
+        await WriteChannelAsync(new Message { CloudEvent = evt }, cancellationToken).ConfigureAwait(false);
     }
     public ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
@@ -103,11 +101,11 @@ public class AgentWorker :
     {
         return _messageQueue.Writer.WriteAsync(message, cancellationToken);
     }
-    private ValueTask WriteAsync(CloudEvent evt, CancellationToken cancellationToken = default)
+    private async ValueTask WriteAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
-        return _eventsQueue.Writer.WriteAsync(evt, cancellationToken);
+        await WriteChannelAsync(new Message { CloudEvent = evt }, cancellationToken).ConfigureAwait(false);
     }
-    private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
+    private async ValueTask WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
     {
         await _messageQueue.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
     }
@@ -144,15 +142,6 @@ public class AgentWorker :
 
                 // Fire and forget
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
-            }
-            await foreach (var message in _eventsQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
-            {
-
-                foreach (var (typeName, _) in _agentTypes)
-                {
-                    var agent = GetOrActivateAgent(new AgentId(typeName, message.Source));
-                    agent.ReceiveMessage(new Message { CloudEvent = message });
-                }
             }
         }
         catch (OperationCanceledException)
