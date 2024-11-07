@@ -28,7 +28,7 @@ class TaskRunner(Protocol):
     ) -> TaskResult:
         """Run the task and return the result.
 
-        The runner stateful and a subsequent call to this method will continue
+        The runner is stateful and a subsequent call to this method will continue
         from where the previous call left off. If the task is not specified,
         the runner will continue with the current task."""
         ...
@@ -42,7 +42,7 @@ class TaskRunner(Protocol):
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
 
-        The runner stateful and a subsequent call to this method will continue
+        The runner is stateful and a subsequent call to this method will continue
         from where the previous call left off. If the task is not specified,
         the runner will continue with the current task."""
         ...

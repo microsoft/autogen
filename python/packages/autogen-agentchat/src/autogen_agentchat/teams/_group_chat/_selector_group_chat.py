@@ -32,7 +32,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
         model_client: ChatCompletionClient,
         selector_prompt: str,
@@ -44,7 +43,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             output_topic_type,
             participant_topic_types,
             participant_descriptions,
-            message_thread,
             termination_condition,
         )
         self._model_client = model_client
@@ -52,6 +50,12 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
+
+    async def reset(self) -> None:
+        self._message_thread.clear()
+        if self._termination_condition is not None:
+            await self._termination_condition.reset()
+        self._previous_speaker = None
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
@@ -340,7 +344,6 @@ Read the above conversation. Then select the next role from {participants} to pl
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
@@ -348,7 +351,6 @@ Read the above conversation. Then select the next role from {participants} to pl
             output_topic_type,
             participant_topic_types,
             participant_descriptions,
-            message_thread,
             termination_condition,
             self._model_client,
             self._selector_prompt,
