@@ -36,9 +36,10 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     {
         // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
-        foreach (var (_, connection) in _workers)
+        foreach (var (_, connection) in _supportedAgentTypes)
         {
-            tasks.Add(this.SendMessageAsync(connection, evt, default));
+
+            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
