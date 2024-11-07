@@ -17,8 +17,8 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
 
-    private readonly ConcurrentDictionary<string, List<InMemoryQueue<CloudEvent>>> _supportedAgentTypes = [];
-    private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<CloudEvent>> _agentDirectory = new();
+    private readonly ConcurrentDictionary<string, List<InMemoryQueue<Message>>> _supportedAgentTypes = [];
+    private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<Message>> _agentDirectory = new();
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     private readonly InMemoryQueue<Message> _messageQueue = new();
@@ -93,7 +93,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     private async ValueTask RegisterAgentTypeAsync(AgentWorker connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection.GetEventQueue());
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection.GetMessageQueue());
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
