@@ -12,6 +12,7 @@ import { MessageList } from "./messagelist";
 import TeamManager from "../../shared/team/manager";
 
 const logo = require("../../../../images/landing/welcome.svg").default;
+
 export default function ChatView({
   initMessages,
 }: {
@@ -35,7 +36,6 @@ export default function ChatView({
     Record<string, WebSocket>
   >({});
 
-  // Add scroll effect when messages change
   React.useEffect(() => {
     console.log("scrolling ...");
     if (chatContainerRef.current) {
@@ -46,8 +46,6 @@ export default function ChatView({
     }
   }, [messages, threadMessages]);
 
-  // ... (keeping the utility functions: getBaseUrl)
-
   React.useEffect(() => {
     return () => {
       Object.values(activeSockets).forEach((socket) => socket.close());
@@ -56,10 +54,22 @@ export default function ChatView({
 
   const getBaseUrl = (url: string): string => {
     try {
-      return url
-        .replace(/(^\w+:|^)\/\//, "") // Remove protocol (http:// or https://)
-        .replace("/api", "") // Remove /api
-        .replace(/\/$/, ""); // Remove trailing slash
+      // Remove protocol (http:// or https://)
+      let baseUrl = url.replace(/(^\w+:|^)\/\//, "");
+
+      // Handle both localhost and production cases
+      if (baseUrl.startsWith("localhost")) {
+        // For localhost, keep the port if it exists
+        baseUrl = baseUrl.replace("/api", "");
+      } else if (baseUrl === "/api") {
+        // For production where url is just '/api'
+        baseUrl = window.location.host;
+      } else {
+        // For other cases, remove '/api' and trailing slash
+        baseUrl = baseUrl.replace("/api", "").replace(/\/$/, "");
+      }
+
+      return baseUrl;
     } catch (error) {
       console.error("Error processing server URL:", error);
       throw new Error("Invalid server URL configuration");
@@ -111,11 +121,16 @@ export default function ChatView({
     completion_tokens: number;
   }
 
-  const connectWebSocket = async (runId: string) => {
+  const connectWebSocket = (runId: string, query: string) => {
     const baseUrl = getBaseUrl(serverUrl);
-    const wsUrl = `ws://${baseUrl}/api/ws/runs/${runId}`;
+    // Determine if we should use ws:// or wss:// based on current protocol
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProtocol}//${baseUrl}/api/ws/runs/${runId}`;
+
+    console.log("Connecting to WebSocket URL:", wsUrl); // For debugging
+
     const socket = new WebSocket(wsUrl);
-    let isClosing = false; // Track closure state
+    let isClosing = false;
 
     const closeSocket = () => {
       if (!isClosing && socket.readyState !== WebSocket.CLOSED) {
@@ -129,37 +144,53 @@ export default function ChatView({
       }
     };
 
-    socket.onopen = () => {
-      setActiveSockets((prev) => ({
-        ...prev,
-        [runId]: socket,
-      }));
+    socket.onopen = async () => {
+      try {
+        setActiveSockets((prev) => ({
+          ...prev,
+          [runId]: socket,
+        }));
 
-      // Initialize thread state
-      setThreadMessages((prev) => ({
-        ...prev,
-        [runId]: {
-          messages: [],
-          status: "streaming",
-          isExpanded: true,
-        },
-      }));
+        setThreadMessages((prev) => ({
+          ...prev,
+          [runId]: {
+            messages: [],
+            status: "streaming",
+            isExpanded: true,
+          },
+        }));
 
-      // Initial bot message with proper typing
-      setMessages((prev: Message[]) =>
-        prev.map((msg: Message) => {
-          if (msg.run_id === runId && msg.config.source === "bot") {
-            return {
-              ...msg,
-              config: {
-                ...msg.config,
-                content: "Starting...",
-              },
-            };
-          }
-          return msg;
-        })
-      );
+        setMessages((prev: Message[]) =>
+          prev.map((msg: Message) => {
+            if (msg.run_id === runId && msg.config.source === "bot") {
+              return {
+                ...msg,
+                config: {
+                  ...msg.config,
+                  content: "Starting...",
+                },
+              };
+            }
+            return msg;
+          })
+        );
+
+        // Start the run only after socket is connected
+        await startRun(runId, query);
+      } catch (error) {
+        console.error("Error starting run:", error);
+        message.error("Failed to start run");
+        closeSocket();
+
+        setThreadMessages((prev) => ({
+          ...prev,
+          [runId]: {
+            ...prev[runId],
+            status: "error",
+            isExpanded: true,
+          },
+        }));
+      }
     };
 
     socket.onmessage = (event) => {
@@ -167,7 +198,6 @@ export default function ChatView({
 
       switch (message.type) {
         case "message":
-          // Add new message to thread while preserving existing ones
           setThreadMessages((prev) => {
             const currentThread = prev[runId] || {
               messages: [],
@@ -227,7 +257,6 @@ export default function ChatView({
             };
           });
 
-          // Update final bot message content
           const finalMessage = message.data?.task_result?.messages
             ?.filter((msg: any) => msg.content !== "TERMINATE")
             .pop();
@@ -269,7 +298,6 @@ export default function ChatView({
         `WebSocket closed for run ${runId}. Code: ${event.code}, Reason: ${event.reason}`
       );
 
-      // Only update states if we haven't already done so
       if (!isClosing) {
         setActiveSockets((prev) => {
           const newSockets = { ...prev };
@@ -323,13 +351,12 @@ export default function ChatView({
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "stop" }));
 
-      // Update thread status to cancelled
       setThreadMessages((prev) => ({
         ...prev,
         [runId]: {
           ...prev[runId],
           status: "cancelled",
-          isExpanded: true, // Keep expanded when cancelled
+          isExpanded: true,
         },
       }));
     }
@@ -368,8 +395,7 @@ export default function ChatView({
       };
 
       setMessages((prev) => [...prev, userMessage, botMessage]);
-      await connectWebSocket(runId);
-      await startRun(runId, query);
+      connectWebSocket(runId, query); // Now passing query to connectWebSocket
     } catch (err) {
       console.error("Error:", err);
       message.error("Error during request processing");
@@ -379,17 +405,14 @@ export default function ChatView({
           activeSockets[runId].close();
         }
 
-        if (runId) {
-          // Type guard to ensure runId is not null
-          setThreadMessages((prev) => ({
-            ...prev,
-            [runId!]: {
-              ...prev[runId!],
-              status: "error",
-              isExpanded: true,
-            },
-          }));
-        }
+        setThreadMessages((prev) => ({
+          ...prev,
+          [runId!]: {
+            ...prev[runId!],
+            status: "error",
+            isExpanded: true,
+          },
+        }));
       }
 
       setError({
@@ -402,17 +425,16 @@ export default function ChatView({
   };
 
   return (
-    <div className="text-primary h-[calc(100vh-180px)]  bg-primary relative rounded flex-1 scroll">
-      <div className="  flex gap-4 w-full">
+    <div className="text-primary h-[calc(100vh-180px)] bg-primary relative rounded flex-1 scroll">
+      <div className="flex gap-4 w-full">
         <div className="flex-1">
-          {" "}
           <SessionManager />
         </div>
         <TeamManager />
       </div>
       <div className="flex flex-col h-full">
         <div
-          className="flex-1  overflow-y-auto scroll relative min-h-0"
+          className="flex-1 overflow-y-auto scroll relative min-h-0"
           ref={chatContainerRef}
         >
           <MessageList
@@ -426,14 +448,13 @@ export default function ChatView({
         </div>
 
         {sessions?.length === 0 ? (
-          <div className="flex  h-[calc(100%-100px)]  flex-col items-center justify-center w-full  ">
+          <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
             <div className="mt-4 text-sm text-secondary text-center">
               <img src={logo} alt="Welcome" className="w-72 h-72 mb-4" />
               Welcome! Create a session to get started!
             </div>
           </div>
         ) : (
-          // Chat input stays at bottom, outside scroll area
           <>
             {session && (
               <div className="flex-shrink-0">
