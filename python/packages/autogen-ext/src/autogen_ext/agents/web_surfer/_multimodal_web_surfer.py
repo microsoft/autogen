@@ -27,7 +27,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, MultiModalMessage, ResetMessage, TextMessage
+from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
@@ -124,12 +124,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            if isinstance(chat_message, TextMessage | MultiModalMessage):
-                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
-            elif isinstance(chat_message, ResetMessage):
-                await self._reset(cancellation_token=cancellation_token)
-            else:
-                raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
+            self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
 
         try:
             _, content = await self.__generate_reply(cancellation_token=cancellation_token)
