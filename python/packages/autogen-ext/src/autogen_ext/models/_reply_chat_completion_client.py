@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from random import randint
-from typing import Any, AsyncGenerator, Mapping, Optional, Sequence, Union
+import logging
+from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
+from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import CancellationToken
 from autogen_core.components.models import (
     ChatCompletionClient,
@@ -12,6 +13,8 @@ from autogen_core.components.models import (
     RequestUsage,
 )
 from autogen_core.components.tools import Tool, ToolSchema
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ReplayChatCompletionClient:
@@ -38,6 +41,7 @@ class ReplayChatCompletionClient:
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self.provided_message_count = len(self.chat_completions)
         self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
+        self._total_available_tokens = 10000
 
     async def create(
         self,
@@ -52,12 +56,15 @@ class ReplayChatCompletionClient:
             raise ValueError("No more mock responses available")
 
         response = self.chat_completions.pop(0)
+        _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
-            # TODO: Verify the intended use case of these two
-            self._cur_usage = self._generate_fake_usage()
+            _, output_token_count = self._tokenize(response)
+            self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
             response = CreateResult(finish_reason="stop", content=response, usage=self._cur_usage, cached=True)
         else:
-            self._cur_usage = response.usage
+            self._cur_usage = RequestUsage(
+                prompt_tokens=prompt_token_count, completion_tokens=response.usage.completion_tokens
+            )
 
         self._update_total_usage()
         return response
@@ -75,39 +82,62 @@ class ReplayChatCompletionClient:
             raise ValueError("No more mock responses available")
 
         response = self.chat_completions.pop(0)
+        _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
-            # For strings, split by spaces to simulate streaming tokens
-            words = response.split()
-            for i, word in enumerate(words):
-                self._cur_usage = self._generate_fake_usage()
-                if i < len(words) - 1:
-                    yield word + " "
+            output_tokens, output_token_count = self._tokenize(response)
+            self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
+
+            for i, token in enumerate(output_tokens):
+                if i < len(output_tokens) - 1:
+                    yield token + " "
                 else:
-                    yield word
-        else:
-            self._cur_usage = response.usage
+                    yield token
             self._update_total_usage()
+        else:
+            self._cur_usage = RequestUsage(
+                prompt_tokens=prompt_token_count, completion_tokens=response.usage.completion_tokens
+            )
             yield response
+            self._update_total_usage()
 
     def actual_usage(self) -> RequestUsage:
-        """Return the actual usage for the last request."""
         return self._cur_usage
 
     def total_usage(self) -> RequestUsage:
-        """Return the total usage across all requests."""
         return self._total_usage
 
     def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
-        """Mock token counting - returns a fixed number."""
-        return 100
+        _, token_count = self._tokenize(messages)
+        return token_count
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
-        """Mock remaining tokens - returns a fixed number."""
-        return 1000
+        return max(
+            0, self._total_available_tokens - self._total_usage.prompt_tokens - self._total_usage.completion_tokens
+        )
 
-    def _generate_fake_usage(self) -> RequestUsage:
-        # TODO: This probably should take the content as input to be more realistic ...
-        return RequestUsage(prompt_tokens=randint(1, 10), completion_tokens=randint(1, 10))
+    def _tokenize(self, messages: Union[str, LLMMessage, Sequence[LLMMessage]]) -> tuple[list[str], int]:
+        total_tokens = 0
+        all_tokens: List[str] = []
+        if isinstance(messages, str):
+            tokens = messages.split()
+            total_tokens += len(tokens)
+            all_tokens.extend(tokens)
+        elif hasattr(messages, "content"):
+            if isinstance(messages.content, str):  # type: ignore [reportAttributeAccessIssue]
+                tokens = messages.content.split()  # type: ignore [reportAttributeAccessIssue]
+                total_tokens += len(tokens)
+                all_tokens.extend(tokens)
+            else:
+                logger.warning("Token count has been done only on string content", RuntimeWarning)
+        elif isinstance(messages, Sequence):
+            for message in messages:
+                if isinstance(message.content, str):  # type: ignore [reportAttributeAccessIssue, union-attr]
+                    tokens = message.content.split()  # type: ignore [reportAttributeAccessIssue, union-attr]
+                    total_tokens += len(tokens)
+                    all_tokens.extend(tokens)
+                else:
+                    logger.warning("Token count has been done only on string content", RuntimeWarning)
+        return all_tokens, total_tokens
 
     def _update_total_usage(self) -> None:
         self._total_usage.completion_tokens += self._cur_usage.completion_tokens

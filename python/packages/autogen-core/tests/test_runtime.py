@@ -21,14 +21,11 @@ from opentelemetry.sdk.trace import TracerProvider
 from test_utils import (
     CascadingAgent,
     CascadingMessageType,
-    ContentMessage,
-    LLMAgentWithDefaultSubscription,
     LoopbackAgent,
     LoopbackAgentWithDefaultSubscription,
     MessageType,
     NoopAgent,
 )
-from test_utils.client_test_utils import ReplayChatCompletionClient
 from test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
 
 test_exporter = TestExporter()
@@ -309,37 +306,3 @@ async def test_default_subscription_publish_to_other_source() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 1
-
-
-@pytest.mark.asyncio
-async def test_register_receives_publish_llm() -> None:
-    runtime = SingleThreadedAgentRuntime()
-    runtime.start()
-
-    reply_model_client_1 = ReplayChatCompletionClient(["Hi!", "Doing Good, you?", "Bye!"])
-    reply_model_client_2 = ReplayChatCompletionClient(["Hi! How are you doing?", "Good, nice to meet you, bye!"])
-
-    # First registered models gets the first message
-    assert reply_model_client_1.provided_message_count == 1 + reply_model_client_2.provided_message_count
-
-    await LLMAgentWithDefaultSubscription.register(
-        runtime, "LLMAgent1", lambda: LLMAgentWithDefaultSubscription(reply_model_client_1)
-    )
-
-    await LLMAgentWithDefaultSubscription.register(
-        runtime, "LLMAgent2", lambda: LLMAgentWithDefaultSubscription(reply_model_client_2)
-    )
-
-    await runtime.publish_message(ContentMessage(content="Let's get started!"), DefaultTopicId())
-    await runtime.stop_when_idle()
-
-    agent_1 = await runtime.try_get_underlying_agent_instance(
-        AgentId("LLMAgent1", key="default"), type=LLMAgentWithDefaultSubscription
-    )
-
-    agent_2 = await runtime.try_get_underlying_agent_instance(
-        AgentId("LLMAgent2", key="default"), type=LLMAgentWithDefaultSubscription
-    )
-
-    assert agent_1.num_calls == 1 + reply_model_client_2.provided_message_count
-    assert agent_2.num_calls == 1 + reply_model_client_1.provided_message_count

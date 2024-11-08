@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 
 from autogen_core.base import BaseAgent, MessageContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
-from autogen_core.components.models._model_client import ChatCompletionClient
-from autogen_core.components.models._types import SystemMessage
 
 
 @dataclass
@@ -59,29 +57,3 @@ class NoopAgent(BaseAgent):
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError
-
-
-class LLMAgent(RoutedAgent):
-    def __init__(self, model_client: ChatCompletionClient) -> None:
-        super().__init__("LLM Agent!")
-        self._chat_history: List[ContentMessage] = []
-        self._model_client = model_client
-        self.num_calls = 0
-
-    @message_handler
-    async def on_new_message(self, message: ContentMessage, ctx: MessageContext) -> None:
-        self._chat_history.append(message)
-        self.num_calls += 1
-        completion = await self._model_client.create(messages=self._fixed_message_history_type)
-        if isinstance(completion.content, str):
-            await self.publish_message(ContentMessage(content=completion.content), DefaultTopicId())
-        else:
-            raise TypeError(f"Completion content of type {type(completion.content)} is not supported")
-
-    @property
-    def _fixed_message_history_type(self) -> List[SystemMessage]:
-        return [SystemMessage(msg.content) for msg in self._chat_history]
-
-
-@default_subscription
-class LLMAgentWithDefaultSubscription(LLMAgent): ...
