@@ -6,7 +6,7 @@ This document describes the semantics and components of publishing messages and 
 
 Topics are used as the primitive to manage which agents receive a given published message. Agents subscribe to topics. There is an application defined mapping from topic to agent instance.
 
-These concepts intentionally map to the [CloudEvents](https://cloudevents.io/) specification. This allows for easy integration with existing systems and tools.
+These concepts intentionally maps to the [CloudEvents](https://cloudevents.io/) specification. This allows for easy integration with existing systems and tools.
 
 ### Non-goals
 
@@ -17,16 +17,16 @@ This document does not specify RPC/direct messaging
 A topic is identified by two components (called a `TopicId`):
 
 - [`type`](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md#type) - represents the type of event that occurs, this is static and defined in code
-    - SHOULD use reverse domain name notation to avoid naming conflicts. For example: `com.example.my-topic`.
+  - SHOULD use reverse domain name notation to avoid naming conflicts. For example: `com.example.my-topic`.
 - [`source`](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md#source-1) - represents where the event originated from, this is dynamic and based on the message itself
-    - SHOULD be a URI
+  - SHOULD be a URI
 
 Agent instances are identified by two components (called an `AgentId`):
 
 - `type` - represents the type of agent, this is static and defined in code
-    - MUST be a valid identifier as defined [here](https://docs.python.org/3/reference/lexical_analysis.html#identifiers) except that only the ASCII range is allowed
+  - MUST be a valid identifier as defined [here](https://docs.python.org/3/reference/lexical_analysis.html#identifiers) except that only the ASCII range is allowed
 - `key` - represents the instance of the agent type for the key
-    - SHOULD be a URI
+  - SHOULD be a URI
 
 For example: `GraphicDesigner:1234`
 

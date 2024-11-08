@@ -22,15 +22,15 @@ Agents are never explicitly created or destroyed. When a request is received for
 
 ## Worker protocol flow
 
-The worker protocol has three phases, following the lifetime of the worker: initiation, operation, and termination.
+The worker protocol has three phases, following the lifetime of the worker: initialization, operation, and termination.
 
 ### Initialization
 
 When the worker process starts, it initiates a connection to a service process, establishing a bi-directional communication channel which messages are passed across.
 Next, the worker issues zero or more `RegisterAgentType(name: str)` messages, which tell the service the names of the agents which it is able to host.
 
-* TODO: What other metadata should the worker give to the service?
-* TODO: Should we give the worker a unique id which can be used to identify it for its lifetime? Should we allow this to be specified by the worker process itself?
+- TODO: What other metadata should the worker give to the service?
+- TODO: Should we give the worker a unique id which can be used to identify it for its lifetime? Should we allow this to be specified by the worker process itself?
 
 ### Operation
 
@@ -40,12 +40,12 @@ The worker maintains a _catalog_ of locally active agents: a mapping from agent 
 If a message arrives for an agent which does not have a corresponding entry in the catalog, the worker activates a new instance of that agent and inserts it into the catalog.
 The worker dispatches the message to the agent:
 
-* For an `Event`, the agent processes the message and no response is generated.
-* For an `RpcRequest` message, the agent processes the message and generates a response of type `RpcResponse`. The worker routes the response to the original sender.
+- For an `Event`, the agent processes the message and no response is generated.
+- For an `RpcRequest` message, the agent processes the message and generates a response of type `RpcResponse`. The worker routes the response to the original sender.
 
 The worker maintains a mapping of outstanding requests, identified by `RpcRequest.id`, to a promise for a future `RpcResponse`.
-When an `RpcResponse` is received, the worker finds the corresponding request id and fulfils the promise using that response.
-If no response is received in a specified time frame (eg, 30s), the worker breaks the promise with a timeout error.
+When an `RpcResponse` is received, the worker finds the corresponding request id and fulfills the promise using that response.
+If no response is received in a specified time frame (eg. `30s`), the worker breaks the promise with a timeout error.
 
 ### Termination
 
