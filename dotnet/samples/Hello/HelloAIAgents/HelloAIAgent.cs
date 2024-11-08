@@ -21,9 +21,9 @@ public class HelloAIAgent(
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);
         var evt = new Output { Message = response.Message.Text };
-        await Publish(evt).ConfigureAwait(false);
+        await PublishMessageAsync(evt).ConfigureAwait(false);
 
         var goodbye = new ConversationClosed { UserId = this.AgentId.Key, UserMessage = "Goodbye" };
-        await Publish(goodbye).ConfigureAwait(false);
+        await PublishMessageAsync(goodbye).ConfigureAwait(false);
     }
 }

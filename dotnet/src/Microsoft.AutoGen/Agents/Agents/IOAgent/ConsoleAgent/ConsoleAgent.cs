@@ -28,7 +28,7 @@ public abstract class ConsoleAgent : IOAgent,
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -41,7 +41,7 @@ public abstract class ConsoleAgent : IOAgent,
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)

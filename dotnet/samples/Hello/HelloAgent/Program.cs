@@ -38,13 +38,13 @@ namespace Hello
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output { Message = response };
-            await Publish(evt).ConfigureAwait(false);
+            await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
             };
-            await Publish(goodbye).ConfigureAwait(false);
+            await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
         public async Task Handle(ConversationClosed item)
         {
@@ -53,7 +53,7 @@ namespace Hello
             {
                 Message = goodbye
             };
-            await Publish(evt).ConfigureAwait(false);
+            await PublishMessageAsync(evt).ConfigureAwait(false);
 
             // Signal shutdown.
             hostApplicationLifetime.StopApplication();

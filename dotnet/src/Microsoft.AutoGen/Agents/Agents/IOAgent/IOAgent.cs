@@ -18,7 +18,7 @@ public abstract class IOAgent : AgentBase
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public virtual async Task Handle(Output item)
@@ -27,7 +27,7 @@ public abstract class IOAgent : AgentBase
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public abstract Task ProcessInput(string message);

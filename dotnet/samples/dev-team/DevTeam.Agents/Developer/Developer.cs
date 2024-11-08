@@ -25,7 +25,7 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
             IssueNumber = item.IssueNumber,
             Code = code
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public async Task Handle(CodeChainClosed item)
@@ -36,7 +36,7 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
         {
             Code = lastCode
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public async Task<string> GenerateCode(string ask)

@@ -30,7 +30,7 @@ public abstract class FileAgent(
             {
                 Message = errorMessage
             };
-            await Publish(err);
+            await PublishMessageAsync(err);
             return;
         }
         string content;
@@ -43,7 +43,7 @@ public abstract class FileAgent(
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
     public override async Task Handle(Output item)
     {
@@ -55,7 +55,7 @@ public abstract class FileAgent(
         {
             Route = _route
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
     public override async Task<string> ProcessInput(string message)
     {
@@ -63,7 +63,7 @@ public abstract class FileAgent(
         {
             Route = _route,
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
         return message;
     }
     public override Task ProcessOutput(string message)

@@ -26,7 +26,7 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
             IssueNumber = item.IssueNumber,
             Plan = plan
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
 
     public async Task Handle(DevPlanChainClosed item)
@@ -37,7 +37,7 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
         {
             Plan = lastPlan
         };
-        await Publish(evt);
+        await PublishMessageAsync(evt);
     }
     public async Task<string> CreatePlan(string ask)
     {
