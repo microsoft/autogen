@@ -19,7 +19,6 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> None:
         super().__init__(
@@ -27,10 +26,15 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             output_topic_type,
             participant_topic_types,
             participant_descriptions,
-            message_thread,
             termination_condition,
         )
         self._current_speaker = participant_topic_types[0]
+
+    async def reset(self) -> None:
+        self._message_thread.clear()
+        if self._termination_condition is not None:
+            await self._termination_condition.reset()
+        self._current_speaker = self._participant_topic_types[0]
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants based on handoff message."""
@@ -108,7 +112,6 @@ class Swarm(BaseGroupChat):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
@@ -117,7 +120,6 @@ class Swarm(BaseGroupChat):
                 output_topic_type,
                 participant_topic_types,
                 participant_descriptions,
-                message_thread,
                 termination_condition,
             )
 

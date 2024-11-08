@@ -57,7 +57,7 @@ You can install the Magentic-One package and then run the example code to see ho
 1. Clone the code and install the package:
 
 ```bash
-git clone -b staging https://github.com/microsoft/autogen.git
+git clone https://github.com/microsoft/autogen.git
 cd autogen/python/packages/autogen-magentic-one
 pip install -e .
 ```
@@ -85,10 +85,10 @@ playwright install --with-deps chromium
   python examples/example.py --logs_dir ./my_logs
 
   # Enable human-in-the-loop mode
-  python examples/example.py -logs_dir ./my_logs --hil_mode
+  python examples/example.py --logs_dir ./my_logs --hil_mode
 
   # Save screenshots of browser
-  python examples/example.py -logs_dir ./my_logs --save_screenshots
+  python examples/example.py --logs_dir ./my_logs --save_screenshots
   ```
 
   Arguments:

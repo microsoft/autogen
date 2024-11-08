@@ -23,7 +23,6 @@ from ..messages import (
     ChatMessage,
     HandoffMessage,
     InnerMessage,
-    ResetMessage,
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
@@ -221,10 +220,7 @@ class AssistantAgent(BaseChatAgent):
     ) -> AsyncGenerator[InnerMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, ResetMessage):
-                self._model_context.clear()
-            else:
-                self._model_context.append(UserMessage(content=msg.content, source=msg.source))
+            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
         inner_messages: List[InnerMessage] = []
@@ -301,3 +297,7 @@ class AssistantAgent(BaseChatAgent):
             return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id)
         except Exception as e:
             return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
+
+    async def reset(self, cancellation_token: CancellationToken) -> None:
+        """Reset the assistant agent to its initialization state."""
+        self._model_context.clear()
