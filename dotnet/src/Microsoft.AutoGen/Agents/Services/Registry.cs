@@ -5,7 +5,7 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class Registry : Grain, IAgentRegistry
+public sealed class Registry : IAgentRegistry
 {
     // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
     private readonly Dictionary<IGateway, WorkerState> _workerStates = [];

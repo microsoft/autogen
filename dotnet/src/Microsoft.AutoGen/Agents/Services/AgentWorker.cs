@@ -15,8 +15,6 @@ public class AgentWorker :
      IHostedService,
      IAgentWorker
 {
-    private readonly IAgentRegistry _gatewayRegistry;
-    private readonly IGateway _reference;
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
@@ -46,11 +44,7 @@ public class AgentWorker :
         _configuredAgentTypes = configuredAgentTypes;
         _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-        IClusterClient _clusterClient = _serviceProvider.GetRequiredService<IClusterClient>();
         _gateway = (Gateway)_serviceProvider.GetRequiredService<IGateway>();
-        var gateway = _serviceProvider.GetRequiredService<IGateway>();
-        _reference = gateway.GetReferece().Result;
-        _gatewayRegistry = _clusterClient.GetGrain<IAgentRegistry>(0);
     }
     public InMemoryQueue<Message> GetMessageQueue() => _messageQueue;
     public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)

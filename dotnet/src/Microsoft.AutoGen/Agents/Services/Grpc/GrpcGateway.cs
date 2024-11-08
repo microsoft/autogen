@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class GrpcGateway : Gateway, IGateway
+internal sealed class GrpcGateway : Gateway, IGateway, IGrainObserver
 {
     private readonly ILogger<Gateway> _logger;
     private readonly IClusterClient _clusterClient;
@@ -22,12 +22,12 @@ internal sealed class GrpcGateway : Gateway, IGateway
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     // InMemory Message Queue
 
-    public GrpcGateway(IClusterClient clusterClient, ILogger<Gateway> logger) : base(clusterClient, logger)
+    public GrpcGateway(IClusterClient clusterClient, ILogger<Gateway> logger, IAgentRegistry gatewayRegistry) : base(logger, gatewayRegistry)
     {
         _logger = logger;
         _clusterClient = clusterClient;
-        _reference = clusterClient.CreateObjectReference<IGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
+        _reference = clusterClient.CreateObjectReference<GrpcGateway>(this);
+        _gatewayRegistry = clusterClient.GetGrain<RegistryGrain>(0);
     }
     //intetionally not static so can be called by some methods implemented in base class
     public override async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)

@@ -12,22 +12,19 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     //TODO: make configurable
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<Gateway> _logger;
-    private readonly IClusterClient _clusterClient;
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
+    private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly ConcurrentDictionary<string, List<InMemoryQueue<Message>>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<Message>> _agentDirectory = new();
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    public Gateway(IClusterClient clusterClient, ILogger<Gateway> logger)
+    public Gateway(ILogger<Gateway> logger, IAgentRegistry gatewayRegistry)
     {
         _logger = logger;
-        
-        _clusterClient = clusterClient;
-        _reference = clusterClient.CreateObjectReference<IGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IAgentRegistry>(0);
+        _gatewayRegistry = gatewayRegistry;
+        _reference = this;
     }
-    public Task<IGateway> GetReferece() => Task.FromResult(_reference);
     public Task<IAgentRegistry> GetRegistry() => Task.FromResult(_gatewayRegistry);
     public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
     {
@@ -90,7 +87,6 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     private async ValueTask RegisterAgentTypeAsync(AgentWorker agentWorker, RegisterAgentTypeRequest msg)
     {
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(new InMemoryQueue<Message>());
-        //_supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(agentWorker.GetMessageQueue());
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(false);
         await ConnectToWorkerProcess(agentWorker.GetMessageQueue(), msg.Type).ConfigureAwait(false);
@@ -201,13 +197,15 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
-        var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
-        await agentState.WriteStateAsync(value, value.ETag);
+        _agentState[agentId.Key] = value;
     }
 
     public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
-        var agentState = _clusterClient.GetGrain<IAgentState>($"{agentId.Type}:{agentId.Key}");
-        return await agentState.ReadStateAsync();
+        if (_agentState.TryGetValue(agentId.Key, out var state))
+        {
+            return state;
+        }
+        return new AgentState { AgentId = agentId };
     }
 }
