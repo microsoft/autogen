@@ -2,7 +2,7 @@ from typing import List
 
 from autogen_core.components import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, RequestUsage
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BaseMessage(BaseModel):
@@ -13,6 +13,8 @@ class BaseMessage(BaseModel):
 
     models_usage: RequestUsage | None = None
     """The model client usage incurred when producing this message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TextMessage(BaseMessage):
@@ -46,13 +48,6 @@ class HandoffMessage(BaseMessage):
     """The handoff message to the target agent."""
 
 
-class ResetMessage(BaseMessage):
-    """A message requesting reset of the recipient's state in the current conversation."""
-
-    content: str
-    """The content for the reset message."""
-
-
 class ToolCallMessage(BaseMessage):
     """A message signaling the use of tools."""
 
@@ -71,8 +66,12 @@ InnerMessage = ToolCallMessage | ToolCallResultMessage
 """Messages for intra-agent monologues."""
 
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ResetMessage
+ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
 """Messages for agent-to-agent communication."""
+
+
+AgentMessage = InnerMessage | ChatMessage
+"""All message types."""
 
 
 __all__ = [
@@ -81,8 +80,9 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
-    "ResetMessage",
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ChatMessage",
+    "InnerMessage",
+    "AgentMessage",
 ]

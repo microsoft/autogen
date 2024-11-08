@@ -20,16 +20,10 @@ public class HelloAIAgent(
     {
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);
-        var evt = new Output
-        {
-            Message = response.Message.Text
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
-        var goodbye = new ConversationClosed
-        {
-            UserId = this.AgentId.Key,
-            UserMessage = "Goodbye"
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        var evt = new Output { Message = response.Message.Text };
+        await PublishMessageAsync(evt).ConfigureAwait(false);
+
+        var goodbye = new ConversationClosed { UserId = this.AgentId.Key, UserMessage = "Goodbye" };
+        await PublishMessageAsync(goodbye).ConfigureAwait(false);
     }
 }

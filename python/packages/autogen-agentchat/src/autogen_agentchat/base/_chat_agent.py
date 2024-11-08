@@ -50,3 +50,7 @@ class ChatAgent(TaskRunner, Protocol):
         """Handles incoming messages and returns a stream of inner messages and
         and the final item is the response."""
         ...
+
+    async def reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent to its initialization state."""
+        ...

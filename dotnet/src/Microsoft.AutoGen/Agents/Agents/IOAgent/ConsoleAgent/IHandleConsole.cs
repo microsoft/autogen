@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandleConsole.cs
 
+using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
@@ -9,7 +10,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
     string Route { get; }
     AgentId AgentId { get; }
-    ValueTask PublishEvent(CloudEvent item);
+    ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage;
 
     async Task IHandle<Output>.Handle(Output item)
     {
@@ -20,8 +21,8 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         var evt = new OutputWritten
         {
             Route = "console"
-        }.ToCloudEvent(AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     async Task IHandle<Input>.Handle(Input item)
     {
@@ -33,8 +34,8 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         var evt = new InputProcessed
         {
             Route = "console"
-        }.ToCloudEvent(AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     static Task ProcessOutput(string message)
     {
