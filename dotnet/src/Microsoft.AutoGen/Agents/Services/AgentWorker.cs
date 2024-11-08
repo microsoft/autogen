@@ -19,7 +19,6 @@ public class AgentWorker :
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
     private readonly HashSet<string> _supportedTypes = [];
-    private readonly ConcurrentDictionary<string, List<IConnection>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
@@ -206,14 +205,6 @@ public class AgentWorker :
         lock (_channelLock)
         {
         }
-    }
-    private async ValueTask GatewayRegisterAgentTypeAsync(IConnection connection, RegisterAgentTypeRequest msg)
-    {
-        AddSupportedType(msg.Type);
-        var gateway = _serviceProvider.GetRequiredService<IGateway>();
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
-
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
     }
     private async Task RunWritePump()
     {
