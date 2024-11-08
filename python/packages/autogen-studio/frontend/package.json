@@ -22,6 +22,7 @@
     "@headlessui/react": "^1.7.16",
     "@heroicons/react": "^2.0.18",
     "@mdx-js/react": "^3.1.0",
+    "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/typography": "^0.5.9",
     "antd": "^5.1.0",
     "autoprefixer": "^10.4.20",

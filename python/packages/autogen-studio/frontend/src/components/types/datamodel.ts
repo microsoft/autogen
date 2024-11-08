@@ -1,6 +1,12 @@
+export interface RequestUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
 export interface MessageConfig {
   source: string;
   content: string;
+  models_usage?: RequestUsage;
 }
 
 export interface DBModel {
@@ -70,4 +76,10 @@ export interface TerminationConfig {
   termination_type: TerminationTypes;
   max_messages?: number;
   text?: string;
+}
+
+export interface TaskResult {
+  messages: MessageConfig[];
+  usage: string;
+  duration: number;
 }

@@ -135,15 +135,24 @@ export const SessionManager: React.FC = () => {
           isLoading={isLoading}
         />
       )}
-      <Button
-        onClick={() => {
-          setEditingSession(undefined);
-          setIsEditorOpen(true);
-        }}
-        icon={<Plus className="w-4 h-4" />}
-      >
-        New Session
-      </Button>
+      <div className="relative">
+        <Button
+          type="primary"
+          onClick={() => {
+            setEditingSession(undefined);
+            setIsEditorOpen(true);
+          }}
+          icon={<Plus className="w-4 h-4" />}
+        >
+          New Session{" "}
+          {sessions.length === 0 && (
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+            </span>
+          )}
+        </Button>
+      </div>
     </div>
   );
 
@@ -158,7 +167,7 @@ export const SessionManager: React.FC = () => {
   return (
     <>
       <div className="bg-secondary rounded p-2">
-        {" "}
+        <div className="text-xs pb-2">Sessions</div>
         <SessionContent />
       </div>
       <SessionEditor
