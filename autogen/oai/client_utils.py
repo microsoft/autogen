@@ -16,7 +16,7 @@ def validate_parameter(
     allow_None: bool,
     default_value: Any,
     numerical_bound: Tuple,
-    allowed_values: list,
+    allowed_values: list | None,
 ) -> Any:
     """
     Validates a given config parameter, checking its type, values, and setting defaults

@@ -108,6 +108,7 @@ extra_require = {
     "ollama": ["ollama>=0.3.3", "fix_busted_json>=0.0.18"],
     "bedrock": ["boto3>=1.34.149"],
     "kubernetes": ["kubernetes>=27.2.0"],
+    "watsonx": ["ibm-watsonx-ai>=1.1.22"],
 }
 
 setuptools.setup(

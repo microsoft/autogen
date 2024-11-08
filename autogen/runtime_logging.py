@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from autogen.oai.mistral import MistralAIClient
     from autogen.oai.ollama import OllamaClient
     from autogen.oai.together import TogetherClient
+    from autogen.oai.watsonx import WatsonxClient
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,7 @@ def log_new_client(
         CohereClient,
         OllamaClient,
         BedrockClient,
+        WatsonxClient,
     ],
     wrapper: OpenAIWrapper,
     init_args: Dict[str, Any],

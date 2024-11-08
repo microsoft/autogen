@@ -107,6 +107,13 @@ try:
 except ImportError as e:
     bedrock_import_exception = e
 
+try:
+    from autogen.oai.watsonx import WatsonxClient
+
+    watsonx_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    watsonx_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -562,6 +569,11 @@ class OpenAIWrapper:
                 if bedrock_import_exception:
                     raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
                 client = BedrockClient(**openai_config)
+                self._clients.append(client)
+            elif api_type is not None and api_type.startswith("watsonx"):
+                if watsonx_import_exception:
+                    raise ImportError("Please install `ibm-watsonx-ai` to use the Watsonx API.")
+                client = WatsonxClient(**openai_config)
                 self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
