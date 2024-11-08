@@ -98,10 +98,6 @@ public class AgentWorker :
     {
         return _messageQueue.Writer.WriteAsync(message, cancellationToken);
     }
-    private async ValueTask WriteAsync(CloudEvent evt, CancellationToken cancellationToken = default)
-    {
-        await WriteChannelAsync(new Message { CloudEvent = evt }, cancellationToken).ConfigureAwait(false);
-    }
     private async ValueTask WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
     {
         await _messageQueue.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
