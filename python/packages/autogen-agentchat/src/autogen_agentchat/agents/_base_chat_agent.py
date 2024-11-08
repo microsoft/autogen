@@ -4,7 +4,7 @@ from typing import AsyncGenerator, List, Sequence
 from autogen_core.base import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, InnerMessage, TextMessage
+from ..messages import AgentMessage, ChatMessage, InnerMessage, MultiModalMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -54,7 +54,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run(
         self,
         *,
-        task: str | None = None,
+        task: str | TextMessage | MultiModalMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
@@ -62,10 +62,13 @@ class BaseChatAgent(ChatAgent, ABC):
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
         output_messages: List[AgentMessage] = []
-        if task is not None:
-            msg = TextMessage(content=task, source="user")
-            input_messages.append(msg)
-            output_messages.append(msg)
+        if isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+        elif isinstance(task, TextMessage | MultiModalMessage):
+            input_messages.append(task)
+            output_messages.append(task)
         response = await self.on_messages(input_messages, cancellation_token)
         if response.inner_messages is not None:
             output_messages += response.inner_messages
@@ -75,7 +78,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run_stream(
         self,
         *,
-        task: str | None = None,
+        task: str | TextMessage | MultiModalMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
@@ -84,11 +87,15 @@ class BaseChatAgent(ChatAgent, ABC):
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
         output_messages: List[AgentMessage] = []
-        if task is not None:
-            msg = TextMessage(content=task, source="user")
-            input_messages.append(msg)
-            output_messages.append(msg)
-            yield msg
+        if isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+            yield text_msg
+        elif isinstance(task, TextMessage | MultiModalMessage):
+            input_messages.append(task)
+            output_messages.append(task)
+            yield task
         async for message in self.on_messages_stream(input_messages, cancellation_token):
             if isinstance(message, Response):
                 yield message.chat_message

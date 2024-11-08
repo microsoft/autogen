@@ -18,6 +18,7 @@ from autogen_agentchat.messages import (
     AgentMessage,
     ChatMessage,
     HandoffMessage,
+    MultiModalMessage,
     StopMessage,
     TextMessage,
     ToolCallMessage,
@@ -188,6 +189,26 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             else:
                 assert message == result.messages[index]
             index += 1
+
+        # Test message input.
+        # Text message.
+        mock.reset()
+        index = 0
+        await team.reset()
+        result_2 = await team.run(
+            task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user")
+        )
+        assert result == result_2
+
+        # Test multi-modal message.
+        mock.reset()
+        index = 0
+        await team.reset()
+        result_2 = await team.run(
+            task=MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
+        )
+        assert result.messages[0].content == result_2.messages[0].content[0]
+        assert result.messages[1:] == result_2.messages[1:]
 
 
 @pytest.mark.asyncio
