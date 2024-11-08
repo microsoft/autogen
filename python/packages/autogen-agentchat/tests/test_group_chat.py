@@ -157,7 +157,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             participants=[coding_assistant_agent, code_executor_agent], termination_condition=termination
         )
         result = await team.run(
-            "Write a program that prints 'Hello, world!'",
+            task="Write a program that prints 'Hello, world!'",
         )
         expected_messages = [
             "Write a program that prints 'Hello, world!'",
@@ -179,9 +179,9 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         # Test streaming.
         mock.reset()
         index = 0
-        await termination.reset()
+        await team.reset()
         async for message in team.run_stream(
-            "Write a program that prints 'Hello, world!'",
+            task="Write a program that prints 'Hello, world!'",
         ):
             if isinstance(message, TaskResult):
                 assert message == result
@@ -256,7 +256,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     termination = TextMentionTermination("TERMINATE")
     team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent], termination_condition=termination)
     result = await team.run(
-        "Write a program that prints 'Hello, world!'",
+        task="Write a program that prints 'Hello, world!'",
     )
 
     assert len(result.messages) == 6
@@ -284,15 +284,49 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
-    await termination.reset()
+    await team.reset()
     async for message in team.run_stream(
-        "Write a program that prints 'Hello, world!'",
+        task="Write a program that prints 'Hello, world!'",
     ):
         if isinstance(message, TaskResult):
             assert message == result
         else:
             assert message == result.messages[index]
         index += 1
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_resume_and_reset() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], termination_condition=termination)
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+    assert len(result.messages) == 3
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_2"
+    assert result.stop_reason is not None
+
+    # Resume.
+    await termination.reset()
+    result = await team.run()
+    assert len(result.messages) == 3
+    assert result.messages[0].source == "agent_3"
+    assert result.messages[1].source == "agent_4"
+    assert result.messages[2].source == "agent_1"
+    assert result.stop_reason is not None
+
+    # Reset.
+    await team.reset()
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 3
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_2"
+    assert result.stop_reason is not None
 
 
 @pytest.mark.asyncio
@@ -363,7 +397,7 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         termination_condition=termination,
     )
     result = await team.run(
-        "Write a program that prints 'Hello, world!'",
+        task="Write a program that prints 'Hello, world!'",
     )
     assert len(result.messages) == 6
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
@@ -378,9 +412,9 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
     mock.reset()
     agent1._count = 0  # pyright: ignore
     index = 0
-    await termination.reset()
+    await team.reset()
     async for message in team.run_stream(
-        "Write a program that prints 'Hello, world!'",
+        task="Write a program that prints 'Hello, world!'",
     ):
         if isinstance(message, TaskResult):
             assert message == result
@@ -416,7 +450,7 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
     )
     result = await team.run(
-        "Write a program that prints 'Hello, world!'",
+        task="Write a program that prints 'Hello, world!'",
     )
     assert len(result.messages) == 5
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
@@ -432,8 +466,8 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
     mock.reset()
     agent1._count = 0  # pyright: ignore
     index = 0
-    await termination.reset()
-    async for message in team.run_stream("Write a program that prints 'Hello, world!'"):
+    await team.reset()
+    async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
             assert message == result
         else:
@@ -488,7 +522,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
         termination_condition=termination,
         allow_repeated_speaker=True,
     )
-    result = await team.run("Write a program that prints 'Hello, world!'")
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 4
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
@@ -499,8 +533,8 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
     # Test streaming.
     mock.reset()
     index = 0
-    await termination.reset()
-    async for message in team.run_stream("Write a program that prints 'Hello, world!'"):
+    await team.reset()
+    async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
             assert message == result
         else:
@@ -549,7 +583,7 @@ async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPat
         selector_func=_select_agent,
         termination_condition=termination,
     )
-    result = await team.run("task")
+    result = await team.run(task="task")
     assert len(result.messages) == 6
     assert result.messages[1].source == "agent1"
     assert result.messages[2].source == "agent2"
@@ -590,7 +624,7 @@ async def test_swarm_handoff() -> None:
 
     termination = MaxMessageTermination(6)
     team = Swarm([second_agent, first_agent, third_agent], termination_condition=termination)
-    result = await team.run("task")
+    result = await team.run(task="task")
     assert len(result.messages) == 6
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
@@ -605,8 +639,8 @@ async def test_swarm_handoff() -> None:
 
     # Test streaming.
     index = 0
-    await termination.reset()
-    stream = team.run_stream("task")
+    await team.reset()
+    stream = team.run_stream(task="task")
     async for message in stream:
         if isinstance(message, TaskResult):
             assert message == result
@@ -680,7 +714,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     agent2 = _HandOffAgent("agent2", description="agent 2", next_agent="agent1")
     termination = TextMentionTermination("TERMINATE")
     team = Swarm([agent1, agent2], termination_condition=termination)
-    result = await team.run("task")
+    result = await team.run(task="task")
     assert len(result.messages) == 7
     assert result.messages[0].content == "task"
     assert isinstance(result.messages[1], ToolCallMessage)
@@ -695,8 +729,8 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
-    await termination.reset()
-    stream = team.run_stream("task")
+    await team.reset()
+    stream = team.run_stream(task="task")
     async for message in stream:
         if isinstance(message, TaskResult):
             assert message == result

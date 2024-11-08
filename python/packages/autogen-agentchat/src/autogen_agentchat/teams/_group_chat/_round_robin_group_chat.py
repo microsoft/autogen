@@ -15,7 +15,6 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> None:
         super().__init__(
@@ -23,9 +22,14 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             output_topic_type,
             participant_topic_types,
             participant_descriptions,
-            message_thread,
             termination_condition,
         )
+        self._next_speaker_index = 0
+
+    async def reset(self) -> None:
+        self._message_thread.clear()
+        if self._termination_condition is not None:
+            await self._termination_condition.reset()
         self._next_speaker_index = 0
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
@@ -124,7 +128,6 @@ class RoundRobinGroupChat(BaseGroupChat):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
@@ -133,7 +136,6 @@ class RoundRobinGroupChat(BaseGroupChat):
                 output_topic_type,
                 participant_topic_types,
                 participant_descriptions,
-                message_thread,
                 termination_condition,
             )
 

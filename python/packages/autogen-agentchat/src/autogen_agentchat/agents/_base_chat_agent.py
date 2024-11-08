@@ -53,41 +53,49 @@ class BaseChatAgent(ChatAgent, ABC):
 
     async def run(
         self,
-        task: str,
         *,
+        task: str | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-        first_message = TextMessage(content=task, source="user")
-        response = await self.on_messages([first_message], cancellation_token)
-        messages: List[AgentMessage] = [first_message]
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if task is not None:
+            msg = TextMessage(content=task, source="user")
+            input_messages.append(msg)
+            output_messages.append(msg)
+        response = await self.on_messages(input_messages, cancellation_token)
         if response.inner_messages is not None:
-            messages += response.inner_messages
-        messages.append(response.chat_message)
-        return TaskResult(messages=messages)
+            output_messages += response.inner_messages
+        output_messages.append(response.chat_message)
+        return TaskResult(messages=output_messages)
 
     async def run_stream(
         self,
-        task: str,
         *,
+        task: str | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-        first_message = TextMessage(content=task, source="user")
-        yield first_message
-        messages: List[AgentMessage] = [first_message]
-        async for message in self.on_messages_stream([first_message], cancellation_token):
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if task is not None:
+            msg = TextMessage(content=task, source="user")
+            input_messages.append(msg)
+            output_messages.append(msg)
+            yield msg
+        async for message in self.on_messages_stream(input_messages, cancellation_token):
             if isinstance(message, Response):
                 yield message.chat_message
-                messages.append(message.chat_message)
-                yield TaskResult(messages=messages)
+                output_messages.append(message.chat_message)
+                yield TaskResult(messages=output_messages)
             else:
-                messages.append(message)
+                output_messages.append(message)
                 yield message
 
     @abstractmethod
