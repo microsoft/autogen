@@ -228,7 +228,7 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
-    agent = AssistantAgent(name="assistant", model_client=OpenAIChatCompletionClient(model=model))
+    agent = AssistantAgent(name="assistant", model_client=OpenAIChatCompletionClient(model=model, api_key=""))
     # Generate a random base64 image.
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
     result = await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
