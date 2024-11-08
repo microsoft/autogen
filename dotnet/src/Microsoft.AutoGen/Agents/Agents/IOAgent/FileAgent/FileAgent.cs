@@ -29,8 +29,8 @@ public abstract class FileAgent(
             var err = new IOError
             {
                 Message = errorMessage
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(err);
+            };
+            await PublishMessageAsync(err);
             return;
         }
         string content;
@@ -42,8 +42,8 @@ public abstract class FileAgent(
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     public override async Task Handle(Output item)
     {
@@ -54,16 +54,16 @@ public abstract class FileAgent(
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     public override async Task<string> ProcessInput(string message)
     {
         var evt = new InputProcessed
         {
             Route = _route,
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
         return message;
     }
     public override Task ProcessOutput(string message)

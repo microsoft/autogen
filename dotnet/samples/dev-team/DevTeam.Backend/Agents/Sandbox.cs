@@ -50,7 +50,7 @@
 //             if (await _azService.IsSandboxCompleted(sandboxId))
 //             {
 //                 await _azService.DeleteSandbox(sandboxId);
-//                 await PublishEvent(new Event
+//                 await PublishEventAsync(new Event
 //                 {
 //                     Namespace = this.GetPrimaryKeyString(),
 //                     Type = nameof(GithubFlowEventType.SandboxRunFinished),

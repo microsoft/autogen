@@ -12,7 +12,7 @@ public sealed class AgentWorker(IAgentWorkerRuntime runtime, DistributedContextP
     [FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<AgentBase> logger)
     : AgentBase(new AgentContext(new AgentId("client", Guid.NewGuid().ToString()), runtime, logger, distributedContextPropagator), eventTypes)
 {
-    public async ValueTask PublishEventAsync(CloudEvent evt) => await PublishEvent(evt);
+    public async ValueTask PublishEventAsync(CloudEvent evt) => await base.PublishEventAsync(evt);
 
     public async ValueTask PublishEventAsync(string topic, IMessage evt)
     {
