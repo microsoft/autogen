@@ -92,8 +92,6 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
 
     private async ValueTask RegisterAgentTypeAsync(AgentWorker agentWorker, RegisterAgentTypeRequest msg)
     {
-        agentWorker.AddSupportedType(msg.Type);
-
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(new InMemoryQueue<Message>());
         //_supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(agentWorker.GetMessageQueue());
 

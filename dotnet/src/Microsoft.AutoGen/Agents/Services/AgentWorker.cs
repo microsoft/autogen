@@ -15,10 +15,8 @@ public class AgentWorker :
      IHostedService,
      IAgentWorker
 {
-    private readonly object _lock = new();
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
-    private readonly HashSet<string> _supportedTypes = [];
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
@@ -262,12 +260,5 @@ public class AgentWorker :
         }
 
         return agent;
-    }
-    public void AddSupportedType(string type)
-    {
-        lock (_lock)
-        {
-            _supportedTypes.Add(type);
-        }
     }
 }
