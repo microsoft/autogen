@@ -197,9 +197,16 @@ public abstract class AgentBase : IAgentBase, IHandle
         return await completion.Task.ConfigureAwait(false);
     }
 
-    public async ValueTask PublishEvent(CloudEvent item)
+    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
     {
-        var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var evt = message.ToCloudEvent(src);
+        await PublishEventAsync(evt, token).ConfigureAwait(false);
+    }
+
+    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken token = default)
+    {
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity

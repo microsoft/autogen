@@ -27,8 +27,8 @@ public abstract class ConsoleAgent : IOAgent,
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -40,8 +40,8 @@ public abstract class ConsoleAgent : IOAgent,
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)
