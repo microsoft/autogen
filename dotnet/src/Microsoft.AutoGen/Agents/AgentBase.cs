@@ -197,6 +197,13 @@ public abstract class AgentBase : IAgentBase, IHandle
         return await completion.Task.ConfigureAwait(false);
     }
 
+    public async ValueTask Publish<T>(T item, string? source = null) where T : IMessage
+    {
+        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var evt = item.ToCloudEvent(src);
+        await PublishEvent(evt).ConfigureAwait(false);
+    }
+
     public async ValueTask PublishEvent(CloudEvent item)
     {
         var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
