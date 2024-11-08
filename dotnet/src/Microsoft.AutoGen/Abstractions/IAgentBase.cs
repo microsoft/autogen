@@ -17,5 +17,5 @@ public interface IAgentBase
     void ReceiveMessage(Message message);
     Task Store(AgentState state);
     Task<T> Read<T>(AgentId agentId) where T : IMessage, new();
-    ValueTask PublishEventAsync(CloudEvent item,CancellationToken token = default);
+    ValueTask PublishEventAsync(CloudEvent item, CancellationToken token = default);
 }
