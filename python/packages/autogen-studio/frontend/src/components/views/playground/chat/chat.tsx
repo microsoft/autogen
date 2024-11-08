@@ -383,8 +383,8 @@ export default function ChatView({
           // Type guard to ensure runId is not null
           setThreadMessages((prev) => ({
             ...prev,
-            [runId]: {
-              ...prev[runId],
+            [runId!]: {
+              ...prev[runId!],
               status: "error",
               isExpanded: true,
             },
