@@ -130,10 +130,58 @@ public class AgentWorker :
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         try
         {
+            foreach (var agent in _gateway.GetAgentChannels())
+            {
+                foreach (var channel in agent.Value)
+                {
+                    await foreach (var message in channel.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
+                    {
+                        // next if message is null
+                        if (message == null)
+                        {
+                            continue;
+                        }
+                        switch (message.MessageCase)
+                        {
+                            case Message.MessageOneofCase.Request:
+                                GetOrActivateAgent(message.Request.Target).ReceiveMessage(message);
+                                break;
+                            case Message.MessageOneofCase.Response:
+                                var request = _pendingClientRequests[message.Response.RequestId];
+                                message.Response.RequestId = request.OriginalRequestId;
+                                request.Agent.ReceiveMessage(message);
+                                break;
+
+                            case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                                if (!message.RegisterAgentTypeResponse.Success)
+                                {
+                                    throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
+                                }
+                                break;
+
+                            case Message.MessageOneofCase.CloudEvent:
+
+                                // TODO - Seems not right: Send the message to an instance of each agent type
+                                // where AgentId = (namespace: event.Namespace, name: agentType)
+                                // i.e, assume each agent type implicitly subscribes to each event.
+
+                                var item = message.CloudEvent;
+
+                                foreach (var (typeName, _) in _agentTypes)
+                                {
+                                    var agentToInvoke = GetOrActivateAgent(new AgentId(typeName, item.Source));
+                                    agentToInvoke.ReceiveMessage(message);
+                                }
+
+                                break;
+                            default:
+                                throw new InvalidOperationException($"Unexpected message '{message}'.");
+                        }
+                    }
+                }
+            }
             await foreach (var message in _messageQueue.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
             {
-
-                // Fire and forget
                 _gateway.OnReceivedMessageAsync(this, message).Ignore();
             }
         }

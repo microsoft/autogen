@@ -3,7 +3,9 @@
 
 using System.Configuration;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Orleans.Configuration;
 using Orleans.Serialization;
@@ -83,6 +85,7 @@ public static class OrleansRuntimeHostingExtenions
               .AddMemoryGrainStorage("PubSubStore");
             }
         });
+        builder.Services.AddSingleton<IAgentRegistry, RegistryGrain>();
         return builder;
     }
 }

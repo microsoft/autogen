@@ -14,7 +14,6 @@ internal sealed class GrpcGateway : Gateway, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
-
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     // The mapping from agent id to worker process.

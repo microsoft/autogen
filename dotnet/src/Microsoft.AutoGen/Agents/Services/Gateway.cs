@@ -15,13 +15,10 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     private readonly IClusterClient _clusterClient;
     private readonly IAgentRegistry _gatewayRegistry;
     private readonly IGateway _reference;
-
     private readonly ConcurrentDictionary<string, List<InMemoryQueue<Message>>> _supportedAgentTypes = [];
     private readonly ConcurrentDictionary<(string Type, string Key), InMemoryQueue<Message>> _agentDirectory = new();
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
     private readonly ConcurrentDictionary<(InMemoryQueue<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    private readonly InMemoryQueue<Message> _messageQueue = new();
-
     public Gateway(IClusterClient clusterClient, ILogger<Gateway> logger)
     {
         _logger = logger;
@@ -50,7 +47,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         var queue = (InMemoryQueue<Message>)connection;
         await queue.Writer.WriteAsync(new Message {CloudEvent = cloudEvent}, cancellationToken).AsTask().ConfigureAwait(false);
     }
-
+    public ConcurrentDictionary<string, List<InMemoryQueue<Message>>> GetAgentChannels() => _supportedAgentTypes;
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
         (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
@@ -70,9 +67,9 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         // Proxy the request to the agent.
         var originalRequestId = request.RequestId;
         var newRequestId = Guid.NewGuid().ToString();
-        var completion = _pendingRequests[(_messageQueue, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = _pendingRequests[(connection, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
         request.RequestId = newRequestId;
-        await _messageQueue.Writer.WriteAsync(new Message { Request = request });
+        await connection.Writer.WriteAsync(new Message { Request = request });
         // Wait for the response and send it back to the caller.
         var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
         response.RequestId = originalRequestId;

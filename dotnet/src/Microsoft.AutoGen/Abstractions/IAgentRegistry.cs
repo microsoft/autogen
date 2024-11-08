@@ -3,7 +3,7 @@
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IAgentRegistry : IGrainWithIntegerKey
+public interface IAgentRegistry
 {
     ValueTask RegisterAgentType(string type, IGateway worker);
     ValueTask UnregisterAgentType(string type, IGateway worker);
