@@ -18,12 +18,6 @@ from ..version import VERSION
 # logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
 
-# Initialize application paths
-# app_file_path = os.path.dirname(os.path.abspath(__file__))
-# initializer = AppInitializer(settings)
-# folders = initializer.init_folders(app_file_path)
-# ui_folder_path = folders["static_folder_root"]
-# database_engine_uri = folders["database_engine_uri"]
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))

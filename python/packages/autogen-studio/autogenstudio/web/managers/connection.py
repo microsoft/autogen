@@ -3,7 +3,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, Optional, Any
 from uuid import UUID
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from ...datamodel import Run, RunStatus, TeamResult
@@ -44,7 +44,7 @@ class WebSocketManager:
             await self._send_message(run_id, {
                 "type": "system",
                 "status": "connected",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
             return True
@@ -87,30 +87,25 @@ class WebSocketManager:
 
                 formatted_message = self._format_message(message)
                 if formatted_message:
-                    await self._send_message(run_id, {
-                        "type": "message",
-                        "data": formatted_message,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
+                    await self._send_message(run_id, formatted_message)
 
             # Only send completion if not cancelled
             if not cancellation_token.is_cancelled():
                 await self._send_message(run_id, {
                     "type": "completion",
                     "status": "success",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
                 await self._update_run_status(run_id, RunStatus.COMPLETE)
             else:
                 await self._send_message(run_id, {
                     "type": "completion",
                     "status": "cancelled",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
                 await self._update_run_status(run_id, RunStatus.STOPPED)
 
         except Exception as e:
-            print(traceback.format_exc())
             logger.error(f"Stream error for run {run_id}: {e}")
             await self._handle_stream_error(run_id, e)
 
@@ -175,7 +170,7 @@ class WebSocketManager:
                 "type": "completion",
                 "status": "error",
                 "error": str(error),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
         except Exception as send_error:
             logger.error(
@@ -195,19 +190,13 @@ class WebSocketManager:
         try:
             if isinstance(message, (InnerMessage, ChatMessage)):
                 return {
-                    "message_type": "chat",
-                    "role": getattr(message, 'role', 'system'),
-                    "content": message.content,
-                    "name": getattr(message, 'name', None)
+                    "type": "message",
+                    "data": message.model_dump()
                 }
             elif isinstance(message, TeamResult):
                 return {
-                    "message_type": "result",
-                    "content": message.task_result.messages[-1].content if message.task_result.messages else None,
-                    "metadata": {
-                        "duration": message.duration,
-                        "usage": message.usage
-                    }
+                    "type": "result",
+                    "data": message.model_dump()
                 }
             return None
         except Exception as e:

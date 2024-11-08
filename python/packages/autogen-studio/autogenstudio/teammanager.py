@@ -30,8 +30,6 @@ class TeamManager:
             )
 
             async for message in stream:
-                print("team manager message ..", message,
-                      cancellation_token.is_cancelled())
                 if cancellation_token and cancellation_token.is_cancelled():
                     break
 
