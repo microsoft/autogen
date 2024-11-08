@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 from autogen_core.components.models import CreateResult, UserMessage
 from test_utils.client_test_utils import ReplayChatCompletionClient
@@ -23,9 +25,10 @@ async def test_reply_chat_completion_client_create_stream() -> None:
     reply_model_client = ReplayChatCompletionClient(messages)
 
     for i in range(num_messages):
-        result = []
+        result: List[str] = []
         async for completion in reply_model_client.create_stream([UserMessage(content="dummy", source="_")]):
             text = completion.content if isinstance(completion, CreateResult) else completion
+            assert isinstance(text, str)
             result.append(text)
         assert "".join(result) == messages[i]
 

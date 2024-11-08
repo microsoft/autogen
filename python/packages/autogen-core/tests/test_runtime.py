@@ -22,7 +22,6 @@ from test_utils import (
     CascadingAgent,
     CascadingMessageType,
     ContentMessage,
-    LLMAgent,
     LLMAgentWithDefaultSubscription,
     LoopbackAgent,
     LoopbackAgentWithDefaultSubscription,

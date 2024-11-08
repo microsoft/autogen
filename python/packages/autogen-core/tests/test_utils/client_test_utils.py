@@ -8,6 +8,7 @@ from autogen_core.components.models import (
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
+    ModelCapabilities,
     RequestUsage,
 )
 from autogen_core.components.tools import Tool, ToolSchema
@@ -20,7 +21,7 @@ class ReplayChatCompletionClient:
 
     # TODO: Support FunctionCall in responses
     # TODO: Support logprobs in Responses
-    # TODO: Support model ccapabilities
+    # TODO: Support model capabilities
     def __init__(
         self,
         chat_completions: Sequence[Union[str, CreateResult]],
@@ -36,7 +37,7 @@ class ReplayChatCompletionClient:
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self.provided_message_count = len(self.chat_completions)
-        # self._model_capabilities = model_capabilities
+        self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
 
     async def create(
         self,
@@ -112,7 +113,7 @@ class ReplayChatCompletionClient:
         self._total_usage.completion_tokens += self._cur_usage.completion_tokens
         self._total_usage.prompt_tokens += self._cur_usage.prompt_tokens
 
-    # @property
-    # def capabilities(self) -> ModelCapabilities:
-    #     """Return mock capabilities."""
-    #     return self._model_capabilities
+    @property
+    def capabilities(self) -> ModelCapabilities:
+        """Return mock capabilities."""
+        return self._model_capabilities
