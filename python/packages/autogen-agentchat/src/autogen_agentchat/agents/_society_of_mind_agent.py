@@ -61,7 +61,7 @@ class SocietyOfMindAgent(BaseChatAgent):
             outter_termination = MaxMessageTermination(10)
             team = RoundRobinGroupChat([society_of_mind_agent, agent3, agent4], termination_condition=outter_termination)
 
-            stream = team.run_stream(task="What is the meaning of life?")
+            stream = team.run_stream(task="Tell me a one-liner joke.")
             async for message in stream:
                 print(message)
 
@@ -77,7 +77,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         *,
         description: str = "An agent that uses an inner team of agents to generate responses.",
         task_prompt: str = "{transcript}",
-        response_prompt: str = "Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:\n{transcript}",
+        response_prompt: str = "Here is a transcript of conversation so far:\n{transcript}\n\\Provide a single response to the original request.",
     ) -> None:
         super().__init__(name=name, description=description)
         self._team = team

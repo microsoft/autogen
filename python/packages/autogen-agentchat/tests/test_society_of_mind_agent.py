@@ -1,10 +1,11 @@
 import asyncio
 from typing import Any, AsyncGenerator, List
+
 import pytest
 from autogen_agentchat.agents import AssistantAgent, SocietyOfMindAgent
-from autogen_ext.models import OpenAIChatCompletionClient
-from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.task import MaxMessageTermination
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
