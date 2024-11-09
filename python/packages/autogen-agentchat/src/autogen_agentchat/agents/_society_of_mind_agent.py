@@ -77,7 +77,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         *,
         description: str = "An agent that uses an inner team of agents to generate responses.",
         task_prompt: str = "{transcript}\nContinue.",
-        response_prompt: str = "Here is a transcript of conversation so far:\n{transcript}\n\Provide a response to the original request.",
+        response_prompt: str = "Here is a transcript of conversation so far:\n{transcript}\n\\Provide a response to the original request.",
     ) -> None:
         super().__init__(name=name, description=description)
         self._team = team
