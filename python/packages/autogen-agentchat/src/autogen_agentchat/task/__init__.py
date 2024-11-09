@@ -1,3 +1,4 @@
+from ._console import Console
 from ._terminations import MaxMessageTermination, StopMessageTermination, TextMentionTermination, TokenUsageTermination
 
 __all__ = [
@@ -5,4 +6,5 @@ __all__ = [
     "TextMentionTermination",
     "StopMessageTermination",
     "TokenUsageTermination",
+    "Console",
 ]
