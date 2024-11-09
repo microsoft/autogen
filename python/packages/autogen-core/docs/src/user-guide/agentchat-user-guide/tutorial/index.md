@@ -57,4 +57,5 @@ agents
 teams
 selector-group-chat
 swarm
+termination
 ```
