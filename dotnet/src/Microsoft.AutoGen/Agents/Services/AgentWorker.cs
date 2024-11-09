@@ -66,11 +66,8 @@ public class AgentWorker :
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
-        var response = _agentStates.TryAdd(agentId.ToString(), value);
-        if (!response)
-        {
-            throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
-        }
+        // add or update _agentStates with the new state
+        var response = _agentStates.AddOrUpdate(agentId.ToString(), value, (key, oldValue) => value);
         return ValueTask.CompletedTask;
     }
     public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
