@@ -20,9 +20,10 @@ namespace Hello
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentRuntime context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),
+            IHandleConsole,
             IHandle<NewMessageReceived>,
             IHandle<ConversationClosed>,
             IHandle<Shutdown>
@@ -34,7 +35,7 @@ namespace Hello
             var evt = new Output
             {
                 Message = response
-            }.ToCloudEvent(this.AgentId.Key);
+            };
             Dictionary <string, string> state = new()
             {
                 { "data", "We said hello to " + item.Message },
@@ -45,15 +46,15 @@ namespace Hello
                 AgentId = this.AgentId,
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
-            await PublishEventAsync(evt).ConfigureAwait(false);
+            await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEventAsync(goodbye).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(goodbye).ConfigureAwait(false);
             // send the shutdown message
-            await PublishEventAsync(new Shutdown { Message = this.AgentId.Key }.ToCloudEvent(this.AgentId.Key)).ConfigureAwait(false);
+            await PublishMessageAsync(new Shutdown { Message = this.AgentId.Key }).ConfigureAwait(false);
 
         }
         public async Task Handle(ConversationClosed item)
@@ -64,8 +65,8 @@ namespace Hello
             var evt = new Output
             {
                 Message = goodbye
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEventAsync(evt).ConfigureAwait(true);
+            };
+            await PublishMessageAsync(evt).ConfigureAwait(true);
             state["workflow"] = "Complete";
             await StoreAsync(new AgentState
             {
@@ -82,7 +83,7 @@ namespace Hello
                 State = await ReadAsync<AgentState>(this.AgentId).ConfigureAwait(true);
                 var state = JsonSerializer.Deserialize<Dictionary<string, string>>(State?.TextData ?? "{}") ?? new Dictionary<string, string>();
                 workflow = state["workflow"];
-                await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(1000).ConfigureAwait(true);
             }
             // now we can shut down...
             await AgentsApp.ShutdownAsync().ConfigureAwait(true);
