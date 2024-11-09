@@ -49,7 +49,7 @@ public sealed class GrpcAgentWorker(
         _outboundMessagesChannel.Writer.TryComplete();
         _channel?.Dispose();
     }
-    private new async Task RunReadPump()
+    private async Task RunReadPump()
     {
         var channel = GetChannel();
         while (!_shutdownCts.Token.IsCancellationRequested)

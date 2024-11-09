@@ -44,7 +44,6 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         var queue = (InMemoryQueue<Message>)connection;
         await queue.Writer.WriteAsync(new Message {CloudEvent = cloudEvent}, cancellationToken).AsTask().ConfigureAwait(false);
     }
-    public ConcurrentDictionary<string, List<InMemoryQueue<Message>>> GetAgentChannels() => _supportedAgentTypes;
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
         (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
@@ -84,14 +83,6 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
         completion.SetResult(response);
     }
 
-    private async ValueTask RegisterAgentTypeAsync(AgentWorker agentWorker, RegisterAgentTypeRequest msg)
-    {
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(new InMemoryQueue<Message>());
-
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(false);
-        await ConnectToWorkerProcess(agentWorker.GetMessageQueue(), msg.Type).ConfigureAwait(false);
-    }
-
     // Required to inherit from BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -118,81 +109,11 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
             _logger.LogWarning(exception, "Error removing worker from registry.");
         }
     }
-    private async ValueTask DispatchEventAsync(CloudEvent evt)
-    {
-        await BroadcastEvent(evt);
-        /*
-        var topic = _clusterClient.GetStreamProvider("agents").GetStream<Event>(StreamId.Create(evt.Namespace, evt.Type));
-        await topic.OnNextAsync(evt.ToEvent());
-        */
-    }
-  internal async Task OnReceivedMessageAsync(AgentWorker connection, Message message)
-    {
-        InMemoryQueue<Message> _connection = (InMemoryQueue<Message>)connection.GetMessageQueue();
-        _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
-        switch (message.MessageCase)
-        {
-            case Message.MessageOneofCase.Request:
-                await DispatchRequestAsync(_connection, message.Request);
-                break;
-            case Message.MessageOneofCase.Response:
-                DispatchResponse(_connection, message.Response);
-                break;
-            case Message.MessageOneofCase.CloudEvent:
-                await DispatchEventAsync(message.CloudEvent);
-                break;
-            case Message.MessageOneofCase.RegisterAgentTypeRequest:
-                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown message type for message '{message}'.");
-        };
-    }
     internal Task ConnectToWorkerProcess(InMemoryQueue<Message> channel, string type)
     {
         _logger.LogInformation("Received new connection from {type}.", type);
         _workers[channel] = channel;
         return Task.CompletedTask;
-    }
-    private async ValueTask DispatchRequestAsync(InMemoryQueue<Message> connection, RpcRequest request)
-    {
-        var requestId = request.RequestId;
-        if (request.Target is null)
-        {
-            throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
-        }
-        await InvokeRequestDelegate(connection, request, async request =>
-        {
-            var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
-            if (gateway is null)
-            {
-                return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
-            }
-
-            if (isPlacement)
-            {
-                // Activate the worker: load state
-                // TODO
-            }
-
-            // Forward the message to the gateway and return the result.
-            return await gateway.InvokeRequest(request);
-        });
-        //}
-    }
-
-    private static async Task InvokeRequestDelegate(InMemoryQueue<Message> connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
-    {
-        try
-        {
-            var response = await func(request);
-            response.RequestId = request.RequestId;
-            await connection.Writer.WriteAsync(new Message { Response = response });
-        }
-        catch (Exception ex)
-        {
-            await connection.Writer.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } });
-        }
     }
     public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
