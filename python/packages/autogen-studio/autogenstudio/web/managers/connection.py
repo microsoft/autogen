@@ -1,10 +1,9 @@
-import traceback
+# managers/connection.py
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, Optional, Any
 from uuid import UUID
 import logging
 from datetime import datetime, timezone
-from enum import Enum
 
 from ...datamodel import Run, RunStatus, TeamResult
 from ...database import DatabaseManager
@@ -91,11 +90,11 @@ class WebSocketManager:
 
             # Only send completion if not cancelled
             if not cancellation_token.is_cancelled():
-                await self._send_message(run_id, {
-                    "type": "completion",
-                    "status": "success",
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                })
+                # await self._send_message(run_id, {
+                #     "type": "completion",
+                #     "status": "complete",
+                #     "timestamp": datetime.now(timezone.utc).isoformat()
+                # })
                 await self._update_run_status(run_id, RunStatus.COMPLETE)
             else:
                 await self._send_message(run_id, {
@@ -113,32 +112,33 @@ class WebSocketManager:
             self._cancellation_tokens.pop(run_id, None)
 
     async def stop_run(self, run_id: UUID) -> None:
-        """Stop a running task
-
-        Args:
-            run_id: UUID of the run to stop
-        """
+        """Stop a running task"""
         if run_id in self._cancellation_tokens:
             logger.info(f"Stopping run {run_id}")
             self._cancellation_tokens[run_id].cancel()
 
-    async def disconnect(self, run_id: UUID) -> None:
-        """Clean up connection and associated resources
+            # Send final message if connection still exists
+            if run_id in self._connections:
+                try:
+                    await self._send_message(run_id, {
+                        "type": "completion",
+                        "status": "cancelled",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                except Exception:
+                    pass
 
-        Args:
-            run_id: UUID of the run to disconnect
-        """
+    async def disconnect(self, run_id: UUID) -> None:
+        """Clean up connection and associated resources"""
         logger.info(f"Disconnecting run {run_id}")
+
+        # First cancel any running tasks
         await self.stop_run(run_id)
 
+        # Then clean up resources without trying to close the socket again
         if run_id in self._connections:
-            try:
-                await self._connections[run_id].close()
-            except Exception as e:
-                logger.error(f"Error closing websocket for run {run_id}: {e}")
-            finally:
-                self._connections.pop(run_id, None)
-                self._cancellation_tokens.pop(run_id, None)
+            self._connections.pop(run_id, None)
+            self._cancellation_tokens.pop(run_id, None)
 
     async def _send_message(self, run_id: UUID, message: dict) -> None:
         """Send a message through the WebSocket
@@ -196,7 +196,8 @@ class WebSocketManager:
             elif isinstance(message, TeamResult):
                 return {
                     "type": "result",
-                    "data": message.model_dump()
+                    "data": message.model_dump(),
+                    "status": "complete",
                 }
             return None
         except Exception as e:

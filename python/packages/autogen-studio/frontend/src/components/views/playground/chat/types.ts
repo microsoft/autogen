@@ -1,10 +1,20 @@
 import { Message, TaskResult } from "../../../types/datamodel";
 
+export type ThreadStatus = "streaming" | "complete" | "error" | "cancelled";
+
+export interface ThreadState {
+  messages: any[];
+  finalResult?: any;
+  status: ThreadStatus;
+  isExpanded: boolean;
+}
+
 export interface ThreadState {
   messages: any[];
   finalResult?: any;
   status: "streaming" | "complete" | "error" | "cancelled";
   isExpanded: boolean;
+  reason?: string;
 }
 
 export interface MessageListProps {
@@ -31,6 +41,7 @@ export interface SocketMessage {
     content?: string;
     task_result?: TaskResult;
   };
-  status?: string;
+  status?: ThreadStatus;
   timestamp?: string;
+  error?: string;
 }

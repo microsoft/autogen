@@ -82,4 +82,5 @@ export interface TaskResult {
   messages: MessageConfig[];
   usage: string;
   duration: number;
+  stop_reason?: string;
 }

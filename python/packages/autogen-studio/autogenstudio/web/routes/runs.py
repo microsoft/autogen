@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from uuid import UUID
 from typing import Dict
-import traceback  # tbd remove
 
 from pydantic import BaseModel
 from ..deps import get_db, get_websocket_manager, get_team_manager
@@ -74,5 +73,4 @@ async def start_run(
         }
 
     except Exception as e:
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

@@ -19,14 +19,13 @@ class DatabaseManager:
 
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str):
+    def __init__(self, engine_uri: str, auto_upgrade: bool = True):
         connection_args = {
             "check_same_thread": True} if "sqlite" in engine_uri else {}
         self.engine = create_engine(engine_uri, connect_args=connection_args)
         self.schema_manager = SchemaManager(
             engine=self.engine,
-            auto_upgrade=True,  # Set to False in production
-            force_init=True
+            auto_upgrade=auto_upgrade,
         )
 
         # Check and upgrade on startup

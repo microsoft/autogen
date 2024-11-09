@@ -7,7 +7,7 @@ import { Message } from "../../../types/datamodel";
 import { useConfigStore } from "../../../../hooks/store";
 import { appContext } from "../../../../hooks/provider";
 import ChatInput from "./chatinput";
-import { SocketMessage, ThreadState } from "./types";
+import { ModelUsage, SocketMessage, ThreadState, ThreadStatus } from "./types";
 import { MessageList } from "./messagelist";
 import TeamManager from "../../shared/team/manager";
 
@@ -37,7 +37,6 @@ export default function ChatView({
   >({});
 
   React.useEffect(() => {
-    console.log("scrolling ...");
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
         top: chatContainerRef.current.scrollHeight,
@@ -205,11 +204,7 @@ export default function ChatView({
               isExpanded: true,
             };
 
-            if (message.data?.content === "TERMINATE") {
-              return prev;
-            }
-
-            const models_usage: RequestUsage | undefined = message.data
+            const models_usage: ModelUsage | undefined = message.data
               ?.models_usage
               ? {
                   prompt_tokens: message.data.models_usage.prompt_tokens,
@@ -245,49 +240,24 @@ export default function ChatView({
               ?.filter((msg: any) => msg.content !== "TERMINATE")
               .pop();
 
+            const status: ThreadStatus = message.status || "complete";
+            // Capture completion reason from task_result
+            const reason =
+              message.data?.task_result?.stop_reason ||
+              (message.error ? `Error: ${message.error}` : undefined);
+
             return {
               ...prev,
               [runId]: {
                 ...currentThread,
-                status: "complete",
+                status: status,
+                reason: reason,
                 isExpanded: true,
                 finalResult: finalMessage,
                 messages: currentThread.messages,
               },
             };
           });
-
-          const finalMessage = message.data?.task_result?.messages
-            ?.filter((msg: any) => msg.content !== "TERMINATE")
-            .pop();
-
-          if (finalMessage) {
-            setMessages((prev: Message[]) =>
-              prev.map((msg: Message) => {
-                if (msg.run_id === runId && msg.config.source === "bot") {
-                  const models_usage: RequestUsage | undefined =
-                    finalMessage.models_usage
-                      ? {
-                          prompt_tokens:
-                            finalMessage.models_usage.prompt_tokens,
-                          completion_tokens:
-                            finalMessage.models_usage.completion_tokens,
-                        }
-                      : undefined;
-
-                  return {
-                    ...msg,
-                    config: {
-                      ...msg.config,
-                      content: finalMessage.content,
-                      models_usage,
-                    },
-                  };
-                }
-                return msg;
-              })
-            );
-          }
           closeSocket();
           break;
       }
@@ -313,6 +283,7 @@ export default function ChatView({
               [runId]: {
                 ...thread,
                 status: "complete",
+                reason: event.reason || "Connection closed",
               },
             };
           }
@@ -334,6 +305,7 @@ export default function ChatView({
           [runId]: {
             ...thread,
             status: "error",
+            reason: "WebSocket connection error occurred",
             isExpanded: true,
           },
         };
@@ -346,7 +318,6 @@ export default function ChatView({
   };
 
   const cancelRun = async (runId: string) => {
-    console.log("cancel run", runId);
     const socket = activeSockets[runId];
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "stop" }));
@@ -356,6 +327,7 @@ export default function ChatView({
         [runId]: {
           ...prev[runId],
           status: "cancelled",
+          reason: "Cancelled by user",
           isExpanded: true,
         },
       }));
@@ -424,8 +396,16 @@ export default function ChatView({
     }
   };
 
+  React.useEffect(() => {
+    // session changed
+    if (session) {
+      setMessages([]);
+      setThreadMessages({});
+    }
+  }, [session]);
+
   return (
-    <div className="text-primary h-[calc(100vh-180px)] bg-primary relative rounded flex-1 scroll">
+    <div className="text-primary h-[calc(100vh-195px)] bg-primary relative rounded flex-1 scroll">
       <div className="flex gap-4 w-full">
         <div className="flex-1">
           <SessionManager />

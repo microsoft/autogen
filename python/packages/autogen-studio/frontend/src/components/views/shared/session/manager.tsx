@@ -56,6 +56,7 @@ export const SessionManager: React.FC = () => {
         }
       } else {
         const created = await sessionAPI.createSession(sessionData, user.email);
+        setSession(created);
         setSessions([...sessions, created]);
       }
       setIsEditorOpen(false);
@@ -71,6 +72,9 @@ export const SessionManager: React.FC = () => {
     try {
       await sessionAPI.deleteSession(sessionId, user.email);
       setSessions(sessions.filter((s) => s.id !== sessionId));
+      if (sessions.length > 0) {
+        setSession(sessions[0]);
+      }
       if (session?.id === sessionId) {
         setSession(null);
       }
@@ -167,7 +171,9 @@ export const SessionManager: React.FC = () => {
   return (
     <>
       <div className="bg-secondary rounded p-2">
-        <div className="text-xs pb-2">Sessions</div>
+        <div className="text-xs pb-2">
+          Sessions <span className="px-1 text-accent">{sessions.length} </span>
+        </div>
         <SessionContent />
       </div>
       <SessionEditor

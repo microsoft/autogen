@@ -19,6 +19,7 @@ def ui(
     docs: bool = True,
     appdir: str = None,
     database_uri: Optional[str] = None,
+    upgrade_database: bool = False,
 ):
     """
     Run the AutoGen Studio UI.
@@ -38,6 +39,8 @@ def ui(
         os.environ["AUTOGENSTUDIO_APPDIR"] = appdir
     if database_uri:
         os.environ["AUTOGENSTUDIO_DATABASE_URI"] = database_uri
+    if upgrade_database:
+        os.environ["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
 
     uvicorn.run(
         "autogenstudio.web.app:app",

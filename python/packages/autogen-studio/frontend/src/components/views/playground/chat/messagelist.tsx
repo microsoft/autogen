@@ -72,7 +72,19 @@ export const MessageList: React.FC<MessageListProps> = ({
               <div className="flex-1">
                 <div className="p-2 bg-secondary rounded text-primary">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1 text-sm"> </div>
+                    <div className="flex-1 text-sm">
+                      {isStreaming ? (
+                        <>Processing...</>
+                      ) : (
+                        <>
+                          {" "}
+                          {thread?.finalResult?.content}
+                          <div className="mt-2 mb-2 text-sm text-secondary">
+                            {thread?.reason}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1">
                       {isError && (
                         <button

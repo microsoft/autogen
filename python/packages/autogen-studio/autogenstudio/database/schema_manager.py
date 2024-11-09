@@ -20,16 +20,21 @@ class SchemaManager:
     Args:
         engine: SQLAlchemy engine instance
         auto_upgrade: Whether to automatically upgrade schema when differences found
-        auto_init: Whether to automatically initialize Alembic if not set up
+        init_mode: Controls initialization behavior:
+            - "none": No automatic initialization (raises error if not set up)
+            - "auto": Initialize if not present (default)
+            - "force": Always reinitialize, removing existing configuration
     """
 
     def __init__(
         self,
         engine: Engine,
         auto_upgrade: bool = True,
-        auto_init: bool = True,
-        force_init: bool = False
+        init_mode: str = "auto"
     ):
+        if init_mode not in ["none", "auto", "force"]:
+            raise ValueError("init_mode must be one of: none, auto, force")
+
         self.engine = engine
         self.auto_upgrade = auto_upgrade
 
@@ -38,11 +43,11 @@ class SchemaManager:
         self.alembic_dir = self.base_dir / 'alembic'
         self.alembic_ini_path = self.base_dir / 'alembic.ini'
 
-        # Initialize on creation
-        if auto_init:
-            self._ensure_alembic_setup(force=force_init)
-        else:
+        # Handle initialization based on mode
+        if init_mode == "none":
             self._validate_alembic_setup()
+        else:
+            self._ensure_alembic_setup(force=init_mode == "force")
 
     def _cleanup_existing_alembic(self) -> None:
         """
@@ -78,7 +83,7 @@ class SchemaManager:
             except Exception as e:
                 logger.error(f"Failed to remove alembic.ini: {e}")
 
-    def _ensure_alembic_setup(self, force: bool = False) -> None:
+    def _ensure_alembic_setup(self, *, force: bool = False) -> None:
         """
         Ensures Alembic is properly set up, initializing if necessary.
 

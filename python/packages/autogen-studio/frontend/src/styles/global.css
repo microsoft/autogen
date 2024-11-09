@@ -261,6 +261,8 @@ a:hover {
 .ant-upload-text,
 .ant-btn,
 .ant-select,
+.ant-select > span,
+.ant-select-selector,
 .ant-form-item-required,
 .ant-upload-hint {
   @apply text-primary !important;
@@ -295,6 +297,7 @@ a:hover {
   @apply border-secondary !important;
 }
 .ant-btn,
+.ant-select-arrow,
 .ant-btn:hover {
   @apply text-primary !important;
 }

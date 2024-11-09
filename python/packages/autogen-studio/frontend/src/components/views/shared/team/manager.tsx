@@ -114,15 +114,10 @@ export const TeamManager: React.FC = () => {
             onDelete={handleDeleteTeam}
             isLoading={isLoading}
           />
-          <Badge
-            count={teams.length}
-            showZero
-            className="site-badge-count-4"
-            style={{ backgroundColor: "#52525b" }}
-          />
         </div>
       )}
       <Button
+        type="primary"
         onClick={() => {
           setEditingTeam(undefined);
           setIsEditorOpen(true);
@@ -137,7 +132,9 @@ export const TeamManager: React.FC = () => {
   return (
     <>
       <div className="bg-secondary rounded p-2">
-        <div className="text-xs pb-2">Teams</div>
+        <div className="text-xs pb-2">
+          Teams <span className="px-1 text-accent">{teams.length} </span>
+        </div>
         <TeamContent />
       </div>
       <TeamEditor

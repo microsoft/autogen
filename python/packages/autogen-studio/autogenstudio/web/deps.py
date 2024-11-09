@@ -94,15 +94,15 @@ async def init_managers(database_uri: str, config_dir: str) -> None:
 
     try:
         # Initialize database manager
-        _db_manager = DatabaseManager(engine_uri=database_uri)
+        _db_manager = DatabaseManager(
+            engine_uri=database_uri, auto_upgrade=settings.UPGRADE_DATABASE)
         _db_manager.create_db_and_tables()
-        logger.info("Database manager initialized")
 
         # init default team config
 
         _team_config_manager = ConfigurationManager(db_manager=_db_manager)
-        _team_config_manager.import_from_directory(
-            config_dir, settings.DEFAULT_USER_ID)
+        import_result = await _team_config_manager.import_directory(
+            config_dir, settings.DEFAULT_USER_ID, check_exists=True)
 
         # Initialize connection manager
         _websocket_manager = WebSocketManager(

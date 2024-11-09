@@ -14,15 +14,25 @@ import { ThreadState } from "./types";
 interface ThreadViewProps {
   messages: MessageConfig[];
   status: ThreadState["status"];
+  reason?: string; // Add reason
+  onCancel: (runId: string) => void;
+  runId: string;
+}
+
+interface StatusBannerProps {
+  status: ThreadState["status"];
+  reason?: string; // Add reason prop
   onCancel: (runId: string) => void;
   runId: string;
 }
 
 const StatusBanner = ({
   status,
+  reason,
   onCancel,
   runId,
-}: Pick<ThreadViewProps, "status" | "onCancel" | "runId">) => {
+}: StatusBannerProps) => {
+  // Define variants FIRST
   const variants = {
     streaming: {
       wrapper: "bg-secondary border border-secondary",
@@ -41,10 +51,10 @@ const StatusBanner = ({
     },
     cancelled: {
       wrapper: "bg-secondary border border-secondary",
-      text: "text-secondary",
-      icon: "text-secondary",
+      text: "text-red-500",
+      icon: "text-red-500",
     },
-  };
+  } as const;
 
   const content = {
     streaming: {
@@ -54,24 +64,27 @@ const StatusBanner = ({
     },
     complete: {
       icon: <CheckCircle size={16} />,
-      text: "Completed",
+      text: reason || "Completed",
       showStop: false,
     },
     error: {
       icon: <AlertCircle size={16} />,
-      text: "Error occurred",
+      text: reason || "Error occurred",
       showStop: false,
     },
     cancelled: {
       icon: <StopCircle size={16} />,
-      text: "Cancelled",
+      text: reason || "Cancelled",
       showStop: false,
     },
-  };
+  } as const;
 
-  const currentVariant = variants[status];
-  const currentContent = content[status];
+  // THEN check valid status and use variants
+  const validStatus = status && status in variants ? status : "error";
+  const currentVariant = variants[validStatus];
+  const currentContent = content[validStatus];
 
+  // Rest of component remains the same...
   return (
     <div
       className={`flex items-center mt-2 justify-between p-2 rounded transition-all duration-200 ${currentVariant.wrapper}`}
@@ -144,6 +157,7 @@ const Message = ({ msg, isLast }: { msg: MessageConfig; isLast: boolean }) => {
 export const ThreadView: React.FC<ThreadViewProps> = ({
   messages = [],
   status,
+  reason,
   onCancel,
   runId,
 }) => {
@@ -155,15 +169,21 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     }
   }, [messages, status]);
 
-  const displayMessages = messages.filter(
-    (msg): msg is MessageConfig =>
-      msg && typeof msg.content === "string" && msg.content !== "TERMINATE"
-  );
+  // const displayMessages = messages.filter(
+  //   (msg): msg is MessageConfig =>
+  //     msg && typeof msg.content === "string" && msg.content !== "TERMINATE"
+  // );
+  const displayMessages = messages;
 
   return (
     <div>
       <div className="space-y-2">
-        <StatusBanner status={status} onCancel={onCancel} runId={runId} />
+        <StatusBanner
+          status={status}
+          reason={reason}
+          onCancel={onCancel}
+          runId={runId}
+        />
 
         <div
           ref={scrollRef}
