@@ -33,6 +33,40 @@ class SocietyOfMindAgent(BaseChatAgent):
         team (Team): The team of agents to use.
         model_client (ChatCompletionClient): The model client to use for preparing responses.
         description (str, optional): The description of the agent.
+
+
+    Example:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_agentchat.agents import AssistantAgent, SocietyOfMindAgent
+        from autogen_ext.models import OpenAIChatCompletionClient
+        from autogen_agentchat.teams import RoundRobinGroupChat
+        from autogen_agentchat.task import MaxMessageTermination
+
+
+        async def main() -> None:
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            agent1 = AssistantAgent("assistant1", model_client=model_client, system_message="You are a helpful assistant.")
+            agent2 = AssistantAgent("assistant2", model_client=model_client, system_message="You are a helpful assistant.")
+            inner_termination = MaxMessageTermination(3)
+            inner_team = RoundRobinGroupChat([agent1, agent2], termination_condition=inner_termination)
+
+            society_of_mind_agent = SocietyOfMindAgent("society_of_mind", team=inner_team, model_client=model_client)
+
+            agent3 = AssistantAgent("assistant3", model_client=model_client, system_message="You are a helpful assistant.")
+            agent4 = AssistantAgent("assistant4", model_client=model_client, system_message="You are a helpful assistant.")
+            outter_termination = MaxMessageTermination(10)
+            team = RoundRobinGroupChat([society_of_mind_agent, agent3, agent4], termination_condition=outter_termination)
+
+            stream = team.run_stream(task="What is the meaning of life?")
+            async for message in stream:
+                print(message)
+
+
+        asyncio.run(main())
     """
 
     def __init__(
@@ -42,7 +76,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         model_client: ChatCompletionClient,
         *,
         description: str = "An agent that uses an inner team of agents to generate responses.",
-        task_prompt: str = "Here is a transcript of the conversation happened so far:\n{transcript}",
+        task_prompt: str = "{transcript}",
         response_prompt: str = "Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:\n{transcript}",
     ) -> None:
         super().__init__(name=name, description=description)
@@ -83,18 +117,18 @@ class SocietyOfMindAgent(BaseChatAgent):
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
                 result = inner_msg
-            elif inner_msg.content == task:
-                # Skip the task message.
-                continue
             else:
                 yield inner_msg
                 inner_messages.append(inner_msg)
         assert result is not None
 
-        if len(inner_messages) == 0:
-            yield Response(chat_message=TextMessage(source=self.name, content="No response."))
+        if len(inner_messages) < 2:
+            # The first message is the task message so we need at least 2 messages.
+            yield Response(
+                chat_message=TextMessage(source=self.name, content="No response."), inner_messages=inner_messages
+            )
         else:
-            prompt = self._response_prompt.format(transcript=self._create_transcript(inner_messages))
+            prompt = self._response_prompt.format(transcript=self._create_transcript(inner_messages[1:]))
             completion = await self._model_client.create(
                 messages=[SystemMessage(content=prompt)], cancellation_token=cancellation_token
             )
@@ -105,6 +139,9 @@ class SocietyOfMindAgent(BaseChatAgent):
             )
 
         # Reset the team.
+        await self._team.reset()
+
+    async def reset(self, cancellation_token: CancellationToken) -> None:
         await self._team.reset()
 
     def _create_transcript(self, messages: Sequence[AgentMessage]) -> str:
