@@ -35,7 +35,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         _context = context;
         context.AgentInstance = this;
         this.EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => {}).CreateLogger<AgentBase>();
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         Completion = Start();
     }
     internal Task Completion { get; }
@@ -204,7 +204,7 @@ public abstract class AgentBase : IAgentBase, IHandle
 
         var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
-        _context.Update(activity,item);
+        _context.Update(activity, item);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
             {

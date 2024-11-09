@@ -92,7 +92,7 @@ public class AgentWorker :
         {
             try
             {
-                if (message == null){ continue; }
+                if (message == null) { continue; }
                 switch (message)
                 {
                     case Message msg:

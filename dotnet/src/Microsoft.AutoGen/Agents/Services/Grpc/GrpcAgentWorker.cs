@@ -21,7 +21,7 @@ public sealed class GrpcAgentWorker(
     ILogger<GrpcAgentWorker> logger,
     DistributedContextPropagator distributedContextPropagator) :
     AgentWorker(hostApplicationLifetime,
-    serviceProvider, configuredAgentTypes,logger,distributedContextPropagator), IHostedService, IDisposable, IAgentWorker
+    serviceProvider, configuredAgentTypes, logger, distributedContextPropagator), IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();

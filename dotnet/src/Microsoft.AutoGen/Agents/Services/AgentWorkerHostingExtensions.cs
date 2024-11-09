@@ -33,9 +33,9 @@ public static class AgentWorkerHostingExtensions
         {
             builder.AddOrleans();
         }
-        
+
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        
+
         if (useGrpc)
         {
             builder.Services.AddGrpc();

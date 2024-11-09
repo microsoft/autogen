@@ -66,7 +66,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
             fieldValues = null;
             metadata.TryGetValue(fieldName, out fieldValue);
         });
-    
+
         return baggage as IDictionary<string, string> ?? new Dictionary<string, string>();
     }
 }

@@ -19,7 +19,7 @@ public static class HostBuilderExtensions
     public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
     {
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        
+
         // if !local, then add the gRPC client
         if (!local)
         {

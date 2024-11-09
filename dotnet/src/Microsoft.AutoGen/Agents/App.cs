@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // App.cs
-using Microsoft.AutoGen.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

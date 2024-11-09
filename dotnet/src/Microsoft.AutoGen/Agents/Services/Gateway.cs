@@ -42,7 +42,7 @@ internal class Gateway : BackgroundService, IGateway, IGrainWithIntegerKey
     public virtual async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (InMemoryQueue<Message>)connection;
-        await queue.Writer.WriteAsync(new Message {CloudEvent = cloudEvent}, cancellationToken).AsTask().ConfigureAwait(false);
+        await queue.Writer.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).AsTask().ConfigureAwait(false);
     }
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
