@@ -61,7 +61,6 @@ public abstract class AgentBase : IAgentBase, IHandle
             }
         }
     }
-
     public void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
 
     private async Task RunMessagePump()

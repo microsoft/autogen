@@ -47,9 +47,14 @@ public class AgentWorker :
         _gateway = (Gateway)_serviceProvider.GetRequiredService<IGateway>();
     }
     public InMemoryQueue<Message> GetMessageQueue() => _messageQueue;
-    public async ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
+    // this is the in-memory version - we just pass the message directly to the agent(s) that handle this type of event
+    public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
-        await WriteChannelAsync(new Message { CloudEvent = evt }, cancellationToken).ConfigureAwait(false);
+        foreach (var (typeName, _) in _agentTypes)
+        {
+            var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
+            agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
+        }
     }
     public ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
