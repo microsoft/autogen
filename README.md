@@ -109,11 +109,11 @@ and running on your machine.
 
 ```python
 import asyncio
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors import DockerCommandLineCodeExecutor
 from autogen_ext.models import OpenAIChatCompletionClient
 from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.task import TextMentionTermination
+from autogen_agentchat.task import TextMentionTermination, Console
 
 async def main() -> None:
     async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
@@ -126,8 +126,7 @@ async def main() -> None:
         stream = group_chat.run_stream(
             task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
         )
-        async for message in stream:
-            print(message)
+        await Console(stream)
 
 asyncio.run(main())
 ```
