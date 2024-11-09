@@ -10,7 +10,7 @@ namespace Microsoft.AutoGen.Agents;
 internal sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
 {
     private readonly GrpcGateway Gateway;
-    public GrpcGatewayService(IGateway gateway)
+    public GrpcGatewayService(GrpcGateway gateway)
     {
         Gateway = (GrpcGateway)gateway;
     }
