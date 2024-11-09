@@ -4,7 +4,7 @@ from typing import AsyncGenerator, List, Sequence
 from autogen_core.base import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, InnerMessage, MultiModalMessage, TextMessage
+from ..messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -42,7 +42,7 @@ class BaseChatAgent(ChatAgent, ABC):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[InnerMessage | Response, None]:
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in :class:`BaseChatAgent`
         simply calls :meth:`on_messages` and yields the messages in the response."""
