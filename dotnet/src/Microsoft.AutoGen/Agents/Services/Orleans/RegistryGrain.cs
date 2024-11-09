@@ -5,12 +5,12 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
+public sealed class RegistryGrain : Grain, IGrainWithIntegerKey
 {
     // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
-    private readonly Dictionary<IGateway, WorkerState> _workerStates = [];
-    private readonly Dictionary<string, List<IGateway>> _supportedAgentTypes = [];
-    private readonly Dictionary<(string Type, string Key), IGateway> _agentDirectory = [];
+    private readonly Dictionary<GrpcGateway, WorkerState> _workerStates = new();
+    private readonly Dictionary<string, List<GrpcGateway>> _supportedAgentTypes = [];
+    private readonly Dictionary<(string Type, string Key), GrpcGateway> _agentDirectory = [];
     private readonly TimeSpan _agentTimeout = TimeSpan.FromMinutes(1);
 
     public override Task OnActivateAsync(CancellationToken cancellationToken)
@@ -18,7 +18,7 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
     }
-    public ValueTask<(IGateway? Gateway, bool NewPlacment)> GetOrPlaceAgent(AgentId agentId)
+    public ValueTask<(GrpcGateway? Worker, bool NewPlacment)> GetOrPlaceAgent(AgentId agentId)
     {
         // TODO: 
         bool isNewPlacement;
@@ -44,7 +44,7 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         }
         return new((worker, isNewPlacement));
     }
-    public ValueTask RemoveWorker(IGateway worker)
+    public ValueTask RemoveWorker(GrpcGateway worker)
     {
         if (_workerStates.Remove(worker, out var state))
         {
@@ -58,7 +58,7 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         }
         return ValueTask.CompletedTask;
     }
-    public ValueTask RegisterAgentType(string type, IGateway worker)
+    public ValueTask RegisterAgentType(string type, GrpcGateway worker)
     {
         if (!_supportedAgentTypes.TryGetValue(type, out var supportedAgentTypes))
         {
@@ -73,12 +73,12 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         workerState.SupportedTypes.Add(type);
         return ValueTask.CompletedTask;
     }
-    public ValueTask AddWorker(IGateway worker)
+    public ValueTask AddWorker(GrpcGateway worker)
     {
         GetOrAddWorker(worker);
         return ValueTask.CompletedTask;
     }
-    public ValueTask UnregisterAgentType(string type, IGateway worker)
+    public ValueTask UnregisterAgentType(string type, GrpcGateway worker)
     {
         if (_workerStates.TryGetValue(worker, out var state))
         {
@@ -111,7 +111,7 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         return Task.CompletedTask;
     }
 
-    private WorkerState GetOrAddWorker(IGateway worker)
+    private WorkerState GetOrAddWorker(GrpcGateway worker)
     {
         if (!_workerStates.TryGetValue(worker, out var workerState))
         {
@@ -122,9 +122,9 @@ public sealed class RegistryGrain : Grain, IAgentRegistry, IGrainWithIntegerKey
         return workerState;
     }
 
-    public ValueTask<IGateway?> GetCompatibleWorker(string type) => new(GetCompatibleWorkerCore(type));
+    public ValueTask<GrpcGateway?> GetCompatibleWorker(string type) => new(GetCompatibleWorkerCore(type));
 
-    private IGateway? GetCompatibleWorkerCore(string type)
+    private GrpcGateway? GetCompatibleWorkerCore(string type)
     {
         if (_supportedAgentTypes.TryGetValue(type, out var workers))
         {

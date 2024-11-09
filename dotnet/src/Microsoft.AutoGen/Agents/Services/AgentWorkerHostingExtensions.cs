@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -39,8 +38,8 @@ public static class AgentWorkerHostingExtensions
         if (useGrpc)
         {
             builder.Services.AddGrpc();
-            builder.Services.AddSingleton<IGateway, GrpcGateway>();
-            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IGateway>());
+            builder.Services.AddSingleton<GrpcGateway>();
+            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
         }
 
         return builder;
