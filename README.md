@@ -101,32 +101,45 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev4' 'autogen-ext[docker]==0.4.0.dev4'
+pip install 'autogen-agentchat==0.4.0.dev4' 'autogen-ext[openai]==0.4.0.dev4'
 ```
 
-The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
-and running on your machine.
+The following code uses OpenAI's GPT-4o model and you need to provide your
+API key to run.
+To use Azure OpenAI models, follow the instruction
+[here](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/cookbook/azure-openai-with-aad-auth.html).
 
 ```python
 import asyncio
-from autogen_ext.code_executors import DockerCommandLineCodeExecutor
-from autogen_ext.models import OpenAIChatCompletionClient
-from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.task import Console, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.task import TextMentionTermination, Console
+from autogen_ext.models import OpenAIChatCompletionClient
+
+# Define a tool
+async def get_weather(city: str) -> str:
+    return f"The weather in {city} is 73 degrees and Sunny."
 
 async def main() -> None:
-    async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
-        code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
-        coding_assistant_agent = CodingAssistantAgent(
-            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o", api_key="YOUR_API_KEY")
-        )
-        termination = TextMentionTermination("TERMINATE")
-        group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent], termination_condition=termination)
-        stream = group_chat.run_stream(
-            task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
-        )
-        await Console(stream)
+    # Define an agent
+    weather_agent = AssistantAgent(
+        name="weather_agent",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06",
+            # api_key="YOUR_API_KEY",
+        ),
+        tools=[get_weather],
+    )
+
+    # Define termination condition
+    termination = TextMentionTermination("TERMINATE")
+
+    # Define a team
+    agent_team = RoundRobinGroupChat([weather_agent], termination_condition=termination)
+
+    # Run the team and stream messages to the console
+    stream = agent_team.run_stream(task="What is the weather in New York?")
+    await Console(stream)
 
 asyncio.run(main())
 ```
