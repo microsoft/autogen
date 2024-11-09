@@ -39,7 +39,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
         response.RequestId = request.RequestId;
-        await worker.SendResponseAsync(response, cancellationToken);
+        await worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
     public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
