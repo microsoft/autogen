@@ -40,12 +40,8 @@ public static class AgentWorkerHostingExtensions
         {
             builder.Services.AddGrpc();
             builder.Services.AddSingleton<IGateway, GrpcGateway>();
+            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IGateway>());
         }
-        else
-        {
-            builder.Services.AddSingleton<IGateway, Gateway>();
-        }
-        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IGateway>());
 
         return builder;
     }

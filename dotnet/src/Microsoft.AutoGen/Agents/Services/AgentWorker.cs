@@ -26,8 +26,6 @@ public class AgentWorker :
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
     private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
-    private readonly Gateway _gateway;
-
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
 
@@ -43,13 +41,13 @@ public class AgentWorker :
         _configuredAgentTypes = configuredAgentTypes;
         _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-        _gateway = (Gateway)_serviceProvider.GetRequiredService<IGateway>();
     }
     // this is the in-memory version - we just pass the message directly to the agent(s) that handle this type of event
     public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         foreach (var (typeName, _) in _agentTypes)
         {
+            if (typeName == "Client") { continue; }
             var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
