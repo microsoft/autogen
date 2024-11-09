@@ -20,9 +20,9 @@ from pydantic import BaseModel, Field, model_validator
 from .. import EVENT_LOGGER_NAME
 from ..base import Response
 from ..messages import (
+    AgentMessage,
     ChatMessage,
     HandoffMessage,
-    InnerMessage,
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
@@ -217,13 +217,13 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[InnerMessage | Response, None]:
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
             self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
-        inner_messages: List[InnerMessage] = []
+        inner_messages: List[AgentMessage] = []
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
