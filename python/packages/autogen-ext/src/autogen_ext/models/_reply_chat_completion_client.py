@@ -18,24 +18,37 @@ logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ReplayChatCompletionClient:
-    """A mock chat completion client that replays predefined responses."""
+    """A mock chat completion client that replays predefined responses.
+
+    This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects.
+
+    Example usage:
+    ```
+    chat_completions = [
+        "Hello, how can I assist you today?",
+        "I'm happy to help with any questions you have.",
+        "Is there anything else I can assist you with?",
+    ]
+    client = ReplayChatCompletionClient(chat_completions)
+    messages = [LLMMessage(content="What can you do?")]
+    response = await client.create(messages)
+    print(response.content)  # Output: "Hello, how can I assist you today?"
+
+    async for token in client.create_stream(messages):
+        print(token, end="")  # Output: "Hello, how can I assist you today?"
+    ```
+    """
 
     __protocol__: ChatCompletionClient
 
     # TODO: Support FunctionCall in responses
     # TODO: Support logprobs in Responses
     # TODO: Support model capabilities
+
     def __init__(
         self,
         chat_completions: Sequence[Union[str, CreateResult]],
     ):
-        """Initialize with a list of chat completions to replay.
-
-        Args:
-            chat_completions: List of responses to return. Each response can be:
-                - A string (will be wrapped in a completion response)
-                - A CreateResult object
-        """
         self.chat_completions = list(chat_completions)
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
