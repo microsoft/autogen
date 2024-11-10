@@ -7,7 +7,7 @@ from autogen_ext.task import AgentNameTermination
 
 @pytest.mark.asyncio
 async def test_agent_name_termination() -> None:
-    termination = AgentNameTermination(agent_name="Assistant")
+    termination = AgentNameTermination(agents=["Assistant"])
     assert await termination([]) is None
 
     continue_messages = [

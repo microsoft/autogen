@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, List
 
 from autogen_agentchat.base import TerminationCondition, TerminatedException
 from autogen_agentchat.messages import StopMessage, AgentMessage, ChatMessage
@@ -8,14 +8,14 @@ class AgentNameTermination(TerminationCondition):
     """Terminate the conversation after a specific agent responds.
 
     Args:
-        agent_name (str): The name of the agent whose response will trigger the termination.
+        agents (List[str]): List of agent names to terminate the conversation.
 
     Raises:
         TerminatedException: If the termination condition has already been reached.
     """
 
-    def __init__(self, agent_name: str) -> None:
-        self._agent_name = agent_name
+    def __init__(self, agents: List[str]) -> None:
+        self._agents = agents
         self._terminated = False
 
     @property
@@ -28,10 +28,10 @@ class AgentNameTermination(TerminationCondition):
         if not messages:
             return None
         last_message = messages[-1]
-        if last_message.source == self._agent_name:
+        if last_message.source in self._agents:
             if isinstance(last_message, ChatMessage):
                 self._terminated = True
-                return StopMessage(content=f"Agent '{self._agent_name}' answered", source="AgentNameTermination")
+                return StopMessage(content=f"Agent '{last_message.source}' answered", source="AgentNameTermination")
         return None
 
     async def reset(self) -> None:
