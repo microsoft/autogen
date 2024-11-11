@@ -36,7 +36,12 @@
     {
         "name": "0.4.0.dev5",
         "version": "0.4.0.dev5",
-        "url": "/autogen/0.4.0.dev5/",
+        "url": "/autogen/0.4.0.dev5/"
+    },
+    {
+        "name": "0.4.0.dev6",
+        "version": "0.4.0.dev6",
+        "url": "/autogen/0.4.0.dev6/",
         "preferred": true
     }
 ]
