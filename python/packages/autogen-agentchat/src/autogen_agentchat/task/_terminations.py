@@ -1,7 +1,7 @@
 from typing import Sequence
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import AgentMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
 
 
 class StopMessageTermination(TerminationCondition):
@@ -144,3 +144,34 @@ class TokenUsageTermination(TerminationCondition):
         self._total_token_count = 0
         self._prompt_token_count = 0
         self._completion_token_count = 0
+
+
+class HandoffTermination(TerminationCondition):
+    """Terminate the conversation if a :class:`~autogen_agentchat.messages.HandoffMessage`
+    with the given target is received.
+
+    Args:
+        target (str): The target of the handoff message.
+    """
+
+    def __init__(self, target: str) -> None:
+        self._terminated = False
+        self._target = target
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        for message in messages:
+            if isinstance(message, HandoffMessage) and message.target == self._target:
+                self._terminated = True
+                return StopMessage(
+                    content=f"Handoff to {self._target} from {message.source} detected.", source="HandoffTermination"
+                )
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
