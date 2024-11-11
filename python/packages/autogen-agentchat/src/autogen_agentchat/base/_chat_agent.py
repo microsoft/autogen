@@ -51,6 +51,6 @@ class ChatAgent(TaskRunner, Protocol):
         and the final item is the response."""
         ...
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
         ...
