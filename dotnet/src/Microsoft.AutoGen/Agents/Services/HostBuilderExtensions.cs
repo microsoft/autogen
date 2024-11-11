@@ -30,7 +30,6 @@ public static class HostBuilderExtensions
             builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
         }
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
-        builder.Services.AddSingleton<IAgentBase, Client>();
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
@@ -98,6 +97,7 @@ public static class HostBuilderExtensions
             }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
+        builder.Services.AddSingleton<Client>();
         return new AgentApplicationBuilder(builder);
     }
 
@@ -135,7 +135,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
                                 .SelectMany(assembly => assembly.GetTypes())
                                 .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
-                                    && !type.Name.Equals("AgentWorker"))
+                                    && !type.Name.Equals(nameof(Client)))
                                 .ToDictionary(type => type.Name, type => type);
 
         return new AgentTypes(agents);
