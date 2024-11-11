@@ -70,7 +70,7 @@ ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
 """Messages for agent-to-agent communication."""
 
 
-AgentMessage = InnerMessage | ChatMessage
+AgentMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage
 """All message types."""
 
 

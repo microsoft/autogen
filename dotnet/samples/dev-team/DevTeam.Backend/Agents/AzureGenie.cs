@@ -20,7 +20,7 @@ public class AzureGenie(IAgentContext context, Kernel kernel, ISemanticTextMemor
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();
         //               // await Store(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"), "readme", "md", "output", data["readme"]);
-        //                await PublishEvent(new Event
+        //                await PublishEventAsync(new Event
         //                {
         //                    Namespace = item.Namespace,
         //                    Type = nameof(EventTypes.ReadmeStored),
@@ -36,7 +36,7 @@ public class AzureGenie(IAgentContext context, Kernel kernel, ISemanticTextMemor
         //                //var data = item.ToData();
         //               // await Store(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"), "run", "sh", "output", data["code"]);
         //               // await RunInSandbox(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"));
-        //                await PublishEvent(new Event
+        //                await PublishEventAsync(new Event
         //                {
         //                    Namespace = item.Namespace,
         //                    Type = nameof(EventTypes.SandboxRunCreated),

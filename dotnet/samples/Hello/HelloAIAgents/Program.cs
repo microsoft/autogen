@@ -46,14 +46,14 @@ namespace Hello
             var evt = new Output
             {
                 Message = response
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(evt).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(goodbye).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
         public async Task Handle(ConversationClosed item)
         {
@@ -61,8 +61,8 @@ namespace Hello
             var evt = new Output
             {
                 Message = goodbye
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(evt).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
             //sleep30 seconds
             await Task.Delay(30000).ConfigureAwait(false);
             await AgentsApp.ShutdownAsync().ConfigureAwait(false);

@@ -18,7 +18,7 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, TextMessage
+from ...messages import AgentMessage, MultiModalMessage, TextMessage
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -160,11 +160,12 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | None = None,
+        task: str | TextMessage | MultiModalMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result.
+        Once the team is stopped, the termination condition is reset.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -189,10 +190,7 @@ class BaseGroupChat(Team, ABC):
                 result = await team.run(task="Count from 1 to 10, respond one at a time.")
                 print(result)
 
-                # Reset the termination condition.
-                await termination.reset()
-
-                # Run the team again without a task.
+                # Run the team again without a task to continue the previous task.
                 result = await team.run()
                 print(result)
 
@@ -213,11 +211,12 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | None = None,
+        task: str | TextMessage | MultiModalMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
-        of the type :class:`TaskResult` as the last item in the stream.
+        of the type :class:`TaskResult` as the last item in the stream. Once the
+        team is stopped, the termination condition is reset.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -242,10 +241,7 @@ class BaseGroupChat(Team, ABC):
                 async for message in stream:
                     print(message)
 
-                # Reset the termination condition.
-                await termination.reset()
-
-                # Run the team again without a task.
+                # Run the team again without a task to continue the previous task.
                 stream = team.run_stream()
                 async for message in stream:
                     print(message)
@@ -266,10 +262,11 @@ class BaseGroupChat(Team, ABC):
             await self._init(self._runtime)
 
         # Run the team by publishing the start message.
-        if task is None:
-            first_chat_message = None
-        else:
+        first_chat_message: TextMessage | MultiModalMessage | None = None
+        if isinstance(task, str):
             first_chat_message = TextMessage(content=task, source="user")
+        elif isinstance(task, TextMessage | MultiModalMessage):
+            first_chat_message = task
         await self._runtime.publish_message(
             GroupChatStart(message=first_chat_message),
             topic_id=TopicId(type=self._group_topic_type, source=self._team_id),
@@ -304,7 +301,7 @@ class BaseGroupChat(Team, ABC):
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
 
-        This includes the termination condition. The team must be stopped before it can be reset.
+        The team must be stopped before it can be reset.
 
         Raises:
             RuntimeError: If the team has not been initialized or is currently running.

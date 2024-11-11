@@ -37,17 +37,14 @@ namespace Hello
         public async Task Handle(NewMessageReceived item)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
-            var evt = new Output
-            {
-                Message = response
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(evt).ConfigureAwait(false);
+            var evt = new Output { Message = response };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(goodbye).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
         public async Task Handle(ConversationClosed item)
         {
@@ -55,8 +52,8 @@ namespace Hello
             var evt = new Output
             {
                 Message = goodbye
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(evt).ConfigureAwait(false);
+            };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
 
             // Signal shutdown.
             hostApplicationLifetime.StopApplication();
