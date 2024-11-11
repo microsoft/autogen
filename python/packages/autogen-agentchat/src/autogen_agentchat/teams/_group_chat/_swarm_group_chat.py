@@ -20,6 +20,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -27,10 +28,12 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            max_turns,
         )
         self._current_speaker = participant_topic_types[0]
 
     async def reset(self) -> None:
+        self._current_turn = 0
         self._message_thread.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
@@ -59,6 +62,7 @@ class Swarm(BaseGroupChat):
         participants (List[ChatAgent]): The agents participating in the group chat. The first agent in the list is the initial speaker.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
+        max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
 
     Examples:
 
@@ -96,10 +100,16 @@ class Swarm(BaseGroupChat):
     """
 
     def __init__(
-        self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None
+        self,
+        participants: List[ChatAgent],
+        termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ) -> None:
         super().__init__(
-            participants, group_chat_manager_class=SwarmGroupChatManager, termination_condition=termination_condition
+            participants,
+            group_chat_manager_class=SwarmGroupChatManager,
+            termination_condition=termination_condition,
+            max_turns=max_turns,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -113,6 +123,7 @@ class Swarm(BaseGroupChat):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -121,6 +132,7 @@ class Swarm(BaseGroupChat):
                 participant_topic_types,
                 participant_descriptions,
                 termination_condition,
+                max_turns,
             )
 
         return _factory
