@@ -298,6 +298,6 @@ class AssistantAgent(BaseChatAgent):
         except Exception as e:
             return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
         self._model_context.clear()

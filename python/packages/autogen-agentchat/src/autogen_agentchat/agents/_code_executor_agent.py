@@ -39,6 +39,6 @@ class CodeExecutorAgent(BaseChatAgent):
         else:
             return Response(chat_message=TextMessage(content="No code blocks found in the thread.", source=self.name))
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """It it's a no-op as the code executor agent has no mutable state."""
         pass

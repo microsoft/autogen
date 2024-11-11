@@ -83,7 +83,7 @@ class _EchoAgent(BaseChatAgent):
             assert self._last_message is not None
             return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
 
@@ -633,7 +633,7 @@ class _HandOffAgent(BaseChatAgent):
             )
         )
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
 
 
