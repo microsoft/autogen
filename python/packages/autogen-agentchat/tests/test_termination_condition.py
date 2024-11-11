@@ -17,7 +17,7 @@ async def test_handoff_termination() -> None:
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
     await termination.reset()
-    await termination([HandoffMessage(target="target", source="user", content="Hello")]) is not None
+    assert await termination([HandoffMessage(target="target", source="user", content="Hello")]) is not None
     assert termination.terminated
     await termination.reset()
     assert await termination([HandoffMessage(target="another", source="user", content="Hello")]) is None
