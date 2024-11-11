@@ -1,7 +1,9 @@
+import inspect
 import json
 from dataclasses import asdict, dataclass, fields
 from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable
 
+from google.protobuf.message import Message
 from pydantic import BaseModel
 
 from autogen_core.base._type_helpers import is_union
@@ -90,6 +92,8 @@ def has_nested_base_model_in_type(tp: Any) -> bool:
 DataclassT = TypeVar("DataclassT", bound=IsDataclass)
 
 JSON_DATA_CONTENT_TYPE = "application/json"
+# TODO: what's the correct content type? There seems to be some disagreement over what it should be
+PROTOBUF_DATA_CONTENT_TYPE = "application/x-protobuf"
 
 
 class DataclassJsonMessageSerializer(MessageSerializer[DataclassT]):
@@ -143,6 +147,31 @@ class PydanticJsonMessageSerializer(MessageSerializer[PydanticT]):
         return message.model_dump_json().encode("utf-8")
 
 
+ProtobufT = TypeVar("ProtobufT", bound=Message)
+
+
+class ProtobufMessageSerializer(MessageSerializer[ProtobufT]):
+    def __init__(self, cls: type[ProtobufT]) -> None:
+        self.cls = cls
+
+    @property
+    def data_content_type(self) -> str:
+        # TODO: This should be PROTOBUF_DATA_CONTENT_TYPE
+        return JSON_DATA_CONTENT_TYPE
+
+    @property
+    def type_name(self) -> str:
+        return _type_name(self.cls)
+
+    def deserialize(self, payload: bytes) -> ProtobufT:
+        ret = self.cls()
+        ret.ParseFromString(payload)
+        return ret
+
+    def serialize(self, message: ProtobufT) -> bytes:
+        return message.SerializeToString()
+
+
 @dataclass
 class UnknownPayload:
     type_name: str
@@ -161,12 +190,13 @@ V = TypeVar("V")
 
 
 def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer[Any]]:
-    # TODO: Support protobuf types
     serializers: List[MessageSerializer[Any]] = []
     if issubclass(cls, BaseModel):
         serializers.append(PydanticJsonMessageSerializer(cls))
     elif isinstance(cls, IsDataclass):
         serializers.append(DataclassJsonMessageSerializer(cls))
+    elif issubclass(cls, Message):
+        serializers.append(ProtobufMessageSerializer(cls))
 
     return serializers
 
