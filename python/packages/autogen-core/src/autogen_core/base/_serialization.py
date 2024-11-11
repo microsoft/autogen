@@ -1,4 +1,3 @@
-import inspect
 import json
 from dataclasses import asdict, dataclass, fields
 from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable

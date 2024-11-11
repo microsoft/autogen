@@ -1,11 +1,36 @@
 import asyncio
 import logging
+from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.base import MessageContext, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
-from messages_pb2 import AskToGreet, Feedback, Greeting, ReturnedFeedback, ReturnedGreeting
+
+
+@dataclass
+class AskToGreet:
+    content: str
+
+
+@dataclass
+class Greeting:
+    content: str
+
+
+@dataclass
+class ReturnedGreeting:
+    content: str
+
+
+@dataclass
+class Feedback:
+    content: str
+
+
+@dataclass
+class ReturnedFeedback:
+    content: str
 
 
 class ReceiveAgent(RoutedAgent):
@@ -14,15 +39,11 @@ class ReceiveAgent(RoutedAgent):
 
     @message_handler
     async def on_greet(self, message: Greeting, ctx: MessageContext) -> None:
-        await self.publish_message(
-            ReturnedGreeting(content=f"Returned greeting: {message.content}"), topic_id=DefaultTopicId()
-        )
+        await self.publish_message(ReturnedGreeting(f"Returned greeting: {message.content}"), topic_id=DefaultTopicId())
 
     @message_handler
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
-        await self.publish_message(
-            ReturnedFeedback(content=f"Returned feedback: {message.content}"), topic_id=DefaultTopicId()
-        )
+        await self.publish_message(ReturnedFeedback(f"Returned feedback: {message.content}"), topic_id=DefaultTopicId())
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
         print(f"Unhandled message: {message}")
@@ -34,11 +55,11 @@ class GreeterAgent(RoutedAgent):
 
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
-        await self.publish_message(Greeting(content=f"Hello, {message.content}!"), topic_id=DefaultTopicId())
+        await self.publish_message(Greeting(f"Hello, {message.content}!"), topic_id=DefaultTopicId())
 
     @message_handler
     async def on_returned_greet(self, message: ReturnedGreeting, ctx: MessageContext) -> None:
-        await self.publish_message(Feedback(content=f"Feedback: {message.content}"), topic_id=DefaultTopicId())
+        await self.publish_message(Feedback(f"Feedback: {message.content}"), topic_id=DefaultTopicId())
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
         print(f"Unhandled message: {message}")
@@ -55,7 +76,7 @@ async def main() -> None:
     await GreeterAgent.register(runtime, "greeter", GreeterAgent)
     await runtime.add_subscription(DefaultSubscription(agent_type="greeter"))
 
-    await runtime.publish_message(AskToGreet(content="Hello World!"), topic_id=DefaultTopicId())
+    await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
     await runtime.stop_when_signal()
 
