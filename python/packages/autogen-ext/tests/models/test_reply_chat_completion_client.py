@@ -146,3 +146,27 @@ async def test_token_count_logics() -> None:
     after_create_stream_usage = reply_model_client.total_usage()
     assert after_create_stream_usage.completion_tokens > before_cteate_stream_usage.completion_tokens
     assert after_create_stream_usage.prompt_tokens > before_cteate_stream_usage.prompt_tokens
+
+
+@pytest.mark.asyncio
+async def test_reply_chat_completion_client_reset() -> None:
+    """Test that reset functionality properly resets the client state."""
+    messages = ["First message", "Second message", "Third message"]
+    client = ReplayChatCompletionClient(messages)
+
+    # Use all messages once
+    for expected_msg in messages:
+        completion = await client.create([UserMessage(content="dummy", source="_")])
+        assert completion.content == expected_msg
+
+    # Should raise error when no more messages
+    with pytest.raises(ValueError, match="No more mock responses available"):
+        await client.create([UserMessage(content="dummy", source="_")])
+
+    # Reset the client
+    client.reset()
+
+    # Should be able to get all messages again in the same order
+    for expected_msg in messages:
+        completion = await client.create([UserMessage(content="dummy", source="_")])
+        assert completion.content == expected_msg

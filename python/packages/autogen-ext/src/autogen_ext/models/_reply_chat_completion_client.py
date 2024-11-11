@@ -18,9 +18,9 @@ logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ReplayChatCompletionClient:
-    """A mock chat completion client that replays predefined responses.
+    """A mock chat completion client that replays predefined responses using an index-based approach.
 
-    This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects.
+    This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects. The client now uses an index-based approach to access the responses, allowing for resetting the state.
 
     Example usage:
     ```
@@ -36,6 +36,10 @@ class ReplayChatCompletionClient:
 
     async for token in client.create_stream(messages):
         print(token, end="")  # Output: "Hello, how can I assist you today?"
+
+    client.reset()  # Reset the client state
+    response = await client.create(messages)
+    print(response.content)  # Output: "Hello, how can I assist you today?" again
     ```
     """
 
@@ -50,11 +54,12 @@ class ReplayChatCompletionClient:
         chat_completions: Sequence[Union[str, CreateResult]],
     ):
         self.chat_completions = list(chat_completions)
-        self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
-        self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self.provided_message_count = len(self.chat_completions)
         self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
         self._total_available_tokens = 10000
+        self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        self._current_index = 0
 
     async def create(
         self,
@@ -65,10 +70,10 @@ class ReplayChatCompletionClient:
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         """Return the next completion from the list."""
-        if not self.chat_completions:
+        if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 
-        response = self.chat_completions.pop(0)
+        response = self.chat_completions[self._current_index]
         _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
             _, output_token_count = self._tokenize(response)
@@ -80,6 +85,7 @@ class ReplayChatCompletionClient:
             )
 
         self._update_total_usage()
+        self._current_index += 1
         return response
 
     async def create_stream(
@@ -91,10 +97,10 @@ class ReplayChatCompletionClient:
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Return the next completion as a stream."""
-        if not self.chat_completions:
+        if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 
-        response = self.chat_completions.pop(0)
+        response = self.chat_completions[self._current_index]
         _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
             output_tokens, output_token_count = self._tokenize(response)
@@ -112,6 +118,8 @@ class ReplayChatCompletionClient:
             )
             yield response
             self._update_total_usage()
+
+        self._current_index += 1
 
     def actual_usage(self) -> RequestUsage:
         return self._cur_usage
@@ -160,3 +168,9 @@ class ReplayChatCompletionClient:
     def capabilities(self) -> ModelCapabilities:
         """Return mock capabilities."""
         return self._model_capabilities
+
+    def reset(self) -> None:
+        """Reset the client state to its initial state."""
+        self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        self._current_index = 0
