@@ -12,6 +12,7 @@ myst:
 :hidden:
 
 azure-container-code-executor
+watsonx-client-integration
 ```
 
 
@@ -61,7 +62,7 @@ Find community samples and examples of how to use AutoGen
 - Description should be a brief description of the project. 1 short sentence is ideal. -->
 
 
-## Built-in extenions
+## Built-in extensions
 
 Read docs for built in extensions:
 
