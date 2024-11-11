@@ -1,7 +1,8 @@
 from typing import List
 
-from autogen_core.components import Image
-from pydantic import BaseModel
+from autogen_core.components import FunctionCall, Image
+from autogen_core.components.models import FunctionExecutionResult, RequestUsage
+from pydantic import BaseModel, ConfigDict
 
 
 class BaseMessage(BaseModel):
@@ -9,6 +10,11 @@ class BaseMessage(BaseModel):
 
     source: str
     """The name of the agent that sent this message."""
+
+    models_usage: RequestUsage | None = None
+    """The model client usage incurred when producing this message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TextMessage(BaseMessage):
@@ -35,12 +41,37 @@ class StopMessage(BaseMessage):
 class HandoffMessage(BaseMessage):
     """A message requesting handoff of a conversation to another agent."""
 
+    target: str
+    """The name of the target agent to handoff to."""
+
     content: str
-    """The agent name to handoff the conversation to."""
+    """The handoff message to the target agent."""
+
+
+class ToolCallMessage(BaseMessage):
+    """A message signaling the use of tools."""
+
+    content: List[FunctionCall]
+    """The tool calls."""
+
+
+class ToolCallResultMessage(BaseMessage):
+    """A message signaling the results of tool calls."""
+
+    content: List[FunctionExecutionResult]
+    """The tool call results."""
+
+
+InnerMessage = ToolCallMessage | ToolCallResultMessage
+"""Messages for intra-agent monologues."""
 
 
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
-"""A message used by agents in a team."""
+"""Messages for agent-to-agent communication."""
+
+
+AgentMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage
+"""All message types."""
 
 
 __all__ = [
@@ -49,5 +80,9 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
+    "ToolCallMessage",
+    "ToolCallResultMessage",
     "ChatMessage",
+    "InnerMessage",
+    "AgentMessage",
 ]

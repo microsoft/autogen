@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Developer.cs
+
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
@@ -21,8 +24,8 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
             Repo = item.Repo,
             IssueNumber = item.IssueNumber,
             Code = code
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public async Task Handle(CodeChainClosed item)
@@ -32,8 +35,8 @@ public class Dev(IAgentContext context, Kernel kernel, ISemanticTextMemory memor
         var evt = new CodeCreated
         {
             Code = lastCode
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public async Task<string> GenerateCode(string ask)

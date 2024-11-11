@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import AsyncGenerator, List, Sequence
 
 from autogen_core.base import CancellationToken
 
-from ..base import ChatAgent, TaskResult, TerminationCondition
-from ..messages import ChatMessage
-from ..teams import RoundRobinGroupChat
+from ..base import ChatAgent, Response, TaskResult
+from ..messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -30,23 +29,83 @@ class BaseChatAgent(ChatAgent, ABC):
         describe the agent's capabilities and how to interact with it."""
         return self._description
 
+    @property
     @abstractmethod
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        """Handle incoming messages and return a response message."""
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
         ...
+
+    @abstractmethod
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        """Handles incoming messages and returns a response."""
+        ...
+
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
+        """Handles incoming messages and returns a stream of messages and
+        and the final item is the response. The base implementation in :class:`BaseChatAgent`
+        simply calls :meth:`on_messages` and yields the messages in the response."""
+        response = await self.on_messages(messages, cancellation_token)
+        for inner_message in response.inner_messages or []:
+            yield inner_message
+        yield response
 
     async def run(
         self,
-        task: str,
         *,
+        task: str | TextMessage | MultiModalMessage | None = None,
         cancellation_token: CancellationToken | None = None,
-        termination_condition: TerminationCondition | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
-        group_chat = RoundRobinGroupChat(participants=[self])
-        result = await group_chat.run(
-            task=task,
-            cancellation_token=cancellation_token,
-            termination_condition=termination_condition,
-        )
-        return result
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+        elif isinstance(task, TextMessage | MultiModalMessage):
+            input_messages.append(task)
+            output_messages.append(task)
+        response = await self.on_messages(input_messages, cancellation_token)
+        if response.inner_messages is not None:
+            output_messages += response.inner_messages
+        output_messages.append(response.chat_message)
+        return TaskResult(messages=output_messages)
+
+    async def run_stream(
+        self,
+        *,
+        task: str | TextMessage | MultiModalMessage | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+        """Run the agent with the given task and return a stream of messages
+        and the final task result as the last item in the stream."""
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+            yield text_msg
+        elif isinstance(task, TextMessage | MultiModalMessage):
+            input_messages.append(task)
+            output_messages.append(task)
+            yield task
+        async for message in self.on_messages_stream(input_messages, cancellation_token):
+            if isinstance(message, Response):
+                yield message.chat_message
+                output_messages.append(message.chat_message)
+                yield TaskResult(messages=output_messages)
+            else:
+                output_messages.append(message)
+                yield message
+
+    @abstractmethod
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent to its initialization state."""
+        ...

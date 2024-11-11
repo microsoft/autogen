@@ -1,4 +1,8 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AgentBase.cs
+
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -8,18 +12,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase
+public abstract class AgentBase : IAgentBase, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
+    public AgentId AgentId => _context.AgentId;
     private readonly object _lock = new();
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentContext _context;
+    public string Route { get; set; } = "base";
 
-    protected internal AgentId AgentId => _context.AgentId;
     protected internal ILogger Logger => _context.Logger;
-    protected internal IAgentContext Context => _context;
+    public IAgentContext Context => _context;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(IAgentContext context, EventTypes eventTypes)
@@ -54,7 +59,7 @@ public abstract class AgentBase
         }
     }
 
-    internal void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
+    public void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
 
     private async Task RunMessagePump()
     {
@@ -79,7 +84,7 @@ public abstract class AgentBase
         }
     }
 
-    private async Task HandleRpcMessage(Message msg)
+    protected internal async Task HandleRpcMessage(Message msg)
     {
         switch (msg.MessageCase)
         {
@@ -108,7 +113,16 @@ public abstract class AgentBase
                 break;
         }
     }
-
+    public async Task Store(AgentState state)
+    {
+        await _context.Store(state).ConfigureAwait(false);
+        return;
+    }
+    public async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
+    {
+        var agentstate = await _context.Read(agentId).ConfigureAwait(false);
+        return agentstate.FromAgentState<T>();
+    }
     private void OnResponseCore(RpcResponse response)
     {
         var requestId = response.RequestId;
@@ -123,7 +137,6 @@ public abstract class AgentBase
 
         completion.SetResult(response);
     }
-
     private async Task OnRequestCore(RpcRequest request)
     {
         RpcResponse response;
@@ -184,38 +197,86 @@ public abstract class AgentBase
         return await completion.Task.ConfigureAwait(false);
     }
 
-    protected async ValueTask PublishEvent(CloudEvent item)
+    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
     {
-        //TODO: Reimplement
-        var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var evt = message.ToCloudEvent(src);
+        await PublishEventAsync(evt, token).ConfigureAwait(false);
+    }
+
+    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken token = default)
+    {
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
-        var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
         Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
+            static async ((AgentBase Agent, CloudEvent Event) state) =>
             {
                 await state.Agent._context.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
-            (this, item, completion),
+            (this, item),
             activity,
-            item.Type).ConfigureAwait(false);// TODO: It's not the descriptor's name probably
+            item.Type).ConfigureAwait(false);
     }
 
     public Task CallHandler(CloudEvent item)
     {
         // Only send the event to the handler if the agent type is handling that type
-        if (EventTypes.EventsMap[GetType()].Contains(item.Type))
+        // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
+        foreach (var key in EventTypes.EventsMap.Keys)
         {
-            var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-            var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
-            var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle)) ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-            return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+            if (EventTypes.EventsMap[key].Contains(item.Type))
+            {
+                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
+                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
+
+                MethodInfo methodInfo;
+                try
+                {
+                    // check that our target actually implements this interface, otherwise call the default static
+                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
+                    {
+                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                    }
+                    else
+                    {
+                        // The error here is we have registered for an event that we do not have code to listen to
+                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                    throw; // TODO: ?
+                }
+            }
         }
+
         return Task.CompletedTask;
     }
 
-    protected virtual Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+
+    public virtual Task HandleObject(object item)
+    {
+        // get all Handle<T> methods
+        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
+
+        // get the one that matches the type of the item
+        var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
+
+        // if we found one, invoke it
+        if (handleTMethod != null)
+        {
+            return (Task)handleTMethod.Invoke(this, [item])!;
+        }
+
+        // otherwise, complain
+        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
 }

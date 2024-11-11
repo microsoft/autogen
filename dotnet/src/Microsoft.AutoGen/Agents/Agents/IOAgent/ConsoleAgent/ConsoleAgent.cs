@@ -1,9 +1,12 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ConsoleAgent.cs
+
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class ConsoleAgent : IOAgent<AgentState>,
+public abstract class ConsoleAgent : IOAgent,
         IUseConsole,
         IHandle<Input>,
         IHandle<Output>
@@ -24,8 +27,8 @@ public abstract class ConsoleAgent : IOAgent<AgentState>,
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -37,8 +40,8 @@ public abstract class ConsoleAgent : IOAgent<AgentState>,
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)

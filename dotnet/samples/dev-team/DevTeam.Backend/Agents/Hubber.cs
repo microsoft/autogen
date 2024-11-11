@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Hubber.cs
+
 using System.Text.Json;
 using DevTeam;
 using DevTeam.Backend;

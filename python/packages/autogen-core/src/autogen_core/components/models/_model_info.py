@@ -112,7 +112,7 @@ def resolve_model(model: str) -> str:
     return model
 
 
-def get_capabilties(model: str) -> ModelCapabilities:
+def get_capabilities(model: str) -> ModelCapabilities:
     resolved_model = resolve_model(model)
     return _MODEL_CAPABILITIES[resolved_model]
 

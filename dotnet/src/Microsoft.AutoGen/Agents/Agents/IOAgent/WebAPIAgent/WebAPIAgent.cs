@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// WebAPIAgent.cs
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AutoGen.Abstractions;
@@ -6,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class WebAPIAgent : IOAgent<AgentState>,
+public abstract class WebAPIAgent : IOAgent,
         IUseWebAPI,
         IHandle<Input>,
         IHandle<Output>
@@ -58,8 +61,8 @@ public abstract class WebAPIAgent : IOAgent<AgentState>,
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -68,8 +71,8 @@ public abstract class WebAPIAgent : IOAgent<AgentState>,
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)

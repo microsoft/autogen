@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GithubService.cs
+
 using System.Text;
 using Azure.Storage.Files.Shares;
 using DevTeam.Options;
