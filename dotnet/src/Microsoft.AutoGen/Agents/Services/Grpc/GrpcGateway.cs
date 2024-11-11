@@ -9,14 +9,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class GrpcGateway : BackgroundService, IGrainObserver
+public sealed class GrpcGateway : BackgroundService, IGateway
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
-    private readonly RegistryGrain _gatewayRegistry;
-    private readonly GrpcGateway _reference;
+    private readonly IRegistryGrain _gatewayRegistry;
+    private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
@@ -27,12 +27,12 @@ public sealed class GrpcGateway : BackgroundService, IGrainObserver
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     // InMemory Message Queue
 
-    public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger, RegistryGrain gatewayRegistry)
+    public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger)
     {
         _logger = logger;
         _clusterClient = clusterClient;
-        _reference = clusterClient.CreateObjectReference<GrpcGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<RegistryGrain>(0);
+        _reference = clusterClient.CreateObjectReference<IGateway>(this);
+        _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
     }
     public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
     {

@@ -84,7 +84,7 @@ public static class OrleansRuntimeHostingExtenions
               .AddMemoryGrainStorage("PubSubStore");
             }
         });
-        builder.Services.AddSingleton<RegistryGrain>();
+        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
         return builder;
     }
 }
