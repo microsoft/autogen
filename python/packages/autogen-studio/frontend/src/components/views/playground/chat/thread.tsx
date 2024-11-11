@@ -8,11 +8,12 @@ import {
   StopCircle,
 } from "lucide-react";
 import { Tooltip } from "antd";
-import { MessageConfig } from "../../../types/datamodel";
+import { AgentMessageConfig } from "../../../types/datamodel";
 import { ThreadState } from "./types";
+import { RenderMessage } from "./rendermessage";
 
 interface ThreadViewProps {
-  messages: MessageConfig[];
+  messages: AgentMessageConfig[];
   status: ThreadState["status"];
   reason?: string; // Add reason
   onCancel: (runId: string) => void;
@@ -108,52 +109,6 @@ const StatusBanner = ({
   );
 };
 
-const Message = ({ msg, isLast }: { msg: MessageConfig; isLast: boolean }) => {
-  const isUser = msg.source === "user";
-
-  return (
-    <div className={`relative group ${!isLast ? "mb-2" : ""}`}>
-      <div
-        className={`
-        flex items-start gap-2 p-2 rounded
-        ${isUser ? "bg-secondary" : "bg-tertiary"}
-        border border-secondary
-        transition-all duration-200
-      `}
-      >
-        <div
-          className={`
-          p-1.5 rounded bg-light 
-          ${isUser ? " text-accent" : "text-primary"}
-        `}
-        >
-          {isUser ? <User size={14} /> : <Bot size={14} />}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-primary">
-              {msg.source}
-            </span>
-          </div>
-
-          <div className="text-sm text-secondary whitespace-pre-wrap">
-            {msg.content || ""}
-          </div>
-
-          {msg.models_usage && (
-            <div className="text-xs text-secondary mt-1">
-              Tokens:{" "}
-              {(msg.models_usage.prompt_tokens || 0) +
-                (msg.models_usage.completion_tokens || 0)}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const ThreadView: React.FC<ThreadViewProps> = ({
   messages = [],
   status,
@@ -169,10 +124,6 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     }
   }, [messages, status]);
 
-  // const displayMessages = messages.filter(
-  //   (msg): msg is MessageConfig =>
-  //     msg && typeof msg.content === "string" && msg.content !== "TERMINATE"
-  // );
   const displayMessages = messages;
 
   return (
@@ -191,9 +142,9 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
           className="overflow-y-scroll scroll p-2 space-y-2 bg-primary rounded border border-secondary"
         >
           {displayMessages.map((msg, idx) => (
-            <Message
+            <RenderMessage
               key={idx}
-              msg={msg}
+              message={msg}
               isLast={idx === displayMessages.length - 1}
             />
           ))}

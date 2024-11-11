@@ -194,6 +194,7 @@ export default function ChatView({
 
     socket.onmessage = (event) => {
       const message: SocketMessage = JSON.parse(event.data);
+      console.log("WebSocket message received:", message);
 
       switch (message.type) {
         case "message":
