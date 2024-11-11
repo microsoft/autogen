@@ -155,7 +155,10 @@ class ProtobufMessageSerializer(MessageSerializer[ProtobufT]):
 
     @property
     def data_content_type(self) -> str:
-        # TODO: This should be PROTOBUF_DATA_CONTENT_TYPE
+        # TODO: This should be PROTOBUF_DATA_CONTENT_TYPE. There are currently
+        #       a couple of hard coded places where the system assumes the
+        #       content is JSON_DATA_CONTENT_TYPE which will need to be fixed
+        #       first.
         return JSON_DATA_CONTENT_TYPE
 
     @property
