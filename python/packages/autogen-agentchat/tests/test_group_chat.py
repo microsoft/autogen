@@ -333,7 +333,6 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
     assert result.stop_reason is not None
 
     # Resume.
-    await termination.reset()
     result = await team.run()
     assert len(result.messages) == 3
     assert result.messages[0].source == "agent_3"
