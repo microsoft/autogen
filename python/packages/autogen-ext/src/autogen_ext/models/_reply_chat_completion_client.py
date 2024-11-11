@@ -18,29 +18,71 @@ logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ReplayChatCompletionClient:
-    """A mock chat completion client that replays predefined responses using an index-based approach.
+    """
+    A mock chat completion client that replays predefined responses using an index-based approach.
 
     This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects. The client now uses an index-based approach to access the responses, allowing for resetting the state.
 
-    Example usage:
-    ```
-    chat_completions = [
-        "Hello, how can I assist you today?",
-        "I'm happy to help with any questions you have.",
-        "Is there anything else I can assist you with?",
-    ]
-    client = ReplayChatCompletionClient(chat_completions)
-    messages = [LLMMessage(content="What can you do?")]
-    response = await client.create(messages)
-    print(response.content)  # Output: "Hello, how can I assist you today?"
+    .. note::
+        The responses can be either strings or CreateResult objects.
 
-    async for token in client.create_stream(messages):
-        print(token, end="")  # Output: "Hello, how can I assist you today?"
+    Args:
+        chat_completions (Sequence[Union[str, CreateResult]]): A list of predefined responses to replay.
 
-    client.reset()  # Reset the client state
-    response = await client.create(messages)
-    print(response.content)  # Output: "Hello, how can I assist you today?" again
-    ```
+    Raises:
+        ValueError("No more mock responses available"): If the list of provided outputs are exhausted.
+
+    Examples:
+
+    Simple chat completion client to return pre-defined responses.
+
+        .. code-block:: python
+
+            chat_completions = [
+                "Hello, how can I assist you today?",
+                "I'm happy to help with any questions you have.",
+                "Is there anything else I can assist you with?",
+            ]
+            client = ReplayChatCompletionClient(chat_completions)
+            messages = [LLMMessage(content="What can you do?")]
+            response = await client.create(messages)
+            print(response.content)  # Output: "Hello, how can I assist you today?"
+
+    Simple streaming chat completion client to return pre-defined responses
+
+        .. code-block:: python
+
+            chat_completions = [
+                "Hello, how can I assist you today?",
+                "I'm happy to help with any questions you have.",
+                "Is there anything else I can assist you with?",
+            ]
+            client = ReplayChatCompletionClient(chat_completions)
+
+            async for token in client.create_stream(messages):
+                print(token, end="")  # Output: "Hello, how can I assist you today?"
+
+            async for token in client.create_stream(messages):
+                print(token, end="")  # Output: "I'm happy to help with any questions you have."
+
+    Using `.reset` to reset the chat client state
+
+        .. code-block:: python
+
+            chat_completions = [
+                "Hello, how can I assist you today?",
+            ]
+            client = ReplayChatCompletionClient(chat_completions)
+            messages = [LLMMessage(content="What can you do?")]
+            response = await client.create(messages)
+            print(response.content)  # Output: "Hello, how can I assist you today?"
+
+            response = await client.create(messages)  # Raises ValueError("No more mock responses available")
+
+            client.reset()  # Reset the client state (current index of message and token usages)
+            response = await client.create(messages)
+            print(response.content)  # Output: "Hello, how can I assist you today?" again
+
     """
 
     __protocol__: ChatCompletionClient
@@ -170,7 +212,7 @@ class ReplayChatCompletionClient:
         return self._model_capabilities
 
     def reset(self) -> None:
-        """Reset the client state to its initial state."""
+        """Reset the client state and usage to its initial state."""
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
