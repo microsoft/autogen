@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // LMStudioConfig.cs
+
 using System;
 using System.ClientModel;
 using OpenAI;

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// DeveloperPrompts.cs
 
 namespace DevTeam.Agents;
 public static class DeveloperSkills

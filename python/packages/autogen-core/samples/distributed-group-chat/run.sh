@@ -20,7 +20,7 @@ tmux select-pane -t distributed_group_chat:0.0
 tmux send-keys -t distributed_group_chat:0.0 "python run_host.py" C-m
 tmux send-keys -t distributed_group_chat:0.2 "python run_writer_agent.py" C-m
 tmux send-keys -t distributed_group_chat:0.3 "python run_editor_agent.py" C-m
-tmux send-keys -t distributed_group_chat:0.1 "python run_group_chat_manager.py" C-m
+tmux send-keys -t distributed_group_chat:0.1 "chainlit run run_group_chat_manager.py --port 8001" C-m
 
 # # Attach to the session
 tmux attach-session -t distributed_group_chat

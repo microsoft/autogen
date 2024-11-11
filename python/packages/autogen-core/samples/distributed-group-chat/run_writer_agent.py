@@ -1,9 +1,10 @@
 import asyncio
+import logging
 import warnings
 
 from _agents import BaseGroupChatAgent
 from _types import AppConfig, GroupChatMessage, RequestToSpeak
-from _utils import get_serializers, load_config
+from _utils import get_serializers, load_config, set_all_log_levels
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components import (
     TypeSubscription,
@@ -14,6 +15,7 @@ from rich.markdown import Markdown
 
 
 async def main(config: AppConfig) -> None:
+    set_all_log_levels(logging.ERROR)
     writer_agent_runtime = WorkerAgentRuntime(host_address=config.host.address)
     writer_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage]))  # type: ignore[arg-type]
     await asyncio.sleep(3)
@@ -41,5 +43,6 @@ async def main(config: AppConfig) -> None:
 
 
 if __name__ == "__main__":
+    set_all_log_levels(logging.ERROR)
     warnings.filterwarnings("ignore", category=UserWarning, message="Resolved model mismatch.*")
     asyncio.run(main(load_config()))

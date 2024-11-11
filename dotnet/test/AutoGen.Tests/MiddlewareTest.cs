@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Xunit;
 
 namespace AutoGen.Tests;
@@ -72,7 +73,7 @@ public partial class MiddlewareTest
         var agent = new EchoAgent("echo");
         var args = new EchoSchema { message = "hello" };
         var argsJson = JsonSerializer.Serialize(args) ?? throw new InvalidOperationException("Failed to serialize args");
-        var functionCall = new ToolCall("echo", argsJson);
+        var functionCall = new ToolCall("Echo", argsJson);
         var functionCallAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
             if (options?.Functions is null)
@@ -86,7 +87,7 @@ public partial class MiddlewareTest
         // test 1
         // middleware should invoke function call if the message is a function call message
         var mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
 
         var testAgent = agent.RegisterMiddleware(mw);
         var functionCallMessage = new ToolCallMessage(functionCall.FunctionName, functionCall.FunctionArguments, from: "user");
@@ -96,30 +97,38 @@ public partial class MiddlewareTest
         reply.From.Should().Be("echo");
 
         // test 2
+        // middleware should work with AIFunction from M.E.A.I
+        var getWeatherTool = AIFunctionFactory.Create(this.Echo);
+        mw = new FunctionCallMiddleware([getWeatherTool]);
+        testAgent = agent.RegisterMiddleware(mw);
+        reply = await testAgent.SendAsync(functionCallMessage);
+        reply.GetContent()!.Should().Be("[FUNC] hello");
+
+        // test 3
         // middleware should invoke function call if agent reply is a function call message
         mw = new FunctionCallMiddleware(
             functions: [this.EchoFunctionContract],
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
         testAgent = functionCallAgent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
         reply.GetContent()!.Should().Be("[FUNC] hello");
         reply.From.Should().Be("echo");
 
-        // test 3
+        // test 4
         // middleware should return original reply if the reply from agent is not a function call message
         mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
         testAgent = agent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
         reply.GetContent()!.Should().Be("hello");
         reply.From.Should().Be("echo");
 
-        // test 4
+        // test 5
         // middleware should return an error message if the function name is not available when invoking the function from previous agent reply
         mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo2", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo2", EchoWrapper } });
         testAgent = agent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync(functionCallMessage);
-        reply.GetContent()!.Should().Be("Function echo is not available. Available functions are: echo2");
+        reply.GetContent()!.Should().Be("Function Echo is not available. Available functions are: Echo2");
     }
 }

@@ -7,7 +7,6 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 
-# TODO: Use config.yaml
 async def main(host_config: HostConfig):
     host = WorkerAgentRuntimeHost(address=host_config.address)
     host.start()

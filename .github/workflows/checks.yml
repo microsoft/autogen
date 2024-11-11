@@ -177,11 +177,9 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe gen-proto
         working-directory: ./python
-      - name: Evaluate if there are changes
-        run: |
-          if [[ `git status --porcelain` ]]; then
-            echo "There are changes that need to be generated and commit for the proto files"
-            git --no-pager diff
-            exit 1
-          fi
-        shell: bash
+      - name: Check if there are uncommited changes
+        id: changes
+        uses: UnicornGlobal/has-changes-action@v1.0.11
+      - name: Process changes
+        if: steps.changes.outputs.changed == 1
+        run: echo "There are changes in the proto files. Please commit them."
