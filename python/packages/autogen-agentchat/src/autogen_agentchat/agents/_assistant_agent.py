@@ -244,7 +244,9 @@ class AssistantAgent(BaseChatAgent):
 
         # Run tool calls until the model produces a string response.
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+            tool_call_msg = ToolCallMessage(
+                content=result.content, source=self.name, models_usage=result.usage, is_inner_message=True
+            )
             event_logger.debug(tool_call_msg)
             # Add the tool call message to the output.
             inner_messages.append(tool_call_msg)
@@ -254,7 +256,7 @@ class AssistantAgent(BaseChatAgent):
             results = await asyncio.gather(
                 *[self._execute_tool_call(call, cancellation_token) for call in result.content]
             )
-            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name, is_inner_message=True)
             event_logger.debug(tool_call_result_msg)
             self._model_context.append(FunctionExecutionResultMessage(content=results))
             inner_messages.append(tool_call_result_msg)

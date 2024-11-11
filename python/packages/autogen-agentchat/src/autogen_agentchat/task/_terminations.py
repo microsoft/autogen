@@ -30,13 +30,28 @@ class StopMessageTermination(TerminationCondition):
 class MaxMessageTermination(TerminationCondition):
     """Terminate the conversation after a maximum number of messages have been exchanged.
 
+    The stopping count may exceed the maximum number of messages as the termination
+    condition might have been checked after the messages have been processed.
+    For Group Chat, this is typically due to the presence of inner messages which
+    are processed in batches. You can set `exclude_inner_message` to True to
+    exclude inner messages from the count.
+
+    You can also exclude messages from a specific source by setting `exclude_source`.
+    This is useful when you want to exclude messages from the user for example.
+
     Args:
         max_messages: The maximum number of messages allowed in the conversation.
+        exclude_inner_message: Whether to exclude inner messages from the count.
+        exclude_source: The source of the messages to exclude from the count.
     """
 
-    def __init__(self, max_messages: int) -> None:
+    def __init__(
+        self, max_messages: int, exclude_inner_message: bool = False, exclude_source: str | None = None
+    ) -> None:
         self._max_messages = max_messages
         self._message_count = 0
+        self._exclude_inner_message = exclude_inner_message
+        self._exclude_sources = [exclude_source] if exclude_source is not None else []
 
     @property
     def terminated(self) -> bool:
@@ -45,7 +60,12 @@ class MaxMessageTermination(TerminationCondition):
     async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached")
-        self._message_count += len(messages)
+        for message in messages:
+            if self._exclude_inner_message and message.is_inner_message:
+                continue
+            if message.source in self._exclude_sources:
+                continue
+            self._message_count += 1
         if self._message_count >= self._max_messages:
             return StopMessage(
                 content=f"Maximum number of messages {self._max_messages} reached, current message count: {self._message_count}",

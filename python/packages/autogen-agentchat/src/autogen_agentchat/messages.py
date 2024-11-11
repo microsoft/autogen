@@ -11,6 +11,9 @@ class BaseMessage(BaseModel):
     source: str
     """The name of the agent that sent this message."""
 
+    is_inner_message: bool = False
+    """Whether this message is an inner message."""
+
     models_usage: RequestUsage | None = None
     """The model client usage incurred when producing this message."""
 
@@ -62,10 +65,6 @@ class ToolCallResultMessage(BaseMessage):
     """The tool call results."""
 
 
-InnerMessage = ToolCallMessage | ToolCallResultMessage
-"""Messages for intra-agent monologues."""
-
-
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
 """Messages for agent-to-agent communication."""
 
@@ -83,6 +82,5 @@ __all__ = [
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ChatMessage",
-    "InnerMessage",
     "AgentMessage",
 ]

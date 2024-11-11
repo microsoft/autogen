@@ -68,6 +68,33 @@ async def test_max_message_termination() -> None:
         is not None
     )
 
+    # Test exclude_inner_message
+    termination = MaxMessageTermination(2, exclude_inner_message=True)
+    assert await termination([]) is None
+    await termination.reset()
+    assert (
+        await termination(
+            [
+                TextMessage(content="Hello", source="user", is_inner_message=True),
+                TextMessage(content="Hello", source="assistant"),
+            ]
+        )
+        is None
+    )
+    await termination.reset()
+
+    # Test exclude_source
+    termination = MaxMessageTermination(2, exclude_source="user")
+    assert await termination([]) is None
+    await termination.reset()
+    assert (
+        await termination(
+            [TextMessage(content="Hello", source="user"), TextMessage(content="Hello", source="assistant")]
+        )
+        is None
+    )
+    await termination.reset()
+
 
 @pytest.mark.asyncio
 async def test_mention_termination() -> None:
