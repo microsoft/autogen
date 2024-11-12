@@ -44,10 +44,10 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       for (let i=0; i<nodeList.length; i++) { // Copy to something mutable
           if (results.indexOf(nodeList[i]) == -1) {
               let role = nodeList[i].getAttribute("role");
-	      if (roles.indexOf(role) > -1) {
+              if (roles.indexOf(role) > -1) {
                   results.push(nodeList[i]);
-	      }
-	  }
+              }
+          }
       }
 
       // Any element that changes the cursor to something implying interactivity
@@ -65,7 +65,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
          parent = node.parentNode;
          while (parent && getCursor(parent) == cursor) {
              node = parent;
-	     parent = node.parentNode;
+             parent = node.parentNode;
          }
 
          // Add the node if it is new
@@ -104,8 +104,8 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
      let elm = document.activeElement;
      while (elm) {
          if (elm.hasAttribute && elm.hasAttribute("__elementId")) {
-	     return elm.getAttribute("__elementId");
-	 }
+             return elm.getAttribute("__elementId");
+         }
          elm = elm.parentNode;
      }
      return null;
@@ -126,18 +126,18 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       // Check for aria labels
       if (element.hasAttribute("aria-labelledby")) {
           let buffer = "";
-	  let ids = element.getAttribute("aria-labelledby").split(" ");
-	  for (let i=0; i<ids.length; i++) {
+          let ids = element.getAttribute("aria-labelledby").split(" ");
+          for (let i=0; i<ids.length; i++) {
               let label = document.getElementById(ids[i]);
-	      if (label) {
-	          buffer = buffer + " " + trimmedInnerText(label);
+              if (label) {
+                  buffer = buffer + " " + trimmedInnerText(label);
               }
           }
-	  return buffer.trim();
+          return buffer.trim();
       }
 
       if (element.hasAttribute("aria-label")) {
-	  return element.getAttribute("aria-label");
+          return element.getAttribute("aria-label");
       }
 
       // Check for labels
@@ -160,11 +160,11 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
       // Check for alt text or titles
       if (element.hasAttribute("alt")) {
-	  return element.getAttribute("alt")
+          return element.getAttribute("alt")
       }
 
       if (element.hasAttribute("title")) {
-	  return element.getAttribute("title")
+          return element.getAttribute("title")
       }
 
       return trimmedInnerText(element);
@@ -183,7 +183,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
           return [roleMapping[tag], tag];
       }
       else {
-	  return ["", tag];
+          return ["", tag];
       }
   };
 
@@ -194,27 +194,27 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       for (let i=0; i<elements.length; i++) {
          let key = elements[i].getAttribute("__elementId");
          let rects = elements[i].getClientRects();
-	 let ariaRole = getApproximateAriaRole(elements[i]);
-	 let ariaName = getApproximateAriaName(elements[i]);
-	 let vScrollable = elements[i].scrollHeight - elements[i].clientHeight >= 1;
+         let ariaRole = getApproximateAriaRole(elements[i]);
+         let ariaName = getApproximateAriaName(elements[i]);
+         let vScrollable = elements[i].scrollHeight - elements[i].clientHeight >= 1;
 
-	 let record = {
+         let record = {
              "tag_name": ariaRole[1],
-	     "role": ariaRole[0],
-	     "aria-name": ariaName,
-	     "v-scrollable": vScrollable,
-	     "rects": []
-	 };
+             "role": ariaRole[0],
+             "aria-name": ariaName,
+             "v-scrollable": vScrollable,
+             "rects": []
+         };
 
          for (const rect of rects) {
-	     let x = rect.left + rect.width/2;
+             let x = rect.left + rect.width/2;
              let y = rect.top + rect.height/2;
              if (isTopmost(elements[i], x, y)) {
-		 record["rects"].push(JSON.parse(JSON.stringify(rect)));
+                 record["rects"].push(JSON.parse(JSON.stringify(rect)));
              }
          }
 
-	 if (record["rects"].length > 0) {
+         if (record["rects"].length > 0) {
              results[key] = record;
          }
       }
@@ -226,16 +226,16 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       let de = document.documentElement;
       return {
           "height":     vv ? vv.height : 0,
-	  "width":      vv ? vv.width : 0,
-	  "offsetLeft": vv ? vv.offsetLeft : 0,
-	  "offsetTop":  vv ? vv.offsetTop : 0,
-	  "pageLeft":   vv ? vv.pageLeft  : 0,
-	  "pageTop":    vv ? vv.pageTop : 0,
-	  "scale":      vv ? vv.scale : 0,
-	  "clientWidth":  de ? de.clientWidth : 0,
-	  "clientHeight": de ? de.clientHeight : 0,
-	  "scrollWidth":  de ? de.scrollWidth : 0,
-	  "scrollHeight": de ? de.scrollHeight : 0
+          "width":      vv ? vv.width : 0,
+          "offsetLeft": vv ? vv.offsetLeft : 0,
+          "offsetTop":  vv ? vv.offsetTop : 0,
+          "pageLeft":   vv ? vv.pageLeft  : 0,
+          "pageTop":    vv ? vv.pageTop : 0,
+          "scale":      vv ? vv.scale : 0,
+          "clientWidth":  de ? de.clientWidth : 0,
+          "clientHeight": de ? de.clientHeight : 0,
+          "scrollWidth":  de ? de.scrollWidth : 0,
+          "scrollHeight": de ? de.scrollHeight : 0
       };
   };
 
@@ -269,8 +269,8 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       return jsonld;
    };
 
-   // From: https://www.stevefenton.co.uk/blog/2022/12/parse-microdata-with-javascript/
-   let _getMicrodata = function() {
+  // From: https://www.stevefenton.co.uk/blog/2022/12/parse-microdata-with-javascript/
+  let _getMicrodata = function() {
       function sanitize(input) {
           return input.replace(/\s/gi, ' ').trim();
       }
@@ -292,7 +292,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
       function traverseItem(item, information) {
          const children = item.children;
-        
+
          for (let i = 0; i < children.length; i++) {
              const child = children[i];
 
@@ -338,11 +338,11 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
          traverseItem(elem, information);
          microdata.push(information);
       });
-    
+
       return microdata;
    };
 
-   let getPageMetadata = function() {
+  let getPageMetadata = function() {
        let jsonld = _getJsonLd();
        let metaTags = _getMetaTags();
        let microdata = _getMicrodata();
@@ -351,21 +351,21 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
            try {
                results["jsonld"] = JSON.parse(jsonld);
            } 
-	   catch (e) {
+           catch (e) {
                results["jsonld"] = jsonld;
-	   }
+           }
        }
        if (microdata.length > 0) {
-	   results["microdata"] = microdata;
+           results["microdata"] = microdata;
        }
        for (let key in metaTags) {
-	   if (metaTags.hasOwnProperty(key)) {
-	       results["meta_tags"] = metaTags;
-	       break;
+           if (metaTags.hasOwnProperty(key)) {
+               results["meta_tags"] = metaTags;
+               break;
            }
        }
        return results;
-   };	
+   };    
 
    return {
        getInteractiveRects: getInteractiveRects,
