@@ -117,7 +117,16 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentType = request.Subscription.TypeSubscription.AgentType;
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic[topic].Add(agentType);
-        var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        Message response = new()
+        {
+            AddSubscriptionResponse = new()
+            {
+                RequestId = request.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
