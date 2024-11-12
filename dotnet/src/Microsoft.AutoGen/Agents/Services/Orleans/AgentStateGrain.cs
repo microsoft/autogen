@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// WorkerAgentGrain.cs
+// AgentStateGrain.cs
 
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
-internal sealed class WorkerAgentGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IWorkerAgentGrain
+internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState
 {
     public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag)
     {
@@ -16,7 +16,7 @@ internal sealed class WorkerAgentGrain([PersistentState("state", "AgentStateStor
         if ((string.IsNullOrEmpty(state.Etag)) || (string.IsNullOrEmpty(eTag)) || (string.Equals(state.Etag, eTag, StringComparison.Ordinal)))
         {
             state.State = newState;
-            await state.WriteStateAsync();
+            await state.WriteStateAsync().ConfigureAwait(false);
         }
         else
         {

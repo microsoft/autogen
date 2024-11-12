@@ -9,8 +9,8 @@
   </PropertyGroup>
 
    <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Runtime/Microsoft.AutoGen.Runtime.csproj" />
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/Extensions/ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

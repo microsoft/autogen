@@ -3,6 +3,8 @@
 
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 // step 1: create in-memory agent runtime
 
@@ -16,7 +18,7 @@ using Microsoft.AutoGen.Agents;
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: false);
+}, local: true);
 
 await app.WaitForShutdownAsync();
 
@@ -24,9 +26,8 @@ namespace Hello
 {
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentContext context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
-        IHostApplicationLifetime hostApplicationLifetime) : AgentBase(
+        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),
             ISayHello,
