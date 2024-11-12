@@ -236,7 +236,8 @@ public sealed class GrpcAgentWorker(
     }
     private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
     {
-        await _outboundMessagesChannel.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+        var tcs = new TaskCompletionSource();
+        await _outboundMessagesChannel.Writer.WriteAsync((message, tcs), cancellationToken).ConfigureAwait(false);
     }
     private AsyncDuplexStreamingCall<Message, Message> GetChannel()
     {
