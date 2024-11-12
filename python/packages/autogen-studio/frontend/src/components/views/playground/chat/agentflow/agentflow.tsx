@@ -18,6 +18,8 @@ import {
   TeamConfig,
 } from "../../../../types/datamodel";
 import { ThreadState, ThreadStatus } from "../types";
+import { CustomEdge, EdgeTooltipContent } from "./edge";
+import { Tooltip } from "antd";
 
 interface AgentFlowProps {
   teamConfig: TeamConfig;
@@ -28,6 +30,7 @@ interface AgentFlowProps {
 
 interface MessageSequence {
   source: string;
+  target: string;
   count: number;
   totalTokens: number;
   messages: AgentMessageConfig[];
@@ -135,6 +138,10 @@ const nodeTypes: NodeTypes = {
   agentNode: AgentNode,
 };
 
+const edgeTypes = {
+  custom: CustomEdge,
+};
+
 const AgentFlow: React.FC<AgentFlowProps> = ({
   teamConfig,
   messages,
@@ -145,21 +152,15 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
 
+  // ...previous imports remain same
+
   const processMessages = useCallback(
     (messages: AgentMessageConfig[]) => {
       if (messages.length === 0) return { nodes: [], edges: [] };
 
       const sequences: MessageSequence[] = [];
       const nodeMap = new Map<string, Node>();
-
-      let currentSequence: MessageSequence = {
-        source: messages[0].source,
-        count: 1,
-        totalTokens:
-          (messages[0].models_usage?.prompt_tokens || 0) +
-          (messages[0].models_usage?.completion_tokens || 0),
-        messages: [messages[0]],
-      };
+      const transitionCounts = new Map<string, MessageSequence>();
 
       // Process first message source
       const firstAgentConfig = teamConfig.participants.find(
@@ -175,81 +176,87 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         )
       );
 
-      // Process remaining messages
-      for (let i = 1; i < messages.length; i++) {
-        const message = messages[i];
-        const tokens =
-          (message.models_usage?.prompt_tokens || 0) +
-          (message.models_usage?.completion_tokens || 0);
+      // Group messages by transitions (including self-transitions)
+      for (let i = 0; i < messages.length - 1; i++) {
+        const currentMsg = messages[i];
+        const nextMsg = messages[i + 1];
+        const transitionKey = `${currentMsg.source}->${nextMsg.source}`;
 
-        if (message.source === currentSequence.source) {
-          currentSequence.count++;
-          currentSequence.totalTokens += tokens;
-          currentSequence.messages.push(message);
-        } else {
-          sequences.push(currentSequence);
-          currentSequence = {
-            source: message.source,
+        if (!transitionCounts.has(transitionKey)) {
+          transitionCounts.set(transitionKey, {
+            source: currentMsg.source,
+            target: nextMsg.source,
             count: 1,
-            totalTokens: tokens,
-            messages: [message],
+            totalTokens:
+              (currentMsg.models_usage?.prompt_tokens || 0) +
+              (currentMsg.models_usage?.completion_tokens || 0),
+            messages: [currentMsg],
+          });
+        } else {
+          const transition = transitionCounts.get(transitionKey)!;
+          transition.count++;
+          transition.totalTokens +=
+            (currentMsg.models_usage?.prompt_tokens || 0) +
+            (currentMsg.models_usage?.completion_tokens || 0);
+          transition.messages.push(currentMsg);
+        }
+
+        // Ensure all nodes are in the nodeMap
+        if (!nodeMap.has(nextMsg.source)) {
+          const agentConfig = teamConfig.participants.find(
+            (p) => p.name === nextMsg.source
+          );
+          nodeMap.set(
+            nextMsg.source,
+            createNode(
+              nextMsg.source,
+              nextMsg.source === "user" ? "user" : "agent",
+              agentConfig,
+              false
+            )
+          );
+        }
+      }
+
+      // Create edges from transitions
+      const newEdges: Edge[] = Array.from(transitionCounts.entries()).map(
+        ([key, transition], index) => {
+          const avgTokens = Math.round(
+            transition.totalTokens / transition.count
+          );
+          const label = `${
+            transition.count > 1 ? `${transition.count}x` : ""
+          } (${avgTokens} tokens)`;
+
+          return {
+            id: `${transition.source}-${transition.target}-${index}`,
+            source: transition.source,
+            target: transition.target,
+            type: "custom",
+            data: {
+              label,
+              messages: transition.messages,
+            },
+            animated:
+              threadState?.status === "streaming" &&
+              index === transitionCounts.size - 1,
+            style: {
+              stroke: "#2563eb",
+              strokeWidth: Math.min(Math.max(transition.count, 1), 5),
+              // Add curved style for self-referential edges
+              ...(transition.source === transition.target && {
+                borderRadius: 20,
+                curvature: 0.5,
+              }),
+            },
           };
-
-          if (!nodeMap.has(message.source)) {
-            const agentConfig = teamConfig.participants.find(
-              (p) => p.name === message.source
-            );
-            nodeMap.set(
-              message.source,
-              createNode(
-                message.source,
-                message.source === "user" ? "user" : "agent",
-                agentConfig,
-                false
-              )
-            );
-          }
         }
-      }
-      sequences.push(currentSequence);
+      );
 
-      // Create edges
-      const newEdges: Edge[] = [];
-      for (let i = 0; i < sequences.length - 1; i++) {
-        const current = sequences[i];
-        const next = sequences[i + 1];
+      // Handle end node logic (keeping existing end node logic)
+      if (threadState && messages.length > 0) {
+        const lastMessage = messages[messages.length - 1];
 
-        let label = "";
-        if (current.source === next.source && current.count > 1) {
-          const avgTokens = Math.round(current.totalTokens / current.count);
-          label = `${current.count}x (${avgTokens} tokens/msg)`;
-        }
-
-        newEdges.push({
-          id: `${current.source}-${next.source}-${i}`,
-          source: current.source,
-          target: next.source,
-          label,
-          animated:
-            threadState?.status === "streaming" && i === sequences.length - 2,
-          style: {
-            stroke: "#2563eb",
-            strokeWidth: Math.min(Math.max(current.count, 1), 5),
-          },
-          labelStyle: {
-            fill: "#94a3b8",
-            fontSize: 12,
-            fontFamily: "monospace",
-          },
-          type: "smoothstep",
-        });
-      }
-
-      // Add end node for non-streaming states - MODIFIED THIS SECTION
-      if (threadState && sequences.length > 0) {
-        const lastSequence = sequences[sequences.length - 1];
-
-        // Always create the end node, but style it differently based on status
         if (["complete", "error", "cancelled"].includes(threadState.status)) {
           nodeMap.set(
             "end",
@@ -258,28 +265,33 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
 
           const edgeColor =
             {
+              complete: "#2563eb",
+              cancelled: "red",
+              error: "red",
               streaming: "#2563eb",
-              complete: "var(--accent)",
-              cancelled: "var(--secondary)",
-              error: "rgb(239 68 68)",
             }[threadState.status] || "#2563eb";
 
           newEdges.push({
-            id: `${lastSequence.source}-end`,
-            source: lastSequence.source,
+            id: `${lastMessage.source}-end`,
+            source: lastMessage.source,
             target: "end",
+            type: "custom",
+            data: {
+              label: "ended",
+              messages: [],
+            },
             animated: false,
             style: {
               stroke: edgeColor,
-              strokeWidth: 2,
+              opacity: 1,
+              zIndex: 100,
             },
-            type: "smoothstep",
           });
         }
       }
 
-      // Set active state for the last message source only
-      const lastActiveSource = sequences[sequences.length - 1]?.source;
+      // Set active state for the last message source
+      const lastActiveSource = messages[messages.length - 1]?.source;
       nodeMap.forEach((node) => {
         node.data.isActive =
           node.id === lastActiveSource && threadState?.status === "streaming";
@@ -290,7 +302,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         edges: newEdges,
       };
     },
-    [teamConfig.participants, threadState] // Added threadState to dependencies
+    [teamConfig.participants, threadState]
   );
 
   useEffect(() => {
@@ -317,6 +329,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.5}
         maxZoom={2}

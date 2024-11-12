@@ -89,6 +89,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
       onClick={handleClick}
       style={styles.border ? { borderColor: styles.border } : undefined}
     >
+      {/* Input handle - always show for all nodes */}
       <Handle
         type="target"
         position={Position.Top}
@@ -130,7 +131,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
               <div className="text-sm text-secondary">{data.agentType}</div>
             )}
             {data.description && (
-              <div className="text-xs text-secondary/80 mt-1 truncate max-w-[200px]">
+              <div className="text-xs text-secondary mt-1 truncate max-w-[200px]">
                 {data.description}
               </div>
             )}
@@ -138,11 +139,13 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
         )}
       </div>
 
+      {/* Output handle - only for non-end nodes */}
       {data.type !== "end" && (
         <Handle
           type="source"
           position={Position.Bottom}
-          id="main"
+          id="source"
+          style={{ background: "#555" }}
           isConnectable={isConnectable}
         />
       )}
