@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HelloAgentState": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:53136;http://localhost:53137"
+    }
+  }
+}

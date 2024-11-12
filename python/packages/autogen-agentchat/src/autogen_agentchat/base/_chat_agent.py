@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from typing import List, Protocol, Sequence, runtime_checkable
+from typing import AsyncGenerator, List, Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
 
-from ..messages import ChatMessage, InnerMessage
-from ._task import TaskResult, TaskRunner
-from ._termination import TerminationCondition
+from ..messages import AgentMessage, ChatMessage
+from ._task import TaskRunner
 
 
 @dataclass(kw_only=True)
@@ -15,7 +14,7 @@ class Response:
     chat_message: ChatMessage
     """A chat message produced by the agent as the response."""
 
-    inner_messages: List[InnerMessage] | None = None
+    inner_messages: List[AgentMessage] | None = None
     """Inner messages produced by the agent."""
 
 
@@ -45,12 +44,13 @@ class ChatAgent(TaskRunner, Protocol):
         """Handles incoming messages and returns a response."""
         ...
 
-    async def run(
-        self,
-        task: str,
-        *,
-        cancellation_token: CancellationToken | None = None,
-        termination_condition: TerminationCondition | None = None,
-    ) -> TaskResult:
-        """Run the agent with the given task and return the result."""
+    def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
+        """Handles incoming messages and returns a stream of inner messages and
+        and the final item is the response."""
+        ...
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent to its initialization state."""
         ...

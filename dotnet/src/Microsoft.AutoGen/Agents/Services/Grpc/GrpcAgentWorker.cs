@@ -27,7 +27,7 @@ public sealed class GrpcAgentWorker(
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
     private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
-    private readonly Channel<Message> _outboundMessagesChannel = Channel.CreateBounded<Message>(new BoundedChannelOptions(1024)
+    private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
         SingleReader = true,
@@ -128,30 +128,34 @@ public sealed class GrpcAgentWorker(
         var outboundMessages = _outboundMessagesChannel.Reader;
         while (!_shutdownCts.IsCancellationRequested)
         {
+            (Message Message, TaskCompletionSource WriteCompletionSource) item = default;
             try
             {
                 await outboundMessages.WaitToReadAsync().ConfigureAwait(false);
 
                 // Read the next message if we don't already have an unsent message
                 // waiting to be sent.
-                if (!outboundMessages.TryRead(out var message))
+                if (!outboundMessages.TryRead(out item))
                 {
                     break;
                 }
 
                 while (!_shutdownCts.IsCancellationRequested)
                 {
-                    await channel.RequestStream.WriteAsync(message, _shutdownCts.Token).ConfigureAwait(false);
+                    await channel.RequestStream.WriteAsync(item.Message, _shutdownCts.Token).ConfigureAwait(false);
+                    item.WriteCompletionSource.TrySetResult();
                     break;
                 }
             }
             catch (OperationCanceledException)
             {
                 // Time to shut down.
+                item.WriteCompletionSource?.TrySetCanceled();
                 break;
             }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
             {
+                item.WriteCompletionSource?.TrySetException(ex);
                 _logger.LogError(ex, "Error writing to channel.");
                 channel = RecreateChannel(channel);
                 continue;
@@ -159,8 +163,14 @@ public sealed class GrpcAgentWorker(
             catch
             {
                 // Shutdown requested.
+                item.WriteCompletionSource?.TrySetCanceled();
                 break;
             }
+        }
+
+        while (outboundMessages.TryRead(out var item))
+        {
+            item.WriteCompletionSource.TrySetCanceled();
         }
     }
     private IAgentBase GetOrActivateAgent(AgentId agentId)
@@ -255,7 +265,7 @@ public sealed class GrpcAgentWorker(
                 if (_channel is null || _channel == channel)
                 {
                     _channel?.Dispose();
-                    _channel = _client.OpenChannel();
+                    _channel = _client.OpenChannel(cancellationToken: _shutdownCts.Token);
                 }
             }
         }

@@ -206,18 +206,24 @@ public abstract class AgentBase : IAgentBase, IHandle
 
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
-        var activity = s_source.StartActivity($"PublishEvent '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var evt = message.ToCloudEvent(src);
+        await PublishEventAsync(evt, token).ConfigureAwait(false);
+    }
+
+    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken token = default)
+    {
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
-        var completion = new TaskCompletionSource<CloudEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         // TODO: fix activity
         _context.Update(activity, item);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event, TaskCompletionSource<CloudEvent>) state) =>
+            static async ((AgentBase Agent, CloudEvent Event) state) =>
             {
                 await state.Agent._context.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
-            (this, item, completion),
+            (this, item),
             activity,
             item.Type, cancellationToken).ConfigureAwait(false);
     }

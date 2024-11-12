@@ -1,6 +1,39 @@
 import pytest
-from autogen_agentchat.messages import StopMessage, TextMessage
-from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
+from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
+from autogen_agentchat.task import (
+    HandoffTermination,
+    MaxMessageTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+    TokenUsageTermination,
+)
+from autogen_core.components.models import RequestUsage
+
+
+@pytest.mark.asyncio
+async def test_handoff_termination() -> None:
+    termination = HandoffTermination("target")
+    assert await termination([]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    await termination.reset()
+    assert await termination([HandoffMessage(target="target", source="user", content="Hello")]) is not None
+    assert termination.terminated
+    await termination.reset()
+    assert await termination([HandoffMessage(target="another", source="user", content="Hello")]) is None
+    assert not termination.terminated
+    await termination.reset()
+    assert (
+        await termination(
+            [
+                TextMessage(content="Hello", source="user"),
+                HandoffMessage(target="target", source="user", content="Hello"),
+            ]
+        )
+        is not None
+    )
+    assert termination.terminated
+    await termination.reset()
 
 
 @pytest.mark.asyncio
@@ -47,6 +80,51 @@ async def test_mention_termination() -> None:
     await termination.reset()
     assert (
         await termination([TextMessage(content="Hello", source="user"), TextMessage(content="stop", source="user")])
+        is not None
+    )
+
+
+@pytest.mark.asyncio
+async def test_token_usage_termination() -> None:
+    termination = TokenUsageTermination(max_total_token=10)
+    assert await termination([]) is None
+    await termination.reset()
+    assert (
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=10, completion_tokens=10)
+                )
+            ]
+        )
+        is not None
+    )
+    await termination.reset()
+    assert (
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                ),
+                TextMessage(
+                    content="World", source="agent", models_usage=RequestUsage(prompt_tokens=1, completion_tokens=1)
+                ),
+            ]
+        )
+        is None
+    )
+    await termination.reset()
+    assert (
+        await termination(
+            [
+                TextMessage(
+                    content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=5, completion_tokens=0)
+                ),
+                TextMessage(
+                    content="stop", source="user", models_usage=RequestUsage(prompt_tokens=0, completion_tokens=5)
+                ),
+            ]
+        )
         is not None
     )
 
