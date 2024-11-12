@@ -34,7 +34,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
     }
-    public async ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default)
+    public async ValueTask BroadcastEvent(CloudEvent evt)
     {
         // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
@@ -165,13 +165,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _workers[workerProcess] = workerProcess;
         return workerProcess.Completion;
     }
-    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+    public async ValueTask StoreAsync(AgentState value)
     {
         var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
         _agentState[agentId.Key] = value;
     }
 
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> ReadAsync(AgentId agentId)
     {
         if (_agentState.TryGetValue(agentId.Key, out var state))
         {
@@ -225,5 +225,15 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
         response.RequestId = originalRequestId;
         return response;
+    }
+
+    async ValueTask<RpcResponse> IGateway.InvokeRequest(RpcRequest request)
+    {
+        return await this.InvokeRequest(request).ConfigureAwait(false);
+    }
+
+    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
+    {
+        return this.SendMessageAsync(connection, cloudEvent);
     }
 }
