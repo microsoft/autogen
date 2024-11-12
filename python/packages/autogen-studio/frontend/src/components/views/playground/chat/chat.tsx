@@ -53,7 +53,7 @@ export default function ChatView({
     if (session && user && user.email) {
       teamAPI.getTeam(session.team_id, user?.email).then((team) => {
         setTeamConfig(team.config);
-        console.log("Team Config", team.config);
+        // console.log("Team Config", team.config);
       });
     }
   }, [session]);
@@ -207,7 +207,7 @@ export default function ChatView({
 
     socket.onmessage = (event) => {
       const message: SocketMessage = JSON.parse(event.data);
-      console.log("WebSocket message received:", message);
+      // console.log("WebSocket message received:", message);
 
       switch (message.type) {
         case "message":

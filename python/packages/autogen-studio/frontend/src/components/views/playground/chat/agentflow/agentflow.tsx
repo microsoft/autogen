@@ -309,7 +309,6 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         fitView({ padding: 0.2, duration: 200 });
       }, 50);
     }
-    console.log("threadstate", threadState);
   }, [messages, processMessages, direction, threadState, fitView]);
 
   return (
