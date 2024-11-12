@@ -83,7 +83,7 @@ class _EchoAgent(BaseChatAgent):
             assert self._last_message is not None
             return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
 
@@ -333,7 +333,6 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
     assert result.stop_reason is not None
 
     # Resume.
-    await termination.reset()
     result = await team.run()
     assert len(result.messages) == 3
     assert result.messages[0].source == "agent_3"
@@ -633,7 +632,7 @@ class _HandOffAgent(BaseChatAgent):
             )
         )
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
 
 

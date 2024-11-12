@@ -80,7 +80,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                         GroupChatTermination(message=stop_message),
                         topic_id=DefaultTopicId(type=self._output_topic_type),
                     )
-                    # Stop the group chat.
+                    # Stop the group chat and reset the termination condition.
+                    await self._termination_condition.reset()
                     return
 
         speaker_topic_type = await self.select_speaker(self._message_thread)
@@ -104,7 +105,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 await self.publish_message(
                     GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
                 )
-                # Stop the group chat.
+                # Stop the group chat and reset the termination condition.
+                await self._termination_condition.reset()
                 return
 
         # Select a speaker to continue the conversation.
