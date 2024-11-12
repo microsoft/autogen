@@ -24,9 +24,4 @@
  		<PackageReference Include="Microsoft.Orleans.Sdk" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
-  <PropertyGroup>
-   	<ServerGarbageCollection>true</ServerGarbageCollection>
-   	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
-	</PropertyGroup>
-
 </Project>
