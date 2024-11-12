@@ -98,6 +98,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         downloads_folder: str | None = None,
         debug_dir: str | None = os.getcwd(),
         to_save_screenshots: bool = False,
+        use_ocr: bool = True,
     ):
         """
         Initialize the MultimodalWebSurfer.
@@ -113,6 +114,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             downloads_folder (str | None): The folder to save downloads. Defaults to None.
             debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
             to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
+            use_ocr (bool): Whether to use OCR to extract text from screenshots, otherwise extract text from page. Defaults to True.
         """
         super().__init__(name, description)
         self._model_client = model_client
@@ -124,7 +126,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self.downloads_folder = downloads_folder
         self.debug_dir = debug_dir
         self.to_save_screenshots = to_save_screenshots
-
+        self.use_ocr = use_ocr
         self._chat_history: List[LLMMessage] = []
 
         # Call init to set these
@@ -289,7 +291,6 @@ class MultimodalWebSurfer(BaseChatAgent):
         message: List[FunctionCall],
         rects: Dict[str, InteractiveRegion],
         tool_names: str,
-        use_ocr: bool = True,
         cancellation_token: Optional[CancellationToken] = None,
     ) -> Tuple[bool, UserContent]:
         name = message[0].name
@@ -435,7 +436,9 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
         ocr_text = (
-            await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token) if use_ocr is True else ""
+            await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token)
+            if self.use_ocr is True
+            else await self.get_webpage_text(self._page)
         )
 
         # Return the complete observation
@@ -761,6 +764,19 @@ When deciding between tools, consider if the request can be best addressed by:
         }})();
     """
         )
+
+    async def get_webpage_text(self, page: Page, n_lines: int = 100) -> str:
+        """
+        page: playwright page object
+        n_lines: number of lines to return from the page innertext
+        return: text in the first n_lines of the page
+        """
+        text_in_viewport = await page.evaluate("""() => {
+            return document.body.innerText;
+        }""")
+        text_in_viewport = "\n".join(text_in_viewport.split("\n")[:n_lines])
+        # remove empty lines
+        text_in_viewport = "\n".join([line for line in text_in_viewport.split("\n") if line.strip()])
 
     async def _get_ocr_text(
         self, image: bytes | io.BufferedIOBase | PIL.Image.Image, cancellation_token: Optional[CancellationToken] = None
