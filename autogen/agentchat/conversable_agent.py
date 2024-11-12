@@ -137,6 +137,8 @@ class ConversableAgent(LLMAgent):
         )
 
         self._name = name
+        if self._name.isidentifier() is False:
+            raise ValueError("The agent name must be a valid Python identifier.")
         # a dictionary of conversations, default value is list
         if chat_messages is None:
             self._oai_messages = defaultdict(list)
