@@ -134,7 +134,16 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
+        Message response = new()
+        {
+            RegisterAgentTypeResponse = new()
+            {
+                RequestId = msg.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
