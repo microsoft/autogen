@@ -1392,6 +1392,18 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-3.6.1.tgz#b6c75a56a1947cc916ea058772d666a2c8932f31"
   integrity sha512-SITSV6aIXsuVNV3f3O0f2n/cgyEDWoSqtZMYiAmcsYHydcKrOz3gUxB/iXd/Qf08+IZX4KpgNbvUdMBmWz+kcA==
 
+"@dagrejs/dagre@^1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@dagrejs/dagre/-/dagre-1.1.4.tgz#66f9c0e2b558308f2c268f60e2c28f22ee17e339"
+  integrity sha512-QUTc54Cg/wvmlEUxB+uvoPVKFazM1H18kVHBQNmK2NbrDR5ihOCR6CXLnDSZzMcSQKJtabPUWridBOlJM3WkDg==
+  dependencies:
+    "@dagrejs/graphlib" "2.2.4"
+
+"@dagrejs/graphlib@2.2.4":
+  version "2.2.4"
+  resolved "https://registry.yarnpkg.com/@dagrejs/graphlib/-/graphlib-2.2.4.tgz#d77bfa9ff49e2307c0c6e6b8b26b5dd3c05816c4"
+  integrity sha512-mepCf/e9+SKYy1d02/UkvSy6+6MoyXhVxP8lLDfA7BPE1X1d4dR0sZznmbM8/XVJ1GPM+Svnx7Xj6ZweByWUkw==
+
 "@emotion/hash@^0.8.0":
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/@emotion/hash/-/hash-0.8.0.tgz#bbbff68978fefdbe68ccb533bc8cbe1d1afb5413"
@@ -3147,19 +3159,19 @@
   resolved "https://registry.yarnpkg.com/@xtuc/long/-/long-4.2.2.tgz#d291c6a4e97989b5c61d9acf396ae4fe133a718d"
   integrity sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==
 
-"@xyflow/react@^12.3.4":
-  version "12.3.4"
-  resolved "https://registry.yarnpkg.com/@xyflow/react/-/react-12.3.4.tgz#cccc57f7a992faecc5ed1dda82838b31c1afa522"
-  integrity sha512-KjFkj84S+wK8aJF/PORxSkOAeotTTPz++hus+Y95NFMIJGVyl8jjVaaz5B1zyV0prk6ZkbMp6q0vqMjJdZT25Q==
+"@xyflow/react@^12.3.5":
+  version "12.3.5"
+  resolved "https://registry.yarnpkg.com/@xyflow/react/-/react-12.3.5.tgz#88ca2efe2ddf1300bc171a2ef797f7cb41386ca4"
+  integrity sha512-wAYqpicdrVo1rxCu0X3M9s3YIF45Agqfabw0IBryTGqjWvr2NyfciI8gIP4MB+NKpWWN5kxZ9tiZ9u8lwC7iAg==
   dependencies:
-    "@xyflow/system" "0.0.45"
+    "@xyflow/system" "0.0.46"
     classcat "^5.0.3"
     zustand "^4.4.0"
 
-"@xyflow/system@0.0.45":
-  version "0.0.45"
-  resolved "https://registry.yarnpkg.com/@xyflow/system/-/system-0.0.45.tgz#ca1f4d843d2925ce9c5763f16abf51a4c69953ef"
-  integrity sha512-szP1LjDD4jlRYYhxvgZqOCTMToUVNqjQkrlhb0fhv1sXomU1+yMDdhpQT+FjE4d+rKx08fS10sOuZUl2ycXaDw==
+"@xyflow/system@0.0.46":
+  version "0.0.46"
+  resolved "https://registry.yarnpkg.com/@xyflow/system/-/system-0.0.46.tgz#b0a5915d59c0ea5ca6d24e1eb90c5a0d7eda7864"
+  integrity sha512-bmFXvboVdiydIFZmDCjrbBCYgB0d5pYdkcZPWbAxGmhMRUZ+kW3CksYgYxWabrw51rwpWitLEadvLrivG0mVfA==
   dependencies:
     "@types/d3-drag" "^3.0.7"
     "@types/d3-selection" "^3.0.10"

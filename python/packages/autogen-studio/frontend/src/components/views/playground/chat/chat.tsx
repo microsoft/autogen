@@ -10,6 +10,8 @@ import ChatInput from "./chatinput";
 import { ModelUsage, SocketMessage, ThreadState, ThreadStatus } from "./types";
 import { MessageList } from "./messagelist";
 import TeamManager from "../../shared/team/manager";
+import { teamAPI } from "../../shared/team/api";
+import AgentFlow from "./agentflow/agentflow";
 
 const logo = require("../../../../images/landing/welcome.svg").default;
 
@@ -36,6 +38,8 @@ export default function ChatView({
     Record<string, WebSocket>
   >({});
 
+  const [teamConfig, setTeamConfig] = React.useState<any>(null);
+
   React.useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -44,6 +48,15 @@ export default function ChatView({
       });
     }
   }, [messages, threadMessages]);
+
+  React.useEffect(() => {
+    if (session && user && user.email) {
+      teamAPI.getTeam(session.team_id, user?.email).then((team) => {
+        setTeamConfig(team.config);
+        console.log("Team Config", team.config);
+      });
+    }
+  }, [session]);
 
   React.useEffect(() => {
     return () => {
@@ -246,6 +259,7 @@ export default function ChatView({
             const reason =
               message.data?.task_result?.stop_reason ||
               (message.error ? `Error: ${message.error}` : undefined);
+            console.log("All Messages", currentThread.messages);
 
             return {
               ...prev,
@@ -425,6 +439,7 @@ export default function ChatView({
             onRetry={runTask}
             onCancel={cancelRun}
             loading={loading}
+            teamConfig={teamConfig}
           />
         </div>
 

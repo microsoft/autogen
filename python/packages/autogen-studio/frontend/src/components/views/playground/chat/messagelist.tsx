@@ -1,6 +1,10 @@
 import React from "react";
 import { ThreadState } from "./types";
-import { AgentMessageConfig, Message } from "../../../types/datamodel";
+import {
+  AgentMessageConfig,
+  Message,
+  TeamConfig,
+} from "../../../types/datamodel";
 import { RenderMessage } from "./rendermessage";
 import {
   StopCircle,
@@ -10,11 +14,9 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
-  XCircle,
 } from "lucide-react";
-import { LoadingIndicator } from "../../shared/atoms";
-
-const landing = require("../../../../images/landing/welcome.svg");
+import AgentFlow from "./agentflow/agentflow";
+import ThreadView from "./threadview";
 
 interface MessageListProps {
   messages: Message[];
@@ -25,6 +27,7 @@ interface MessageListProps {
   onRetry: (content: string) => void;
   onCancel: (runId: string) => void;
   loading?: boolean;
+  teamConfig?: TeamConfig;
 }
 
 interface MessagePair {
@@ -39,6 +42,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   onRetry,
   onCancel,
   loading = false,
+  teamConfig,
 }) => {
   const messagePairs = React.useMemo(() => {
     const pairs: MessagePair[] = [];
@@ -142,11 +146,10 @@ export const MessageList: React.FC<MessageListProps> = ({
                   <User size={20} />
                 </div>
               </div>
-              <div className="w-[90%]">
+              <div className="w-[95%]">
                 <RenderMessage message={userMessage.config} isLast={false} />
               </div>
             </div>
-
             {/* Team response - second */}
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 mb-1">
@@ -159,7 +162,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               </div>
 
               {/* Main response container */}
-              <div className="w-[90%]">
+              <div className="w-[95%]">
                 <div className="p-4 bg-secondary border border-secondary rounded-lg">
                   <div className="text-primary">
                     {getStatusIcon(thread?.status)}{" "}
@@ -170,15 +173,14 @@ export const MessageList: React.FC<MessageListProps> = ({
                 {/* Thread section with left border for hierarchy */}
                 {hasThread && (
                   <div className="mt-2 pl-4 border-l-2 border-secondary/30">
-                    <div className="  flex">
+                    <div className="flex">
                       <div className="flex-1">
                         <button
                           onClick={() => toggleThread(botMessage.run_id)}
-                          className="  flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors"
+                          className="flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors"
                         >
                           <MessageSquare size={16} />
                           <span className="text-accent">
-                            {" "}
                             {thread.isExpanded ? "Hide" : "Show"}
                           </span>{" "}
                           agent discussion
@@ -186,61 +188,37 @@ export const MessageList: React.FC<MessageListProps> = ({
                       </div>
 
                       <div className="text-sm text-secondary">
-                        {" "}
                         {calculateThreadTokens(thread.messages)} tokens |{" "}
                         {thread.messages.length} messages
                       </div>
                     </div>
-                    {thread.isExpanded && (
-                      <div className="mt-2 border border-secondary rounded-lg bg-primary">
-                        {/* Status bar - fixed at top */}
-                        <div className="sticky top-0 z-10 flex bg-primary rounded-t items-center justify-between p-3 border-b border-secondary bg-secondary/10">
-                          <div className="text-sm text-primary">
-                            {isStreaming ? (
-                              "Agents discussing..."
-                            ) : (
-                              <>
-                                <span className="font-semibold mr-2">
-                                  Stop Reason
-                                </span>
-                                {thread.reason}
-                              </>
-                            )}
-                          </div>
-                          {isStreaming && (
-                            <button
-                              onClick={() => onCancel(botMessage.run_id)}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-medium transition-colors"
-                            >
-                              <StopCircle size={12} />
-                              <span>Stop</span>
-                            </button>
-                          )}
-                        </div>
 
-                        {/* Scrollable thread messages - now with ref */}
-                        <div
-                          ref={(el) =>
-                            (threadContainerRefs.current[botMessage.run_id] =
-                              el)
-                          }
-                          className="max-h-[400px] overflow-y-auto scroll"
-                        >
-                          <div className="p-3 space-y-3">
-                            {thread.messages.map((threadMsg, threadIndex) => (
-                              <div key={`thread-${threadIndex}`}>
-                                <RenderMessage
-                                  message={threadMsg}
-                                  isLast={
-                                    threadIndex === thread.messages.length - 1
-                                  }
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                    <div className="flex flex-row gap-4">
+                      <div className="flex-1">
+                        {" "}
+                        {thread.isExpanded && (
+                          <ThreadView
+                            thread={thread}
+                            isStreaming={isStreaming}
+                            runId={botMessage.run_id}
+                            onCancel={onCancel}
+                            threadContainerRef={(el) =>
+                              (threadContainerRefs.current[botMessage.run_id] =
+                                el)
+                            }
+                          />
+                        )}
                       </div>
-                    )}
+                      <div className="bg-tertiary flex-1 rounded mt-2">
+                        {teamConfig && thread.isExpanded && (
+                          <AgentFlow
+                            teamConfig={teamConfig}
+                            messages={thread.messages}
+                            threadState={thread} // Add this prop
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -252,7 +230,7 @@ export const MessageList: React.FC<MessageListProps> = ({
       {messages.length === 0 && !loading && (
         <div className="text-center text-secondary h-full  ">
           {/* <img src={landing} alt="No messages" /> */}
-          <div>No messages yet</div>
+          <div className="text-sm mt-4"> Send a message to begin! </div>
         </div>
       )}
     </div>
