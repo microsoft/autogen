@@ -91,10 +91,39 @@ class MultimodalWebSurfer(BaseChatAgent):
         name: str,
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
+        headless: bool = True,
+        browser_channel: str | None = None,
+        browser_data_dir: str | None = None,
+        start_page: str | None = None,
+        downloads_folder: str | None = None,
+        debug_dir: str | None = os.getcwd(),
+        to_save_screenshots: bool = False,
     ):
-        """To instantiate properly please make sure to call MultimodalWebSurfer.init"""
+        """
+        Initialize the MultimodalWebSurfer.
+
+        Args:
+            name (str): The agent's name
+            model_client (ChatCompletionClient): The model to use (must be multi-modal)
+            description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+            headless (bool): Whether to run the browser in headless mode. Defaults to True.
+            browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
+            browser_data_dir (str | None): The directory to store browser data. Defaults to None.
+            start_page (str | None): The initial page to visit. Defaults to DEFAULT_START_PAGE.
+            downloads_folder (str | None): The folder to save downloads. Defaults to None.
+            debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
+            to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
+        """
         super().__init__(name, description)
         self._model_client = model_client
+
+        self.headless = headless
+        self.browser_channel = browser_channel
+        self.browser_data_dir = browser_data_dir
+        self.start_page = start_page or self.DEFAULT_START_PAGE
+        self.downloads_folder = downloads_folder
+        self.debug_dir = debug_dir
+        self.to_save_screenshots = to_save_screenshots
 
         self._chat_history: List[LLMMessage] = []
 
@@ -123,7 +152,10 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
+            if isinstance(chat_message, TextMessage | MultiModalMessage):
+                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
+            else:
+                raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
 
         try:
             _, content = await self.__generate_reply(cancellation_token=cancellation_token)
@@ -160,49 +192,28 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
         )
 
-    async def init(
+    async def _lazy_init(
         self,
-        headless: bool = True,
-        browser_channel: str | None = None,
-        browser_data_dir: str | None = None,
-        start_page: str | None = None,
-        downloads_folder: str | None = None,
-        debug_dir: str | None = os.getcwd(),
-        to_save_screenshots: bool = False,
     ) -> None:
-        """
-        Initialize the MultimodalWebSurfer.
-
-        Args:
-            headless (bool): Whether to run the browser in headless mode. Defaults to True.
-            browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
-            browser_data_dir (str | None): The directory to store browser data. Defaults to None.
-            start_page (str | None): The initial page to visit. Defaults to DEFAULT_START_PAGE.
-            downloads_folder (str | None): The folder to save downloads. Defaults to None.
-            debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
-            to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
-        """
-        self.start_page = start_page or self.DEFAULT_START_PAGE
-        self.downloads_folder = downloads_folder
-        self.to_save_screenshots = to_save_screenshots
-        self._chat_history.clear()
         self._last_download = None
         self._prior_metadata_hash = None
 
         # Create the playwright self
-        launch_args: Dict[str, Any] = {"headless": headless}
-        if browser_channel is not None:
-            launch_args["channel"] = browser_channel
+        launch_args: Dict[str, Any] = {"headless": self.headless}
+        if self.browser_channel is not None:
+            launch_args["channel"] = self.browser_channel
         self._playwright = await async_playwright().start()
 
         # Create the context -- are we launching persistent?
-        if browser_data_dir is None:
+        if self.browser_data_dir is None:
             browser = await self._playwright.chromium.launch(**launch_args)
             self._context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
             )
         else:
-            self._context = await self._playwright.chromium.launch_persistent_context(browser_data_dir, **launch_args)
+            self._context = await self._playwright.chromium.launch_persistent_context(
+                self.browser_data_dir, **launch_args
+            )
 
         # Create the page
         self._context.set_default_timeout(60000)  # One minute
@@ -218,7 +229,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         await self._page.wait_for_load_state()
 
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
-        await self._set_debug_dir(debug_dir)
+        await self._set_debug_dir(self.debug_dir)
 
     async def _sleep(self, duration: Union[int, float]) -> None:
         assert self._page is not None
@@ -437,8 +448,13 @@ class MultimodalWebSurfer(BaseChatAgent):
         ]
 
     async def __generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
-        assert self._page is not None
         """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
+
+        # Lazy init
+        if self._playwright is None:
+            await self._lazy_init()
+
+        assert self._page is not None
 
         # Clone the messages to give context, removing old screenshots
         history: List[LLMMessage] = []
