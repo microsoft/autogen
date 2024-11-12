@@ -10,9 +10,11 @@ namespace Hello;
 public class HelloAIAgent(
     IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
         context,
-        typeRegistry),
+        typeRegistry,
+        hostApplicationLifetime),
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class

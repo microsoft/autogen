@@ -33,8 +33,8 @@ namespace Hello
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentRuntime context,
-        IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+        IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
             context,
             typeRegistry),
             ISayHello,
