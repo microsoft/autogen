@@ -63,6 +63,10 @@ public class AgentWorker :
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
     }
+    public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        return _mailbox.Writer.WriteAsync(message, cancellationToken);
+    }
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");

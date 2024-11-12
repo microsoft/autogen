@@ -237,6 +237,11 @@ public sealed class GrpcAgentWorker(
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
     // new is intentional
+    public new async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
+    }
+    // new is intentional
     public new async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);

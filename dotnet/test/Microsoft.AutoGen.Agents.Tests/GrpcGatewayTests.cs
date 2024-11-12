@@ -28,26 +28,7 @@ public class GrpcGatewayTests
     [Fact]
     public async Task AddSubscriptionAsync_SendsAddSubscriptionRequest_AndChecksAddSubscriptionResponse()
     {
-        // Arrange
-        var request = new AddSubscriptionRequest
-        {
-            RequestId = "test-request-id",
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    TopicType = "test-topic",
-                    AgentType = "test-agent-type"
-                }
-            }
-        };
-        
 
-        var responseStream = new Mock<IServerStreamWriter<Message>>();
-        _mockConnection.SetupGet(c => c.ResponseStream).Returns(responseStream.Object);
-
-        // Act
-        await _grpcGateway.AddSubscriptionAsync(_mockConnection.Object, request);
 
         // Assert
         responseStream.Verify(stream => stream.WriteAsync(It.Is<Message>(msg =>
@@ -64,13 +45,14 @@ public class GrpcGatewayTests
     {
         public async Task Handle(NewMessageReceived item)
         {
-
+            // update our subscription requests
+            await SendSubscriptionRequestAsync().ConfigureAwait(false);
         }
-        private async SendSubscriptionRequestAsync()
+        private async ValueTask SendSubscriptionRequestAsync(CancellationToken cancellationToken = default)
         {
-            RpcRequest request = new()
+            Message request = new()
             {
-                Payload = new AddSubscriptionRequest()
+                AddSubscriptionRequest = new()
                 {
                     RequestId = "test-request-id",
                     Subscription = new Subscription
@@ -83,7 +65,7 @@ public class GrpcGatewayTests
                     }
                 }
             };
-            return this.Context.SendRequestAsync(this,request);
+            await Context.SendMessageAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 }
