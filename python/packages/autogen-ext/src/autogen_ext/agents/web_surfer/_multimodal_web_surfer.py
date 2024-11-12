@@ -4,7 +4,6 @@ import io
 import json
 import logging
 import os
-import pathlib
 import re
 import time
 import traceback
@@ -137,6 +136,30 @@ class MultimodalWebSurfer(BaseChatAgent):
                 chat_message=TextMessage(content=f"Web surfing error:\n\n{traceback.format_exc()}", source=self.name)
             )
 
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        assert self._page is not None
+        self._chat_history.clear()
+        await self._visit_page(self.start_page)
+        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.name,
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
+            )
+
+        self.logger.info(
+            WebSurferEvent(
+                source=self.name,
+                url=self._page.url,
+                message="Resetting browser.",
+            )
+        )
+
     async def init(
         self,
         headless: bool = True,
@@ -209,28 +232,10 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         if not os.path.isdir(self.debug_dir):
             os.mkdir(self.debug_dir)
-        current_timestamp = "_" + int(time.time()).__str__()
-        screenshot_png_name = "screenshot" + current_timestamp + ".png"
-        debug_html = os.path.join(self.debug_dir, "screenshot" + current_timestamp + ".html")
+
         if self.to_save_screenshots:
-            async with aiofiles.open(debug_html, "wt") as file:
-                await file.write(
-                    f"""
-    <html style="width:100%; margin: 0px; padding: 0px;">
-    <body style="width: 100%; margin: 0px; padding: 0px;">
-        <img src= {screenshot_png_name} id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
-        <script language="JavaScript">
-    var counter = 0;
-    setInterval(function() {{
-    counter += 1;
-    document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
-    }}, 300);
-        </script>
-    </body>
-    </html>
-    """.strip(),
-                )
-        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
             await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
             self.logger.info(
                 WebSurferEvent(
@@ -239,33 +244,6 @@ class MultimodalWebSurfer(BaseChatAgent):
                     message="Screenshot: " + screenshot_png_name,
                 )
             )
-            self.logger.info(
-                f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n"
-            )
-
-    async def _reset(self, cancellation_token: CancellationToken) -> None:
-        assert self._page is not None
-        self._chat_history.clear()
-        await self._visit_page(self.start_page)
-        if self.to_save_screenshots:
-            current_timestamp = "_" + int(time.time()).__str__()
-            screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
-            self.logger.info(
-                WebSurferEvent(
-                    source=self.name,
-                    url=self._page.url,
-                    message="Screenshot: " + screenshot_png_name,
-                )
-            )
-
-        self.logger.info(
-            WebSurferEvent(
-                source=self.name,
-                url=self._page.url,
-                message="Resetting browser.",
-            )
-        )
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
@@ -640,13 +618,6 @@ When deciding between tools, consider if the request can be best addressed by:
         result = await self._page.evaluate("MultimodalWebSurfer.getPageMetadata();")
         assert isinstance(result, dict)
         return cast(Dict[str, Any], result)
-
-    async def _get_page_markdown(self) -> str:
-        assert self._page is not None
-        html = await self._page.evaluate("document.documentElement.outerHTML;")
-        # TODO: fix types
-        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)  # type: ignore
-        return res.text_content  # type: ignore
 
     async def _on_new_page(self, page: Page) -> None:
         self._page = page
