@@ -44,8 +44,12 @@ public abstract class FileAgent(
             Route = _route
 
         };
+        await PublishMessageAsync(evt);
+    }
+    public override async Task Handle(Output item)
     {
         using (var writer = new StreamWriter(outputPath, append: true))
+        {
             await writer.WriteLineAsync(item.Message);
         }
         var evt = new OutputWritten
