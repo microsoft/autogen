@@ -34,7 +34,7 @@ namespace Hello
             {
                 Message = response
             };
-            Dictionary <string, string> state = new()
+            Dictionary<string, string> state = new()
             {
                 { "data", "We said hello to " + item.Message },
                 { "workflow", "Active" }

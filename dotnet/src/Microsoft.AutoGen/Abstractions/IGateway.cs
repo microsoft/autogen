@@ -3,7 +3,7 @@
 
 namespace Microsoft.AutoGen.Abstractions;
 
-public interface IGateway: IGrainObserver
+public interface IGateway : IGrainObserver
 {
     ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default);
     ValueTask BroadcastEvent(CloudEvent evt, CancellationToken cancellationToken = default);
