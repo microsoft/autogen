@@ -85,6 +85,7 @@ public static class OrleansRuntimeHostingExtenions
             }
         });
         builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
+        //builder.Services.AddSingleton<ISubscriptionsGrain, SubscriptionsGrain>();
         return builder;
     }
 }

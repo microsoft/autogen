@@ -84,6 +84,13 @@ public sealed class GrpcAgentWorker(
                                 throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
                             }
                             break;
+                        
+                        case Message.MessageOneofCase.AddSubscriptionResponse:
+                            if (!message.AddSubscriptionResponse.Success)
+                            {
+                                throw new InvalidOperationException($"Failed to add subscription: '{message.AddSubscriptionResponse.Error}'.");
+                            }
+                            break;
 
                         case Message.MessageOneofCase.CloudEvent:
 
@@ -228,6 +235,11 @@ public sealed class GrpcAgentWorker(
         _pendingRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
+    }
+    // new is intentional
+    public new async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
     // new is intentional
     public new async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
