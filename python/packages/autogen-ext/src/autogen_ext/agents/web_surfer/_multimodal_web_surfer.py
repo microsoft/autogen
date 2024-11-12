@@ -26,7 +26,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, MultiModalMessage, ResetMessage, TextMessage
+from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
@@ -104,7 +104,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         Args:
             name (str): The agent's name
-            model_client (ChatCompletionClient): The model to use (must be multi-modal) 
+            model_client (ChatCompletionClient): The model to use (must be multi-modal)
             description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
             headless (bool): Whether to run the browser in headless mode. Defaults to True.
             browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
@@ -154,8 +154,6 @@ class MultimodalWebSurfer(BaseChatAgent):
         for chat_message in messages:
             if isinstance(chat_message, TextMessage | MultiModalMessage):
                 self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
-            elif isinstance(chat_message, ResetMessage):
-                await self._reset(cancellation_token=cancellation_token)
             else:
                 raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
 
@@ -213,7 +211,9 @@ class MultimodalWebSurfer(BaseChatAgent):
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
             )
         else:
-            self._context = await self._playwright.chromium.launch_persistent_context(self.browser_data_dir, **launch_args)
+            self._context = await self._playwright.chromium.launch_persistent_context(
+                self.browser_data_dir, **launch_args
+            )
 
         # Create the page
         self._context.set_default_timeout(60000)  # One minute
@@ -449,7 +449,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def __generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
         """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
-        
+
         # Lazy init
         if self._playwright is None:
             await self._lazy_init()
