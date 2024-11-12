@@ -20,6 +20,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
+    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
+    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -102,9 +104,21 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
                 break;
+            case Message.MessageOneofCase.AddSubscriptionRequest:
+                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
+                break;
             default:
                 throw new InvalidOperationException($"Unknown message type for message '{message}'.");
         };
+    }
+    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
+    {
+        var topic = request.Subscription.TypeSubscription.TopicType;
+        var agentType = request.Subscription.TypeSubscription.AgentType;
+        _subscriptionsByAgentType[agentType] = request.Subscription;
+        _subscriptionsByTopic[topic].Add(agentType);
+        var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
