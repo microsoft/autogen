@@ -18,6 +18,7 @@ namespace Hello
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentRuntime context,
+        IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),
@@ -84,7 +85,7 @@ namespace Hello
                 await Task.Delay(1000).ConfigureAwait(true);
             }
             // now we can shut down...
-            await AgentsApp.ShutdownAsync().ConfigureAwait(true);
+            hostApplicationLifetime.StopApplication();
         }
         public async Task<string> SayHello(string ask)
         {
