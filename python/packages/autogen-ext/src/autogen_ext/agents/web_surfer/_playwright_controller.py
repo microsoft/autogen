@@ -153,7 +153,7 @@ class PlaywrightController:
 
         # See if it exists
         try:
-            await target.wait_for(timeout=100)
+            await target.wait_for(timeout=5000)
         except TimeoutError:
             raise ValueError("No such element.") from None
 
@@ -220,7 +220,7 @@ class PlaywrightController:
 
         # See if it exists
         try:
-            await target.wait_for(timeout=100)
+            await target.wait_for(timeout=5000)
         except TimeoutError:
             raise ValueError("No such element.") from None
 
@@ -265,7 +265,7 @@ class PlaywrightController:
 
         # See if it exists
         try:
-            await target.wait_for(timeout=300)
+            await target.wait_for(timeout=5000)
         except TimeoutError:
             raise ValueError("No such element.") from None
 

@@ -154,6 +154,16 @@ class MultimodalWebSurfer(BaseChatAgent):
             _download_handler=self._download_handler,
             to_resize_viewport=self.to_resize_viewport,
         )
+        self.default_tools = [
+            TOOL_VISIT_URL,
+            TOOL_HISTORY_BACK,
+            TOOL_CLICK,
+            TOOL_TYPE,
+            TOOL_SUMMARIZE_PAGE,
+            TOOL_READ_PAGE_AND_ANSWER,
+            TOOL_SLEEP,
+            TOOL_HOVER,
+        ]
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
@@ -289,7 +299,7 @@ class MultimodalWebSurfer(BaseChatAgent):
                 aria_name = re.sub(r"[\n\r]+", " ", rects[r].get("aria_name", "")).strip()
 
                 # What are the actions?
-                actions = ['"click"']
+                actions = ['"click", "hover"']
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
                     actions = ['"input_text"']
                 actions_str = "[" + ",".join(actions) + "]"
@@ -534,16 +544,7 @@ class MultimodalWebSurfer(BaseChatAgent):
                 )
             )
         # What tools are available?
-        tools = [
-            TOOL_VISIT_URL,
-            TOOL_HISTORY_BACK,
-            TOOL_CLICK,
-            TOOL_TYPE,
-            TOOL_SUMMARIZE_PAGE,
-            TOOL_READ_PAGE_AND_ANSWER,
-            TOOL_SLEEP,
-            TOOL_HOVER,
-        ]
+        tools = self.default_tools.copy()
 
         # Can we reach Bing to search?
         # if self._navigation_allow_list("https://www.bing.com/"):
