@@ -167,6 +167,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
+        self.did_lazy_init = False
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
@@ -191,7 +192,10 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        if not self.did_lazy_init:
+            return
         assert self._page is not None
+
         self._chat_history.clear()
         reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
             self._page, self.start_page
@@ -520,7 +524,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
 
         # Lazy init
-        if self._playwright is None:
+        if not self.did_lazy_init:
             await self._lazy_init()
 
         assert self._page is not None
