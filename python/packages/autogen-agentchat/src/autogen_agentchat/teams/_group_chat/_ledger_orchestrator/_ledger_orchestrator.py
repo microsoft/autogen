@@ -38,7 +38,9 @@ class OrchestratorGroupChat(BaseGroupChat):
         termination_condition: TerminationCondition | None = None,
     ):
         super().__init__(
-            participants, group_chat_manager_class=LedgerOrchestratorManager, termination_condition=termination_condition
+            participants,
+            group_chat_manager_class=LedgerOrchestratorManager,
+            termination_condition=termination_condition,
         )
         # Validate the participants.
         if len(participants) == 0:
