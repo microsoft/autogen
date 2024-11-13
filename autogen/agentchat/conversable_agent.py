@@ -137,8 +137,10 @@ class ConversableAgent(LLMAgent):
         )
 
         self._name = name
-        if self._name.isidentifier() is False:
-            raise ValueError("The agent name must be a valid Python identifier.")
+
+        if ConversableAgent._validate_name(name) is False:
+            raise ValueError(f"Invalid name: '{name}'. Only letters, numbers, '_' and '-' are allowed.")
+
         # a dictionary of conversations, default value is list
         if chat_messages is None:
             self._oai_messages = defaultdict(list)
@@ -257,6 +259,12 @@ class ConversableAgent(LLMAgent):
             "process_message_before_send": [],
             "a_process_message_before_send": [],
         }
+
+    @staticmethod
+    def _validate_name(name: str) -> bool:
+        """Validate the name of the agent."""
+        pattern = r'^[a-zA-Z0-9_-]+$'
+        return bool(re.match(pattern, name))
 
     def _validate_llm_config(self, llm_config):
         assert llm_config in (None, False) or isinstance(
