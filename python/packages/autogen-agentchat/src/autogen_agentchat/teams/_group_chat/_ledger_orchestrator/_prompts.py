@@ -53,6 +53,7 @@ Here is the plan to follow as best as possible:
 {plan}
 """
 
+
 ORCHESTRATOR_PROGRESS_LEDGER_PROMPT = """
 Recall we are working on the following request:
 
@@ -97,7 +98,7 @@ Please output an answer in pure JSON format according to the following schema. T
 """
 
 
-ORCHESTRATOR_UPDATE_FACTS_PROMPT = """As a reminder, we are working to solve the following task:
+ORCHESTRATOR_TASK_LEDGER_FACTS_UPDATE_PROMPT = """As a reminder, we are working to solve the following task:
 
 {task}
 
@@ -108,12 +109,14 @@ Here is the old fact sheet:
 {facts}
 """
 
-ORCHESTRATOR_UPDATE_PLAN_PROMPT = """Please briefly explain what went wrong on this last run (the root cause of the failure), and then come up with a new plan that takes steps and/or includes hints to overcome prior challenges and especially avoids repeating the same mistakes. As before, the new plan should be concise, be expressed in bullet-point form, and consider the following team composition (do not involve any other outside people since we cannot contact anyone else):
+
+ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT = """Please briefly explain what went wrong on this last run (the root cause of the failure), and then come up with a new plan that takes steps and/or includes hints to overcome prior challenges and especially avoids repeating the same mistakes. As before, the new plan should be concise, be expressed in bullet-point form, and consider the following team composition (do not involve any other outside people since we cannot contact anyone else):
 
 {team}
 """
 
-ORCHESTRATOR_GET_FINAL_ANSWER = """
+
+ORCHESTRATOR_FINAL_ANSWER_PROMPT = """
 We are working on the following task:
 {task}
 
