@@ -47,7 +47,15 @@ const getLayoutedElements = (
   direction: "TB" | "LR"
 ) => {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction });
+  g.setGraph({
+    rankdir: direction,
+    nodesep: direction === "TB" ? 100 : 80, // Adjust for orientation
+    ranksep: direction === "TB" ? 80 : 100, // Adjust for orientation
+    align: direction === "TB" ? "DL" : "UL", // Adjust alignment
+    ranker: "network-simplex",
+    marginx: 30,
+    marginy: 30,
+  });
 
   edges.forEach((edge) => g.setEdge(edge.source, edge.target));
   nodes.forEach((node) => {

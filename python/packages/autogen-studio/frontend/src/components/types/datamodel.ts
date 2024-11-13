@@ -149,6 +149,7 @@ export interface TeamConfig {
   team_type: TeamTypes;
   model_client?: ModelConfig;
   termination_condition?: TerminationConfig;
+  selector_config?: string;
 }
 
 export interface Team extends DBModel {

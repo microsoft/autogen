@@ -178,6 +178,15 @@ class ComponentFactory:
 
     async def load_team(self, config: TeamConfig) -> TeamComponent:
         """Create team instance from configuration."""
+
+        default_selector_prompt = """You are in a role play game. The following roles are available:
+{roles}.
+Read the following conversation. Then select the next role from {participants} to play. Only return the role.
+
+{history}
+
+Read the above conversation. Then select the next role from {participants} to play. Only return the role.
+"""
         try:
             # Load participants (agents)
             participants = []
@@ -206,10 +215,12 @@ class ComponentFactory:
                 if not model_client:
                     raise ValueError(
                         "SelectorGroupChat requires a model_client")
+                selector_prompt = config.selector_prompt if config.selector_prompt else default_selector_prompt
                 return SelectorGroupChat(
                     participants=participants,
                     model_client=model_client,
-                    termination_condition=termination
+                    termination_condition=termination,
+                    selector_prompt=selector_prompt
                 )
             else:
                 raise ValueError(f"Unsupported team type: {config.team_type}")

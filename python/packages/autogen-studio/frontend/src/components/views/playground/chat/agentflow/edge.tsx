@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Tooltip } from "antd";
+import { message, Tabs, Tooltip } from "antd";
 import { AgentMessageConfig } from "../../../../types/datamodel";
 import {
   EdgeLabelRenderer,
@@ -21,33 +21,13 @@ export const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
   messages,
 }) => {
   return (
-    <div className="edge-tooltip">
-      <Tabs
-        defaultActiveKey="0"
-        size="small"
-        style={{
-          maxWidth: "400px",
-          maxHeight: "300px",
-        }}
-        items={messages.map((msg, index) => ({
-          key: String(index),
-          label: `Message ${index + 1}`,
-          children: (
-            <div className="p-2 overflow-auto max-h-[250px] scroll">
-              <pre className="whitespace-pre-wrap text-white  text-xs">
-                <RenderMessage message={msg} />
-              </pre>
-              <div className="text-xs text-primary mt-2">
-                {msg.models_usage &&
-                  `Tokens: ${
-                    msg.models_usage.prompt_tokens +
-                    msg.models_usage.completion_tokens
-                  }`}
-              </div>
-            </div>
-          ),
-        }))}
-      />
+    <div className="p-2 overflow-auto max-h-[200px] scroll max-w-[350px]">
+      <div className="text-xs mb-2">{messages.length} messages</div>
+      <div className="edge-tooltip  ">
+        {messages.map((message, index) => (
+          <RenderMessage key={index} message={message} />
+        ))}
+      </div>
     </div>
   );
 };
