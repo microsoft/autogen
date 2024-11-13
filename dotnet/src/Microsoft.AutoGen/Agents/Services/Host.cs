@@ -4,24 +4,24 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
 public static class Host
 {
-    public static async Task<WebApplication> StartAsync(bool local = false)
+    public static async Task<WebApplication> StartAsync(bool local = false, bool useGrpc = true)
     {
         var builder = WebApplication.CreateBuilder();
         builder.AddServiceDefaults();
         if (local)
         {
-            builder.AddLocalAgentService();
+            builder.AddLocalAgentService(useGrpc);
         }
         else
         {
-            builder.AddAgentService();
+            builder.AddAgentService(useGrpc);
         }
         var app = builder.Build();
-        app.MapAgentService();
+        app.MapAgentService(local, useGrpc);
         app.MapDefaultEndpoints();
         await app.StartAsync().ConfigureAwait(false);
         return app;
