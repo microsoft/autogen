@@ -1,11 +1,13 @@
+import asyncio
 import base64
 import os
 import random
-import asyncio
-from typing import Any, Dict, Optional, Tuple, Union, cast, Callable
+from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
+
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
+
 from ._types import (
     InteractiveRegion,
     VisualViewport,
@@ -19,8 +21,8 @@ class PlaywrightController:
         self,
         animate_actions: bool = False,
         downloads_folder: Optional[str] = None,
-        viewport_width: int = None,
-        viewport_height: int = None,
+        viewport_width: int = 1440,
+        viewport_height: int = 900,
         _download_handler: Optional[Callable[[Download], None]] = None,
         to_resize_viewport: bool = True,
     ) -> None:
@@ -40,7 +42,7 @@ class PlaywrightController:
         self._download_handler = _download_handler
         self.to_resize_viewport = to_resize_viewport
         self._page_script: str = ""
-        self.last_cursor_position: Tuple[int, int] = (0, 0)
+        self.last_cursor_position: Tuple[float, float] = (0.0, 0.0)
 
         # Read page_script
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
@@ -97,8 +99,8 @@ class PlaywrightController:
 
     async def on_new_page(self, page: Page) -> None:
         assert page is not None
-        page.on("download", self._download_handler)
-        if self.to_resize_viewport:
+        page.on("download", self._download_handler)  # type: ignore
+        if self.to_resize_viewport and self.viewport_width and self.viewport_height:
             await page.set_viewport_size({"width": self.viewport_width, "height": self.viewport_height})
         await self.sleep(page, 0.2)
         await page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
@@ -148,7 +150,9 @@ class PlaywrightController:
         assert page is not None
         await page.evaluate(f"window.scrollBy(0, -{self.viewport_height-50});")
 
-    async def gradual_cursor_animation(self, page: Page, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+    async def gradual_cursor_animation(
+        self, page: Page, start_x: float, start_y: float, end_x: float, end_y: float
+    ) -> None:
         # animation helper
         steps = 20
         for step in range(steps):
@@ -209,11 +213,11 @@ class PlaywrightController:
             }})();
         """)
 
-    async def click_id(self, page: Page, identifier: str) -> None:
+    async def click_id(self, page: Page, identifier: str) -> Page | None:
         """
         Returns new page if a new page is opened, otherwise None.
         """
-        new_page = None
+        new_page: Page | None = None
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")
 
@@ -258,7 +262,7 @@ class PlaywrightController:
                     await self.on_new_page(new_page)
             except TimeoutError:
                 pass
-        return new_page
+        return new_page  # type: ignore
 
     async def hover_id(self, page: Page, identifier: str) -> None:
         """
@@ -286,6 +290,7 @@ class PlaywrightController:
             end_x, end_y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
             await self.gradual_cursor_animation(page, start_x, start_y, end_x, end_y)
             await asyncio.sleep(0.1)
+            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
 
             await self.remove_cursor_box(page, identifier)
         else:
@@ -357,13 +362,17 @@ class PlaywrightController:
         return: text in the first n_lines of the page
         """
         assert page is not None
-        text_in_viewport = await page.evaluate("""() => {
-            return document.body.innerText;
-        }""")
-        text_in_viewport = "\n".join(text_in_viewport.split("\n")[:n_lines])
-        # remove empty lines
-        text_in_viewport = "\n".join([line for line in text_in_viewport.split("\n") if line.strip()])
-        return text_in_viewport
+        try:
+            text_in_viewport = await page.evaluate("""() => {
+                return document.body.innerText;
+            }""")
+            text_in_viewport = "\n".join(text_in_viewport.split("\n")[:n_lines])
+            # remove empty lines
+            text_in_viewport = "\n".join([line for line in text_in_viewport.split("\n") if line.strip()])
+            assert isinstance(text_in_viewport, str)
+            return text_in_viewport
+        except Exception:
+            return ""
 
     async def get_page_markdown(self, page: Page) -> str:
         # TODO: replace with mdconvert

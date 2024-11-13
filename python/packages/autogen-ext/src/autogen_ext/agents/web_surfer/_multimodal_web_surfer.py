@@ -23,7 +23,6 @@ from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlun
 
 import aiofiles
 import PIL.Image
-from PIL import Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
@@ -38,14 +37,17 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-
+from PIL import Image
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 from ._events import WebSurferEvent
+from ._playwright_controller import PlaywrightController
+from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
     TOOL_CLICK,
     TOOL_HISTORY_BACK,
+    TOOL_HOVER,
     TOOL_PAGE_DOWN,
     TOOL_PAGE_UP,
     TOOL_READ_PAGE_AND_ANSWER,
@@ -56,12 +58,9 @@ from ._tool_definitions import (
     TOOL_TYPE,
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
-    TOOL_HOVER,
 )
 from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
-from ._playwright_controller import PlaywrightController
-from ._prompts import WEB_SURFER_TOOL_PROMPT, WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE
 
 # Viewport dimensions
 VIEWPORT_HEIGHT = 900
@@ -625,12 +624,10 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         # Add the multimodal message and make the request
         history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
-        print(text_prompt)
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
         message = response.content
-        print(response)
         self._last_download = None
 
         if isinstance(message, str):
