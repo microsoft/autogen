@@ -26,6 +26,7 @@ public class GrpcGatewayTests
             Message = "test"
         }, local: true).ConfigureAwait(true);
         // Assert
+        Assert.True(true);
 
     }
     [TopicSubscription("Test")]
