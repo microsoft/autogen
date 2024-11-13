@@ -1,20 +1,19 @@
 import json
-from abc import ABC, abstractmethod
 from typing import Any, List
 
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, event
+from autogen_core.components import DefaultTopicId, Image, event
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    SystemMessage,
     UserMessage,
 )
 
-from ....base import Response, TerminationCondition
+from ....base import Response
 from ....messages import (
     AgentMessage,
+    MultiModalMessage,
     StopMessage,
     TextMessage,
 )
@@ -41,7 +40,7 @@ from ._prompts import (
 
 
 # class LedgerOrchestratorManager(BaseGroupChatManager):
-class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
+class LedgerOrchestratorManager(SequentialRoutedAgent):
     def __init__(
         self,
         group_topic_type: str,
@@ -65,18 +64,18 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
         self._participant_descriptions = participant_descriptions
         self._message_thread: List[AgentMessage] = []
 
-        self._name = "orchestrator"
-        self._model_client = model_client
-        self._max_rounds = max_rounds
-        self._max_stalls = max_stalls
+        self._name: str = "orchestrator"
+        self._model_client: ChatCompletionClient = model_client
+        self._max_rounds: int = max_rounds
+        self._max_stalls: int = max_stalls
 
-        self._task = None
-        self._facts = None
-        self._plan = None
-        self._n_rounds = 0
-        self._n_stalls = 0
+        self._task: str = ""
+        self._facts: str = ""
+        self._plan: str = ""
+        self._n_rounds: int = 0
+        self._n_stalls: int = 0
 
-        self._team_description = "\n".join(
+        self._team_description: str = "\n".join(
             [
                 f"{topic_type}: {description}".strip()
                 for topic_type, description in zip(
@@ -109,15 +108,15 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
-        assert message is not None
+        assert message is not None and message.message is not None
 
         # Log the start message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
         # Create the initial task ledger
         #################################
-        self._task = message.message.content
-        planning_conversation = []
+        self._task = self._content_to_str(message.message.content)
+        planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
         # create a closed book task and generate a response and update the chat history
@@ -201,12 +200,7 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
         self._n_rounds += 1
 
         # Update the progress ledger
-        context = []
-        for m in self._message_thread:
-            if m.source == self._name:
-                context.append(AssistantMessage(content=m.content, source=m.source))
-            else:
-                context.append(UserMessage(content=m.content, source=m.source))
+        context = self._thread_to_context()
 
         progress_ledger_prompt = self._get_progress_ledger_prompt(
             self._task, self._team_description, self._participant_topic_types
@@ -215,6 +209,7 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
 
         response = await self._model_client.create(context, json_output=True)
 
+        assert isinstance(response.content, str)
         progress_ledger = json.loads(response.content)
 
         # Check for task completion
@@ -255,12 +250,7 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
         await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker))
 
     async def _update_task_ledger(self) -> None:
-        context = []
-        for m in self._message_thread:
-            if m.source == self._name:
-                context.append(AssistantMessage(content=m.content, source=m.source))
-            else:
-                context.append(UserMessage(content=m.content, source=m.source))
+        context = self._thread_to_context()
 
         # Update the facts
         update_facts_prompt = self._get_task_ledger_facts_update_prompt(self._task, self._facts)
@@ -282,18 +272,14 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
         self._plan = response.content
 
     async def _prepare_final_answer(self, reason: str) -> None:
-        context = []
-        for m in self._message_thread:
-            if m.source == self._name:
-                context.append(AssistantMessage(content=m.content, source=m.source))
-            else:
-                context.append(UserMessage(content=m.content, source=m.source))
+        context = self._thread_to_context()
 
         # Get the final answer
         final_answer_prompt = self._get_final_answer_prompt(self._task)
         context.append(UserMessage(content=final_answer_prompt, source=self._name))
 
         response = await self._model_client.create(context)
+        assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
         self._message_thread.append(message)  # My copy
@@ -315,3 +301,26 @@ class LedgerOrchestratorManager(SequentialRoutedAgent, ABC):
             GroupChatTermination(message=StopMessage(content=reason, source=self._name)),
             topic_id=DefaultTopicId(type=self._output_topic_type),
         )
+
+    def _thread_to_context(self) -> List[LLMMessage]:
+        context: List[LLMMessage] = []
+        for m in self._message_thread:
+            if m.source == self._name:
+                assert isinstance(m, TextMessage)
+                context.append(AssistantMessage(content=m.content, source=m.source))
+            else:
+                assert isinstance(m, TextMessage) or isinstance(m, MultiModalMessage)
+                context.append(UserMessage(content=m.content, source=m.source))
+        return context
+
+    def _content_to_str(self, content: str | List[str | Image]) -> str:
+        if isinstance(content, str):
+            return content
+        else:
+            result: List[str] = []
+            for c in content:
+                if isinstance(c, str):
+                    result.append(c)
+                else:
+                    result.append("<image>")
+        return "\n".join(result)
