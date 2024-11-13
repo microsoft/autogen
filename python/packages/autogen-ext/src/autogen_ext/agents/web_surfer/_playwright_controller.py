@@ -40,6 +40,7 @@ class PlaywrightController:
         self._download_handler = _download_handler
         self.to_resize_viewport = to_resize_viewport
         self._page_script: str = ""
+        self.last_cursor_position: Tuple[int, int] = (0, 0)
 
         # Read page_script
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
@@ -147,11 +148,71 @@ class PlaywrightController:
         assert page is not None
         await page.evaluate(f"window.scrollBy(0, -{self.viewport_height-50});")
 
+    async def gradual_cursor_animation(self, page: Page, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+        # animation helper
+        steps = 20
+        for step in range(steps):
+            x = start_x + (end_x - start_x) * (step / steps)
+            y = start_y + (end_y - start_y) * (step / steps)
+            # await page.mouse.move(x, y, steps=1)
+            await page.evaluate(f"""
+                (function() {{
+                    let cursor = document.getElementById('red-cursor');
+                    cursor.style.left = '{x}px';
+                    cursor.style.top = '{y}px';
+                }})();
+            """)
+            await asyncio.sleep(0.05)
+
+        self.last_cursor_position = (end_x, end_y)
+
+    async def add_cursor_box(self, page: Page, identifier: str) -> None:
+        # animation helper
+        await page.evaluate(f"""
+            (function() {{
+                let elm = document.querySelector("[__elementId='{identifier}']");
+                if (elm) {{
+                    elm.style.transition = 'border 0.3s ease-in-out';
+                    elm.style.border = '2px solid red';
+                }}
+            }})();
+        """)
+        await asyncio.sleep(0.3)
+
+        # Create a red cursor
+        await page.evaluate("""
+            (function() {
+                let cursor = document.createElement('div');
+                cursor.id = 'red-cursor';
+                cursor.style.width = '10px';
+                cursor.style.height = '10px';
+                cursor.style.backgroundColor = 'red';
+                cursor.style.position = 'absolute';
+                cursor.style.borderRadius = '50%';
+                cursor.style.zIndex = '10000';
+                document.body.appendChild(cursor);
+            })();
+        """)
+
+    async def remove_cursor_box(self, page: Page, identifier: str) -> None:
+        # Remove the highlight and cursor
+        await page.evaluate(f"""
+            (function() {{
+                let elm = document.querySelector("[__elementId='{identifier}']");
+                if (elm) {{
+                    elm.style.border = '';
+                }}
+                let cursor = document.getElementById('red-cursor');
+                if (cursor) {{
+                    cursor.remove();
+                }}
+            }})();
+        """)
+
     async def click_id(self, page: Page, identifier: str) -> None:
         """
         Returns new page if a new page is opened, otherwise None.
         """
-        # TODO: ADD ANIMATION TO MOVE CURSOR AND HIGHLIGHT THE BOX
         new_page = None
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")
@@ -169,41 +230,24 @@ class PlaywrightController:
         box = cast(Dict[str, Union[int, float]], await target.bounding_box())
 
         if self.animate_actions:
-            # Scroll into view and highlight the box
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.transition = 'border 0.3s ease-in-out';
-                        elm.style.border = '2px solid red';
-                    }}
-                }})();
-            """)
-            await asyncio.sleep(0.3)
-
+            await self.add_cursor_box(page, identifier)
             # Move cursor to the box slowly
-            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=30)
-            await asyncio.sleep(0.3)
+            start_x, start_y = self.last_cursor_position
+            end_x, end_y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+            await self.gradual_cursor_animation(page, start_x, start_y, end_x, end_y)
+            await asyncio.sleep(0.1)
 
             try:
                 # Give it a chance to open a new page
                 async with page.expect_event("popup", timeout=1000) as page_info:  # type: ignore
-                    await page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, delay=10)
+                    await page.mouse.click(end_x, end_y, delay=10)
                     new_page = await page_info.value  # type: ignore
                     assert isinstance(new_page, Page)
                     await self.on_new_page(new_page)
             except TimeoutError:
                 pass
+            await self.remove_cursor_box(page, identifier)
 
-            # Remove the highlight
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.border = '';
-                    }}
-                }})();
-            """)
         else:
             try:
                 # Give it a chance to open a new page
@@ -236,31 +280,14 @@ class PlaywrightController:
         box = cast(Dict[str, Union[int, float]], await target.bounding_box())
 
         if self.animate_actions:
-            # Scroll into view and highlight the box
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.transition = 'border 0.3s ease-in-out';
-                        elm.style.border = '2px solid red';
-                    }}
-                }})();
-            """)
-            await asyncio.sleep(0.3)
-
+            await self.add_cursor_box(page, identifier)
             # Move cursor to the box slowly
-            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=30)
-            await asyncio.sleep(0.3)
+            start_x, start_y = self.last_cursor_position
+            end_x, end_y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+            await self.gradual_cursor_animation(page, start_x, start_y, end_x, end_y)
+            await asyncio.sleep(0.1)
 
-            # Remove the highlight
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.border = '';
-                    }}
-                }})();
-            """)
+            await self.remove_cursor_box(page, identifier)
         else:
             await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
 
@@ -276,18 +303,15 @@ class PlaywrightController:
 
         # Fill it
         await target.scroll_into_view_if_needed()
+        box = cast(Dict[str, Union[int, float]], await target.bounding_box())
+
         if self.animate_actions:
-            # Highlight the box
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.transition = 'border 0.3s ease-in-out';
-                        elm.style.border = '2px solid red';
-                    }}
-                }})();
-            """)
-            await asyncio.sleep(0.3)
+            await self.add_cursor_box(page, identifier)
+            # Move cursor to the box slowly
+            start_x, start_y = self.last_cursor_position
+            end_x, end_y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+            await self.gradual_cursor_animation(page, start_x, start_y, end_x, end_y)
+            await asyncio.sleep(0.1)
 
         # Focus on the element
         await target.focus()
@@ -306,15 +330,7 @@ class PlaywrightController:
         await target.press("Enter")
 
         if self.animate_actions:
-            # Remove the highlight
-            await page.evaluate(f"""
-                (function() {{
-                    let elm = document.querySelector("[__elementId='{identifier}']");
-                    if (elm) {{
-                        elm.style.border = '';
-                    }}
-                }})();
-            """)
+            await self.remove_cursor_box(page, identifier)
 
     async def scroll_id(self, page: Page, identifier: str, direction: str) -> None:
         assert page is not None

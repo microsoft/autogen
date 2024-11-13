@@ -114,9 +114,11 @@ class MultimodalWebSurfer(BaseChatAgent):
             downloads_folder (str | None): The folder to save downloads. Defaults to None.
             debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
             to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
+            animate_actions (bool): Whether to animate actions. Defaults to False.
             use_ocr (bool): Whether to use OCR to extract text from screenshots, otherwise extract text from page. Defaults to True.
-            playwright (Playwright | None): The playwright instance to use. Defaults to None.
-            context (BrowserContext | None): The browser context to use. Defaults to None.
+            to_resize_viewport (bool): Whether to resize the viewport. Defaults to True.
+            playwright (Playwright | None): The playwright instance to use. Defaults to None and creates a new one.
+            context (BrowserContext | None): The browser context to use. Defaults to None and creates a new one.
         """
         super().__init__(name, description)
         self._model_client = model_client
@@ -431,7 +433,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             return False, await self._summarize_page(question=question, cancellation_token=cancellation_token)
         elif name == "summarize_page":
             # Summarize the DOM. No need to take further action. Browser state does not change.
-            action_description = f"I summarized the current web page"
+            action_description = "I summarized the current web page"
             return False, await self._summarize_page(cancellation_token=cancellation_token)
 
         elif name == "hover":
@@ -558,8 +560,6 @@ class MultimodalWebSurfer(BaseChatAgent):
         # What tools are available?
         tools = self.default_tools.copy()
 
-        # Can we reach Bing to search?
-        # if self._navigation_allow_list("https://www.bing.com/"):
         tools.append(TOOL_WEB_SEARCH)
 
         # We can scroll up
@@ -678,7 +678,6 @@ class MultimodalWebSurfer(BaseChatAgent):
     async def _summarize_page(
         self,
         question: str | None = None,
-        token_limit: int = 100000,
         cancellation_token: Optional[CancellationToken] = None,
     ) -> str:
         assert self._page is not None
