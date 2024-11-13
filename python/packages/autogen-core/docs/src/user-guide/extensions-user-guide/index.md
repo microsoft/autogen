@@ -39,7 +39,7 @@ Find AutoGen extensions for 3rd party tools, components and services
 :::
 
 :::{grid-item-card} {fas}`vial;pst-color-primary` <br> Community Samples
-:link: https://github.com/topics/autogen-samples
+:link: https://github.com/topics/autogen-sample
 :class-item: api-card
 
 Find community samples and examples of how to use AutoGen
