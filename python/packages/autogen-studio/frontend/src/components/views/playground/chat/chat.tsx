@@ -10,6 +10,8 @@ import ChatInput from "./chatinput";
 import { ModelUsage, SocketMessage, ThreadState, ThreadStatus } from "./types";
 import { MessageList } from "./messagelist";
 import TeamManager from "../../shared/team/manager";
+import { teamAPI } from "../../shared/team/api";
+import AgentFlow from "./agentflow/agentflow";
 
 const logo = require("../../../../images/landing/welcome.svg").default;
 
@@ -36,6 +38,8 @@ export default function ChatView({
     Record<string, WebSocket>
   >({});
 
+  const [teamConfig, setTeamConfig] = React.useState<any>(null);
+
   React.useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -44,6 +48,15 @@ export default function ChatView({
       });
     }
   }, [messages, threadMessages]);
+
+  React.useEffect(() => {
+    if (session && session.team_id && user && user.email) {
+      teamAPI.getTeam(session.team_id, user?.email).then((team) => {
+        setTeamConfig(team.config);
+        // console.log("Team Config", team.config);
+      });
+    }
+  }, [session]);
 
   React.useEffect(() => {
     return () => {
@@ -194,6 +207,7 @@ export default function ChatView({
 
     socket.onmessage = (event) => {
       const message: SocketMessage = JSON.parse(event.data);
+      // console.log("WebSocket message received:", message);
 
       switch (message.type) {
         case "message":
@@ -245,6 +259,7 @@ export default function ChatView({
             const reason =
               message.data?.task_result?.stop_reason ||
               (message.error ? `Error: ${message.error}` : undefined);
+            console.log("All Messages", currentThread.messages);
 
             return {
               ...prev,
@@ -424,10 +439,11 @@ export default function ChatView({
             onRetry={runTask}
             onCancel={cancelRun}
             loading={loading}
+            teamConfig={teamConfig}
           />
         </div>
 
-        {sessions?.length === 0 ? (
+        {sessions && sessions?.length === 0 ? (
           <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
             <div className="mt-4 text-sm text-secondary text-center">
               <img src={logo} alt="Welcome" className="w-72 h-72 mb-4" />

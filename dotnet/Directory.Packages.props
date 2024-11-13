@@ -63,11 +63,17 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="8.2.1" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.CodeGenerator" Version="8.2.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageVersion>
+    <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Reminders" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Runtime" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Serialization.Protobuf" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Server" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="8.2.0" />

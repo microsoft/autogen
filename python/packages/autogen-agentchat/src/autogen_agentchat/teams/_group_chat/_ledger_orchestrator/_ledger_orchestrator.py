@@ -18,17 +18,20 @@ class OrchestratorGroupChat(BaseGroupChat):
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
-        termination_condition: TerminationCondition | None = None,
+        max_rounds: int = 20,
+        max_stalls: int = 3,
     ):
         super().__init__(
             participants,
             group_chat_manager_class=LedgerOrchestratorManager,
-            termination_condition=termination_condition,
+            termination_condition=None,
         )
         # Validate the participants.
         if len(participants) == 0:
             raise ValueError("At least one participant is required for OrchestratorGroupChat.")
         self._model_client = model_client
+        self._max_rounds = max_rounds
+        self._max_stalls = max_stalls
 
     def _create_group_chat_manager_factory(
         self,
@@ -45,4 +48,6 @@ class OrchestratorGroupChat(BaseGroupChat):
             participant_topic_types,
             participant_descriptions,
             self._model_client,
+            self._max_rounds,
+            self._max_stalls,
         )

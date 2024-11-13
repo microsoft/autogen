@@ -4,22 +4,44 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<PackageId>AutoGen.Worker.Client</PackageId>
+		<PackageId>Microsoft.AutoGen.Agents</PackageId>
 		<PackageProjectUrl>https://github.com/microsoft/autogen</PackageProjectUrl>
 		<Authors>Microsoft</Authors>
-		<Description>AutoGen Worker Client Library</Description>
+		<Description>Micrososft AutoGen Agents SDK</Description>
 		<Tags>ai-agents;event-driven-agents</Tags>
   </PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
-		<ProjectReference Include="..\Runtime\Microsoft.AutoGen.Runtime.csproj" />
+		<ProjectReference Include="..\Extensions\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+	  <PackageReference Include="Microsoft.Orleans.CodeGenerator">
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	    <PrivateAssets>all</PrivateAssets>
+	  </PackageReference>
+	  <PackageReference Include="Microsoft.Orleans.Serialization" />
 	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Orleans.Serialization.Protobuf" />
+		<PackageReference Include="Microsoft.Orleans.Server" />
+		<PackageReference Include="Microsoft.Orleans.Streaming" />
+		<PackageReference Include="Microsoft.Orleans.Sdk" />
+		<PackageReference Include="Microsoft.Orleans.Runtime" />
+		<PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" />
+		<PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" />
+		<PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" />
+		<PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" />
+		<PackageReference Include="Microsoft.Orleans.Reminders" />
+		<PackageReference Include="OrleansDashboard" />
+	</ItemGroup>
+	<PropertyGroup>
+    	<ServerGarbageCollection>true</ServerGarbageCollection>
+    	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+	</PropertyGroup>
 
 </Project>

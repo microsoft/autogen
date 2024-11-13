@@ -6,8 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Grpc.Core;
-using Grpc.Net.Client.Configuration;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -20,41 +18,18 @@ public static class HostBuilderExtensions
     private const string _defaultAgentServiceAddress = "https://localhost:5001";
     public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
     {
-        builder.Services.AddGrpcClient<AgentRpc.AgentRpcClient>(options =>
-        {
-            options.Address = new Uri(agentServiceAddress);
-            options.ChannelOptionsActions.Add(channelOptions =>
-            {
-
-                channelOptions.HttpHandler = new SocketsHttpHandler
-                {
-                    EnableMultipleHttp2Connections = true,
-                    KeepAlivePingDelay = TimeSpan.FromSeconds(20),
-                    KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
-                };
-
-                var methodConfig = new MethodConfig
-                {
-                    Names = { MethodName.Default },
-                    RetryPolicy = new RetryPolicy
-                    {
-                        MaxAttempts = 5,
-                        InitialBackoff = TimeSpan.FromSeconds(1),
-                        MaxBackoff = TimeSpan.FromSeconds(5),
-                        BackoffMultiplier = 1.5,
-                        RetryableStatusCodes = { StatusCode.Unavailable }
-                    }
-                };
-
-                channelOptions.ServiceConfig = new() { MethodConfigs = { methodConfig } };
-                channelOptions.ThrowOperationCanceledOnCancellation = true;
-            });
-        });
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<IAgentWorkerRuntime, GrpcAgentWorkerRuntime>();
-        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorkerRuntime>());
-        builder.Services.AddSingleton<AgentWorker>();
+
+        // if !local, then add the gRPC client
+        if (!local)
+        {
+            builder.AddGrpcAgentWorker(agentServiceAddress);
+        }
+        else
+        {
+            builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
+        }
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
@@ -122,6 +97,7 @@ public static class HostBuilderExtensions
             }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
+        builder.Services.AddSingleton<Client>();
         return new AgentApplicationBuilder(builder);
     }
 
@@ -159,7 +135,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
                                 .SelectMany(assembly => assembly.GetTypes())
                                 .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
-                                    && !type.Name.Equals("AgentWorker"))
+                                    && !type.Name.Equals(nameof(Client)))
                                 .ToDictionary(type => type.Name, type => type);
 
         return new AgentTypes(agents);

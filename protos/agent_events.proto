@@ -35,3 +35,6 @@ message ConversationClosed {
   string user_id = 1;
   string user_message = 2;
 }
+message Shutdown {
+      string message = 1;
+}

@@ -48,8 +48,8 @@ class LedgerOrchestratorManager(SequentialRoutedAgent):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         model_client: ChatCompletionClient,
-        max_rounds: int = 20,
-        max_stalls: int = 3,
+        max_rounds: int,
+        max_stalls: int,
     ):
         super().__init__(description="Group chat manager")
         self._group_topic_type = group_topic_type
