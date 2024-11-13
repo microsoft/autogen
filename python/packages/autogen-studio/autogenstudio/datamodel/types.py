@@ -91,6 +91,7 @@ class TeamConfig(BaseConfig):
     participants: List[AgentConfig]
     team_type: TeamTypes
     model_client: Optional[ModelConfig] = None
+    selector_prompt: Optional[str] = None
     termination_condition: Optional[TerminationConfig] = None
     component_type: ComponentType = ComponentType.TEAM
 
