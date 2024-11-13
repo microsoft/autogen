@@ -240,9 +240,6 @@ class MultimodalWebSurfer(BaseChatAgent):
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
         await self._set_debug_dir(self.debug_dir)
 
-        self._playwright_controller.set_download_handler(self._download_handler)
-        self._playwright_controller.set_prior_metadata_hash(self._prior_metadata_hash)
-        self._playwright_controller.set_last_download(self._last_download)
 
     async def _set_debug_dir(self, debug_dir: str | None) -> None:
         assert self._page is not None
@@ -594,6 +591,7 @@ When deciding between tools, consider if the request can be best addressed by:
 
         # Add the multimodal message and make the request
         history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+        print(text_prompt)
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})

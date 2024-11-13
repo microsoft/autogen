@@ -21,7 +21,8 @@ async def main() -> None:
     while True:
         # Run the team and stream messages
         user_input = await asyncio.get_event_loop().run_in_executor(None, input, ">: ")
-        response = await web_surfer.run(user_input)
+        print(user_input)
+        response = await web_surfer.run(task = user_input)
         print(response)
 
 
