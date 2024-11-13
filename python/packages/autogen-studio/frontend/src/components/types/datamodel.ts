@@ -84,6 +84,11 @@ export interface Message extends DBModel {
   run_id: string;
 }
 
+export interface Session extends DBModel {
+  name: string;
+  team_id?: number;
+}
+
 // WebSocket message types
 export type ThreadStatus = "streaming" | "complete" | "error" | "cancelled";
 

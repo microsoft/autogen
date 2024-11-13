@@ -229,12 +229,15 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
       // Create edges from transitions
       const newEdges: Edge[] = Array.from(transitionCounts.entries()).map(
         ([key, transition], index) => {
-          const avgTokens = Math.round(
-            transition.totalTokens / transition.count
-          );
-          const label = `${
-            transition.count > 1 ? `${transition.count}x` : ""
-          } (${avgTokens} tokens)`;
+          // const avgTokens = Math.round(
+          //   transition.totalTokens / transition.count
+          // );
+          const label =
+            transition.totalTokens > 0
+              ? `${transition.count > 1 ? `${transition.count}x` : ""} (${
+                  transition.totalTokens
+                } tokens)`
+              : "";
 
           return {
             id: `${transition.source}-${transition.target}-${index}`,

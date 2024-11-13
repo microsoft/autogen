@@ -50,7 +50,7 @@ export default function ChatView({
   }, [messages, threadMessages]);
 
   React.useEffect(() => {
-    if (session && user && user.email) {
+    if (session && session.team_id && user && user.email) {
       teamAPI.getTeam(session.team_id, user?.email).then((team) => {
         setTeamConfig(team.config);
         // console.log("Team Config", team.config);
@@ -443,7 +443,7 @@ export default function ChatView({
           />
         </div>
 
-        {sessions?.length === 0 ? (
+        {sessions && sessions?.length === 0 ? (
           <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
             <div className="mt-4 text-sm text-secondary text-center">
               <img src={logo} alt="Welcome" className="w-72 h-72 mb-4" />
