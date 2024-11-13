@@ -170,7 +170,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._chat_history.clear()
-        
+
         if self._page is None:
             # We've not yet lazy-initialized
             return

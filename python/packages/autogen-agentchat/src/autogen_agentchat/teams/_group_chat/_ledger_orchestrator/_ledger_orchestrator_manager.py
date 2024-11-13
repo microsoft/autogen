@@ -166,7 +166,6 @@ class LedgerOrchestratorManager(SequentialRoutedAgent):
         raise ValueError(f"Unhandled message in group chat manager: {type(message)}")
 
     async def _reenter_inner_loop(self):
-
         # Reset the agents
         await self.publish_message(
             GroupChatReset(),
