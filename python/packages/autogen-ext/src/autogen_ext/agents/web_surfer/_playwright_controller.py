@@ -211,6 +211,54 @@ class PlaywrightController:
                 pass
         return new_page
 
+    async def hover_id(self, page: Page, identifier: str) -> None:
+        """
+        Hovers the mouse over the target with the given id.
+        """
+        assert page is not None
+        target = page.locator(f"[__elementId='{identifier}']")
+
+        # See if it exists
+        try:
+            await target.wait_for(timeout=100)
+        except TimeoutError:
+            raise ValueError("No such element.") from None
+
+        # Hover over it
+        await target.scroll_into_view_if_needed()
+        await asyncio.sleep(0.3)
+
+        box = cast(Dict[str, Union[int, float]], await target.bounding_box())
+
+        if self.animate_actions:
+            # Scroll into view and highlight the box
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.transition = 'border 0.3s ease-in-out';
+                        elm.style.border = '2px solid red';
+                    }}
+                }})();
+            """)
+            await asyncio.sleep(0.3)
+
+            # Move cursor to the box slowly
+            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=30)
+            await asyncio.sleep(0.3)
+
+            # Remove the highlight
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.border = '';
+                    }}
+                }})();
+            """)
+        else:
+            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+
     async def fill_id(self, page: Page, identifier: str, value: str) -> None:
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")

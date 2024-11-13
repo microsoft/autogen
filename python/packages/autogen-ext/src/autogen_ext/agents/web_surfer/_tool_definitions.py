@@ -224,6 +224,31 @@ TOOL_SCROLL_ELEMENT_UP: ToolSchema = _load_tool(
     }
 )
 
+TOOL_HOVER: ToolSchema = _load_tool(
+    {
+        "type": "function",
+        "function": {
+            "name": "hover",
+            "description": "Hovers the mouse over the target with the given id.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reasoning": {
+                        "type": "string",
+                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                    },
+                    "target_id": {
+                        "type": "integer",
+                        "description": "The numeric id of the target to hover over.",
+                    },
+                },
+                "required": ["reasoning", "target_id"],
+            },
+        },
+    }
+)
+
+
 TOOL_READ_PAGE_AND_ANSWER: ToolSchema = _load_tool(
     {
         "type": "function",

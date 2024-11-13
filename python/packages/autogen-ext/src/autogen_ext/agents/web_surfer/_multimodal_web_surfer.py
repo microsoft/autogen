@@ -55,6 +55,7 @@ from ._tool_definitions import (
     TOOL_TYPE,
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
+    TOOL_HOVER,
 )
 from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
@@ -411,6 +412,15 @@ class MultimodalWebSurfer(BaseChatAgent):
 
             await self._playwright_controller.scroll_id(self._page, target_id, "down")
 
+        elif name == "hover":
+            target_id = str(args.get("target_id"))
+            target_name = self._target_name(target_id, rects)
+            if target_name:
+                action_description = f"I hovered over '{target_name}'."
+            else:
+                action_description = "I hovered over the control."
+            await self._playwright_controller.hover_id(self._page, target_id)
+
         elif name == "sleep":
             action_description = "I am waiting a short period of time before taking further action."
             await self._playwright_controller.sleep(self._page, 3)  # There's a 2s sleep below too
@@ -532,6 +542,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             TOOL_SUMMARIZE_PAGE,
             TOOL_READ_PAGE_AND_ANSWER,
             TOOL_SLEEP,
+            TOOL_HOVER,
         ]
 
         # Can we reach Bing to search?
