@@ -224,7 +224,9 @@ class LedgerOrchestratorManager(SequentialRoutedAgent):
             return
 
         # Check for stalling
-        if progress_ledger["is_progress_being_made"]["answer"] or progress_ledger["is_in_loop"]["answer"]:
+        if not progress_ledger["is_progress_being_made"]["answer"]:
+            self._n_stalls += 1
+        elif progress_ledger["is_in_loop"]["answer"]:
             self._n_stalls += 1
         else:
             self._n_stalls = max(0, self._n_stalls - 1)
