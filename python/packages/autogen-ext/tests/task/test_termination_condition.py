@@ -7,7 +7,7 @@ from autogen_ext.task import SourceMatchTermination
 
 @pytest.mark.asyncio
 async def test_agent_name_termination() -> None:
-    termination = SourceMatchTermination(agents=["Assistant"])
+    termination = SourceMatchTermination(sources=["Assistant"])
     assert await termination([]) is None
 
     continue_messages = [

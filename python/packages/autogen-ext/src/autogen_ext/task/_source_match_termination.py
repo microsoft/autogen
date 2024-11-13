@@ -5,17 +5,17 @@ from autogen_agentchat.messages import StopMessage, AgentMessage
 
 
 class SourceMatchTermination(TerminationCondition):
-    """Terminate the conversation after a specific agent responds.
+    """Terminate the conversation after a specific source responds.
 
     Args:
-        agents (List[str]): List of agent names to terminate the conversation.
+        sources (List[str]): List of source names to terminate the conversation.
 
     Raises:
         TerminatedException: If the termination condition has already been reached.
     """
 
-    def __init__(self, agents: List[str]) -> None:
-        self._agents = agents
+    def __init__(self, sources: List[str]) -> None:
+        self._sources = sources
         self._terminated = False
 
     @property
@@ -28,9 +28,9 @@ class SourceMatchTermination(TerminationCondition):
         if not messages:
             return None
         last_message = messages[-1]
-        if last_message.source in self._agents:
+        if last_message.source in self._sources:
             self._terminated = True
-            return StopMessage(content=f"Agent '{last_message.source}' answered", source="SourceMatchTermination")
+            return StopMessage(content=f"'{last_message.source}' answered", source="SourceMatchTermination")
         return None
 
     async def reset(self) -> None:
