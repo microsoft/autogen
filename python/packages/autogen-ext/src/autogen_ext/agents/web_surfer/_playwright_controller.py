@@ -5,7 +5,7 @@ import asyncio
 from typing import Any, Dict, Optional, Tuple, Union, cast, Callable
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
-from playwright.async_api import  Download, Page
+from playwright.async_api import Download, Page
 from ._types import (
     InteractiveRegion,
     VisualViewport,
@@ -26,7 +26,12 @@ class PlaywrightController:
     ) -> None:
         """
         A controller for Playwright to interact with web pages.
-        downloads_folder: folder to save downloaded files
+        animate_actions: If True, actions will be animated.
+        downloads_folder: The folder to save downloads to.
+        viewport_width: The width of the viewport.
+        viewport_height: The height of the viewport.
+        _download_handler: A handler for downloads.
+        to_resize_viewport: If True, the viewport will be resized.
         """
         self.animate_actions = animate_actions
         self.downloads_folder = downloads_folder
@@ -162,7 +167,7 @@ class PlaywrightController:
         await asyncio.sleep(0.3)
 
         box = cast(Dict[str, Union[int, float]], await target.bounding_box())
-        
+
         if self.animate_actions:
             # Scroll into view and highlight the box
             await page.evaluate(f"""
@@ -330,15 +335,21 @@ class PlaywrightController:
         )
 
     async def get_webpage_text(self, page: Page, n_lines: int = 100) -> str:
-        assert page is not None
         """
         page: playwright page object
         n_lines: number of lines to return from the page innertext
         return: text in the first n_lines of the page
         """
+        assert page is not None
         text_in_viewport = await page.evaluate("""() => {
             return document.body.innerText;
         }""")
         text_in_viewport = "\n".join(text_in_viewport.split("\n")[:n_lines])
         # remove empty lines
         text_in_viewport = "\n".join([line for line in text_in_viewport.split("\n") if line.strip()])
+        return text_in_viewport
+
+    async def get_page_markdown(self, page: Page) -> str:
+        # TODO: replace with mdconvert
+        assert page is not None
+        return await self.get_webpage_text(page, n_lines=1000)

@@ -23,6 +23,7 @@ from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlun
 
 import aiofiles
 import PIL.Image
+from PIL import Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
@@ -60,7 +61,8 @@ from ._tool_definitions import (
 from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
 from ._playwright_controller import PlaywrightController
-from ._prompts import WEB_SURFER_TOOL_PROMPT, WEB_SURFER_OCR_PROMPT
+from ._prompts import WEB_SURFER_TOOL_PROMPT, WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE
+
 # Viewport dimensions
 VIEWPORT_HEIGHT = 900
 VIEWPORT_WIDTH = 1440
@@ -159,8 +161,8 @@ class MultimodalWebSurfer(BaseChatAgent):
             TOOL_HISTORY_BACK,
             TOOL_CLICK,
             TOOL_TYPE,
-            TOOL_SUMMARIZE_PAGE,
             TOOL_READ_PAGE_AND_ANSWER,
+            TOOL_SUMMARIZE_PAGE,
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
@@ -422,6 +424,16 @@ class MultimodalWebSurfer(BaseChatAgent):
 
             await self._playwright_controller.scroll_id(self._page, target_id, "down")
 
+        elif name == "answer_question":
+            question = str(args.get("question"))
+            action_description = f"I answered the following question '{question}' based on the web page."
+            # Do Q&A on the DOM. No need to take further action. Browser state does not change.
+            return False, await self._summarize_page(question=question, cancellation_token=cancellation_token)
+        elif name == "summarize_page":
+            # Summarize the DOM. No need to take further action. Browser state does not change.
+            action_description = f"I summarized the current web page"
+            return False, await self._summarize_page(cancellation_token=cancellation_token)
+
         elif name == "hover":
             target_id = str(args.get("target_id"))
             target_name = self._target_name(target_id, rects)
@@ -597,7 +609,13 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         tool_names = "\n".join([t["name"] for t in tools])
 
-        text_prompt =WEB_SURFER_TOOL_PROMPT.format(url=self._page.url, visible_targets=visible_targets, other_targets_str=other_targets_str, focused_hint=focused_hint, tool_names=tool_names).strip()
+        text_prompt = WEB_SURFER_TOOL_PROMPT.format(
+            url=self._page.url,
+            visible_targets=visible_targets,
+            other_targets_str=other_targets_str,
+            focused_hint=focused_hint,
+            tool_names=tool_names,
+        ).strip()
 
         # Scale the screenshot for the MLM, and close the original
         scaled_screenshot = som_screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
@@ -652,6 +670,72 @@ class MultimodalWebSurfer(BaseChatAgent):
                 source=self.name,
             )
         )
+        response = await self._model_client.create(messages, cancellation_token=cancellation_token)
+        scaled_screenshot.close()
+        assert isinstance(response.content, str)
+        return response.content
+
+    async def _summarize_page(
+        self,
+        question: str | None = None,
+        token_limit: int = 100000,
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> str:
+        assert self._page is not None
+
+        page_markdown: str = await self._playwright_controller.get_page_markdown(self._page)
+
+        title: str = self._page.url
+        try:
+            title = await self._page.title()
+        except Exception:
+            pass
+
+        # Take a screenshot and scale it
+        screenshot = Image.open(io.BytesIO(await self._page.screenshot()))
+        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        screenshot.close()
+        ag_image = AGImage.from_pil(scaled_screenshot)
+
+        # Prepare the system prompt
+        messages: List[LLMMessage] = []
+        messages.append(SystemMessage(content=WEB_SURFER_QA_SYSTEM_MESSAGE))
+        prompt = WEB_SURFER_QA_PROMPT(title, question)
+        # Grow the buffer (which is added to the prompt) until we overflow the context window or run out of lines
+        buffer = ""
+        # for line in re.split(r"([\r\n]+)", page_markdown):
+        for line in page_markdown.splitlines():
+            message = UserMessage(
+                # content=[
+                prompt + buffer + line,
+                #    ag_image,
+                # ],
+                source=self.name,
+            )
+
+            remaining = self._model_client.remaining_tokens(messages + [message])
+            if remaining > SCREENSHOT_TOKENS:
+                buffer += line
+            else:
+                break
+
+        # Nothing to do
+        buffer = buffer.strip()
+        if len(buffer) == 0:
+            return "Nothing to summarize."
+
+        # Append the message
+        messages.append(
+            UserMessage(
+                content=[
+                    prompt + buffer,
+                    ag_image,
+                ],
+                source=self.name,
+            )
+        )
+
+        # Generate the response
         response = await self._model_client.create(messages, cancellation_token=cancellation_token)
         scaled_screenshot.close()
         assert isinstance(response.content, str)

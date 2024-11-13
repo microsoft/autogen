@@ -1,6 +1,4 @@
 from typing import Any, Dict
-
-# TODO Why does pylance fail if I import from autogen_core.components.tools instead?
 from autogen_core.components.tools._base import ParametersSchema, ToolSchema
 
 
@@ -15,6 +13,7 @@ def _load_tool(tooldef: Dict[str, Any]) -> ToolSchema:
         ),
     )
 
+REASONING_TOOL_PROMPT = "A short description of the action to be performed and reason for doing so, do not mention the user."
 
 TOOL_VISIT_URL: ToolSchema = _load_tool(
     {
@@ -27,7 +26,7 @@ TOOL_VISIT_URL: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "url": {
                         "type": "string",
@@ -51,7 +50,7 @@ TOOL_WEB_SEARCH: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "query": {
                         "type": "string",
@@ -75,7 +74,7 @@ TOOL_HISTORY_BACK: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                 },
                 "required": ["reasoning"],
@@ -95,7 +94,7 @@ TOOL_PAGE_UP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                 },
                 "required": ["reasoning"],
@@ -115,7 +114,7 @@ TOOL_PAGE_DOWN: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                 },
                 "required": ["reasoning"],
@@ -135,7 +134,7 @@ TOOL_CLICK: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "target_id": {
                         "type": "integer",
@@ -159,7 +158,7 @@ TOOL_TYPE: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "input_field_id": {
                         "type": "integer",
@@ -187,7 +186,7 @@ TOOL_SCROLL_ELEMENT_DOWN: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "target_id": {
                         "type": "integer",
@@ -211,7 +210,7 @@ TOOL_SCROLL_ELEMENT_UP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "target_id": {
                         "type": "integer",
@@ -235,7 +234,7 @@ TOOL_HOVER: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "target_id": {
                         "type": "integer",
@@ -260,7 +259,7 @@ TOOL_READ_PAGE_AND_ANSWER: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                     "question": {
                         "type": "string",
@@ -284,7 +283,7 @@ TOOL_SUMMARIZE_PAGE: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                 },
                 "required": ["reasoning"],
@@ -304,7 +303,7 @@ TOOL_SLEEP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
+                        "description": REASONING_TOOL_PROMPT,
                     },
                 },
                 "required": ["reasoning"],
