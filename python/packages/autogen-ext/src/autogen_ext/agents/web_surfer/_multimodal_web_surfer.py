@@ -60,7 +60,7 @@ from ._tool_definitions import (
 from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
 from ._playwright_controller import PlaywrightController
-
+from ._prompts import WEB_SURFER_TOOL_PROMPT, WEB_SURFER_OCR_PROMPT
 # Viewport dimensions
 VIEWPORT_HEIGHT = 900
 VIEWPORT_WIDTH = 1440
@@ -597,18 +597,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         tool_names = "\n".join([t["name"] for t in tools])
 
-        text_prompt = f"""
-Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
-
-{visible_targets}{other_targets_str}{focused_hint}You are to respond to the user's most recent request by selecting an appropriate tool the following set, or by answering the question directly if possible:
-
-{tool_names}
-
-When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, or inputting text might be most appropriate)
-    - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
-    - on some other website entirely (in which case actions like performing a new web search might be the best option)
-""".strip()
+        text_prompt =WEB_SURFER_TOOL_PROMPT.format(url=self._page.url, visible_targets=visible_targets, other_targets_str=other_targets_str, focused_hint=focused_hint, tool_names=tool_names).strip()
 
         # Scale the screenshot for the MLM, and close the original
         scaled_screenshot = som_screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
@@ -657,7 +646,7 @@ When deciding between tools, consider if the request can be best addressed by:
         messages.append(
             UserMessage(
                 content=[
-                    "Please transcribe all visible text on this page, including both main content and the labels of UI elements.",
+                    WEB_SURFER_OCR_PROMPT,
                     AGImage.from_pil(scaled_screenshot),
                 ],
                 source=self.name,

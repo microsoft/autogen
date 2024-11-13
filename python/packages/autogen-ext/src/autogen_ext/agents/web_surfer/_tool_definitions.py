@@ -27,7 +27,7 @@ TOOL_VISIT_URL: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "url": {
                         "type": "string",
@@ -51,7 +51,7 @@ TOOL_WEB_SEARCH: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "query": {
                         "type": "string",
@@ -75,7 +75,7 @@ TOOL_HISTORY_BACK: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                 },
                 "required": ["reasoning"],
@@ -95,7 +95,7 @@ TOOL_PAGE_UP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                 },
                 "required": ["reasoning"],
@@ -115,7 +115,7 @@ TOOL_PAGE_DOWN: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                 },
                 "required": ["reasoning"],
@@ -135,7 +135,7 @@ TOOL_CLICK: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "target_id": {
                         "type": "integer",
@@ -159,7 +159,7 @@ TOOL_TYPE: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "input_field_id": {
                         "type": "integer",
@@ -187,7 +187,7 @@ TOOL_SCROLL_ELEMENT_DOWN: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "target_id": {
                         "type": "integer",
@@ -211,7 +211,7 @@ TOOL_SCROLL_ELEMENT_UP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "target_id": {
                         "type": "integer",
@@ -235,7 +235,7 @@ TOOL_HOVER: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "target_id": {
                         "type": "integer",
@@ -260,7 +260,7 @@ TOOL_READ_PAGE_AND_ANSWER: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                     "question": {
                         "type": "string",
@@ -284,7 +284,7 @@ TOOL_SUMMARIZE_PAGE: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                 },
                 "required": ["reasoning"],
@@ -304,7 +304,7 @@ TOOL_SLEEP: ToolSchema = _load_tool(
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "description": "A short explanation of the reasoning for calling this tool and taking this action.",
+                        "description": "A short description of the action to be performed and reason for doing so, do not mention the user.",
                     },
                 },
                 "required": ["reasoning"],
