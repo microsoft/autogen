@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import AgentFlow from "./agentflow/agentflow";
 import ThreadView from "./threadview";
+import LoadingDots from "../../shared/atoms";
 
 interface MessageListProps {
   messages: Message[];
@@ -107,21 +108,36 @@ export const MessageList: React.FC<MessageListProps> = ({
               size={20}
               className="inline-block mr-1 text-accent animate-spin"
             />{" "}
-            Processing ...
+            <span className="inline-block mr-2">Processing</span>{" "}
+            <LoadingDots size={8} />
           </div>
         );
 
       case "complete":
         return (
-          <CheckCircle size={20} className="inline-block mr-1 text-accent" />
+          <div className="text-sm    mb-2">
+            <CheckCircle size={20} className="inline-block mr-1 text-accent" />{" "}
+            Task completed
+          </div>
         );
       case "error":
         return (
-          <AlertTriangle size={20} className="inline-block mr-1 text-red-500" />
+          // <AlertTriangle size={20} className="inline-block mr-1 text-red-500" />
+          <div className="text-sm    mb-2">
+            <AlertTriangle
+              size={20}
+              className="inline-block mr-1 text-red-500"
+            />{" "}
+            An error occurred.
+          </div>
         );
       case "cancelled":
         return (
-          <StopCircle size={20} className="inline-block mr-1 text-red-500" />
+          // <StopCircle size={20} className="inline-block mr-1 text-red-500" />
+          <div className="text-sm    mb-2">
+            <StopCircle size={20} className="inline-block mr-1 text-red-500" />{" "}
+            Task was cancelled.
+          </div>
         );
       default:
         return null;
@@ -173,7 +189,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 {/* Thread section with left border for hierarchy */}
                 {hasThread && (
                   <div className="mt-2 pl-4 border-l-2 border-secondary/30">
-                    <div className="flex">
+                    <div className="flex   pt-2">
                       <div className="flex-1">
                         <button
                           onClick={() => toggleThread(botMessage.run_id)}

@@ -429,7 +429,7 @@ export default function ChatView({
       </div>
       <div className="flex flex-col h-full">
         <div
-          className="flex-1 overflow-y-auto scroll relative min-h-0"
+          className="flex-1 overflow-y-auto scroll mt-2 relative min-h-0"
           ref={chatContainerRef}
         >
           <MessageList
@@ -443,7 +443,7 @@ export default function ChatView({
           />
         </div>
 
-        {sessions && sessions?.length === 0 ? (
+        {sessions !== null && sessions?.length === 0 ? (
           <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
             <div className="mt-4 text-sm text-secondary text-center">
               <img src={logo} alt="Welcome" className="w-72 h-72 mb-4" />

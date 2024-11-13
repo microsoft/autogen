@@ -3,6 +3,7 @@ import { StopCircle } from "lucide-react";
 import { ThreadState } from "./types";
 import { AgentMessageConfig } from "../../../types/datamodel";
 import { RenderMessage } from "./rendermessage";
+import LoadingDots from "../../shared/atoms";
 
 interface ThreadViewProps {
   thread: ThreadState;
@@ -25,7 +26,11 @@ const ThreadView: React.FC<ThreadViewProps> = ({
       <div className="sticky top-0 z-10 flex bg-primary rounded-t items-center justify-between p-3 border-b border-secondary bg-secondary/10">
         <div className="text-sm text-primary">
           {isStreaming ? (
-            "Agents discussing..."
+            <>
+              {" "}
+              <span className="inline-block mr-2">Agents discussing</span>{" "}
+              <LoadingDots size={8} />
+            </>
           ) : (
             <>
               <span className="font-semibold mr-2">Stop Reason</span>
