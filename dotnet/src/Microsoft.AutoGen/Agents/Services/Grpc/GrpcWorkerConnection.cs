@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// WorkerProcessConnection.cs
+// GrpcWorkerConnection.cs
 
 using System.Threading.Channels;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
-internal sealed class WorkerProcessConnection : IAsyncDisposable
+internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
 {
     private static long s_nextConnectionId;
     private readonly Task _readTask;
@@ -15,10 +15,10 @@ internal sealed class WorkerProcessConnection : IAsyncDisposable
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
-    private readonly WorkerGateway _gateway;
+    private readonly GrpcGateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
 
-    public WorkerProcessConnection(WorkerGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _gateway = agentWorker;
         RequestStream = requestStream;
