@@ -1,10 +1,10 @@
 from typing import Sequence, List
 
 from autogen_agentchat.base import TerminationCondition, TerminatedException
-from autogen_agentchat.messages import StopMessage, AgentMessage, ChatMessage
+from autogen_agentchat.messages import StopMessage, AgentMessage
 
 
-class AgentNameTermination(TerminationCondition):
+class SourceMatchTermination(TerminationCondition):
     """Terminate the conversation after a specific agent responds.
 
     Args:
@@ -29,9 +29,8 @@ class AgentNameTermination(TerminationCondition):
             return None
         last_message = messages[-1]
         if last_message.source in self._agents:
-            if isinstance(last_message, ChatMessage):
-                self._terminated = True
-                return StopMessage(content=f"Agent '{last_message.source}' answered", source="AgentNameTermination")
+            self._terminated = True
+            return StopMessage(content=f"Agent '{last_message.source}' answered", source="SourceMatchTermination")
         return None
 
     async def reset(self) -> None:

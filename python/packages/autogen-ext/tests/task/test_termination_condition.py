@@ -2,12 +2,12 @@ import pytest
 
 from autogen_agentchat.base import TerminatedException
 from autogen_agentchat.messages import TextMessage, StopMessage
-from autogen_ext.task import AgentNameTermination
+from autogen_ext.task import SourceMatchTermination
 
 
 @pytest.mark.asyncio
 async def test_agent_name_termination() -> None:
-    termination = AgentNameTermination(agents=["Assistant"])
+    termination = SourceMatchTermination(agents=["Assistant"])
     assert await termination([]) is None
 
     continue_messages = [

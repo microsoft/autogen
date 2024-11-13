@@ -1,3 +1,3 @@
-from ._agent_name_termination import AgentNameTermination
+from ._source_match_termination import SourceMatchTermination
 
-__all__ = ["AgentNameTermination"]
+__all__ = ["SourceMatchTermination"]
