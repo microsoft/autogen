@@ -1,5 +1,7 @@
 import base64
 import os
+import random
+import asyncio
 from typing import Any, Dict, Optional, Tuple, Union, cast, Callable
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
@@ -15,19 +17,23 @@ from ._types import (
 class PlaywrightController:
     def __init__(
         self,
+        animate_actions: bool = False,
         downloads_folder: Optional[str] = None,
         viewport_width: int = None,
         viewport_height: int = None,
         _download_handler: Optional[Callable[[Download], None]] = None,
+        to_resize_viewport: bool = True,
     ) -> None:
         """
         A controller for Playwright to interact with web pages.
         downloads_folder: folder to save downloaded files
         """
+        self.animate_actions = animate_actions
         self.downloads_folder = downloads_folder
         self.viewport_width = viewport_width
         self.viewport_height = viewport_height
         self._download_handler = _download_handler
+        self.to_resize_viewport = to_resize_viewport
         self._page_script: str = ""
 
         # Read page_script
@@ -86,7 +92,8 @@ class PlaywrightController:
     async def on_new_page(self, page: Page) -> None:
         assert page is not None
         page.on("download", self._download_handler)
-        await page.set_viewport_size({"width": self.viewport_width, "height": self.viewport_height})
+        if self.to_resize_viewport:
+            await page.set_viewport_size({"width": self.viewport_width, "height": self.viewport_height})
         await self.sleep(page, 0.2)
         await page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         await page.wait_for_load_state()
@@ -139,6 +146,7 @@ class PlaywrightController:
         """
         Returns new page if a new page is opened, otherwise None.
         """
+        # TODO: ADD ANIMATION TO MOVE CURSOR AND HIGHLIGHT THE BOX
         new_page = None
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")
@@ -151,6 +159,8 @@ class PlaywrightController:
 
         # Click it
         await target.scroll_into_view_if_needed()
+        await asyncio.sleep(0.3)
+
         box = cast(Dict[str, Union[int, float]], await target.bounding_box())
         try:
             # Give it a chance to open a new page
@@ -175,11 +185,20 @@ class PlaywrightController:
 
         # Fill it
         await target.scroll_into_view_if_needed()
+        # TODO: ADD ANIMATION TO FOCUS ON THE FILLABLE ELEMENT
         await target.focus()
-        try:
-            await target.fill(value)
-        except PlaywrightError:
-            await target.press_sequentially(value)
+        if self.animate_actions:
+            # fill char by char to mimic human speed for short text and type fast for long text
+            if len(value) < 100:
+                delay_typing_speed = 50 + 100 * random.random()
+            else:
+                delay_typing_speed = 10
+            await target.press_sequentially(value, delay=delay_typing_speed)
+        else:
+            try:
+                await target.fill(value)
+            except PlaywrightError:
+                await target.press_sequentially(value)
         await target.press("Enter")
 
     async def scroll_id(self, page: Page, identifier: str, direction: str) -> None:

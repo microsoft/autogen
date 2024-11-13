@@ -15,7 +15,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
     cast,
 )
 
@@ -38,8 +37,7 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-from playwright._impl._errors import Error as PlaywrightError
-from playwright._impl._errors import TimeoutError
+
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 from ._events import WebSurferEvent
@@ -59,11 +57,7 @@ from ._tool_definitions import (
     TOOL_WEB_SEARCH,
 )
 from ._types import (
-    InteractiveRegion,
     UserContent,
-    VisualViewport,
-    interactiveregion_from_dict,
-    visualviewport_from_dict,
 )
 from ._utils import message_content_to_str
 from ._playwright_controller import PlaywrightController
@@ -99,7 +93,11 @@ class MultimodalWebSurfer(BaseChatAgent):
         downloads_folder: str | None = None,
         debug_dir: str | None = os.getcwd(),
         to_save_screenshots: bool = False,
+        animate_actions: bool = False,
         use_ocr: bool = True,
+        to_resize_viewport: bool = True,
+        playwright: Playwright | None = None,
+        context: BrowserContext | None = None,
     ):
         """
         Initialize the MultimodalWebSurfer.
@@ -116,6 +114,8 @@ class MultimodalWebSurfer(BaseChatAgent):
             debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
             to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
             use_ocr (bool): Whether to use OCR to extract text from screenshots, otherwise extract text from page. Defaults to True.
+            playwright (Playwright | None): The playwright instance to use. Defaults to None.
+            context (BrowserContext | None): The browser context to use. Defaults to None.
         """
         super().__init__(name, description)
         self._model_client = model_client
@@ -128,27 +128,31 @@ class MultimodalWebSurfer(BaseChatAgent):
         self.debug_dir = debug_dir
         self.to_save_screenshots = to_save_screenshots
         self.use_ocr = use_ocr
-        self._chat_history: List[LLMMessage] = []
+        self.to_resize_viewport = to_resize_viewport
+        self.animate_actions = animate_actions
 
-        # Call init to set these
-        self._playwright: Playwright | None = None
-        self._context: BrowserContext | None = None
+        # Call init to set these in case not set
+        self._playwright: Playwright | None = playwright
+        self._context: BrowserContext | None = context
         self._page: Page | None = None
         self._last_download: Download | None = None
         self._prior_metadata_hash: str | None = None
         self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.name}.MultimodalWebSurfer")
-
+        self._chat_history: List[LLMMessage] = []
         # Define the download handler
         def _download_handler(download: Download) -> None:
             self._last_download = download
 
         self._download_handler = _download_handler
 
+        # Define the Playwright controller that handles the browser interactions
         self._playwright_controller = PlaywrightController(
+            animate_actions=self.animate_actions,
             downloads_folder=self.downloads_folder,
             viewport_width=VIEWPORT_WIDTH,
             viewport_height=VIEWPORT_HEIGHT,
             _download_handler=self._download_handler,
+            to_resize_viewport=self.to_resize_viewport,
         )
 
     @property
@@ -211,18 +215,20 @@ class MultimodalWebSurfer(BaseChatAgent):
         launch_args: Dict[str, Any] = {"headless": self.headless}
         if self.browser_channel is not None:
             launch_args["channel"] = self.browser_channel
-        self._playwright = await async_playwright().start()
+        if self._playwright is None:
+            self._playwright = await async_playwright().start()
 
         # Create the context -- are we launching persistent?
-        if self.browser_data_dir is None:
-            browser = await self._playwright.chromium.launch(**launch_args)
-            self._context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
-            )
-        else:
-            self._context = await self._playwright.chromium.launch_persistent_context(
-                self.browser_data_dir, **launch_args
-            )
+        if self._context is not None:
+            if self.browser_data_dir is None:
+                browser = await self._playwright.chromium.launch(**launch_args)
+                self._context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+                )
+            else:
+                self._context = await self._playwright.chromium.launch_persistent_context(
+                    self.browser_data_dir, **launch_args
+                )
 
         # Create the page
         self._context.set_default_timeout(60000)  # One minute
@@ -230,7 +236,8 @@ class MultimodalWebSurfer(BaseChatAgent):
         assert self._page is not None
         # self._page.route(lambda x: True, self._route_handler)
         self._page.on("download", self._download_handler)
-        await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
+        if self.to_resize_viewport:
+            await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         await self._page.add_init_script(
             path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js")
         )
