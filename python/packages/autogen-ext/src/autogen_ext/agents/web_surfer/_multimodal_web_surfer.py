@@ -4,7 +4,6 @@ import io
 import json
 import logging
 import os
-import pathlib
 import re
 import time
 import traceback
@@ -92,10 +91,39 @@ class MultimodalWebSurfer(BaseChatAgent):
         name: str,
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
+        headless: bool = True,
+        browser_channel: str | None = None,
+        browser_data_dir: str | None = None,
+        start_page: str | None = None,
+        downloads_folder: str | None = None,
+        debug_dir: str | None = os.getcwd(),
+        to_save_screenshots: bool = False,
     ):
-        """To instantiate properly please make sure to call MultimodalWebSurfer.init"""
+        """
+        Initialize the MultimodalWebSurfer.
+
+        Args:
+            name (str): The agent's name
+            model_client (ChatCompletionClient): The model to use (must be multi-modal)
+            description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+            headless (bool): Whether to run the browser in headless mode. Defaults to True.
+            browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
+            browser_data_dir (str | None): The directory to store browser data. Defaults to None.
+            start_page (str | None): The initial page to visit. Defaults to DEFAULT_START_PAGE.
+            downloads_folder (str | None): The folder to save downloads. Defaults to None.
+            debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
+            to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
+        """
         super().__init__(name, description)
         self._model_client = model_client
+
+        self.headless = headless
+        self.browser_channel = browser_channel
+        self.browser_data_dir = browser_data_dir
+        self.start_page = start_page or self.DEFAULT_START_PAGE
+        self.downloads_folder = downloads_folder
+        self.debug_dir = debug_dir
+        self.to_save_screenshots = to_save_screenshots
 
         self._chat_history: List[LLMMessage] = []
 
@@ -124,7 +152,10 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
+            if isinstance(chat_message, TextMessage | MultiModalMessage):
+                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
+            else:
+                raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
 
         try:
             _, content = await self.__generate_reply(cancellation_token=cancellation_token)
@@ -137,113 +168,7 @@ class MultimodalWebSurfer(BaseChatAgent):
                 chat_message=TextMessage(content=f"Web surfing error:\n\n{traceback.format_exc()}", source=self.name)
             )
 
-    async def init(
-        self,
-        headless: bool = True,
-        browser_channel: str | None = None,
-        browser_data_dir: str | None = None,
-        start_page: str | None = None,
-        downloads_folder: str | None = None,
-        debug_dir: str | None = os.getcwd(),
-        to_save_screenshots: bool = False,
-    ) -> None:
-        """
-        Initialize the MultimodalWebSurfer.
-
-        Args:
-            headless (bool): Whether to run the browser in headless mode. Defaults to True.
-            browser_channel (str | type[DEFAULT_CHANNEL]): The browser channel to use. Defaults to DEFAULT_CHANNEL.
-            browser_data_dir (str | None): The directory to store browser data. Defaults to None.
-            start_page (str | None): The initial page to visit. Defaults to DEFAULT_START_PAGE.
-            downloads_folder (str | None): The folder to save downloads. Defaults to None.
-            debug_dir (str | None): The directory to save debug information. Defaults to the current working directory.
-            to_save_screenshots (bool): Whether to save screenshots. Defaults to False.
-        """
-        self.start_page = start_page or self.DEFAULT_START_PAGE
-        self.downloads_folder = downloads_folder
-        self.to_save_screenshots = to_save_screenshots
-        self._chat_history.clear()
-        self._last_download = None
-        self._prior_metadata_hash = None
-
-        # Create the playwright self
-        launch_args: Dict[str, Any] = {"headless": headless}
-        if browser_channel is not None:
-            launch_args["channel"] = browser_channel
-        self._playwright = await async_playwright().start()
-
-        # Create the context -- are we launching persistent?
-        if browser_data_dir is None:
-            browser = await self._playwright.chromium.launch(**launch_args)
-            self._context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
-            )
-        else:
-            self._context = await self._playwright.chromium.launch_persistent_context(browser_data_dir, **launch_args)
-
-        # Create the page
-        self._context.set_default_timeout(60000)  # One minute
-        self._page = await self._context.new_page()
-        assert self._page is not None
-        # self._page.route(lambda x: True, self._route_handler)
-        self._page.on("download", self._download_handler)
-        await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        await self._page.add_init_script(
-            path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js")
-        )
-        await self._page.goto(self.start_page)
-        await self._page.wait_for_load_state()
-
-        # Prepare the debug directory -- which stores the screenshots generated throughout the process
-        await self._set_debug_dir(debug_dir)
-
-    async def _sleep(self, duration: Union[int, float]) -> None:
-        assert self._page is not None
-        await self._page.wait_for_timeout(duration * 1000)
-
-    async def _set_debug_dir(self, debug_dir: str | None) -> None:
-        assert self._page is not None
-        self.debug_dir = debug_dir
-        if self.debug_dir is None:
-            return
-
-        if not os.path.isdir(self.debug_dir):
-            os.mkdir(self.debug_dir)
-        current_timestamp = "_" + int(time.time()).__str__()
-        screenshot_png_name = "screenshot" + current_timestamp + ".png"
-        debug_html = os.path.join(self.debug_dir, "screenshot" + current_timestamp + ".html")
-        if self.to_save_screenshots:
-            async with aiofiles.open(debug_html, "wt") as file:
-                await file.write(
-                    f"""
-    <html style="width:100%; margin: 0px; padding: 0px;">
-    <body style="width: 100%; margin: 0px; padding: 0px;">
-        <img src= {screenshot_png_name} id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
-        <script language="JavaScript">
-    var counter = 0;
-    setInterval(function() {{
-    counter += 1;
-    document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
-    }}, 300);
-        </script>
-    </body>
-    </html>
-    """.strip(),
-                )
-        if self.to_save_screenshots:
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
-            self.logger.info(
-                WebSurferEvent(
-                    source=self.name,
-                    url=self._page.url,
-                    message="Screenshot: " + screenshot_png_name,
-                )
-            )
-            self.logger.info(
-                f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n"
-            )
-
-    async def _reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         assert self._page is not None
         self._chat_history.clear()
         await self._visit_page(self.start_page)
@@ -266,6 +191,70 @@ class MultimodalWebSurfer(BaseChatAgent):
                 message="Resetting browser.",
             )
         )
+
+    async def _lazy_init(
+        self,
+    ) -> None:
+        self._last_download = None
+        self._prior_metadata_hash = None
+
+        # Create the playwright self
+        launch_args: Dict[str, Any] = {"headless": self.headless}
+        if self.browser_channel is not None:
+            launch_args["channel"] = self.browser_channel
+        self._playwright = await async_playwright().start()
+
+        # Create the context -- are we launching persistent?
+        if self.browser_data_dir is None:
+            browser = await self._playwright.chromium.launch(**launch_args)
+            self._context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+            )
+        else:
+            self._context = await self._playwright.chromium.launch_persistent_context(
+                self.browser_data_dir, **launch_args
+            )
+
+        # Create the page
+        self._context.set_default_timeout(60000)  # One minute
+        self._page = await self._context.new_page()
+        assert self._page is not None
+        # self._page.route(lambda x: True, self._route_handler)
+        self._page.on("download", self._download_handler)
+        await self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
+        await self._page.add_init_script(
+            path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js")
+        )
+        await self._page.goto(self.start_page)
+        await self._page.wait_for_load_state()
+
+        # Prepare the debug directory -- which stores the screenshots generated throughout the process
+        await self._set_debug_dir(self.debug_dir)
+
+    async def _sleep(self, duration: Union[int, float]) -> None:
+        assert self._page is not None
+        await self._page.wait_for_timeout(duration * 1000)
+
+    async def _set_debug_dir(self, debug_dir: str | None) -> None:
+        assert self._page is not None
+        self.debug_dir = debug_dir
+        if self.debug_dir is None:
+            return
+
+        if not os.path.isdir(self.debug_dir):
+            os.mkdir(self.debug_dir)
+
+        if self.to_save_screenshots:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+            self.logger.info(
+                WebSurferEvent(
+                    source=self.name,
+                    url=self._page.url,
+                    message="Screenshot: " + screenshot_png_name,
+                )
+            )
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
@@ -459,8 +448,13 @@ class MultimodalWebSurfer(BaseChatAgent):
         ]
 
     async def __generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, UserContent]:
-        assert self._page is not None
         """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
+
+        # Lazy init
+        if self._playwright is None:
+            await self._lazy_init()
+
+        assert self._page is not None
 
         # Clone the messages to give context, removing old screenshots
         history: List[LLMMessage] = []
@@ -640,13 +634,6 @@ When deciding between tools, consider if the request can be best addressed by:
         result = await self._page.evaluate("MultimodalWebSurfer.getPageMetadata();")
         assert isinstance(result, dict)
         return cast(Dict[str, Any], result)
-
-    async def _get_page_markdown(self) -> str:
-        assert self._page is not None
-        html = await self._page.evaluate("document.documentElement.outerHTML;")
-        # TODO: fix types
-        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=self._page.url)  # type: ignore
-        return res.text_content  # type: ignore
 
     async def _on_new_page(self, page: Page) -> None:
         self._page = page

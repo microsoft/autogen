@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // App.cs
-
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,15 +19,15 @@ public static class AgentsApp
         if (local)
         {
             // start the server runtime
-            builder.AddLocalAgentService();
+            builder.AddLocalAgentService(useGrpc: false);
         }
-        builder.AddAgentWorker()
+        builder.AddAgentWorker(local: local)
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
         if (local)
         {
-            app.MapAgentService();
+            app.MapAgentService(local: true, useGrpc: false);
         }
         app.MapDefaultEndpoints();
         Host = app;
@@ -47,8 +45,8 @@ public static class AgentsApp
         {
             await StartAsync(builder, agents, local);
         }
-        var client = Host.Services.GetRequiredService<AgentWorker>() ?? throw new InvalidOperationException("Host not started");
-        await client.PublishEventAsync(topic, message).ConfigureAwait(false);
+        var client = Host.Services.GetRequiredService<Client>() ?? throw new InvalidOperationException("Host not started");
+        await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(true);
         return Host;
     }
     public static async ValueTask ShutdownAsync()

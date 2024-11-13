@@ -9,11 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Runtime;
+namespace Microsoft.AutoGen.Agents;
 
 public static class AgentWorkerHostingExtensions
 {
-    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool local = false)
+    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool local = false, bool useGrpc = true)
     {
         if (local)
         {
@@ -26,24 +26,32 @@ public static class AgentWorkerHostingExtensions
                                 listenOptions.UseHttps();
                             });
                         });
+            builder.AddOrleans(local);
         }
-        builder.Services.AddGrpc();
-        builder.AddOrleans(local);
+        else
+        {
+            builder.AddOrleans();
+        }
+
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<WorkerGateway>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<WorkerGateway>());
+
+        if (useGrpc)
+        {
+            builder.Services.AddGrpc();
+            builder.Services.AddSingleton<GrpcGateway>();
+            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
+        }
 
         return builder;
     }
 
-    public static WebApplicationBuilder AddLocalAgentService(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddLocalAgentService(this WebApplicationBuilder builder, bool useGrpc = true)
     {
-        builder.AddAgentService(local: true);
-        return builder;
+        return builder.AddAgentService(local: true, useGrpc);
     }
-    public static WebApplication MapAgentService(this WebApplication app)
+    public static WebApplication MapAgentService(this WebApplication app, bool local = false, bool useGrpc = true)
     {
-        app.MapGrpcService<WorkerGatewayService>();
+        if (useGrpc) { app.MapGrpcService<GrpcGatewayService>(); }
         return app;
     }
 }

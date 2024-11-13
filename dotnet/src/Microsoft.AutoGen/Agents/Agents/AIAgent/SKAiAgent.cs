@@ -15,7 +15,7 @@ public abstract class SKAiAgent<T> : AgentBase where T : class, new()
     protected Kernel _kernel;
     private readonly ISemanticTextMemory _memory;
 
-    public SKAiAgent(IAgentContext context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
+    public SKAiAgent(IAgentRuntime context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
     {
         _state = new();
         _memory = memory;
