@@ -16,6 +16,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly IRegistryGrain _gatewayRegistry;
+    private readonly ISubscriptionsGrain _subscriptions;
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
@@ -35,6 +36,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
+        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
@@ -117,6 +119,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentType = request.Subscription.TypeSubscription.AgentType;
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic[topic].Add(agentType);
+        await _subscriptions.Subscribe(topic, agentType);
         //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
         Message response = new()
         {

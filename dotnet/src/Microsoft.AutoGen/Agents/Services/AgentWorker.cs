@@ -47,7 +47,7 @@ public class AgentWorker :
     {
         foreach (var (typeName, _) in _agentTypes)
         {
-            if (typeName == "Client") { continue; }
+            if (typeName == nameof(Client)) { continue; }
             var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
@@ -96,6 +96,10 @@ public class AgentWorker :
                 if (message == null) { continue; }
                 switch (message)
                 {
+                    case Message.MessageOneofCase.AddSubscriptionResponse:
+                        break;
+                    case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                        break;
                     case Message msg:
 
                         var item = msg.CloudEvent;
