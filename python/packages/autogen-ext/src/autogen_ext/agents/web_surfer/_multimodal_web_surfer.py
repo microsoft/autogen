@@ -56,9 +56,7 @@ from ._tool_definitions import (
     TOOL_VISIT_URL,
     TOOL_WEB_SEARCH,
 )
-from ._types import (
-    UserContent,
-)
+from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
 from ._playwright_controller import PlaywrightController
 
@@ -139,6 +137,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self._prior_metadata_hash: str | None = None
         self.logger = logging.getLogger(EVENT_LOGGER_NAME + f".{self.name}.MultimodalWebSurfer")
         self._chat_history: List[LLMMessage] = []
+
         # Define the download handler
         def _download_handler(download: Download) -> None:
             self._last_download = download
@@ -180,7 +179,9 @@ class MultimodalWebSurfer(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         assert self._page is not None
         self._chat_history.clear()
-        reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(self._page, self.start_page)
+        reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
+            self._page, self.start_page
+        )
         if reset_last_download and self._last_download is not None:
             self._last_download = None
         if reset_prior_metadata and self._prior_metadata_hash is not None:
@@ -219,7 +220,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             self._playwright = await async_playwright().start()
 
         # Create the context -- are we launching persistent?
-        if self._context is not None:
+        if self._context is None:
             if self.browser_data_dir is None:
                 browser = await self._playwright.chromium.launch(**launch_args)
                 self._context = await browser.new_context(
@@ -246,7 +247,6 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
         await self._set_debug_dir(self.debug_dir)
-
 
     async def _set_debug_dir(self, debug_dir: str | None) -> None:
         assert self._page is not None
@@ -323,13 +323,19 @@ class MultimodalWebSurfer(BaseChatAgent):
             action_description = f"I typed '{url}' into the browser address bar."
             # Check if the argument starts with a known protocol
             if url.startswith(("https://", "http://", "file://", "about:")):
-                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(self._page, url)
+                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
+                    self._page, url
+                )
             # If the argument contains a space, treat it as a search query
             elif " " in url:
-                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(self._page, f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH")
+                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
+                    self._page, f"https://www.bing.com/search?q={quote_plus(url)}&FORM=QBLH"
+                )
             # Otherwise, prefix with https://
             else:
-                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(self._page, "https://" + url)
+                reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
+                    self._page, "https://" + url
+                )
             if reset_last_download and self._last_download is not None:
                 self._last_download = None
             if reset_prior_metadata and self._prior_metadata_hash is not None:
@@ -341,7 +347,9 @@ class MultimodalWebSurfer(BaseChatAgent):
         elif name == "web_search":
             query = args.get("query")
             action_description = f"I typed '{query}' into the browser search bar."
-            reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(self._page, f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH")
+            reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
+                self._page, f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH"
+            )
             if reset_last_download and self._last_download is not None:
                 self._last_download = None
             if reset_prior_metadata and self._prior_metadata_hash is not None:
@@ -603,7 +611,7 @@ When deciding between tools, consider if the request can be best addressed by:
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
         message = response.content
-
+        print(response)
         self._last_download = None
 
         if isinstance(message, str):

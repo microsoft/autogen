@@ -13,7 +13,8 @@ async def main() -> None:
         debug_dir="logs",
         downloads_folder="logs",
         to_save_screenshots=True,
-        use_ocr=False
+        use_ocr=False,
+        animate_actions=True
     )
 
 

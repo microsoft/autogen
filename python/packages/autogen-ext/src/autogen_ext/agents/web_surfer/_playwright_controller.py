@@ -162,15 +162,53 @@ class PlaywrightController:
         await asyncio.sleep(0.3)
 
         box = cast(Dict[str, Union[int, float]], await target.bounding_box())
-        try:
-            # Give it a chance to open a new page
-            async with page.expect_event("popup", timeout=1000) as page_info:  # type: ignore
-                await page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, delay=10)
-                new_page = await page_info.value  # type: ignore
-                assert isinstance(new_page, Page)
-                await self.on_new_page(new_page)
-        except TimeoutError:
-            pass
+        
+        if self.animate_actions:
+            # Scroll into view and highlight the box
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.transition = 'border 0.3s ease-in-out';
+                        elm.style.border = '2px solid red';
+                    }}
+                }})();
+            """)
+            await asyncio.sleep(0.3)
+
+            # Move cursor to the box slowly
+            await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=30)
+            await asyncio.sleep(0.3)
+
+            try:
+                # Give it a chance to open a new page
+                async with page.expect_event("popup", timeout=1000) as page_info:  # type: ignore
+                    await page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, delay=10)
+                    new_page = await page_info.value  # type: ignore
+                    assert isinstance(new_page, Page)
+                    await self.on_new_page(new_page)
+            except TimeoutError:
+                pass
+
+            # Remove the highlight
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.border = '';
+                    }}
+                }})();
+            """)
+        else:
+            try:
+                # Give it a chance to open a new page
+                async with page.expect_event("popup", timeout=1000) as page_info:  # type: ignore
+                    await page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, delay=10)
+                    new_page = await page_info.value  # type: ignore
+                    assert isinstance(new_page, Page)
+                    await self.on_new_page(new_page)
+            except TimeoutError:
+                pass
         return new_page
 
     async def fill_id(self, page: Page, identifier: str, value: str) -> None:
@@ -179,13 +217,26 @@ class PlaywrightController:
 
         # See if it exists
         try:
-            await target.wait_for(timeout=100)
+            await target.wait_for(timeout=300)
         except TimeoutError:
             raise ValueError("No such element.") from None
 
         # Fill it
         await target.scroll_into_view_if_needed()
-        # TODO: ADD ANIMATION TO FOCUS ON THE FILLABLE ELEMENT
+        if self.animate_actions:
+            # Highlight the box
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.transition = 'border 0.3s ease-in-out';
+                        elm.style.border = '2px solid red';
+                    }}
+                }})();
+            """)
+            await asyncio.sleep(0.3)
+
+        # Focus on the element
         await target.focus()
         if self.animate_actions:
             # fill char by char to mimic human speed for short text and type fast for long text
@@ -200,6 +251,17 @@ class PlaywrightController:
             except PlaywrightError:
                 await target.press_sequentially(value)
         await target.press("Enter")
+
+        if self.animate_actions:
+            # Remove the highlight
+            await page.evaluate(f"""
+                (function() {{
+                    let elm = document.querySelector("[__elementId='{identifier}']");
+                    if (elm) {{
+                        elm.style.border = '';
+                    }}
+                }})();
+            """)
 
     async def scroll_id(self, page: Page, identifier: str, direction: str) -> None:
         assert page is not None
