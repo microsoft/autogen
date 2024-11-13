@@ -169,8 +169,13 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        assert self._page is not None
         self._chat_history.clear()
+        
+        if self._page is None:
+            # We've not yet lazy-initialized
+            return
+
+        assert self._page is not None
         await self._visit_page(self.start_page)
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
