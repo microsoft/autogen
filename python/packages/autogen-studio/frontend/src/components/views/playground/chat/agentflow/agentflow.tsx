@@ -17,9 +17,8 @@ import {
   AgentConfig,
   TeamConfig,
 } from "../../../../types/datamodel";
-import { ThreadState, ThreadStatus } from "../types";
-import { CustomEdge, EdgeTooltipContent } from "./edge";
-import { Tooltip } from "antd";
+import { ThreadState } from "../types";
+import { CustomEdge } from "./edge";
 
 interface AgentFlowProps {
   teamConfig: TeamConfig;
@@ -280,6 +279,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               cancelled: "red",
               error: "red",
               streaming: "#2563eb",
+              awaiting_input: "#2563eb",
             }[threadState.status] || "#2563eb";
 
           newEdges.push({

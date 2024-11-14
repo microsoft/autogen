@@ -1,22 +1,21 @@
-import { Message, TaskResult } from "../../../types/datamodel";
-
-export type ThreadStatus = "streaming" | "complete" | "error" | "cancelled";
+import {
+  AgentMessageConfig,
+  Message,
+  TaskResult,
+  ThreadStatus,
+} from "../../../types/datamodel";
 
 export interface ThreadState {
-  messages: any[];
+  messages: AgentMessageConfig[];
   finalResult?: any;
   status: ThreadStatus;
   isExpanded: boolean;
-}
-
-export interface ThreadState {
-  messages: any[];
-  finalResult?: any;
-  status: "streaming" | "complete" | "error" | "cancelled";
-  isExpanded: boolean;
   reason?: string;
+  inputRequest?: {
+    prompt: string;
+    isPending: boolean;
+  };
 }
-
 export interface MessageListProps {
   messages: Message[];
   threadMessages: Record<string, ThreadState>;
@@ -31,17 +30,4 @@ export interface MessageListProps {
 export interface ModelUsage {
   prompt_tokens: number;
   completion_tokens: number;
-}
-
-export interface SocketMessage {
-  type: "message" | "result" | "completion";
-  data?: {
-    source?: string;
-    models_usage?: ModelUsage | null;
-    content?: string;
-    task_result?: TaskResult;
-  };
-  status?: ThreadStatus;
-  timestamp?: string;
-  error?: string;
 }

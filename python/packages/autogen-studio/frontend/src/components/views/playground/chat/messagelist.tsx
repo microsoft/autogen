@@ -27,6 +27,7 @@ interface MessageListProps {
   >;
   onRetry: (content: string) => void;
   onCancel: (runId: string) => void;
+  onInputResponse: (runId: string, response: string) => void; // New prop
   loading?: boolean;
   teamConfig?: TeamConfig;
 }
@@ -42,6 +43,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   setThreadMessages,
   onRetry,
   onCancel,
+  onInputResponse, // New prop
   loading = false,
   teamConfig,
 }) => {
@@ -76,7 +78,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         }
       }
     });
-  }, [threadMessages]); // This will trigger when any thread messages update
+  }, [threadMessages]);
 
   const toggleThread = (runId: string) => {
     setThreadMessages((prev) => ({
@@ -112,18 +114,26 @@ export const MessageList: React.FC<MessageListProps> = ({
             <LoadingDots size={8} />
           </div>
         );
-
+      case "awaiting_input": // New status
+        return (
+          <div className="text-sm mb-2">
+            <MessageSquare
+              size={20}
+              className="inline-block mr-1 text-accent"
+            />{" "}
+            Waiting for your input
+          </div>
+        );
       case "complete":
         return (
-          <div className="text-sm    mb-2">
+          <div className="text-sm mb-2">
             <CheckCircle size={20} className="inline-block mr-1 text-accent" />{" "}
             Task completed
           </div>
         );
       case "error":
         return (
-          // <AlertTriangle size={20} className="inline-block mr-1 text-red-500" />
-          <div className="text-sm    mb-2">
+          <div className="text-sm mb-2">
             <AlertTriangle
               size={20}
               className="inline-block mr-1 text-red-500"
@@ -133,8 +143,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         );
       case "cancelled":
         return (
-          // <StopCircle size={20} className="inline-block mr-1 text-red-500" />
-          <div className="text-sm    mb-2">
+          <div className="text-sm mb-2">
             <StopCircle size={20} className="inline-block mr-1 text-red-500" />{" "}
             Task was cancelled.
           </div>
@@ -151,10 +160,11 @@ export const MessageList: React.FC<MessageListProps> = ({
         const thread = threadMessages[botMessage.run_id];
         const hasThread = thread && thread.messages.length > 0;
         const isStreaming = thread?.status === "streaming";
+        const isAwaitingInput = thread?.status === "awaiting_input"; // New check
 
         return (
           <div key={`pair-${botMessage.run_id}`} className="space-y-6">
-            {/* User message - first */}
+            {/* User message */}
             <div className="flex flex-col items-end">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-medium text-primary">User</span>
@@ -166,7 +176,8 @@ export const MessageList: React.FC<MessageListProps> = ({
                 <RenderMessage message={userMessage.config} isLast={false} />
               </div>
             </div>
-            {/* Team response - second */}
+
+            {/* Team response */}
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 mb-1">
                 <div className="p-1.5 rounded bg-secondary text-primary">
@@ -182,14 +193,14 @@ export const MessageList: React.FC<MessageListProps> = ({
                 <div className="p-4 bg-secondary border border-secondary rounded-lg">
                   <div className="text-primary">
                     {getStatusIcon(thread?.status)}{" "}
-                    {thread?.finalResult?.content}
+                    {!isAwaitingInput && thread?.finalResult?.content}
                   </div>
                 </div>
 
-                {/* Thread section with left border for hierarchy */}
+                {/* Thread section */}
                 {hasThread && (
                   <div className="mt-2 pl-4 border-l-2 border-secondary/30">
-                    <div className="flex   pt-2">
+                    <div className="flex pt-2">
                       <div className="flex-1">
                         <button
                           onClick={() => toggleThread(botMessage.run_id)}
@@ -211,13 +222,13 @@ export const MessageList: React.FC<MessageListProps> = ({
 
                     <div className="flex flex-row gap-4">
                       <div className="flex-1">
-                        {" "}
                         {thread.isExpanded && (
                           <ThreadView
                             thread={thread}
                             isStreaming={isStreaming}
                             runId={botMessage.run_id}
                             onCancel={onCancel}
+                            onInputResponse={onInputResponse} // Pass through the new prop
                             threadContainerRef={(el) =>
                               (threadContainerRefs.current[botMessage.run_id] =
                                 el)
@@ -230,7 +241,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                           <AgentFlow
                             teamConfig={teamConfig}
                             messages={thread.messages}
-                            threadState={thread} // Add this prop
+                            threadState={thread}
                           />
                         )}
                       </div>
@@ -244,9 +255,8 @@ export const MessageList: React.FC<MessageListProps> = ({
       })}
 
       {messages.length === 0 && !loading && (
-        <div className="text-center text-secondary h-full  ">
-          {/* <img src={landing} alt="No messages" /> */}
-          <div className="text-sm mt-4"> Send a message to begin! </div>
+        <div className="text-center text-secondary h-full">
+          <div className="text-sm mt-4">Send a message to begin!</div>
         </div>
       )}
     </div>

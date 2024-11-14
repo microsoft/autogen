@@ -90,18 +90,24 @@ export interface Session extends DBModel {
 }
 
 // WebSocket message types
-export type ThreadStatus = "streaming" | "complete" | "error" | "cancelled";
+export type ThreadStatus =
+  | "streaming"
+  | "complete"
+  | "error"
+  | "cancelled"
+  | "awaiting_input";
 
 export interface WebSocketMessage {
-  type: "message" | "result" | "completion";
-  data: {
-    source: string;
-    models_usage?: RequestUsage;
-    content: unknown;
+  type: "message" | "result" | "completion" | "input_request";
+  data?: {
+    source?: string;
+    models_usage?: RequestUsage | null;
+    content?: string;
     task_result?: TaskResult;
   };
   status?: ThreadStatus;
   error?: string;
+  timestamp?: string;
 }
 
 export interface TaskResult {

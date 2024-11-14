@@ -1,5 +1,5 @@
 import React from "react";
-import { message, Tabs, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { AgentMessageConfig } from "../../../../types/datamodel";
 import {
   EdgeLabelRenderer,

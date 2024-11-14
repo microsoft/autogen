@@ -3,15 +3,18 @@ import { message } from "antd";
 import { getServerUrl } from "../../../utils";
 import { SessionManager } from "../../shared/session/manager";
 import { IStatus } from "../../../types/app";
-import { Message } from "../../../types/datamodel";
+import {
+  Message,
+  ThreadStatus,
+  WebSocketMessage,
+} from "../../../types/datamodel";
 import { useConfigStore } from "../../../../hooks/store";
 import { appContext } from "../../../../hooks/provider";
 import ChatInput from "./chatinput";
-import { ModelUsage, SocketMessage, ThreadState, ThreadStatus } from "./types";
+import { ModelUsage, ThreadState } from "./types";
 import { MessageList } from "./messagelist";
 import TeamManager from "../../shared/team/manager";
 import { teamAPI } from "../../shared/team/api";
-import AgentFlow from "./agentflow/agentflow";
 
 const logo = require("../../../../images/landing/welcome.svg").default;
 
@@ -63,6 +66,45 @@ export default function ChatView({
       Object.values(activeSockets).forEach((socket) => socket.close());
     };
   }, [activeSockets]);
+
+  const handleInputResponse = async (runId: string, response: string) => {
+    const socket = activeSockets[runId];
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      try {
+        socket.send(
+          JSON.stringify({
+            type: "input_response",
+            response: response,
+          })
+        );
+
+        // Update thread state to show input was processed
+        setThreadMessages((prev) => ({
+          ...prev,
+          [runId]: {
+            ...prev[runId],
+            status: "streaming",
+            inputRequest: undefined, // Clear the input request
+          },
+        }));
+      } catch (error) {
+        console.error("Error sending input response:", error);
+        message.error("Failed to send response");
+
+        // Revert thread state on error
+        setThreadMessages((prev) => ({
+          ...prev,
+          [runId]: {
+            ...prev[runId],
+            status: "error",
+            reason: "Failed to send input response",
+          },
+        }));
+      }
+    } else {
+      message.error("Connection lost. Please try again.");
+    }
+  };
 
   const getBaseUrl = (url: string): string => {
     try {
@@ -206,10 +248,24 @@ export default function ChatView({
     };
 
     socket.onmessage = (event) => {
-      const message: SocketMessage = JSON.parse(event.data);
-      // console.log("WebSocket message received:", message);
+      const message: WebSocketMessage = JSON.parse(event.data);
+      console.log("WebSocket message received:", message);
 
       switch (message.type) {
+        case "input_request":
+          // Handle input request from server
+          setThreadMessages((prev) => ({
+            ...prev,
+            [runId]: {
+              ...prev[runId],
+              status: "awaiting_input",
+              inputRequest: {
+                prompt: message.data?.content || "",
+                isPending: false,
+              },
+            },
+          }));
+          break;
         case "message":
           setThreadMessages((prev) => {
             const currentThread = prev[runId] || {
@@ -438,6 +494,7 @@ export default function ChatView({
             setThreadMessages={setThreadMessages}
             onRetry={runTask}
             onCancel={cancelRun}
+            onInputResponse={handleInputResponse} // Add the new prop
             loading={loading}
             teamConfig={teamConfig}
           />
@@ -454,7 +511,14 @@ export default function ChatView({
           <>
             {session && (
               <div className="flex-shrink-0">
-                <ChatInput onSubmit={runTask} loading={loading} error={error} />
+                <ChatInput
+                  onSubmit={runTask}
+                  loading={loading}
+                  error={error}
+                  disabled={Object.values(threadMessages).some(
+                    (thread) => thread.status === "awaiting_input"
+                  )} // Disable input while waiting for user input
+                />
               </div>
             )}
           </>
