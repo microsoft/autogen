@@ -80,6 +80,7 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(

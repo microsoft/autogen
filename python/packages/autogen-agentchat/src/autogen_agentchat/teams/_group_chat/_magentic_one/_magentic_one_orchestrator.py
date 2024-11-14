@@ -44,8 +44,8 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
+        max_turns: int | None,
         model_client: ChatCompletionClient,
-        max_rounds: int,
         max_stalls: int,
     ):
         super().__init__(description="Group chat manager")
@@ -63,7 +63,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
         self._name: str = "orchestrator"
         self._model_client: ChatCompletionClient = model_client
-        self._max_rounds: int = max_rounds
+        self._max_turns: int | None = max_turns
         self._max_stalls: int = max_stalls
 
         self._task: str = ""
@@ -196,7 +196,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
     async def _orchestrate_step(self) -> None:
         # Check if we reached the maximum number of rounds
-        if self._n_rounds > self._max_rounds:
+        if self._max_turns is not None and self._n_rounds > self._max_turns:
             await self._prepare_final_answer("Max rounds reached.")
             return
         self._n_rounds += 1

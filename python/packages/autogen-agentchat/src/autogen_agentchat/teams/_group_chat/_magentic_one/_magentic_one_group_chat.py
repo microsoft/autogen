@@ -18,7 +18,6 @@ class MagenticOneGroupChat(BaseGroupChat):
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
-        max_rounds: int = 20,
         max_stalls: int = 3,
     ):
         super().__init__(
@@ -30,7 +29,6 @@ class MagenticOneGroupChat(BaseGroupChat):
         if len(participants) == 0:
             raise ValueError("At least one participant is required for MagenticOneGroupChat.")
         self._model_client = model_client
-        self._max_rounds = max_rounds
         self._max_stalls = max_stalls
 
     def _create_group_chat_manager_factory(
@@ -40,6 +38,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], MagenticOneOrchestrator]:
         # TODO: Do something about the termination conditions
         return lambda: MagenticOneOrchestrator(
@@ -47,7 +46,7 @@ class MagenticOneGroupChat(BaseGroupChat):
             output_topic_type,
             participant_topic_types,
             participant_descriptions,
+            max_turns,
             self._model_client,
-            self._max_rounds,
             self._max_stalls,
         )
