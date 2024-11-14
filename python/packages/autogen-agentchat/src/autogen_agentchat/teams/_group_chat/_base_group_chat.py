@@ -125,6 +125,7 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
                 termination_condition=self._termination_condition,
+                max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.
