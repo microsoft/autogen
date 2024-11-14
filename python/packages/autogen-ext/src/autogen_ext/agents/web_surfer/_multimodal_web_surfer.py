@@ -224,6 +224,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
         )
 
+
     async def _lazy_init(
         self,
     ) -> None:
@@ -265,6 +266,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
         await self._set_debug_dir(self.debug_dir)
+        self.did_lazy_init = True
 
     async def _set_debug_dir(self, debug_dir: str | None) -> None:
         assert self._page is not None
