@@ -25,7 +25,9 @@ class MagenticOneGroupChat(BaseGroupChat):
             participants,
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=None,
+            max_turns=max_turns,
         )
+
         # Validate the participants.
         if len(participants) == 0:
             raise ValueError("At least one participant is required for MagenticOneGroupChat.")
