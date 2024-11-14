@@ -1,6 +1,18 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import { Message, Session } from "../components/types/datamodel";
+
+interface IBreadcrumb {
+  name: string;
+  href: string;
+  current?: boolean;
+}
+
+interface IHeaderState {
+  title: string;
+  breadcrumbs?: IBreadcrumb[];
+}
 
 interface ISidebarState {
   isExpanded: boolean;
@@ -17,6 +29,11 @@ export interface IConfigState {
   version: string | null;
   setVersion: (version: string | null) => void;
 
+  // Header state
+  header: IHeaderState;
+  setHeader: (header: Partial<IHeaderState>) => void;
+  setBreadcrumbs: (breadcrumbs: IBreadcrumb[]) => void;
+
   // Sidebar state
   sidebar: ISidebarState;
   setSidebarState: (state: Partial<ISidebarState>) => void;
@@ -25,41 +42,62 @@ export interface IConfigState {
   toggleSidebar: () => void;
 }
 
-export const useConfigStore = create<IConfigState>((set) => ({
-  // Existing state
-  messages: [],
-  setMessages: (messages) => set({ messages }),
-  session: null,
-  setSession: (session) => set({ session }),
-  sessions: [],
-  setSessions: (sessions) => set({ sessions }),
-  version: null,
-  setVersion: (version) => set({ version }),
-  connectionId: uuidv4(),
+export const useConfigStore = create<IConfigState>()(
+  persist(
+    (set) => ({
+      // Existing state
+      messages: [],
+      setMessages: (messages) => set({ messages }),
+      session: null,
+      setSession: (session) => set({ session }),
+      sessions: [],
+      setSessions: (sessions) => set({ sessions }),
+      version: null,
+      setVersion: (version) => set({ version }),
+      connectionId: uuidv4(),
 
-  // Sidebar state and actions
-  sidebar: {
-    isExpanded: true,
-    isPinned: false,
-  },
+      // Header state
+      header: {
+        title: "",
+        breadcrumbs: [],
+      },
+      setHeader: (newHeader) =>
+        set((state) => ({
+          header: { ...state.header, ...newHeader },
+        })),
+      setBreadcrumbs: (breadcrumbs) =>
+        set((state) => ({
+          header: { ...state.header, breadcrumbs },
+        })),
 
-  setSidebarState: (newState) =>
-    set((state) => ({
-      sidebar: { ...state.sidebar, ...newState },
-    })),
-
-  collapseSidebar: () =>
-    set((state) => ({
-      sidebar: { ...state.sidebar, isExpanded: false },
-    })),
-
-  expandSidebar: () =>
-    set((state) => ({
-      sidebar: { ...state.sidebar, isExpanded: true },
-    })),
-
-  toggleSidebar: () =>
-    set((state) => ({
-      sidebar: { ...state.sidebar, isExpanded: !state.sidebar.isExpanded },
-    })),
-}));
+      // Sidebar state and actions
+      sidebar: {
+        isExpanded: true,
+        isPinned: false,
+      },
+      setSidebarState: (newState) =>
+        set((state) => ({
+          sidebar: { ...state.sidebar, ...newState },
+        })),
+      collapseSidebar: () =>
+        set((state) => ({
+          sidebar: { ...state.sidebar, isExpanded: false },
+        })),
+      expandSidebar: () =>
+        set((state) => ({
+          sidebar: { ...state.sidebar, isExpanded: true },
+        })),
+      toggleSidebar: () =>
+        set((state) => ({
+          sidebar: { ...state.sidebar, isExpanded: !state.sidebar.isExpanded },
+        })),
+    }),
+    {
+      name: "app-sidebar-state",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        sidebar: state.sidebar,
+      }),
+    }
+  )
+);
