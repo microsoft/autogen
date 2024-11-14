@@ -19,7 +19,7 @@
         <mxCell id="e_Se_iOjKQHndGvTYtJ0-6" value="Multi-Agent Applications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
           <mxGeometry x="170" y="183" width="240" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="e_Se_iOjKQHndGvTYtJ0-10" value="AGNext" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="e_Se_iOjKQHndGvTYtJ0-10" value="AutoGen" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="260" y="436" width="60" height="30" as="geometry" />
         </mxCell>
       </root>
