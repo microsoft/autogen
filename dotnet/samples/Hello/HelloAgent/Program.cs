@@ -15,11 +15,11 @@ using Microsoft.Extensions.Hosting;
 // step 4: send a message to the agent
 
 // step 5: wait for the agent runtime to shutdown
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-{
-    Message = "World"
-}, local: true);
-
+// var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+// {
+//     Message = "World"
+// }, local: true);
+var app = await AgentsApp.StartAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello

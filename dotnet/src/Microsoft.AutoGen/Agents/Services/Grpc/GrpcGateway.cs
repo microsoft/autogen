@@ -147,6 +147,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 Success = true
             }
         };
+        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
