@@ -48,10 +48,12 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             if isinstance(message, HandoffMessage):
                 self._current_speaker = message.target
                 if self._current_speaker not in self._participant_topic_types:
-                    raise ValueError(f"The target {self._current_speaker} in the handoff message "
-                                     f"is not one of the participants {self._participant_topic_types}. "
-                                     "If you are resuming the Swarm with a new task make sure to include in your task "
-                                     "a handoff message with a valid participant as the target.")
+                    raise ValueError(
+                        f"The target {self._current_speaker} in the handoff message "
+                        f"is not one of the participants {self._participant_topic_types}. "
+                        "If you are resuming the Swarm with a new task make sure to include in your task "
+                        "a handoff message with a valid participant as the target."
+                    )
                 return self._current_speaker
         return self._current_speaker
 
