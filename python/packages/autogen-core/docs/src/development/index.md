@@ -9,7 +9,6 @@ myst:
 
 ```{toctree}
 :maxdepth: 1
-<!-- :hidden: -->
 
 contributing
 contributing_environment
