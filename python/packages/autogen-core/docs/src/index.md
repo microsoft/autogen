@@ -105,4 +105,5 @@ Get Started
 user-guide/index
 packages/index
 reference/index
+development/index
 ```
