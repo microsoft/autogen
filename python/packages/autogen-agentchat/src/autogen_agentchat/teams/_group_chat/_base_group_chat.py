@@ -19,9 +19,9 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import AgentMessage, MultiModalMessage, TextMessage
-from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
+from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -36,7 +36,7 @@ class BaseGroupChat(Team, ABC):
     def __init__(
         self,
         participants: List[ChatAgent],
-        group_chat_manager_class: type[BaseGroupChatManager],
+        group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
     ):
@@ -81,7 +81,7 @@ class BaseGroupChat(Team, ABC):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-    ) -> Callable[[], BaseGroupChatManager]: ...
+    ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
         self,
