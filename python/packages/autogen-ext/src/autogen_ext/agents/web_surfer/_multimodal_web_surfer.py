@@ -224,7 +224,6 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
         )
 
-
     async def _lazy_init(
         self,
     ) -> None:
