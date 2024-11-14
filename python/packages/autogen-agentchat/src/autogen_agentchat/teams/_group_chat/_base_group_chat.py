@@ -38,6 +38,7 @@ class BaseGroupChat(Team, ABC):
         participants: List[ChatAgent],
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -46,6 +47,7 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
+        self._max_turns = max_turns
 
         # Constants for the group chat.
         self._team_id = str(uuid.uuid4())
@@ -123,6 +125,7 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
                 termination_condition=self._termination_condition,
+                max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.

@@ -62,10 +62,6 @@ class ToolCallResultMessage(BaseMessage):
     """The tool call results."""
 
 
-InnerMessage = ToolCallMessage | ToolCallResultMessage
-"""Messages for intra-agent monologues."""
-
-
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
 """Messages for agent-to-agent communication."""
 
@@ -83,6 +79,5 @@ __all__ = [
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ChatMessage",
-    "InnerMessage",
     "AgentMessage",
 ]
