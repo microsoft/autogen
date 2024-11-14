@@ -379,11 +379,24 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             )
             chunk_ids_set = set(chunk_ids)
             chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
-            docs = [
-                Document(id=chunk_ids[idx], content=chunks[idx], metadata=sources[idx])
-                for idx in chunk_ids_set_idx
-                if chunk_ids[idx] not in all_docs_ids
-            ]
+            
+            if self._embedding_function is None:
+                docs = [
+                    Document(id=chunk_ids[idx], content=chunks[idx], metadata=sources[idx])
+                    for idx in chunk_ids_set_idx
+                    if chunk_ids[idx] not in all_docs_ids
+                ]
+            else:
+                docs = [
+                    Document(
+                        id=chunk_ids[idx],
+                        content=chunks[idx],
+                        metadata=sources[idx],
+                        embedding=self._embedding_function([chunks[idx]])[0]
+                    )
+                    for idx in chunk_ids_set_idx
+                    if chunk_ids[idx] not in all_docs_ids
+                ]
 
         self._vector_db.insert_docs(docs=docs, collection_name=self._collection_name, upsert=True)
 
