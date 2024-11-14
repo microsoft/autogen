@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package helloWorld;
+
+option csharp_namespace = "Backend";
+
+message AppOutput {
+      string message = 1;
+}
+message AppNewMessageReceived {
+      string message = 1;
+}
+message AppConversationClosed {
+  string user_id = 1;
+  string user_message = 2;
+}
+    
