@@ -58,6 +58,15 @@ async def run_websocket(
                         "timestamp": datetime.utcnow().isoformat()
                     })
 
+                elif message.get("type") == "input_response":
+                    # Handle input response from client
+                    response = message.get("response")
+                    if response is not None:
+                        await ws_manager.handle_input_response(run_id, response)
+                    else:
+                        logger.warning(
+                            f"Invalid input response format for run {run_id}")
+
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON received: {raw_message}")
                 await websocket.send_json({
