@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ContainerRepository>autogen-host</ContainerRepository>
+    <ContainerFamily>alpine</ContainerFamily>
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
-    <ImplicitUsings>enable</ImplicitUsings>
     <!--orleans doesn't have strong name package-->
     <NoWarn>$(NoWarn);CS8002</NoWarn> 
   </PropertyGroup>
@@ -14,5 +14,11 @@
     <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
     <ProjectReference Include="../../../src/Microsoft.AutoGen/Extensions/ServiceDefaults/Microsoft.AutoGen.ServiceDefaults.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <ContainerEnvironmentVariable Include="ASPNETCORE_HTTP_PORTS" Value="5001" />
+    <ContainerPort Include="5001" Type="tcp" />
+  </ItemGroup>
+  
 
 </Project>

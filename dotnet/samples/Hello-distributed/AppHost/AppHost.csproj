@@ -11,13 +11,18 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
-    <PackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" />
-    <PackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
-    <PackageReference Include="Aspire.Hosting.Orleans" />
+    <PackageReference Include="Aspire.Hosting" />
   </ItemGroup>
 
    <ItemGroup>
     <ProjectReference Include="..\Backend\Backend.csproj" />
   </ItemGroup>
+
+   <ItemGroup>
+     <None Update="Properties\launchSettings.json">
+       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+     </None>
+   </ItemGroup>
 
 </Project>

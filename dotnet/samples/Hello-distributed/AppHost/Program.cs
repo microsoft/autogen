@@ -3,14 +3,17 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
+var agentHost = builder.AddContainer("agent-host", "autogen-host")
+                       .WithEnvironment("ASPNETCORE_URLS", "http://+:5001")
+                       .WithHttpEndpoint(port:5001, targetPort: 5001);
 
-var agentHost = builder.AddContainer("agent-host", "autogen-host");
-var agentHostHttps = agentHost.GetEndpoint("https");
+var agentHostHttp = agentHost.GetEndpoint("http");
+var url = agentHostHttp.Property(EndpointProperty.Url);
 
 builder.AddProject<Projects.Backend>("backend")
-    .WithEnvironment("AGENT_HOST", $"{agentHostHttps.Property(EndpointProperty.Url)}")
+    .WithEnvironment("AGENT_HOST", $"{url}")
     .WithEnvironment("OpenAI__Key", builder.Configuration["OpenAI:Key"])
-    .WithEnvironment("OpenAI__Endpoint", builder.Configuration["OpenAI:Endpoint"]);
+    .WithEnvironment("OpenAI__Endpoint", builder.Configuration["OpenAI:Endpoint"])
+    .WaitFor(agentHost);
 
 builder.Build().Run();

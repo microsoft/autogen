@@ -23,7 +23,6 @@ public static class AgentWorkerHostingExtensions
                             serverOptions.ListenLocalhost(5001, listenOptions =>
                             {
                                 listenOptions.Protocols = HttpProtocols.Http2;
-                                listenOptions.UseHttps();
                             });
                         });
             builder.AddOrleans(local);
@@ -39,7 +38,7 @@ public static class AgentWorkerHostingExtensions
         {
             builder.Services.AddGrpc();
             builder.Services.AddSingleton<GrpcGateway>();
-            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
+            builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<GrpcGateway>());
         }
 
         return builder;

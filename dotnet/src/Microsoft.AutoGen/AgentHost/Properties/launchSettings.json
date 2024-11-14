@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "DevTeam.AgentHost": {
+    "AgentHost": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

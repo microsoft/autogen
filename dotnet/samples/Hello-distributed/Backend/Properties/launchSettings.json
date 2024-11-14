@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "DevTeam.Backend": {
+    "Backend": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
