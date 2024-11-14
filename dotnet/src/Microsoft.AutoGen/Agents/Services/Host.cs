@@ -14,11 +14,11 @@ public static class Host
         builder.AddServiceDefaults();
         if (local)
         {
-            builder.AddLocalAgentService(useGrpc);
+            builder.AddLocalAgentService(useGrpc: useGrpc);
         }
         else
         {
-            builder.AddAgentService(useGrpc);
+            builder.AddAgentService(useGrpc: useGrpc);
         }
         var app = builder.Build();
         app.MapAgentService(local, useGrpc);

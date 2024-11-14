@@ -19,11 +19,13 @@
   "dependencies": {
     "@ant-design/charts": "^2.2.1",
     "@ant-design/plots": "^2.2.2",
+    "@dagrejs/dagre": "^1.1.4",
     "@headlessui/react": "^1.7.16",
     "@heroicons/react": "^2.0.18",
     "@mdx-js/react": "^3.1.0",
     "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/typography": "^0.5.9",
+    "@xyflow/react": "^12.3.5",
     "antd": "^5.1.0",
     "autoprefixer": "^10.4.20",
     "gatsby": "^5.13.7",
