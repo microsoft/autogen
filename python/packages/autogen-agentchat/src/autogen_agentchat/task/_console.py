@@ -1,11 +1,11 @@
 import sys
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 
 from autogen_core.components.models import RequestUsage
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import AgentMessage
+from autogen_agentchat.messages import AgentMessage, MultiModalMessage
 
 
 async def Console(stream: AsyncGenerator[AgentMessage | TaskResult, None]) -> None:
@@ -27,9 +27,22 @@ async def Console(stream: AsyncGenerator[AgentMessage | TaskResult, None]) -> No
             )
             sys.stdout.write(output)
         else:
-            output = f"{'-' * 10} {message.source} {'-' * 10}\n{message.content}\n"
+            output = f"{'-' * 10} {message.source} {'-' * 10}\n{_message_to_str(message)}\n"
             if message.models_usage:
                 output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
             sys.stdout.write(output)
+
+
+def _message_to_str(message: AgentMessage) -> str:
+    if isinstance(message, MultiModalMessage):
+        result: List[str] = []
+        for c in message.content:
+            if isinstance(c, str):
+                result.append(c)
+            else:
+                result.append("<image>")
+        return "\n".join(result)
+    else:
+        return f"{message.content}"
