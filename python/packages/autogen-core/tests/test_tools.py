@@ -1,6 +1,7 @@
 import inspect
 from typing import Annotated, List
 
+from autogen_core.components.tools._base import ToolSchema
 import pytest
 from autogen_core.base import CancellationToken
 from autogen_core.components._function_utils import get_typed_signature
@@ -12,6 +13,10 @@ from pydantic_core import PydanticUndefined
 
 class MyArgs(BaseModel):
     query: str = Field(description="The description.")
+
+
+class MyNestedArgs(BaseModel):
+    arg: MyArgs = Field(description="The nested description.")
 
 
 class MyResult(BaseModel):
@@ -29,6 +34,21 @@ class MyTool(BaseTool[MyArgs, MyResult]):
         self.called_count = 0
 
     async def run(self, args: MyArgs, cancellation_token: CancellationToken) -> MyResult:
+        self.called_count += 1
+        return MyResult(result="value")
+
+
+class MyNestedTool(BaseTool[MyNestedArgs, MyResult]):
+    def __init__(self) -> None:
+        super().__init__(
+            args_type=MyNestedArgs,
+            return_type=MyResult,
+            name="TestNestedTool",
+            description="Description of test nested tool.",
+        )
+        self.called_count = 0
+
+    async def run(self, args: MyNestedArgs, cancellation_token: CancellationToken) -> MyResult:
         self.called_count += 1
         return MyResult(result="value")
 
@@ -336,3 +356,53 @@ async def test_func_tool_return_list() -> None:
     assert isinstance(result, list)
     assert result == [1, 2]
     assert tool.return_value_as_string(result) == "[1, 2]"
+
+
+def test_nested_tool_schema_generation() -> None:
+    schema: ToolSchema = MyNestedTool().schema
+
+    assert "description" in schema
+    assert "parameters" in schema
+    assert "type" in schema["parameters"]
+    assert "arg" in schema["parameters"]["properties"]
+    assert "type" in schema["parameters"]["properties"]["arg"]
+    assert "title" in schema["parameters"]["properties"]["arg"]
+    assert "properties" in schema["parameters"]["properties"]["arg"]
+    assert "query" in schema["parameters"]["properties"]["arg"]["properties"]
+    assert "type" in schema["parameters"]["properties"]["arg"]["properties"]["query"]
+    assert "description" in schema["parameters"]["properties"]["arg"]["properties"]["query"]
+    assert "required" in schema["parameters"]
+    assert schema["description"] == "Description of test nested tool."
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"]["arg"]["type"] == "object"
+    assert schema["parameters"]["properties"]["arg"]["title"] == "MyArgs"
+    assert schema["parameters"]["properties"]["arg"]["properties"]["query"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["properties"]["query"]["description"] == "The description."
+    assert schema["parameters"]["properties"]["arg"]["required"] == ["query"]
+    assert schema["parameters"]["required"] == ["arg"]
+    assert len(schema["parameters"]["properties"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_nested_tool_run() -> None:
+    tool = MyNestedTool()
+    result = await tool.run_json({"arg": {"query": "test"}}, CancellationToken())
+
+    assert isinstance(result, MyResult)
+    assert result.result == "value"
+    assert tool.called_count == 1
+
+    result = await tool.run_json({"arg": {"query": "test"}}, CancellationToken())
+    result = await tool.run_json({"arg": {"query": "test"}}, CancellationToken())
+
+    assert tool.called_count == 3
+
+
+def test_nested_tool_properties() -> None:
+    tool = MyNestedTool()
+
+    assert tool.name == "TestNestedTool"
+    assert tool.description == "Description of test nested tool."
+    assert tool.args_type() == MyNestedArgs
+    assert tool.return_type() == MyResult
+    assert tool.state_type() is None
