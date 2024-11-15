@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Extensions.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
+builder.AddAutoGenServices();
 
 builder.ConfigureSemanticKernel();
 

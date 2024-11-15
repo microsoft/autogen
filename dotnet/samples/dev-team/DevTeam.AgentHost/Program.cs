@@ -4,7 +4,7 @@
 using Microsoft.AutoGen.Agents;
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
+builder.AddAutoGenServices();
 builder.AddAgentService();
 
 var app = builder.Build();

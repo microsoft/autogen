@@ -14,7 +14,7 @@ using Octokit.Webhooks.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
+builder.AddAutoGenServices();
 builder.ConfigureSemanticKernel();
 
 builder.Services.AddHttpClient();
