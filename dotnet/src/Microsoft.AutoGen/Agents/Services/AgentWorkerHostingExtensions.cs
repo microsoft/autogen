@@ -15,22 +15,15 @@ public static class AgentWorkerHostingExtensions
 {
     public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool local = false, bool useGrpc = true)
     {
-        if (local)
-        {
-            //TODO: make configuration more flexible
             builder.WebHost.ConfigureKestrel(serverOptions =>
                         {
-                            serverOptions.ListenLocalhost(5001, listenOptions =>
+                            serverOptions.ListenAnyIP(5001, listenOptions =>
                             {
                                 listenOptions.Protocols = HttpProtocols.Http2;
+                                listenOptions.UseHttps();
                             });
                         });
             builder.AddOrleans(local);
-        }
-        else
-        {
-            builder.AddOrleans();
-        }
 
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 

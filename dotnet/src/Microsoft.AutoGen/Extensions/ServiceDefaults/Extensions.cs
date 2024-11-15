@@ -60,7 +60,8 @@ public static class Extensions
             .WithTracing(tracing =>
             {
                 tracing.AddAspNetCoreInstrumentation()
-                       //.AddGrpcClientInstrumentation()
+                       //.
+                       //Instrumentation()
                        .AddHttpClientInstrumentation()
                        .AddSource("Microsoft.Orleans.Application")
                        .AddSource("AutoGen.Agent");

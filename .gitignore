@@ -193,3 +193,5 @@ notebook/result.png
 samples/apps/autogen-studio/autogenstudio/models/test/
 
 notebook/coding
+
+certs/**
