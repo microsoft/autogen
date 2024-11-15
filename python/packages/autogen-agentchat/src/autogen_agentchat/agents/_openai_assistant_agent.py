@@ -1,15 +1,15 @@
 import asyncio
 import os
-from typing import Callable, List, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 import aiofiles
 from autogen_core.base import CancellationToken
 from autogen_agentchat.messages import ChatMessage, TextMessage
-from openai import AsyncAssistantEventHandler, AsyncClient
+from openai import AsyncClient
 from openai.types.beta.thread import ToolResources, ToolResourcesFileSearch
-from openai.types.beta.threads import Message, Text, TextDelta
-from openai.types.beta.threads.runs import RunStep, RunStepDelta
-from typing_extensions import override
+from openai.types.beta.threads import Run
+from openai.types.beta.assistant_tool_param import AssistantToolParam
+from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
 
 from ._base_chat_agent import BaseChatAgent
 
@@ -24,7 +24,13 @@ class OpenAIAssistantChatAgent(BaseChatAgent):
         client: AsyncClient,
         model: str,
         instructions: str,
-        tools: Optional[List[dict]] = None,
+        tools: Optional[Iterable[AssistantToolParam]] = None,
+        assistant_id: Optional[str] = None,
+        metadata: Optional[object] = None,
+        response_format: Optional[AssistantResponseFormatOptionParam] = None,
+        temperature: Optional[float] = None,
+        tool_resources: Optional[dict] = None,
+        top_p: Optional[float] = None,
     ) -> None:
         super().__init__(name, description)
         if tools is None:
@@ -35,27 +41,42 @@ class OpenAIAssistantChatAgent(BaseChatAgent):
         self._model = model
         self._instructions = instructions
         self._tools = tools
+        self._assistant_id = assistant_id
+        self._metadata = metadata
+        self._response_format = response_format
+        self._temperature = temperature
+        self._tool_resources = tool_resources
+        self._top_p = top_p
+        self._vector_store_id = None
 
     async def _ensure_initialized(self):
         """Ensure assistant and thread are created."""
         if self._assistant is None:
-            self._assistant = await self._client.beta.assistants.create(
-                model=self._model,
-                description=self.description,
-                instructions=self._instructions,
-                tools=self._tools,
-            )
-        
+            if self._assistant_id:
+                self._assistant = await self._client.beta.assistants.retrieve(assistant_id=self._assistant_id)
+            else:
+                self._assistant = await self._client.beta.assistants.create(
+                    model=self._model,
+                    description=self.description,
+                    instructions=self._instructions,
+                    tools=self._tools,
+                    metadata=self._metadata,
+                    response_format=self._response_format,
+                    temperature=self._temperature,
+                    tool_resources=self._tool_resources,
+                    top_p=self._top_p,
+                )
+
         if self._thread is None:
             self._thread = await self._client.beta.threads.create()
 
     @property
-    def _assistant_id(self) -> str:
+    def _get_assistant_id(self) -> str:
         if self._assistant is None:
             raise ValueError("Assistant not initialized")
         return self._assistant.id
 
-    @property 
+    @property
     def _thread_id(self) -> str:
         if self._thread is None:
             raise ValueError("Thread not initialized")
@@ -65,25 +86,16 @@ class OpenAIAssistantChatAgent(BaseChatAgent):
         """Handle incoming messages and return a response message."""
         await self._ensure_initialized()
 
-        for message in messages:
-            content = message.content.strip().lower()
-            if content == "reset":
-                await self.on_reset(cancellation_token)
-            elif content.startswith("upload_code "):
-                file_path = message.content[len("upload_code ") :].strip()
-                await self.on_upload_for_code_interpreter(file_path, cancellation_token)
-            elif content.startswith("upload_search "):
-                file_path = message.content[len("upload_search ") :].strip()
-                await self.on_upload_for_file_search(file_path, cancellation_token)
-            else:
-                await self.handle_text_message(message.content, cancellation_token)
+        # Only process the last message and rely on the thread for context
+        message = messages[-1]
+        await self.handle_text_message(message.content, cancellation_token)
 
         # Create and start a run
-        run = await cancellation_token.link_future(
+        run: Run = await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._client.beta.threads.runs.create(
                     thread_id=self._thread_id,
-                    assistant_id=self._assistant_id,
+                    assistant_id=self._get_assistant_id,
                 )
             )
         )
@@ -100,16 +112,17 @@ class OpenAIAssistantChatAgent(BaseChatAgent):
             )
             await asyncio.sleep(0.5)
 
+        if run.status == "failed":
+            raise ValueError(f"Run failed: {run.last_error}")
+
         # Get messages after run completion
         messages = await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.threads.messages.list(
-                    thread_id=self._thread_id,
-                    order="desc",
-                    limit=1
-                )
+                self._client.beta.threads.messages.list(thread_id=self._thread_id, order="desc", limit=1)
             )
         )
+
+        breakpoint()
 
         if not messages.data:
             raise ValueError("No messages received from assistant")
@@ -196,6 +209,31 @@ class OpenAIAssistantChatAgent(BaseChatAgent):
 
     async def on_upload_for_file_search(self, file_path: str, cancellation_token: CancellationToken):
         """Handle file uploads for file search."""
+        await self._ensure_initialized()
+
+        # Check if file_search is enabled in tools
+        if not any(tool.get("type") == "file_search" for tool in self._tools):
+            raise ValueError(
+                "File search is not enabled for this assistant. Add a file_search tool when creating the assistant."
+            )
+
+        # Create vector store if not already created
+        if self._vector_store_id is None:
+            vector_store = await cancellation_token.link_future(
+                asyncio.ensure_future(self._client.beta.vector_stores.create())
+            )
+            self._vector_store_id = vector_store.id
+
+            # Update assistant with vector store ID
+            await cancellation_token.link_future(
+                asyncio.ensure_future(
+                    self._client.beta.assistants.update(
+                        assistant_id=self._get_assistant_id,
+                        tool_resources={"file_search": {"vector_store_ids": [self._vector_store_id]}},
+                    )
+                )
+            )
+
         # Read the file content
         async with aiofiles.open(file_path, mode="rb") as f:
             file_content = await cancellation_token.link_future(asyncio.ensure_future(f.read()))
