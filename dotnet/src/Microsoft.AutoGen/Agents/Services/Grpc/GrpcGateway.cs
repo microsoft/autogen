@@ -111,11 +111,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 break;
             default:
                 // if it wasn't recognized return bad request
-                await RespondBadRequestAsync(connection, message.RequestId, $"Unknown message type for message '{message}'.");
+                await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
                 break;
         };
     }
-    private async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string requestId, string error)
+    private async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string error)
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
