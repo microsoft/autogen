@@ -1,3 +1,4 @@
+import time
 from typing import Sequence
 
 from ..base import TerminatedException, TerminationCondition
@@ -174,4 +175,36 @@ class HandoffTermination(TerminationCondition):
         return None
 
     async def reset(self) -> None:
+        self._terminated = False
+
+
+class TimeoutTermination(TerminationCondition):
+    """Terminate the conversation after a specified duration has passed.
+
+    Args:
+        timeout_seconds: The maximum duration in seconds before terminating the conversation.
+    """
+
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+        self._start_time = time.monotonic()
+        self._terminated = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+
+        if (time.monotonic() - self._start_time) >= self._timeout_seconds:
+            self._terminated = True
+            return StopMessage(
+                content=f"Timeout of {self._timeout_seconds} seconds reached", source="TimeoutTermination"
+            )
+        return None
+
+    async def reset(self) -> None:
+        self._start_time = time.monotonic()
         self._terminated = False
