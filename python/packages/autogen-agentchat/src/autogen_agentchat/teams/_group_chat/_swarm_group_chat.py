@@ -40,14 +40,22 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         self._current_speaker = self._participant_topic_types[0]
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
-        """Select a speaker from the participants based on handoff message."""
-        if len(thread) > 0 and isinstance(thread[-1], HandoffMessage):
-            self._current_speaker = thread[-1].target
-            if self._current_speaker not in self._participant_topic_types:
-                raise ValueError("The selected speaker in the handoff message is not a participant.")
+        """Select a speaker from the participants based on handoff message.
+        Looks for the last handoff message in the thread to determine the next speaker."""
+        if len(thread) == 0:
             return self._current_speaker
-        else:
-            return self._current_speaker
+        for message in reversed(thread):
+            if isinstance(message, HandoffMessage):
+                self._current_speaker = message.target
+                if self._current_speaker not in self._participant_topic_types:
+                    raise ValueError(
+                        f"The target {self._current_speaker} in the handoff message "
+                        f"is not one of the participants {self._participant_topic_types}. "
+                        "If you are resuming the Swarm with a new task make sure to include in your task "
+                        "a handoff message with a valid participant as the target."
+                    )
+                return self._current_speaker
+        return self._current_speaker
 
 
 class Swarm(BaseGroupChat):
