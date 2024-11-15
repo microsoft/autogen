@@ -16,6 +16,7 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 
 **Updates**
 
+> Nov 14: AutoGen Studio is being rewritten to use the updated AutoGen 0.4.0 api AgentChat api.
 > April 17: AutoGen Studio database layer is now rewritten to use [SQLModel](https://sqlmodel.tiangolo.com/) (Pydantic + SQLAlchemy). This provides entity linking (skills, models, agents and workflows are linked via association tables) and supports multiple [database backend dialects](https://docs.sqlalchemy.org/en/20/dialects/) supported in SQLAlchemy (SQLite, PostgreSQL, MySQL, Oracle, Microsoft SQL Server). The backend database can be specified a `--database-uri` argument when running the application. For example, `autogenstudio ui --database-uri sqlite:///database.sqlite` for SQLite and `autogenstudio ui --database-uri postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL.
 
 > March 12: Default directory for AutoGen Studio is now /home/<user>/.autogenstudio. You can also specify this directory using the `--appdir` argument when running the application. For example, `autogenstudio ui --appdir /path/to/folder`. This will store the database and other files in the specified directory e.g. `/path/to/folder/database.sqlite`. `.env` files in that directory will be used to set environment variables for the app.
@@ -88,16 +89,23 @@ AutoGen Studio also takes several parameters to customize the application:
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
 #### If running from source
+
 When running from source, you need to separately bring up the frontend server.
+
 1. Open a separate terminal and change directory to the frontend
+
 ```bash
 cd frontend
 ```
+
 3. Create a `.env.development` file.
+
 ```bash
 cp .env.default .env.development
 ```
+
 3. Launch frontend server
+
 ```bash
 npm run start
 ```
