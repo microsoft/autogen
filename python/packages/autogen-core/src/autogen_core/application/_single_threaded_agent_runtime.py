@@ -274,14 +274,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def save_state(self) -> Mapping[str, Any]:
         state: Dict[str, Dict[str, Any]] = {}
         for agent_id in self._instantiated_agents:
-            state[str(agent_id)] = dict((await self._get_agent(agent_id)).save_state())
+            state[str(agent_id)] = dict(await (await self._get_agent(agent_id)).save_state())
         return state
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         for agent_id_str in state:
             agent_id = AgentId.from_str(agent_id_str)
             if agent_id.type in self._known_agent_names:
-                (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
+                await (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
         with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
@@ -526,10 +526,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         return (await self._get_agent(agent)).metadata
 
     async def agent_save_state(self, agent: AgentId) -> Mapping[str, Any]:
-        return (await self._get_agent(agent)).save_state()
+        return await (await self._get_agent(agent)).save_state()
 
     async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
-        (await self._get_agent(agent)).load_state(state)
+        await (await self._get_agent(agent)).load_state(state)
 
     @deprecated(
         "Use your agent's `register` method directly instead of this method. See documentation for latest usage."

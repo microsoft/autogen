@@ -53,6 +53,7 @@ Find community samples and examples of how to use AutoGen
 
 | Name | Package | Description |
 |---|---|---|
+| [autogen-watsonx-client](https://github.com/tsinggggg/autogen-watsonx-client)  | [PyPi](https://pypi.org/project/autogen-watsonx-client/) | Model client for [IBM watsonx.ai](https://www.ibm.com/products/watsonx-ai) |
 
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
@@ -61,7 +62,7 @@ Find community samples and examples of how to use AutoGen
 - Description should be a brief description of the project. 1 short sentence is ideal. -->
 
 
-## Built-in extenions
+## Built-in extensions
 
 Read docs for built in extensions:
 
