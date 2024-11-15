@@ -107,9 +107,9 @@ This guide outlines how to configure your environment to use the `create_complet
 
 Currently, Magentic-One only supports OpenAI's GPT-4o as the underlying LLM.
 
-### Azure with Active Directory
+### Azure OpenAI service
 
-To configure for Azure with Active Directory, set the following environment variables:
+To configure for Azure OpenAI service, set the following environment variables:
 
 - `CHAT_COMPLETION_PROVIDER='azure'`
 - `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
