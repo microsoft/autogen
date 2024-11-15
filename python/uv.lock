@@ -574,7 +574,7 @@ dev = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.1.6"
+version = "0.4.0.dev35"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "alembic" },
@@ -583,7 +583,9 @@ dependencies = [
     { name = "numpy" },
     { name = "psycopg" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sqlmodel" },
     { name = "typer" },
     { name = "uvicorn" },
@@ -609,7 +611,9 @@ requires-dist = [
     { name = "psycopg" },
     { name = "psycopg", marker = "extra == 'database'" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sqlmodel" },
     { name = "typer" },
     { name = "uvicorn" },
