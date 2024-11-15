@@ -110,8 +110,14 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
                 break;
             default:
-                throw new InvalidOperationException($"Unknown message type for message '{message}'.");
+                // if it wasn't recognized return bad request
+                await RespondBadRequestAsync(connection, message.RequestId, $"Unknown message type for message '{message}'.");
+                break;
         };
+    }
+    private async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string requestId, string error)
+    {
+        throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
