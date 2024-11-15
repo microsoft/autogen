@@ -12,7 +12,6 @@ myst:
 :hidden:
 
 azure-container-code-executor
-watsonx-client-integration
 ```
 
 
