@@ -14,9 +14,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
-builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
-    .AddAgent<HelloAgent>(nameof(HelloAgent))
-    ;
+var agentHostUrl = builder.Configuration["AGENT_HOST"]!;
+builder.AddAgentWorker(agentHostUrl)
+    .AddAgent<HelloAgent>(nameof(HelloAgent));
 
 builder.Services.AddSingleton<AgentWorker>();
 

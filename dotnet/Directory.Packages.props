@@ -4,24 +4,22 @@
     <MicrosoftSemanticKernelVersion>1.22.0</MicrosoftSemanticKernelVersion>
     <MicrosoftSemanticKernelExperimentalVersion>1.22.0-alpha</MicrosoftSemanticKernelExperimentalVersion>
     <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24525.1</MicrosoftExtensionsAIVersion>
-
     <NuGetAuditMode>direct</NuGetAuditMode>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
-    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="8.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Orleans" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="8.2.0" />
+    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="9.0.0-preview.5.24551.3" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Orleans" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.0.0" />
     <PackageVersion Include="Azure.AI.OpenAI" Version=" 2.1.0-beta.1" />
     <PackageVersion Include="Azure.AI.Inference" Version="1.0.0-beta.1" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
-    <PackageVersion Include="Azure.Identity" Version="1.13.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.1" />
     <PackageVersion Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
     <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.20.1" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.7.1" />

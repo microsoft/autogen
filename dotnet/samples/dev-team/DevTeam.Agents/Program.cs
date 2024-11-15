@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.ConfigureSemanticKernel();
+builder.ConfigureSemanticKernel(useVectorDb:true);
 
 builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
     .AddAgent<Dev>(nameof(Dev))

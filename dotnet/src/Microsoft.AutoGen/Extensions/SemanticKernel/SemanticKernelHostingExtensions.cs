@@ -16,7 +16,7 @@ using Microsoft.SemanticKernel.Memory;
 namespace Microsoft.AutoGen.Extensions.SemanticKernel;
 public static class SemanticKernelHostingExtensions
 {
-    public static IHostApplicationBuilder ConfigureSemanticKernel(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder ConfigureSemanticKernel(this IHostApplicationBuilder builder, bool useVectorDb=false)
     {
         builder.Services.Configure<AIClientOptions>(o =>
         {
@@ -27,14 +27,17 @@ public static class SemanticKernelHostingExtensions
             o.ChatDeploymentOrModelId = "gpt-4o";
         });
 
+        if (useVectorDb)
+        {
+           builder.Services.AddOptions<QdrantOptions>().Bind(builder.Configuration.GetSection("Qdrant"))
+          .ValidateDataAnnotations()
+          .ValidateOnStart();
+           builder.Services.AddTransient(CreateMemory);
+        }  
         builder.Services.Configure<AzureOpenAIClientOptions>(o =>
         {
             o.NetworkTimeout = TimeSpan.FromMinutes(5);
         });
-
-        builder.Services.AddOptions<QdrantOptions>().Bind(builder.Configuration.GetSection("Qdrant"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
 
         builder.Services.Configure<JsonSerializerOptions>(options =>
         {
@@ -42,7 +45,7 @@ public static class SemanticKernelHostingExtensions
         });
 
         builder.Services.AddTransient(CreateKernel);
-        builder.Services.AddTransient(CreateMemory);
+      
         return builder;
     }
 

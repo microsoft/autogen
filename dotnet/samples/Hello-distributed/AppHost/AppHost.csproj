@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,21 +8,16 @@
     <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>e8874200-80ab-41e3-bb56-b5bb93974eea</UserSecretsId>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
-    <PackageReference Include="Aspire.Hosting" />
   </ItemGroup>
-
-   <ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Backend\Backend.csproj" />
   </ItemGroup>
-
-   <ItemGroup>
-     <None Update="Properties\launchSettings.json">
-       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-     </None>
-   </ItemGroup>
-
+  <ItemGroup>
+    <None Update="Properties\launchSettings.json">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
 </Project>
