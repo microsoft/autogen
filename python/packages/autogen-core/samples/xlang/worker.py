@@ -33,7 +33,7 @@ async def main() -> None:
     await runtime.add_subscription(DefaultSubscription(agent_type="proxy"))
     agnext_logger.info("3")
 
-    await runtime.publish_message(message=Input(message=""), topic_id="HelloAgents")
+    await runtime.publish_message(message=Input(message=""), topic_id=DefaultTopicId())
     await runtime.stop_when_signal()
     # await runtime.stop_when_idle()
 
