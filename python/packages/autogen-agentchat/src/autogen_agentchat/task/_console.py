@@ -10,11 +10,11 @@ from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentMessage, MultiModalMessage
 
 
-def _is_running_in_iterm():
+def _is_running_in_iterm() -> bool:
     return os.getenv("TERM_PROGRAM") == "iTerm.app"
 
 
-def _is_output_a_tty():
+def _is_output_a_tty() -> bool:
     return sys.stdout.isatty()
 
 
