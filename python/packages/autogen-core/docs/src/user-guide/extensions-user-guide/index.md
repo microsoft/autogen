@@ -15,7 +15,7 @@ azure-container-code-executor
 ```
 
 
-Discover community projects:
+## Discover community projects:
 
 ::::{grid} 1 2 2 2
 :margin: 4 4 0 0
@@ -48,7 +48,21 @@ Find community samples and examples of how to use AutoGen
 
 ::::
 
-## Built-in extenions
+
+### List of community projects
+
+| Name | Package | Description |
+|---|---|---|
+| [autogen-watsonx-client](https://github.com/tsinggggg/autogen-watsonx-client)  | [PyPi](https://pypi.org/project/autogen-watsonx-client/) | Model client for [IBM watsonx.ai](https://www.ibm.com/products/watsonx-ai) |
+
+<!-- Example -->
+<!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
+<!-- - Name should link to the project page or repo
+- Package should link to the PyPi page
+- Description should be a brief description of the project. 1 short sentence is ideal. -->
+
+
+## Built-in extensions
 
 Read docs for built in extensions:
 
@@ -105,12 +119,12 @@ AutoGen embraces the use of type hints to provide a better development experienc
 
 ### Discovery
 
-To make it easier for users to find your extension, sample, service or package, you can [add the topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics) `autogen` to the GitHub repo.
+To make it easier for users to find your extension, sample, service or package, you can [add the topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics) [`autogen`](https://github.com/topics/autogen) to the GitHub repo.
 
 More specific topics are also available:
 
-- `autogen-extension` for extensions
-- `autogen-sample` for samples
+- [`autogen-extension`](https://github.com/topics/autogen-extension) for extensions
+- [`autogen-sample`](https://github.com/topics/autogen-sample) for samples
 
 ### Changes from 0.2
 
