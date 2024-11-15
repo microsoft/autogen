@@ -17,7 +17,7 @@ class ToolTypes(str, Enum):
 
 class AgentTypes(str, Enum):
     ASSISTANT = "AssistantAgent"
-    CODING = "CodingAssistantAgent"
+    USERPROXY = "UserProxyAgent"
 
 
 class TeamTypes(str, Enum):

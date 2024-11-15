@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import {
   ReactFlow,
   Node,
@@ -8,6 +14,8 @@ import {
   NodeTypes,
   useReactFlow,
   ReactFlowProvider,
+  NodeChange,
+  applyNodeChanges,
 } from "@xyflow/react";
 import Dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
@@ -17,15 +25,15 @@ import {
   AgentConfig,
   TeamConfig,
 } from "../../../../types/datamodel";
-import { ThreadState, ThreadStatus } from "../types";
-import { CustomEdge, EdgeTooltipContent } from "./edge";
-import { Tooltip } from "antd";
+import { ThreadState } from "../types";
+import { CustomEdge } from "./edge";
+import { useConfigStore } from "../../../../../hooks/store";
+import { AgentFlowToolbar } from "./toolbar";
 
 interface AgentFlowProps {
   teamConfig: TeamConfig;
   messages: AgentMessageConfig[];
   threadState: ThreadState;
-  direction?: "TB" | "LR";
 }
 
 interface MessageSequence {
@@ -36,8 +44,13 @@ interface MessageSequence {
   messages: AgentMessageConfig[];
 }
 
+interface BidirectionalPattern {
+  forward: MessageSequence;
+  reverse: MessageSequence;
+}
+
 const NODE_DIMENSIONS = {
-  default: { width: 150, height: 100 },
+  default: { width: 170, height: 100 },
   end: { width: 120, height: 80 },
 };
 
@@ -47,41 +60,113 @@ const getLayoutedElements = (
   direction: "TB" | "LR"
 ) => {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+
+  // Updated graph settings
   g.setGraph({
     rankdir: direction,
-    nodesep: direction === "TB" ? 100 : 80, // Adjust for orientation
-    ranksep: direction === "TB" ? 80 : 100, // Adjust for orientation
-    align: direction === "TB" ? "DL" : "UL", // Adjust alignment
-    ranker: "network-simplex",
+    nodesep: 80,
+    ranksep: 120,
+    ranker: "tight-tree",
     marginx: 30,
     marginy: 30,
   });
 
-  edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+  // Add nodes (unchanged)
   nodes.forEach((node) => {
     const dimensions =
       node.data.type === "end" ? NODE_DIMENSIONS.end : NODE_DIMENSIONS.default;
     g.setNode(node.id, { ...node, ...dimensions });
   });
 
+  // Create a map to track bidirectional edges
+  const bidirectionalPairs = new Map<
+    string,
+    { source: string; target: string }[]
+  >();
+
+  // First pass - identify bidirectional pairs
+  edges.forEach((edge) => {
+    const forwardKey = `${edge.source}->${edge.target}`;
+    const reverseKey = `${edge.target}->${edge.source}`;
+    const pairKey = [edge.source, edge.target].sort().join("-");
+
+    if (!bidirectionalPairs.has(pairKey)) {
+      bidirectionalPairs.set(pairKey, []);
+    }
+    bidirectionalPairs.get(pairKey)!.push({
+      source: edge.source,
+      target: edge.target,
+    });
+  });
+
+  // Second pass - add edges with weights
+  bidirectionalPairs.forEach((pairs, pairKey) => {
+    if (pairs.length === 2) {
+      // Bidirectional edge
+      const [first, second] = pairs;
+      g.setEdge(first.source, first.target, {
+        weight: 2,
+        minlen: 1,
+      });
+      g.setEdge(second.source, second.target, {
+        weight: 1,
+        minlen: 1,
+      });
+    } else {
+      // Regular edge
+      const edge = pairs[0];
+      g.setEdge(edge.source, edge.target, {
+        weight: 1,
+        minlen: 1,
+      });
+    }
+  });
+
+  // Run layout
   Dagre.layout(g);
 
+  // Position nodes
+  const positionedNodes = nodes.map((node) => {
+    const { x, y } = g.node(node.id);
+    const dimensions =
+      node.data.type === "end" ? NODE_DIMENSIONS.end : NODE_DIMENSIONS.default;
+    return {
+      ...node,
+      position: {
+        x: x - dimensions.width / 2,
+        y: y - dimensions.height / 2,
+      },
+    };
+  });
+
+  // Create a map of node positions for edge calculations
+  const nodePositions = new Map(
+    positionedNodes.map((node) => [
+      node.id,
+      {
+        x: node.position.x + NODE_DIMENSIONS.default.width / 2,
+        y: node.position.y + NODE_DIMENSIONS.default.height / 2,
+      },
+    ])
+  );
+
+  // Process edges with positions
+  const positionedEdges = edges.map((edge) => {
+    const sourcePos = nodePositions.get(edge.source)!;
+    const targetPos = nodePositions.get(edge.target)!;
+
+    return {
+      ...edge,
+      sourceX: sourcePos.x,
+      sourceY: sourcePos.y,
+      targetX: targetPos.x,
+      targetY: targetPos.y,
+    };
+  });
+
   return {
-    nodes: nodes.map((node) => {
-      const { x, y } = g.node(node.id);
-      const dimensions =
-        node.data.type === "end"
-          ? NODE_DIMENSIONS.end
-          : NODE_DIMENSIONS.default;
-      return {
-        ...node,
-        position: {
-          x: x - dimensions.width / 2,
-          y: y - dimensions.height / 2,
-        },
-      };
-    }),
-    edges,
+    nodes: positionedNodes,
+    edges: positionedEdges,
   };
 };
 
@@ -92,6 +177,9 @@ const createNode = (
   isActive: boolean = false,
   threadState?: ThreadState
 ): Node => {
+  const isStreamingOrWaiting =
+    threadState?.status === "streaming" ||
+    threadState?.status === "awaiting_input";
   if (type === "user") {
     return {
       id,
@@ -105,6 +193,7 @@ const createNode = (
         isActive,
         status: "",
         reason: "",
+        draggable: !isStreamingOrWaiting,
       },
     };
   }
@@ -122,6 +211,7 @@ const createNode = (
         agentType: "",
         description: "",
         isActive: false,
+        draggable: false,
       },
     };
   }
@@ -138,6 +228,7 @@ const createNode = (
       isActive,
       status: "",
       reason: "",
+      draggable: !isStreamingOrWaiting,
     },
   };
 };
@@ -154,21 +245,40 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
   teamConfig,
   messages,
   threadState,
-  direction = "TB",
 }) => {
   const { fitView } = useReactFlow();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [shouldRefit, setShouldRefit] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ...previous imports remain same
+  // Get settings from store
+  const { agentFlow: settings, setAgentFlowSettings } = useConfigStore();
 
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+  const flowWrapper = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (shouldRefit) {
+      const timeoutId = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 200 });
+        setShouldRefit(false);
+      }, 100); // Increased delay slightly
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shouldRefit, fitView]);
+
+  // Process messages into nodes and edges
   const processMessages = useCallback(
     (messages: AgentMessageConfig[]) => {
       if (messages.length === 0) return { nodes: [], edges: [] };
 
-      const sequences: MessageSequence[] = [];
       const nodeMap = new Map<string, Node>();
       const transitionCounts = new Map<string, MessageSequence>();
+      const bidirectionalPatterns = new Map<string, BidirectionalPattern>();
 
       // Process first message source
       const firstAgentConfig = teamConfig.participants.find(
@@ -184,7 +294,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         )
       );
 
-      // Group messages by transitions (including self-transitions)
+      // Group messages by transitions
       for (let i = 0; i < messages.length - 1; i++) {
         const currentMsg = messages[i];
         const nextMsg = messages[i + 1];
@@ -226,45 +336,113 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         }
       }
 
-      // Create edges from transitions
-      const newEdges: Edge[] = Array.from(transitionCounts.entries()).map(
-        ([key, transition], index) => {
-          // const avgTokens = Math.round(
-          //   transition.totalTokens / transition.count
-          // );
-          const label =
-            transition.totalTokens > 0
-              ? `${transition.count > 1 ? `${transition.count}x` : ""} (${
-                  transition.totalTokens
-                } tokens)`
-              : "";
+      // Identify bidirectional patterns
+      transitionCounts.forEach((transition, key) => {
+        const [source, target] = key.split("->");
+        const reverseKey = `${target}->${source}`;
+        const reverseTransition = transitionCounts.get(reverseKey);
 
-          return {
-            id: `${transition.source}-${transition.target}-${index}`,
+        if (reverseTransition && !bidirectionalPatterns.has(key)) {
+          const patternKey = [source, target].sort().join("->");
+          bidirectionalPatterns.set(patternKey, {
+            forward: transition,
+            reverse: reverseTransition,
+          });
+        }
+      });
+
+      // Create edges with bidirectional routing
+      const newEdges: Edge[] = [];
+      const processedKeys = new Set<string>();
+
+      // Helper function to create edge label based on settings
+      const createEdgeLabel = (transition: MessageSequence) => {
+        if (!settings.showLabels) return "";
+        if (transition.totalTokens > 0) {
+          return `${transition.count > 1 ? `${transition.count}x` : ""} ${
+            settings.showTokens ? `(${transition.totalTokens} tokens)` : ""
+          }`.trim();
+        }
+        return "";
+      };
+
+      transitionCounts.forEach((transition, key) => {
+        if (processedKeys.has(key)) return;
+
+        const [source, target] = key.split("->");
+        const patternKey = [source, target].sort().join("->");
+        const bidirectionalPattern = bidirectionalPatterns.get(patternKey);
+
+        if (bidirectionalPattern) {
+          // Create paired edges for bidirectional pattern
+          const forwardKey = `${source}->${target}`;
+          const reverseKey = `${target}->${source}`;
+
+          const forwardEdgeId = `${source}-${target}-forward`;
+          const reverseEdgeId = `${target}-${source}-reverse`;
+
+          const createBidirectionalEdge = (
+            transition: MessageSequence,
+            isSecondary: boolean,
+            edgeId: string,
+            pairedEdgeId: string
+          ) => ({
+            id: edgeId,
             source: transition.source,
             target: transition.target,
             type: "custom",
             data: {
-              label,
-              messages: transition.messages,
+              label: createEdgeLabel(transition),
+              messages: settings.showMessages ? transition.messages : [],
+              routingType: isSecondary ? "secondary" : "primary",
+              bidirectionalPair: pairedEdgeId,
+            },
+            style: {
+              stroke: "#2563eb",
+              strokeWidth: 1,
+            },
+          });
+
+          newEdges.push(
+            createBidirectionalEdge(
+              transitionCounts.get(forwardKey)!,
+              false,
+              forwardEdgeId,
+              reverseEdgeId
+            ),
+            createBidirectionalEdge(
+              transitionCounts.get(reverseKey)!,
+              true,
+              reverseEdgeId,
+              forwardEdgeId
+            )
+          );
+
+          processedKeys.add(forwardKey);
+          processedKeys.add(reverseKey);
+        } else {
+          // Handle regular edges (including self-loops)
+          newEdges.push({
+            id: `${transition.source}-${transition.target}-${key}`,
+            source: transition.source,
+            target: transition.target,
+            type: "custom",
+            data: {
+              label: createEdgeLabel(transition),
+              messages: settings.showMessages ? transition.messages : [],
             },
             animated:
               threadState?.status === "streaming" &&
-              index === transitionCounts.size - 1,
+              key === Array.from(transitionCounts.keys()).pop(),
             style: {
               stroke: "#2563eb",
-              strokeWidth: Math.min(Math.max(transition.count, 1), 5),
-              // Add curved style for self-referential edges
-              ...(transition.source === transition.target && {
-                borderRadius: 20,
-                curvature: 0.5,
-              }),
+              strokeWidth: 1,
             },
-          };
+          });
         }
-      );
+      });
 
-      // Handle end node logic (keeping existing end node logic)
+      // Handle end node logic
       if (threadState && messages.length > 0) {
         const lastMessage = messages[messages.length - 1];
 
@@ -280,6 +458,8 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               cancelled: "red",
               error: "red",
               streaming: "#2563eb",
+              awaiting_input: "#2563eb",
+              timeout: "red",
             }[threadState.status] || "#2563eb";
 
           newEdges.push({
@@ -288,12 +468,12 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
             target: "end",
             type: "custom",
             data: {
-              label: "ended",
+              label: settings.showLabels ? "ended" : "",
               messages: [],
             },
-            animated: false,
             style: {
               stroke: edgeColor,
+              strokeWidth: 1,
               opacity: 1,
               zIndex: 100,
             },
@@ -301,27 +481,38 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         }
       }
 
-      // Set active state for the last message source
-      const lastActiveSource = messages[messages.length - 1]?.source;
-      nodeMap.forEach((node) => {
-        node.data.isActive =
-          node.id === lastActiveSource && threadState?.status === "streaming";
-      });
-
       return {
         nodes: Array.from(nodeMap.values()),
         edges: newEdges,
       };
     },
-    [teamConfig.participants, threadState]
+    [teamConfig.participants, threadState, settings]
   );
+
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen(!isFullscreen);
+    setShouldRefit(true);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleToggleFullscreen();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isFullscreen, handleToggleFullscreen]);
 
   useEffect(() => {
     const { nodes: newNodes, edges: newEdges } = processMessages(messages);
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       newNodes,
       newEdges,
-      direction
+      settings.direction
     );
 
     setNodes(layoutedNodes);
@@ -332,29 +523,53 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         fitView({ padding: 0.2, duration: 200 });
       }, 50);
     }
-  }, [messages, processMessages, direction, threadState, fitView]);
+  }, [messages, processMessages, settings.direction, threadState, fitView]);
 
+  // Define common ReactFlow props
+  const reactFlowProps = {
+    nodes,
+    edges,
+    nodeTypes,
+    edgeTypes,
+    defaultViewport: { x: 0, y: 0, zoom: 1 },
+    minZoom: 0.5,
+    maxZoom: 2,
+    onNodesChange,
+    proOptions: { hideAttribution: true },
+  };
+
+  // Define common toolbar props
+  const toolbarProps = useMemo(
+    () => ({
+      isFullscreen,
+      onToggleFullscreen: handleToggleFullscreen,
+      onResetView: () => fitView({ padding: 0.2, duration: 200 }),
+    }),
+    [isFullscreen, handleToggleFullscreen, fitView]
+  );
   return (
-    <div className="w-full h-full bg-tertiary rounded-lg min-h-[300px]">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        minZoom={0.5}
-        maxZoom={2}
-        proOptions={{ hideAttribution: true }}
-        onInit={() => {
-          if (messages.length > 0) {
-            setTimeout(() => {
-              fitView({ padding: 0.2, duration: 200 });
-            }, 50);
-          }
-        }}
-      >
-        <Background />
-        <Controls />
+    <div
+      ref={flowWrapper}
+      className={`transition-all duration-200 ${
+        isFullscreen
+          ? "fixed inset-4 z-[9999] shadow" // Modal-like styling
+          : "w-full h-full min-h-[300px]"
+      } bg-tertiary rounded-lg`}
+    >
+      {/* Backdrop when fullscreen */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 -z-10 bg-background/80 backdrop-blur-sm"
+          onClick={handleToggleFullscreen}
+        />
+      )}
+
+      <ReactFlow {...reactFlowProps}>
+        {settings.showGrid && <Background />}
+        {/* <Controls /> */}
+        <div className="absolute top-0 right-0 z-50">
+          <AgentFlowToolbar {...toolbarProps} />
+        </div>
       </ReactFlow>
     </div>
   );
