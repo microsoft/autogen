@@ -112,7 +112,7 @@ const ContentHeader = ({
           {/* Right side header items */}
           <div className="flex items-center gap-x-4 lg:gap-x-6 ml-auto">
             {/* Search */}
-            <form className="relative flex h-8">
+            <form className="relative flex hidden h-8">
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>

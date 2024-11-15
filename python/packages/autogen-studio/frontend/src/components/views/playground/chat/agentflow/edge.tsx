@@ -4,7 +4,7 @@ import { AgentMessageConfig } from "../../../../types/datamodel";
 import {
   EdgeLabelRenderer,
   type EdgeProps,
-  getSmoothStepPath, // Add this import
+  getSmoothStepPath,
 } from "@xyflow/react";
 import { RenderMessage } from "../rendermessage";
 
@@ -17,13 +17,13 @@ interface CustomEdgeData {
   messages: AgentMessageConfig[];
 }
 
-export const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
+const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
   messages,
 }) => {
   return (
     <div className="p-2 overflow-auto max-h-[200px] scroll max-w-[350px]">
       <div className="text-xs mb-2">{messages.length} messages</div>
-      <div className="edge-tooltip  ">
+      <div className="edge-tooltip">
         {messages.map((message, index) => (
           <RenderMessage key={index} message={message} />
         ))}
@@ -47,24 +47,28 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
   data,
   style = {},
   markerEnd,
-  sourcePosition,
-  targetPosition,
 }) => {
   const isSelfLoop = source === target;
+
+  // Keep stroke width scaling for message count but with a cleaner implementation
+  const baseStrokeWidth = (style.strokeWidth as number) || 1;
+  const messageCount = data.messages?.length || 0;
+  const finalStrokeWidth = isSelfLoop
+    ? Math.max(baseStrokeWidth, 2)
+    : Math.min(Math.max(messageCount, 1), 5) * baseStrokeWidth;
 
   let edgePath = "";
   let labelX = 0;
   let labelY = 0;
 
   if (isSelfLoop) {
-    const rightOffset = 120; // How far right the path extends
-    const verticalOffset = sourceY - targetY; // Base vertical distance between handles
-    const verticalPadding = 6; // Extra padding above/below handles
-    const radius = 8; // Radius for rounded corners
+    const rightOffset = 120;
+    const verticalOffset = sourceY - targetY;
+    const verticalPadding = 6;
+    const radius = 8;
 
-    // Start and end slightly beyond the handles using verticalPadding
     edgePath = `
-      M ${sourceX} ${targetY - verticalPadding}  
+      M ${sourceX} ${targetY - verticalPadding}
       L ${sourceX + rightOffset - radius} ${targetY - verticalPadding}
       Q ${sourceX + rightOffset} ${targetY - verticalPadding} ${
       sourceX + rightOffset
@@ -76,7 +80,6 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
       L ${sourceX} ${sourceY + verticalPadding}
     `;
 
-    // Adjust label position to account for padding
     labelX = sourceX + rightOffset + 10;
     labelY = targetY + verticalOffset / 2;
   } else {
@@ -96,9 +99,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
         d={edgePath}
         style={{
           ...style,
-          strokeWidth: isSelfLoop
-            ? Math.max((style.strokeWidth as number) || 1, 2)
-            : style.strokeWidth,
+          strokeWidth: finalStrokeWidth,
         }}
         markerEnd={markerEnd}
       />

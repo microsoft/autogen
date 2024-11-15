@@ -35,6 +35,11 @@ interface MessageSequence {
   messages: AgentMessageConfig[];
 }
 
+interface BidirectionalPattern {
+  forward: MessageSequence;
+  reverse: MessageSequence;
+}
+
 const NODE_DIMENSIONS = {
   default: { width: 150, height: 100 },
   end: { width: 120, height: 80 },
@@ -45,42 +50,81 @@ const getLayoutedElements = (
   edges: Edge[],
   direction: "TB" | "LR"
 ) => {
+  // First pass: Basic node positioning with Dagre
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+
   g.setGraph({
     rankdir: direction,
-    nodesep: direction === "TB" ? 100 : 80, // Adjust for orientation
-    ranksep: direction === "TB" ? 80 : 100, // Adjust for orientation
-    align: direction === "TB" ? "DL" : "UL", // Adjust alignment
+    nodesep: 80, // Reduced horizontal separation
+    ranksep: 120, // Increased vertical separation
     ranker: "network-simplex",
+    align: "DL", // Prefer left alignment within ranks
     marginx: 30,
     marginy: 30,
   });
 
-  edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+  // Add nodes
   nodes.forEach((node) => {
     const dimensions =
       node.data.type === "end" ? NODE_DIMENSIONS.end : NODE_DIMENSIONS.default;
     g.setNode(node.id, { ...node, ...dimensions });
   });
 
+  // Add basic edges for layout (one per pair of nodes)
+  const processedPairs = new Set<string>();
+  edges.forEach((edge) => {
+    const pairKey = [edge.source, edge.target].sort().join("-");
+    if (!processedPairs.has(pairKey)) {
+      g.setEdge(edge.source, edge.target, { weight: 1 });
+      processedPairs.add(pairKey);
+    }
+  });
+
+  // Run layout
   Dagre.layout(g);
 
+  // Second pass: Position nodes and create edge paths
+  const positionedNodes = nodes.map((node) => {
+    const { x, y } = g.node(node.id);
+    const dimensions =
+      node.data.type === "end" ? NODE_DIMENSIONS.end : NODE_DIMENSIONS.default;
+    return {
+      ...node,
+      position: {
+        x: x - dimensions.width / 2,
+        y: y - dimensions.height / 2,
+      },
+    };
+  });
+
+  // Create a map of node positions for edge calculations
+  const nodePositions = new Map(
+    positionedNodes.map((node) => [
+      node.id,
+      {
+        x: node.position.x + NODE_DIMENSIONS.default.width / 2,
+        y: node.position.y + NODE_DIMENSIONS.default.height / 2,
+      },
+    ])
+  );
+
+  // Process edges based on their type (self-loop, bidirectional, or normal)
+  const positionedEdges = edges.map((edge) => {
+    const sourcePos = nodePositions.get(edge.source)!;
+    const targetPos = nodePositions.get(edge.target)!;
+
+    return {
+      ...edge,
+      sourceX: sourcePos.x,
+      sourceY: sourcePos.y,
+      targetX: targetPos.x,
+      targetY: targetPos.y,
+    };
+  });
+
   return {
-    nodes: nodes.map((node) => {
-      const { x, y } = g.node(node.id);
-      const dimensions =
-        node.data.type === "end"
-          ? NODE_DIMENSIONS.end
-          : NODE_DIMENSIONS.default;
-      return {
-        ...node,
-        position: {
-          x: x - dimensions.width / 2,
-          y: y - dimensions.height / 2,
-        },
-      };
-    }),
-    edges,
+    nodes: positionedNodes,
+    edges: positionedEdges,
   };
 };
 
@@ -165,9 +209,9 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
     (messages: AgentMessageConfig[]) => {
       if (messages.length === 0) return { nodes: [], edges: [] };
 
-      const sequences: MessageSequence[] = [];
       const nodeMap = new Map<string, Node>();
       const transitionCounts = new Map<string, MessageSequence>();
+      const bidirectionalPatterns = new Map<string, BidirectionalPattern>();
 
       // Process first message source
       const firstAgentConfig = teamConfig.participants.find(
@@ -183,7 +227,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         )
       );
 
-      // Group messages by transitions (including self-transitions)
+      // Group messages by transitions
       for (let i = 0; i < messages.length - 1; i++) {
         const currentMsg = messages[i];
         const nextMsg = messages[i + 1];
@@ -225,45 +269,112 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         }
       }
 
-      // Create edges from transitions
-      const newEdges: Edge[] = Array.from(transitionCounts.entries()).map(
-        ([key, transition], index) => {
-          // const avgTokens = Math.round(
-          //   transition.totalTokens / transition.count
-          // );
-          const label =
-            transition.totalTokens > 0
-              ? `${transition.count > 1 ? `${transition.count}x` : ""} (${
-                  transition.totalTokens
-                } tokens)`
-              : "";
+      // Identify bidirectional patterns
+      transitionCounts.forEach((transition, key) => {
+        const [source, target] = key.split("->");
+        const reverseKey = `${target}->${source}`;
+        const reverseTransition = transitionCounts.get(reverseKey);
 
-          return {
-            id: `${transition.source}-${transition.target}-${index}`,
+        if (reverseTransition && !bidirectionalPatterns.has(key)) {
+          const patternKey = [source, target].sort().join("->");
+          bidirectionalPatterns.set(patternKey, {
+            forward: transition,
+            reverse: reverseTransition,
+          });
+        }
+      });
+
+      // Create edges with bidirectional routing
+      const newEdges: Edge[] = [];
+      const processedKeys = new Set<string>();
+
+      transitionCounts.forEach((transition, key) => {
+        if (processedKeys.has(key)) return;
+
+        const [source, target] = key.split("->");
+        const patternKey = [source, target].sort().join("->");
+        const bidirectionalPattern = bidirectionalPatterns.get(patternKey);
+
+        if (bidirectionalPattern) {
+          // Create paired edges for bidirectional pattern
+          const forwardKey = `${source}->${target}`;
+          const reverseKey = `${target}->${source}`;
+
+          const forwardEdgeId = `${source}-${target}-forward`;
+          const reverseEdgeId = `${target}-${source}-reverse`;
+
+          const createBidirectionalEdge = (
+            transition: MessageSequence,
+            isSecondary: boolean,
+            edgeId: string,
+            pairedEdgeId: string
+          ) => ({
+            id: edgeId,
             source: transition.source,
             target: transition.target,
             type: "custom",
             data: {
-              label,
+              label:
+                transition.totalTokens > 0
+                  ? `${transition.count > 1 ? `${transition.count}x` : ""} (${
+                      transition.totalTokens
+                    } tokens)`
+                  : "",
+              messages: transition.messages,
+              routingType: isSecondary ? "secondary" : "primary",
+              bidirectionalPair: pairedEdgeId,
+            },
+            style: {
+              stroke: "#2563eb",
+              strokeWidth: 1,
+            },
+          });
+
+          newEdges.push(
+            createBidirectionalEdge(
+              transitionCounts.get(forwardKey)!,
+              false,
+              forwardEdgeId,
+              reverseEdgeId
+            ),
+            createBidirectionalEdge(
+              transitionCounts.get(reverseKey)!,
+              true,
+              reverseEdgeId,
+              forwardEdgeId
+            )
+          );
+
+          processedKeys.add(forwardKey);
+          processedKeys.add(reverseKey);
+        } else {
+          // Handle regular edges (including self-loops)
+          newEdges.push({
+            id: `${transition.source}-${transition.target}-${key}`,
+            source: transition.source,
+            target: transition.target,
+            type: "custom",
+            data: {
+              label:
+                transition.totalTokens > 0
+                  ? `${transition.count > 1 ? `${transition.count}x` : ""} (${
+                      transition.totalTokens
+                    } tokens)`
+                  : "",
               messages: transition.messages,
             },
             animated:
               threadState?.status === "streaming" &&
-              index === transitionCounts.size - 1,
+              key === Array.from(transitionCounts.keys()).pop(),
             style: {
               stroke: "#2563eb",
-              strokeWidth: Math.min(Math.max(transition.count, 1), 5),
-              // Add curved style for self-referential edges
-              ...(transition.source === transition.target && {
-                borderRadius: 20,
-                curvature: 0.5,
-              }),
+              strokeWidth: 1,
             },
-          };
+          });
         }
-      );
+      });
 
-      // Handle end node logic (keeping existing end node logic)
+      // Handle end node logic
       if (threadState && messages.length > 0) {
         const lastMessage = messages[messages.length - 1];
 
@@ -280,6 +391,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               error: "red",
               streaming: "#2563eb",
               awaiting_input: "#2563eb",
+              timeout: "red",
             }[threadState.status] || "#2563eb";
 
           newEdges.push({
@@ -291,22 +403,15 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               label: "ended",
               messages: [],
             },
-            animated: false,
             style: {
               stroke: edgeColor,
+              strokeWidth: 1,
               opacity: 1,
               zIndex: 100,
             },
           });
         }
       }
-
-      // Set active state for the last message source
-      const lastActiveSource = messages[messages.length - 1]?.source;
-      nodeMap.forEach((node) => {
-        node.data.isActive =
-          node.id === lastActiveSource && threadState?.status === "streaming";
-      });
 
       return {
         nodes: Array.from(nodeMap.values()),

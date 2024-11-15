@@ -29,6 +29,10 @@ class WebSocketManager:
         self._cancel_message = TeamResult(task_result=TaskResult(messages=[TextMessage(
             source="user", content="Run cancelled by user")], stop_reason="cancelled by user"), usage="", duration=0).model_dump()
 
+    def _get_stop_message(self, reason: str) -> dict:
+        return TeamResult(task_result=TaskResult(messages=[TextMessage(
+            source="user", content=reason)], stop_reason=reason), usage="", duration=0).model_dump()
+
     async def connect(self, websocket: WebSocket, run_id: UUID) -> bool:
         try:
             await websocket.accept()
@@ -107,7 +111,7 @@ class WebSocketManager:
         """Creates an input function for a specific run"""
         async def input_handler(prompt: str = "") -> str:
             try:
-                print("*** create input function ...", prompt)
+
                 # Send input request to client
                 await self._send_message(run_id, {
                     "type": "input_request",
@@ -140,7 +144,7 @@ class WebSocketManager:
             logger.warning(
                 f"Received input response for inactive run {run_id}")
 
-    async def stop_run(self, run_id: UUID) -> None:
+    async def stop_run(self, run_id: UUID, reason: str) -> None:
         """Stop a running task"""
         if run_id in self._cancellation_tokens:
             logger.info(f"Stopping run {run_id}")
@@ -152,7 +156,7 @@ class WebSocketManager:
                     await self._send_message(run_id, {
                         "type": "completion",
                         "status": "cancelled",
-                        "data":  self._cancel_message,
+                        "data":  self._get_stop_message(reason),
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
                 except Exception:
@@ -166,7 +170,7 @@ class WebSocketManager:
         self._closed_connections.add(run_id)
 
         # Cancel any running tasks
-        await self.stop_run(run_id)
+        await self.stop_run(run_id, "Connection closed")
 
         # Clean up resources
         self._connections.pop(run_id, None)

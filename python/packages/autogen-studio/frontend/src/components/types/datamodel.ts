@@ -76,6 +76,7 @@ export interface DBModel {
   user_id?: string;
   created_at?: string;
   updated_at?: string;
+  version?: number;
 }
 
 export interface Message extends DBModel {
@@ -89,13 +90,19 @@ export interface Session extends DBModel {
   team_id?: number;
 }
 
+export interface BaseConfig {
+  component_type: string;
+  version?: string;
+}
+
 // WebSocket message types
 export type ThreadStatus =
   | "streaming"
   | "complete"
   | "error"
   | "cancelled"
-  | "awaiting_input";
+  | "awaiting_input"
+  | "timeout";
 
 export interface WebSocketMessage {
   type: "message" | "result" | "completion" | "input_request";
@@ -123,24 +130,38 @@ export type AgentTypes = "AssistantAgent" | "CodingAssistantAgent";
 
 export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
 
+// class ComponentType(str, Enum):
+//     TEAM = "team"
+//     AGENT = "agent"
+//     MODEL = "model"
+//     TOOL = "tool"
+//     TERMINATION = "termination"
 export type TerminationTypes =
   | "MaxMessageTermination"
   | "StopMessageTermination"
   | "TextMentionTermination";
 
-export interface ModelConfig {
+export type ComponentTypes =
+  | "team"
+  | "agent"
+  | "model"
+  | "tool"
+  | "termination";
+
+export interface ModelConfig extends BaseConfig {
   model: string;
   model_type: ModelTypes;
   api_key?: string;
   base_url?: string;
 }
 
-export interface ToolConfig {
+export interface ToolConfig extends BaseConfig {
   name: string;
   description: string;
   content: string;
+  tool_type: string;
 }
-export interface AgentConfig {
+export interface AgentConfig extends BaseConfig {
   name: string;
   agent_type: AgentTypes;
   system_message?: string;
@@ -148,13 +169,13 @@ export interface AgentConfig {
   tools?: ToolConfig[];
   description?: string;
 }
-export interface TerminationConfig {
+export interface TerminationConfig extends BaseConfig {
   termination_type: TerminationTypes;
   max_messages?: number;
   text?: string;
 }
 
-export interface TeamConfig {
+export interface TeamConfig extends BaseConfig {
   name: string;
   participants: AgentConfig[];
   team_type: TeamTypes;
