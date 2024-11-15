@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Orleans.TestingHost;
 using Xunit;
 using static Microsoft.AutoGen.Agents.Tests.AgentBaseTests;
 
