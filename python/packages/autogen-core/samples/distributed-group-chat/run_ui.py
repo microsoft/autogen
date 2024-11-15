@@ -10,27 +10,28 @@ from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components import (
     TypeSubscription,
 )
+from chainlit import Message  # type: ignore [reportAttributeAccessIssue]
 from rich.console import Console
 from rich.markdown import Markdown
 
 set_all_log_levels(logging.ERROR)
 
 
-message_chunks: dict[str, cl.Message] = {}
+message_chunks: dict[str, Message] = {}  # type: ignore [reportUnknownVariableType]
 
 
 async def send_cl_stream(msg: MessageChunk) -> None:
     if msg.message_id not in message_chunks:
-        message_chunks[msg.message_id] = cl.Message(content="", author=msg.author)
+        message_chunks[msg.message_id] = Message(content="", author=msg.author)
 
     if not msg.finished:
-        await message_chunks[msg.message_id].stream_token(msg.text)
+        await message_chunks[msg.message_id].stream_token(msg.text)  # type: ignore [reportUnknownVariableType]
     else:
-        await message_chunks[msg.message_id].stream_token(msg.text)
-        await message_chunks[msg.message_id].update()
+        await message_chunks[msg.message_id].stream_token(msg.text)  # type: ignore [reportUnknownVariableType]
+        await message_chunks[msg.message_id].update()  # type: ignore [reportUnknownMemberType]
         await asyncio.sleep(3)
-        cl_msg = message_chunks[msg.message_id]
-        await cl_msg.send()
+        cl_msg = message_chunks[msg.message_id]  # type: ignore [reportUnknownVariableType]
+        await cl_msg.send()  # type: ignore [reportUnknownMemberType]
 
 
 async def main(config: AppConfig):
