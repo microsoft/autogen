@@ -14,6 +14,8 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
+  TriangleAlertIcon,
+  GroupIcon,
 } from "lucide-react";
 import AgentFlow from "./agentflow/agentflow";
 import ThreadView from "./threadview";
@@ -27,7 +29,7 @@ interface MessageListProps {
   >;
   onRetry: (content: string) => void;
   onCancel: (runId: string) => void;
-  onInputResponse: (runId: string, response: string) => void; // New prop
+  onInputResponse: (runId: string, response: string) => void;
   loading?: boolean;
   teamConfig?: TeamConfig;
 }
@@ -162,17 +164,40 @@ export const MessageList: React.FC<MessageListProps> = ({
         const isStreaming = thread?.status === "streaming";
         const isAwaitingInput = thread?.status === "awaiting_input"; // New check
 
+        const isFirstMessage = pairIndex === 0;
+
         return (
           <div key={`pair-${botMessage.run_id}`} className="space-y-6">
             {/* User message */}
+            {
+              <div
+                className={`${
+                  isFirstMessage ? "mb-2" : "mt-8"
+                } mb-4 pt-2 border-t border-dashed border-secondary`}
+              >
+                {/* <div>Task Run 1. </div> */}
+                <div className="text-xs text-secondary">
+                  Run {pairIndex + 1}
+                  {!isFirstMessage && (
+                    <>
+                      {" "}
+                      |{" "}
+                      <TriangleAlertIcon className="w-4 h-4 -mt-1 inline-block mr-1 ml-1" />{" "}
+                      Note: Each run does not share data with previous runs in
+                      the same session yet.{" "}
+                    </>
+                  )}
+                </div>
+              </div>
+            }
             <div className="flex flex-col items-end">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-primary">User</span>
+                <span className="text-sm font-medium text-primary">You</span>
                 <div className="p-1.5 rounded bg-secondary text-accent">
                   <User size={20} />
                 </div>
               </div>
-              <div className="w-[95%]">
+              <div className="w-full">
                 <RenderMessage message={userMessage.config} isLast={false} />
               </div>
             </div>
@@ -181,7 +206,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 mb-1">
                 <div className="p-1.5 rounded bg-secondary text-primary">
-                  <Network size={20} />
+                  <GroupIcon size={20} />
                 </div>
                 <span className="text-sm font-medium text-primary">
                   Agent Team
@@ -189,8 +214,8 @@ export const MessageList: React.FC<MessageListProps> = ({
               </div>
 
               {/* Main response container */}
-              <div className="w-[95%]">
-                <div className="p-4 bg-secondary border border-secondary rounded-lg">
+              <div className="w-full">
+                <div className="p-4 bg-tertiary bordder border-secondary rounded">
                   <div className="text-primary">
                     {getStatusIcon(thread?.status)}{" "}
                     {!isAwaitingInput && thread?.finalResult?.content}

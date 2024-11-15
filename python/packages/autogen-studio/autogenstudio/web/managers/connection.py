@@ -283,6 +283,41 @@ class WebSocketManager:
             run.error_message = error
             self.db_manager.upsert(run)
 
+    async def cleanup(self) -> None:
+        """Clean up all active connections and resources when server is shutting down"""
+        logger.info(
+            f"Cleaning up {len(self.active_connections)} active connections")
+
+        try:
+            # First cancel all running tasks
+            for run_id in self.active_runs.copy():
+                if run_id in self._cancellation_tokens:
+                    self._cancellation_tokens[run_id].cancel()
+
+            # Then disconnect all websockets with timeout
+            # 10 second timeout for entire cleanup
+            async with asyncio.timeout(10):
+                for run_id in self.active_connections.copy():
+                    try:
+                        # Give each disconnect operation 2 seconds
+                        async with asyncio.timeout(2):
+                            await self.disconnect(run_id)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timeout disconnecting run {run_id}")
+                    except Exception as e:
+                        logger.error(f"Error disconnecting run {run_id}: {e}")
+
+        except asyncio.TimeoutError:
+            logger.warning("WebSocketManager cleanup timed out")
+        except Exception as e:
+            logger.error(f"Error during WebSocketManager cleanup: {e}")
+        finally:
+            # Always clear internal state, even if cleanup had errors
+            self._connections.clear()
+            self._cancellation_tokens.clear()
+            self._closed_connections.clear()
+            self._input_responses.clear()
+
     @property
     def active_connections(self) -> set[UUID]:
         """Get set of active run IDs"""

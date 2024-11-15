@@ -3,11 +3,11 @@
 [![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
 [![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
 
-![ARA](./docs/ara_stockprices.png)
+![ARA](./docs/ags_screen.png)
 
 AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://microsoft.github.io/autogen) framework, which is a toolkit for building AI agents.
 
-Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio)
+Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-studio)
 
 > **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app.
 
@@ -50,7 +50,7 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
       pip install -e .
       ```
 
-    - Navigate to the `samples/apps/autogen-studio/frontend` directory, install dependencies, and build the UI:
+    - Navigate to the `python/packages/autogen-studio/frontend` directory, install dependencies, and build the UI:
 
       ```bash
       npm install -g gatsby-cli

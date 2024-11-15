@@ -31,7 +31,10 @@ dependencies = [
     "psycopg",
     "alembic",
     "loguru",
-    "pyyaml"
+    "pyyaml",
+    "autogen-core==0.4.0.dev6",
+    "autogen-agentchat==0.4.0.dev6", 
+    "autogen-ext==0.4.0.dev6"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 

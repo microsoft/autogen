@@ -15,6 +15,8 @@ interface EdgeTooltipContentProps {
 interface CustomEdgeData {
   label?: string;
   messages: AgentMessageConfig[];
+  routingType?: "primary" | "secondary";
+  bidirectionalPair?: string;
 }
 
 const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
@@ -91,6 +93,30 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
     });
   }
 
+  // Calculate label position with offset for bidirectional edges
+  const getLabelPosition = (x: number, y: number) => {
+    if (!data.routingType || isSelfLoop) return { x, y };
+
+    // Make vertical separation more pronounced
+    const verticalOffset = data.routingType === "secondary" ? -35 : 35; // Increased from 20 to 35
+    const horizontalOffset = data.routingType === "secondary" ? -25 : 25;
+
+    // Calculate edge angle to determine if it's more horizontal or vertical
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const isMoreHorizontal = Math.abs(dx) > Math.abs(dy);
+
+    // Always apply some vertical offset
+    const basePosition = {
+      x: isMoreHorizontal ? x : x + horizontalOffset,
+      y: y + (data.routingType === "secondary" ? -35 : 35), // Always apply vertical offset
+    };
+
+    return basePosition;
+  };
+
+  const labelPosition = getLabelPosition(labelX, labelY);
+
   return (
     <>
       <path
@@ -108,8 +134,10 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
           <div
             style={{
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelPosition.x}px,${labelPosition.y}px)`,
               pointerEvents: "all",
+              // Add a slight transition for smooth updates
+              transition: "transform 0.2s ease-in-out",
             }}
           >
             <Tooltip
@@ -122,7 +150,12 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
               }
               overlayStyle={{ maxWidth: "none" }}
             >
-              <div className="px-2 py-1 rounded bg-secondary bg-opacity-50 text-primary text-sm">
+              <div
+                className="px-2 py-1 rounded bg-secondary bg-opacity-50 text-primary text-sm"
+                style={{
+                  whiteSpace: "nowrap", // Prevent label from wrapping
+                }}
+              >
                 {data.label}
               </div>
             </Tooltip>

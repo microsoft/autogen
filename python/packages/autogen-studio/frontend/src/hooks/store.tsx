@@ -9,6 +9,16 @@ interface IBreadcrumb {
   current?: boolean;
 }
 
+// New interfaces
+export interface IAgentFlowSettings {
+  direction: "TB" | "LR";
+  showLabels: boolean;
+  showGrid: boolean;
+  showTokens: boolean;
+  showMessages: boolean;
+  // Add any other settings we want to persist
+}
+
 interface IHeaderState {
   title: string;
   breadcrumbs?: IBreadcrumb[];
@@ -40,7 +50,20 @@ export interface IConfigState {
   collapseSidebar: () => void;
   expandSidebar: () => void;
   toggleSidebar: () => void;
+
+  // Agent flow settings agentFlow: IAgentFlowSettings;
+  agentFlow: IAgentFlowSettings;
+  setAgentFlowSettings: (settings: Partial<IAgentFlowSettings>) => void;
 }
+
+// Default settings
+const DEFAULT_AGENT_FLOW_SETTINGS: IAgentFlowSettings = {
+  direction: "TB",
+  showLabels: true,
+  showGrid: true,
+  showTokens: true,
+  showMessages: true,
+};
 
 export const useConfigStore = create<IConfigState>()(
   persist(
@@ -68,6 +91,12 @@ export const useConfigStore = create<IConfigState>()(
       setBreadcrumbs: (breadcrumbs) =>
         set((state) => ({
           header: { ...state.header, breadcrumbs },
+        })),
+      // Add AgentFlow settings
+      agentFlow: DEFAULT_AGENT_FLOW_SETTINGS,
+      setAgentFlowSettings: (newSettings) =>
+        set((state) => ({
+          agentFlow: { ...state.agentFlow, ...newSettings },
         })),
 
       // Sidebar state and actions
@@ -97,6 +126,7 @@ export const useConfigStore = create<IConfigState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         sidebar: state.sidebar,
+        agentFlow: state.agentFlow,
       }),
     }
   )
