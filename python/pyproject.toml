@@ -25,6 +25,7 @@ dev-dependencies = [
 [tool.uv.sources]
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
+autogen-agentchat = { workspace = true }
 
 [tool.ruff]
 line-length = 120
