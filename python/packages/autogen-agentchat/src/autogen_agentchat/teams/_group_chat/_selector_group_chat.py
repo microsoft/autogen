@@ -33,6 +33,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
@@ -44,6 +45,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            max_turns,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -52,6 +54,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._selector_func = selector_func
 
     async def reset(self) -> None:
+        self._current_turn = 0
         self._message_thread.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
@@ -178,6 +181,7 @@ class SelectorGroupChat(BaseGroupChat):
             to select the next speaker.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
+        max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
             Must contain '{roles}', '{participants}', and '{history}' to be filled in.
         allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
@@ -309,6 +313,7 @@ class SelectorGroupChat(BaseGroupChat):
         model_client: ChatCompletionClient,
         *,
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
         selector_prompt: str = """You are in a role play game. The following roles are available:
 {roles}.
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
@@ -321,7 +326,10 @@ Read the above conversation. Then select the next role from {participants} to pl
         selector_func: Callable[[Sequence[AgentMessage]], str | None] | None = None,
     ):
         super().__init__(
-            participants, group_chat_manager_class=SelectorGroupChatManager, termination_condition=termination_condition
+            participants,
+            group_chat_manager_class=SelectorGroupChatManager,
+            termination_condition=termination_condition,
+            max_turns=max_turns,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -345,6 +353,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             group_topic_type,
@@ -352,6 +361,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            max_turns,
             self._model_client,
             self._selector_prompt,
             self._allow_repeated_speaker,

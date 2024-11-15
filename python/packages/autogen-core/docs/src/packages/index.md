@@ -20,6 +20,8 @@ myst:
 
 # Packages
 
+## 0.4
+
 (pkg-info-autogen-agentchat)=
 
 :::{card} {fas}`people-group;pst-color-primary` AutoGen AgentChat
@@ -86,6 +88,24 @@ Not yet available on PyPI.
 
 [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-magentic-one)
 :::
+
+## 0.2
+
+(pkg-info-autogen-02)=
+
+:::{card} {fas}`robot;pst-color-primary` AutoGen
+:class-title: card-title
+:shadow: none
+Existing AutoGen library that provides a high-level abstraction for building multi-agent systems.
+
+```sh
+pip install 'autogen-agentchat~=0.2'
+```
+
+[{fas}`circle-info;pst-color-primary` Documentation](https://microsoft.github.io/autogen/0.2/) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.2.38/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/0.2/)
+:::
+
+## Other
 
 (pkg-info-autogenbench)=
 

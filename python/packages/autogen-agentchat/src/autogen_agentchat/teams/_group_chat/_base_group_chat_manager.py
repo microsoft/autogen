@@ -35,6 +35,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         super().__init__(description="Group chat manager")
         self._group_topic_type = group_topic_type
@@ -49,6 +50,10 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._participant_descriptions = participant_descriptions
         self._message_thread: List[AgentMessage] = []
         self._termination_condition = termination_condition
+        if max_turns is not None and max_turns <= 0:
+            raise ValueError("The maximum number of turns must be greater than 0.")
+        self._max_turns = max_turns
+        self._current_turn = 0
 
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -105,8 +110,27 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 await self.publish_message(
                     GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
                 )
-                # Stop the group chat and reset the termination condition.
+                # Stop the group chat and reset the termination conditions and turn count.
                 await self._termination_condition.reset()
+                self._current_turn = 0
+                return
+
+        # Increment the turn count.
+        self._current_turn += 1
+        # Check if the maximum number of turns has been reached.
+        if self._max_turns is not None:
+            if self._current_turn >= self._max_turns:
+                stop_message = StopMessage(
+                    content=f"Maximum number of turns {self._max_turns} reached.",
+                    source="Group chat manager",
+                )
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
+                # Stop the group chat and reset the termination conditions and turn count.
+                if self._termination_condition is not None:
+                    await self._termination_condition.reset()
+                self._current_turn = 0
                 return
 
         # Select a speaker to continue the conversation.
