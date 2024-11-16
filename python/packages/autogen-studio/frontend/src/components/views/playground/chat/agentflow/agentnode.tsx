@@ -20,6 +20,7 @@ export interface AgentNodeData {
   isActive?: boolean;
   status?: ThreadStatus | null;
   reason?: string | null;
+  draggable: boolean;
 }
 
 interface AgentNodeProps {
@@ -99,7 +100,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
       />
 
       {/* Header Section */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-secondary border-b border-border">
+      <div className="flex agent-draghandle items-center gap-2 px-3 py-2 bg-secondary border-b border-border">
         {getHeaderIcon()}
         <span className="text-sm font-medium text-primary truncate">
           {data.label}

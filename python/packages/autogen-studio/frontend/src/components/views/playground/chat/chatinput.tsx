@@ -12,17 +12,21 @@ interface ChatInputProps {
   onSubmit: (text: string) => void;
   loading: boolean;
   error: IStatus | null;
+  disabled?: boolean;
 }
+
 export default function ChatInput({
   onSubmit,
   loading,
   error,
+  disabled = false,
 }: ChatInputProps) {
   const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
   const [previousLoading, setPreviousLoading] = React.useState(loading);
   const [text, setText] = React.useState("");
 
   const textAreaDefaultHeight = "64px";
+  const isInputDisabled = disabled || loading;
 
   // Handle textarea auto-resize
   React.useEffect(() => {
@@ -54,10 +58,9 @@ export default function ChatInput({
   };
 
   const handleSubmit = () => {
-    if (textAreaRef.current?.value && !loading) {
+    if (textAreaRef.current?.value && !isInputDisabled) {
       const query = textAreaRef.current.value;
       onSubmit(query);
-      // Don't reset immediately - wait for response to complete
     }
   };
 
@@ -69,10 +72,10 @@ export default function ChatInput({
   };
 
   return (
-    <div className="mt-2   w-full">
+    <div className="mt-2 w-full">
       <div
-        className={`mt-2 rounded  shadow-sm flex mb-1 ${
-          loading ? "opacity-50 pointer-events-none" : ""
+        className={`mt-2 rounded shadow-sm flex mb-1 ${
+          isInputDisabled ? "opacity-50" : ""
         }`}
       >
         <form
@@ -89,31 +92,31 @@ export default function ChatInput({
             defaultValue={"what is the height of the eiffel tower"}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
-            className="flex items-center w-full resize-none text-gray-600 rounded  border border-accent bg-white p-2 pl-5 pr-16"
+            className={`flex items-center w-full resize-none text-gray-600 rounded border border-accent bg-white p-2 pl-5 pr-16 ${
+              isInputDisabled ? "cursor-not-allowed" : ""
+            }`}
             style={{
               maxHeight: "120px",
               overflowY: "auto",
               minHeight: "50px",
             }}
             placeholder="Type your message here..."
-            disabled={loading}
+            disabled={isInputDisabled}
           />
-          <div
-            role="button"
+          <button
+            type="button"
             onClick={handleSubmit}
-            style={{ width: "45px", height: "35px" }}
-            className="absolute right-3 bottom-2 bg-accent hover:brightness-75 transition duration-300 rounded cursor-pointer flex justify-center items-center"
+            disabled={isInputDisabled}
+            className={`absolute right-3 bottom-2 bg-accent transition duration-300 rounded flex justify-center items-center w-11 h-9 ${
+              isInputDisabled ? "cursor-not-allowed" : "hover:brightness-75"
+            }`}
           >
-            {!loading ? (
-              <div className="inline-block">
-                <PaperAirplaneIcon className="h-6 w-6 text-white" />
-              </div>
+            {loading ? (
+              <Cog6ToothIcon className="text-white animate-spin rounded-full h-6 w-6" />
             ) : (
-              <div className="inline-block">
-                <Cog6ToothIcon className="text-white animate-spin rounded-full h-6 w-6" />
-              </div>
+              <PaperAirplaneIcon className="h-6 w-6 text-white" />
             )}
-          </div>
+          </button>
         </form>
       </div>
 
