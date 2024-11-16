@@ -385,31 +385,37 @@ class WorkerAgentRuntime(AgentRuntime):
                 message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
             )
             telemetry_metadata = get_telemetry_grpc_metadata()
+            proto_data = any_pb2.Any()
+            proto_data.Pack(
+                agent_worker_pb2.Message(
+                    event=agent_worker_pb2.Event(
+                        topic_type=topic_id.type,
+                        topic_source=topic_id.source,
+                        source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key)
+                        if sender is not None
+                        else None,
+                        metadata=telemetry_metadata,
+                        payload=agent_worker_pb2.Payload(
+                            data_type=message_type,
+                            data=serialized_message,
+                            data_content_type=JSON_DATA_CONTENT_TYPE,
+                        ),
+                    )
+                )
+            )
+            if sender is not None:
+                source = str(AgentId(type=sender.type, key=sender.key))
+            else:
+                source = ""
             runtime_message = agent_worker_pb2.Message(
                 cloudEvent=cloudevent_pb2.CloudEvent(
                     spec_version="1.0",
                     type=topic_id.type,
-                    source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
+                    source=source,
                     metadata=telemetry_metadata,
-                    proto_data=any_pb2.Any.Pack(
-                        self=self,
-                        msg=agent_worker_pb2.Message(
-                            event=agent_worker_pb2.Event(
-                                topic_type=topic_id.type,
-                                topic_source=topic_id.source,
-                                source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
-                                metadata=telemetry_metadata,
-                                payload=agent_worker_pb2.Payload(
-                                    data_type=message_type,
-                                    data=serialized_message,
-                                    data_content_type=JSON_DATA_CONTENT_TYPE,
-                                ),
-                            )
-                        )
-                    )
+                    proto_data=proto_data,
                 )
             )
-
             task = asyncio.create_task(self._send_message(runtime_message, "publish", topic_id, telemetry_metadata))
             self._background_tasks.add(task)
             task.add_done_callback(self._raise_on_exception)
