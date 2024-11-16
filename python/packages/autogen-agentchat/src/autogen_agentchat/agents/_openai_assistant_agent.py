@@ -1,10 +1,13 @@
 import asyncio
+import json
 import logging
 import os
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, cast
+from typing import Dict, Iterable, List, Optional, Sequence, cast
 
 import aiofiles
 from autogen_core.base import CancellationToken
+from autogen_core.components import FunctionCall
+from autogen_core.components.models._types import FunctionExecutionResult
 from autogen_core.components.tools import Tool
 from openai import NOT_GIVEN, AsyncClient, NotGiven
 from openai.pagination import AsyncCursorPage
@@ -19,7 +22,16 @@ from openai.types.beta.threads import Message, MessageDeleted, Run
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
 
-from autogen_agentchat.messages import ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from autogen_agentchat.messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
 
 from .. import EVENT_LOGGER_NAME
 from ..base import Response
@@ -70,10 +82,12 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if tools is None:
             tools = []
 
-        # Convert autogen Tools to OpenAI Assistant tools
+        # Store original tools and converted tools separately
+        self._original_tools: List[Tool] = []
         converted_tools: List[AssistantToolParam] = []
         for tool in tools:
             if isinstance(tool, Tool):
+                self._original_tools.append(tool)
                 converted_tools.append(_convert_tool_to_function_param(tool))
             else:
                 converted_tools.append(tool)
@@ -115,6 +129,11 @@ class OpenAIAssistantAgent(BaseChatAgent):
             self._thread = await self._client.beta.threads.create()
 
     @property
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the assistant agent produces."""
+        return [TextMessage]
+
+    @property
     def _get_assistant_id(self) -> str:
         if self._assistant is None:
             raise ValueError("Assistant not initialized")
@@ -125,6 +144,20 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if self._thread is None:
             raise ValueError("Thread not initialized")
         return self._thread.id
+
+    async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
+        """Execute a tool call and return the result."""
+        try:
+            if not self._original_tools:
+                raise ValueError("No tools are available.")
+            tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
+            if tool is None:
+                raise ValueError(f"The tool '{tool_call.name}' is not available.")
+            arguments = json.loads(tool_call.arguments)
+            result = await tool.run_json(arguments, cancellation_token)
+            return tool.return_value_as_string(result)
+        except Exception as e:
+            return f"Error: {e}"
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
@@ -137,6 +170,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
             elif isinstance(message, (StopMessage, HandoffMessage)):
                 await self.handle_text_message(message.content, cancellation_token)
 
+        # Inner messages for tool calls
+        inner_messages: List[AgentMessage] = []
+
         # Create and start a run
         run: Run = await cancellation_token.link_future(
             asyncio.ensure_future(
@@ -148,7 +184,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         )
 
         # Wait for run completion by polling
-        while run.status == "queued" or run.status == "in_progress":
+        while True:
             run = await cancellation_token.link_future(
                 asyncio.ensure_future(
                     self._client.beta.threads.runs.retrieve(
@@ -157,10 +193,55 @@ class OpenAIAssistantAgent(BaseChatAgent):
                     )
                 )
             )
-            await asyncio.sleep(0.5)
 
-        if run.status == "failed":
-            raise ValueError(f"Run failed: {run.last_error}")
+            if run.status == "failed":
+                raise ValueError(f"Run failed: {run.last_error}")
+
+            # If the run requires action (function calls), execute tools and continue
+            if run.status == "requires_action" and run.required_action is not None:
+                tool_calls: List[FunctionCall] = []
+                for required_tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                    if required_tool_call.type == "function":
+                        tool_calls.append(
+                            FunctionCall(
+                                id=required_tool_call.id,
+                                name=required_tool_call.function.name,
+                                arguments=required_tool_call.function.arguments,
+                            )
+                        )
+
+                # Add tool call message to inner messages
+                tool_call_msg = ToolCallMessage(source=self.name, content=tool_calls)
+                inner_messages.append(tool_call_msg)
+                event_logger.debug(tool_call_msg)
+
+                # Execute tool calls and get results
+                tool_outputs: List[FunctionExecutionResult] = []
+                for tool_call in tool_calls:
+                    result = await self._execute_tool_call(tool_call, cancellation_token)
+                    tool_outputs.append(FunctionExecutionResult(content=result, call_id=tool_call.id))
+
+                # Add tool result message to inner messages
+                tool_result_msg = ToolCallResultMessage(source=self.name, content=tool_outputs)
+                inner_messages.append(tool_result_msg)
+                event_logger.debug(tool_result_msg)
+
+                # Submit tool outputs back to the run
+                run = await cancellation_token.link_future(
+                    asyncio.ensure_future(
+                        self._client.beta.threads.runs.submit_tool_outputs(
+                            thread_id=self._thread_id,
+                            run_id=run.id,
+                            tool_outputs=[{"tool_call_id": t.call_id, "output": t.content} for t in tool_outputs],
+                        )
+                    )
+                )
+                continue
+
+            if run.status == "completed":
+                break
+
+            await asyncio.sleep(0.5)
 
         # Get messages after run completion
         assistant_messages: AsyncCursorPage[Message] = await cancellation_token.link_future(
@@ -182,9 +263,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if not text_content:
             raise ValueError(f"Expected text content in the last message: {last_message.content}")
 
-        # Return the assistant's response as a Response
+        # Return the assistant's response as a Response with inner messages
         chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
-        return Response(chat_message=chat_message)
+        return Response(chat_message=chat_message, inner_messages=inner_messages)
 
     async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""
@@ -222,26 +303,30 @@ class OpenAIAssistantAgent(BaseChatAgent):
             )
             assert status.deleted is True
 
-    async def on_upload_for_code_interpreter(
-        self, file_paths: str | Iterable[str], cancellation_token: CancellationToken
-    ) -> None:
-        """Handle file uploads for the code interpreter."""
+    async def _upload_files(self, file_paths: str | Iterable[str], cancellation_token: CancellationToken) -> List[str]:
+        """Upload files and return their IDs."""
         if isinstance(file_paths, str):
             file_paths = [file_paths]
 
         file_ids: List[str] = []
         for file_path in file_paths:
-            # Read the file content
             async with aiofiles.open(file_path, mode="rb") as f:
                 file_content = await cancellation_token.link_future(asyncio.ensure_future(f.read()))
             file_name = os.path.basename(file_path)
 
-            # Upload the file
             file: FileObject = await cancellation_token.link_future(
                 asyncio.ensure_future(self._client.files.create(file=(file_name, file_content), purpose="assistants"))
             )
             file_ids.append(file.id)
             self._uploaded_file_ids.append(file.id)
+
+        return file_ids
+
+    async def on_upload_for_code_interpreter(
+        self, file_paths: str | Iterable[str], cancellation_token: CancellationToken
+    ) -> None:
+        """Handle file uploads for the code interpreter."""
+        file_ids = await self._upload_files(file_paths, cancellation_token)
 
         # Update thread with the new files
         thread = await cancellation_token.link_future(
@@ -268,9 +353,6 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self, file_paths: str | Iterable[str], cancellation_token: CancellationToken
     ) -> None:
         """Handle file uploads for file search."""
-        if isinstance(file_paths, str):
-            file_paths = [file_paths]
-
         await self._ensure_initialized()
 
         # Check if file_search is enabled in tools
@@ -296,26 +378,16 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 )
             )
 
-        # Read and prepare all files
-        files_to_upload: List[Tuple[str, bytes]] = []
-        for file_path in file_paths:
-            async with aiofiles.open(file_path, mode="rb") as f:
-                file_content = await cancellation_token.link_future(asyncio.ensure_future(f.read()))
-            file_name = os.path.basename(file_path)
-            files_to_upload.append((file_name, file_content))
+        file_ids = await self._upload_files(file_paths, cancellation_token)
 
-        # Upload all files to the vector store
-        batch = await cancellation_token.link_future(
+        # Create file batch with the file IDs
+        await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.vector_stores.file_batches.upload_and_poll(
-                    vector_store_id=self._vector_store_id,
-                    files=files_to_upload,
+                self._client.beta.vector_stores.file_batches.create_and_poll(
+                    vector_store_id=self._vector_store_id, file_ids=file_ids
                 )
             )
         )
-        # Store file IDs from the batch
-        if batch.file_ids:
-            self._uploaded_file_ids.extend(batch.file_ids)
 
     async def delete_uploaded_files(self, cancellation_token: CancellationToken) -> None:
         """Delete all files that were uploaded by this agent instance."""
