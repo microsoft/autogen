@@ -28,6 +28,7 @@ from typing import (
 )
 
 import grpc
+from google.protobuf import any_pb2
 from grpc.aio import StreamStreamCall
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
@@ -35,7 +36,6 @@ from typing_extensions import Self, deprecated
 from autogen_core.base import JSON_DATA_CONTENT_TYPE
 from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
 from autogen_core.base._type_helpers import ChannelArgumentType
-from google.protobuf import any_pb2
 
 from ..base import (
     Agent,
@@ -53,7 +53,11 @@ from ..base import (
 )
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2, cloudevent_pb2_grpc, agent_events_pb2, agent_events_pb2_grpc
+from .protos import (
+    agent_worker_pb2,
+    agent_worker_pb2_grpc,
+    cloudevent_pb2,
+)
 from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 
 if TYPE_CHECKING:
@@ -381,14 +385,9 @@ class WorkerAgentRuntime(AgentRuntime):
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
         ):
-            serialized_message = self._serialization_registry.serialize(
-                message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
-            )
             telemetry_metadata = get_telemetry_grpc_metadata()
             proto_data = any_pb2.Any()
-            proto_data.Pack(
-                msg=message
-            )
+            proto_data.Pack(msg=message)
             if sender is not None:
                 source = str(AgentId(type=sender.type, key=sender.key))
             else:
