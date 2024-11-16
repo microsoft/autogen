@@ -391,6 +391,19 @@ class WorkerAgentRuntime(AgentRuntime):
                     source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
                     metadata=telemetry_metadata,
                     text_data=serialized_message,
+                    proto_data=agent_worker_pb2.Message(
+                        event=agent_worker_pb2.Event(
+                            topic_type=topic_id.type,
+                            topic_source=topic_id.source,
+                            source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
+                            metadata=telemetry_metadata,
+                            payload=agent_worker_pb2.Payload(
+                                data_type=message_type,
+                                data=serialized_message,
+                                data_content_type=JSON_DATA_CONTENT_TYPE,
+                            ),
+                        )
+                    )
                 )
             )
 
