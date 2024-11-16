@@ -20,6 +20,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -27,24 +28,34 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            max_turns,
         )
         self._current_speaker = participant_topic_types[0]
 
     async def reset(self) -> None:
+        self._current_turn = 0
         self._message_thread.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._current_speaker = self._participant_topic_types[0]
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
-        """Select a speaker from the participants based on handoff message."""
-        if len(thread) > 0 and isinstance(thread[-1], HandoffMessage):
-            self._current_speaker = thread[-1].target
-            if self._current_speaker not in self._participant_topic_types:
-                raise ValueError("The selected speaker in the handoff message is not a participant.")
+        """Select a speaker from the participants based on handoff message.
+        Looks for the last handoff message in the thread to determine the next speaker."""
+        if len(thread) == 0:
             return self._current_speaker
-        else:
-            return self._current_speaker
+        for message in reversed(thread):
+            if isinstance(message, HandoffMessage):
+                self._current_speaker = message.target
+                if self._current_speaker not in self._participant_topic_types:
+                    raise ValueError(
+                        f"The target {self._current_speaker} in the handoff message "
+                        f"is not one of the participants {self._participant_topic_types}. "
+                        "If you are resuming the Swarm with a new task make sure to include in your task "
+                        "a handoff message with a valid participant as the target."
+                    )
+                return self._current_speaker
+        return self._current_speaker
 
 
 class Swarm(BaseGroupChat):
@@ -59,6 +70,7 @@ class Swarm(BaseGroupChat):
         participants (List[ChatAgent]): The agents participating in the group chat. The first agent in the list is the initial speaker.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
+        max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
 
     Examples:
 
@@ -96,10 +108,16 @@ class Swarm(BaseGroupChat):
     """
 
     def __init__(
-        self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None
+        self,
+        participants: List[ChatAgent],
+        termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ) -> None:
         super().__init__(
-            participants, group_chat_manager_class=SwarmGroupChatManager, termination_condition=termination_condition
+            participants,
+            group_chat_manager_class=SwarmGroupChatManager,
+            termination_condition=termination_condition,
+            max_turns=max_turns,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -113,6 +131,7 @@ class Swarm(BaseGroupChat):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -121,6 +140,7 @@ class Swarm(BaseGroupChat):
                 participant_topic_types,
                 participant_descriptions,
                 termination_condition,
+                max_turns,
             )
 
         return _factory

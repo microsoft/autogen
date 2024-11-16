@@ -32,8 +32,9 @@ namespace Hello
 {
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentContext context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+        IAgentRuntime context,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+        IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
             context,
             typeRegistry),
             ISayHello,
@@ -65,7 +66,7 @@ namespace Hello
             await PublishMessageAsync(evt).ConfigureAwait(false);
             //sleep30 seconds
             await Task.Delay(30000).ConfigureAwait(false);
-            await AgentsApp.ShutdownAsync().ConfigureAwait(false);
+            hostApplicationLifetime.StopApplication();
 
         }
         public async Task<string> SayHello(string ask)

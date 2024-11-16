@@ -20,21 +20,24 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly IAgentContext _context;
+    private readonly IAgentRuntime _context;
     public string Route { get; set; } = "base";
 
-    protected internal ILogger Logger => _context.Logger;
-    public IAgentContext Context => _context;
+    protected internal ILogger<AgentBase> _logger;
+    public IAgentRuntime Context => _context;
     protected readonly EventTypes EventTypes;
 
-    protected AgentBase(IAgentContext context, EventTypes eventTypes)
+    protected AgentBase(
+        IAgentRuntime context,
+        EventTypes eventTypes,
+        ILogger<AgentBase>? logger = null)
     {
         _context = context;
         context.AgentInstance = this;
         this.EventTypes = eventTypes;
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         Completion = Start();
     }
-
     internal Task Completion { get; }
 
     internal Task Start()
@@ -58,7 +61,6 @@ public abstract class AgentBase : IAgentBase, IHandle
             }
         }
     }
-
     public void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
 
     private async Task RunMessagePump()
@@ -71,7 +73,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 switch (message)
                 {
                     case Message msg:
-                        await HandleRpcMessage(msg).ConfigureAwait(false);
+                        await HandleRpcMessage(msg, new CancellationToken()).ConfigureAwait(false);
                         break;
                     default:
                         throw new InvalidOperationException($"Unexpected message '{message}'.");
@@ -79,12 +81,11 @@ public abstract class AgentBase : IAgentBase, IHandle
             }
             catch (Exception ex)
             {
-                _context.Logger.LogError(ex, "Error processing message.");
+                _logger.LogError(ex, "Error processing message.");
             }
         }
     }
-
-    protected internal async Task HandleRpcMessage(Message msg)
+    protected internal async Task HandleRpcMessage(Message msg, CancellationToken cancellationToken = default)
     {
         switch (msg.MessageCase)
         {
@@ -95,17 +96,17 @@ public abstract class AgentBase : IAgentBase, IHandle
                         static ((AgentBase Agent, CloudEvent Item) state) => state.Agent.CallHandler(state.Item),
                         (this, msg.CloudEvent),
                         activity,
-                        msg.CloudEvent.Type).ConfigureAwait(false);
+                        msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
                 }
                 break;
             case Message.MessageOneofCase.Request:
                 {
                     var activity = this.ExtractActivity(msg.Request.Method, msg.Request.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, RpcRequest Request) state) => state.Agent.OnRequestCore(state.Request),
+                        static ((AgentBase Agent, RpcRequest Request) state) => state.Agent.OnRequestCoreAsync(state.Request),
                         (this, msg.Request),
                         activity,
-                        msg.Request.Method).ConfigureAwait(false);
+                        msg.Request.Method, cancellationToken).ConfigureAwait(false);
                 }
                 break;
             case Message.MessageOneofCase.Response:
@@ -113,14 +114,14 @@ public abstract class AgentBase : IAgentBase, IHandle
                 break;
         }
     }
-    public async Task Store(AgentState state)
+    public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await _context.Store(state).ConfigureAwait(false);
+        await _context.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
-    public async Task<T> Read<T>(AgentId agentId) where T : IMessage, new()
+    public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _context.Read(agentId).ConfigureAwait(false);
+        var agentstate = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -137,7 +138,7 @@ public abstract class AgentBase : IAgentBase, IHandle
 
         completion.SetResult(response);
     }
-    private async Task OnRequestCore(RpcRequest request)
+    private async Task OnRequestCoreAsync(RpcRequest request, CancellationToken cancellationToken = default)
     {
         RpcResponse response;
 
@@ -149,8 +150,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         {
             response = new RpcResponse { Error = ex.Message };
         }
-
-        await _context.SendResponseAsync(request, response).ConfigureAwait(false);
+        await _context.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -174,7 +174,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Context.DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        _context.Update(activity, request);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state) =>
             {
@@ -204,13 +204,13 @@ public abstract class AgentBase : IAgentBase, IHandle
         await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
 
-    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken token = default)
+    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        Context.DistributedContextPropagator.Inject(activity, item.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        _context.Update(activity, item);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event) state) =>
             {
@@ -218,7 +218,7 @@ public abstract class AgentBase : IAgentBase, IHandle
             },
             (this, item),
             activity,
-            item.Type).ConfigureAwait(false);
+            item.Type, cancellationToken).ConfigureAwait(false);
     }
 
     public Task CallHandler(CloudEvent item)
@@ -251,7 +251,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                    _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
                     throw; // TODO: ?
                 }
             }
@@ -262,6 +262,7 @@ public abstract class AgentBase : IAgentBase, IHandle
 
     public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
+    //TODO: should this be async and cancellable?
     public virtual Task HandleObject(object item)
     {
         // get all Handle<T> methods
@@ -278,5 +279,9 @@ public abstract class AgentBase : IAgentBase, IHandle
 
         // otherwise, complain
         throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
+    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
+    {
+        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
     }
 }

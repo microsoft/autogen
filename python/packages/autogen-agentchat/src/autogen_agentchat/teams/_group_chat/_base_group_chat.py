@@ -19,9 +19,9 @@ from autogen_core.components import ClosureAgent, TypeSubscription
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import AgentMessage, MultiModalMessage, TextMessage
-from ._base_group_chat_manager import BaseGroupChatManager
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
+from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -36,8 +36,9 @@ class BaseGroupChat(Team, ABC):
     def __init__(
         self,
         participants: List[ChatAgent],
-        group_chat_manager_class: type[BaseGroupChatManager],
+        group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -46,6 +47,7 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
+        self._max_turns = max_turns
 
         # Constants for the group chat.
         self._team_id = str(uuid.uuid4())
@@ -78,7 +80,8 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
-    ) -> Callable[[], BaseGroupChatManager]: ...
+        max_turns: int | None,
+    ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
         self,
@@ -123,6 +126,7 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
                 termination_condition=self._termination_condition,
+                max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.

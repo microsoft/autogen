@@ -2,12 +2,27 @@ import React from "react";
 import { Link } from "gatsby";
 import { useConfigStore } from "../hooks/store";
 import { Tooltip } from "antd";
-import { Blocks, Settings, MessagesSquare } from "lucide-react";
+import { Settings, MessagesSquare } from "lucide-react";
 import Icon from "./icons";
 
-const navigation = [
-  // { name: "Build", href: "/build", icon: Blocks },
-  { name: "Playground", href: "/", icon: MessagesSquare },
+interface INavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  breadcrumbs?: Array<{
+    name: string;
+    href: string;
+    current?: boolean;
+  }>;
+}
+
+const navigation: INavItem[] = [
+  {
+    name: "Playground",
+    href: "/",
+    icon: MessagesSquare,
+    breadcrumbs: [{ name: "Playground", href: "/", current: true }],
+  },
 ];
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {
@@ -24,11 +39,41 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
-  const { sidebar } = useConfigStore();
+  const { sidebar, setHeader, setSidebarState } = useConfigStore();
   const { isExpanded } = sidebar;
+
+  // Set initial header state based on current route
+  React.useEffect(() => {
+    setNavigationHeader(link);
+  }, [link]);
 
   // Always show full sidebar in mobile view
   const showFull = isMobile || isExpanded;
+
+  const handleNavClick = (item: INavItem) => {
+    if (!isExpanded) {
+      setSidebarState({ isExpanded: true });
+    }
+    setHeader({
+      title: item.name,
+      breadcrumbs: item.breadcrumbs,
+    });
+  };
+
+  const setNavigationHeader = (path: string) => {
+    const navItem = navigation.find((item) => item.href === path);
+    if (navItem) {
+      setHeader({
+        title: navItem.name,
+        breadcrumbs: navItem.breadcrumbs,
+      });
+    } else if (path === "/settings") {
+      setHeader({
+        title: "Settings",
+        breadcrumbs: [{ name: "Settings", href: "/settings", current: true }],
+      });
+    }
+  };
 
   return (
     <div
@@ -42,9 +87,13 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
       <div
         className={`flex h-16 items-center ${showFull ? "gap-x-3" : "ml-2"}`}
       >
-        <div className="w-8 text-right text-accent">
+        <Link
+          to="/"
+          onClick={() => setNavigationHeader("/")}
+          className="w-8 text-right text-accent hover:opacity-80 transition-opacity"
+        >
           <Icon icon="app" size={8} />
-        </div>
+        </Link>
         {showFull && (
           <div className="flex flex-col" style={{ minWidth: "200px" }}>
             <span className="text-base font-semibold text-primary">
@@ -74,20 +123,23 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                 const navLink = (
                   <Link
                     to={item.href}
+                    onClick={() => handleNavClick(item)}
                     className={classNames(
-                      isActive
-                        ? "text-accent"
-                        : "text-primary hover:text-accent hover:bg-secondary",
+                      // Base styles
                       "group flex gap-x-3 rounded-md p-2 text-sm font-medium",
-                      !showFull && "justify-center"
+                      !showFull && "justify-center",
+                      // Color states
+                      isActive
+                        ? "bg-secondary/50 text-accent"
+                        : "text-secondary hover:bg-secondary/50 hover:text-accent"
                     )}
                   >
                     <IconComponent
                       className={classNames(
+                        "h-6 w-6 shrink-0",
                         isActive
                           ? "text-accent"
-                          : "text-secondary group-hover:text-accent",
-                        "h-6 w-6 shrink-0"
+                          : "text-secondary group-hover:text-accent"
                       )}
                     />
                     {showFull && item.name}
@@ -120,6 +172,14 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
               <Tooltip title="Settings" placement="right">
                 <Link
                   to="/settings"
+                  onClick={() =>
+                    setHeader({
+                      title: "Settings",
+                      breadcrumbs: [
+                        { name: "Settings", href: "/settings", current: true },
+                      ],
+                    })
+                  }
                   className={classNames(
                     "group flex gap-x-3 rounded-md p-2 text-sm font-medium",
                     "text-primary hover:text-accent hover:bg-secondary",
@@ -132,6 +192,14 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
             ) : (
               <Link
                 to="/settings"
+                onClick={() =>
+                  setHeader({
+                    title: "Settings",
+                    breadcrumbs: [
+                      { name: "Settings", href: "/settings", current: true },
+                    ],
+                  })
+                }
                 className="group flex gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
               >
                 <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
