@@ -165,7 +165,7 @@ class AssistantAgent(BaseChatAgent):
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with 'TERMINATE' when the task has been completed.",
+        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
