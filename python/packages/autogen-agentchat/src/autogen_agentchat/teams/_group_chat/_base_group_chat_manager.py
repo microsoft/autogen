@@ -6,7 +6,13 @@ from autogen_core.components import DefaultTopicId, event
 
 from ...base import TerminationCondition
 from ...messages import AgentMessage, StopMessage
-from ._events import GroupChatAgentResponse, GroupChatRequestPublish, GroupChatStart, GroupChatTermination
+from ._events import (
+    GroupChatAgentResponse,
+    GroupChatRequestPublish,
+    GroupChatReset,
+    GroupChatStart,
+    GroupChatTermination,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
@@ -28,8 +34,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
-        message_thread: List[AgentMessage],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         super().__init__(description="Group chat manager")
         self._group_topic_type = group_topic_type
@@ -42,15 +48,16 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise ValueError("The group topic type must not be in the participant topic types.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread = message_thread
+        self._message_thread: List[AgentMessage] = []
         self._termination_condition = termination_condition
+        if max_turns is not None and max_turns <= 0:
+            raise ValueError("The maximum number of turns must be greater than 0.")
+        self._max_turns = max_turns
+        self._current_turn = 0
 
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
-
-        # Log the start message.
-        await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
         # Check if the conversation has already terminated.
         if self._termination_condition is not None and self._termination_condition.terminated:
@@ -63,18 +70,24 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             # Stop the group chat.
             return
 
-        # Append the user message to the message thread.
-        self._message_thread.append(message.message)
+        if message.message is not None:
+            # Log the start message.
+            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
-        # Check if the conversation should be terminated.
-        if self._termination_condition is not None:
-            stop_message = await self._termination_condition([message.message])
-            if stop_message is not None:
-                await self.publish_message(
-                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
-                # Stop the group chat.
-                return
+            # Append the user message to the message thread.
+            self._message_thread.append(message.message)
+
+            # Check if the conversation should be terminated.
+            if self._termination_condition is not None:
+                stop_message = await self._termination_condition([message.message])
+                if stop_message is not None:
+                    await self.publish_message(
+                        GroupChatTermination(message=stop_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    # Stop the group chat and reset the termination condition.
+                    await self._termination_condition.reset()
+                    return
 
         speaker_topic_type = await self.select_speaker(self._message_thread)
         await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
@@ -97,17 +110,47 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 await self.publish_message(
                     GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
                 )
-                # Stop the group chat.
+                # Stop the group chat and reset the termination conditions and turn count.
+                await self._termination_condition.reset()
+                self._current_turn = 0
+                return
+
+        # Increment the turn count.
+        self._current_turn += 1
+        # Check if the maximum number of turns has been reached.
+        if self._max_turns is not None:
+            if self._current_turn >= self._max_turns:
+                stop_message = StopMessage(
+                    content=f"Maximum number of turns {self._max_turns} reached.",
+                    source="Group chat manager",
+                )
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
+                # Stop the group chat and reset the termination conditions and turn count.
+                if self._termination_condition is not None:
+                    await self._termination_condition.reset()
+                self._current_turn = 0
                 return
 
         # Select a speaker to continue the conversation.
         speaker_topic_type = await self.select_speaker(self._message_thread)
         await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
 
+    @event
+    async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
+        # Reset the group chat manager.
+        await self.reset()
+
     @abstractmethod
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
+        ...
+
+    @abstractmethod
+    async def reset(self) -> None:
+        """Reset the group chat manager."""
         ...
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:

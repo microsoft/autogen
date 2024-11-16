@@ -14,22 +14,20 @@ require("dotenv").config({
 });
 
 const config: GatsbyConfig = {
-  pathPrefix: process.env.PREFIX_PATH_VALUE || '',
+  pathPrefix: process.env.PREFIX_PATH_VALUE || "",
   siteMetadata: {
     title: `AutoGen Studio [Beta]`,
     description: `Build Multi-Agent Apps`,
     siteUrl: `http://tbd.place`,
   },
-  flags: {
-    LAZY_IMAGES: true,
-    FAST_DEV: true,
-    DEV_SSR: false,
-  },
+  // More easily incorporate content into your pages through automatic TypeScript type generation and better GraphQL IntelliSense.
+  // If you use VSCode you can also use the GraphQL plugin
+  // Learn more at: https://gatsby.dev/graphql-typegen
+  graphqlTypegen: true,
   plugins: [
-    "gatsby-plugin-sass",
+    "gatsby-plugin-postcss",
     "gatsby-plugin-image",
     "gatsby-plugin-sitemap",
-    "gatsby-plugin-postcss",
     {
       resolve: "gatsby-plugin-manifest",
       options: {

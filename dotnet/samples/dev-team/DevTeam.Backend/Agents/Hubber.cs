@@ -12,7 +12,7 @@ using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Hubber(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
+public class Hubber(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
     : SKAiAgent<object>(context, memory, kernel, typeRegistry),
     IHandle<NewAsk>,
     IHandle<ReadmeGenerated>,

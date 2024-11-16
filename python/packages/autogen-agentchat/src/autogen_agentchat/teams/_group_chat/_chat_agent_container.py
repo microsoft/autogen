@@ -30,7 +30,8 @@ class ChatAgentContainer(SequentialRoutedAgent):
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle a start event by appending the content to the buffer."""
-        self._message_buffer.append(message.message)
+        if message.message is not None:
+            self._message_buffer.append(message.message)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -41,7 +42,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
         """Handle a reset event by resetting the agent."""
         self._message_buffer.clear()
-        await self._agent.reset(ctx.cancellation_token)
+        await self._agent.on_reset(ctx.cancellation_token)
 
     @event
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:

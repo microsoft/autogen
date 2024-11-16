@@ -20,6 +20,8 @@ myst:
 
 # Packages
 
+## 0.4
+
 (pkg-info-autogen-agentchat)=
 
 :::{card} {fas}`people-group;pst-color-primary` AutoGen AgentChat
@@ -29,10 +31,10 @@ myst:
 Library that is at a similar level of abstraction as AutoGen 0.2, including default agents and group chat.
 
 ```sh
-pip install 'autogen-agentchat==0.4.0.dev4'
+pip install 'autogen-agentchat==0.4.0.dev6'
 ```
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/agentchat-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.4.0.dev4/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/agentchat-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_agentchat/autogen_agentchat.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.4.0.dev6/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-agentchat)
 :::
 
 (pkg-info-autogen-core)=
@@ -44,10 +46,10 @@ pip install 'autogen-agentchat==0.4.0.dev4'
 Implements the core functionality of the AutoGen framework, providing basic building blocks for creating multi-agent systems.
 
 ```sh
-pip install 'autogen-core==0.4.0.dev4'
+pip install 'autogen-core==0.4.0.dev6'
 ```
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/core-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/0.4.0.dev4/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/core-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_core/autogen_core.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-core/0.4.0.dev6/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core)
 :::
 
 (pkg-info-autogen-ext)=
@@ -59,7 +61,7 @@ pip install 'autogen-core==0.4.0.dev4'
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
 ```sh
-pip install 'autogen-ext==0.4.0.dev4'
+pip install 'autogen-ext==0.4.0.dev6'
 ```
 
 Extras:
@@ -69,7 +71,7 @@ Extras:
 - `docker` needed for {py:class}`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
 - `openai` needed for {py:class}`~autogen_ext.models.OpenAIChatCompletionClient`
 
-[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/extensions-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/0.4.0.dev4/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
+[{fas}`circle-info;pst-color-primary` User Guide](/user-guide/extensions-user-guide/index.md) | [{fas}`file-code;pst-color-primary` API Reference](/reference/python/autogen_ext/autogen_ext.rst) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-ext/0.4.0.dev6/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext)
 :::
 
 (pkg-info-autogen-magentic-one)=
@@ -86,6 +88,24 @@ Not yet available on PyPI.
 
 [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-magentic-one)
 :::
+
+## 0.2
+
+(pkg-info-autogen-02)=
+
+:::{card} {fas}`robot;pst-color-primary` AutoGen
+:class-title: card-title
+:shadow: none
+Existing AutoGen library that provides a high-level abstraction for building multi-agent systems.
+
+```sh
+pip install 'autogen-agentchat~=0.2'
+```
+
+[{fas}`circle-info;pst-color-primary` Documentation](https://microsoft.github.io/autogen/0.2/) | [{fab}`python;pst-color-primary` PyPI](https://pypi.org/project/autogen-agentchat/0.2.38/) | [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/0.2/)
+:::
+
+## Other
 
 (pkg-info-autogenbench)=
 

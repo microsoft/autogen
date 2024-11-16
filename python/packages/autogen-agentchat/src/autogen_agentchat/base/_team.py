@@ -4,4 +4,6 @@ from ._task import TaskRunner
 
 
 class Team(TaskRunner, Protocol):
-    pass
+    async def reset(self) -> None:
+        """Reset the team and all its participants to its initial state."""
+        ...
