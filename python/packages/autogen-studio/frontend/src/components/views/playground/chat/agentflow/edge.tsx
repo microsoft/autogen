@@ -1,10 +1,10 @@
 import React from "react";
-import { message, Tabs, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { AgentMessageConfig } from "../../../../types/datamodel";
 import {
   EdgeLabelRenderer,
   type EdgeProps,
-  getSmoothStepPath, // Add this import
+  getSmoothStepPath,
 } from "@xyflow/react";
 import { RenderMessage } from "../rendermessage";
 
@@ -15,15 +15,17 @@ interface EdgeTooltipContentProps {
 interface CustomEdgeData {
   label?: string;
   messages: AgentMessageConfig[];
+  routingType?: "primary" | "secondary";
+  bidirectionalPair?: string;
 }
 
-export const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
+const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
   messages,
 }) => {
   return (
     <div className="p-2 overflow-auto max-h-[200px] scroll max-w-[350px]">
       <div className="text-xs mb-2">{messages.length} messages</div>
-      <div className="edge-tooltip  ">
+      <div className="edge-tooltip">
         {messages.map((message, index) => (
           <RenderMessage key={index} message={message} />
         ))}
@@ -47,24 +49,28 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
   data,
   style = {},
   markerEnd,
-  sourcePosition,
-  targetPosition,
 }) => {
   const isSelfLoop = source === target;
+
+  // Keep stroke width scaling for message count but with a cleaner implementation
+  const baseStrokeWidth = (style.strokeWidth as number) || 1;
+  const messageCount = data.messages?.length || 0;
+  const finalStrokeWidth = isSelfLoop
+    ? Math.max(baseStrokeWidth, 2)
+    : Math.min(Math.max(messageCount, 1), 5) * baseStrokeWidth;
 
   let edgePath = "";
   let labelX = 0;
   let labelY = 0;
 
   if (isSelfLoop) {
-    const rightOffset = 120; // How far right the path extends
-    const verticalOffset = sourceY - targetY; // Base vertical distance between handles
-    const verticalPadding = 6; // Extra padding above/below handles
-    const radius = 8; // Radius for rounded corners
+    const rightOffset = 120;
+    const verticalOffset = sourceY - targetY;
+    const verticalPadding = 6;
+    const radius = 8;
 
-    // Start and end slightly beyond the handles using verticalPadding
     edgePath = `
-      M ${sourceX} ${targetY - verticalPadding}  
+      M ${sourceX} ${targetY - verticalPadding}
       L ${sourceX + rightOffset - radius} ${targetY - verticalPadding}
       Q ${sourceX + rightOffset} ${targetY - verticalPadding} ${
       sourceX + rightOffset
@@ -76,7 +82,6 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
       L ${sourceX} ${sourceY + verticalPadding}
     `;
 
-    // Adjust label position to account for padding
     labelX = sourceX + rightOffset + 10;
     labelY = targetY + verticalOffset / 2;
   } else {
@@ -88,6 +93,30 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
     });
   }
 
+  // Calculate label position with offset for bidirectional edges
+  const getLabelPosition = (x: number, y: number) => {
+    if (!data.routingType || isSelfLoop) return { x, y };
+
+    // Make vertical separation more pronounced
+    const verticalOffset = data.routingType === "secondary" ? -35 : 35; // Increased from 20 to 35
+    const horizontalOffset = data.routingType === "secondary" ? -25 : 25;
+
+    // Calculate edge angle to determine if it's more horizontal or vertical
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const isMoreHorizontal = Math.abs(dx) > Math.abs(dy);
+
+    // Always apply some vertical offset
+    const basePosition = {
+      x: isMoreHorizontal ? x : x + horizontalOffset,
+      y: y + (data.routingType === "secondary" ? -35 : 35), // Always apply vertical offset
+    };
+
+    return basePosition;
+  };
+
+  const labelPosition = getLabelPosition(labelX, labelY);
+
   return (
     <>
       <path
@@ -96,9 +125,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
         d={edgePath}
         style={{
           ...style,
-          strokeWidth: isSelfLoop
-            ? Math.max((style.strokeWidth as number) || 1, 2)
-            : style.strokeWidth,
+          strokeWidth: finalStrokeWidth,
         }}
         markerEnd={markerEnd}
       />
@@ -107,8 +134,10 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
           <div
             style={{
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelPosition.x}px,${labelPosition.y}px)`,
               pointerEvents: "all",
+              // Add a slight transition for smooth updates
+              transition: "transform 0.2s ease-in-out",
             }}
           >
             <Tooltip
@@ -121,7 +150,12 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
               }
               overlayStyle={{ maxWidth: "none" }}
             >
-              <div className="px-2 py-1 rounded bg-secondary bg-opacity-50 text-primary text-sm">
+              <div
+                className="px-2 py-1 rounded bg-secondary bg-opacity-50 text-primary text-sm"
+                style={{
+                  whiteSpace: "nowrap", // Prevent label from wrapping
+                }}
+              >
                 {data.label}
               </div>
             </Tooltip>

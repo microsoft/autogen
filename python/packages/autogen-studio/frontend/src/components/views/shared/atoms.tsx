@@ -6,3 +6,38 @@ export const LoadingIndicator = ({ size = 16 }: { size: number }) => (
     <Loader2 size={size} className="animate-spin" />
   </div>
 );
+
+export const LoadingDots = ({ size = 8 }) => {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="bg-accent rounded-full animate-bounce"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          animationDuration: "0.6s",
+        }}
+      />
+      <span
+        className="bg-accent rounded-full animate-bounce"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          animationDuration: "0.6s",
+          animationDelay: "0.2s",
+        }}
+      />
+      <span
+        className="bg-accent rounded-full animate-bounce"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          animationDuration: "0.6s",
+          animationDelay: "0.4s",
+        }}
+      />
+    </span>
+  );
+};
+
+export default LoadingDots;

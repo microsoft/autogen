@@ -10,6 +10,7 @@ from alembic.script import ScriptDirectory
 from alembic.autogenerate import compare_metadata
 from sqlalchemy import Engine
 from sqlmodel import SQLModel
+from alembic.util.exc import CommandError
 
 
 class SchemaManager:
@@ -29,6 +30,7 @@ class SchemaManager:
     def __init__(
         self,
         engine: Engine,
+        base_dir: Optional[Path] = None,
         auto_upgrade: bool = True,
         init_mode: str = "auto"
     ):
@@ -38,16 +40,45 @@ class SchemaManager:
         self.engine = engine
         self.auto_upgrade = auto_upgrade
 
-        # Set up paths relative to this file
-        self.base_dir = Path(__file__).parent
+        # Use provided base_dir or default to class file location
+        self.base_dir = base_dir or Path(__file__).parent
         self.alembic_dir = self.base_dir / 'alembic'
         self.alembic_ini_path = self.base_dir / 'alembic.ini'
 
-        # Handle initialization based on mode
-        if init_mode == "none":
-            self._validate_alembic_setup()
+        # Create base directory if it doesn't exist
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+
+        # Initialize based on mode
+        if init_mode == "force":
+            self._cleanup_existing_alembic()
+            self._initialize_alembic()
         else:
-            self._ensure_alembic_setup(force=init_mode == "force")
+            try:
+                self._validate_alembic_setup()
+                logger.info("Using existing Alembic configuration")
+                # Update existing configuration
+                self._update_configuration()
+            except FileNotFoundError:
+                if init_mode == "none":
+                    raise
+                logger.info("Initializing new Alembic configuration")
+                self._initialize_alembic()
+
+    def _update_configuration(self) -> None:
+        """Updates existing Alembic configuration with current settings."""
+        logger.info("Updating existing Alembic configuration...")
+
+        # Update alembic.ini
+        config_content = self._generate_alembic_ini_content()
+        with open(self.alembic_ini_path, 'w') as f:
+            f.write(config_content)
+
+        # Update env.py
+        env_path = self.alembic_dir / 'env.py'
+        if env_path.exists():
+            self._update_env_py(env_path)
+        else:
+            self._create_minimal_env_py(env_path)
 
     def _cleanup_existing_alembic(self) -> None:
         """
@@ -106,43 +137,34 @@ class SchemaManager:
             self._initialize_alembic()
             logger.info("Alembic initialization complete")
 
-    def _initialize_alembic(self) -> str:
-        """Initializes Alembic configuration in the local directory."""
+    def _initialize_alembic(self) -> None:
         logger.info("Initializing Alembic configuration...")
 
-        # Check if versions exists
-        has_versions = (self.alembic_dir / 'versions').exists()
-        logger.info(f"Existing versions directory found: {has_versions}")
-
-        # Create base directories
+        # Create directories first
         self.alembic_dir.mkdir(exist_ok=True)
-        if not has_versions:
-            (self.alembic_dir / 'versions').mkdir(exist_ok=True)
+        versions_dir = self.alembic_dir / 'versions'
+        versions_dir.mkdir(exist_ok=True)
+
+        # Create env.py BEFORE running command.init
+        env_path = self.alembic_dir / 'env.py'
+        if not env_path.exists():
+            self._create_minimal_env_py(env_path)
+            logger.info("Created new env.py")
 
         # Write alembic.ini
-        ini_content = self._generate_alembic_ini_content()
+        config_content = self._generate_alembic_ini_content()
         with open(self.alembic_ini_path, 'w') as f:
-            f.write(ini_content)
+            f.write(config_content)
         logger.info("Created alembic.ini")
 
-        if not has_versions:
-            # Only run init if no versions directory
+        # Now run alembic init
+        try:
             config = self.get_alembic_config()
             command.init(config, str(self.alembic_dir))
-            logger.info("Initialized new Alembic directory structure")
-        else:
-            # Create minimal env.py if it doesn't exist
-            env_path = self.alembic_dir / 'env.py'
-            if not env_path.exists():
-                self._create_minimal_env_py(env_path)
-                logger.info("Created minimal env.py")
-            else:
-                # Update existing env.py
-                self._update_env_py(env_path)
-                logger.info("Updated existing env.py")
-
-        logger.info(f"Alembic setup completed at {self.base_dir}")
-        return str(self.alembic_ini_path)
+            logger.info("Initialized Alembic directory structure")
+        except CommandError as e:
+            if "already exists" not in str(e):
+                raise
 
     def _create_minimal_env_py(self, env_path: Path) -> None:
         """Creates a minimal env.py file for Alembic."""
@@ -242,6 +264,9 @@ datefmt = %H:%M:%S
         """
         Updates the env.py file to use SQLModel metadata.
         """
+        if not env_path.exists():
+            self._create_minimal_env_py(env_path)
+            return
         try:
             with open(env_path, 'r') as f:
                 content = f.read()
@@ -297,8 +322,17 @@ datefmt = %H:%M:%S
 
     def _validate_alembic_setup(self) -> None:
         """Validates that Alembic is properly configured."""
-        if not self.alembic_ini_path.exists():
-            raise FileNotFoundError("Alembic configuration not found")
+        required_files = [
+            self.alembic_ini_path,
+            self.alembic_dir / 'env.py',
+            self.alembic_dir / 'versions'
+        ]
+
+        missing = [f for f in required_files if not f.exists()]
+        if missing:
+            raise FileNotFoundError(
+                f"Alembic configuration incomplete. Missing: {', '.join(str(f) for f in missing)}"
+            )
 
     def get_alembic_config(self) -> Config:
         """
