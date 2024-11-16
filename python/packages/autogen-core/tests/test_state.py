@@ -13,10 +13,10 @@ class StatefulAgent(BaseAgent):
     async def on_message(self, message: Any, ctx: MessageContext) -> None:
         raise NotImplementedError
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         return {"state": self.state}
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         self.state = state["state"]
 
 
@@ -31,12 +31,12 @@ async def test_agent_can_save_state() -> None:
     agent1.state = 1
     assert agent1.state == 1
 
-    agent1_state = agent1.save_state()
+    agent1_state = await agent1.save_state()
 
     agent1.state = 2
     assert agent1.state == 2
 
-    agent1.load_state(agent1_state)
+    await agent1.load_state(agent1_state)
     assert agent1.state == 1
 
 

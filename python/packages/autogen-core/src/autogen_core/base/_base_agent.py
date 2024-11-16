@@ -133,11 +133,11 @@ class BaseAgent(ABC, Agent):
     ) -> None:
         await self._runtime.publish_message(message, topic_id, sender=self.id, cancellation_token=cancellation_token)
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         warnings.warn("save_state not implemented", stacklevel=2)
         return {}
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         warnings.warn("load_state not implemented", stacklevel=2)
         pass
 

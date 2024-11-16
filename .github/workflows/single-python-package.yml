@@ -32,7 +32,9 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
       # Require ref to be a tag
       - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
         working-directory: python
       - name: Publish package to PyPI

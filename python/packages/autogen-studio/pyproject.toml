@@ -20,11 +20,10 @@ classifiers = [
 
 dependencies = [
     "pydantic",
+    "pydantic-settings",
     "fastapi",
     "typer",
-    "uvicorn",
-    "arxiv",
-    "pyautogen[gemini,anthropic,mistral]==0.2.34",
+    "uvicorn", 
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
@@ -32,6 +31,10 @@ dependencies = [
     "psycopg",
     "alembic",
     "loguru",
+    "pyyaml",
+    "autogen-core==0.4.0.dev6",
+    "autogen-agentchat==0.4.0.dev6", 
+    "autogen-ext==0.4.0.dev6"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 

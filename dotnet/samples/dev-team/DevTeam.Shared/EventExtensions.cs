@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// EventExtensions.cs
 
 using System.Globalization;
-using Microsoft.AutoGen.Agents.Abstractions;
+using Microsoft.AutoGen.Abstractions;
 
 namespace DevTeam;
 

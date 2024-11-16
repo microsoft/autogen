@@ -1,14 +1,17 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ProductManager.cs
+
 using DevTeam.Shared;
-using Microsoft.AutoGen.Agents.Abstractions;
-using Microsoft.AutoGen.Agents.Client;
+using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Agents;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
-    : AiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
+public class ProductManager(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
+    : SKAiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>
 {
@@ -19,8 +22,8 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
         var evt = new ReadmeCreated
         {
             Readme = lastReadme
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public async Task Handle(ReadmeRequested item)
@@ -32,8 +35,8 @@ public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextM
             Org = item.Org,
             Repo = item.Repo,
             IssueNumber = item.IssueNumber
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public async Task<string> CreateReadme(string ask)

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// PMPrompts.cs
+
 namespace DevTeam.Agents;
 public static class PMSkills
 {

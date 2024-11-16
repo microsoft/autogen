@@ -1,0 +1,1 @@
+These files were obtained from the creators of the AssistantBench benchmark and modified slightly. You can find the latest version at [https://huggingface.co/spaces/AssistantBench/leaderboard/tree/main/evaluation](https://huggingface.co/spaces/AssistantBench/leaderboard/tree/main/evaluation)

@@ -16,7 +16,7 @@ This section focuses on the core concepts in broadcast: topic and subscription.
 
 A topic defines the scope of a broadcast message.
 In essence, agent runtime implements a publish-subscribe model through
-its broadcast API: when publishing a message, the topic mus be specified.
+its broadcast API: when publishing a message, the topic must be specified.
 It is an indirection over agent IDs.
 
 A topic consists of two components: topic type and topic source.
@@ -76,7 +76,7 @@ For Python API, use {py:class}`~autogen_core.components.TypeSubscription`.
 Type-Based Subscription = Topic Type --> Agent Type
 ```
 
-Generally speaking, type-based subscription is the preferred way to delcare
+Generally speaking, type-based subscription is the preferred way to declare
 subscriptions. It is portable and data-independent:
 developers do not need to write application code that depends on specific agent IDs.
 

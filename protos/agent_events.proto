@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Agents.Abstractions";
+option csharp_namespace = "Microsoft.AutoGen.Abstractions";
 
 message Input {
       string message = 1;
@@ -34,4 +34,7 @@ message MessageStored {
 message ConversationClosed {
   string user_id = 1;
   string user_message = 2;
+}
+message Shutdown {
+      string message = 1;
 }

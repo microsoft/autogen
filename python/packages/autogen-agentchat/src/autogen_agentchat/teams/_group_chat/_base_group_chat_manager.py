@@ -1,16 +1,19 @@
-import logging
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, List
 
-from autogen_core.base import MessageContext, TopicId
-from autogen_core.components import event
+from autogen_core.base import MessageContext
+from autogen_core.components import DefaultTopicId, event
 
-from ... import EVENT_LOGGER_NAME
-from .._events import ContentPublishEvent, ContentRequestEvent, TerminationEvent
-from .._termination import TerminationCondition
+from ...base import TerminationCondition
+from ...messages import AgentMessage, StopMessage
+from ._events import (
+    GroupChatAgentResponse,
+    GroupChatRequestPublish,
+    GroupChatReset,
+    GroupChatStart,
+    GroupChatTermination,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChatManager(SequentialRoutedAgent, ABC):
@@ -18,106 +21,137 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
     It is the responsibility of the caller to ensure:
     - All participants must subscribe to the group chat topic and each of their own topics.
-    - The group chat manager must subscribe to the parent topic and the group chat topic.
+    - The group chat manager must subscribe to the group chat topic.
     - The agent types of the participants must be unique.
     - For each participant, the agent type must be the same as the topic type.
 
     Without the above conditions, the group chat will not function correctly.
-
-    Args:
-        parent_topic_type (str): The topic type of the parent orchestrator.
-        group_topic_type (str): The topic type of the group chat.
-        participant_topic_types (List[str]): The topic types of the participants.
-        participant_descriptions (List[str]): The descriptions of the participants
-        termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
-
-    Raises:
-        ValueError: If the number of participant topic types, agent types, and descriptions are not the same.
     """
 
     def __init__(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         super().__init__(description="Group chat manager")
-        self._parent_topic_type = parent_topic_type
         self._group_topic_type = group_topic_type
+        self._output_topic_type = output_topic_type
         if len(participant_topic_types) != len(participant_descriptions):
             raise ValueError("The number of participant topic types, agent types, and descriptions must be the same.")
         if len(set(participant_topic_types)) != len(participant_topic_types):
             raise ValueError("The participant topic types must be unique.")
         if group_topic_type in participant_topic_types:
             raise ValueError("The group topic type must not be in the participant topic types.")
-        if parent_topic_type in participant_topic_types:
-            raise ValueError("The parent topic type must not be in the participant topic types.")
-        if group_topic_type == parent_topic_type:
-            raise ValueError("The group topic type must not be the same as the parent topic type.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[ContentPublishEvent] = []
+        self._message_thread: List[AgentMessage] = []
         self._termination_condition = termination_condition
+        if max_turns is not None and max_turns <= 0:
+            raise ValueError("The maximum number of turns must be greater than 0.")
+        self._max_turns = max_turns
+        self._current_turn = 0
 
     @event
-    async def handle_content_publish(self, message: ContentPublishEvent, ctx: MessageContext) -> None:
-        """Handle a content publish event.
+    async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
+        """Handle the start of a group chat by selecting a speaker to start the conversation."""
 
-        If the event is from the parent topic, add the message to the thread.
-
-        If the event is from the group chat topic, add the message to the thread and select a speaker to continue the conversation.
-        If the event from the group chat session requests a pause, publish the last message to the parent topic."""
-        assert ctx.topic_id is not None
-        group_chat_topic_id = TopicId(type=self._group_topic_type, source=ctx.topic_id.source)
-
-        event_logger.info(message)
-
-        # Process event from parent.
-        if ctx.topic_id.type == self._parent_topic_type:
-            self._message_thread.append(message)
-            await self.publish_message(
-                ContentPublishEvent(agent_message=message.agent_message, source=self.id), topic_id=group_chat_topic_id
+        # Check if the conversation has already terminated.
+        if self._termination_condition is not None and self._termination_condition.terminated:
+            early_stop_message = StopMessage(
+                content="The group chat has already terminated.", source="Group chat manager"
             )
+            await self.publish_message(
+                GroupChatTermination(message=early_stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+            )
+            # Stop the group chat.
             return
 
-        # Process event from the group chat this agent manages.
-        assert ctx.topic_id.type == self._group_topic_type
-        self._message_thread.append(message)
+        if message.message is not None:
+            # Log the start message.
+            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+
+            # Append the user message to the message thread.
+            self._message_thread.append(message.message)
+
+            # Check if the conversation should be terminated.
+            if self._termination_condition is not None:
+                stop_message = await self._termination_condition([message.message])
+                if stop_message is not None:
+                    await self.publish_message(
+                        GroupChatTermination(message=stop_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    # Stop the group chat and reset the termination condition.
+                    await self._termination_condition.reset()
+                    return
+
+        speaker_topic_type = await self.select_speaker(self._message_thread)
+        await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
+
+    @event
+    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
+        # Append the message to the message thread and construct the delta.
+        delta: List[AgentMessage] = []
+        if message.agent_response.inner_messages is not None:
+            for inner_message in message.agent_response.inner_messages:
+                self._message_thread.append(inner_message)
+                delta.append(inner_message)
+        self._message_thread.append(message.agent_response.chat_message)
+        delta.append(message.agent_response.chat_message)
 
         # Check if the conversation should be terminated.
         if self._termination_condition is not None:
-            stop_message = await self._termination_condition([message.agent_message])
+            stop_message = await self._termination_condition(delta)
             if stop_message is not None:
-                event_logger.info(TerminationEvent(agent_message=stop_message, source=self.id))
-                # Reset the termination condition.
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
+                # Stop the group chat and reset the termination conditions and turn count.
                 await self._termination_condition.reset()
-                # Stop the group chat.
-                # TODO: this should be different if the group chat is nested.
+                self._current_turn = 0
+                return
+
+        # Increment the turn count.
+        self._current_turn += 1
+        # Check if the maximum number of turns has been reached.
+        if self._max_turns is not None:
+            if self._current_turn >= self._max_turns:
+                stop_message = StopMessage(
+                    content=f"Maximum number of turns {self._max_turns} reached.",
+                    source="Group chat manager",
+                )
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
+                # Stop the group chat and reset the termination conditions and turn count.
+                if self._termination_condition is not None:
+                    await self._termination_condition.reset()
+                self._current_turn = 0
                 return
 
         # Select a speaker to continue the conversation.
         speaker_topic_type = await self.select_speaker(self._message_thread)
-
-        participant_topic_id = TopicId(type=speaker_topic_type, source=ctx.topic_id.source)
-        group_chat_topic_id = TopicId(type=self._group_topic_type, source=ctx.topic_id.source)
-        await self.publish_message(ContentRequestEvent(), topic_id=participant_topic_id)
+        await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
 
     @event
-    async def handle_content_request(self, message: ContentRequestEvent, ctx: MessageContext) -> None:
-        """Handle a content request by selecting a speaker to start the conversation."""
-        assert ctx.topic_id is not None
-        if ctx.topic_id.type == self._group_topic_type:
-            raise RuntimeError("Content request event from the group chat topic is not allowed.")
-
-        speaker_topic_type = await self.select_speaker(self._message_thread)
-
-        participant_topic_id = TopicId(type=speaker_topic_type, source=ctx.topic_id.source)
-        await self.publish_message(ContentRequestEvent(), topic_id=participant_topic_id)
+    async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
+        # Reset the group chat manager.
+        await self.reset()
 
     @abstractmethod
-    async def select_speaker(self, thread: List[ContentPublishEvent]) -> str:
+    async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         ...
+
+    @abstractmethod
+    async def reset(self) -> None:
+        """Reset the group chat manager."""
+        ...
+
+    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
+        raise ValueError(f"Unhandled message in group chat manager: {type(message)}")

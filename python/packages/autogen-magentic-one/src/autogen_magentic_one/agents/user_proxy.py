@@ -10,7 +10,7 @@ from .base_worker import BaseWorker
 
 @default_subscription
 class UserProxy(BaseWorker):
-    """An agent that allows the user to play the role of an agent in the conversation."""
+    """An agent that allows the user to play the role of an agent in the conversation via input."""
 
     DEFAULT_DESCRIPTION = "A human user."
 

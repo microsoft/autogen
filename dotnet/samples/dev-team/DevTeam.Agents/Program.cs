@@ -1,6 +1,9 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Program.cs
+
 using DevTeam.Agents;
-using Microsoft.AutoGen.Agents.Client;
-using Microsoft.AutoGen.Agents.Extensions.SemanticKernel;
+using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Extensions.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
