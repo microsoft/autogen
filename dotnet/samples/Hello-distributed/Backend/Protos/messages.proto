@@ -4,13 +4,11 @@ package helloWorld;
 
 option csharp_namespace = "Backend";
 
-message AppOutput {
+message NewGreetingRequested {
       string message = 1;
 }
-message AppNewMessageReceived {
-      string message = 1;
-}
-message AppConversationClosed {
+
+message NewGreetingGenerated {
   string user_id = 1;
   string user_message = 2;
 }

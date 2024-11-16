@@ -12,31 +12,20 @@ public class HelloAgent(
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
             context,
             typeRegistry),
-            ISayHello,
             IHandleConsole,
-            IHandle<AppNewMessageReceived>,
-            IHandle<AppConversationClosed>
+            IHandle<NewGreetingRequested>
 {
-    public async Task Handle(AppNewMessageReceived item)
+    public async Task Handle(NewGreetingRequested item)
     {
         var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output { Message = response };
         await PublishMessageAsync(evt).ConfigureAwait(false);
-        var goodbye = new AppConversationClosed
+        var goodbye = new NewGreetingGenerated
         {
             UserId = AgentId.Key,
             UserMessage = "Goodbye"
         };
         await PublishMessageAsync(goodbye).ConfigureAwait(false);
-    }
-    public async Task Handle(AppConversationClosed item)
-    {
-        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
-        var evt = new AppOutput
-        {
-            Message = goodbye
-        };
-        await PublishMessageAsync(evt).ConfigureAwait(false);
     }
 
     public async Task<string> SayHello(string ask)
@@ -44,8 +33,4 @@ public class HelloAgent(
         var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
         return response;
     }
-}
-public interface ISayHello
-{
-    public Task<string> SayHello(string ask);
 }
