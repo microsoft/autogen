@@ -84,7 +84,7 @@ public sealed class GrpcAgentWorker(
                                 throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
                             }
                             break;
-                        
+
                         case Message.MessageOneofCase.AddSubscriptionResponse:
                             if (!message.AddSubscriptionResponse.Success)
                             {

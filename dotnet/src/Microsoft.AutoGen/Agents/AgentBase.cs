@@ -132,7 +132,7 @@ public abstract class AgentBase : IAgentBase, IHandle
             }
         };
         _context.SendMessageAsync(message).AsTask().Wait();
-        
+
         return new List<string> { topic };
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
