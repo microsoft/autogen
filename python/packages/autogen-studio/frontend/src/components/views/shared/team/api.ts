@@ -14,7 +14,7 @@ export class TeamAPI {
 
   async listTeams(userId: string): Promise<Team[]> {
     const response = await fetch(
-      `${this.getBaseUrl()}/teams?user_id=${userId}`,
+      `${this.getBaseUrl()}/teams/?user_id=${userId}`,
       {
         headers: this.getHeaders(),
       }
@@ -42,7 +42,7 @@ export class TeamAPI {
       user_id: userId,
     };
 
-    const response = await fetch(`${this.getBaseUrl()}/teams`, {
+    const response = await fetch(`${this.getBaseUrl()}/teams/`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(team),

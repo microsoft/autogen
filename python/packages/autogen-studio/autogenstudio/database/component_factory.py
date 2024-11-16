@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Literal, Union, Optional, Dict, Any, Type
+from typing import Callable, List, Literal, Union, Optional, Dict, Any, Type
 from datetime import datetime
 import json
 from autogen_agentchat.task import MaxMessageTermination, TextMentionTermination, StopMessageTermination
@@ -13,6 +13,7 @@ from ..datamodel import (
     TeamTypes, AgentTypes, ModelTypes, ToolTypes,
     ComponentType, ComponentConfig, ComponentConfigInput, TerminationConfig, TerminationTypes, Response
 )
+from ..components import UserProxyAgent
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
@@ -38,6 +39,17 @@ ReturnType = Literal['object', 'dict', 'config']
 Component = Union[RoundRobinGroupChat, SelectorGroupChat,
                   AssistantAgent, OpenAIChatCompletionClient, FunctionTool]
 
+DEFAULT_SELECTOR_PROMPT = """You are in a role play game. The following roles are available:
+{roles}.
+Read the following conversation. Then select the next role from {participants} to play. Only return the role.
+
+{history}
+
+Read the above conversation. Then select the next role from {participants} to play. Only return the role.
+"""
+
+CONFIG_RETURN_TYPES = Literal['object', 'dict', 'config']
+
 
 class ComponentFactory:
     """Creates and manages agent components with versioned configuration loading"""
@@ -55,19 +67,22 @@ class ComponentFactory:
         self._tool_cache: Dict[str, FunctionTool] = {}
         self._last_cache_clear = datetime.now()
 
-    async def load(self, component: ComponentConfigInput, return_type: ReturnType = 'object') -> Union[Component, dict, ComponentConfig]:
+    async def load(
+        self,
+        component: ComponentConfigInput,
+        input_func: Optional[Callable] = None,
+        return_type: ReturnType = 'object'
+    ) -> Union[Component, dict, ComponentConfig]:
         """
         Universal loader for any component type
 
         Args:
             component: Component configuration (file path, dict, or ComponentConfig)
+            input_func: Optional callable for user input handling
             return_type: Type of return value ('object', 'dict', or 'config')
 
         Returns:
             Component instance, config dict, or ComponentConfig based on return_type
-
-        Raises:
-            ValueError: If component type is unknown or version unsupported
         """
         try:
             # Load and validate config
@@ -95,8 +110,8 @@ class ComponentFactory:
 
             # Otherwise create and return component instance
             handlers = {
-                ComponentType.TEAM: self.load_team,
-                ComponentType.AGENT: self.load_agent,
+                ComponentType.TEAM: lambda c: self.load_team(c, input_func),
+                ComponentType.AGENT: lambda c: self.load_agent(c, input_func),
                 ComponentType.MODEL: self.load_model,
                 ComponentType.TOOL: self.load_tool,
                 ComponentType.TERMINATION: self.load_termination
@@ -113,7 +128,7 @@ class ComponentFactory:
             logger.error(f"Failed to load component: {str(e)}")
             raise
 
-    async def load_directory(self, directory: Union[str, Path], check_exists: bool = False, return_type: ReturnType = 'object') -> List[Union[Component, dict, ComponentConfig]]:
+    async def load_directory(self, directory: Union[str, Path], return_type: ReturnType = 'object') -> List[Union[Component, dict, ComponentConfig]]:
         """
         Import all component configurations from a directory.
         """
@@ -124,7 +139,7 @@ class ComponentFactory:
             for path in list(directory.glob("*")):
                 if path.suffix.lower().endswith(('.json', '.yaml', '.yml')):
                     try:
-                        component = await self.load(path, return_type)
+                        component = await self.load(path, return_type=return_type)
                         components.append(component)
                     except Exception as e:
                         logger.info(
@@ -176,22 +191,17 @@ class ComponentFactory:
             raise ValueError(
                 f"Termination condition creation failed: {str(e)}")
 
-    async def load_team(self, config: TeamConfig) -> TeamComponent:
+    async def load_team(
+        self,
+        config: TeamConfig,
+        input_func: Optional[Callable] = None
+    ) -> TeamComponent:
         """Create team instance from configuration."""
-
-        default_selector_prompt = """You are in a role play game. The following roles are available:
-{roles}.
-Read the following conversation. Then select the next role from {participants} to play. Only return the role.
-
-{history}
-
-Read the above conversation. Then select the next role from {participants} to play. Only return the role.
-"""
         try:
-            # Load participants (agents)
+            # Load participants (agents) with input_func
             participants = []
             for participant in config.participants:
-                agent = await self.load(participant)
+                agent = await self.load(participant, input_func=input_func)
                 participants.append(agent)
 
             # Load model client if specified
@@ -202,7 +212,6 @@ Read the above conversation. Then select the next role from {participants} to pl
             # Load termination condition if specified
             termination = None
             if config.termination_condition:
-                # Now we can use the universal load() method since termination is a proper component
                 termination = await self.load(config.termination_condition)
 
             # Create team based on type
@@ -215,7 +224,7 @@ Read the above conversation. Then select the next role from {participants} to pl
                 if not model_client:
                     raise ValueError(
                         "SelectorGroupChat requires a model_client")
-                selector_prompt = config.selector_prompt if config.selector_prompt else default_selector_prompt
+                selector_prompt = config.selector_prompt if config.selector_prompt else DEFAULT_SELECTOR_PROMPT
                 return SelectorGroupChat(
                     participants=participants,
                     model_client=model_client,
@@ -229,14 +238,20 @@ Read the above conversation. Then select the next role from {participants} to pl
             logger.error(f"Failed to create team {config.name}: {str(e)}")
             raise ValueError(f"Team creation failed: {str(e)}")
 
-    async def load_agent(self, config: AgentConfig) -> AgentComponent:
+    async def load_agent(
+        self,
+        config: AgentConfig,
+        input_func: Optional[Callable] = None
+    ) -> AgentComponent:
         """Create agent instance from configuration."""
         try:
             # Load model client if specified
             model_client = None
             if config.model_client:
                 model_client = await self.load(config.model_client)
+
             system_message = config.system_message if config.system_message else "You are a helpful assistant"
+
             # Load tools if specified
             tools = []
             if config.tools:
@@ -244,9 +259,16 @@ Read the above conversation. Then select the next role from {participants} to pl
                     tool = await self.load(tool_config)
                     tools.append(tool)
 
-            if config.agent_type == AgentTypes.ASSISTANT:
+            if config.agent_type == AgentTypes.USERPROXY:
+                return UserProxyAgent(
+                    name=config.name,
+                    description=config.description or "A human user",
+                    input_func=input_func  # Pass through to UserProxyAgent
+                )
+            elif config.agent_type == AgentTypes.ASSISTANT:
                 return AssistantAgent(
                     name=config.name,
+                    description=config.description or "A helpful assistant",
                     model_client=model_client,
                     tools=tools,
                     system_message=system_message

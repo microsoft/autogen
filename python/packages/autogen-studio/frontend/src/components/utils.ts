@@ -1,4 +1,4 @@
-import { IStatus } from "./types";
+import { IStatus } from "./types/app";
 
 export const getServerUrl = () => {
   return process.env.GATSBY_API_URL || "/api";

@@ -250,12 +250,12 @@ class ChatCompletionAgent(RoutedAgent):
             result_as_str = f"Error: {str(e)}"
         return (result_as_str, call_id)
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         return {
             "memory": self._model_context.save_state(),
             "system_messages": self._system_messages,
         }
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         self._model_context.load_state(state["memory"])
         self._system_messages = state["system_messages"]

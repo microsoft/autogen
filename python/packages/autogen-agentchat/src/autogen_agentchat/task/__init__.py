@@ -4,6 +4,7 @@ from ._terminations import (
     MaxMessageTermination,
     StopMessageTermination,
     TextMentionTermination,
+    TimeoutTermination,
     TokenUsageTermination,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "StopMessageTermination",
     "TokenUsageTermination",
     "HandoffTermination",
+    "TimeoutTermination",
     "Console",
 ]

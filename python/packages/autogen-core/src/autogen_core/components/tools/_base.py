@@ -1,8 +1,9 @@
 import json
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, runtime_checkable
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, runtime_checkable, cast
 
+import jsonref
 from pydantic import BaseModel
 from typing_extensions import NotRequired
 
@@ -71,7 +72,11 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
 
     @property
     def schema(self) -> ToolSchema:
-        model_schema = self._args_type.model_json_schema()
+        model_schema: Dict[str, Any] = self._args_type.model_json_schema()
+
+        if "$defs" in model_schema:
+            model_schema = cast(Dict[str, Any], jsonref.replace_refs(obj=model_schema, proxies=False))  # type: ignore
+            del model_schema["$defs"]
 
         tool_schema = ToolSchema(
             name=self._name,
