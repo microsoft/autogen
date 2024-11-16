@@ -35,6 +35,7 @@ from typing_extensions import Self, deprecated
 from autogen_core.base import JSON_DATA_CONTENT_TYPE
 from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
 from autogen_core.base._type_helpers import ChannelArgumentType
+from google.protobuf import any_pb2
 
 from ..base import (
     Agent,
@@ -390,18 +391,20 @@ class WorkerAgentRuntime(AgentRuntime):
                     type=topic_id.type,
                     source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
                     metadata=telemetry_metadata,
-                    text_data=serialized_message,
-                    proto_data=agent_worker_pb2.Message(
-                        event=agent_worker_pb2.Event(
-                            topic_type=topic_id.type,
-                            topic_source=topic_id.source,
-                            source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
-                            metadata=telemetry_metadata,
-                            payload=agent_worker_pb2.Payload(
-                                data_type=message_type,
-                                data=serialized_message,
-                                data_content_type=JSON_DATA_CONTENT_TYPE,
-                            ),
+                    proto_data=any_pb2.Any.Pack(
+                        self=self,
+                        msg=agent_worker_pb2.Message(
+                            event=agent_worker_pb2.Event(
+                                topic_type=topic_id.type,
+                                topic_source=topic_id.source,
+                                source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
+                                metadata=telemetry_metadata,
+                                payload=agent_worker_pb2.Payload(
+                                    data_type=message_type,
+                                    data=serialized_message,
+                                    data_content_type=JSON_DATA_CONTENT_TYPE,
+                                ),
+                            )
                         )
                     )
                 )
