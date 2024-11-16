@@ -53,7 +53,7 @@ from ..base import (
 )
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2, cloudevent_pb2_grpc
+from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2, cloudevent_pb2_grpc, agent_events_pb2, agent_events_pb2_grpc
 from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 
 if TYPE_CHECKING:
@@ -387,21 +387,7 @@ class WorkerAgentRuntime(AgentRuntime):
             telemetry_metadata = get_telemetry_grpc_metadata()
             proto_data = any_pb2.Any()
             proto_data.Pack(
-                agent_worker_pb2.Message(
-                    event=agent_worker_pb2.Event(
-                        topic_type=topic_id.type,
-                        topic_source=topic_id.source,
-                        source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key)
-                        if sender is not None
-                        else None,
-                        metadata=telemetry_metadata,
-                        payload=agent_worker_pb2.Payload(
-                            data_type=message_type,
-                            data=serialized_message,
-                            data_content_type=JSON_DATA_CONTENT_TYPE,
-                        ),
-                    )
-                )
+                msg=message
             )
             if sender is not None:
                 source = str(AgentId(type=sender.type, key=sender.key))

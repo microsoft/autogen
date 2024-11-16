@@ -4,7 +4,7 @@ import os
 import sys
 
 from autogen_core.application import SingleThreadedAgentRuntime, WorkerAgentRuntime
-from autogen_core.application.protos.agent_events_pb2 import Input
+from autogen_core.application.protos.agent_events_pb2 import NewMessageReceived
 from autogen_core.base import MessageContext, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
@@ -25,7 +25,7 @@ async def main() -> None:
 
     agnext_logger.info("1")
     runtime.start()
-    runtime.add_message_serializer(try_get_known_serializers_for_type(Input))
+    runtime.add_message_serializer(try_get_known_serializers_for_type(NewMessageReceived))
 
     agnext_logger.info("2")
 
@@ -33,7 +33,9 @@ async def main() -> None:
     await runtime.add_subscription(DefaultSubscription(agent_type="proxy"))
     agnext_logger.info("3")
 
-    await runtime.publish_message(message=Input(message="NewMessageReceived"), topic_id=DefaultTopicId("HelloAgents"))
+    message = NewMessageReceived(message="Hello from Python!")
+
+    await runtime.publish_message(message=message, topic_id=DefaultTopicId("HelloAgents"))
     await runtime.stop_when_signal()
     # await runtime.stop_when_idle()
 
