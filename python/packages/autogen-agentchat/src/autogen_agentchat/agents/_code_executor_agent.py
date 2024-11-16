@@ -9,7 +9,52 @@ from ._base_chat_agent import BaseChatAgent
 
 
 class CodeExecutorAgent(BaseChatAgent):
-    """An agent that executes code snippets and report the results."""
+    """An agent that extracts and executes code snippets found in received messages and returns the output.
+
+    It is typically used within a team with another agent that generates code snippets to be executed.
+
+    .. note::
+
+        It is recommended that the `CodeExecutorAgent` agent uses a Docker container to execute code. This ensures that model-generated code is executed in an isolated environment. To use Docker, your environment must have Docker installed and running.
+        Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
+
+    In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
+    :py:class:`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
+    to execute code snippets in a Docker container. The `work_dir` parameter indicates where all executed files are first saved locally before being executed in the Docker container.
+
+        .. code-block:: python
+
+
+            from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_ext.code_executors import DockerCommandLineCodeExecutor
+
+
+            async def run_code_executor_agent() -> None:
+                # Create a code executor agent that uses a Docker container to execute code.
+                code_executor = DockerCommandLineCodeExecutor(work_dir="coding")
+                await code_executor.start()
+                code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
+
+                # Run the agent with a given code snippet.
+                task = TextMessage(
+                    content='''Here is some code
+            ```python
+            print('Hello world')
+            ```
+            ''',
+                    source="user",
+                )
+                response = await code_executor_agent.on_messages([task], CancellationToken())
+                print(response.chat_message)
+
+                # Stop the code executor.
+                await code_executor.stop()
+
+
+            # Use asyncio.run(run_code_executor_agent()) when running in a script.
+            await run_code_executor_agent()
+
+    """
 
     def __init__(
         self,
