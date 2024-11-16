@@ -942,10 +942,10 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         azure_endpoint (str): The endpoint for the Azure model. **Required for Azure models.**
         model (str): The deployment ID for the Azure model. **Required for Azure models.**
         api_version (str): The API version to use. **Required for Azure models.**
-        azure_ad_token (str): The Azure AD token to use. Provide either this or `azure_ad_token_provider`.
-        azure_ad_token_provider (AsyncAzureAdTokenProvider): The Azure AD token provider to use. Provide either this or `azure_ad_token`.
+        azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
+        azure_ad_token_provider (Callable[[], Awaitable[str]]): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
         model_capabilities (ModelCapabilities): The capabilities of the model. **Required for Azure models.**
-        api_key (optional, str): The API key to use, use this if you are using key based authentication.
+        api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
         timeout (optional, int): The timeout for the request in seconds.
         max_retries (optional, int): The maximum number of retries to attempt.
 
@@ -975,7 +975,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
                 api_version="2024-06-01",
                 azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
                 azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
-                # api_key="sk-...", # For key-based authentication.
+                # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
                 model_capabilities={
                     "vision": True,
                     "function_calling": True,
