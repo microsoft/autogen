@@ -249,6 +249,11 @@ class WorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
+                    case "cloudEvent":
+                        task = asyncio.create_task(self._process_cloud_event(message.cloudEvent))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._raise_on_exception)
+                        task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
                     case other:
@@ -744,3 +749,8 @@ class WorkerAgentRuntime(AgentRuntime):
 
     def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
         self._serialization_registry.add_serializer(serializer)
+
+    async def _process_cloud_event(self, cloud_event: cloudevent_pb2.CloudEvent) -> None:
+        # Implement the processing logic for CloudEvent messages here
+        logger.info(f"Processing CloudEvent: {cloud_event}")
+        # Add your processing logic here
