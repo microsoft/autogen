@@ -126,7 +126,8 @@ class AssistantAgent(BaseChatAgent):
 
 
         The following example demonstrates how to create an assistant agent with
-        a model client and a tool, and generate a stream of messages for a task.
+        a model client and a tool, generate a stream of messages for a task, and
+        print the messages to the console.
 
         .. code-block:: python
 
