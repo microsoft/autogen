@@ -126,6 +126,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
         style={{
           ...style,
           strokeWidth: finalStrokeWidth,
+          stroke: data.routingType === "secondary" ? "#0891b2" : style.stroke,
         }}
         markerEnd={markerEnd}
       />
