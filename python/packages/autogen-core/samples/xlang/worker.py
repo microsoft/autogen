@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import sys
 
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.application.protos.agent_events_pb2 import NewMessageReceived
@@ -18,7 +17,7 @@ agnext_logger = logging.getLogger("autogen_core")
 
 async def main() -> None:
     load_dotenv()
-    agentHost = os.getenv("AGENT_HOST")
+    agentHost = os.getenv("AGENT_HOST") or "localhost:53072"
     agnext_logger.info("0")
     agnext_logger.info(agentHost)
     runtime = WorkerAgentRuntime(host_address=agentHost)
