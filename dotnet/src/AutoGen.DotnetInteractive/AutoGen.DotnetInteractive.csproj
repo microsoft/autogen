@@ -28,7 +28,7 @@
 	  <EmbeddedResource Include="RestoreInteractive.config" />
 	</ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+  <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Interactive.Jupyter" />
     <PackageReference Include="Microsoft.DotNet.Interactive.PackageManagement" />
   </ItemGroup>
