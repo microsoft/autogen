@@ -39,7 +39,7 @@ async def main() -> None:
         message=message,
         topic_id=DefaultTopicId("agents.NewMessageReceived"),
         sender=AgentId("HelloAgents", "python"),
-        )
+    )
     await runtime.stop_when_signal()
     # await runtime.stop_when_idle()
 
