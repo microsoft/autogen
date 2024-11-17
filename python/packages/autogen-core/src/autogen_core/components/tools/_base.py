@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, runtime_checkable, cast
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, cast, runtime_checkable
 
 import jsonref
 from pydantic import BaseModel

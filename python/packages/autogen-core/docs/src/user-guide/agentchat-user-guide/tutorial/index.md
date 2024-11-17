@@ -46,6 +46,12 @@ A smart team that uses a model-based strategy and custom selector.
 A dynamic team that uses handoffs to pass tasks between agents.
 :::
 
+:::{grid-item-card} {fas}`users;pst-color-primary` Custom Agents
+:link: ./custom-agents.html
+
+How to build custom agents.
+:::
+
 ::::
 
 ```{toctree}
@@ -58,4 +64,5 @@ teams
 selector-group-chat
 swarm
 termination
+custom-agents
 ```
