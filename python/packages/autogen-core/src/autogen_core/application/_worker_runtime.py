@@ -766,7 +766,6 @@ class WorkerAgentRuntime(AgentRuntime):
         )
         topic_id = TopicId(cloud_event.type, cloud_event.source)
         sender: AgentId | None = None
-        # split the cloud_event.source into type and key from string split on "/"
         sender = AgentId(cloud_event.source.split("/")[0], cloud_event.source.split("/")[1])
             
         event = agent_worker_pb2.Event(
