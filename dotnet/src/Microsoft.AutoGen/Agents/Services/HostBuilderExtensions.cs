@@ -15,7 +15,7 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class HostBuilderExtensions
 {
-    private const string _defaultAgentServiceAddress = "https://localhost:5001";
+    private const string _defaultAgentServiceAddress = "https://localhost:53071";
     public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null, bool local = false)
     {
         agentServiceAddress ??= builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress;

@@ -160,6 +160,13 @@ public sealed class GrpcAgentWorker(
                 item.WriteCompletionSource?.TrySetCanceled();
                 break;
             }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+            {
+                // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
+                // we need to let the user know what port we tried to connect to and then do backoff and retry
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", channel.ToString());
+                break;
+            }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
             {
                 item.WriteCompletionSource?.TrySetException(ex);

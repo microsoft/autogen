@@ -5,7 +5,7 @@ import sys
 
 from autogen_core.application import SingleThreadedAgentRuntime, WorkerAgentRuntime
 from autogen_core.application.protos.agent_events_pb2 import NewMessageReceived
-from autogen_core.base import MessageContext, try_get_known_serializers_for_type
+from autogen_core.base import AgentId, MessageContext, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
 
 # Add the local package directory to sys.path
@@ -29,13 +29,17 @@ async def main() -> None:
 
     agnext_logger.info("2")
 
-    await UserProxy.register(runtime, "proxy", lambda: UserProxy())
-    await runtime.add_subscription(DefaultSubscription(agent_type="proxy"))
+    await UserProxy.register(runtime, "HelloAgents", lambda: UserProxy())
+    await runtime.add_subscription(DefaultSubscription(agent_type="HelloAgents"))
     agnext_logger.info("3")
 
     message = NewMessageReceived(message="Hello from Python!")
 
-    await runtime.publish_message(message=message, topic_id=DefaultTopicId("HelloAgents"))
+    await runtime.publish_message(
+        message=message,
+        topic_id=DefaultTopicId("agents.NewMessageReceived"),
+        sender=AgentId("HelloAgents", "python"),
+        )
     await runtime.stop_when_signal()
     # await runtime.stop_when_idle()
 

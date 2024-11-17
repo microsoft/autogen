@@ -15,11 +15,11 @@ using Microsoft.Extensions.Hosting;
 // step 4: send a message to the agent
 
 // step 5: wait for the agent runtime to shutdown
-// var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-// {
-//     Message = "World"
-// }, local: true);
-var app = await AgentsApp.StartAsync();
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+{
+    Message = "World"
+}, local: false);
+//var app = await AgentsApp.StartAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello
@@ -33,7 +33,8 @@ namespace Hello
             ISayHello,
             IHandleConsole,
             IHandle<NewMessageReceived>,
-            IHandle<ConversationClosed>
+            IHandle<ConversationClosed>,
+            IHandle<Shutdown>
     {
         public async Task Handle(NewMessageReceived item)
         {
@@ -55,8 +56,11 @@ namespace Hello
                 Message = goodbye
             };
             await PublishMessageAsync(evt).ConfigureAwait(false);
+        }
 
-            // Signal shutdown.
+        public async Task Handle(Shutdown item)
+        {
+            Console.WriteLine("Shutting down...");
             hostApplicationLifetime.StopApplication();
         }
 
