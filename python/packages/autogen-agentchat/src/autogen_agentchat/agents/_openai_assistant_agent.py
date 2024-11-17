@@ -2,13 +2,14 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Iterable, List, Optional, Sequence, cast
+from typing import Dict, Generic, Iterable, List, Literal, Optional, Sequence, TypedDict, TypeVar, cast
 
 import aiofiles
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.models._types import FunctionExecutionResult
 from autogen_core.components.tools import Tool
+from autogen_core.components.tools._base import BaseTool
 from openai import NOT_GIVEN, AsyncClient, NotGiven
 from openai.pagination import AsyncCursorPage
 from openai.types import FileObject
@@ -16,11 +17,15 @@ from openai.types.beta import thread_update_params
 from openai.types.beta.assistant import Assistant
 from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
 from openai.types.beta.assistant_tool_param import AssistantToolParam
+from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
+from openai.types.beta.file_search_tool_param import FileSearchToolParam
 from openai.types.beta.function_tool_param import FunctionToolParam
 from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
 from openai.types.beta.threads import Message, MessageDeleted, Run
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
+from pydantic import BaseModel
+from typing_extensions import Required
 
 from autogen_agentchat.messages import (
     AgentMessage,
@@ -38,11 +43,19 @@ from ..base import Response
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
+ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
+ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 
 
-def _convert_tool_to_function_param(tool: Tool) -> FunctionToolParam:
+class BaseToolParam(TypedDict, Generic[ArgsT, ReturnT], total=False):
+    tool: Required[BaseTool[ArgsT, ReturnT]]
+
+    type: Required[Literal["tool"]]
+
+
+def _convert_tool_to_function_param(tool_param: BaseToolParam[ArgsT, ReturnT]) -> FunctionToolParam:
     """Convert an autogen Tool to an OpenAI Assistant function tool parameter."""
-    schema = tool.schema
+    schema = tool_param["tool"].schema
     parameters: Dict[str, object] = {}
     if "parameters" in schema:
         parameters = {
@@ -61,7 +74,72 @@ def _convert_tool_to_function_param(tool: Tool) -> FunctionToolParam:
 
 
 class OpenAIAssistantAgent(BaseChatAgent):
-    """An agent implementation that uses the OpenAI Assistant API to generate responses."""
+    """An agent implementation that uses the OpenAI Assistant API to generate responses.
+
+    This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
+    - Code interpretation and execution
+    - File handling and search
+    - Custom function calling
+    - Multi-turn conversations
+
+    The agent maintains a thread of conversation and can use various tools including:
+    - Code interpreter: For executing code and working with files
+    - File search: For searching through uploaded documents
+    - Custom functions: For extending capabilities with user-defined tools
+
+    Key Features:
+    - Supports multiple file formats including code, documents, images
+    - Can handle up to 128 tools per assistant
+    - Maintains conversation context in threads
+    - Supports file uploads for code interpreter and search
+    - Vector store integration for efficient file search
+    - Automatic file parsing and embedding
+
+    Example:
+        .. code-block:: python
+
+            from openai import AsyncClient
+            from autogen_agentchat.agents import OpenAIAssistantAgent
+
+            # Create an OpenAI client
+            client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
+
+            # Create an assistant with code interpreter
+            assistant = OpenAIAssistantAgent(
+                name="Python Helper",
+                description="Helps with Python programming",
+                client=client,
+                model="gpt-4",
+                instructions="You are a helpful Python programming assistant.",
+                tools=[{"type": "code_interpreter"}],
+            )
+
+            # Upload files for the assistant to use
+            await assistant.on_upload_for_code_interpreter("data.csv", cancellation_token)
+
+            # Get response from the assistant
+            response = await assistant.on_messages(
+                [TextMessage(source="user", content="Analyze the data in data.csv")], cancellation_token
+            )
+
+            # Clean up resources
+            await assistant.delete_uploaded_files(cancellation_token)
+            await assistant.delete_assistant(cancellation_token)
+
+    Args:
+        name (str): Name of the assistant
+        description (str): Description of the assistant's purpose
+        client (AsyncClient): OpenAI API client instance
+        model (str): Model to use (e.g. "gpt-4")
+        instructions (str): System instructions for the assistant
+        tools (Optional[Iterable[CodeInterpreterToolParam | FileSearchToolParam | BaseToolParam[ArgsT, ReturnT]]]): Tools the assistant can use
+        assistant_id (Optional[str]): ID of existing assistant to use
+        metadata (Optional[object]): Additional metadata for the assistant
+        response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
+        temperature (Optional[float]): Temperature for response generation
+        tool_resources (Optional[ToolResources]): Additional tool configuration
+        top_p (Optional[float]): Top p sampling parameter
+    """
 
     def __init__(
         self,
@@ -70,7 +148,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         client: AsyncClient,
         model: str,
         instructions: str,
-        tools: Optional[Iterable[AssistantToolParam | Tool]] = None,
+        tools: Optional[
+            Iterable[CodeInterpreterToolParam | FileSearchToolParam | BaseToolParam[ArgsT, ReturnT]]
+        ] = None,
         assistant_id: Optional[str] = None,
         metadata: Optional[object] = None,
         response_format: Optional[AssistantResponseFormatOptionParam] = None,
@@ -86,18 +166,20 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._original_tools: List[Tool] = []
         converted_tools: List[AssistantToolParam] = []
         for tool in tools:
-            if isinstance(tool, Tool):
-                self._original_tools.append(tool)
-                converted_tools.append(_convert_tool_to_function_param(tool))
+            if tool.get("type") == "tool":
+                base_tool = cast(BaseToolParam[ArgsT, ReturnT], tool)
+                self._original_tools.append(base_tool["tool"])
+                converted_tools.append(_convert_tool_to_function_param(base_tool))
             else:
-                converted_tools.append(tool)
+                # Not runtime checked but excluded base tool in the previous condition
+                converted_tools.append(cast(AssistantToolParam, tool))
 
         self._client = client
         self._assistant: Optional[Assistant] = None
         self._thread: Optional[Thread] = None
         self._model = model
         self._instructions = instructions
-        self._tools = converted_tools
+        self._api_tools = converted_tools
         self._assistant_id = assistant_id
         self._metadata = metadata
         self._response_format = response_format
@@ -117,7 +199,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                     model=self._model,
                     description=self.description,
                     instructions=self._instructions,
-                    tools=self._tools,
+                    tools=self._api_tools,
                     metadata=self._metadata,
                     response_format=self._response_format if self._response_format else NOT_GIVEN,  # type: ignore
                     temperature=self._temperature,
@@ -356,7 +438,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         await self._ensure_initialized()
 
         # Check if file_search is enabled in tools
-        if not any(tool.get("type") == "file_search" for tool in self._tools):
+        if not any(tool.get("type") == "file_search" for tool in self._api_tools):
             raise ValueError(
                 "File search is not enabled for this assistant. Add a file_search tool when creating the assistant."
             )
@@ -408,3 +490,14 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 self._assistant = None
             except Exception as e:
                 event_logger.error(f"Failed to delete assistant: {str(e)}")
+
+    async def delete_vector_store(self, cancellation_token: CancellationToken) -> None:
+        """Delete the vector store if it was created by this instance."""
+        if self._vector_store_id is not None:
+            try:
+                await cancellation_token.link_future(
+                    asyncio.ensure_future(self._client.beta.vector_stores.delete(vector_store_id=self._vector_store_id))
+                )
+                self._vector_store_id = None
+            except Exception as e:
+                event_logger.error(f"Failed to delete vector store: {str(e)}")
