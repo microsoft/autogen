@@ -758,6 +758,25 @@ class WorkerAgentRuntime(AgentRuntime):
         self._serialization_registry.add_serializer(serializer)
 
     async def _process_cloud_event(self, cloud_event: cloudevent_pb2.CloudEvent) -> None:
-        # Implement the processing logic for CloudEvent messages here
         logger.info(f"Processing CloudEvent: {cloud_event}")
-        # Add your processing logic here
+        payload = self._serialization_registry.deserialize(
+            cloud_event.proto_data.value,
+            type_name=cloud_event.type,
+            data_content_type=JSON_DATA_CONTENT_TYPE,
+        )
+        topic_id = TopicId(cloud_event.type, cloud_event.source)
+        sender: AgentId | None = None
+        # split the cloud_event.source into type and key from string split on "/"
+        sender = AgentId(cloud_event.source.split("/")[0], cloud_event.source.split("/")[1])
+            
+        event = agent_worker_pb2.Event(
+            topic_type=cloud_event.type,
+            topic_source=cloud_event.source,
+            payload=agent_worker_pb2.Payload(
+                data_type=cloud_event.type,
+                data=cloud_event.proto_data.value,
+                data_content_type=JSON_DATA_CONTENT_TYPE,
+            ),
+            metadata=get_telemetry_grpc_metadata(),
+        )
+        self._process_event(event)
