@@ -763,11 +763,7 @@ class WorkerAgentRuntime(AgentRuntime):
             cloud_event.proto_data.value,
             type_name=cloud_event.type,
             data_content_type=JSON_DATA_CONTENT_TYPE,
-        )
-        topic_id = TopicId(cloud_event.type, cloud_event.source)
-        sender: AgentId | None = None
-        sender = AgentId(cloud_event.source.split("/")[0], cloud_event.source.split("/")[1])
-            
+        )            
         event = agent_worker_pb2.Event(
             topic_type=cloud_event.type,
             topic_source=cloud_event.source,
