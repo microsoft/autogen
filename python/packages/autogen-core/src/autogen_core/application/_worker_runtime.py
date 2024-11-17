@@ -759,11 +759,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_cloud_event(self, cloud_event: cloudevent_pb2.CloudEvent) -> None:
         logger.info(f"Processing CloudEvent: {cloud_event}")
-        payload = self._serialization_registry.deserialize(
-            cloud_event.proto_data.value,
-            type_name=cloud_event.type,
-            data_content_type=JSON_DATA_CONTENT_TYPE,
-        )            
+
         event = agent_worker_pb2.Event(
             topic_type=cloud_event.type,
             topic_source=cloud_event.source,
@@ -774,4 +770,4 @@ class WorkerAgentRuntime(AgentRuntime):
             ),
             metadata=get_telemetry_grpc_metadata(),
         )
-        self._process_event(event)
+        await self._process_event(event)
