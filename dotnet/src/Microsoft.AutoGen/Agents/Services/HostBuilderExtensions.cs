@@ -16,7 +16,23 @@ namespace Microsoft.AutoGen.Agents;
 public static class HostBuilderExtensions
 {
     private const string _defaultAgentServiceAddress = "https://localhost:5001";
-    public static AgentApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
+
+    public static IHostApplicationBuilder AddAgent<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : AgentBase
+    {
+        builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddAgent(this IHostApplicationBuilder builder, string typeName, Type agentType)
+    {
+        builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, agentType));
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
     {
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
@@ -98,7 +114,9 @@ public static class HostBuilderExtensions
             return new EventTypes(typeRegistry, types, eventsMap);
         });
         builder.Services.AddSingleton<Client>();
-        return new AgentApplicationBuilder(builder);
+        builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
+
+        return builder;
     }
 
     private static MessageDescriptor? GetMessageDescriptor(Type type)
