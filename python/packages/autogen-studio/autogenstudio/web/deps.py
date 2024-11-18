@@ -86,7 +86,7 @@ async def get_current_user(
 # Manager initialization and cleanup
 
 
-async def init_managers(database_uri: str, config_dir: str) -> None:
+async def init_managers(database_uri: str, config_dir: str, app_root: str) -> None:
     """Initialize all manager instances"""
     global _db_manager, _websocket_manager, _team_manager
 
@@ -95,7 +95,7 @@ async def init_managers(database_uri: str, config_dir: str) -> None:
     try:
         # Initialize database manager
         _db_manager = DatabaseManager(
-            engine_uri=database_uri, auto_upgrade=settings.UPGRADE_DATABASE)
+            engine_uri=database_uri, auto_upgrade=settings.UPGRADE_DATABASE, base_dir=app_root)
         _db_manager.create_db_and_tables()
 
         # init default team config

@@ -126,7 +126,8 @@ class AssistantAgent(BaseChatAgent):
 
 
         The following example demonstrates how to create an assistant agent with
-        a model client and a tool, and generate a stream of messages for a task.
+        a model client and a tool, generate a stream of messages for a task, and
+        print the messages to the console.
 
         .. code-block:: python
 
@@ -134,6 +135,7 @@ class AssistantAgent(BaseChatAgent):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
+            from autogen_agentchat.task import Console
             from autogen_core.base import CancellationToken
 
 
@@ -145,12 +147,11 @@ class AssistantAgent(BaseChatAgent):
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
                 agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
 
-                stream = agent.on_messages_stream(
-                    [TextMessage(content="What is the current time?", source="user")], CancellationToken()
+                await Console(
+                    agent.on_messages_stream(
+                        [TextMessage(content="What is the current time?", source="user")], CancellationToken()
+                    )
                 )
-
-                async for message in stream:
-                    print(message)
 
 
             asyncio.run(main())
@@ -165,7 +166,7 @@ class AssistantAgent(BaseChatAgent):
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with 'TERMINATE' when the task has been completed.",
+        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client

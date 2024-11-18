@@ -24,7 +24,8 @@ dependencies = [
     "protobuf~=4.25.1",
     "tiktoken",
     "opentelemetry-api~=1.27.0",
-    "asyncio_atexit"
+    "asyncio_atexit",
+    "jsonref~=1.1.0",
 ]
 
 [tool.uv]
