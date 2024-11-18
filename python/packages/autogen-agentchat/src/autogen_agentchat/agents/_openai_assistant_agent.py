@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Optional,
     Sequence,
-    TypeVar,
     Union,
     cast,
 )
@@ -37,7 +36,6 @@ from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInt
 from openai.types.beta.threads import Message, MessageDeleted, Run
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
-from pydantic import BaseModel
 
 from autogen_agentchat.messages import (
     AgentMessage,
@@ -55,8 +53,6 @@ from ..base import Response
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
-ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 
 
 def _convert_tool_to_function_param(tool: Tool) -> FunctionToolParam:
