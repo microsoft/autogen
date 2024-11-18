@@ -14,7 +14,7 @@ __all__ = [
 class DropMessage: ...
 
 
-def warn_if_none(result: Any, handler_name: str) -> Any:
+def _warn_if_none(result: Any, handler_name: str) -> Any:
     """
     Utility function to check if the intervention handler returned None and issue a warning.
     
