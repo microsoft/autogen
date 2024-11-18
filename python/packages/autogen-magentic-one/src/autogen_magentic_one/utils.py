@@ -50,7 +50,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # Load the kwargs, and override with provided kwargs
     _kwargs = json.loads(env.get(ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON, "{}"))
-    #_kwargs.update(kwargs)
+    
 
     # If model capabilities were provided, deserialize them as well
     if "model_capabilities" in _kwargs:
@@ -62,9 +62,10 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # Figure out what provider we are using. Default to OpenAI
     _provider = env.get(ENVIRON_KEY_CHAT_COMPLETION_PROVIDER, "openai").lower().strip()
-
+    
     # Instantiate the correct client
     if _provider == "openai":
+        _kwargs.update(kwargs)
         return OpenAIChatCompletionClient(**_kwargs)  # type: ignore
     elif _provider == "azure":
         if _kwargs.get("azure_ad_token_provider", "").lower() == "default":
