@@ -1,7 +1,7 @@
 from typing import Callable, List
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentMessage
+from ...messages import AgentMessage, ChatMessage
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -27,6 +27,9 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
         )
         self._next_speaker_index = 0
+
+    async def validate_group_state(self, message: ChatMessage | None) -> None:
+        pass
 
     async def reset(self) -> None:
         self._current_turn = 0
@@ -68,7 +71,7 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
 
 
             async def main() -> None:
@@ -84,9 +87,7 @@ class RoundRobinGroupChat(BaseGroupChat):
                 )
                 termination = TextMentionTermination("TERMINATE")
                 team = RoundRobinGroupChat([assistant], termination_condition=termination)
-                stream = team.run_stream("What's the weather in New York?")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="What's the weather in New York?"))
 
 
             asyncio.run(main())
@@ -99,7 +100,7 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
 
 
             async def main() -> None:
@@ -109,9 +110,7 @@ class RoundRobinGroupChat(BaseGroupChat):
                 agent2 = AssistantAgent("Assistant2", model_client=model_client)
                 termination = TextMentionTermination("TERMINATE")
                 team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
-                stream = team.run_stream("Tell me some jokes.")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="Tell me some jokes."))
 
 
             asyncio.run(main())

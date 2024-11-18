@@ -1,3 +1,4 @@
+from pathlib import Path
 import threading
 from datetime import datetime
 from typing import Optional
@@ -19,15 +20,34 @@ class DatabaseManager:
 
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, auto_upgrade: bool = True):
+    def __init__(
+        self,
+        engine_uri: str,
+        base_dir: Optional[Path | str] = None,
+        auto_upgrade: bool = True
+    ):
+        """
+        Initialize DatabaseManager with optional custom base directory.
+
+        Args:
+            engine_uri: Database connection URI
+            base_dir: Custom base directory for Alembic files. If None, uses current working directory
+            auto_upgrade: Whether to automatically upgrade schema when differences found
+        """
+        # Convert string path to Path object if necessary
+        if isinstance(base_dir, str):
+            base_dir = Path(base_dir)
+
         connection_args = {
-            "check_same_thread": True} if "sqlite" in engine_uri else {}
+            "check_same_thread": True
+        } if "sqlite" in engine_uri else {}
+
         self.engine = create_engine(engine_uri, connect_args=connection_args)
         self.schema_manager = SchemaManager(
             engine=self.engine,
+            base_dir=base_dir,
             auto_upgrade=auto_upgrade,
         )
-
         # Check and upgrade on startup
         upgraded, status = self.schema_manager.check_and_upgrade()
         if upgraded:

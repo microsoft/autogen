@@ -7,9 +7,39 @@ import type { Team, TeamConfig } from "../../../types/datamodel";
 import { MonacoEditor } from "../monaco";
 
 const defaultTeamConfig: TeamConfig = {
-  name: "",
-  participants: [],
+  version: "1.0.0",
+  component_type: "team",
+  name: "weather_team",
+  participants: [
+    {
+      component_type: "agent",
+      name: "writing_agent",
+      agent_type: "AssistantAgent",
+      system_message:
+        "You are a helpful assistant. Solve tasks carefully. When done respond with TERMINATE",
+      model_client: {
+        component_type: "model",
+        model: "gpt-4o-2024-08-06",
+        model_type: "OpenAIChatCompletionClient",
+      },
+      tools: [
+        {
+          component_type: "tool",
+          name: "get_weather",
+          description: "Get the weather for a city",
+          content:
+            'async def get_weather(city: str) -> str:\n    return f"The weather in {city} is 73 degrees and Sunny."',
+          tool_type: "PythonFunction",
+        },
+      ],
+    },
+  ],
   team_type: "RoundRobinGroupChat",
+  termination_condition: {
+    component_type: "termination",
+    termination_type: "MaxMessageTermination",
+    max_messages: 10,
+  },
 };
 
 type FieldType = {
@@ -122,48 +152,57 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
       width={800}
       forceRender
     >
-      <Form
-        form={form}
-        name="team-form"
-        layout="vertical"
-        onFinish={onFinish}
-        autoComplete="off"
-      >
-        <div className="mb-2 text-xs text-gray-500">
-          Required fields: name (string), team_type ("RoundRobinGroupChat" |
-          "SelectorGroupChat"), participants (array)
-        </div>
-
-        <div className="h-[500px] mb-4">
-          <MonacoEditor
-            value={editorValue}
-            onChange={handleEditorChange}
-            editorRef={editorRef}
-            language="json"
-            minimap={false}
+      <div>
+        <div className="mb-4 mt-4 border text-xs p-2 rounded">
+          <TriangleAlertIcon
+            className="w-5 h-5 inline-block mr-2"
+            strokeWidth={1.5}
           />
+          Work is still being done to create an improved team editor.
         </div>
-
-        {jsonError && (
-          <div className="flex items-center gap-1.5 text-sm text-red-500 mb-4">
-            <TriangleAlertIcon className="h-4 w-4" />
-            <span>{jsonError}</span>
+        <Form
+          form={form}
+          name="team-form"
+          layout="vertical"
+          onFinish={onFinish}
+          autoComplete="off"
+        >
+          <div className="mb-2 text-xs text-gray-500">
+            Required fields: name (string), team_type ("RoundRobinGroupChat" |
+            "SelectorGroupChat"), participants (array)
           </div>
-        )}
 
-        <Form.Item className="flex justify-end mb-0">
-          <div className="flex gap-2">
-            <Button onClick={onCancel}>Cancel</Button>
-            <Button
-              type="primary"
-              onClick={() => form.submit()}
-              disabled={!!jsonError}
-            >
-              {team ? "Update" : "Create"}
-            </Button>
+          <div className="h-[500px] mb-4">
+            <MonacoEditor
+              value={editorValue}
+              onChange={handleEditorChange}
+              editorRef={editorRef}
+              language="json"
+              minimap={false}
+            />
           </div>
-        </Form.Item>
-      </Form>
+
+          {jsonError && (
+            <div className="flex items-center gap-1.5 text-sm text-red-500 mb-4">
+              <TriangleAlertIcon className="h-4 w-4" />
+              <span>{jsonError}</span>
+            </div>
+          )}
+
+          <Form.Item className="flex justify-end mb-0">
+            <div className="flex gap-2">
+              <Button onClick={onCancel}>Cancel</Button>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                disabled={!!jsonError}
+              >
+                {team ? "Update" : "Create"}
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </div>
     </Modal>
   );
 };
