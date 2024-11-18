@@ -50,7 +50,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # Load the kwargs, and override with provided kwargs
     _kwargs = json.loads(env.get(ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON, "{}"))
-    _kwargs.update(kwargs)
+    #_kwargs.update(kwargs)
 
     # If model capabilities were provided, deserialize them as well
     if "model_capabilities" in _kwargs:
