@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from ...datamodel import Run, RunStatus, TeamResult
 from ...database import DatabaseManager
 from ...teammanager import TeamManager
-from autogen_agentchat.messages import InnerMessage, ChatMessage, TextMessage
+from autogen_agentchat.messages import AgentMessage, ChatMessage, TextMessage
 from autogen_core.base import CancellationToken
 
 logger = logging.getLogger(__name__)
@@ -235,7 +235,7 @@ class WebSocketManager:
             Optional[dict]: Formatted message or None if formatting fails
         """
         try:
-            if isinstance(message, (InnerMessage, ChatMessage)):
+            if isinstance(message, (AgentMessage, ChatMessage)):
                 return {
                     "type": "message",
                     "data": message.model_dump()
