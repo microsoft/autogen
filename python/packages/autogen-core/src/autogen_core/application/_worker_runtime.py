@@ -28,6 +28,7 @@ from typing import (
 )
 
 import grpc
+from google.protobuf import any_pb2
 from grpc.aio import StreamStreamCall
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
@@ -52,7 +53,11 @@ from ..base import (
 )
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc
+from .protos import (
+    agent_worker_pb2,
+    agent_worker_pb2_grpc,
+    cloudevent_pb2,
+)
 from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 
 if TYPE_CHECKING:
@@ -249,6 +254,11 @@ class WorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
+                    case "cloudEvent":
+                        task = asyncio.create_task(self._process_cloud_event(message.cloudEvent))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._raise_on_exception)
+                        task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
                     case other:
@@ -375,24 +385,22 @@ class WorkerAgentRuntime(AgentRuntime):
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
         ):
-            serialized_message = self._serialization_registry.serialize(
-                message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
-            )
             telemetry_metadata = get_telemetry_grpc_metadata()
+            proto_data = any_pb2.Any()
+            proto_data.Pack(msg=message)
+            if sender is not None:
+                source = str(AgentId(type=sender.type, key=sender.key))
+            else:
+                source = ""
             runtime_message = agent_worker_pb2.Message(
-                event=agent_worker_pb2.Event(
-                    topic_type=topic_id.type,
-                    topic_source=topic_id.source,
-                    source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
+                cloudEvent=cloudevent_pb2.CloudEvent(
+                    spec_version="1.0",
+                    type=topic_id.type,
+                    source=source,
                     metadata=telemetry_metadata,
-                    payload=agent_worker_pb2.Payload(
-                        data_type=message_type,
-                        data=serialized_message,
-                        data_content_type=JSON_DATA_CONTENT_TYPE,
-                    ),
+                    proto_data=proto_data,
                 )
             )
-
             task = asyncio.create_task(self._send_message(runtime_message, "publish", topic_id, telemetry_metadata))
             self._background_tasks.add(task)
             task.add_done_callback(self._raise_on_exception)
@@ -643,7 +651,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error:
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)
@@ -728,7 +736,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error:
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)
@@ -748,3 +756,18 @@ class WorkerAgentRuntime(AgentRuntime):
 
     def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
         self._serialization_registry.add_serializer(serializer)
+
+    async def _process_cloud_event(self, cloud_event: cloudevent_pb2.CloudEvent) -> None:
+        logger.info(f"Processing CloudEvent: {cloud_event}")
+
+        event = agent_worker_pb2.Event(
+            topic_type=cloud_event.type,
+            topic_source=cloud_event.source,
+            payload=agent_worker_pb2.Payload(
+                data_type=cloud_event.type,
+                data=cloud_event.proto_data.value,
+                data_content_type=JSON_DATA_CONTENT_TYPE,
+            ),
+            metadata=get_telemetry_grpc_metadata(),
+        )
+        await self._process_event(event)
