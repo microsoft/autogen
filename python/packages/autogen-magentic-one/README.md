@@ -67,12 +67,14 @@ You can install the Magentic-One package and then run the example code to see ho
     uv sync  --all-extras
     source .venv/bin/activate
     ```
+   For Windows, run `.venv\Scripts\activate` to activate the environment.
+   
     Install magentic-one from source:
     ```bash
     cd packages/autogen-magentic-one
     pip install -e .
     ```
-
+    
 The following instructions are for running the example code:
 
 2. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
@@ -138,6 +140,12 @@ To configure for Azure OpenAI service, set the following environment variables:
   "model": "gpt-4o-2024-05-13"
 }
 ```
+
+This project uses Azure OpenAI service with [Entra ID authentcation by default](https://learn.microsoft.com/azure/ai-services/openai/how-to/managed-identity). If you run the examples on a local device, you can use the Azure CLI cached credentials for testing:
+
+Log in to Azure using `az login`, and then run the examples. The account used must have [RBAC permissions](https://learn.microsoft.com/azure/ai-services/openai/how-to/role-based-access-control) like `Azure Cognitive Services OpenAI User` for the OpenAI service; otherwise, you will receive the error: Principal does not have access to API/Operation. 
+
+Note that even if you are the owner of the subscription, you still need to grant the necessary Azure Cognitive Services OpenAI permissions to call the API.
 
 ### With OpenAI
 
