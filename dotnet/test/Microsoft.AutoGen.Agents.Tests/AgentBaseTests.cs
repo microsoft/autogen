@@ -57,7 +57,6 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
-    [TopicSubscription(nameof(AgentBaseTests.ItDelegateMessageToTestAgentAsync))]
     public class TestAgent : AgentBase, IHandle<string>, IHandle<int>, IHandle<TextMessage>
     {
         public TestAgent(

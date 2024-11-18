@@ -567,16 +567,21 @@ dev = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.1.6"
+version = "0.4.0.dev37"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "alembic" },
+    { name = "autogen-agentchat" },
+    { name = "autogen-core" },
+    { name = "autogen-ext" },
     { name = "fastapi" },
     { name = "loguru" },
     { name = "numpy" },
     { name = "psycopg" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sqlmodel" },
     { name = "typer" },
     { name = "uvicorn" },
@@ -595,6 +600,9 @@ web = [
 [package.metadata]
 requires-dist = [
     { name = "alembic" },
+    { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
+    { name = "autogen-core", editable = "packages/autogen-core" },
+    { name = "autogen-ext", editable = "packages/autogen-ext" },
     { name = "fastapi" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "loguru" },
@@ -602,7 +610,9 @@ requires-dist = [
     { name = "psycopg" },
     { name = "psycopg", marker = "extra == 'database'" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sqlmodel" },
     { name = "typer" },
     { name = "uvicorn" },

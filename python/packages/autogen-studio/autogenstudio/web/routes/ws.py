@@ -8,6 +8,7 @@ from datetime import datetime
 
 from ..deps import get_websocket_manager, get_db, get_team_manager
 from ...datamodel import Run, RunStatus
+from ..managers import WebSocketManager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 async def run_websocket(
     websocket: WebSocket,
     run_id: UUID,
-    ws_manager=Depends(get_websocket_manager),
+    ws_manager: WebSocketManager = Depends(get_websocket_manager),
     db=Depends(get_db),
     team_manager=Depends(get_team_manager)
 ):
@@ -48,8 +49,10 @@ async def run_websocket(
                 message = json.loads(raw_message)
 
                 if message.get("type") == "stop":
-                    logger.info(f"Received stop request for run {run_id}")
-                    await ws_manager.stop_run(run_id)
+                    print(f"Received stop request for run {run_id}")
+                    reason = message.get(
+                        "reason") or "User requested stop/cancellation"
+                    await ws_manager.stop_run(run_id, reason=reason)
                     break
 
                 elif message.get("type") == "ping":
@@ -57,6 +60,15 @@ async def run_websocket(
                         "type": "pong",
                         "timestamp": datetime.utcnow().isoformat()
                     })
+
+                elif message.get("type") == "input_response":
+                    # Handle input response from client
+                    response = message.get("response")
+                    if response is not None:
+                        await ws_manager.handle_input_response(run_id, response)
+                    else:
+                        logger.warning(
+                            f"Invalid input response format for run {run_id}")
 
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON received: {raw_message}")
