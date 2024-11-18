@@ -2,16 +2,29 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Generic, Iterable, List, Literal, Optional, Sequence, TypedDict, TypeVar, cast
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import aiofiles
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.models._types import FunctionExecutionResult
-from autogen_core.components.tools import Tool
-from autogen_core.components.tools._base import BaseTool
+from autogen_core.components.tools import FunctionTool, Tool
 from openai import NOT_GIVEN, AsyncClient, NotGiven
 from openai.pagination import AsyncCursorPage
+from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
 from openai.types import FileObject
 from openai.types.beta import thread_update_params
 from openai.types.beta.assistant import Assistant
@@ -25,7 +38,6 @@ from openai.types.beta.threads import Message, MessageDeleted, Run
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
 from pydantic import BaseModel
-from typing_extensions import Required
 
 from autogen_agentchat.messages import (
     AgentMessage,
@@ -47,15 +59,9 @@ ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
 ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 
 
-class BaseToolParam(TypedDict, Generic[ArgsT, ReturnT], total=False):
-    tool: Required[BaseTool[ArgsT, ReturnT]]
-
-    type: Required[Literal["tool"]]
-
-
-def _convert_tool_to_function_param(tool_param: BaseToolParam[ArgsT, ReturnT]) -> FunctionToolParam:
+def _convert_tool_to_function_param(tool: Tool) -> FunctionToolParam:
     """Convert an autogen Tool to an OpenAI Assistant function tool parameter."""
-    schema = tool_param["tool"].schema
+    schema = tool.schema
     parameters: Dict[str, object] = {}
     if "parameters" in schema:
         parameters = {
@@ -111,7 +117,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 client=client,
                 model="gpt-4",
                 instructions="You are a helpful Python programming assistant.",
-                tools=[{"type": "code_interpreter"}],
+                tools=["code_interpreter"],
             )
 
             # Upload files for the assistant to use
@@ -132,7 +138,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         client (AsyncClient): OpenAI API client instance
         model (str): Model to use (e.g. "gpt-4")
         instructions (str): System instructions for the assistant
-        tools (Optional[Iterable[CodeInterpreterToolParam | FileSearchToolParam | BaseToolParam[ArgsT, ReturnT]]]): Tools the assistant can use
+        tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
         assistant_id (Optional[str]): ID of existing assistant to use
         metadata (Optional[object]): Additional metadata for the assistant
         response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
@@ -149,9 +155,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
         model: str,
         instructions: str,
         tools: Optional[
-            Iterable[CodeInterpreterToolParam | FileSearchToolParam | BaseToolParam[ArgsT, ReturnT]]
+            Iterable[
+                Union[
+                    Literal["code_interpreter", "file_search"],
+                    Tool | Callable[..., Any] | Callable[..., Awaitable[Any]],
+                ]
+            ]
         ] = None,
         assistant_id: Optional[str] = None,
+        thread_id: Optional[str] = None,
         metadata: Optional[object] = None,
         response_format: Optional[AssistantResponseFormatOptionParam] = None,
         temperature: Optional[float] = None,
@@ -166,17 +178,29 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._original_tools: List[Tool] = []
         converted_tools: List[AssistantToolParam] = []
         for tool in tools:
-            if tool.get("type") == "tool":
-                base_tool = cast(BaseToolParam[ArgsT, ReturnT], tool)
-                self._original_tools.append(base_tool["tool"])
-                converted_tools.append(_convert_tool_to_function_param(base_tool))
+            if isinstance(tool, str):
+                if tool == "code_interpreter":
+                    converted_tools.append(CodeInterpreterToolParam(type="code_interpreter"))
+                elif tool == "file_search":
+                    converted_tools.append(FileSearchToolParam(type="file_search"))
+            elif isinstance(tool, Tool):
+                self._original_tools.append(tool)
+                converted_tools.append(_convert_tool_to_function_param(tool))
+            elif callable(tool):
+                if hasattr(tool, "__doc__") and tool.__doc__ is not None:
+                    description = tool.__doc__
+                else:
+                    description = ""
+                function_tool = FunctionTool(tool, description=description)
+                self._original_tools.append(function_tool)
+                converted_tools.append(_convert_tool_to_function_param(function_tool))
             else:
-                # Not runtime checked but excluded base tool in the previous condition
-                converted_tools.append(cast(AssistantToolParam, tool))
+                raise ValueError(f"Unsupported tool type: {type(tool)}")
 
         self._client = client
         self._assistant: Optional[Assistant] = None
         self._thread: Optional[Thread] = None
+        self._init_thread_id = thread_id
         self._model = model
         self._instructions = instructions
         self._api_tools = converted_tools
@@ -208,12 +232,27 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 )
 
         if self._thread is None:
-            self._thread = await self._client.beta.threads.create()
+            if self._init_thread_id:
+                self._thread = await self._client.beta.threads.retrieve(thread_id=self._init_thread_id)
+            else:
+                self._thread = await self._client.beta.threads.create()
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         return [TextMessage]
+
+    @property
+    def threads(self) -> AsyncThreads:
+        return self._client.beta.threads
+
+    @property
+    def runs(self) -> AsyncRuns:
+        return self._client.beta.threads.runs
+
+    @property
+    def messages(self) -> AsyncMessages:
+        return self._client.beta.threads.messages
 
     @property
     def _get_assistant_id(self) -> str:
