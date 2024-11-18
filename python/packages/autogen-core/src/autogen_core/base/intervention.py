@@ -44,16 +44,13 @@ class InterventionHandler(Protocol):
 
 class DefaultInterventionHandler(InterventionHandler):
     async def on_send(self, message: Any, *, sender: AgentId | None, recipient: AgentId) -> Any | type[DropMessage]:
-        result = message
-        _warn_if_none(result, "on_send")
-        return result
+        _warn_if_none(message, "on_send")
+        return message
 
     async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any | type[DropMessage]:
-        result = message
-        _warn_if_none(result, "on_publish")
-        return result
+        _warn_if_none(message, "on_publish")
+        return message
 
     async def on_response(self, message: Any, *, sender: AgentId, recipient: AgentId | None) -> Any | type[DropMessage]:
-        result = message
-        _warn_if_none(result, "on_response")
-        return result
+        _warn_if_none(message, "on_response")
+        return message
