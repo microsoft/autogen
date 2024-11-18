@@ -7,17 +7,9 @@ See [`autogen-core`](./packages/autogen-core/) package for main functionality.
 
 **TL;DR**, run all checks with:
 
-macOS &amp; Linux:
 ```sh
 uv sync --all-extras
 source .venv/bin/activate
-poe check
-```
-
-Windows (pwsh):
-```sh
-uv sync  --all-extras
-./.venv/Scripts/activate.ps1
 poe check
 ```
 
