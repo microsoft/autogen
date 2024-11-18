@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Any, List
 
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, event
+from autogen_core.components import DefaultTopicId, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import AgentMessage, StopMessage
+from ...messages import AgentMessage, ChatMessage, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatRequestPublish,
@@ -55,7 +55,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._max_turns = max_turns
         self._current_turn = 0
 
-    @event
+    @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
 
@@ -70,9 +70,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             # Stop the group chat.
             return
 
+        # Validate the group state given the start message.
+        await self.validate_group_state(message.message)
+
         if message.message is not None:
             # Log the start message.
             await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+
+            # Relay the start message to the participants.
+            await self.publish_message(message, topic_id=DefaultTopicId(type=self._group_topic_type))
 
             # Append the user message to the message thread.
             self._message_thread.append(message.message)
@@ -137,10 +143,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         speaker_topic_type = await self.select_speaker(self._message_thread)
         await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
 
-    @event
+    @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
         # Reset the group chat manager.
         await self.reset()
+
+    @abstractmethod
+    async def validate_group_state(self, message: ChatMessage | None) -> None:
+        """Validate the state of the group chat given the start message. This is executed when the group chat manager receives a GroupChatStart event."""
+        ...
 
     @abstractmethod
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
