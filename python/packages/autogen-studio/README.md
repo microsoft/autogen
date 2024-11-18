@@ -85,6 +85,7 @@ AutoGen Studio also takes several parameters to customize the application:
 - `--port <port>` argument to specify the port number. By default, it is set to `8080`.
 - `--reload` argument to enable auto-reloading of the server when changes are made to the code. By default, it is set to `False`.
 - `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URIL defaults to a `database.sqlite` file in the `--appdir` directory.
+- `--upgrade-database` argument to upgrade the database schema to the latest version. By default, it is set to `False`.
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
@@ -115,12 +116,11 @@ npm run start
 We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
 
 - Review the overall AutoGen project [contribution guide](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing)
-- Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/737) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
+- Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/4006) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
 - Please initiate a discussion on the roadmap issue or a new issue to discuss your proposed contribution.
-- Please review the autogenstudio dev branch here [dev branch](https://github.com/microsoft/autogen/tree/autogenstudio) and use as a base for your contribution. This way, your contribution will be aligned with the latest changes in the AutoGen Studio project.
 - Submit a pull request with your contribution!
 - If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
-- Please use the tag `studio` for any issues, questions, and PRs related to Studio
+- Please use the tag `proj-studio` for any issues, questions, and PRs related to Studio
 
 ## FAQ
 
