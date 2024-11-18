@@ -17,6 +17,8 @@
 
 We are introducing Magentic-One, our new generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. Magentic-One represents a significant step towards developing agents that can complete tasks that people encounter in their work and personal lives.
 
+Find additional information about Magentic-one in our [blog post](https://aka.ms/magentic-one-blog) and [technical report](https://arxiv.org/abs/2411.04468).
+
 ![](./imgs/autogen-magentic-one-example.png)
 
 > _Example_: The figure above illustrates Magentic-One mutli-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
@@ -56,11 +58,20 @@ You can install the Magentic-One package and then run the example code to see ho
 
 1. Clone the code and install the package:
 
-```bash
-git clone https://github.com/microsoft/autogen.git
-cd autogen/python/packages/autogen-magentic-one
-pip install -e .
-```
+    The easiest way to install is with the [uv package installer](https://docs.astral.sh/uv/getting-started/installation/) which you need to install separately, however, this is not necessary.
+
+    Clone repo, use uv to setup and activate virtual environment:
+    ```bash
+    git clone https://github.com/microsoft/autogen.git
+    cd autogen/python
+    uv sync  --all-extras
+    source .venv/bin/activate
+    ```
+    Install magentic-one from source:
+    ```bash
+    cd packages/autogen-magentic-one
+    pip install -e .
+    ```
 
 The following instructions are for running the example code:
 
@@ -82,13 +93,13 @@ playwright install --with-deps chromium
   ```bash
 
   # Specify logs directory
-  python examples/example.py --logs_dir ./my_logs
+  python examples/example.py --logs_dir ./logs
 
   # Enable human-in-the-loop mode
-  python examples/example.py --logs_dir ./my_logs --hil_mode
+  python examples/example.py --logs_dir ./logs --hil_mode
 
   # Save screenshots of browser
-  python examples/example.py --logs_dir ./my_logs --save_screenshots
+  python examples/example.py --logs_dir ./logs --save_screenshots
   ```
 
   Arguments:
@@ -98,7 +109,7 @@ playwright install --with-deps chromium
   - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
 
 6. [Preview] We have a preview API for Magentic-One. 
- You can use the `MagenticOneHelper` class to interact with the system. See the [interface README](interface/README.md) for more details.
+ You can use the `MagenticOneHelper` class to interact with the system and stream logs. See the [interface README](interface/README.md) for more details.
 
 
 ## Environment Configuration for Chat Completion Client
@@ -107,9 +118,9 @@ This guide outlines how to configure your environment to use the `create_complet
 
 Currently, Magentic-One only supports OpenAI's GPT-4o as the underlying LLM.
 
-### Azure with Active Directory
+### Azure OpenAI service
 
-To configure for Azure with Active Directory, set the following environment variables:
+To configure for Azure OpenAI service, set the following environment variables:
 
 - `CHAT_COMPLETION_PROVIDER='azure'`
 - `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
@@ -150,4 +161,18 @@ You can set it using:
 
 ```bash
 export BING_API_KEY=xxxxxxx
+```
+
+## Citation
+
+```
+@misc{fourney2024magenticonegeneralistmultiagentsolving,
+      title={Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks}, 
+      author={Adam Fourney and Gagan Bansal and Hussein Mozannar and Cheng Tan and Eduardo Salinas and Erkang and Zhu and Friederike Niedtner and Grace Proebsting and Griffin Bassman and Jack Gerrits and Jacob Alber and Peter Chang and Ricky Loynd and Robert West and Victor Dibia and Ahmed Awadallah and Ece Kamar and Rafah Hosn and Saleema Amershi},
+      year={2024},
+      eprint={2411.04468},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2411.04468}, 
+}
 ```

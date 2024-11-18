@@ -4,17 +4,23 @@ host:
 
 group_chat_manager:
   topic_type: "group_chat"
-  max_rounds: 7
+  max_rounds: 3
 
 writer_agent:
   topic_type: "Writer"
   description: "Writer for creating any text content."
-  system_message: "You are a one sentence Writer and provide one line content each time"
+  system_message: "You are a one sentence Writer and provide one sentence content each time"
 
 editor_agent:
   topic_type: "Editor"
   description: "Editor for planning and reviewing the content."
-  system_message: "You are an Editor. You provide just max 10 words as feedback on writers content."
+  system_message: "You are an Editor. You provide just max 15 words as feedback on writers content."
+
+ui_agent:
+  topic_type: "ui_events"
+  artificial_stream_delay_seconds:
+    min: 0.05
+    max: 0.1
 
 client_config:
   model: "gpt-4o"

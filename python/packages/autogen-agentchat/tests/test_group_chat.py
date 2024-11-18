@@ -350,6 +350,40 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
 
 
 @pytest.mark.asyncio
+async def test_round_group_chat_max_turn() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], max_turns=3)
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+    assert len(result.messages) == 4
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_2"
+    assert result.messages[3].source == "agent_3"
+    assert result.stop_reason is not None
+
+    # Resume.
+    result = await team.run()
+    assert len(result.messages) == 3
+    assert result.messages[0].source == "agent_4"
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_2"
+    assert result.stop_reason is not None
+
+    # Reset.
+    await team.reset()
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 4
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_2"
+    assert result.messages[3].source == "agent_3"
+    assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
@@ -757,3 +791,27 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         else:
             assert message == result.messages[index]
         index += 1
+
+
+@pytest.mark.asyncio
+async def test_swarm_pause_and_resume() -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    team = Swarm([second_agent, first_agent, third_agent], max_turns=1)
+    result = await team.run(task="task")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "task"
+    assert result.messages[1].content == "Transferred to third_agent."
+
+    # Resume with a new task.
+    result = await team.run(task="new task")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "new task"
+    assert result.messages[1].content == "Transferred to first_agent."
+
+    # Resume with the same task.
+    result = await team.run()
+    assert len(result.messages) == 1
+    assert result.messages[0].content == "Transferred to second_agent."
