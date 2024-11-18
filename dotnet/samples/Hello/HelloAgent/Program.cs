@@ -52,7 +52,8 @@ namespace Hello
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output { Message = goodbye };
-            await PublishMessageAsync(evt).ConfigureAwait(false);
+            await PublishMessageAsync(evt).ConfigureAwait(true);
+            await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
         }
 
         public async Task Handle(Shutdown item)
