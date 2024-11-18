@@ -1,6 +1,5 @@
 from typing import Callable, List, Optional, Sequence, Union, Awaitable
 from inspect import iscoroutinefunction
-
 from ._base_chat_agent import BaseChatAgent
 from ..base import Response
 from ..messages import ChatMessage, TextMessage
@@ -14,11 +13,10 @@ class UserProxyAgent(BaseChatAgent):
     def __init__(
         self,
         name: str,
-        description: Optional[str] = "a human user",
-        input_func: Optional[Union[Callable[..., str],
-                                   Callable[..., Awaitable[str]]]] = None
+        description: str = "a human user",
+        input_func: Optional[Callable[..., Union[str, Awaitable[str]]]] = None,
     ) -> None:
-        super().__init__(name, description=description)
+        super().__init__(name=name, description=description)
         self.input_func = input_func or input
         self._is_async = iscoroutinefunction(
             input_func) if input_func else False
@@ -30,17 +28,22 @@ class UserProxyAgent(BaseChatAgent):
     async def _get_input(self, prompt: str) -> str:
         """Handle both sync and async input functions"""
         if self._is_async:
-            return await self.input_func(prompt)
+            result = await self.input_func(prompt)  # type: ignore
+            return str(result)
         else:
-            return await asyncio.get_event_loop().run_in_executor(None, self.input_func, prompt)
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda p: self.input_func(p),  # type: ignore
+                prompt
+            )
+            return str(result)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-
         try:
             user_input = await self._get_input("Enter your response: ")
             return Response(chat_message=TextMessage(content=user_input, source=self.name))
         except Exception as e:
-            # Consider logging the error here
             raise RuntimeError(f"Failed to get user input: {str(e)}") from e
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
