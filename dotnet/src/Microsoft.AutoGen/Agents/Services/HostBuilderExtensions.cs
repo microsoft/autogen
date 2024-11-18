@@ -32,6 +32,13 @@ public static class HostBuilderExtensions
         return builder;
     }
 
+    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
+    {
+        builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, agentType));
+
+        return builder;
+    }
+
     public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null, bool local = false)
     {
         agentServiceAddress ??= builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress;
