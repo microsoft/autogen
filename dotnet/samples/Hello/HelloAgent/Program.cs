@@ -18,7 +18,7 @@ using Microsoft.Extensions.Hosting;
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: false);
+}, local: true);
 //var app = await AgentsApp.StartAsync();
 await app.WaitForShutdownAsync();
 
@@ -51,10 +51,7 @@ namespace Hello
         public async Task Handle(ConversationClosed item)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
-            var evt = new Output
-            {
-                Message = goodbye
-            };
+            var evt = new Output { Message = goodbye };
             await PublishMessageAsync(evt).ConfigureAwait(false);
         }
 
