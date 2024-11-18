@@ -24,7 +24,7 @@ public static class AgentsApp
         }
         builder.AddAgentWorker(local: local)
             .AddAgents(agentTypes);
-        builder.AddAutoGenServices();
+        builder.AddServiceDefaults();
         var app = builder.Build();
         if (local)
         {

@@ -5,72 +5,69 @@ using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Host = Microsoft.Extensions.Hosting.Host;
-
-var builder = Host.CreateApplicationBuilder();
 
 // step 1: create in-memory agent runtime
+
 // step 2: register HelloAgent to that agent runtime
-builder
-    .AddAgentService(local: true, useGrpc: false)
-    .AddAgentWorker(local: true)
-    .AddAgent<HelloAgent>("HelloAgent");
 
-// step 3: wait for the agent runtime to shutdown
-var app = builder.Build();
-await app.StartAsync();
+// step 3: start the agent runtime
 
-var client = app.Services.GetRequiredService<Client>();
-await client.PublishEventAsync("HelloAgents", new NewMessageReceived
+// step 4: send a message to the agent
+
+// step 5: wait for the agent runtime to shutdown
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, new CancellationToken());
+}, local: true);
 
 await app.WaitForShutdownAsync();
 
-[TopicSubscription("HelloAgents")]
-public class HelloAgent(
-    IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-        context,
-        typeRegistry),
-        ISayHello,
-        IHandleConsole,
-        IHandle<NewMessageReceived>,
-        IHandle<ConversationClosed>
+namespace Hello
 {
-    public async Task Handle(NewMessageReceived item)
+    [TopicSubscription("HelloAgents")]
+    public class HelloAgent(
+        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+            context,
+            typeRegistry),
+            ISayHello,
+            IHandleConsole,
+            IHandle<NewMessageReceived>,
+            IHandle<ConversationClosed>
     {
-        var response = await SayHello(item.Message);
-        var evt = new Output { Message = response };
-        await PublishMessageAsync(evt);
-        var goodbye = new ConversationClosed
+        public async Task Handle(NewMessageReceived item)
         {
-            UserId = this.AgentId.Key,
-            UserMessage = "Goodbye"
-        };
-        await PublishMessageAsync(goodbye);
-    }
-    public async Task Handle(ConversationClosed item)
-    {
-        var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
-        var evt = new Output
+            var response = await SayHello(item.Message).ConfigureAwait(false);
+            var evt = new Output { Message = response };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
+            var goodbye = new ConversationClosed
+            {
+                UserId = this.AgentId.Key,
+                UserMessage = "Goodbye"
+            };
+            await PublishMessageAsync(goodbye).ConfigureAwait(false);
+        }
+        public async Task Handle(ConversationClosed item)
         {
-            Message = goodbye
-        };
-        await PublishMessageAsync(evt);
+            var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+            var evt = new Output
+            {
+                Message = goodbye
+            };
+            await PublishMessageAsync(evt).ConfigureAwait(false);
 
-        // Signal shutdown.
-        hostApplicationLifetime.StopApplication();
+            // Signal shutdown.
+            hostApplicationLifetime.StopApplication();
+        }
+
+        public async Task<string> SayHello(string ask)
+        {
+            var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
+            return response;
+        }
     }
-
-    public async Task<string> SayHello(string ask)
+    public interface ISayHello
     {
-        var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
-        return response;
+        public Task<string> SayHello(string ask);
     }
-}
-public interface ISayHello
-{
-    public Task<string> SayHello(string ask);
 }

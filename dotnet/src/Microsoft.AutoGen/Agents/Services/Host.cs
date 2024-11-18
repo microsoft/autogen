@@ -11,7 +11,7 @@ public static class Host
     public static async Task<WebApplication> StartAsync(bool local = false, bool useGrpc = true)
     {
         var builder = WebApplication.CreateBuilder();
-        builder.AddAutoGenServices();
+        builder.AddServiceDefaults();
         if (local)
         {
             builder.AddLocalAgentService(useGrpc);
