@@ -15,11 +15,17 @@ public static class OrleansRuntimeHostingExtenions
 {
     public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool local = false)
     {
+        return builder.AddOrleans(local);
+    }
 
+    public static IHostApplicationBuilder AddOrleans(this IHostApplicationBuilder builder, bool local = false)
+    {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
+        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
+
         // Ensure Orleans is added before the hosted service to guarantee that it starts first.
         //TODO: make all of this configurable
-        builder.Host.UseOrleans(siloBuilder =>
+        builder.UseOrleans((siloBuilder) =>
         {
             // Development mode or local mode uses in-memory storage and streams
             if (builder.Environment.IsDevelopment() || local)
@@ -51,16 +57,16 @@ public static class OrleansRuntimeHostingExtenions
                     options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
                 });
                 siloBuilder.Configure<ClientMessagingOptions>(options =>
-               {
-                   options.ResponseTimeout = TimeSpan.FromMinutes(3);
-               });
+                {
+                    options.ResponseTimeout = TimeSpan.FromMinutes(3);
+                });
                 siloBuilder.UseCosmosClustering(o =>
-                    {
-                        o.ConfigureCosmosClient(cosmosDbconnectionString);
-                        o.ContainerName = "AutoGen";
-                        o.DatabaseName = "clustering";
-                        o.IsResourceCreationEnabled = true;
-                    });
+                {
+                    o.ConfigureCosmosClient(cosmosDbconnectionString);
+                    o.ContainerName = "AutoGen";
+                    o.DatabaseName = "clustering";
+                    o.IsResourceCreationEnabled = true;
+                });
 
                 siloBuilder.UseCosmosReminderService(o =>
                 {
@@ -84,7 +90,7 @@ public static class OrleansRuntimeHostingExtenions
               .AddMemoryGrainStorage("PubSubStore");
             }
         });
-        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
+
         return builder;
     }
 }
