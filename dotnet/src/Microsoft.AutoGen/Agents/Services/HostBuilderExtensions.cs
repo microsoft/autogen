@@ -15,7 +15,7 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class HostBuilderExtensions
 {
-    private const string _defaultAgentServiceAddress = "https://localhost:5001";
+    private const string _defaultAgentServiceAddress = "https://localhost:53071";
 
     public static IHostApplicationBuilder AddAgent<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : AgentBase
@@ -28,12 +28,12 @@ public static class HostBuilderExtensions
     public static IHostApplicationBuilder AddAgent(this IHostApplicationBuilder builder, string typeName, Type agentType)
     {
         builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, agentType));
-
         return builder;
     }
 
-    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string agentServiceAddress = _defaultAgentServiceAddress, bool local = false)
+    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null, bool local = false)
     {
+        agentServiceAddress ??= builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress;
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
         // if !local, then add the gRPC client
