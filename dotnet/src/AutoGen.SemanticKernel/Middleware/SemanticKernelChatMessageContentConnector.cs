@@ -187,7 +187,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         }
         else if (message.BuildDataUri() is string dataUri)
         {
-            collectionItems.Add(new ImageContent(new Uri(dataUri)));
+            collectionItems.Add(new ImageContent(dataUri));
         }
         else
         {
