@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// iSubscriptionsGrain.cs
+// ISubscriptionsGrainT.cs
 
 namespace Microsoft.AutoGen.Agents;
 public interface ISubscriptionsGrain : IGrainWithIntegerKey
