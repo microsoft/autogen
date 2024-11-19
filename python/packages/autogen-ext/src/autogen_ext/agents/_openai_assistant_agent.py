@@ -88,6 +88,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
     - File search: For searching through uploaded documents
     - Custom functions: For extending capabilities with user-defined tools
 
+    .. note::
+
+        The agent deletes all messages in the thread when :meth:`on_reset` is called.
+
     Key Features:
     - Supports multiple file formats including code, documents, images
     - Can handle up to 128 tools per assistant
@@ -100,7 +104,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             from openai import AsyncClient
+            from autogen_core.base import CancellationToken
             from autogen_ext.agents import OpenAIAssistantAgent
+            from autogen_agentchat.messages import TextMessage
 
             # Create an OpenAI client
             client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
