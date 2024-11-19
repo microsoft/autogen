@@ -52,6 +52,7 @@ def get_legal_moves(
 
 
 def get_board(board: Board) -> str:
+    """Get the current board state."""
     return str(board)
 
 
@@ -63,25 +64,25 @@ def make_move(
 ) -> Annotated[str, "Result of the move."]:
     """Make a move on the board."""
     validate_turn(board, player)
-    newMove = Move.from_uci(move)
-    board.push(newMove)
+    new_move = Move.from_uci(move)
+    board.push(new_move)
 
     # Print the move.
     print("-" * 50)
     print("Player:", player)
-    print("Move:", newMove.uci())
+    print("Move:", new_move.uci())
     print("Thinking:", thinking)
     print("Board:")
     print(board.unicode(borders=True))
 
     # Get the piece name.
-    piece = board.piece_at(newMove.to_square)
+    piece = board.piece_at(new_move.to_square)
     assert piece is not None
     piece_symbol = piece.unicode_symbol()
     piece_name = get_piece_name(piece.piece_type)
     if piece_symbol.isupper():
         piece_name = piece_name.capitalize()
-    return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[newMove.from_square]} to {SQUARE_NAMES[newMove.to_square]}."
+    return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[new_move.from_square]} to {SQUARE_NAMES[new_move.to_square]}."
 
 
 async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
@@ -152,7 +153,8 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    await runtime.register(
+    await ChatCompletionAgent.register(
+        runtime,
         "PlayerBlack",
         lambda: ChatCompletionAgent(
             description="Player playing black.",
@@ -168,9 +170,11 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=black_tools,
         ),
-        lambda: [DefaultSubscription()],
     )
-    await runtime.register(
+    await runtime.add_subscription(DefaultSubscription(agent_type="PlayerBlack"))
+
+    await ChatCompletionAgent.register(
+        runtime,
         "PlayerWhite",
         lambda: ChatCompletionAgent(
             description="Player playing white.",
@@ -186,11 +190,13 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
             model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
             tools=white_tools,
         ),
-        lambda: [DefaultSubscription()],
     )
+    await runtime.add_subscription(DefaultSubscription(agent_type="PlayerWhite"))
+
     # Create a group chat manager for the chess game to orchestrate a turn-based
     # conversation between the two agents.
-    await runtime.register(
+    await GroupChatManager.register(
+        runtime,
         "ChessGame",
         lambda: GroupChatManager(
             description="A chess game between two agents.",
@@ -200,16 +206,21 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
                 AgentId("PlayerBlack", AgentInstantiationContext.current_agent_id().key),
             ],  # white goes first
         ),
-        lambda: [DefaultSubscription()],
     )
+    await runtime.add_subscription(DefaultSubscription(agent_type="ChessGame"))
 
 
 async def main() -> None:
+    """Main Entrypoint."""
     runtime = SingleThreadedAgentRuntime()
     await chess_game(runtime)
     runtime.start()
-    # Publish an initial message to trigger the group chat manager to start orchestration.
-    await runtime.publish_message(TextMessage(content="Game started.", source="System"), topic_id=DefaultTopicId())
+    # Publish an initial message to trigger the group chat manager to start
+    # orchestration.
+    await runtime.publish_message(
+        TextMessage(content="Game started.", source="System"),
+        topic_id=DefaultTopicId(),
+    )
     await runtime.stop_when_idle()
 
 
