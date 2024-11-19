@@ -1,7 +1,7 @@
 from typing import Any, List
 
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, event
+from autogen_core.components import DefaultTopicId, event, rpc
 
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
@@ -38,11 +38,11 @@ class ChatAgentContainer(SequentialRoutedAgent):
         """Handle an agent response event by appending the content to the buffer."""
         self._message_buffer.append(message.agent_response.chat_message)
 
-    @event
+    @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
         """Handle a reset event by resetting the agent."""
         self._message_buffer.clear()
-        await self._agent.reset(ctx.cancellation_token)
+        await self._agent.on_reset(ctx.cancellation_token)
 
     @event
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:

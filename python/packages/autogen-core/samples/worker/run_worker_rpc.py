@@ -1,12 +1,10 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, NoReturn
 
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.base import (
     AgentId,
-    AgentInstantiationContext,
     MessageContext,
 )
 from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
@@ -39,34 +37,34 @@ class ReceiveAgent(RoutedAgent):
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
         print(f"Feedback received: {message.content}")
 
-    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
-        print(f"Unhandled message: {message}")
-
 
 class GreeterAgent(RoutedAgent):
-    def __init__(self, receive_agent_id: AgentId) -> None:
+    def __init__(self, receive_agent_type: str) -> None:
         super().__init__("Greeter Agent")
-        self._receive_agent_id = receive_agent_id
+        self._receive_agent_id = AgentId(receive_agent_type, self.id.key)
 
     @message_handler
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
         response = await self.send_message(Greeting(f"Hello, {message.content}!"), recipient=self._receive_agent_id)
         await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=DefaultTopicId())
 
-    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> NoReturn:  # type: ignore
-        print(f"Unhandled message: {message}")
-
 
 async def main() -> None:
     runtime = WorkerAgentRuntime(host_address="localhost:50051")
     runtime.start()
 
-    await runtime.register("receiver", lambda: ReceiveAgent(), lambda: [DefaultSubscription()])
-    await runtime.register(
-        "greeter",
-        lambda: GreeterAgent(AgentId("receiver", AgentInstantiationContext.current_agent_id().key)),
-        lambda: [DefaultSubscription()],
+    await ReceiveAgent.register(
+        runtime,
+        "receiver",
+        lambda: ReceiveAgent(),
     )
+    await runtime.add_subscription(DefaultSubscription(agent_type="receiver"))
+    await GreeterAgent.register(
+        runtime,
+        "greeter",
+        lambda: GreeterAgent("receiver"),
+    )
+    await runtime.add_subscription(DefaultSubscription(agent_type="greeter"))
     await runtime.publish_message(AskToGreet("Hello World!"), topic_id=DefaultTopicId())
 
     await runtime.stop_when_signal()

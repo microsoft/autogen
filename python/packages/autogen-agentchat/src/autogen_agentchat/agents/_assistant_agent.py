@@ -20,9 +20,9 @@ from pydantic import BaseModel, Field, model_validator
 from .. import EVENT_LOGGER_NAME
 from ..base import Response
 from ..messages import (
+    AgentMessage,
     ChatMessage,
     HandoffMessage,
-    InnerMessage,
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
@@ -106,29 +106,37 @@ class AssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             import asyncio
+            from autogen_core.base import CancellationToken
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.messages import TextMessage
+
 
             async def main() -> None:
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
                 agent = AssistantAgent(name="assistant", model_client=model_client)
 
-                result await agent.run("What is the capital of France?", termination_condition=MaxMessageTermination(2))
-                print(result)
+                response = await agent.on_messages(
+                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
+                )
+                print(response)
+
 
             asyncio.run(main())
 
 
         The following example demonstrates how to create an assistant agent with
-        a model client and a tool, and generate a stream of messages for a task.
+        a model client and a tool, generate a stream of messages for a task, and
+        print the messages to the console.
 
         .. code-block:: python
 
             import asyncio
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.messages import TextMessage
+            from autogen_agentchat.task import Console
+            from autogen_core.base import CancellationToken
 
 
             async def get_current_time() -> str:
@@ -139,10 +147,11 @@ class AssistantAgent(BaseChatAgent):
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
                 agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
 
-                stream = agent.run_stream("What is the current time?", termination_condition=MaxMessageTermination(3))
-
-                async for message in stream:
-                    print(message)
+                await Console(
+                    agent.on_messages_stream(
+                        [TextMessage(content="What is the current time?", source="user")], CancellationToken()
+                    )
+                )
 
 
             asyncio.run(main())
@@ -157,7 +166,7 @@ class AssistantAgent(BaseChatAgent):
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with 'TERMINATE' when the task has been completed.",
+        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
@@ -217,13 +226,13 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[InnerMessage | Response, None]:
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
             self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
-        inner_messages: List[InnerMessage] = []
+        inner_messages: List[AgentMessage] = []
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
@@ -298,6 +307,6 @@ class AssistantAgent(BaseChatAgent):
         except Exception as e:
             return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
         self._model_context.clear()

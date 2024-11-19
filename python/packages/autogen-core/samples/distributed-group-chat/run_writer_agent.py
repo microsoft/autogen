@@ -3,7 +3,7 @@ import logging
 import warnings
 
 from _agents import BaseGroupChatAgent
-from _types import AppConfig, GroupChatMessage, RequestToSpeak
+from _types import AppConfig, GroupChatMessage, MessageChunk, RequestToSpeak
 from _utils import get_serializers, load_config, set_all_log_levels
 from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components import (
@@ -17,7 +17,7 @@ from rich.markdown import Markdown
 async def main(config: AppConfig) -> None:
     set_all_log_levels(logging.ERROR)
     writer_agent_runtime = WorkerAgentRuntime(host_address=config.host.address)
-    writer_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage]))  # type: ignore[arg-type]
+    writer_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage, MessageChunk]))  # type: ignore[arg-type]
     await asyncio.sleep(3)
     Console().print(Markdown("Starting **`Writer Agent`**"))
 
@@ -30,6 +30,7 @@ async def main(config: AppConfig) -> None:
             group_chat_topic_type=config.group_chat_manager.topic_type,
             system_message=config.writer_agent.system_message,
             model_client=AzureOpenAIChatCompletionClient(**config.client_config),
+            ui_config=config.ui_agent,
         ),
     )
     await writer_agent_runtime.add_subscription(
