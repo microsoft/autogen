@@ -11,14 +11,15 @@ async def test_agent_name_termination() -> None:
     assert await termination([]) is None
 
     continue_messages = [
-        TextMessage(content="Hello", source="Assistant"),
+        TextMessage(content="Hello", source="agent"),
         TextMessage(content="Hello", source="user")
     ]
     assert await termination(continue_messages) is None
 
     terminate_messages = [
-        TextMessage(content="Hello", source="user"),
-        TextMessage(content="Hello", source="Assistant")
+        TextMessage(content="Hello", source="agent"),
+        TextMessage(content="Hello", source="Assistant"),
+        TextMessage(content="Hello", source="user")
     ]
     result = await termination(terminate_messages)
     assert isinstance(result, StopMessage)

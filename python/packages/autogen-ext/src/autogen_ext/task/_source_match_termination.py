@@ -27,10 +27,10 @@ class SourceMatchTermination(TerminationCondition):
             raise TerminatedException("Termination condition has already been reached")
         if not messages:
             return None
-        last_message = messages[-1]
-        if last_message.source in self._sources:
-            self._terminated = True
-            return StopMessage(content=f"'{last_message.source}' answered", source="SourceMatchTermination")
+        for message in messages:
+            if message.source in self._sources:
+                self._terminated = True
+                return StopMessage(content=f"'{message.source}' answered", source="SourceMatchTermination")
         return None
 
     async def reset(self) -> None:
