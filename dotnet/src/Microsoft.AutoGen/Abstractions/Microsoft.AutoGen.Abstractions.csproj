@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>AutoGen.Core</PackageId>
@@ -20,7 +20,8 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
+ 		<PackageReference Include="Microsoft.Orleans.Sdk" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
-
 </Project>

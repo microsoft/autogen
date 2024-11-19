@@ -98,13 +98,13 @@ class SlowUserProxyAgent(RoutedAgent):
             GetSlowUserMessage(content=message.content), topic_id=DefaultTopicId("scheduling_assistant_conversation")
         )
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         state_to_save = {
             "memory": self._model_context.save_state(),
         }
         return state_to_save
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
 
 
@@ -186,12 +186,12 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
 
         await self.publish_message(speech, topic_id=DefaultTopicId("scheduling_assistant_conversation"))
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         return {
             "memory": self._model_context.save_state(),
         }
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
 
 

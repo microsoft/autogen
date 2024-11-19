@@ -14,7 +14,7 @@ export class SessionAPI {
 
   async listSessions(userId: string): Promise<Session[]> {
     const response = await fetch(
-      `${this.getBaseUrl()}/sessions?user_id=${userId}`,
+      `${this.getBaseUrl()}/sessions/?user_id=${userId}`,
       {
         headers: this.getHeaders(),
       }
@@ -47,7 +47,7 @@ export class SessionAPI {
       user_id: userId, // Ensure user_id is included
     };
 
-    const response = await fetch(`${this.getBaseUrl()}/sessions`, {
+    const response = await fetch(`${this.getBaseUrl()}/sessions/`, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(session),

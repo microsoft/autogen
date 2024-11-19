@@ -101,7 +101,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev4' 'autogen-ext[openai]==0.4.0.dev4'
+pip install 'autogen-agentchat==0.4.0.dev6' 'autogen-ext[openai]==0.4.0.dev6'
 ```
 
 The following code uses OpenAI's GPT-4o model and you need to provide your
@@ -195,13 +195,13 @@ public class HelloAgent(
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
     public async Task Handle(ConversationClosed item)
     {
@@ -210,7 +210,7 @@ public class HelloAgent(
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         await Task.Delay(60000);
         await App.ShutdownAsync();
     }

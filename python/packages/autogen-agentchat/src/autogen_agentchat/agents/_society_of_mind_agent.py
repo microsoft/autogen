@@ -141,7 +141,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         # Reset the team.
         await self._team.reset()
 
-    async def reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
         await self._team.reset()
 
     def _create_transcript(self, messages: Sequence[AgentMessage]) -> str:

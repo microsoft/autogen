@@ -14,7 +14,7 @@
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
     <ProjectReference Include="..\AutoGen.Test.Share\AutoGen.Tests.Share.csproj" />
     <PackageReference Include="Microsoft.Extensions.AI" />
-    <PackageReference Include="System.Text.Json" VersionOverride="9.0.0-rc.2.24473.5" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>

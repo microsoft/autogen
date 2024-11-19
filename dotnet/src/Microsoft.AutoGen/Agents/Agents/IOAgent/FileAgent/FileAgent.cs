@@ -9,7 +9,7 @@ namespace Microsoft.AutoGen.Agents;
 
 [TopicSubscription("FileIO")]
 public abstract class FileAgent(
-    IAgentContext context,
+    IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
@@ -24,7 +24,7 @@ public abstract class FileAgent(
         if (!File.Exists(inputPath))
         {
             var errorMessage = $"File not found: {inputPath}";
-            Logger.LogError(errorMessage);
+            _logger.LogError(errorMessage);
             //publish IOError event
             var err = new IOError
             {
@@ -42,6 +42,7 @@ public abstract class FileAgent(
         var evt = new InputProcessed
         {
             Route = _route
+
         };
         await PublishMessageAsync(evt);
     }
