@@ -25,11 +25,11 @@ Flow Diagram:
 ```mermaid
 %%{init: {'theme':'forest'}}%%
 graph LR;
-    A[Main] --> |"PublishEvent(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
-    B --> |"PublishEvent(Output('***Hello, World***'))"| C[ConsoleAgent]
+    A[Main] --> |"PublishEventAsync(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
+    B --> |"PublishEventAsync(Output('***Hello, World***'))"| C[ConsoleAgent]
     C --> D{"WriteConsole()"}
-    B --> |"PublishEvent(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item)"}
-    B --> |"PublishEvent(Output('***Goodbye***'))"| C
+    B --> |"PublishEventAsync(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item)"}
+    B --> |"PublishEventAsync(Output('***Goodbye***'))"| C
     E --> F{"Shutdown()"}
 
 ```
@@ -58,13 +58,13 @@ public class HelloAgent(
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
 ```
 
@@ -108,7 +108,6 @@ message ReadmeRequested {
    string ask = 4;
 }
 ```
-
 
 ```xml
   <ItemGroup>

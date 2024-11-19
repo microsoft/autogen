@@ -1,7 +1,7 @@
 from typing import Callable, List
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentMessage
+from ...messages import AgentMessage, ChatMessage
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -16,6 +16,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None = None,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -23,10 +24,15 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             participant_topic_types,
             participant_descriptions,
             termination_condition,
+            max_turns,
         )
         self._next_speaker_index = 0
 
+    async def validate_group_state(self, message: ChatMessage | None) -> None:
+        pass
+
     async def reset(self) -> None:
+        self._current_turn = 0
         self._message_thread.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
@@ -50,6 +56,7 @@ class RoundRobinGroupChat(BaseGroupChat):
         participants (List[BaseChatAgent]): The participants in the group chat.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
+        max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
 
     Raises:
         ValueError: If no participants are provided or if participant names are not unique.
@@ -64,7 +71,7 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
 
 
             async def main() -> None:
@@ -80,9 +87,7 @@ class RoundRobinGroupChat(BaseGroupChat):
                 )
                 termination = TextMentionTermination("TERMINATE")
                 team = RoundRobinGroupChat([assistant], termination_condition=termination)
-                stream = team.run_stream("What's the weather in New York?")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="What's the weather in New York?"))
 
 
             asyncio.run(main())
@@ -95,7 +100,7 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
 
 
             async def main() -> None:
@@ -105,21 +110,23 @@ class RoundRobinGroupChat(BaseGroupChat):
                 agent2 = AssistantAgent("Assistant2", model_client=model_client)
                 termination = TextMentionTermination("TERMINATE")
                 team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
-                stream = team.run_stream("Tell me some jokes.")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="Tell me some jokes."))
 
 
             asyncio.run(main())
     """
 
     def __init__(
-        self, participants: List[ChatAgent], termination_condition: TerminationCondition | None = None
+        self,
+        participants: List[ChatAgent],
+        termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
+            max_turns=max_turns,
         )
 
     def _create_group_chat_manager_factory(
@@ -129,6 +136,7 @@ class RoundRobinGroupChat(BaseGroupChat):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
+        max_turns: int | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -137,6 +145,7 @@ class RoundRobinGroupChat(BaseGroupChat):
                 participant_topic_types,
                 participant_descriptions,
                 termination_condition,
+                max_turns,
             )
 
         return _factory

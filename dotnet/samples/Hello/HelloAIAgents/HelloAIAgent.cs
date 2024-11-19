@@ -8,11 +8,13 @@ using Microsoft.Extensions.AI;
 namespace Hello;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
-    IAgentContext context,
+    IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
         context,
-        typeRegistry),
+        typeRegistry,
+        hostApplicationLifetime),
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class
