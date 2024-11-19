@@ -4,6 +4,7 @@ import logging
 import os
 from typing import (
     Any,
+    AsyncGenerator,
     Awaitable,
     Callable,
     Dict,
@@ -17,6 +18,19 @@ from typing import (
 )
 
 import aiofiles
+from autogen_agentchat import EVENT_LOGGER_NAME
+from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.base import Response
+from autogen_agentchat.messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.models._types import FunctionExecutionResult
@@ -36,21 +50,6 @@ from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInt
 from openai.types.beta.threads import Message, MessageDeleted, Run
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
-
-from autogen_agentchat.messages import (
-    AgentMessage,
-    ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
-    TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
-)
-
-from .. import EVENT_LOGGER_NAME
-from ..base import Response
-from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -89,6 +88,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
     - File search: For searching through uploaded documents
     - Custom functions: For extending capabilities with user-defined tools
 
+    .. note::
+
+        The agent deletes all messages in the thread when :meth:`on_reset` is called.
+
     Key Features:
     - Supports multiple file formats including code, documents, images
     - Can handle up to 128 tools per assistant
@@ -101,7 +104,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             from openai import AsyncClient
-            from autogen_agentchat.agents import OpenAIAssistantAgent
+            from autogen_core.base import CancellationToken
+            from autogen_ext.agents import OpenAIAssistantAgent
+            from autogen_agentchat.messages import TextMessage
 
             # Create an OpenAI client
             client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
@@ -278,6 +283,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
+        async for message in self.on_messages_stream(messages, cancellation_token):
+            if isinstance(message, Response):
+                return message
+        raise AssertionError("The stream should have returned the final result.")
+
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
+        """Handle incoming messages and return a response."""
         await self._ensure_initialized()
 
         # Process all messages in sequence
@@ -331,6 +345,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 tool_call_msg = ToolCallMessage(source=self.name, content=tool_calls)
                 inner_messages.append(tool_call_msg)
                 event_logger.debug(tool_call_msg)
+                yield tool_call_msg
 
                 # Execute tool calls and get results
                 tool_outputs: List[FunctionExecutionResult] = []
@@ -342,6 +357,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 tool_result_msg = ToolCallResultMessage(source=self.name, content=tool_outputs)
                 inner_messages.append(tool_result_msg)
                 event_logger.debug(tool_result_msg)
+                yield tool_result_msg
 
                 # Submit tool outputs back to the run
                 run = await cancellation_token.link_future(
@@ -382,7 +398,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
         # Return the assistant's response as a Response with inner messages
         chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
-        return Response(chat_message=chat_message, inner_messages=inner_messages)
+        yield Response(chat_message=chat_message, inner_messages=inner_messages)
 
     async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""

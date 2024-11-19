@@ -3,10 +3,10 @@ from enum import Enum
 from typing import List, Literal, Optional, Union
 
 import pytest
-from autogen_agentchat.agents import OpenAIAssistantAgent
 from autogen_agentchat.messages import TextMessage
 from autogen_core.base import CancellationToken
 from autogen_core.components.tools._base import BaseTool, Tool
+from autogen_ext.agents import OpenAIAssistantAgent
 from openai import AsyncAzureOpenAI
 from pydantic import BaseModel
 
