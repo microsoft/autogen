@@ -19,4 +19,5 @@ public interface IAgentBase
     Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new();
     ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default);
     ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default);
+    List<string> Subscribe(string topic);
 }

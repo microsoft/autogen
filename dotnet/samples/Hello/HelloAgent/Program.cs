@@ -19,7 +19,7 @@ var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageRecei
 {
     Message = "World"
 }, local: true);
-
+//var app = await AgentsApp.StartAsync();
 await app.WaitForShutdownAsync();
 
 namespace Hello
@@ -33,7 +33,8 @@ namespace Hello
             ISayHello,
             IHandleConsole,
             IHandle<NewMessageReceived>,
-            IHandle<ConversationClosed>
+            IHandle<ConversationClosed>,
+            IHandle<Shutdown>
     {
         public async Task Handle(NewMessageReceived item)
         {
@@ -50,13 +51,14 @@ namespace Hello
         public async Task Handle(ConversationClosed item)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
-            var evt = new Output
-            {
-                Message = goodbye
-            };
-            await PublishMessageAsync(evt).ConfigureAwait(false);
+            var evt = new Output { Message = goodbye };
+            await PublishMessageAsync(evt).ConfigureAwait(true);
+            await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
+        }
 
-            // Signal shutdown.
+        public async Task Handle(Shutdown item)
+        {
+            Console.WriteLine("Shutting down...");
             hostApplicationLifetime.StopApplication();
         }
 

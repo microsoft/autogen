@@ -47,7 +47,7 @@ public class AgentWorker :
     {
         foreach (var (typeName, _) in _agentTypes)
         {
-            if (typeName == "Client") { continue; }
+            if (typeName == nameof(Client)) { continue; }
             var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
@@ -62,6 +62,10 @@ public class AgentWorker :
     public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
+    }
+    public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        return _mailbox.Writer.WriteAsync(message, cancellationToken);
     }
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
@@ -92,6 +96,10 @@ public class AgentWorker :
                 if (message == null) { continue; }
                 switch (message)
                 {
+                    case Message.MessageOneofCase.AddSubscriptionResponse:
+                        break;
+                    case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                        break;
                     case Message msg:
 
                         var item = msg.CloudEvent;
