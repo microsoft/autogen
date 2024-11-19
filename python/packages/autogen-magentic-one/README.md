@@ -69,22 +69,22 @@ You can install the Magentic-One package and then run the example code to see ho
     ```
    For Windows, run `.venv\Scripts\activate` to activate the environment.
    
-    Install magentic-one from source:
+2. Install magentic-one from source:
     ```bash
     cd packages/autogen-magentic-one
     pip install -e .
     ```
     
-The following instructions are for running the example code:
+    The following instructions are for running the example code:
 
-2. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
-3. Magentic-One code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/) to run any examples.
-4. Magentic-One uses playwright to interact with web pages. You need to install the playwright dependencies. Run the following command to install the playwright dependencies:
+3. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
+4. Magentic-One code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/) to run any examples.
+5. Magentic-One uses playwright to interact with web pages. You need to install the playwright dependencies. Run the following command to install the playwright dependencies:
 
 ```bash
 playwright install --with-deps chromium
 ```
-5. Now you can run the example code to see how the agents work together to accomplish a task.
+6. Now you can run the example code to see how the agents work together to accomplish a task.
 
 > [!CAUTION]  
 > The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code. 
@@ -110,7 +110,7 @@ playwright install --with-deps chromium
   - hil_mode: (Optional) Enable human-in-the-loop mode (default: disabled)
   - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
 
-6. [Preview] We have a preview API for Magentic-One. 
+7. [Preview] We have a preview API for Magentic-One. 
  You can use the `MagenticOneHelper` class to interact with the system and stream logs. See the [interface README](interface/README.md) for more details.
 
 
