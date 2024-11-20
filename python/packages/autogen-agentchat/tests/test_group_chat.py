@@ -24,7 +24,7 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_agentchat.task import HandoffTermination, MaxMessageTermination, TextMentionTermination, Console
+from autogen_agentchat.task import Console, HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
@@ -314,7 +314,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         else:
             assert message == result.messages[index]
         index += 1
-    
+
     # Test Console.
     tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
@@ -483,7 +483,7 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         else:
             assert message == result.messages[index]
         index += 1
-    
+
     # Test Console.
     mock.reset()
     agent1._count = 0  # pyright: ignore
@@ -543,7 +543,7 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
         else:
             assert message == result.messages[index]
         index += 1
-    
+
     # Test Console.
     mock.reset()
     agent1._count = 0  # pyright: ignore
@@ -618,7 +618,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
         else:
             assert message == result.messages[index]
         index += 1
-    
+
     # Test Console.
     mock.reset()
     index = 0
@@ -822,7 +822,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         else:
             assert message == result.messages[index]
         index += 1
-    
+
     # Test Console
     agent1._model_context.clear()  # pyright: ignore
     mock.reset()
