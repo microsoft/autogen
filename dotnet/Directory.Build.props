@@ -21,13 +21,17 @@
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsTestProject>false</IsTestProject>
-
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName.StartsWith(`AutoGen`))' == 'true'">
+    <VersionPrefix>$(VersionPrefixForAutoGen0_2)</VersionPrefix>
+    <IsAutoGen0_2>true</IsAutoGen0_2>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">

@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
   <ItemGroup>
 	  <PackageReference Include="Azure.AI.OpenAI" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
