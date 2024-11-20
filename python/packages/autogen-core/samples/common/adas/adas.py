@@ -18,10 +18,15 @@ from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import threading
 import random
+import numpy as np
+import requests
+from github import Github
 
-from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
-from autogen_core.base import AgentId, AgentType, AgentRuntime, CancellationToken, MessageContext, TopicId
 from autogen_core.components import RoutedAgent, default_subscription, message_handler
+from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core.base import AgentId, AgentType, AgentRuntime, CancellationToken, MessageContext, TopicId
+from autogen_core.components import DefaultTopicId
+from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -29,16 +34,10 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.components import DefaultTopicId
-from autogen_core.components.models import OpenAIChatCompletionClient
-from autogen_core.components.tools import FunctionTool, PythonCodeExecutionTool, ToolSchema
 from autogen_core.components.tool_agent import ToolAgent, tool_agent_caller_loop
+from autogen_core.components.tools import FunctionTool, PythonCodeExecutionTool, ToolSchema
 from autogen_ext.code_executors import DockerCommandLineCodeExecutor #, extract_markdown_code_blocks
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
 from autogen_magentic_one.utils import LogHandler
-from autogen_core.application.logging import EVENT_LOGGER_NAME
 
 # TODO fix imports
 import sys
@@ -57,32 +56,43 @@ Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
 SEARCHING_MODE = True
 
 
-
-@dataclass
-class CodeWritingTask:
-    task: str
-
-
-@dataclass
-class CodeWritingResult:
-    task: str
-    code: str
-    review: str
+def read_github_file(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
 
 
-@dataclass
-class CodeReviewTask:
-    session_id: str
-    code_writing_task: str
-    code_writing_scratchpad: str
-    code: str
+def print_repo_contents(repo, path="", indent=""):
+    contents = repo.get_contents(path)
+    documentation = []
+    for content_file in contents:
+        if content_file.type == "dir":
+            documentation.extend(print_repo_contents(repo, content_file.path, indent + "│   "))
+        else:
+            if content_file.download_url.endswith('.md'):
+                print(f"Reading file from {content_file.download_url}")
+                f = read_github_file(content_file.download_url)
+                documentation.append("Title: " + content_file.name + "\nContents:\n" + f)
+    return documentation
 
 
-@dataclass
-class CodeReviewResult:
-    review: str
-    session_id: str
-    approved: bool
+def get_autogen_documentation():
+    repo_name = "microsoft/autogen"
+    directory_name = "python/packages/autogen-core/docs/src/user-guide/core-user-guide"
+    g = Github()
+
+    subdirectories = ['core-concepts', 'framework']
+    documentation = []
+    for subdir in subdirectories:
+        try:
+            repo = g.get_repo(repo_name)
+            documentation.extend(print_repo_contents(repo, directory_name + '/'+ subdir))
+        except Exception as e:
+            print(f"Error: {e}")
+    print(f"Found {len(documentation)} pages of documentation")
+    return documentation
 
 
 @dataclass
@@ -126,78 +136,9 @@ class LLMAgentBaseResponse:
     output: str
 
 
-# An agent that makes a direct call to the model, and returns json
-class SimpleReflectAgent(RoutedAgent):
-    def __init__(self, description: str, model_client: ChatCompletionClient, system_prompt: str) -> None:
-        super().__init__(description)
-        self._system_messages: List[LLMMessage] = [
-            SystemMessage(
-                content=system_prompt,
-            )
-        ]
-        self._chat_history: List[LLMMessage] = []
-        self._model_client = model_client
-        self._cnt = 0
-
-    @message_handler
-    async def handle_task(self, message: LLMMessageList, ctx: MessageContext) -> SimpleReflectAgentResponse:
-        # logging.info(f"{self._description} received message: {message}")
-        # import pdb; pdb.set_trace()
-        # model_result = await self._model_client.create(
-        #     self._system_messages + self._chat_history + message.llm_message_list
-        # )
-        print(f"llm_message_list {len(message.llm_message_list)}")
-        self._chat_history.extend(message.llm_message_list)
-
-        print(f"-----cnt {self._cnt}")
-        print(f"chat history {len(self._chat_history)}")
-        self._cnt += 1
-        assert isinstance(model_result.content, str)
-        json_content = json.loads(model_result.content)
-        return SimpleReflectAgentResponse(json_content=json_content)
-
-
 @dataclass
 class Message:
     content: str
-
-
-@default_subscription
-class Assistant(RoutedAgent):
-    def __init__(self, model_client: ChatCompletionClient) -> None:
-        super().__init__("An assistant agent.")
-        self._model_client = model_client
-        self._chat_history: List[LLMMessage] = [
-            SystemMessage(
-                content="""Write Python script in markdown block, and it will be executed.
-Always save figures to file in the current directory. Do not use plt.show()""",
-            )
-        ]
-
-    @message_handler
-    async def handle_message(self, message: Message, ctx: MessageContext) -> None:
-        self._chat_history.append(UserMessage(content=message.content, source="user"))
-        result = await self._model_client.create(self._chat_history)
-        print(f"\n{'-'*80}\nAssistant:\n{result.content}")
-        self._chat_history.append(AssistantMessage(content=result.content, source="assistant"))  # type: ignore
-        await self.publish_message(Message(content=result.content), DefaultTopicId())  # type: ignore
-
-
-@default_subscription
-class Executor(RoutedAgent):
-    def __init__(self, code_executor: CodeExecutor) -> None:
-        super().__init__("An executor agent.")
-        self._code_executor = code_executor
-
-    @message_handler
-    async def handle_message(self, message: Message, ctx: MessageContext) -> None:
-        code_blocks = extract_markdown_code_blocks(message.content)
-        if code_blocks:
-            result = await self._code_executor.execute_code_blocks(
-                code_blocks, cancellation_token=ctx.cancellation_token
-            )
-            print(f"\n{'-'*80}\nExecutor:\n{result.output}")
-            await self.publish_message(Message(content=result.output), DefaultTopicId())
 
 
 class AgentSystem():
@@ -269,9 +210,6 @@ def evaluate_forward_fn(args, forward_str):
         task = generate_task([taskInfo])
 
         # For magentic one using the create_completion_client_from_env() helper
-        # export CHAT_COMPLETION_PROVIDER='azure'
-
-
         agent_model_kwargs = {}
 
         result = agent.forward(task, agent_model_kwargs)
@@ -297,7 +235,6 @@ def evaluate_forward_fn(args, forward_str):
         acc_list.append(f1_score)
 
     print(f"f1: {bootstrap_confidence_interval(acc_list)}")
-    import pdb; pdb.set_trace()
     return acc_list
 
 
@@ -308,10 +245,7 @@ class ADASAgent(RoutedAgent):
 
     def __init__(self,
                  model_client: ChatCompletionClient,
-                #  system_prompt: str,
-                #  evaluate_agent_type: str,
-                 reflect_agent_type: str,
-                 executor_agent_type: str,
+                 system_prompt: str,
                  args,
                  archive
         ) -> None:
@@ -321,13 +255,44 @@ class ADASAgent(RoutedAgent):
         #         content=system_prompt,
         #     )
         # ]
-        # self._evaluate_agent_id = AgentId(evaluate_agent_type, self.id.key)
-        self._reflect_agent_id = AgentId(reflect_agent_type, self.id.key)
-        self._executor_agent_id = AgentId(executor_agent_type, self.id.key)
+
         self._args = args
         self._archive = archive
         self._model_client = model_client
         self._session_memory: Dict[str, List[ADASTask | ADASResult]] = {}
+
+        # TODO(yeandy): Add this as a proper Tool https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/tools.html
+        # pip install pygithub
+        self._documentation = get_autogen_documentation()
+
+        self._system_messages: List[LLMMessage] = [
+            SystemMessage(
+                content=system_prompt('\n'.join(self._documentation)),
+            )
+        ]
+        self._chat_history: List[LLMMessage] = []
+        self._model_client = model_client
+        self._cnt = 0
+
+    @message_handler
+    async def handle_task(self, message: LLMMessageList, ctx: MessageContext) -> SimpleReflectAgentResponse:
+        logging.info(f"{self._description} received message: {message}")
+        model_result = await self._model_client.create(
+            # self._system_messages + self._chat_history + message.llm_message_list
+            self._system_messages + message.llm_message_list
+
+        )
+        print(f"llm_message_list {len(message.llm_message_list)}")
+        # self._chat_history.extend(message.llm_message_list)
+
+        print(f"-----cnt {self._cnt}")
+        # print(f"chat history {len(self._chat_history)}")
+        self._cnt += 1
+        assert isinstance(model_result.content, str)
+        print(f"model_result.content {model_result.content}")
+        json_content = json.loads(model_result.content)
+        print(f"finish converting to json")
+        return SimpleReflectAgentResponse(json_content=json_content)
 
     @message_handler
     async def handle_adas_task(self, message: ADASTask, ctx: MessageContext) -> None:
@@ -369,48 +334,102 @@ class ADASAgent(RoutedAgent):
             with open(file_path, 'w') as json_file:
                 json.dump(archive, json_file, indent=4)
         
-        import pdb; pdb.set_trace()
         # Initial prompt
         for n in range(start, args.n_generation):
             print(f"============Generation {n + 1}=================")
             msg_list = [UserMessage(content=message.task, source=self.metadata["type"])]
             import pdb; pdb.set_trace()
             try:
-                response = await self.send_message(LLMMessageList(msg_list), self._reflect_agent_id)
+                response = await self.send_message(LLMMessageList(msg_list), self.id)
+                next_solution = response.json_content
                 Reflexion_prompt_1, Reflexion_prompt_2 = get_reflexion_prompt(self._archive[-1] if n > 0 else None)
+                print(f"Reflexion_prompt_1 {Reflexion_prompt_1}")
+                print(f"Reflexion_prompt_2 {Reflexion_prompt_2}")
+                print(f"@@After initial prompt {response}")
 
                 # Reflexion 1
-                next_solution = response.json_content
-                new_messages = [
+                # new_messages = [
+                #     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                #     UserMessage(content=Reflexion_prompt_1, source=self.metadata["type"]),
+                # ]
+                new_messages = msg_list + [
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=Reflexion_prompt_1, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), AgentId('simple_reflect_agent', self.id.key))
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                next_solution = response.json_content
+                print(f"@@After Reflexion_prompt_1 {response}")
 
                 # Reflexion 2
-                next_solution = response.json_content
-                new_messages = [
+                # new_messages = [
+                #     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                #     UserMessage(content=Reflexion_prompt_2, source=self.metadata["type"]),
+                # ]
+                new_messages = new_messages + [
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=Reflexion_prompt_2, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), AgentId('simple_reflect_agent', self.id.key))
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                next_solution = response.json_content
+                # next_solution = {'reflection': 'The previous code attempted to implement an ensemble approach with additional confidence estimation, but there were errors that needed addressing. Specifically:\n1. **Incorrect Use of `publish_message`:** The previously provided code misuses `self.publish_message()` in a context where the function signature might be misleading, as it requires `None` as its return.\n2. **Improper Handling of Topics and Message Types:** The correct usage for publishing and handling message types is essential, utilizing the proper `TopicId` syntax.\n3. **Incorrect Method for Calculating Confidence:** The confidence estimation implementation was overly simplistic, which could lead to skewed results. \n\nThe revised implementation corrects these issues and ensures compliance with best practices.', 'thought': '**Insights:**\nThe next iteration of the agent should refine on the concept of diversified reasoning by incorporating evaluative mechanisms within Worker Agents to self-assess their response confidence and determine when consensus should be approached collaboratively.\n\n**Overall Idea:**\nThe architecture can further benefit from introducing adaptive learning patterns, where Worker Agents adjust their reasoning strategies dynamically based on prior task ratings or other metadata. This enables a feedback loop that improves over time.\n\n**Implementation:**\n- Modify Worker Agents to give confidence ratings in their output.\n- Integrate an orchestrator that places more weight on outputs with higher confidence when synthesizing results.\n- Ensure message handling aligns with idiomatic usage of message types and topics, using `TopicId` properly.', 'name': 'Adaptive Diverse Ensemble', 'code': 'def forward(self, task, model_client_kwargs):\n    import asyncio\n    from dataclasses import dataclass\n    from typing import List\n    from collections import Counter\n    from autogen_core.base import MessageContext, AgentId, AgentRuntime, TopicId\n    from autogen_core.components import RoutedAgent, message_handler, ClosureAgent, TypeSubscription\n    from autogen_core.components.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage\n    from autogen_core.application import SingleThreadedAgentRuntime\n    from autogen_ext.models import AzureOpenAIChatCompletionClient\n    from azure.identity import DefaultAzureCredential, get_bearer_token_provider\n\n    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")\n\n    # Create an AzureOpenAI model client.\n    model_client = AzureOpenAIChatCompletionClient(\n        model=model_client_kwargs[\'model\'],\n        api_version=model_client_kwargs[\'api_version\'],\n        azure_endpoint=model_client_kwargs[\'azure_endpoint\'],\n        azure_ad_token_provider=token_provider,\n        model_capabilities={\n            "vision": True,\n            "function_calling": True,\n            "json_output": True,\n        },\n    )\n\n    @dataclass\n    class DiverseThoughtTask:\n        task: str\n\n    @dataclass\n    class DiverseThoughtResult:\n        result: str\n        confidence: float\n\n    # Define Diverse Worker Agent\n    class DiverseWorkerAgent(RoutedAgent):\n        def __init__(self, description: str, model_client: ChatCompletionClient, instruction: str) -> None:\n            super().__init__(description)\n            self._model_client = model_client\n            self._instruction = instruction\n\n        @message_handler\n        async def handle_task(self, message: DiverseThoughtTask, ctx: MessageContext) -> None:\n            user_prompt = message.task + "\\n" + self._instruction\n            model_result = await self._model_client.create([UserMessage(content=user_prompt, source="worker_agent")])\n            confidence = self.estimate_confidence(model_result.content)\n            assert isinstance(model_result.content, str)\n            await self.publish_message(DiverseThoughtResult(result=model_result.content, confidence=confidence), \n                                       topic_id=TopicId("worker_results", self.id.key))\n\n        def estimate_confidence(self, text: str) -> float:\n            # Improved placeholder for actual confidence estimation method\n            # Here, we can use sentiment analysis or other processing as an example\n            return min(1.0, max(0.0, len(text) / 100.0))\n\n    # Orchestrator Agent for Consensus\n    class OrchestratorAgent(RoutedAgent):\n        def __init__(self) -> None:\n            super().__init__("Orchestrator for Diverse Thoughts")\n\n        @message_handler\n        async def handle_task(self, message: DiverseThoughtTask, ctx: MessageContext) -> None:\n            worker_ids = [AgentId("worker_1", ctx.id.key), AgentId("worker_2", ctx.id.key), AgentId("worker_3", ctx.id.key)]\n            results = await asyncio.gather(*[self.send_message(message, worker_id) for worker_id in worker_ids])\n            combined_result = self.evaluate_results(results)\n            await self.publish_message(DiverseThoughtResult(result=combined_result, confidence=1.0), \n                                       topic_id=TopicId("diverse_result", "orchestrator"))\n\n        def evaluate_results(self, results: List[DiverseThoughtResult]) -> str:\n            # Implement advanced evaluation, here just demonstrating a weighted result selection based on confidence\n            confidences = Counter()\n            for res in results:\n                confidences[res.result] += res.confidence\n            return max(confidences, key=confidences.get)\n\n    async def main():\n        # Create a queue to collect final answers\n        queue = asyncio.Queue[DiverseThoughtResult]()\n        async def output_result(_runtime: AgentRuntime, id: AgentId, message: DiverseThoughtResult, ctx: MessageContext) -> None:\n            await queue.put(message)\n\n        # Initialize the agent runtime\n        runtime = SingleThreadedAgentRuntime()\n\n        # Register workers with various strategies\n        strategies = ["utilize strict logical reasoning", "incorporate probabilistic reasoning", "focus on evidence-based reasoning"]\n        for i, strat in enumerate(strategies, start=1):\n            await DiverseWorkerAgent.register(\n                runtime, f"worker_{i}", lambda strat=strat: DiverseWorkerAgent(\n                    description=f"Diverse Worker {i}", model_client=model_client, instruction=strat\n                )\n            )\n\n        # Register Orchestrator\n        await OrchestratorAgent.register(runtime, "orchestrator")\n\n        # Create closure agent to collect final output result\n        result_topic = TypeSubscription(topic_type="diverse_result", agent_type="output_result")\n        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])\n\n        # Start the runtime, and publish the first message\n        runtime.start()\n        await runtime.publish_message(\n            message=DiverseThoughtTask(task=task),\n            topic_id=TopicId("diverse", "orchestrator")\n        )\n\n        # Keep processing messages until idle.\n        await runtime.stop_when_idle()\n\n        # Return the first answer from the queue\n        return (await queue.get()).result\n\n    return asyncio.run(main())\n'}
+                print(f"@@After Reflexion_prompt_2 {next_solution}")
             except Exception as e:
                 # import pdb; pdb.set_trace()
                 print("During LLM generate new solution:")
                 print(e)
+                import pdb; pdb.set_trace()
+                n -= 1
                 continue
 
-        # TODO: Evaluate code
-        next_solution = response.json_content
-        print(f"final {str(next_solution)}")
-        import pdb; pdb.set_trace()
-        acc_list = evaluate_forward_fn(args, next_solution["code"])
-        import pdb; pdb.set_trace()
-    
-        print("asdf")
-        # TODO: Maybe not... instantiate many agents to run eval.
-        # acc_list = await self.send_message(EvaluateTask(), self._evaluate_agent_id)
+            import pdb; pdb.set_trace()
+            acc_list = []
+            for _ in range(args.debug_max):
+                print(f"DEBUGGING")
+                try:
+                    acc_list = evaluate_forward_fn(args, next_solution["code"])
+                    if np.mean(acc_list) < 0.01 and SEARCHING_MODE:
+                        raise Exception("All 0 accuracy")
+                    break
+                except Exception as e:
+                    print("During evaluation:")
+                    print(e)
+                    next_solution = response.json_content
+                    # new_messages = [
+                    #     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                    #     UserMessage(content=f"Error during evaluation:\n{e}\nCarefully consider where you went wrong in your latest implementation. Using insights from previous attempts, try to debug the current code to implement the same thought. Repeat your previous thought in 'thought', and put your thinking for debugging in 'debug_thought'", source=self.metadata["type"]),
+                    # ]
+                    new_messages = new_messages + [
+                        AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                        UserMessage(content=f"Error during evaluation:\n{e}\nCarefully consider where you went wrong in your latest implementation. Using insights from previous attempts, try to debug the current code to implement the same thought. Repeat your previous thought in 'thought', and put your thinking for debugging in 'debug_thought'", source=self.metadata["type"]),
+                    ]
+                    try:
+                        response = await self.send_message(LLMMessageList(new_messages), self.id)
+                        next_solution = response.json_content
+                    except Exception as e:
+                        print("During LLM generate new solution:")
+                        print(e)
+                        import pdb; pdb.set_trace()
+                        continue
+                    continue
+            if not acc_list:
+                n -= 1
+                continue
 
+            import pdb; pdb.set_trace()
+            fitness_str = bootstrap_confidence_interval(acc_list)
+            next_solution['fitness'] = fitness_str
+            next_solution['generation'] = n + 1
+
+            if 'debug_thought' in next_solution:
+                del next_solution['debug_thought']
+            if 'reflection' in next_solution:
+                del next_solution['reflection']
+            archive.append(next_solution)
+
+            # save results
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as json_file:
+                json.dump(archive, json_file, indent=4)
 
 async def main(args) -> None:
     runtime = SingleThreadedAgentRuntime()
@@ -418,22 +437,12 @@ async def main(args) -> None:
     archive = get_init_archive()
     system_prompt, prompt = get_prompt(archive)    
 
-    # Create the reflect agent
-    await SimpleReflectAgent.register(
-        runtime, "simple_reflect_agent", lambda: SimpleReflectAgent(
-            description='Simple Reflect Agent',
-            model_client=client,
-            system_prompt=system_prompt,
-        )
-    )
-
     await ADASAgent.register(
         runtime, "adas_agent", lambda: ADASAgent(
             model_client=client,
+            system_prompt=system_prompt,
             args=args,
             archive=archive,
-            reflect_agent_type='simple_reflect_agent',
-            executor_agent_type='executor',
         )
     )
     

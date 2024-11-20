@@ -37,7 +37,7 @@ EXAMPLE = {
 COT = {
     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
     "name": "Chain-of-Thought",
-    "code": """def forward(self, task, agent_model_kwargs):
+    "code": """def forward(self, task, model_client_kwargs):
     import asyncio
     import logging
     import json
@@ -60,9 +60,9 @@ COT = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
-        model=agent_model_kwargs['model'],
-        api_version=agent_model_kwargs['api_version'],
-        azure_endpoint=agent_model_kwargs['azure_endpoint'],
+        model=model_client_kwargs['model'],
+        api_version=model_client_kwargs['api_version'],
+        azure_endpoint=model_client_kwargs['azure_endpoint'],
         azure_ad_token_provider=token_provider,
         model_capabilities={
             "vision": True,
@@ -116,6 +116,7 @@ COT = {
     # Define the main function to set up and run the agent system
     async def main():
 
+        # Create a queue to collect final answer
         queue = asyncio.Queue[FinalResult]()
         async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalResult, ctx: MessageContext) -> None:
             await queue.put(message)
@@ -134,11 +135,15 @@ COT = {
                 instruction=cot_instruction,
             )
         )
+        # Create closure agent to collect final output result
         await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
 
+        # Start the runtime, and publish the first message
         runtime.start()
         initial_message = ChainOfThoughtTask(task=task)
         await runtime.send_message(initial_message, agent_id) # publish_message
+
+        # Keep processing messages until idle.
         await runtime.stop_when_idle()
 
         # Return the first answer from the queue
@@ -151,7 +156,7 @@ COT = {
 COT_SC = {
     "thought": "While an LLM can arrive at the correct answer, its reasoning may vary. By repeatedly asking the same question with high temperature settings, we can generate different reasoning paths. We then combine multiple answers from these Chain-of-Thought (CoT) agents to produce a more accurate final answer through ensembling.",
     "name": "Self-Consistency with Chain-of-Thought",
-    "code": """def forward(self, task, agent_model_kwargs):
+    "code": """def forward(self, task, model_client_kwargs):
     import asyncio
     import logging
     import json
@@ -174,9 +179,9 @@ COT_SC = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
-        model=agent_model_kwargs['model'],
-        api_version=agent_model_kwargs['api_version'],
-        azure_endpoint=agent_model_kwargs['azure_endpoint'],
+        model=model_client_kwargs['model'],
+        api_version=model_client_kwargs['api_version'],
+        azure_endpoint=model_client_kwargs['azure_endpoint'],
         azure_ad_token_provider=token_provider,
         model_capabilities={
             "vision": True,
@@ -284,20 +289,24 @@ COT_SC = {
         # Initialize the agent runtime
         runtime = SingleThreadedAgentRuntime()
 
+        # Create the agents
         cot_instruction = "Please think step by step and then solve the task."
         await WorkerAgent.register(
-            runtime, "worker", lambda: WorkerAgent(model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"), instruction=cot_instruction)
+            runtime, "worker", lambda: WorkerAgent(model_client=model_client, instruction=cot_instruction)
         )
         await OrchestratorAgent.register(
             runtime,
             "orchestrator",
             lambda: OrchestratorAgent(
-                model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"), worker_agent_types=["worker"] * 5, num_layers=1
+                model_client=model_client, worker_agent_types=["worker"] * 5, num_layers=1
             ),
         )
 
+        # Start the runtime, and publish the first message
         runtime.start()
         result = await runtime.send_message(UserTask(task=task), AgentId("orchestrator", "default"))
+
+        # Return the result
         return result.result
 
     return asyncio.run(main())
@@ -307,7 +316,7 @@ COT_SC = {
 Reflexion = {
     "thought": "To enhance its performance, an LLM can iteratively improve its answer based on feedback. By reflecting on its previous attempts and incorporating feedback, the model can refine its reasoning and provide a more accurate solution.",
     "name": "Self-Refine (Reflexion)",
-    "code": '''def forward(self, task, agent_model_kwargs):
+    "code": '''def forward(self, task, model_client_kwargs):
     import asyncio
     import json
     import logging
@@ -334,9 +343,9 @@ Reflexion = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
-        model=agent_model_kwargs['model'],
-        api_version=agent_model_kwargs['api_version'],
-        azure_endpoint=agent_model_kwargs['azure_endpoint'],
+        model=model_client_kwargs['model'],
+        api_version=model_client_kwargs['api_version'],
+        azure_endpoint=model_client_kwargs['azure_endpoint'],
         azure_ad_token_provider=token_provider,
         model_capabilities={
             "vision": True,
@@ -409,8 +418,6 @@ Reflexion = {
             assert isinstance(response.content, str)
             # Extract the answer from the response.
             answer = self._extract_answer(response.content)
-            if answer is None:
-                raise ValueError("Answer not found.")
             # Create a review task.
             review_task = ReviewTask(
                 session_id=session_id,
@@ -468,8 +475,6 @@ Reflexion = {
                 assert isinstance(response.content, str)
                 # Extract the answer from the response.
                 answer = self._extract_answer(response.content)
-                if answer is None:
-                    raise ValueError("Answer not found.")
                 # Create a new review task.
                 review_task = ReviewTask(
                     session_id=message.session_id,
@@ -564,21 +569,27 @@ Reflexion = {
 
     # Define the main function to set up and run the agent system
     async def main():
+        # Create a queue to collect final answer
         queue = asyncio.Queue[WritingResult]()
         async def output_result(_runtime: AgentRuntime, id: AgentId, message: WritingResult, ctx: MessageContext) -> None:
             await queue.put(message)
 
+        # Initialize the agent runtime
         runtime = SingleThreadedAgentRuntime()
+
+        # Create agents
         await ReviewerAgent.register(
-            runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"))
+            runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client)
         )
         cot_instruction = "Please think step by step and then solve the task."
         await WorkerAgent.register(
-            runtime, "WorkerAgent", lambda: WorkerAgent(model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"), instruction=cot_instruction)
+            runtime, "WorkerAgent", lambda: WorkerAgent(model_client=model_client, instruction=cot_instruction)
         )
+        # Create closure agent to collect final output result
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
         await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 
+        # Start the runtime, and publish the first message
         runtime.start()
         await runtime.publish_message(
             message=WritingTask(task=task),
@@ -588,7 +599,8 @@ Reflexion = {
         # Keep processing messages until idle.
         await runtime.stop_when_idle()
 
-        # Return the answer from the queue
+        # Return the first answer from the queue
+        print(f"queue {queue}")
         return (await queue.get()).answer
     
     return asyncio.run(main())
@@ -721,7 +733,13 @@ Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can 
 """
                    }
 
-system_prompt = """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object."""
+system_prompt = lambda formatted_documentation: f"""You are a helpful assistant. You have an expert understanding of the AutoGen framework, and how to use the Python API. The API documentation are as follows: 
+
+{formatted_documentation}
+
+This is the end of the documentation.
+
+Make sure to return in a WELL-FORMED JSON object. Do not add any code blocks around the JSON object."""
 
 base = """# Overview
 You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on the Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragraphs (DROP), which assesses the ability to perform discrete reasoning and comprehend detailed information across multiple paragraphs.
@@ -738,176 +756,23 @@ Pakistanis and Filipinos
 # The utility code:
 
 ```python
-from collections import namedtuple
-from typing import Union
-import numpy as np
-import json
 
-import openai
-import backoff
-from utils import random_id
-
-# Initialize the OpenAI client
-client = openai.OpenAI()
-
-# Named tuple for holding task information
 Info = namedtuple('Info', ['name', 'author', 'content', 'iteration_idx'])
-
-# Format instructions for LLM response
-FORMAT_INST = lambda request_keys: f"Reply EXACTLY with the following JSON format.\n{str(request_keys)}\nDO NOT MISS ANY FIELDS AND MAKE SURE THE JSON FORMAT IS CORRECT!\n"
-
-# Description of the role for the LLM
-ROLE_DESC = lambda role: f"You are a {role}."
-
-@backoff.on_exception(backoff.expo, openai.RateLimitError)
-def get_json_response_from_gpt(msg, model, system_message, temperature=0.5):
-    \"""
-    Function to get JSON response from GPT model.
-    
-    Args:
-    - msg (str): The user message.
-    - model (str): The model to use.
-    - system_message (str): The system message.
-    - temperature (float): Sampling temperature.
-    
-    Returns:
-    - dict: The JSON response.
-    \"""
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": msg},
-        ],
-        temperature=temperature,
-        max_tokens=1024,
-        stop=None,
-        response_format={"type": "json_object"}
-    )
-    content = response.choices[0].message.content
-    json_dict = json.loads(content)
-    return json_dict
-
-class LLMAgentBase:
-    \"""
-    Base class for an LLM agent.
-    
-    Attributes:
-    - output_fields (list): Fields expected in the output.
-    - agent_name (str): Name of the agent.
-    - role (str): Role description for the agent.
-    - model (str): Model to be used. (option. Keep it default.)
-    - temperature (float): Sampling temperature.
-    - id (str): Unique identifier for the agent instance.
-    \"""
-
-    def __init__(self, output_fields: list, agent_name: str, role='helpful assistant', model='gpt-3.5-turbo-0125', temperature=0.5) -> None:
-        self.output_fields = output_fields
-        self.agent_name = agent_name
-        self.role = role
-        self.model = model
-        self.temperature = temperature
-        self.id = random_id()
-    
-    def generate_prompt(self, input_infos, instruction) -> str:
-        \"""
-        Generates a prompt for the LLM.
-        
-        Args:
-        - input_infos (list): List of input information.
-        - instruction (str): Instruction for the task.
-        
-        Returns:
-        - tuple: System prompt and user prompt.
-
-        An example of a generated prompt:
-        ""
-        You are a helpful assistant.
-        
-        # Output Format:
-        Reply EXACTLY with the following JSON format.
-        ...
-
-        # Your Task:
-        You will be given some number of paired example inputs and outputs. The outputs ...
-
-        ### thinking #1 by Chain-of-Thought Agent hkFo (yourself):
-        ...
-        
-        ### code #1 by Chain-of-Thought Agent hkFo (yourself):
-        ...
-
-        ### answer by Chain-of-Thought Agent hkFo's code evaluator:...
-
-
-        # Instruction: 
-        Please think step by step and then solve the task by writing the code.
-        ""
-        \"""
-        output_fields_and_description = {key: f"Your {key}." if not 'answer' in key else f"Your {key}. Return ONLY the alphabet choice, i.e. A or B or C or D." for key in self.output_fields}
-        system_prompt = ROLE_DESC(self.role) + "\n\n" + FORMAT_INST(output_fields_and_description)
-
-        input_infos_text = ''
-        for input_info in input_infos:
-            if isinstance(input_info, Info):
-                (field_name, author, content, iteration_idx) = input_info
-            else:
-                continue
-            if author == self.__repr__():
-                author += ' (yourself)'
-            if field_name == 'task':
-                input_infos_text += f'# Your Task:\n{content}\n\n'
-            elif iteration_idx != -1:
-                input_infos_text += f'### {field_name} #{iteration_idx+1} by {author}:\n{content}\n\n'
-            else:
-                input_infos_text += f'### {field_name} by {author}:\n{content}\n\n'
-
-        prompt = input_infos_text + instruction
-        return system_prompt, prompt 
-
-    def query(self, input_infos: list, instruction, iteration_idx=-1) -> list[Info]:
-        \"""
-        Queries the LLM with provided input information and instruction.
-        
-        Args:
-        - input_infos (list): List of input information.
-        - instruction (str): Instruction for the task.
-        - iteration_idx (int): Iteration index for the task.
-        
-        Returns:
-        - output_infos (list[Info]): Output information.
-        \"""
-        system_prompt, prompt = self.generate_prompt(input_infos, instruction)
-        response_json = get_json_response_from_gpt(prompt, self.model, system_prompt, self.temperature)
-
-        output_infos = []
-        for key, value in response_json.items():
-            info = Info(key, self.__repr__(), value, iteration_idx)
-            output_infos.append(info)
-        return output_infos
-
-    def __repr__(self):
-        return f"{self.agent_name} {self.id}"
-    
-    def __call__(self, input_infos: list, instruction, iteration_idx=-1):
-        # Note:
-        # The output of the LLM is a list of Info. If you are only querying one output, you should access it with [0].
-        # It is a good practice to always include 'thinking' in the output.
-        return self.query(input_infos, instruction, iteration_idx=iteration_idx)
 
 class AgentArchitecture:
     \"""
     Fill in your code here.
     \"""
-    def forward(self, taskInfo) -> Union[Info, str]:
+    def forward(self, task, model_client_kwargs) -> str:
         \"""
         Placeholder method for processing task information.
         
         Args:
-        - taskInfo (Info): Task information.
+        - task (Info): Task information.
+        - model_client_kwargs (Dict): Information for the AzureOpenAIChatCompletionClient
         
         Returns:
-        - Answer (Union[Info, str]): Your FINAL Answer. Return either a namedtuple Info or a string of answers.
+        - Answer (str): Your FINAL Answer. Return a string of answers.
         \"""
         pass
 ```
@@ -928,61 +793,300 @@ Here is an example of the output format for the next agent architecture:
 [EXAMPLE]
 
 You must use the exact function interface used above. You need to specify the instruction, input information, and the required output fields for various LLM agents to do their specific part of the architecture. 
-Also, it could be helpful to set the LLM’s role and temperature to further control the LLM’s response. Note that the LLMAgentBase() will automatically parse the output and return a list of “Infos”. You can get the content by Infos.content. 
-DO NOT FORGET the taskInfo input to LLM if you think it is needed, otherwise LLM will not know about the task.
+Also, it could be helpful to set the LLM’s role to further control the LLM’s response.
+DO NOT FORGET the `task` input to LLM if you think it is needed, otherwise LLM will not know about the task.
 
 ## WRONG Implementation examples:
 Here are some mistakes you may make:
 
 1. This is WRONG: ```
-feedback, correct = critic_agent([taskInfo, thinking, answer], critic_instruction, i)
-feedback_info = verifier_agent([taskInfo, Info('feedback', 'Critic Agent', thinking, 0)], verification_instruction)
+
+@default_subscription
+class WorkerAgent(RoutedAgent):
+    def __init__(self):
+        pass
+
+    @message_handler
+    async def handle_writing_task(self, message: WritingTask, ctx: MessageContext) -> None:
+        pass
+
+async def main():
+    # Create a queue to collect final answer
+    queue = asyncio.Queue[FinalResult]()
+    async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalResult, ctx: MessageContext) -> None:
+        await queue.put(message)
+
+    runtime = SingleThreadedAgentRuntime()
+    await ReviewerAgent.register(
+        runtime, "ReviewerAgent", lambda: ReviewerAgent(model_client=model_client)
+    )
+    cot_instruction = "Please think step by step and then solve the task."
+    await WorkerAgent.register(
+        runtime, "WorkerAgent", lambda: WorkerAgent(model_client=model_client, instruction=cot_instruction)
+    )
+    # Create closure agent to collect final output result
+    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
+
+    runtime.start()
+    await runtime.publish_message(
+        message=WritingTask(task=task),
+        topic_id=DefaultTopicId(),
+    )
+
+    # Keep processing messages until idle.
+    await runtime.stop_when_idle()
+
+    # Return the answer from the queue
+    return (await queue.get()).answer
+
+return asyncio.run(main())
 ```
-It is wrong to use "Info('feedback', 'Critic Agent', thinking, 0)". The returned "feedback" from LLMAgentBase is already Info.
+Because the WorkerAgent is subscribed to the `@default_subscription` topic, then there will be conflicts for the ClosureAgent to collect the WritingResult from the same default subscription. Create a new topic using TypeSubscription(topic_type="result", agent_type="output_result") to make this work.
 
 2. This is WRONG: ```
-# Debugging: Log the generated answer
-print('Generated Answer:', ...)
-feedback_info = verifier_agent([taskInfo, Info('feedback', 'Critic Agent', thinking, 0)], verification_instruction)
-if len(feedback_info) < 3:  # Check if feedback_info has enough elements
-    return 'Error: Feedback info incomplete'
+async def main():
+
+    # Initialize the agent runtime
+    runtime = SingleThreadedAgentRuntime()
+
+    # Create the agents
+    cot_instruction = "Please think step by step and then solve the task."
+    await WorkerAgent.register(
+        runtime, "worker", lambda: WorkerAgent(model_client=model_client, instruction=cot_instruction)
+    )
+    await OrchestratorAgent.register(
+        runtime,
+        "orchestrator",
+        lambda: OrchestratorAgent(
+            model_client=model_client, worker_agent_types=["worker"] * 5, num_layers=1
+        ),
+    )
+
+    # Start the runtime, and publish the first message
+    runtime.start()
+    result = await runtime.send_message(UserTask(task=task), AgentId("orchestrator", "default"))
+
+    # Return the result
+    return result.result
+
+return main()
 ```
-First, the len(feedback_info) will not work.
-Second, you should never return an error message. You should always return the best answer you can get.
-Third, you should never print anything in the code.
-Lastly, again, DO NOT CREATE Info object by yourself.
+The `main()` function needs to be called with `asyncio.run(main())`
 
 3. This is WRONG: ```
-all_thinking = []
-all_answers = []
-for agent, role in zip(agents, roles):
-    outputs = agent([taskInfo], independent_reasoning_instruction.format(role=role))
-    all_thinking.append(outputs[0].content)
-    all_answers.append(outputs[1].content)
+# Define the Chain-of-Thought Agent
+class ChainOfThoughtAgent(RoutedAgent):
+    def __init__(self, description: str,
+                model_client: ChatCompletionClient,
+                system_prompt: str,
+                instruction: str,
+        ) -> None:
+        super().__init__(description)
+        self._system_messages: List[LLMMessage] = [
+            SystemMessage(
+                content=system_prompt,
+            )
+        ]
+        self._model_client = model_client
+        self._instruction = instruction
 
-# Aggregate the reasoning paths and answers
-aggregated_thinking = '\n'.join(all_thinking)
-aggregated_answers = '\n'.join(all_answers)
+    @message_handler
+    async def handle_task(self, message: ChainOfThoughtTask, ctx: MessageContext) -> FinalResult:
+
+        logging.info(f"{self._description} received message: {message.task}")
+        user_prompt = message.task + "\\n" + self._instruction
+        msgs = self._system_messages + [UserMessage(content=user_prompt, source=self.metadata["type"])]
+        model_result = await self._model_client.create(msgs)
+        assert isinstance(model_result.content, str)
+
+        await self.publish_message(
+            message=FinalResult(model_result.content),
+            topic_id=DefaultTopicId(),
+        )
 ```
-You SHOULD NOT extract the content from the Info object by yourself. You should use the Info object directly. If you want to aggregate the content, you should just put those Info objects into a list and then use the list as input to the next LLM agent.
+Any call with `self.publish_message()` will always return None, so make sure to set the output type of the `handle_task` function as `None`. Example: `async def handle_task(self, message: ChainOfThoughtTask, ctx: MessageContext) -> None:`.
 
 4. This is WRONG: ```
-reasoning_agent = LLMAgentBase(['thinking', 'answer'], 'Reasoning Agent')
-response_infos = reasoning_agent([taskInfo] + ..., reasoning_instruction)
+class OrchestratorAgent(RoutedAgent):
+    def __init__(
+        self,
+        model_client: ChatCompletionClient,
+        worker_agent_types: List[str],
+        num_layers: int,
+    ) -> None:
+        super().__init__(description="Aggregator Agent")
+        self._model_client = model_client
+        self._worker_agent_types = worker_agent_types
+        self._num_layers = num_layers
+
+
+    @message_handler
+    async def handle_task(self, message: UserTask, ctx: MessageContext) -> None:
+        print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nReceived task: {message.task}")
+        # Create task for the first layer.
+        worker_task = WorkerTask(task=message.task, previous_results=[])
+        # Iterate over layers.
+        for i in range(self._num_layers):
+            # Assign workers for this layer.
+            worker_ids = [
+                AgentId(worker_type, f"{self.id.key}/layer_{i}/worker_{j}")
+                for j, worker_type in enumerate(self._worker_agent_types)
+            ]
+            # Dispatch tasks to workers.
+            print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nDispatch to workers at layer {i}")
+            results = await asyncio.gather(*[self.send_message(worker_task, worker_id) for worker_id in worker_ids])
+            print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nReceived results from workers at layer {i}")
+            # Prepare task for the next layer.
+            worker_task = WorkerTask(task=message.task, previous_results=[r.result for r in results])
+        # Perform final aggregation.
+        print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nPerforming final aggregation")
+        # system_prompt = "You have been provided with a set of responses from various open-source models to the latest user query. Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.\\n\\nResponses from models:"
+        system_prompt = "Given all the above solutions, reason over them carefully and provide a final answer."
+        system_prompt += "\\n" + "\\n\\n".join([f"{i+1}. {r}" for i, r in enumerate(worker_task.previous_results)])
+        model_result = await self._model_client.create(
+            [SystemMessage(system_prompt), UserMessage(content=message.task, source="user")]
+        )
+        assert isinstance(model_result.content, str)
+        return FinalResult(result=model_result.content)
+```
+Directly returning a message dataclass `FinalResult` requires setting the return type of the `handle_task` function to return `FinalResult`. Example: `async def handle_task(self, message: UserTask, ctx: MessageContext) -> FinalResult:`. 
+
+5. This is WRONG: ```
+    # Main orchestration
+    async def main():
+        runtime = SingleThreadedAgentRuntime()
+
+        # Register agents
+        await RetrieverAgent.register(runtime, "retriever_agent")
+        await ValidatorAgent.register(runtime, "validator_agent")
+        await ReasoningAgent.register(runtime, "reasoning_agent", lambda: ReasoningAgent(model_client=model_client))
+
+        # Start runtime
+        runtime.start()
+        task_data = task.content if isinstance(task, Info) else task  # Assuming task contains raw question
+        await runtime.publish_message(task_data, AgentId("retriever_agent", "default"))
+
+        # Stop when idle
+        await runtime.stop_when_idle()
+
+    return asyncio.run(main())
+```
+The first argument into `publish_message` or `send_message` should not be an `Info` object or any other object. It must be a Message dataclass, which has the format similar to: ```
+@dataclass
+class Message:
+    content: str
+```
+
+6. This is WRONG: ```
+await ctx.publish(AdaptiveResult(result=response.content), topic_id=ctx.default_topic_id())
+```
+Publishing should be called with `self.publish_message()`.
+
+7. This is WRONG: ```
+await ClosureAgent.register(runtime, "final_collection", collect_final_result, subscriptions=[TypeSubscription("consensus_result", "consensus_agent")])
+```
+The argument passed to `subscriptions` should not be a list. It should be a lambda function to a list. For example: ```
+await ClosureAgent.register(runtime, "final_collection", collect_final_result, subscriptions=lambda: [TypeSubscription("consensus_result", "consensus_agent")])
+```
+
+8. This is WRONG: ```
+await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=TypeSubscription("initial_task", "worker_agent").topic_id())
+```
+The `topic_id` needs to be a `TopicId` with or `DefaultTopicId` object. For example: ```
+await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=TopicId(topic_type, source=self.id.key))
+```
+or ```
+await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=TopicId(user_topic_type, source=session_id))
+```
+or ```
+await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=DefaultTopicId())
+```
+
+8. This is WRONG: ```
+await OrchestratorAgent.register(runtime, "orchestrator")
+```
+You will encounter this error "TypeError: BaseAgent.register() missing 1 required positional argument: 'factory'". The correct solution is: ```
+await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
+```
+
+9 This is WRONG: ```
+class OrchestratorAgent(RoutedAgent):
+    pass
     
-# Extract the final answer from the response_infos
-for info in response_infos:
-    if info.name == 'final_answer':
-        return info
-# Fallback if no answer is found
-return Info('answer', 'Final Decision Agent', 'No answer generated.', 0)
+async def main():
+    await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
+
+    await runtime.publish_message(
+        message=DiverseThoughtTask(task='What is the most creative art medium?'),
+        topic_id=TopicId("diverse", "orchestrator")
+    )
 ```
-You should not extract the final answer by yourself. You SHOULD directly return the answer Info. Also, you should always return the best answer you can get.
-CORRECT example: ```
-reasoning_agent = LLMAgentBase(['thinking', 'answer'], 'Reasoning Agent')
-thinking, answer = reasoning_agent([taskInfo] + ..., reasoning_instruction)
-return answer
+You must register subscriptions with the agent runtime through the `add_subscription` method.
 ```
+async def main():
+    await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
+    await runtime.add_subscription(TypeSubscription("orchestrator_type", "orchestrator"))
+
+    await runtime.publish_message(
+        message=DiverseThoughtTask(task='What is the most creative art medium?'),
+        topic_id=TopicId(type="orchestrator_type")
+    )
+```
+Now, you can publish directly to a specific topic through the runtime.
+
+## CORRECT Implementation examples:
+Here are some correct patterns you should follow:
+
+1. This is CORRECT: ```
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+# Create an AzureOpenAI model client.
+model_client = AzureOpenAIChatCompletionClient(
+    model=model_client_kwargs['model'],
+    api_version=model_client_kwargs['api_version'],
+    azure_endpoint=model_client_kwargs['azure_endpoint'],
+    azure_ad_token_provider=token_provider,
+    model_capabilities={
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+    },
+)
+```
+Creating the model client using the model_client_kwargs dictionary.
+
+2. This is CORRECT: ```
+    async def main():
+        # Create a queue to collect final answer
+        queue = asyncio.Queue[WritingResult]()
+        async def output_result(_runtime: AgentRuntime, id: AgentId, message: WritingResult, ctx: MessageContext) -> None:
+            await queue.put(message)
+
+        # Initialize the agent runtime
+        runtime = SingleThreadedAgentRuntime()
+
+        # Create agents
+
+        # Create closure agent to collect final output result
+        result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
+        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+
+        # Start the runtime, and publish the first message
+        runtime.start()
+        await runtime.publish_message()
+
+        # Keep processing messages until idle.
+        await runtime.stop_when_idle()
+
+        # Return the first answer from the queue
+        print(f"queue {queue}")
+        return (await queue.get()).answer
+    
+    return asyncio.run(main())
+```
+This is the format for the `main` function. Make sure that when creating a `ClosureAgent`, you have created `queue` from which you can call `return (await queue.get()).answer` at the very end of the `main` function. The datatype of the Queue should be the final message that the agent system publishes to indicate that the system is terminating. 
+The `result_topic` should have a unique `topic_type`, which can be called "result".
 
 # Your task
 You are deeply familiar with prompting techniques and the agent works from the literature. Your goal is to maximize the specified performance metrics by proposing interestingly new agents.
@@ -991,6 +1095,9 @@ Be creative when thinking about the next interesting agent to try. You are encou
 Use the knowledge from the archive and inspiration from academic literature to propose the next interesting agentic system design.
 THINK OUTSIDE THE BOX.
 """
+
+# Documentation: https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core/docs/src/user-guide/core-user-guide
+
 
 Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:
 
@@ -1029,7 +1136,8 @@ Put your new reflection thinking in "reflection". Repeat the previous "thought" 
 def get_init_archive():
     # return [COT]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
     # return [COT_SC]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
-    return [Reflexion]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
+    # return [Reflexion]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
+    return [COT, COT_SC, Reflexion] # LLM_debate, Take_a_step_back, QD, Role_Assignment]
 
 
 
