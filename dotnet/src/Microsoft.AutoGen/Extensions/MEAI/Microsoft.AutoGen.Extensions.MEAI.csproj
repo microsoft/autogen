@@ -4,6 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.AI.OpenAI" />
     <PackageReference Include="Azure.AI.OpenAI" />

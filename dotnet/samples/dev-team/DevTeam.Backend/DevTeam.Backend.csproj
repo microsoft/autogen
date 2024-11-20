@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\ServiceDefaults\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
   </ItemGroup>
