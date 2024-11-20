@@ -1,12 +1,10 @@
 # AutoGen for .NET
 
 Thre are two sets of packages here:
-Autogen.\* the older packages derived from Autogen 0.2 for .NET - these will gradually be deprecated and ported into the new packages
+AutoGen.\* the older packages derived from AutoGen 0.2 for .NET - these will gradually be deprecated and ported into the new packages
 Microsoft.AutoGen.* the new packages for .NET that use the event-driven model - These APIs are not yet stable and are subject to change.
 
-To get started with the new packages, please see the [samples](./samples/) and in particular the [Hello](./samples/Hello) sample.
-
-The remaining content is for the older Autogen.* packages.
+To get started with the new packages, please see the [samples](./samples/) and in particular the [Hello](./samples/Hello) sample. We also port both new and old packages to the following feeds:
 
 [![dotnet-ci](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
@@ -14,9 +12,7 @@ The remaining content is for the older Autogen.* packages.
 > [!NOTE]
 > Nightly build is available at:
 >
-> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): <https://nuget.pkg.github.com/microsoft/index.json>
-> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): <https://www.myget.org/F/agentchat/api/v3/index.json>
-> - ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : <https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json>
+> - [![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat)](https://dev.azure.com/AGPublish/AGPublic/_artifacts/feed/AutoGen-Nightly) : <https://pkgs.dev.azure.com/AGPublish/AGPublic/_packaging/AutoGen-Nightly/nuget/v3/index.json>
 
 Firstly, following the [installation guide](./website/articles/Installation.md) to install AutoGen packages.
 
