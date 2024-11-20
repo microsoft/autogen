@@ -231,7 +231,7 @@ async def test_timeout_termination() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_name_termination() -> None:
+async def test_source_match_termination() -> None:
     termination = SourceMatchTermination(sources=["Assistant"])
     assert await termination([]) is None
 
