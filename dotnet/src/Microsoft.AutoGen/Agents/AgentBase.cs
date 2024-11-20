@@ -114,6 +114,27 @@ public abstract class AgentBase : IAgentBase, IHandle
                 break;
         }
     }
+    public List<string> Subscribe(string topic)
+    {
+        Message message = new()
+        {
+            AddSubscriptionRequest = new()
+            {
+                RequestId = Guid.NewGuid().ToString(),
+                Subscription = new Subscription
+                {
+                    TypeSubscription = new TypeSubscription
+                    {
+                        TopicType = topic,
+                        AgentType = this.AgentId.Key
+                    }
+                }
+            }
+        };
+        _context.SendMessageAsync(message).AsTask().Wait();
+
+        return new List<string> { topic };
+    }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
         await _context.StoreAsync(state, cancellationToken).ConfigureAwait(false);

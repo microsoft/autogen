@@ -29,7 +29,7 @@ public static class AgentWorkerHostingExtensions
 
     public static IHostApplicationBuilder AddLocalAgentService(this IHostApplicationBuilder builder, bool useGrpc = true)
     {
-        return builder.AddAgentService(local: true, useGrpc);
+        return builder.AddAgentService(local: false, useGrpc);
     }
 
     public static WebApplication MapAgentService(this WebApplication app, bool local = false, bool useGrpc = true)

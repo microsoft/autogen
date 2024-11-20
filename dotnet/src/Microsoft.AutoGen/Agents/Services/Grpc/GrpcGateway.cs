@@ -16,10 +16,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly IRegistryGrain _gatewayRegistry;
+    private readonly ISubscriptionsGrain _subscriptions;
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
+    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
+    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -33,6 +36,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
+        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
@@ -102,16 +106,54 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
                 break;
+            case Message.MessageOneofCase.AddSubscriptionRequest:
+                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
+                break;
             default:
-                throw new InvalidOperationException($"Unknown message type for message '{message}'.");
+                // if it wasn't recognized return bad request
+                await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
+                break;
         };
+    }
+    private async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string error)
+    {
+        throw new RpcException(new Status(StatusCode.InvalidArgument, error));
+    }
+    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
+    {
+        var topic = request.Subscription.TypeSubscription.TopicType;
+        var agentType = request.Subscription.TypeSubscription.AgentType;
+        _subscriptionsByAgentType[agentType] = request.Subscription;
+        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
+        await _subscriptions.Subscribe(topic, agentType);
+        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        Message response = new()
+        {
+            AddSubscriptionResponse = new()
+            {
+                RequestId = request.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
+        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference);
+        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
+        Message response = new()
+        {
+            RegisterAgentTypeResponse = new()
+            {
+                RequestId = msg.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
+        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
