@@ -13,6 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\AIModelClientHostingExtensions\AIModelClientHostingExtensions.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\MEAI\Microsoft.AutoGen.Extensions.MEAI.csproj" />
   </ItemGroup>
 </Project>
