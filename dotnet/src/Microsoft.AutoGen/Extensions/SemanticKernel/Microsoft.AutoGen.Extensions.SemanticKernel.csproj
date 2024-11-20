@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Agents/Microsoft.AutoGen.Agents.csproj" />
-    <ProjectReference Include="../AIModelClientHostingExtensions/Microsoft.AutoGen.Extensions.MEAI.csproj" />
+    <ProjectReference Include="../MEAI/Microsoft.AutoGen.Extensions.MEAI.csproj" />
   </ItemGroup>
 
 </Project>

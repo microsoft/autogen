@@ -8,7 +8,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
-		<ProjectReference Include="..\Extensions\ServiceDefaults\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
