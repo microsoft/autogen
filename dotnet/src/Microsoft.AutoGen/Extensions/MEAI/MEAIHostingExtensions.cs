@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AIModelClientHostingExtensions.cs
+// MEAIHostingExtensions.cs
 
 using Microsoft.Extensions.AI;
 
 namespace Microsoft.Extensions.Hosting;
 
-public static class AIModelClient
+public static class MEAIHostingExtensions
 {
     public static IHostApplicationBuilder AddChatCompletionService(this IHostApplicationBuilder builder, string serviceName)
     {
