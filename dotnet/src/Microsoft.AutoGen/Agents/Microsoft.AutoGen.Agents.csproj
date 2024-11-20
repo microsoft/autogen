@@ -1,19 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		    <TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<PackageId>Microsoft.AutoGen.Agents</PackageId>
-		<PackageProjectUrl>https://github.com/microsoft/autogen</PackageProjectUrl>
-		<Authors>Microsoft</Authors>
-		<Description>Micrososft AutoGen Agents SDK</Description>
-		<Tags>ai-agents;event-driven-agents</Tags>
   </PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
-		<ProjectReference Include="..\Extensions\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj" />
+		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
