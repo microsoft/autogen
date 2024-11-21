@@ -98,7 +98,7 @@ public class FunctionContract
                 [NamespaceKey] = contract.Namespace,
                 [ClassNameKey] = contract.ClassName,
             },
-            Parameters = [.. contract.Parameters?.Select(p => (AIFunctionParameterMetadata)p)],
+            Parameters = [.. contract.Parameters?.Select(p => (AIFunctionParameterMetadata)p)!],
         };
     }
 }
