@@ -1,4 +1,4 @@
-from autogencap.DebugLog import Error
+from autogencap.debug_log import Error
 from autogencap.proto.CAP_pb2 import Error as ErrorMsg
 from autogencap.proto.CAP_pb2 import ErrorCode
 

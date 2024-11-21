@@ -1,5 +1,5 @@
 import _paths
-from autogencap.DirectorySvc import main
+from autogencap.zmq_directory_svc import main
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-from AppAgents import GreeterAgent
+from app_agents import GreeterAgent
 from autogencap.runtime_factory import RuntimeFactory
 
 
