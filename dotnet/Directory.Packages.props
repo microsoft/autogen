@@ -106,8 +106,8 @@
     <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="1.0.0-beta.24229.4" />
     <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="3.10.0" />
     <PackageVersion Include="OpenAI" Version="2.1.0-beta.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
     <PackageVersion Include="System.CodeDom" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="ApprovalTests" Version="6.0.0" />
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />

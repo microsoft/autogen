@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Optional, TypeVar, cast
 
 from autogen_core.components import Image
 from autogen_core.components.models import RequestUsage
@@ -18,23 +18,32 @@ def _is_output_a_tty() -> bool:
     return sys.stdout.isatty()
 
 
+T = TypeVar("T", bound=TaskResult | Response)
+
+
 async def Console(
-    stream: AsyncGenerator[AgentMessage | TaskResult, None] | AsyncGenerator[AgentMessage | Response, None],
+    stream: AsyncGenerator[AgentMessage | T, None],
     *,
     no_inline_images: bool = False,
-) -> None:
-    """Consume the stream from  :meth:`~autogen_agentchat.base.Team.run_stream`
+) -> T:
+    """
+    Consume the stream from :meth:`~autogen_agentchat.base.Team.run_stream`
     or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`
-    and print the messages to the console.
+    print the messages to the console and return the last processed TaskResult or Response.
 
     Args:
         stream (AsyncGenerator[AgentMessage | TaskResult, None] | AsyncGenerator[AgentMessage | Response, None]): Stream to render
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
-    """
 
+    Returns:
+        last_processed: The last processed TaskResult or Response.
+    """
     render_image_iterm = _is_running_in_iterm() and _is_output_a_tty() and not no_inline_images
     start_time = time.time()
     total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+    last_processed: Optional[T] = None
+
     async for message in stream:
         if isinstance(message, TaskResult):
             duration = time.time() - start_time
@@ -47,6 +56,9 @@ async def Console(
                 f"Duration: {duration:.2f} seconds\n"
             )
             sys.stdout.write(output)
+            # mypy ignore
+            last_processed = message  # type: ignore
+
         elif isinstance(message, Response):
             duration = time.time() - start_time
 
@@ -71,13 +83,23 @@ async def Console(
                 f"Duration: {duration:.2f} seconds\n"
             )
             sys.stdout.write(output)
+            # mypy ignore
+            last_processed = message  # type: ignore
+
         else:
+            # Cast required for mypy to be happy
+            message = cast(AgentMessage, message)  # type: ignore
             output = f"{'-' * 10} {message.source} {'-' * 10}\n{_message_to_str(message, render_image_iterm=render_image_iterm)}\n"
             if message.models_usage:
                 output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
             sys.stdout.write(output)
+
+    if last_processed is None:
+        raise ValueError("No TaskResult or Response was processed.")
+
+    return last_processed
 
 
 # iTerm2 image rendering protocol: https://iterm2.com/documentation-images.html

@@ -122,15 +122,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAIAgents", "samples\He
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgent", "samples\Hello\HelloAgent\HelloAgent.csproj", "{8F7560CF-EEBB-4333-A69F-838CA40FD85D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIModelClientHostingExtensions", "src\Microsoft.AutoGen\Extensions\AIModelClientHostingExtensions\AIModelClientHostingExtensions.csproj", "{97550E87-48C6-4EBF-85E1-413ABAE9DBFD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.MEAI", "src\Microsoft.AutoGen\Extensions\MEAI\Microsoft.AutoGen.Extensions.MEAI.csproj", "{97550E87-48C6-4EBF-85E1-413ABAE9DBFD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{686480D7-8FEC-4ED3-9C5D-CEBE1057A7ED}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgentState", "samples\Hello\HelloAgentState\HelloAgentState.csproj", "{64EF61E7-00A6-4E5E-9808-62E10993A0E5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.ServiceDefaults", "src\Microsoft.AutoGen\Extensions\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj", "{65059914-5527-4A00-9308-9FAF23D5E85A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.Aspire", "src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj", "{65059914-5527-4A00-9308-9FAF23D5E85A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents.Tests", "test\Microsoft.AutoGen.Agents.Tests\Microsoft.AutoGen.Agents.Tests.csproj", "{394FDAF8-74F9-4977-94A5-3371737EB774}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Tests", "test\Microsoft.AutoGen.Agents.Tests\Microsoft.AutoGen.Agents.Tests.csproj", "{394FDAF8-74F9-4977-94A5-3371737EB774}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
