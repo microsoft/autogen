@@ -20,7 +20,7 @@ dotnet build --configuration Release --no-restore
 dotnet pack --configuration Release --no-build
 ```
 
-This will generate both the `.nupkg` file and the `.nuspec` file in the `./artifacts/package/release` directory.
+This will generate both the `.nupkg` file and the `.snupkg` file in the `./artifacts/package/release` directory.
 
 For more details, refer to the [official .NET documentation](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-pack).
 
