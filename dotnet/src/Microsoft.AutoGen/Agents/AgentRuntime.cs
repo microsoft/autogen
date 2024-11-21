@@ -45,6 +45,10 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     {
         await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }
+    public async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        await worker.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
+    }
     public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await worker.PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);

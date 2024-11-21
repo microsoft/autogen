@@ -85,6 +85,13 @@ public sealed class GrpcAgentWorker(
                             }
                             break;
 
+                        case Message.MessageOneofCase.AddSubscriptionResponse:
+                            if (!message.AddSubscriptionResponse.Success)
+                            {
+                                throw new InvalidOperationException($"Failed to add subscription: '{message.AddSubscriptionResponse.Error}'.");
+                            }
+                            break;
+
                         case Message.MessageOneofCase.CloudEvent:
 
                             // HACK: Send the message to an instance of each agent type
@@ -151,6 +158,13 @@ public sealed class GrpcAgentWorker(
             {
                 // Time to shut down.
                 item.WriteCompletionSource?.TrySetCanceled();
+                break;
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+            {
+                // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
+                // we need to let the user know what port we tried to connect to and then do backoff and retry
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", channel.ToString());
                 break;
             }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
@@ -228,6 +242,11 @@ public sealed class GrpcAgentWorker(
         _pendingRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
+    }
+    // new is intentional
+    public new async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
     // new is intentional
     public new async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)

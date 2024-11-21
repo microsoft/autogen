@@ -12,6 +12,7 @@ public static class AgentsApp
 {
     // need a variable to store the runtime instance
     public static WebApplication? Host { get; private set; }
+
     [MemberNotNull(nameof(Host))]
     public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
@@ -58,7 +59,7 @@ public static class AgentsApp
         await Host.StopAsync();
     }
 
-    private static AgentApplicationBuilder AddAgents(this AgentApplicationBuilder builder, AgentTypes? agentTypes)
+    private static IHostApplicationBuilder AddAgents(this IHostApplicationBuilder builder, AgentTypes? agentTypes)
     {
         agentTypes ??= AgentTypes.GetAgentTypesFromAssembly()
                    ?? throw new InvalidOperationException("No agent types found in the assembly");

@@ -2,7 +2,7 @@ from typing import AsyncGenerator, Callable, Union, Optional
 import time
 from .database import ComponentFactory, Component
 from .datamodel import TeamResult, TaskResult, ComponentConfigInput
-from autogen_agentchat.messages import InnerMessage, ChatMessage
+from autogen_agentchat.messages import ChatMessage, AgentMessage
 from autogen_core.base import CancellationToken
 
 
@@ -35,7 +35,7 @@ class TeamManager:
         team_config: ComponentConfigInput,
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None
-    ) -> AsyncGenerator[Union[InnerMessage, ChatMessage, TaskResult], None]:
+    ) -> AsyncGenerator[Union[AgentMessage, ChatMessage, TaskResult], None]:
         """Stream the team's execution results"""
         start_time = time.time()
 
