@@ -3,7 +3,7 @@
 
 namespace Microsoft.AutoGen.Agents;
 
-public sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore")] IPersistentState<SubscriptionsState> state) : Grain, ISubscriptionsGrain
+internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore")] IPersistentState<SubscriptionsState> state) : Grain, ISubscriptionsGrain
 {
     private readonly Dictionary<string, List<string>> _subscriptions = new();
     public ValueTask<Dictionary<string, List<string>>> GetSubscriptions(string agentType)
