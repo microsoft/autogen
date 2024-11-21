@@ -64,7 +64,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
   let labelY = 0;
 
   if (isSelfLoop) {
-    const rightOffset = 120;
+    const rightOffset = 160;
     const verticalOffset = sourceY - targetY;
     const verticalPadding = 6;
     const radius = 8;

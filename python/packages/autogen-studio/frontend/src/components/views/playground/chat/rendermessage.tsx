@@ -58,9 +58,9 @@ const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
     {content.map((call) => (
       <div key={call.id} className="border rounded p-2">
         <div className="font-medium">Function: {call.name}</div>
-        <pre className="text-sm mt-1 bg-secondary p-2 rounded">
+        <div className="text-sm mt-1 bg-secondary p-2 rounded">
           {JSON.stringify(JSON.parse(call.arguments), null, 2)}
-        </pre>
+        </div>
       </div>
     ))}
   </div>
