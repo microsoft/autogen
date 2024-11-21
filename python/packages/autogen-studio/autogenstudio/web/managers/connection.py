@@ -148,7 +148,6 @@ class WebSocketManager:
         """Stop a running task"""
         if run_id in self._cancellation_tokens:
             logger.info(f"Stopping run {run_id}")
-            # self._cancellation_tokens[run_id].cancel()
 
             # Send final message if connection still exists and not closed
             if run_id in self._connections and run_id not in self._closed_connections:
@@ -159,6 +158,8 @@ class WebSocketManager:
                         "data":  self._get_stop_message(reason),
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
+                    self._cancellation_tokens[run_id].cancel()
+                    # we dont cancel here because the frontend closes the connection and the token is cancelled on disconnect
                 except Exception:
                     pass
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from loguru import logger
-from sqlalchemy import exc, text, func
+from sqlalchemy import exc, inspect, text, func
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 from .schema_manager import SchemaManager
 
@@ -16,28 +16,21 @@ from ..datamodel import (
 
 
 class DatabaseManager:
-    """A class to manage database operations"""
-
     _init_lock = threading.Lock()
 
     def __init__(
         self,
         engine_uri: str,
-        base_dir: Optional[Path | str] = None,
-        auto_upgrade: bool = True
+        base_dir: Optional[Path] = None
     ):
         """
-        Initialize DatabaseManager with optional custom base directory.
+        Initialize DatabaseManager with database connection settings.
+        Does not perform any database operations.
 
         Args:
-            engine_uri: Database connection URI
-            base_dir: Custom base directory for Alembic files. If None, uses current working directory
-            auto_upgrade: Whether to automatically upgrade schema when differences found
+            engine_uri: Database connection URI (e.g. sqlite:///db.sqlite3)
+            base_dir: Base directory for migration files. If None, uses current directory
         """
-        # Convert string path to Path object if necessary
-        if isinstance(base_dir, str):
-            base_dir = Path(base_dir)
-
         connection_args = {
             "check_same_thread": True
         } if "sqlite" in engine_uri else {}
@@ -46,14 +39,67 @@ class DatabaseManager:
         self.schema_manager = SchemaManager(
             engine=self.engine,
             base_dir=base_dir,
-            auto_upgrade=auto_upgrade,
         )
-        # Check and upgrade on startup
-        upgraded, status = self.schema_manager.check_and_upgrade()
-        if upgraded:
-            logger.info("Database schema was upgraded automatically")
-        else:
-            logger.info(f"Schema status: {status}")
+
+    def initialize_database(self, auto_upgrade: bool = False, force_init_alembic: bool = True) -> Response:
+        """
+        Initialize database and migrations in the correct order.
+
+        Args:
+            auto_upgrade: If True, automatically upgrade schema when differences found
+            force_init_alembic: If True, reinitialize alembic configuration even if it exists
+
+        Returns:
+            Response: Status object containing:
+                - message: Description of what was done
+                - status: True if successful, False otherwise
+        """
+        if not self._init_lock.acquire(blocking=False):
+            return Response(
+                message="Database initialization already in progress",
+                status=False
+            )
+
+        try:
+            inspector = inspect(self.engine)
+            tables_exist = inspector.get_table_names()
+
+            if not tables_exist:
+                # Fresh install - create tables and initialize migrations
+                logger.info("Creating database tables...")
+                SQLModel.metadata.create_all(self.engine)
+
+                if self.schema_manager.initialize_migrations(force=force_init_alembic):
+                    return Response(message="Database initialized successfully", status=True)
+                return Response(message="Failed to initialize migrations", status=False)
+
+            # Handle existing database
+            if auto_upgrade:
+                logger.info("Checking database schema...")
+                needs_upgrade, status = self.schema_manager.check_schema_status()
+                if needs_upgrade:
+                    logger.info("Upgrading database schema...")
+                    if self.schema_manager.upgrade_schema():
+                        return Response(
+                            message="Database schema upgraded successfully",
+                            status=True
+                        )
+                    return Response(
+                        message="Database upgrade failed",
+                        status=False
+                    )
+
+            return Response(
+                message="Database is ready",
+                status=True
+            )
+
+        except Exception as e:
+            error_msg = f"Database initialization failed: {str(e)}"
+            logger.error(error_msg)
+            return Response(message=error_msg, status=False)
+        finally:
+            self._init_lock.release()
 
     def reset_db(self, recreate_tables: bool = True):
         """
@@ -119,21 +165,6 @@ class DatabaseManager:
             if self._init_lock.locked():
                 self._init_lock.release()
                 logger.info("Database reset lock released")
-
-    def create_db_and_tables(self):
-        """Create a new database and tables"""
-        with self._init_lock:
-            try:
-                SQLModel.metadata.create_all(self.engine)
-                logger.info("Database tables created successfully")
-                try:
-                    # init_db_samples(self)
-                    pass
-                except Exception as e:
-                    logger.info(
-                        "Error while initializing database samples: " + str(e))
-            except Exception as e:
-                logger.info("Error while creating database tables:" + str(e))
 
     def upsert(self, model: SQLModel, return_json: bool = True):
         """Create or update an entity

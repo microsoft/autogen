@@ -95,8 +95,10 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
     try:
         # Initialize database manager
         _db_manager = DatabaseManager(
-            engine_uri=database_uri, auto_upgrade=settings.UPGRADE_DATABASE, base_dir=app_root)
-        _db_manager.create_db_and_tables()
+            engine_uri=database_uri,
+            base_dir=app_root
+        )
+        _db_manager.initialize_database(auto_upgrade=settings.UPGRADE_DATABASE)
 
         # init default team config
 
