@@ -194,5 +194,10 @@ samples/apps/autogen-studio/autogenstudio/models/test/
 
 notebook/coding
 
+<<<<<<< HEAD
 # dotnet artifacts
 artifacts
+=======
+# .NET appsettings.Development.json
+appsettings.Development.json
+>>>>>>> 90517d0a (gitignore appsettings.Development.json)
