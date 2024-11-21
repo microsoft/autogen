@@ -16,28 +16,40 @@ Tutorial to get started with AgentChat.
 ::::{grid} 2 2 2 3
 :gutter: 3
 
-:::{grid-item-card} {fas}`book-open;pst-color-primary` Introduction
-:link: ./introduction.html
+:::{grid-item-card} {fas}`book-open;pst-color-primary` Models
+:link: ./models.html
 
-Overview of agents and teams in AgentChat
+Setting up model clients for agents and teams.
 :::
 
 :::{grid-item-card} {fas}`users;pst-color-primary` Agents
 :link: ./agents.html
 
-Building agents that use LLMs, tools, and execute code.
+Building agents that use models, tools, and code executors.
 :::
 
-:::{grid-item-card} {fas}`users;pst-color-primary` Teams  
+:::{grid-item-card} {fas}`users;pst-color-primary` Teams Intro
 :link: ./teams.html
 
-Coordinating multiple agents in teams.
+Introduction to teams and task termination.
 :::
 
-:::{grid-item-card} {fas}`flag-checkered;pst-color-primary` Chat Termination
-:link: ./termination.html
+:::{grid-item-card} {fas}`users;pst-color-primary` Selector Group Chat
+:link: ./selector-group-chat.html
 
-Determining when to end a task.
+A smart team that uses a model-based strategy and custom selector.
+:::
+
+:::{grid-item-card} {fas}`users;pst-color-primary` Swarm
+:link: ./swarm.html
+
+A dynamic team that uses handoffs to pass tasks between agents.
+:::
+
+:::{grid-item-card} {fas}`users;pst-color-primary` Custom Agents
+:link: ./custom-agents.html
+
+How to build custom agents.
 :::
 
 ::::
@@ -46,9 +58,11 @@ Determining when to end a task.
 :maxdepth: 1
 :hidden:
 
-introduction
+models
 agents
 teams
-termination
 selector-group-chat
+swarm
+termination
+custom-agents
 ```

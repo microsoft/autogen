@@ -17,7 +17,7 @@ public abstract class WebAPIAgent : IOAgent,
     private readonly string _url = "/agents/webio";
 
     public WebAPIAgent(
-    IAgentContext context,
+    IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     ILogger<WebAPIAgent> logger,
     string url = "/agents/webio") : base(
@@ -61,8 +61,8 @@ public abstract class WebAPIAgent : IOAgent,
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override async Task Handle(Output item)
@@ -71,8 +71,8 @@ public abstract class WebAPIAgent : IOAgent,
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public override Task<string> ProcessInput(string message)

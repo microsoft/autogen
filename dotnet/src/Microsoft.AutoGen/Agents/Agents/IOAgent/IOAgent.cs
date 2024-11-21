@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Agents;
 public abstract class IOAgent : AgentBase
 {
     public string _route = "base";
-    protected IOAgent(IAgentContext context, EventTypes eventTypes) : base(context, eventTypes)
+    protected IOAgent(IAgentRuntime context, EventTypes eventTypes) : base(context, eventTypes)
     {
     }
     public virtual async Task Handle(Input item)
@@ -17,8 +17,8 @@ public abstract class IOAgent : AgentBase
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public virtual async Task Handle(Output item)
@@ -26,8 +26,8 @@ public abstract class IOAgent : AgentBase
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public abstract Task ProcessInput(string message);

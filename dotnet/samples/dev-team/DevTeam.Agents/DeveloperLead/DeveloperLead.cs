@@ -11,7 +11,7 @@ using Microsoft.SemanticKernel.Memory;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
+public class DeveloperLead(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
     : SKAiAgent<DeveloperLeadState>(context, memory, kernel, typeRegistry), ILeadDevelopers,
     IHandle<DevPlanRequested>,
     IHandle<DevPlanChainClosed>
@@ -25,8 +25,8 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
             Repo = item.Repo,
             IssueNumber = item.IssueNumber,
             Plan = plan
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
 
     public async Task Handle(DevPlanChainClosed item)
@@ -36,8 +36,8 @@ public class DeveloperLead(IAgentContext context, Kernel kernel, ISemanticTextMe
         var evt = new DevPlanCreated
         {
             Plan = lastPlan
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     public async Task<string> CreatePlan(string ask)
     {

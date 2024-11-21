@@ -90,10 +90,10 @@ class ClosureAgent(Agent):
             )
         return await self._closure(self._runtime, self._id, message, ctx)
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         raise ValueError("save_state not implemented for ClosureAgent")
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         raise ValueError("load_state not implemented for ClosureAgent")
 
     @classmethod

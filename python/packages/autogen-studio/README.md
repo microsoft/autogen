@@ -3,11 +3,11 @@
 [![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
 [![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
 
-![ARA](./docs/ara_stockprices.png)
+![ARA](./docs/ags_screen.png)
 
 AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://microsoft.github.io/autogen) framework, which is a toolkit for building AI agents.
 
-Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio)
+Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-studio)
 
 > **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app.
 
@@ -16,6 +16,7 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 
 **Updates**
 
+> Nov 14: AutoGen Studio is being rewritten to use the updated AutoGen 0.4.0 api AgentChat api.
 > April 17: AutoGen Studio database layer is now rewritten to use [SQLModel](https://sqlmodel.tiangolo.com/) (Pydantic + SQLAlchemy). This provides entity linking (skills, models, agents and workflows are linked via association tables) and supports multiple [database backend dialects](https://docs.sqlalchemy.org/en/20/dialects/) supported in SQLAlchemy (SQLite, PostgreSQL, MySQL, Oracle, Microsoft SQL Server). The backend database can be specified a `--database-uri` argument when running the application. For example, `autogenstudio ui --database-uri sqlite:///database.sqlite` for SQLite and `autogenstudio ui --database-uri postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL.
 
 > March 12: Default directory for AutoGen Studio is now /home/<user>/.autogenstudio. You can also specify this directory using the `--appdir` argument when running the application. For example, `autogenstudio ui --appdir /path/to/folder`. This will store the database and other files in the specified directory e.g. `/path/to/folder/database.sqlite`. `.env` files in that directory will be used to set environment variables for the app.
@@ -49,7 +50,7 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
       pip install -e .
       ```
 
-    - Navigate to the `samples/apps/autogen-studio/frontend` directory, install dependencies, and build the UI:
+    - Navigate to the `python/packages/autogen-studio/frontend` directory, install dependencies, and build the UI:
 
       ```bash
       npm install -g gatsby-cli
@@ -84,20 +85,28 @@ AutoGen Studio also takes several parameters to customize the application:
 - `--port <port>` argument to specify the port number. By default, it is set to `8080`.
 - `--reload` argument to enable auto-reloading of the server when changes are made to the code. By default, it is set to `False`.
 - `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URIL defaults to a `database.sqlite` file in the `--appdir` directory.
+- `--upgrade-database` argument to upgrade the database schema to the latest version. By default, it is set to `False`.
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
 #### If running from source
+
 When running from source, you need to separately bring up the frontend server.
+
 1. Open a separate terminal and change directory to the frontend
+
 ```bash
 cd frontend
 ```
+
 3. Create a `.env.development` file.
+
 ```bash
 cp .env.default .env.development
 ```
+
 3. Launch frontend server
+
 ```bash
 npm run start
 ```
@@ -107,12 +116,11 @@ npm run start
 We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
 
 - Review the overall AutoGen project [contribution guide](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing)
-- Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/737) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
+- Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/4006) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
 - Please initiate a discussion on the roadmap issue or a new issue to discuss your proposed contribution.
-- Please review the autogenstudio dev branch here [dev branch](https://github.com/microsoft/autogen/tree/autogenstudio) and use as a base for your contribution. This way, your contribution will be aligned with the latest changes in the AutoGen Studio project.
 - Submit a pull request with your contribution!
 - If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
-- Please use the tag `studio` for any issues, questions, and PRs related to Studio
+- Please use the tag `proj-studio` for any issues, questions, and PRs related to Studio
 
 ## FAQ
 

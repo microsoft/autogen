@@ -9,17 +9,8 @@ public static class AgentBaseExtensions
 {
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
     {
-        Activity? activity = null;
-        agent.Context.DistributedContextPropagator.ExtractTraceIdAndState(metadata,
-            static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
-            {
-                var metadata = (IDictionary<string, string>)carrier!;
-                fieldValues = null;
-                metadata.TryGetValue(fieldName, out fieldValue);
-            },
-            out var traceParent,
-            out var traceState);
-
+        Activity? activity;
+        (var traceParent, var traceState) = agent.Context.GetTraceIDandState(metadata);
         if (!string.IsNullOrEmpty(traceParent))
         {
             if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out ActivityContext parentContext))
@@ -40,12 +31,7 @@ public static class AgentBaseExtensions
                     activity.TraceStateString = traceState;
                 }
 
-                var baggage = agent.Context.DistributedContextPropagator.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
-                {
-                    var metadata = (IDictionary<string, string>)carrier!;
-                    fieldValues = null;
-                    metadata.TryGetValue(fieldName, out fieldValue);
-                });
+                var baggage = agent.Context.ExtractMetadata(metadata);
 
                 if (baggage is not null)
                 {
@@ -63,7 +49,7 @@ public static class AgentBaseExtensions
 
         return activity;
     }
-    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, Task> func, TState state, Activity? activity, string methodName)
+    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
     {
         if (activity is not null && activity.StartTimeUtc == default)
         {
