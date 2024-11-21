@@ -12,16 +12,15 @@ from autogen_core.base import (
     AgentType,
     CancellationToken,
     MessageContext,
-    TopicId,
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, MultiModalMessage, TextMessage
-from ._base_group_chat_manager import BaseGroupChatManager
+from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
+from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -36,8 +35,9 @@ class BaseGroupChat(Team, ABC):
     def __init__(
         self,
         participants: List[ChatAgent],
-        group_chat_manager_class: type[BaseGroupChatManager],
+        group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -46,6 +46,7 @@ class BaseGroupChat(Team, ABC):
         self._participants = participants
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
+        self._max_turns = max_turns
 
         # Constants for the group chat.
         self._team_id = str(uuid.uuid4())
@@ -78,7 +79,8 @@ class BaseGroupChat(Team, ABC):
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
-    ) -> Callable[[], BaseGroupChatManager]: ...
+        max_turns: int | None,
+    ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
         self,
@@ -123,6 +125,7 @@ class BaseGroupChat(Team, ABC):
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
                 termination_condition=self._termination_condition,
+                max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -160,7 +163,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | TextMessage | MultiModalMessage | None = None,
+        task: str | ChatMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -211,7 +214,7 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | TextMessage | MultiModalMessage | None = None,
+        task: str | ChatMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
@@ -249,6 +252,16 @@ class BaseGroupChat(Team, ABC):
 
             asyncio.run(main())
         """
+        # Create the first chat message if the task is a string or a chat message.
+        first_chat_message: ChatMessage | None = None
+        if task is None:
+            pass
+        elif isinstance(task, str):
+            first_chat_message = TextMessage(content=task, source="user")
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+            first_chat_message = task
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -261,17 +274,6 @@ class BaseGroupChat(Team, ABC):
         if not self._initialized:
             await self._init(self._runtime)
 
-        # Run the team by publishing the start message.
-        first_chat_message: TextMessage | MultiModalMessage | None = None
-        if isinstance(task, str):
-            first_chat_message = TextMessage(content=task, source="user")
-        elif isinstance(task, TextMessage | MultiModalMessage):
-            first_chat_message = task
-        await self._runtime.publish_message(
-            GroupChatStart(message=first_chat_message),
-            topic_id=TopicId(type=self._group_topic_type, source=self._team_id),
-        )
-
         # Start a coroutine to stop the runtime and signal the output message queue is complete.
         async def stop_runtime() -> None:
             await self._runtime.stop_when_idle()
@@ -279,24 +281,37 @@ class BaseGroupChat(Team, ABC):
 
         shutdown_task = asyncio.create_task(stop_runtime())
 
-        # Collect the output messages in order.
-        output_messages: List[AgentMessage] = []
-        # Yield the messsages until the queue is empty.
-        while True:
-            message = await self._output_message_queue.get()
-            if message is None:
-                break
-            yield message
-            output_messages.append(message)
+        try:
+            # Run the team by sending the start message to the group chat manager.
+            # The group chat manager will start the group chat by relaying the message to the participants
+            # and the closure agent.
+            await self._runtime.send_message(
+                GroupChatStart(message=first_chat_message),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            # Collect the output messages in order.
+            output_messages: List[AgentMessage] = []
+            # Yield the messsages until the queue is empty.
+            while True:
+                message = await self._output_message_queue.get()
+                if message is None:
+                    break
+                yield message
+                output_messages.append(message)
 
-        # Wait for the shutdown task to finish.
-        await shutdown_task
+            # Yield the final result.
+            yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
 
-        # Yield the final result.
-        yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
+        finally:
+            # Wait for the shutdown task to finish.
+            await shutdown_task
 
-        # Indicate that the team is no longer running.
-        self._is_running = False
+            # Clear the output message queue.
+            while not self._output_message_queue.empty():
+                self._output_message_queue.get_nowait()
+
+            # Indicate that the team is no longer running.
+            self._is_running = False
 
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
@@ -348,19 +363,26 @@ class BaseGroupChat(Team, ABC):
         # Start the runtime.
         self._runtime.start()
 
-        # Send a reset message to the group chat.
-        await self._runtime.publish_message(
-            GroupChatReset(),
-            topic_id=TopicId(type=self._group_topic_type, source=self._team_id),
-        )
+        try:
+            # Send a reset messages to all participants.
+            for participant_topic_type in self._participant_topic_types:
+                await self._runtime.send_message(
+                    GroupChatReset(),
+                    recipient=AgentId(type=participant_topic_type, key=self._team_id),
+                )
+            # Send a reset message to the group chat manager.
+            await self._runtime.send_message(
+                GroupChatReset(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+        finally:
+            # Stop the runtime.
+            await self._runtime.stop_when_idle()
 
-        # Stop the runtime.
-        await self._runtime.stop_when_idle()
+            # Reset the output message queue.
+            self._stop_reason = None
+            while not self._output_message_queue.empty():
+                self._output_message_queue.get_nowait()
 
-        # Reset the output message queue.
-        self._stop_reason = None
-        while not self._output_message_queue.empty():
-            self._output_message_queue.get_nowait()
-
-        # Indicate that the team is no longer running.
-        self._is_running = False
+            # Indicate that the team is no longer running.
+            self._is_running = False

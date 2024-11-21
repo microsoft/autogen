@@ -195,13 +195,13 @@ public class HelloAgent(
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
     public async Task Handle(ConversationClosed item)
     {
@@ -210,7 +210,7 @@ public class HelloAgent(
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         await Task.Delay(60000);
         await App.ShutdownAsync();
     }

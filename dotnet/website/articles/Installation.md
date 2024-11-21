@@ -32,9 +32,7 @@ dotnet add package AUTOGEN_PACKAGES
 
 ### Consume nightly build
 To consume nightly build, you can add one of the following feeds to your `NuGet.config` or global nuget config:
-- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
-- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
-- ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+> - [![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat)](https://dev.azure.com/AGPublish/AGPublic/_artifacts/feed/AutoGen-Nightly) : <https://pkgs.dev.azure.com/AGPublish/AGPublic/_packaging/AutoGen-Nightly/nuget/v3/index.json>
 
 To add a local `NuGet.config`, create a file named `NuGet.config` in the root of your project and add the following content:
 ```xml
@@ -42,8 +40,6 @@ To add a local `NuGet.config`, create a file named `NuGet.config` in the root of
 <configuration>
   <packageSources>
     <clear />
-    <!-- dotnet-tools contains Microsoft.DotNet.Interactive.VisualStudio package, which is used by AutoGen.DotnetInteractive -->
-    <add key="dotnet-tools" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" />
     <add key="AutoGen" value="$(FEED_URL)" /> <!-- replace $(FEED_URL) with the feed url -->
     <!-- other feeds -->
   </packageSources>

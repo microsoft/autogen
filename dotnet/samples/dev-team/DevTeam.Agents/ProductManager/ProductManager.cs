@@ -10,7 +10,7 @@ using Microsoft.SemanticKernel.Memory;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class ProductManager(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
+public class ProductManager(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
     : SKAiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>

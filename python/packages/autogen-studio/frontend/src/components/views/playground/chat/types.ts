@@ -1,22 +1,21 @@
-import { Message, TaskResult } from "../../../types/datamodel";
-
-export type ThreadStatus = "streaming" | "complete" | "error" | "cancelled";
+import {
+  AgentMessageConfig,
+  Message,
+  TaskResult,
+  ThreadStatus,
+} from "../../../types/datamodel";
 
 export interface ThreadState {
-  messages: any[];
+  messages: AgentMessageConfig[];
   finalResult?: any;
   status: ThreadStatus;
   isExpanded: boolean;
-}
-
-export interface ThreadState {
-  messages: any[];
-  finalResult?: any;
-  status: "streaming" | "complete" | "error" | "cancelled";
-  isExpanded: boolean;
   reason?: string;
+  inputRequest?: {
+    prompt: string;
+    isPending: boolean;
+  };
 }
-
 export interface MessageListProps {
   messages: Message[];
   threadMessages: Record<string, ThreadState>;
@@ -33,15 +32,15 @@ export interface ModelUsage {
   completion_tokens: number;
 }
 
-export interface SocketMessage {
-  type: "message" | "result" | "completion";
-  data?: {
-    source?: string;
-    models_usage?: ModelUsage | null;
-    content?: string;
-    task_result?: TaskResult;
-  };
-  status?: ThreadStatus;
-  timestamp?: string;
-  error?: string;
+export const TIMEOUT_CONFIG = {
+  DURATION_MS: 3 * 60 * 1000, // 3 minutes in milliseconds
+  DURATION_SEC: 3 * 60, // 3 minutes in seconds
+  WEBSOCKET_CODE: 4000, // WebSocket close code for timeout
+  DEFAULT_MESSAGE: "Input timeout after 3 minutes",
+  WARNING_THRESHOLD_SEC: 30, // Show warning when 30 seconds remaining
+} as const;
+
+export interface TimeoutError {
+  code: typeof TIMEOUT_CONFIG.WEBSOCKET_CODE;
+  message: string;
 }
