@@ -167,11 +167,13 @@ class AssistantAgent(BaseChatAgent):
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+         token_callback: Callable | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
         self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
+        self._token_callback = token_callback
         if tools is not None:
             for tool in tools:
                 if isinstance(tool, Tool):
@@ -236,9 +238,24 @@ class AssistantAgent(BaseChatAgent):
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
-        result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-        )
+
+        # if token_callback is set, use create_stream to get the tokens as they are
+        # generated and call the token_callback with the tokens
+        if self._token_callback is not None:
+            async for result in self._model_client.create_stream(
+                llm_messages,
+                tools=self._tools + self._handoff_tools,
+                cancellation_token=cancellation_token,
+            ):
+                # if the result is a string, it is a token to be streamed back
+                if isinstance(result, str):
+                    await self._token_callback(result)
+                else:
+                    break
+        else:
+            result = await self._model_client.create(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token,
+            )
 
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
@@ -279,9 +296,24 @@ class AssistantAgent(BaseChatAgent):
                 return
 
             # Generate an inference result based on the current model context.
-            result = await self._model_client.create(
-                self._model_context, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-            )
+
+            # if token_callback is set, use create_stream to get the tokens as they are
+            # generated and call the token_callback with the tokens
+            if self._token_callback is not None:
+                async for result in self._model_client.create_stream(
+                    self._model_context,
+                    tools=self._tools + self._handoff_tools,
+                    cancellation_token=cancellation_token,
+                ):
+                    # if the result is a string, it is a token to be streamed back
+                    if isinstance(result, str):
+                        await self._token_callback(result)
+                    else:
+                        break
+            else:
+                result = await self._model_client.create(
+                    self._model_context,tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token,
+                )
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         assert isinstance(result.content, str)
