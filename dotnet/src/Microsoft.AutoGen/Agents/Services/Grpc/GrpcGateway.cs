@@ -153,6 +153,22 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 Success = true
             }
         };
+        // add a default subscription for the agent type
+        //TODO: we should consider having constraints on the namespace or at least migrate all our examples to use well typed namesspaces like com.microsoft.autogen/hello/HelloAgents etc
+        var subscriptionRequest = new AddSubscriptionRequest
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            Subscription = new Subscription
+            {
+                TypeSubscription = new TypeSubscription
+                {
+                    AgentType = msg.Type,
+                    TopicType = msg.Type
+                }
+            }
+        };
+        await AddSubscriptionAsync(connection, subscriptionRequest).ConfigureAwait(true);
+
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
