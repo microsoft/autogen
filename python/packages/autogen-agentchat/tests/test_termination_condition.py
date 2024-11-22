@@ -4,6 +4,7 @@ import pytest
 from autogen_agentchat.base import TerminatedException
 from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
 from autogen_agentchat.task import (
+    ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
     StopMessageTermination,
@@ -228,6 +229,21 @@ async def test_timeout_termination() -> None:
     assert await termination([TextMessage(content="Hello", source="user")]) is None
     await asyncio.sleep(0.2)
     assert await termination([TextMessage(content="World", source="user")]) is not None
+
+
+@pytest.mark.asyncio
+async def test_external_termination() -> None:
+    termination = ExternalTermination()
+
+    assert await termination([]) is None
+    assert not termination.terminated
+
+    termination.set()
+    assert await termination([]) is not None
+    assert termination.terminated
+
+    await termination.reset()
+    assert await termination([]) is None
 
 
 @pytest.mark.asyncio
