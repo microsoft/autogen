@@ -44,7 +44,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 TypeSubscription = new TypeSubscription
                 {
                     AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Key
+                    TopicType = this.AgentId.Type + "/" + this.AgentId.Key
                 }
             }
         };
