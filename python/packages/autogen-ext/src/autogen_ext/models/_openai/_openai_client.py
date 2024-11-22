@@ -567,7 +567,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consequative_empty_chunk_tolerance (int, optional): The maximum number of consecutive empty chunks to tolerate before stopping the stream. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
+            max_consecutive_empty_chunk_tolerance (int, optional): The maximum number of consecutive empty chunks to tolerate before stopping the stream. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
