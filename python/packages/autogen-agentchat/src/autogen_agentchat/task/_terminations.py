@@ -237,6 +237,7 @@ class ExternalTermination(TerminationCondition):
         return self._terminated
 
     def set(self) -> None:
+        """Set the termination condition to terminated."""
         self._setted = True
 
     async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
