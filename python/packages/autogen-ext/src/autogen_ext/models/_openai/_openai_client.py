@@ -556,7 +556,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        max_empty_consequative_chunk_tolerance: Optional[int] = 0,
+        max_consequative_empty_chunk_tolerance: Optional[int] = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
         Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
@@ -567,7 +567,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_empty_consequative_chunk_tolerance (int, optional): The maximum number of consecutive empty chunks to tolerate before stopping the stream. Defaults to 3.
+            max_consequative_empty_chunk_tolerance (int, optional): The maximum number of consecutive empty chunks to tolerate before stopping the stream. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
@@ -651,11 +651,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 #  https://github.com/microsoft/autogen/issues/4213
                 if len(chunk.choices) == 0:
                     empty_chunk_count += 1
-                    if max_empty_consequative_chunk_tolerance is None or max_empty_consequative_chunk_tolerance == 0:
+                    if max_consequative_empty_chunk_tolerance is None or max_consequative_empty_chunk_tolerance == 0:
                         raise ValueError(
                             "max_empty_consequative_chunk_tolerance is set to 0, increasing it might help!"
                         )
-                    elif empty_chunk_count >= max_empty_consequative_chunk_tolerance:
+                    elif empty_chunk_count >= max_consequative_empty_chunk_tolerance:
                         raise ValueError("Exceeded the threshold of receiving consecutive empty chunks")
                     continue
                 else:
