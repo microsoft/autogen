@@ -71,7 +71,7 @@ def print_repo_contents(repo, path="", indent=""):
         if content_file.type == "dir":
             documentation.extend(print_repo_contents(repo, content_file.path, indent + "│   "))
         else:
-            if content_file.download_url.endswith('.md'):
+            if content_file.download_url.endswith('.md') or content_file.download_url.endswith('.ipynb'):
                 print(f"Reading file from {content_file.download_url}")
                 f = read_github_file(content_file.download_url)
                 documentation.append("Title: " + content_file.name + "\nContents:\n" + f)
