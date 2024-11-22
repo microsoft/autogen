@@ -28,7 +28,7 @@ async def Console(
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
-    or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream` and render the messages to the console.
+    or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream` and renders the messages to the console.
     Returns the last processed TaskResult or Response.
 
     Args:
