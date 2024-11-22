@@ -9,15 +9,13 @@ namespace Backend.Agents;
 [TopicSubscription("HelloAgents")]
 public class OutputAgent(
         IAgentRuntime context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<OutputAgent> logger) : AgentBase(
             context,
-            typeRegistry),
-            IHandleConsole,
+            typeRegistry, logger),
             IHandle<NewGreetingGenerated>
 {
     public async Task Handle(NewGreetingGenerated item)
     {
-        // TODO: store to memory
-       
+       _logger.LogInformation($"OutputAgent with Id: {AgentId} received NewGreetingGenerated with {item.UserMessage}");
     }
 }

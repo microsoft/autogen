@@ -19,7 +19,8 @@ builder.Services.AddSwaggerGen();
 
 var agentHostUrl = builder.Configuration["AGENT_HOST"]!;
 builder.AddAgentWorker(agentHostUrl)
-    .AddAgent<HelloAgent>(nameof(HelloAgent));
+    .AddAgent<HelloAgent>(nameof(HelloAgent))
+    .AddAgent<OutputAgent>(nameof(OutputAgent));
 
 builder.Services.AddSingleton<AgentWorker>();
 
@@ -27,7 +28,7 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapPost("/sessions", async ([FromBody]string message, AgentWorker client) =>
+app.MapPost("/sessions", async ([FromBody]string message, Client client) =>
 {
     var session = Guid.NewGuid().ToString();
     await client.PublishEventAsync(new NewGreetingRequested { Message = message }.ToCloudEvent(session));

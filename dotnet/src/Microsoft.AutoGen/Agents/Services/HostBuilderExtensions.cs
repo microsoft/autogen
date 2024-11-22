@@ -41,14 +41,22 @@ public static class HostBuilderExtensions
             var descriptors = pairs.Select(t => t.Item2);
             var typeRegistry = TypeRegistry.FromMessages(descriptors);
             var types = pairs.ToDictionary(item => item.Item2?.FullName ?? "", item => item.t);
-
-            var eventsMap = AppDomain.CurrentDomain.GetAssemblies()
+            var typesForEvents = new Dictionary<string, HashSet<Type>>();
+            var eventsForType = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
                                     .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
-                                    .Select(t => (t, t.GetInterfaces()
-                                                  .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-                                                  .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
-                                    .ToDictionary(item => item.t, item => item.Item2);
+                                    .Select(t =>
+                                    {
+                                        var events = t.GetInterfaces()
+                                                      .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
+                                                      .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet();
+                                        foreach(var evt in events) {
+                                            if (!typesForEvents.TryGetValue(evt, out var value)) { value = new HashSet<Type>(); typesForEvents[evt] = value; }
+                                            value.Add(t);
+                                        }
+                                        return (t, events);
+                                    }).ToDictionary(item => item.t, item => item.Item2);
+
             // if the assembly contains any interfaces of type IHandler, then add all the methods of the interface to the eventsMap
             var handlersMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
@@ -72,13 +80,13 @@ public static class HostBuilderExtensions
             {
                 foreach (var iface in item)
                 {
-                    if (eventsMap.TryGetValue(iface.Item2, out var events))
+                    if (eventsForType.TryGetValue(iface.Item2, out var events))
                     {
                         events.UnionWith(iface.Item3);
                     }
                     else
                     {
-                        eventsMap[iface.Item2] = iface.Item3;
+                        eventsForType[iface.Item2] = iface.Item3;
                     }
                 }
             }
@@ -86,16 +94,16 @@ public static class HostBuilderExtensions
             // merge the handlersMap into the eventsMap
             foreach (var item in handlersMap)
             {
-                if (eventsMap.TryGetValue(item.Key, out var events))
+                if (eventsForType.TryGetValue(item.Key, out var events))
                 {
                     events.UnionWith(item.Value);
                 }
                 else
                 {
-                    eventsMap[item.Key] = item.Value;
+                    eventsForType[item.Key] = item.Value;
                 }
             }
-            return new EventTypes(typeRegistry, types, eventsMap);
+            return new EventTypes(typeRegistry, types, eventsForType, typesForEvents);
         });
         builder.Services.AddSingleton<Client>();
         return new AgentApplicationBuilder(builder);
@@ -141,11 +149,12 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
         return new AgentTypes(agents);
     }
 }
-public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap)
+public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap, Dictionary<string, HashSet<Type>> typesMap)
 {
     public TypeRegistry TypeRegistry { get; } = typeRegistry;
     public Dictionary<string, Type> Types { get; } = types;
     public Dictionary<Type, HashSet<string>> EventsMap { get; } = eventsMap;
+    public Dictionary<string, HashSet<Type>> TypesMap { get; } = typesMap;
 }
 
 public sealed class AgentApplicationBuilder(IHostApplicationBuilder builder)

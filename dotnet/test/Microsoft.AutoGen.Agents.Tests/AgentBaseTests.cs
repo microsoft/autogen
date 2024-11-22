@@ -16,7 +16,7 @@ public class AgentBaseTests
     public async Task ItInvokeRightHandlerTestAsync()
     {
         var mockContext = new Mock<IAgentRuntime>();
-        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
+        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], [], []), new Logger<AgentBase>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
         await agent.HandleObject(42);

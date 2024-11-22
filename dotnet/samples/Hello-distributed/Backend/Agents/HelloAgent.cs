@@ -9,23 +9,21 @@ namespace Backend.Agents;
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
         IAgentRuntime context,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<HelloAgent> logger) : AgentBase(
             context,
-            typeRegistry),
-            IHandleConsole,
+            typeRegistry, logger),
             IHandle<NewGreetingRequested>
 {
     public async Task Handle(NewGreetingRequested item)
     {
+        _logger.LogInformation($"HelloAgent with Id: {AgentId} received NewGreetingRequested with {item.Message}");
         var response = await SayHello(item.Message).ConfigureAwait(false);
-        var evt = new Output { Message = response };
-        await PublishMessageAsync(evt).ConfigureAwait(false);
-        var goodbye = new NewGreetingGenerated
+        var greeting = new NewGreetingGenerated
         {
             UserId = AgentId.Key,
-            UserMessage = "Goodbye"
+            UserMessage = response
         };
-        await PublishMessageAsync(goodbye).ConfigureAwait(false);
+        await PublishMessageAsync(greeting).ConfigureAwait(false);
     }
 
     public async Task<string> SayHello(string ask)
