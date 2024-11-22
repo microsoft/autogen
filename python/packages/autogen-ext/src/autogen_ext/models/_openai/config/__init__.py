@@ -49,3 +49,6 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_ad_token_provider: AsyncAzureADTokenProvider
     # Must be provided
     model_capabilities: Required[ModelCapabilities]
+
+
+__all__ = ["AzureOpenAIClientConfiguration", "OpenAIClientConfiguration"]
