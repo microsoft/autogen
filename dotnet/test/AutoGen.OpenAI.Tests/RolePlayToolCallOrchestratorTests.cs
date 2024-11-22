@@ -239,7 +239,7 @@ public class RolePlayToolCallOrchestratorTests
             </button>
             ```
             """, from: dev.Name),
-            new TextMessage(Role.User, "好的，甲方，项目已完成，请付款", from: ceo.Name),
+            new TextMessage(Role.User, "好的，项目已完成，甲方请付款", from: ceo.Name),
         };
 
         var orchestrator = new RolePlayToolCallOrchestrator(client, workflow);
