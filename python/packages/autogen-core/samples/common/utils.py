@@ -3,14 +3,13 @@ from typing import Any, List, Optional, Union
 
 from autogen_core.components.models import (
     AssistantMessage,
-    AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    OpenAIChatCompletionClient,
     UserMessage,
 )
+from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from typing_extensions import Literal
 
