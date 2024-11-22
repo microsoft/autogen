@@ -15,25 +15,25 @@ namespace Microsoft.AutoGen.Agents;
 public abstract class AgentBase : IAgentBase, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
-    public AgentId AgentId => _context.AgentId;
+    public AgentId AgentId => _runtime.AgentId;
     private readonly object _lock = new();
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly IAgentRuntime _context;
+    private readonly IAgentRuntime _runtime;
     public string Route { get; set; } = "base";
 
     protected internal ILogger<AgentBase> _logger;
-    public IAgentRuntime Context => _context;
+    public IAgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(
-        IAgentRuntime context,
+        IAgentRuntime runtime,
         EventTypes eventTypes,
         ILogger<AgentBase>? logger = null)
     {
-        _context = context;
-        context.AgentInstance = this;
+        _runtime = runtime;
+        runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         var subscriptionRequest = new AddSubscriptionRequest
@@ -48,7 +48,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
-        _context.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
+        _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
         Completion = Start();
     }
     internal Task Completion { get; }
@@ -144,18 +144,18 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
-        _context.SendMessageAsync(message).AsTask().Wait();
+        _runtime.SendMessageAsync(message).AsTask().Wait();
 
         return new List<string> { topic };
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await _context.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await _runtime.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await _runtime.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -184,7 +184,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await _context.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        await _runtime.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -208,7 +208,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _context.Update(activity, request);
+        _runtime.Update(activity, request);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state) =>
             {
@@ -219,7 +219,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                     self._pendingRequests[request.RequestId] = completion;
                 }
 
-                await state.Agent._context.SendRequestAsync(state.Agent, state.Request).ConfigureAwait(false);
+                await state.Agent._runtime.SendRequestAsync(state.Agent, state.Request).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -244,11 +244,11 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _context.Update(activity, item);
+        _runtime.Update(activity, item);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event) state) =>
             {
-                await state.Agent._context.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent._runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
             (this, item),
             activity,
