@@ -13,6 +13,7 @@ public interface IAgentRuntime
     ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default);
     ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default);
     ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default);
     ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default);
     void Update(Activity? activity, RpcRequest request);
     void Update(Activity? activity, CloudEvent cloudEvent);

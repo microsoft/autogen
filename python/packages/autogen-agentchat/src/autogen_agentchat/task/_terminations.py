@@ -1,5 +1,5 @@
 import time
-from typing import Sequence
+from typing import Sequence, List
 
 from ..base import TerminatedException, TerminationCondition
 from ..messages import AgentMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
@@ -207,4 +207,80 @@ class TimeoutTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._start_time = time.monotonic()
+        self._terminated = False
+
+
+class ExternalTermination(TerminationCondition):
+    """A termination condition that is externally controlled
+    by calling the :meth:`set` method.
+
+    Example:
+
+    .. code-block:: python
+
+        termination = ExternalTermination()
+
+        # Run the team in an asyncio task.
+        ...
+
+        # Set the termination condition externally
+        termination.set()
+
+    """
+
+    def __init__(self) -> None:
+        self._terminated = False
+        self._setted = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    def set(self) -> None:
+        """Set the termination condition to terminated."""
+        self._setted = True
+
+    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        if self._setted:
+            self._terminated = True
+            return StopMessage(content="External termination requested", source="ExternalTermination")
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+        self._setted = False
+
+
+class SourceMatchTermination(TerminationCondition):
+    """Terminate the conversation after a specific source responds.
+
+    Args:
+        sources (List[str]): List of source names to terminate the conversation.
+
+    Raises:
+        TerminatedException: If the termination condition has already been reached.
+    """
+
+    def __init__(self, sources: List[str]) -> None:
+        self._sources = sources
+        self._terminated = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        if not messages:
+            return None
+        for message in messages:
+            if message.source in self._sources:
+                self._terminated = True
+                return StopMessage(content=f"'{message.source}' answered", source="SourceMatchTermination")
+        return None
+
+    async def reset(self) -> None:
         self._terminated = False
