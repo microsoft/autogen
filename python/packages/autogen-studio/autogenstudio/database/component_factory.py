@@ -6,7 +6,7 @@ import json
 from autogen_agentchat.task import MaxMessageTermination, TextMentionTermination, StopMessageTermination
 import yaml
 import logging
-from packaging import version
+from ..utils.utils import Version
 
 from ..datamodel import (
     TeamConfig, AgentConfig, ModelConfig, ToolConfig,
@@ -174,18 +174,44 @@ class ComponentFactory:
     async def load_termination(self, config: TerminationConfig) -> TerminationComponent:
         """Create termination condition instance from configuration."""
         try:
-            if config.termination_type == TerminationTypes.MAX_MESSAGES:
+            if config.termination_type == TerminationTypes.COMBINATION:
+                if not config.conditions or len(config.conditions) < 2:
+                    raise ValueError(
+                        "Combination termination requires at least 2 conditions")
+                if not config.operator:
+                    raise ValueError(
+                        "Combination termination requires an operator (and/or)")
+
+                # Load first two conditions
+                conditions = [await self.load_termination(cond) for cond in config.conditions[:2]]
+                result = conditions[0] & conditions[1] if config.operator == "and" else conditions[0] | conditions[1]
+
+                # Process remaining conditions if any
+                for condition in config.conditions[2:]:
+                    next_condition = await self.load_termination(condition)
+                    result = result & next_condition if config.operator == "and" else result | next_condition
+
+                return result
+
+            elif config.termination_type == TerminationTypes.MAX_MESSAGES:
+                if config.max_messages is None:
+                    raise ValueError(
+                        "max_messages parameter required for MaxMessageTermination")
                 return MaxMessageTermination(max_messages=config.max_messages)
+
             elif config.termination_type == TerminationTypes.STOP_MESSAGE:
                 return StopMessageTermination()
+
             elif config.termination_type == TerminationTypes.TEXT_MENTION:
                 if not config.text:
                     raise ValueError(
                         "text parameter required for TextMentionTermination")
                 return TextMentionTermination(text=config.text)
+
             else:
                 raise ValueError(
                     f"Unsupported termination type: {config.termination_type}")
+
         except Exception as e:
             logger.error(f"Failed to create termination condition: {str(e)}")
             raise ValueError(
@@ -367,9 +393,11 @@ class ComponentFactory:
     def _is_version_supported(self, component_type: ComponentType, ver: str) -> bool:
         """Check if version is supported for component type."""
         try:
-            v = version.parse(ver)
-            return ver in self.SUPPORTED_VERSIONS[component_type]
-        except version.InvalidVersion:
+            version = Version(ver)
+            supported = [Version(v)
+                         for v in self.SUPPORTED_VERSIONS[component_type]]
+            return any(version == v for v in supported)
+        except ValueError:
             return False
 
     async def cleanup(self) -> None:

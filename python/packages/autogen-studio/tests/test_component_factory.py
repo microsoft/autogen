@@ -181,6 +181,101 @@ async def test_load_termination(component_factory: ComponentFactory):
     assert isinstance(termination, TextMentionTermination)
     assert termination._text == "DONE"
 
+    # Test AND combination
+    and_combo_config = TerminationConfig(
+        termination_type=TerminationTypes.COMBINATION,
+        operator="and",
+        conditions=[
+            TerminationConfig(
+                termination_type=TerminationTypes.MAX_MESSAGES,
+                max_messages=5,
+                component_type=ComponentType.TERMINATION,
+                version="1.0.0"
+            ),
+            TerminationConfig(
+                termination_type=TerminationTypes.TEXT_MENTION,
+                text="DONE",
+                component_type=ComponentType.TERMINATION,
+                version="1.0.0"
+            )
+        ],
+        component_type=ComponentType.TERMINATION,
+        version="1.0.0"
+    )
+    termination = await component_factory.load_termination(and_combo_config)
+    assert termination is not None
+
+    # Test OR combination
+    or_combo_config = TerminationConfig(
+        termination_type=TerminationTypes.COMBINATION,
+        operator="or",
+        conditions=[
+            TerminationConfig(
+                termination_type=TerminationTypes.MAX_MESSAGES,
+                max_messages=5,
+                component_type=ComponentType.TERMINATION,
+                version="1.0.0"
+            ),
+            TerminationConfig(
+                termination_type=TerminationTypes.TEXT_MENTION,
+                text="DONE",
+                component_type=ComponentType.TERMINATION,
+                version="1.0.0"
+            )
+        ],
+        component_type=ComponentType.TERMINATION,
+        version="1.0.0"
+    )
+    termination = await component_factory.load_termination(or_combo_config)
+    assert termination is not None
+
+    # Test invalid combinations
+    with pytest.raises(ValueError):
+        await component_factory.load_termination(TerminationConfig(
+            termination_type=TerminationTypes.COMBINATION,
+            conditions=[],  # Empty conditions
+            component_type=ComponentType.TERMINATION,
+            version="1.0.0"
+        ))
+
+    with pytest.raises(ValueError):
+        await component_factory.load_termination(TerminationConfig(
+            termination_type=TerminationTypes.COMBINATION,
+            operator="invalid",  # type: ignore
+            conditions=[
+                TerminationConfig(
+                    termination_type=TerminationTypes.MAX_MESSAGES,
+                    max_messages=5,
+                    component_type=ComponentType.TERMINATION,
+                    version="1.0.0"
+                )
+            ],
+            component_type=ComponentType.TERMINATION,
+            version="1.0.0"
+        ))
+
+    # Test missing operator
+    with pytest.raises(ValueError):
+        await component_factory.load_termination(TerminationConfig(
+            termination_type=TerminationTypes.COMBINATION,
+            conditions=[
+                TerminationConfig(
+                    termination_type=TerminationTypes.MAX_MESSAGES,
+                    max_messages=5,
+                    component_type=ComponentType.TERMINATION,
+                    version="1.0.0"
+                ),
+                TerminationConfig(
+                    termination_type=TerminationTypes.TEXT_MENTION,
+                    text="DONE",
+                    component_type=ComponentType.TERMINATION,
+                    version="1.0.0"
+                )
+            ],
+            component_type=ComponentType.TERMINATION,
+            version="1.0.0"
+        ))
+
 
 @pytest.mark.asyncio
 async def test_load_team(component_factory: ComponentFactory, sample_team_config: TeamConfig, sample_model_config: ModelConfig):
