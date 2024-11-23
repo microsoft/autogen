@@ -224,9 +224,9 @@ public abstract class AgentBase : IAgentBase, IHandle
     public Task CallHandler(CloudEvent item)
     {
         // Only send the event to the handler if the agent type is handling that type
-        // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
 
-        foreach (var type in EventTypes.TypesMap[item.Type])
+        if (EventTypes.EventsMap[GetType()].Contains(item.Type) && 
+         item.Source == AgentId.Key)
         {
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
