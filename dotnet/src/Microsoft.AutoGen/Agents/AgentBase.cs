@@ -195,7 +195,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _context.Update(activity, request);
+        _context.Update(request, activity);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
             {
@@ -231,7 +231,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _context.Update(activity, item);
+        _context.Update(item, activity);
         await this.InvokeWithActivityAsync(
             static async ((AgentBase Agent, CloudEvent Event) state, CancellationToken ct) =>
             {

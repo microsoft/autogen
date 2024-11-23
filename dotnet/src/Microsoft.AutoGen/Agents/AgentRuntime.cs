@@ -28,11 +28,11 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
             out var traceState);
         return (traceParent, traceState);
     }
-    public void Update(Activity? activity, RpcRequest request)
+    public void Update(RpcRequest request, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
-    public void Update(Activity? activity, CloudEvent cloudEvent)
+    public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
