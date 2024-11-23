@@ -1,14 +1,17 @@
 import asyncio
 
 import pytest
+from autogen_agentchat.base import TerminatedException
 from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
 from autogen_agentchat.task import (
+    ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
     StopMessageTermination,
     TextMentionTermination,
     TimeoutTermination,
     TokenUsageTermination,
+    SourceMatchTermination,
 )
 from autogen_core.components.models import RequestUsage
 
@@ -226,3 +229,41 @@ async def test_timeout_termination() -> None:
     assert await termination([TextMessage(content="Hello", source="user")]) is None
     await asyncio.sleep(0.2)
     assert await termination([TextMessage(content="World", source="user")]) is not None
+
+
+@pytest.mark.asyncio
+async def test_external_termination() -> None:
+    termination = ExternalTermination()
+
+    assert await termination([]) is None
+    assert not termination.terminated
+
+    termination.set()
+    assert await termination([]) is not None
+    assert termination.terminated
+
+    await termination.reset()
+    assert await termination([]) is None
+
+
+@pytest.mark.asyncio
+async def test_source_match_termination() -> None:
+    termination = SourceMatchTermination(sources=["Assistant"])
+    assert await termination([]) is None
+
+    continue_messages = [TextMessage(content="Hello", source="agent"), TextMessage(content="Hello", source="user")]
+    assert await termination(continue_messages) is None
+
+    terminate_messages = [
+        TextMessage(content="Hello", source="agent"),
+        TextMessage(content="Hello", source="Assistant"),
+        TextMessage(content="Hello", source="user"),
+    ]
+    result = await termination(terminate_messages)
+    assert isinstance(result, StopMessage)
+    assert termination.terminated
+
+    with pytest.raises(TerminatedException):
+        await termination([])
+    await termination.reset()
+    assert not termination.terminated
