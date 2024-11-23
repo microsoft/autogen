@@ -49,7 +49,7 @@ public static class AgentBaseExtensions
 
         return activity;
     }
-    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
+    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, CancellationToken, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
     {
         if (activity is not null && activity.StartTimeUtc == default)
         {
@@ -63,7 +63,7 @@ public static class AgentBaseExtensions
 
         try
         {
-            await func(state).ConfigureAwait(false);
+            await func(state, cancellationToken).ConfigureAwait(false);
             if (activity is not null && activity.IsAllDataRequested)
             {
                 activity.SetStatus(ActivityStatusCode.Ok);
