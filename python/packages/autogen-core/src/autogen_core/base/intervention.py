@@ -1,5 +1,6 @@
 import warnings
 from typing import Any, Awaitable, Callable, Protocol, final
+
 from autogen_core.base import AgentId
 
 __all__ = [
@@ -17,7 +18,7 @@ class DropMessage: ...
 def _warn_if_none(value: Any, handler_name: str) -> None:
     """
     Utility function to check if the intervention handler returned None and issue a warning.
-    
+
     Args:
         value: The return value to check
         handler_name: Name of the intervention handler method for the warning message
@@ -27,7 +28,7 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
             f"Intervention handler {handler_name} returned None. This might be unintentional. "
             "Consider returning the original message or DropMessage explicitly.",
             RuntimeWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
 
