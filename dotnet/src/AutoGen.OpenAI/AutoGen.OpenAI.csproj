@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="OpenAI" Version="$(OpenAISDKVersion)" />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
