@@ -1,8 +1,8 @@
 import os
+import asyncio
 import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
-from datetime import datetime
 
 from autogenstudio.database import DatabaseManager
 from autogenstudio.datamodel import (
@@ -18,13 +18,13 @@ def test_db() -> Generator[DatabaseManager, None, None]:
     db_path = "test.db"
     db = DatabaseManager(f"sqlite:///{db_path}")
     db.reset_db()
-    db.create_db_and_tables()
+    # Initialize database instead of create_db_and_tables
+    db.initialize_database(auto_upgrade=False)
     yield db
+    # Clean up
+    asyncio.run(db.close())
     db.reset_db()
     try:
-        # Close database connections before removing file
-        db.engine.dispose()
-        # Remove the database file
         if os.path.exists(db_path):
             os.remove(db_path)
     except Exception as e:
@@ -181,3 +181,59 @@ class TestDatabaseOperations:
         model_names = [model.config["model"] for model in linked_models.data]
         assert "gpt-4" in model_names
         assert "gpt-3.5" in model_names
+
+    def test_upsert_operations(self, test_db: DatabaseManager, sample_model: Model):
+        """Test upsert for both create and update scenarios"""
+        # Test Create
+        response = test_db.upsert(sample_model)
+        assert response.status is True
+        assert "Created Successfully" in response.message
+
+        # Test Update
+        sample_model.config["model"] = "gpt-4-turbo"
+        response = test_db.upsert(sample_model)
+        assert response.status is True
+        assert "Updated Successfully" in response.message
+
+        # Verify Update
+        result = test_db.get(Model, {"id": sample_model.id})
+        assert result.status is True
+        assert result.data[0].config["model"] == "gpt-4-turbo"
+
+    def test_delete_operations(self, test_db: DatabaseManager, sample_model: Model):
+        """Test delete with various filters"""
+        # First insert the model
+        test_db.upsert(sample_model)
+
+        # Test deletion by id
+        response = test_db.delete(Model, {"id": sample_model.id})
+        assert response.status is True
+        assert "Deleted Successfully" in response.message
+
+        # Verify deletion
+        result = test_db.get(Model, {"id": sample_model.id})
+        assert len(result.data) == 0
+
+        # Test deletion with non-existent id
+        response = test_db.delete(Model, {"id": 999999})
+        assert "Row not found" in response.message
+
+    def test_initialize_database_scenarios(self):
+        """Test different initialize_database parameters"""
+        db_path = "test_init.db"
+        db = DatabaseManager(f"sqlite:///{db_path}")
+
+        try:
+            # Test basic initialization
+            response = db.initialize_database()
+            assert response.status is True
+
+            # Test with auto_upgrade
+            response = db.initialize_database(auto_upgrade=True)
+            assert response.status is True
+
+        finally:
+            asyncio.run(db.close())
+            db.reset_db()
+            if os.path.exists(db_path):
+                os.remove(db_path)
