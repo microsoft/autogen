@@ -15,7 +15,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     public ILogger<AgentBase> Logger { get; } = logger;
     public IAgentBase? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
-    public (string?, string?) GetTraceIDandState(IDictionary<string, string> metadata)
+    public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
     {
         DistributedContextPropagator.ExtractTraceIdAndState(metadata,
             static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>

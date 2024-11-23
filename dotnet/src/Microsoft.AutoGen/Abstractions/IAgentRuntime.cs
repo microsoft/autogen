@@ -17,6 +17,6 @@ public interface IAgentRuntime
     ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default);
     void Update(RpcRequest request, Activity? activity);
     void Update(CloudEvent cloudEvent, Activity? activity);
-    (string?, string?) GetTraceIDandState(IDictionary<string, string> metadata);
+    (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata);
     IDictionary<string, string> ExtractMetadata(IDictionary<string, string> metadata);
 }

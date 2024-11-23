@@ -20,7 +20,7 @@ public static class AgentBaseExtensions
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
     {
         Activity? activity;
-        var (traceParent, traceState) = agent.Context.GetTraceIDandState(metadata);
+        var (traceParent, traceState) = agent.Context.GetTraceIdAndState(metadata);
         if (!string.IsNullOrEmpty(traceParent))
         {
             if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out var parentContext))

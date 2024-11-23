@@ -142,8 +142,8 @@ public abstract class AgentBase : IAgentBase, IHandle
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
-        return agentstate.FromAgentState<T>();
+        var agentState = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        return agentState.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
     {
