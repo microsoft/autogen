@@ -291,3 +291,26 @@ def test_model(model: Model):
 #     ]
 #     response = client.create(messages=summarization_prompt, cache_seed=None)
 #     return response.choices[0].message.content
+
+
+class Version:
+    def __init__(self, ver_str: str):
+        try:
+            # Split into major.minor.patch
+            self.major, self.minor, self.patch = map(int, ver_str.split('.'))
+        except (ValueError, AttributeError):
+            raise ValueError(
+                f"Invalid version format: {ver_str}. Expected: major.minor.patch")
+
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = Version(other)
+        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
+
+    def __gt__(self, other):
+        if isinstance(other, str):
+            other = Version(other)
+        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)

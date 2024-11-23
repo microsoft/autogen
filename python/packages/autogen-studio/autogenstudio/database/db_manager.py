@@ -145,7 +145,8 @@ class DatabaseManager:
 
             if recreate_tables:
                 logger.info("Recreating tables...")
-                self.create_db_and_tables()
+                self.initialize_database(
+                    auto_upgrade=False, force_init_alembic=True)
 
             return Response(
                 message="Database reset successfully" if recreate_tables else "Database tables dropped successfully",

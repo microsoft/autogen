@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel
 from autogen_agentchat.base._task import TaskResult
@@ -29,6 +29,7 @@ class TerminationTypes(str, Enum):
     MAX_MESSAGES = "MaxMessageTermination"
     STOP_MESSAGE = "StopMessageTermination"
     TEXT_MENTION = "TextMentionTermination"
+    COMBINATION = "CombinationTermination"
 
 
 class ComponentType(str, Enum):
@@ -81,8 +82,12 @@ class AgentConfig(BaseConfig):
 
 class TerminationConfig(BaseConfig):
     termination_type: TerminationTypes
+    # Fields for basic terminations
     max_messages: Optional[int] = None
     text: Optional[str] = None
+    # Fields for combinations
+    operator: Optional[Literal["and", "or"]] = None
+    conditions: Optional[List["TerminationConfig"]] = None
     component_type: ComponentType = ComponentType.TERMINATION
 
 
