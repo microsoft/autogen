@@ -7,7 +7,7 @@ from ._terminations import (
     TextMentionTermination,
     TimeoutTermination,
     TokenUsageTermination,
-    SourceMatchTermination
+    SourceMatchTermination,
 )
 
 __all__ = [
