@@ -126,7 +126,7 @@ export interface TaskResult {
 
 export type ModelTypes = "OpenAIChatCompletionClient";
 
-export type AgentTypes = "AssistantAgent" | "CodingAssistantAgent";
+export type AgentTypes = "AssistantAgent" | "CodingAssistantAgent" | "MultimodalWebSurfer";
 
 export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
 
