@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, AsyncGenerator, List
+from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
@@ -8,9 +8,13 @@ from autogen_core.base import AgentId, CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.models import (
     AssistantMessage,
+    ChatCompletionClient,
+    CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
-    OpenAIChatCompletionClient,
+    LLMMessage,
+    ModelCapabilities,
+    RequestUsage,
     UserMessage,
 )
 from autogen_core.components.tool_agent import (
@@ -20,13 +24,7 @@ from autogen_core.components.tool_agent import (
     ToolNotFoundException,
     tool_agent_caller_loop,
 )
-from autogen_core.components.tools import FunctionTool, Tool
-from openai.resources.chat.completions import AsyncCompletions
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
-from openai.types.completion_usage import CompletionUsage
+from autogen_core.components.tools import FunctionTool, Tool, ToolSchema
 
 
 def _pass_function(input: str) -> str:
@@ -40,60 +38,6 @@ def _raise_function(input: str) -> str:
 async def _async_sleep_function(input: str) -> str:
     await asyncio.sleep(10)
     return "pass"
-
-
-class _MockChatCompletion:
-    def __init__(self, model: str = "gpt-4o") -> None:
-        self._saved_chat_completions: List[ChatCompletion] = [
-            ChatCompletion(
-                id="id1",
-                choices=[
-                    Choice(
-                        finish_reason="tool_calls",
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=None,
-                            tool_calls=[
-                                ChatCompletionMessageToolCall(
-                                    id="1",
-                                    type="function",
-                                    function=Function(
-                                        name="pass",
-                                        arguments=json.dumps({"input": "pass"}),
-                                    ),
-                                )
-                            ],
-                            role="assistant",
-                        ),
-                    )
-                ],
-                created=0,
-                model=model,
-                object="chat.completion",
-                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            ),
-            ChatCompletion(
-                id="id2",
-                choices=[
-                    Choice(
-                        finish_reason="stop", index=0, message=ChatCompletionMessage(content="Hello", role="assistant")
-                    )
-                ],
-                created=0,
-                model=model,
-                object="chat.completion",
-                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            ),
-        ]
-        self._curr_index = 0
-
-    async def mock_create(
-        self, *args: Any, **kwargs: Any
-    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
-        await asyncio.sleep(0.1)
-        completion = self._saved_chat_completions[self._curr_index]
-        self._curr_index += 1
-        return completion
 
 
 @pytest.mark.asyncio
@@ -144,10 +88,59 @@ async def test_tool_agent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_caller_loop(monkeypatch: pytest.MonkeyPatch) -> None:
-    mock = _MockChatCompletion(model="gpt-4o-2024-05-13")
-    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
-    client = OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key="api_key")
+async def test_caller_loop() -> None:
+    class MockChatCompletionClient(ChatCompletionClient):
+        async def create(
+            self,
+            messages: Sequence[LLMMessage],
+            tools: Sequence[Tool | ToolSchema] = [],
+            json_output: Optional[bool] = None,
+            extra_create_args: Mapping[str, Any] = {},
+            cancellation_token: Optional[CancellationToken] = None,
+        ) -> CreateResult:
+            if len(messages) == 1:
+                return CreateResult(
+                    content=[FunctionCall(id="1", name="pass", arguments=json.dumps({"input": "test"}))],
+                    finish_reason="stop",
+                    usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+                    cached=False,
+                    logprobs=None,
+                )
+            return CreateResult(
+                content="Done",
+                finish_reason="stop",
+                usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+                cached=False,
+                logprobs=None,
+            )
+
+        def create_stream(
+            self,
+            messages: Sequence[LLMMessage],
+            tools: Sequence[Tool | ToolSchema] = [],
+            json_output: Optional[bool] = None,
+            extra_create_args: Mapping[str, Any] = {},
+            cancellation_token: Optional[CancellationToken] = None,
+        ) -> AsyncGenerator[Union[str, CreateResult], None]:
+            raise NotImplementedError()
+
+        def actual_usage(self) -> RequestUsage:
+            return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        def total_usage(self) -> RequestUsage:
+            return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+            return 0
+
+        def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+            return 0
+
+        @property
+        def capabilities(self) -> ModelCapabilities:
+            return ModelCapabilities(vision=False, function_calling=True, json_output=False)
+
+    client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]
     runtime = SingleThreadedAgentRuntime()
     await runtime.register(

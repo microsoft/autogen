@@ -10,7 +10,7 @@ If you are already an AutoGenBench pro, and want the full technical specificatio
 
 ## Docker Requirement
 
-AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
+AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (which is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
 
 If you are working in WSL, you can follow the instructions below to set up your environment:
 
