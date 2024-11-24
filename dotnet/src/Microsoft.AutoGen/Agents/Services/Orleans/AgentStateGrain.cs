@@ -7,7 +7,8 @@ namespace Microsoft.AutoGen.Agents;
 
 internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState
 {
-    public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag)
+    /// <inheritdoc />
+    public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag, CancellationToken cancellationToken = default)
     {
         // etags for optimistic concurrency control
         // if the Etag is null, its a new state
@@ -27,7 +28,8 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
         return state.Etag;
     }
 
-    public ValueTask<AgentState> ReadStateAsync()
+    /// <inheritdoc />
+    public ValueTask<AgentState> ReadStateAsync(CancellationToken cancellationToken = default)
     {
         return ValueTask.FromResult(state.State);
     }
