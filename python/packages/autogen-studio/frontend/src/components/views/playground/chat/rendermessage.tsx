@@ -69,8 +69,6 @@ const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
 const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
   content,
 }) => (
-  <div>
-  <div> hiii</div>
   <div className="space-y-2">
     {content.map((item, index) =>
       typeof item === "string" ? (
@@ -84,7 +82,6 @@ const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
         />
       )
     )}
-  </div>
   </div>
 );
 
