@@ -18,6 +18,7 @@ class ToolTypes(str, Enum):
 class AgentTypes(str, Enum):
     ASSISTANT = "AssistantAgent"
     USERPROXY = "UserProxyAgent"
+    MULTIMODAL_WEBSURFER = "MultimodalWebSurfer"
 
 
 class TeamTypes(str, Enum):
@@ -40,9 +41,7 @@ class ComponentType(str, Enum):
 
 
 class BaseConfig(BaseModel):
-    model_config = {
-        "protected_namespaces": ()
-    }
+    model_config = {"protected_namespaces": ()}
     version: str = "1.0.0"
     component_type: ComponentType
 
@@ -111,6 +110,7 @@ class MessageMeta(BaseModel):
     log: Optional[List[dict]] = None
     usage: Optional[List[dict]] = None
 
+
 # web request/response data models
 
 
@@ -126,12 +126,6 @@ class SocketMessage(BaseModel):
     type: str
 
 
-ComponentConfig = Union[
-    TeamConfig,
-    AgentConfig,
-    ModelConfig,
-    ToolConfig,
-    TerminationConfig
-]
+ComponentConfig = Union[TeamConfig, AgentConfig, ModelConfig, ToolConfig, TerminationConfig]
 
 ComponentConfigInput = Union[str, Path, dict, ComponentConfig]
