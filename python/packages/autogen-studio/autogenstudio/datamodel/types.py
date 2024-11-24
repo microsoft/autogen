@@ -76,6 +76,11 @@ class AgentConfig(BaseConfig):
     tools: Optional[List[ToolConfig]] = None
     description: Optional[str] = None
     component_type: ComponentType = ComponentType.AGENT
+    headless: Optional[bool] = None
+    logs_dir: Optional[str] = None
+    to_save_screenshots: Optional[bool] = None
+    use_ocr: Optional[bool] = None
+    animate_actions: Optional[bool] = None
 
 
 class TerminationConfig(BaseConfig):

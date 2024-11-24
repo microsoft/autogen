@@ -277,12 +277,12 @@ class ComponentFactory:
                 return MultimodalWebSurfer(
                     name=config.name,
                     model_client=model_client,
-                    headless=False,
-                    debug_dir="logs",
-                    downloads_folder="logs",
-                    to_save_screenshots=False,
-                    use_ocr=False,
-                    animate_actions=False,
+                    headless=config.headless if config.headless is not None else True,
+                    debug_dir=config.logs_dir if config.logs_dir is not None else "logs",
+                    downloads_folder=config.logs_dir if config.logs_dir is not None else "logs",
+                    to_save_screenshots=config.to_save_screenshots if config.to_save_screenshots is not None else False,
+                    use_ocr=config.use_ocr if config.use_ocr is not None else False,
+                    animate_actions=config.animate_actions if config.animate_actions is not None else False,
                 )
 
             else:

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from ...datamodel import Run, RunStatus, TeamResult
 from ...database import DatabaseManager
 from ...teammanager import TeamManager
-from autogen_agentchat.messages import AgentMessage, ChatMessage, TextMessage
+from autogen_agentchat.messages import AgentMessage, ChatMessage, TextMessage, MultiModalMessage
 from autogen_core.base import CancellationToken
 
 logger = logging.getLogger(__name__)
