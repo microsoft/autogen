@@ -4,11 +4,16 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set
 
-import grpc
-
 from ..base import TopicId
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager
+from ._utils import GRPC_IMPORT_ERROR_STR
+
+try:
+    import grpc
+except ImportError as e:
+    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
+
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 
 logger = logging.getLogger("autogen_core")
