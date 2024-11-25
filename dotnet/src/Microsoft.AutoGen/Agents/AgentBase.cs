@@ -93,7 +93,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, CloudEvent Item) state) => state.Agent.CallHandler(state.Item),
+                        static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -103,7 +103,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.Request.Method, msg.Request.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, RpcRequest Request) state) => state.Agent.OnRequestCoreAsync(state.Request),
+                        static ((AgentBase Agent, RpcRequest Request) state, CancellationToken ct) => state.Agent.OnRequestCoreAsync(state.Request, ct),
                         (this, msg.Request),
                         activity,
                         msg.Request.Method, cancellationToken).ConfigureAwait(false);
@@ -142,8 +142,8 @@ public abstract class AgentBase : IAgentBase, IHandle
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
-        return agentstate.FromAgentState<T>();
+        var agentState = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        return agentState.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
     {
@@ -195,9 +195,9 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _context.Update(activity, request);
+        _context.Update(request, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state) =>
+            static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
             {
                 var (self, request, completion) = state;
 
@@ -206,7 +206,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                     self._pendingRequests[request.RequestId] = completion;
                 }
 
-                await state.Agent._context.SendRequestAsync(state.Agent, state.Request).ConfigureAwait(false);
+                await state.Agent._context.SendRequestAsync(state.Agent, state.Request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -231,11 +231,11 @@ public abstract class AgentBase : IAgentBase, IHandle
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _context.Update(activity, item);
+        _context.Update(item, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event) state) =>
+            static async ((AgentBase Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
-                await state.Agent._context.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent._context.PublishEventAsync(state.Event, ct).ConfigureAwait(false);
             },
             (this, item),
             activity,
