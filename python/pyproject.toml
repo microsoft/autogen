@@ -3,8 +3,8 @@ members = ["packages/*"]
 
 [tool.uv]
 dev-dependencies = [
-    "pyright==1.1.378",
-    "mypy==1.10.0",
+    "pyright==1.1.389",
+    "mypy==1.13.0",
     "ruff==0.4.8",
     "pytest",
     "pytest-asyncio",

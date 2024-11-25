@@ -41,6 +41,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
             from autogen_core.base import CancellationToken
             from autogen_core.components.tools import FunctionTool
             from typing_extensions import Annotated
+            import asyncio
 
 
             async def get_stock_price(ticker: str, date: Annotated[str, "Date in YYYY/MM/DD"]) -> float:
@@ -48,15 +49,19 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
                 return random.uniform(10, 200)
 
 
-            # Initialize a FunctionTool instance for retrieving stock prices.
-            stock_price_tool = FunctionTool(get_stock_price, description="Fetch the stock price for a given ticker.")
+            async def example():
+                # Initialize a FunctionTool instance for retrieving stock prices.
+                stock_price_tool = FunctionTool(get_stock_price, description="Fetch the stock price for a given ticker.")
 
-            # Execute the tool with cancellation support.
-            cancellation_token = CancellationToken()
-            result = await stock_price_tool.run_json({"ticker": "AAPL", "date": "2021/01/01"}, cancellation_token)
+                # Execute the tool with cancellation support.
+                cancellation_token = CancellationToken()
+                result = await stock_price_tool.run_json({"ticker": "AAPL", "date": "2021/01/01"}, cancellation_token)
 
-            # Output the result as a formatted string.
-            print(stock_price_tool.return_value_as_string(result))
+                # Output the result as a formatted string.
+                print(stock_price_tool.return_value_as_string(result))
+
+
+            asyncio.run(example())
     """
 
     def __init__(self, func: Callable[..., Any], description: str, name: str | None = None) -> None:
