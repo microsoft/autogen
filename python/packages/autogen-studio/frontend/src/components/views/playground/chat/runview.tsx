@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   StopCircle,
-  User,
-  Network,
   MessageSquare,
   Loader2,
   CheckCircle,
@@ -218,8 +216,12 @@ const RunView: React.FC<RunViewProps> = ({
                     {/* Messages Thread */}
                     <div
                       ref={threadContainerRef}
-                      className="flex-1 mt-2 overflow-y-auto max-h-[400px] scroll-smooth scroll pb-2"
+                      className="flex-1 mt-2 overflow-y-auto max-h-[400px] scroll-smooth scroll pb-2 relative"
                     >
+                      <div id="scroll-gradient" className="scroll-gradient h-8">
+                        {" "}
+                        <span className="  inline-block h-6"></span>{" "}
+                      </div>
                       {run.messages.map((msg, idx) => (
                         <div
                           key={"message_id" + idx + run.id}
@@ -233,7 +235,10 @@ const RunView: React.FC<RunViewProps> = ({
                       ))}
 
                       <div className="text-primary mt-2">
-                        {getStatusIcon(run.status)}
+                        <div className="w-4 h-4 inline-block  border-secondary rounded-bl-lg border-l-2 border-b-2"></div>{" "}
+                        <div className="inline-block ">
+                          {getStatusIcon(run.status)}
+                        </div>
                       </div>
 
                       {/* Input Request UI */}

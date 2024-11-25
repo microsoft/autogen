@@ -90,12 +90,9 @@ const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
 }) => (
   <div className="space-y-2">
     {content.map((result) => (
-      <div
-        key={result.call_id}
-        className="  rounded p-2 overflow-x-scroll scroll"
-      >
+      <div key={result.call_id} className="  rounded p-2 ">
         <div className="font-medium">Result ID: {result.call_id}</div>
-        <pre className="text-sm mt-1 bg-secondary p-2 border rounded">
+        <pre className="text-sm mt-1 bg-secondary p-2 border rounded scroll overflow-x-scroll">
           {result.content}
         </pre>
       </div>

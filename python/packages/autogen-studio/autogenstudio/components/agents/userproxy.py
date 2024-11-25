@@ -15,13 +15,11 @@ class UserProxyAgent(BaseChatAgent):
         self,
         name: str,
         description: Optional[str] = "a",
-        input_func: Optional[Union[Callable[..., str],
-                                   Callable[..., Awaitable[str]]]] = None
+        input_func: Optional[Union[Callable[..., str], Callable[..., Awaitable[str]]]] = None,
     ) -> None:
         super().__init__(name, description=description)
         self.input_func = input_func or input
-        self._is_async = iscoroutinefunction(
-            input_func) if input_func else False
+        self._is_async = iscoroutinefunction(input_func) if input_func else False
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
@@ -35,7 +33,6 @@ class UserProxyAgent(BaseChatAgent):
             return await asyncio.get_event_loop().run_in_executor(None, self.input_func, prompt)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-
         try:
             user_input = await self._get_input("Enter your response: ")
             return Response(chat_message=TextMessage(content=user_input, source=self.name))

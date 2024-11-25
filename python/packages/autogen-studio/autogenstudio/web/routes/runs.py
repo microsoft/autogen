@@ -22,9 +22,7 @@ async def create_run(
 ) -> Dict:
     """Create a new run with initial state"""
     session_response = db.get(
-        Session,
-        filters={"id": request.session_id, "user_id": request.user_id},
-        return_json=False
+        Session, filters={"id": request.session_id, "user_id": request.user_id}, return_json=False
     )
     if not session_response.status or not session_response.data:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -36,14 +34,11 @@ async def create_run(
                 session_id=request.session_id,
                 status=RunStatus.CREATED,
                 task=None,  # Will be set when run starts
-                team_result=None
+                team_result=None,
             ),
-            return_json=False
+            return_json=False,
         )
-        return {
-            "status": run.status,
-            "data": {"run_id": str(run.data.id)}
-        }
+        return {"status": run.status, "data": {"run_id": str(run.data.id)}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -61,13 +56,11 @@ async def start_run(
         message.config = MessageConfig(**message.config)
 
     # Get session and team
-    session = db.get(Session, filters={
-                     "id": message.session_id}, return_json=False)
+    session = db.get(Session, filters={"id": message.session_id}, return_json=False)
     if not session.status or not session.data:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    team = db.get(
-        Team, filters={"id": session.data[0].team_id}, return_json=False)
+    team = db.get(Team, filters={"id": session.data[0].team_id}, return_json=False)
     if not team.status or not team.data:
         raise HTTPException(status_code=404, detail="Team not found")
 
@@ -83,55 +76,30 @@ async def start_run(
         db.upsert(run)
 
         # Start stream
-        await ws_manager.start_stream(
-            run_id,
-            team_manager,
-            message.config.content,
-            team.data[0].config
-        )
+        await ws_manager.start_stream(run_id, team_manager, message.config.content, team.data[0].config)
 
-        return {
-            "status": True,
-            "message": "Stream started successfully",
-            "data": {"run_id": str(run_id)}
-        }
+        return {"status": True, "message": "Stream started successfully", "data": {"run_id": str(run_id)}}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # We might want to add these endpoints:
 
 
 @router.get("/{run_id}")
-async def get_run(
-    run_id: UUID,
-    db=Depends(get_db)
-) -> Dict:
+async def get_run(run_id: UUID, db=Depends(get_db)) -> Dict:
     """Get run details including task and result"""
     run = db.get(Run, filters={"id": run_id}, return_json=False)
     if not run.status or not run.data:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    return {
-        "status": True,
-        "data": run.data[0]
-    }
+    return {"status": True, "data": run.data[0]}
 
 
 @router.get("/{run_id}/messages")
-async def get_run_messages(
-    run_id: UUID,
-    db=Depends(get_db)
-) -> Dict:
+async def get_run_messages(run_id: UUID, db=Depends(get_db)) -> Dict:
     """Get all messages for a run"""
-    messages = db.get(
-        Message,
-        filters={"run_id": run_id},
-        order="created_at asc",
-        return_json=False
-    )
+    messages = db.get(Message, filters={"run_id": run_id}, order="created_at asc", return_json=False)
 
-    return {
-        "status": True,
-        "data": messages.data
-    }
+    return {"status": True, "data": messages.data}

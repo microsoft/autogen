@@ -28,22 +28,17 @@ class WebSocketManager:
 
         self._cancel_message = TeamResult(
             task_result=TaskResult(
-                messages=[TextMessage(
-                    source="user", content="Run cancelled by user")],
-                stop_reason="cancelled by user"
+                messages=[TextMessage(source="user", content="Run cancelled by user")], stop_reason="cancelled by user"
             ),
             usage="",
-            duration=0
+            duration=0,
         ).model_dump()
 
     def _get_stop_message(self, reason: str) -> dict:
         return TeamResult(
-            task_result=TaskResult(
-                messages=[TextMessage(source="user", content=reason)],
-                stop_reason=reason
-            ),
+            task_result=TaskResult(messages=[TextMessage(source="user", content=reason)], stop_reason=reason),
             usage="",
-            duration=0
+            duration=0,
         ).model_dump()
 
     async def connect(self, websocket: WebSocket, run_id: UUID) -> bool:
@@ -59,24 +54,16 @@ class WebSocketManager:
                 run.status = RunStatus.ACTIVE
                 self.db_manager.upsert(run)
 
-            await self._send_message(run_id, {
-                "type": "system",
-                "status": "connected",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            await self._send_message(
+                run_id, {"type": "system", "status": "connected", "timestamp": datetime.now(timezone.utc).isoformat()}
+            )
 
             return True
         except Exception as e:
             logger.error(f"Connection error for run {run_id}: {e}")
             return False
 
-    async def start_stream(
-        self,
-        run_id: UUID,
-        team_manager: TeamManager,
-        task: str,
-        team_config: dict
-    ) -> None:
+    async def start_stream(self, run_id: UUID, team_manager: TeamManager, task: str, team_config: dict) -> None:
         """Start streaming task execution with proper run management"""
         if run_id not in self._connections or run_id in self._closed_connections:
             raise ValueError(f"No active connection for run {run_id}")
@@ -89,22 +76,17 @@ class WebSocketManager:
             # Update run with task and status
             run = await self._get_run(run_id)
             if run:
-                run.task = MessageConfig(
-                    content=task, source="user").model_dump()
+                run.task = MessageConfig(content=task, source="user").model_dump()
                 run.status = RunStatus.ACTIVE
                 self.db_manager.upsert(run)
 
             input_func = self.create_input_func(run_id)
 
             async for message in team_manager.run_stream(
-                task=task,
-                team_config=team_config,
-                input_func=input_func,
-                cancellation_token=cancellation_token
+                task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
             ):
                 if cancellation_token.is_cancelled() or run_id in self._closed_connections:
-                    logger.info(
-                        f"Stream cancelled or connection closed for run {run_id}")
+                    logger.info(f"Stream cancelled or connection closed for run {run_id}")
                     break
 
                 formatted_message = self._format_message(message)
@@ -122,16 +104,18 @@ class WebSocketManager:
                 if final_result:
                     await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result)
                 else:
-                    logger.warning(
-                        f"No final result captured for completed run {run_id}")
+                    logger.warning(f"No final result captured for completed run {run_id}")
                     await self._update_run_status(run_id, RunStatus.COMPLETE)
             else:
-                await self._send_message(run_id, {
-                    "type": "completion",
-                    "status": "cancelled",
-                    "data": self._cancel_message,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                })
+                await self._send_message(
+                    run_id,
+                    {
+                        "type": "completion",
+                        "status": "cancelled",
+                        "data": self._cancel_message,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 # Update run with cancellation result
                 await self._update_run(run_id, RunStatus.STOPPED, team_result=self._cancel_message)
 
@@ -149,16 +133,12 @@ class WebSocketManager:
                 session_id=run.session_id,
                 run_id=run_id,
                 config=message.model_dump(),
-                user_id=None  # You might want to pass this from somewhere
+                user_id=None,  # You might want to pass this from somewhere
             )
             self.db_manager.upsert(db_message)
 
     async def _update_run(
-        self,
-        run_id: UUID,
-        status: RunStatus,
-        team_result: Optional[dict] = None,
-        error: Optional[str] = None
+        self, run_id: UUID, status: RunStatus, team_result: Optional[dict] = None, error: Optional[str] = None
     ) -> None:
         """Update run status and result"""
         run = await self._get_run(run_id)
@@ -172,19 +152,19 @@ class WebSocketManager:
 
     def create_input_func(self, run_id: UUID) -> Callable:
         """Creates an input function for a specific run"""
+
         async def input_handler(prompt: str = "") -> str:
             try:
-
                 # Send input request to client
-                await self._send_message(run_id, {
-                    "type": "input_request",
-                    "prompt": prompt,
-                    "data": {
-                        "source": "system",
-                        "content": prompt
+                await self._send_message(
+                    run_id,
+                    {
+                        "type": "input_request",
+                        "prompt": prompt,
+                        "data": {"source": "system", "content": prompt},
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                })
+                )
 
                 # Wait for response
                 if run_id in self._input_responses:
@@ -204,8 +184,7 @@ class WebSocketManager:
         if run_id in self._input_responses:
             await self._input_responses[run_id].put(response)
         else:
-            logger.warning(
-                f"Received input response for inactive run {run_id}")
+            logger.warning(f"Received input response for inactive run {run_id}")
 
     async def stop_run(self, run_id: UUID, reason: str) -> None:
         if run_id in self._cancellation_tokens:
@@ -215,20 +194,19 @@ class WebSocketManager:
 
             try:
                 # Update run record first
-                await self._update_run(
-                    run_id,
-                    status=RunStatus.STOPPED,
-                    team_result=stop_message
-                )
+                await self._update_run(run_id, status=RunStatus.STOPPED, team_result=stop_message)
 
                 # Then handle websocket communication if connection is active
                 if run_id in self._connections and run_id not in self._closed_connections:
-                    await self._send_message(run_id, {
-                        "type": "completion",
-                        "status": "cancelled",
-                        "data": stop_message,
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
+                    await self._send_message(
+                        run_id,
+                        {
+                            "type": "completion",
+                            "status": "cancelled",
+                            "data": stop_message,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                    )
 
                 # Finally cancel the token
                 self._cancellation_tokens[run_id].cancel()
@@ -261,8 +239,7 @@ class WebSocketManager:
             message: Message dictionary to send
         """
         if run_id in self._closed_connections:
-            logger.warning(
-                f"Attempted to send message to closed connection for run {run_id}")
+            logger.warning(f"Attempted to send message to closed connection for run {run_id}")
             return
 
         try:
@@ -270,12 +247,10 @@ class WebSocketManager:
                 websocket = self._connections[run_id]
                 await websocket.send_json(message)
         except WebSocketDisconnect:
-            logger.warning(
-                f"WebSocket disconnected while sending message for run {run_id}")
+            logger.warning(f"WebSocket disconnected while sending message for run {run_id}")
             await self.disconnect(run_id)
         except Exception as e:
-            logger.error(
-                f"Error sending message for run {run_id}: {e}, {message}")
+            logger.error(f"Error sending message for run {run_id}: {e}, {message}")
             # Don't try to send error message here to avoid potential recursive loop
             await self._update_run_status(run_id, RunStatus.ERROR, str(e))
             await self.disconnect(run_id)
@@ -285,27 +260,23 @@ class WebSocketManager:
         if run_id not in self._closed_connections:
             error_result = TeamResult(
                 task_result=TaskResult(
-                    messages=[TextMessage(
-                        source="system", content=str(error))],
-                    stop_reason="error"
+                    messages=[TextMessage(source="system", content=str(error))], stop_reason="error"
                 ),
                 usage="",
-                duration=0
+                duration=0,
             ).model_dump()
 
-            await self._send_message(run_id, {
-                "type": "completion",
-                "status": "error",
-                "data": error_result,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-
-            await self._update_run(
+            await self._send_message(
                 run_id,
-                RunStatus.ERROR,
-                team_result=error_result,
-                error=str(error)
+                {
+                    "type": "completion",
+                    "status": "error",
+                    "data": error_result,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
             )
+
+            await self._update_run(run_id, RunStatus.ERROR, team_result=error_result, error=str(error))
 
     def _format_message(self, message: Any) -> Optional[dict]:
         """Format message for WebSocket transmission
@@ -318,10 +289,7 @@ class WebSocketManager:
         """
         try:
             if isinstance(message, (AgentMessage, ChatMessage)):
-                return {
-                    "type": "message",
-                    "data": message.model_dump()
-                }
+                return {"type": "message", "data": message.model_dump()}
             elif isinstance(message, TeamResult):
                 return {
                     "type": "result",
@@ -342,16 +310,10 @@ class WebSocketManager:
         Returns:
             Optional[Run]: Run object if found, None otherwise
         """
-        response = self.db_manager.get(
-            Run, filters={"id": run_id}, return_json=False)
+        response = self.db_manager.get(Run, filters={"id": run_id}, return_json=False)
         return response.data[0] if response.status and response.data else None
 
-    async def _update_run_status(
-        self,
-        run_id: UUID,
-        status: RunStatus,
-        error: Optional[str] = None
-    ) -> None:
+    async def _update_run_status(self, run_id: UUID, status: RunStatus, error: Optional[str] = None) -> None:
         """Update run status in database
 
         Args:
@@ -367,8 +329,7 @@ class WebSocketManager:
 
     async def cleanup(self) -> None:
         """Clean up all active connections and resources when server is shutting down"""
-        logger.info(
-            f"Cleaning up {len(self.active_connections)} active connections")
+        logger.info(f"Cleaning up {len(self.active_connections)} active connections")
 
         try:
             # First cancel all running tasks
@@ -379,14 +340,11 @@ class WebSocketManager:
                 if run and run.status == RunStatus.ACTIVE:
                     interrupted_result = TeamResult(
                         task_result=TaskResult(
-                            messages=[TextMessage(
-                                source="system",
-                                content="Run interrupted by server shutdown"
-                            )],
-                            stop_reason="server_shutdown"
+                            messages=[TextMessage(source="system", content="Run interrupted by server shutdown")],
+                            stop_reason="server_shutdown",
                         ),
                         usage="",
-                        duration=0
+                        duration=0,
                     ).model_dump()
 
                     run.status = RunStatus.STOPPED

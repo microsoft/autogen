@@ -20,7 +20,7 @@ async def run_websocket(
     run_id: UUID,
     ws_manager: WebSocketManager = Depends(get_websocket_manager),
     db=Depends(get_db),
-    team_manager=Depends(get_team_manager)
+    team_manager=Depends(get_team_manager),
 ):
     """WebSocket endpoint for run communication"""
     # Verify run exists and is in valid state
@@ -50,16 +50,12 @@ async def run_websocket(
 
                 if message.get("type") == "stop":
                     print(f"Received stop request for run {run_id}")
-                    reason = message.get(
-                        "reason") or "User requested stop/cancellation"
+                    reason = message.get("reason") or "User requested stop/cancellation"
                     await ws_manager.stop_run(run_id, reason=reason)
                     break
 
                 elif message.get("type") == "ping":
-                    await websocket.send_json({
-                        "type": "pong",
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.utcnow().isoformat()})
 
                 elif message.get("type") == "input_response":
                     # Handle input response from client
@@ -67,16 +63,13 @@ async def run_websocket(
                     if response is not None:
                         await ws_manager.handle_input_response(run_id, response)
                     else:
-                        logger.warning(
-                            f"Invalid input response format for run {run_id}")
+                        logger.warning(f"Invalid input response format for run {run_id}")
 
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON received: {raw_message}")
-                await websocket.send_json({
-                    "type": "error",
-                    "error": "Invalid message format",
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                await websocket.send_json(
+                    {"type": "error", "error": "Invalid message format", "timestamp": datetime.utcnow().isoformat()}
+                )
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for run {run_id}")

@@ -8,9 +8,10 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from alembic.autogenerate import compare_metadata
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 from sqlmodel import SQLModel
 from alembic.util.exc import CommandError
+import sqlmodel
 
 
 class SchemaManager:
@@ -37,8 +38,8 @@ class SchemaManager:
 
         self.engine = engine
         self.base_dir = base_dir or Path(__file__).parent
-        self.alembic_dir = self.base_dir / 'alembic'
-        self.alembic_ini_path = self.base_dir / 'alembic.ini'
+        self.alembic_dir = self.base_dir / "alembic"
+        self.alembic_ini_path = self.base_dir / "alembic.ini"
 
     def initialize_migrations(self, force: bool = False) -> bool:
         try:
@@ -71,11 +72,11 @@ class SchemaManager:
 
         # Update alembic.ini
         config_content = self._generate_alembic_ini_content()
-        with open(self.alembic_ini_path, 'w') as f:
+        with open(self.alembic_ini_path, "w") as f:
             f.write(config_content)
 
         # Update env.py
-        env_path = self.alembic_dir / 'env.py'
+        env_path = self.alembic_dir / "env.py"
         if env_path.exists():
             self._update_env_py(env_path)
         else:
@@ -91,6 +92,7 @@ class SchemaManager:
         # Remove entire alembic directory if it exists
         if self.alembic_dir.exists():
             import shutil
+
             shutil.rmtree(self.alembic_dir)
             logger.info(f"Removed alembic directory: {self.alembic_dir}")
 
@@ -109,15 +111,13 @@ class SchemaManager:
         try:
             self._validate_alembic_setup()
             if force:
-                logger.info(
-                    "Force initialization requested. Cleaning up existing configuration...")
+                logger.info("Force initialization requested. Cleaning up existing configuration...")
                 self._cleanup_existing_alembic()
                 self._initialize_alembic()
         except FileNotFoundError:
             logger.info("Alembic configuration not found. Initializing...")
             if self.alembic_dir.exists():
-                logger.warning(
-                    "Found existing alembic directory but missing configuration")
+                logger.warning("Found existing alembic directory but missing configuration")
                 self._cleanup_existing_alembic()
             self._initialize_alembic()
             logger.info("Alembic initialization complete")
@@ -133,15 +133,18 @@ class SchemaManager:
 
             # Create initial config file for alembic init
             config_content = self._generate_alembic_ini_content()
-            with open(self.alembic_ini_path, 'w') as f:
+            with open(self.alembic_ini_path, "w") as f:
                 f.write(config_content)
 
             # Use the config we just created
             config = Config(str(self.alembic_ini_path))
             command.init(config, str(self.alembic_dir))
 
+            # Update script template after initialization
+            self.update_script_template()
+
             # Update env.py with our customizations
-            self._update_env_py(self.alembic_dir / 'env.py')
+            self._update_env_py(self.alembic_dir / "env.py")
 
             logger.info("Alembic initialization complete")
             return True
@@ -153,7 +156,7 @@ class SchemaManager:
 
     def _create_minimal_env_py(self, env_path: Path) -> None:
         """Creates a minimal env.py file for Alembic."""
-        content = '''
+        content = """
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -196,9 +199,9 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()'''
+    run_migrations_online()"""
 
-        with open(env_path, 'w') as f:
+        with open(env_path, "w") as f:
             f.write(content)
 
     def _generate_alembic_ini_content(self) -> str:
@@ -245,6 +248,29 @@ format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
 """.strip()
 
+    def update_script_template(self):
+        """Update the Alembic script template to include SQLModel."""
+        template_path = self.alembic_dir / "script.py.mako"
+        try:
+            with open(template_path, "r") as f:
+                content = f.read()
+
+            # Add sqlmodel import to imports section
+            import_section = "from alembic import op\nimport sqlalchemy as sa"
+            new_imports = "from alembic import op\nimport sqlalchemy as sa\nimport sqlmodel"
+
+            content = content.replace(import_section, new_imports)
+
+            with open(template_path, "w") as f:
+                f.write(content)
+
+            logger.info("Updated script template")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to update script template: {e}")
+            return False
+
     def _update_env_py(self, env_path: Path) -> None:
         """
         Updates the env.py file to use SQLModel metadata.
@@ -253,27 +279,45 @@ datefmt = %H:%M:%S
             self._create_minimal_env_py(env_path)
             return
         try:
-            with open(env_path, 'r') as f:
+            with open(env_path, "r") as f:
                 content = f.read()
 
-            # Add SQLModel import
+            # Add SQLModel import if not present
             if "from sqlmodel import SQLModel" not in content:
                 content = "from sqlmodel import SQLModel\n" + content
 
             # Replace target_metadata
+            content = content.replace("target_metadata = None", "target_metadata = SQLModel.metadata")
+
+            # Update both configure blocks properly
             content = content.replace(
-                "target_metadata = None",
-                "target_metadata = SQLModel.metadata"
+                """context.configure(
+            url=url,
+            target_metadata=target_metadata,
+            literal_binds=True,
+            dialect_opts={"paramstyle": "named"},
+        )""",
+                """context.configure(
+            url=url,
+            target_metadata=target_metadata,
+            literal_binds=True,
+            dialect_opts={"paramstyle": "named"},
+            compare_type=True,
+        )""",
             )
 
-            # Add compare_type=True to context.configure
-            if "context.configure(" in content and "compare_type=True" not in content:
-                content = content.replace(
-                    "context.configure(",
-                    "context.configure(compare_type=True,"
-                )
+            content = content.replace(
+                """        context.configure(
+                connection=connection, target_metadata=target_metadata
+            )""",
+                """        context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                compare_type=True,
+            )""",
+            )
 
-            with open(env_path, 'w') as f:
+            with open(env_path, "w") as f:
                 f.write(content)
 
             logger.info("Updated env.py with SQLModel metadata")
@@ -282,6 +326,7 @@ datefmt = %H:%M:%S
             raise
 
     # Fixed: use keyword-only argument
+
     def _ensure_alembic_setup(self, *, force: bool = False) -> None:
         """
         Ensures Alembic is properly set up, initializing if necessary.
@@ -292,32 +337,24 @@ datefmt = %H:%M:%S
         try:
             self._validate_alembic_setup()
             if force:
-                logger.info(
-                    "Force initialization requested. Cleaning up existing configuration...")
+                logger.info("Force initialization requested. Cleaning up existing configuration...")
                 self._cleanup_existing_alembic()
                 self._initialize_alembic()
         except FileNotFoundError:
             logger.info("Alembic configuration not found. Initializing...")
             if self.alembic_dir.exists():
-                logger.warning(
-                    "Found existing alembic directory but missing configuration")
+                logger.warning("Found existing alembic directory but missing configuration")
                 self._cleanup_existing_alembic()
             self._initialize_alembic()
             logger.info("Alembic initialization complete")
 
     def _validate_alembic_setup(self) -> None:
         """Validates that Alembic is properly configured."""
-        required_files = [
-            self.alembic_ini_path,
-            self.alembic_dir / 'env.py',
-            self.alembic_dir / 'versions'
-        ]
+        required_files = [self.alembic_ini_path, self.alembic_dir / "env.py", self.alembic_dir / "versions"]
 
         missing = [f for f in required_files if not f.exists()]
         if missing:
-            raise FileNotFoundError(
-                f"Alembic configuration incomplete. Missing: {', '.join(str(f) for f in missing)}"
-            )
+            raise FileNotFoundError(f"Alembic configuration incomplete. Missing: {', '.join(str(f) for f in missing)}")
 
     def get_alembic_config(self) -> Config:
         """
@@ -415,7 +452,7 @@ datefmt = %H:%M:%S
 
     def check_and_upgrade(self) -> Tuple[bool, str]:
         """
-        Checks schema status and upgrades if necessary (and auto_upgrade is True).
+        Checks schema status and upgrades if necessary.
 
         Returns:
             Tuple[bool, str]: (action_taken, status_message)
@@ -423,13 +460,11 @@ datefmt = %H:%M:%S
         needs_upgrade, status = self.check_schema_status()
 
         if needs_upgrade:
-            if self.auto_upgrade:
-                if self.upgrade_schema():
-                    return True, "Schema was automatically upgraded"
-                else:
-                    return False, "Automatic schema upgrade failed"
+            # Remove the auto_upgrade check since we explicitly called this method
+            if self.upgrade_schema():
+                return True, "Schema was automatically upgraded"
             else:
-                return False, f"Schema needs upgrade but auto_upgrade is disabled. Status: {status}"
+                return False, "Automatic schema upgrade failed"
 
         return False, status
 
@@ -445,11 +480,7 @@ datefmt = %H:%M:%S
         """
         try:
             config = self.get_alembic_config()
-            command.revision(
-                config,
-                message=message,
-                autogenerate=True
-            )
+            command.revision(config, message=message, autogenerate=True)
             return self.get_head_revision()
 
         except Exception as e:
@@ -497,25 +528,39 @@ datefmt = %H:%M:%S
 
     def ensure_schema_up_to_date(self) -> bool:
         """
-        Ensures the database schema is up to date, generating and applying migrations if needed.
-
-        Returns:
-            bool: True if schema is up to date or was successfully updated
+        Reset migrations and create fresh migration for current schema state.
         """
         try:
-            # Check for unmigrated changes
-            differences = self.get_schema_differences()
-            if differences:
-                # Generate new migration
-                revision = self.generate_revision("auto-generated")
-                if not revision:
-                    return False
-                logger.info(f"Generated new migration: {revision}")
+            logger.info("Resetting migrations and updating to current schema...")
 
-            # Apply any pending migrations
-            upgraded, status = self.check_and_upgrade()
-            if not upgraded and "needs upgrade" in status.lower():
+            # 1. Clear the entire alembic directory
+            if self.alembic_dir.exists():
+                shutil.rmtree(self.alembic_dir)
+                logger.info("Cleared alembic directory")
+
+            # 2. Clear alembic_version table
+            with self.engine.connect() as connection:
+                connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+                connection.commit()
+                logger.info("Reset alembic version")
+
+            # 3. Reinitialize alembic from scratch
+            if not self._initialize_alembic():
+                logger.error("Failed to reinitialize alembic")
                 return False
+
+            # 4. Generate fresh migration from current schema
+            revision = self.generate_revision("current_schema")
+            if not revision:
+                logger.error("Failed to generate new migration")
+                return False
+            logger.info(f"Generated fresh migration: {revision}")
+
+            # 5. Apply the migration
+            if not self.upgrade_schema():
+                logger.error("Failed to apply migration")
+                return False
+            logger.info("Successfully applied migration")
 
             return True
 

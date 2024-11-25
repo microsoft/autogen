@@ -69,3 +69,14 @@ filterwarnings = [
 
 [project.scripts]
 autogenstudio = "autogenstudio.cli:run"
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist"]
+include = [
+    "autogenstudio/**"
+]
+
+[tool.poe]
+include = "../../shared_tasks.toml"

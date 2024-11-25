@@ -441,6 +441,10 @@ export default function ChatView() {
           ref={chatContainerRef}
           className="flex-1 overflow-y-auto scroll mt-2 relative min-h-0"
         >
+          <div id="scroll-gradient" className="scroll-gradient h-8">
+            {" "}
+            <span className="  inline-block h-6"></span>{" "}
+          </div>
           {sessions !== null && sessions?.length === 0 ? (
             <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
               <div className="mt-4 text-sm text-secondary text-center">

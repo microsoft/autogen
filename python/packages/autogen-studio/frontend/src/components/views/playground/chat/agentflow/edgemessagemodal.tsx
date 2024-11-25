@@ -73,7 +73,7 @@ export const EdgeMessageModal: React.FC<EdgeMessageModalProps> = ({
       width={800}
       footer={null}
     >
-      <div className="max-h-[70vh] overflow-y-auto space-y-4 scroll">
+      <div className="max-h-[70vh] overflow-y-auto space-y-4 scroll pr-2">
         <Search
           placeholder="Search message content..."
           value={searchTerm}
@@ -82,7 +82,7 @@ export const EdgeMessageModal: React.FC<EdgeMessageModalProps> = ({
           className="sticky top-0 z-10"
         />
 
-        <div className="space-y-4 pr-2">
+        <div className="space-y-4 ">
           {filteredMessages.map((msg, idx) => (
             <RenderMessage
               key={idx}

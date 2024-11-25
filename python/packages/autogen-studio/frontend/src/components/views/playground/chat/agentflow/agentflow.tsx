@@ -551,7 +551,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
       ref={flowWrapper}
       className={`transition-all duration-200 ${
         isFullscreen
-          ? "fixed inset-4 z-[9999] shadow"
+          ? "fixed inset-4 z-[50] shadow"
           : "w-full h-full min-h-[300px]"
       } bg-tertiary rounded-lg`}
     >
